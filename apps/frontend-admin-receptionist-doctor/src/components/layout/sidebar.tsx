@@ -16,14 +16,12 @@ type SidebarProps = {
 
 export function Sidebar({ title, items, pathname }: SidebarProps) {
   return (
-    <aside className="flex w-64 shrink-0 flex-col border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
-      <div className="border-b border-zinc-200 px-6 py-5 dark:border-zinc-800">
-        <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+    <aside className="flex w-64 shrink-0 flex-col bg-brand-dark text-white">
+      <div className="border-b border-white/10 px-6 py-5">
+        <p className="text-xs font-medium uppercase tracking-wide text-white/60">
           {siteConfig.name}
         </p>
-        <h2 className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-          {title}
-        </h2>
+        <h2 className="mt-1 text-lg font-semibold text-white">{title}</h2>
       </div>
       <nav className="flex flex-1 flex-col gap-1 p-4">
         {items.map((item) => {
@@ -37,8 +35,8 @@ export function Sidebar({ title, items, pathname }: SidebarProps) {
               className={cn(
                 "rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                 isActive
-                  ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-900 dark:text-zinc-50"
-                  : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-50",
+                  ? "bg-brand text-white"
+                  : "text-white/75 hover:bg-white/10 hover:text-white",
               )}
             >
               {item.label}
@@ -46,10 +44,10 @@ export function Sidebar({ title, items, pathname }: SidebarProps) {
           );
         })}
       </nav>
-      <div className="border-t border-zinc-200 p-4 dark:border-zinc-800">
+      <div className="border-t border-white/10 p-4">
         <Link
           href={ROUTES.LOGIN}
-          className="block rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-50"
+          className="block rounded-lg px-3 py-2 text-sm font-medium text-white/75 transition-colors hover:bg-white/10 hover:text-white"
         >
           Đăng xuất
         </Link>

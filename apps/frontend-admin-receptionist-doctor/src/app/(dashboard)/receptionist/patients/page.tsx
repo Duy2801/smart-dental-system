@@ -10,7 +10,7 @@ export default function PatientsPage() {
       <PageShell title="Danh sách bệnh nhân">
         <Link
           href={ROUTES.RECEPTIONIST.PATIENTS_NEW}
-          className="inline-flex rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900"
+          className="inline-flex rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-dark"
         >
           Thêm bệnh nhân
         </Link>

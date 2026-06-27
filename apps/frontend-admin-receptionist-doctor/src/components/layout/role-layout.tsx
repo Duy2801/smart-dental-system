@@ -18,7 +18,7 @@ export function RoleLayout({ title, items, children }: RoleLayoutProps) {
   const pathname = usePathname();
 
   return (
-    <div className="flex min-h-screen bg-zinc-50 dark:bg-black">
+    <div className="flex min-h-screen bg-muted">
       <Sidebar title={title} items={items} pathname={pathname} />
       <div className="flex min-w-0 flex-1 flex-col">
         <main className="flex-1">{children}</main>

@@ -15,7 +15,7 @@ export default async function DoctorPatientDetailPage({ params }: Props) {
       <PageShell title={`Bệnh nhân #${id}`}>
         <Link
           href={`/doctor/patients/${id}/records`}
-          className="inline-flex rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-900"
+          className="inline-flex rounded-lg border border-brand px-4 py-2 text-sm font-medium text-brand transition-colors hover:bg-brand-light"
         >
           Xem hồ sơ điều trị
         </Link>
