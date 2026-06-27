@@ -14,6 +14,16 @@ type SidebarProps = {
   pathname: string;
 };
 
+/** Route gốc dashboard chỉ active khi pathname khớp chính xác (tránh /admin/* làm sáng "Tổng quan"). */
+function isNavItemActive(pathname: string, href: string) {
+  if (pathname === href) return true;
+
+  const exactOnlyRoots = ["/admin", "/receptionist", "/doctor"];
+  if (exactOnlyRoots.includes(href)) return false;
+
+  return pathname.startsWith(`${href}/`);
+}
+
 export function Sidebar({ title, items, pathname }: SidebarProps) {
   return (
     <aside className="flex w-64 shrink-0 flex-col bg-brand-dark text-white">
@@ -25,8 +35,7 @@ export function Sidebar({ title, items, pathname }: SidebarProps) {
       </div>
       <nav className="flex flex-1 flex-col gap-1 p-4">
         {items.map((item) => {
-          const isActive =
-            pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const isActive = isNavItemActive(pathname, item.href);
 
           return (
             <Link
