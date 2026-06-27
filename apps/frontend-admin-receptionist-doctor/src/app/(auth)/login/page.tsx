@@ -117,13 +117,13 @@ export default function LoginPage() {
       </div>
 
       {/* Cột 2: Hình ảnh minh họa */}
-      <div className="relative hidden w-full bg-brand-light lg:block lg:w-[55%]">
+      <div className="relative hidden w-full overflow-hidden bg-brand-light lg:block lg:w-[55%]">
         <Image
-          src="/dental-hero.png"
+          src="/dental-hero-v2.png"
           alt="Không gian phòng khám nha khoa hiện đại"
           fill
           priority
-          className="object-cover"
+          className="scale-[1.05] object-cover"
         />
         <div className="absolute inset-0 bg-brand-dark/10 mix-blend-multiply" />
       </div>
