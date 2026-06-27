@@ -1,11 +1,11 @@
 import { Header } from "@/src/components/layout/header";
-import { PageShell } from "@/src/components/shared/page-shell";
+import { SettingsPageContent } from "@/src/components/admin/settings-page-content";
 
 export default function AdminSettingsPage() {
   return (
     <>
-      <Header title="Cài đặt" description="Cấu hình hệ thống phòng khám" />
-      <PageShell title="Cài đặt chung" />
+      <Header title="Cài đặt hệ thống" description="Giờ làm việc, ngày nghỉ lễ, mẫu thông báo phòng khám" />
+      <SettingsPageContent />
     </>
   );
 }

@@ -2,10 +2,14 @@ import { ROUTES } from "@/src/constants/routes";
 
 export const adminNavItems = [
   { label: "Tổng quan", href: ROUTES.ADMIN.ROOT },
-  { label: "Người dùng", href: ROUTES.ADMIN.USERS },
-  { label: "Bác sĩ", href: ROUTES.ADMIN.DOCTORS },
-  { label: "Dịch vụ", href: ROUTES.ADMIN.SERVICES },
+  { label: "Nhân sự", href: ROUTES.ADMIN.USERS },
+  { label: "Lịch làm việc", href: ROUTES.ADMIN.SCHEDULES },
+  { label: "Dịch vụ & Giá", href: ROUTES.ADMIN.SERVICES },
+  { label: "Khuyến mãi", href: ROUTES.ADMIN.PROMOTIONS },
+  { label: "Tài chính", href: ROUTES.ADMIN.FINANCE },
   { label: "Báo cáo", href: ROUTES.ADMIN.REPORTS },
+  { label: "Đánh giá", href: ROUTES.ADMIN.REVIEWS },
+  { label: "Marketing", href: ROUTES.ADMIN.MARKETING },
   { label: "Cài đặt", href: ROUTES.ADMIN.SETTINGS },
 ];
 

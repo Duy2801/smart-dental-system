@@ -4,9 +4,14 @@ export const ROUTES = {
   ADMIN: {
     ROOT: "/admin",
     USERS: "/admin/users",
+    SCHEDULES: "/admin/schedules",
     DOCTORS: "/admin/doctors",
     SERVICES: "/admin/services",
+    PROMOTIONS: "/admin/promotions",
+    FINANCE: "/admin/finance",
     REPORTS: "/admin/reports",
+    REVIEWS: "/admin/reviews",
+    MARKETING: "/admin/marketing",
     SETTINGS: "/admin/settings",
   },
   RECEPTIONIST: {
