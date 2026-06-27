@@ -37,3 +37,9 @@ yarn-error.log*
 .DS_Store
 *.pem
 /docs/
+
+# Taste Skill / AI skills (local only, không push lên GitHub)
+.agents/
+skills-lock.json
+.cursor/skills/design-taste-frontend/
+.cursor/skills/design-taste-frontend-v1/

@@ -1,0 +1,22 @@
+export const APPOINTMENT_STATUS = {
+  PENDING: "PENDING",
+  CONFIRMED: "CONFIRMED",
+  CHECKED_IN: "CHECKED_IN",
+  IN_PROGRESS: "IN_PROGRESS",
+  COMPLETED: "COMPLETED",
+  CANCELLED: "CANCELLED",
+  NO_SHOW: "NO_SHOW",
+} as const;
+
+export type AppointmentStatus =
+  (typeof APPOINTMENT_STATUS)[keyof typeof APPOINTMENT_STATUS];
+
+export const APPOINTMENT_STATUS_LABELS: Record<AppointmentStatus, string> = {
+  [APPOINTMENT_STATUS.PENDING]: "Chờ xác nhận",
+  [APPOINTMENT_STATUS.CONFIRMED]: "Đã xác nhận",
+  [APPOINTMENT_STATUS.CHECKED_IN]: "Đã check-in",
+  [APPOINTMENT_STATUS.IN_PROGRESS]: "Đang khám",
+  [APPOINTMENT_STATUS.COMPLETED]: "Hoàn thành",
+  [APPOINTMENT_STATUS.CANCELLED]: "Đã hủy",
+  [APPOINTMENT_STATUS.NO_SHOW]: "Không đến",
+};
