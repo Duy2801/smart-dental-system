@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 
 const SearchIcon = ({ className }: { className?: string }) => (
   <svg className={className} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
@@ -27,10 +28,10 @@ export default function PrescriptionsPage() {
             <h1 className="text-2xl font-semibold text-brand-dark">Đơn thuốc điện tử</h1>
             <p className="mt-1 text-sm text-muted-foreground">Kê đơn, phê duyệt và in đơn thuốc cho bệnh nhân.</p>
           </div>
-          <button className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-dark">
+          <Link href="/doctor/prescriptions/new" className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-dark">
             <PlusIcon className="h-4 w-4" />
             Kê đơn mới
-          </button>
+          </Link>
         </div>
 
         <div className="rounded-xl border border-border bg-white shadow-sm">
