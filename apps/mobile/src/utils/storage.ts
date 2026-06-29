@@ -33,3 +33,10 @@ export const clearItem = async () => {
     console.log(error);
   }
 };
+export const clearAsyns = async () => {
+  try {
+    await AsyncStorage.clear();
+  } catch (error) {
+    console.log(error);
+  }
+};

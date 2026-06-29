@@ -16,16 +16,31 @@ import {
 import { useDispatch } from 'react-redux';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SCREEN_NAME } from '~src/constants/screenName';
-import { AppDispatch } from '~src/reducers/store';
 import { setSession } from '~src/reducers/loginReducer';
-import { apiLogin } from '../api';
-import { getAuthErrorMessage } from '../authError';
-import AuthTextField from '../components/AuthTextField';
-import { saveAuthSession } from '../session';
-import { getSupportedRole } from '../types';
-import { normalizeEmail, validateLogin } from '../validation';
+import { AppDispatch } from '~src/reducers/store';
+import { getHomeRoute, getLoginRoute } from '~src/routes/roleRoutes';
+import { apiLogin } from '../../api';
+import { getAuthErrorMessage } from '../../authError';
+import AuthTextField from '../../components/AuthTextField';
+import { saveAuthSession } from '../../session';
+import { UserRole } from '../../types';
+import { normalizeEmail, validateLogin } from '../../validation';
 
-const LoginScreen = () => {
+type LoginFormProps = {
+  role: UserRole;
+  title: string;
+  subtitle: string;
+  accentColor: string;
+  showPatientActions?: boolean;
+};
+
+const LoginForm = ({
+  accentColor,
+  role,
+  showPatientActions = false,
+  subtitle,
+  title,
+}: LoginFormProps) => {
   const navigation = useNavigation<any>();
   const dispatch = useDispatch<AppDispatch>();
   const [email, setEmail] = useState('');
@@ -35,6 +50,7 @@ const LoginScreen = () => {
   >({});
   const [formError, setFormError] = useState('');
   const loginMutation = useMutation({ mutationFn: apiLogin });
+  const isDoctor = role === 'DOCTOR';
 
   const handleLogin = async () => {
     const fieldErrors = validateLogin(email, password);
@@ -47,17 +63,29 @@ const LoginScreen = () => {
         email: normalizeEmail(email),
         password,
       });
-      const role = getSupportedRole(session.user.roles || []);
-      if (!role) {
-        setFormError('Tài khoản không thuộc vai trò bác sĩ hoặc bệnh nhân');
+
+      if (!session.user.roles.includes(role)) {
+        setFormError(
+          isDoctor
+            ? 'Tài khoản này không có quyền truy cập dành cho bác sĩ.'
+            : 'Tài khoản này không có quyền truy cập dành cho bệnh nhân.',
+        );
         return;
       }
+
       await saveAuthSession(session, role);
       dispatch(setSession({ ...session, role }));
-      navigation.reset({ index: 0, routes: [{ name: SCREEN_NAME.HOME }] });
+      navigation.reset({
+        index: 0,
+        routes: [{ name: getHomeRoute(role) }],
+      });
     } catch (error) {
       setFormError(getAuthErrorMessage(error));
     }
+  };
+
+  const switchLoginScreen = () => {
+    navigation.replace(getLoginRoute(isDoctor ? 'PATIENT' : 'DOCTOR'));
   };
 
   return (
@@ -74,26 +102,24 @@ const LoginScreen = () => {
         >
           <View style={styles.screen}>
             <View style={styles.brand}>
-              <View style={styles.brandIcon}>
+              <View style={[styles.brandIcon, { backgroundColor: accentColor }]}>
                 <FontAwesome6
-                  name="tooth"
+                  name={isDoctor ? 'user-doctor' : 'tooth'}
                   size={22}
                   color="#FFFFFF"
                   iconStyle="solid"
                 />
               </View>
-              <Text style={styles.brandName}>Nha Khoa AI</Text>
+              <Text style={[styles.brandName, { color: accentColor }]}> AIsmart Dental System </Text>
             </View>
 
             <View style={styles.heading}>
-              <Text style={styles.title}>Chào mừng trở lại</Text>
-              <Text style={styles.subtitle}>
-                Đăng nhập để tiếp tục chăm sóc nụ cười của bạn
-              </Text>
+              <Text style={styles.title}>{title}</Text>
+              <Text style={styles.subtitle}>{subtitle}</Text>
             </View>
 
             <View style={styles.card}>
-              <Text style={styles.cardTitle}>Đăng nhập</Text>
+              <Text style={[styles.cardTitle, { color: accentColor }]}>Đăng nhập</Text>
               <AuthTextField
                 autoCapitalize="none"
                 autoComplete="email"
@@ -128,9 +154,12 @@ const LoginScreen = () => {
                 value={password}
               />
 
-              <TouchableOpacity style={styles.forgotButton} onPress={() => {}}>
-                <Text style={styles.linkText}>Quên mật khẩu?</Text>
-              </TouchableOpacity>
+              {showPatientActions && (
+                <TouchableOpacity style={styles.forgotButton} onPress={() => { }}>
+                  <Text style={[styles.linkText, { color: accentColor }]}>Quên mật khẩu?</Text>
+                </TouchableOpacity>
+              )}
+
               {!!formError && <Text style={styles.formError}>{formError}</Text>}
 
               <TouchableOpacity
@@ -138,6 +167,7 @@ const LoginScreen = () => {
                 disabled={loginMutation.isPending}
                 style={[
                   styles.primaryButton,
+                  { backgroundColor: accentColor },
                   loginMutation.isPending && styles.buttonDisabled,
                 ]}
                 onPress={handleLogin}
@@ -158,14 +188,34 @@ const LoginScreen = () => {
               </TouchableOpacity>
             </View>
 
-            <View style={styles.registerRow}>
-              <Text style={styles.registerPrompt}>Chưa có tài khoản? </Text>
-              <TouchableOpacity
-                onPress={() => navigation.navigate(SCREEN_NAME.REGISTER)}
-              >
-                <Text style={styles.linkText}>Đăng ký ngay</Text>
-              </TouchableOpacity>
-            </View>
+            {showPatientActions && (
+              <View style={styles.registerRow}>
+                <Text style={styles.registerPrompt}>Chưa có tài khoản? </Text>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate(SCREEN_NAME.REGISTER)}
+                >
+                  <Text style={[styles.linkText, { color: accentColor }]}>Đăng ký ngay</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={switchLoginScreen}
+              style={[styles.switchButton, { borderColor: accentColor }]}
+            >
+              <FontAwesome6
+                color={accentColor}
+                iconStyle="solid"
+                name={isDoctor ? 'user' : 'user-doctor'}
+                size={15}
+              />
+              <Text style={[styles.switchButtonText, { color: accentColor }]}>
+                {isDoctor
+                  ? 'Đăng nhập dành cho bệnh nhân'
+                  : 'Đăng nhập với tư cách bác sĩ'}
+              </Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -191,15 +241,14 @@ const styles = StyleSheet.create({
   },
   brandIcon: {
     alignItems: 'center',
-    backgroundColor: '#0875D1',
     borderRadius: 11,
     height: 42,
     justifyContent: 'center',
     width: 42,
   },
-  brandName: { color: '#0068C9', fontSize: 21, fontWeight: '800' },
+  brandName: { fontSize: 21, fontWeight: '800' },
   heading: { alignItems: 'center', marginBottom: 28, marginTop: 32 },
-  title: { color: '#101828', fontSize: 27, fontWeight: '800' },
+  title: { color: '#101828', fontSize: 27, fontWeight: '800', textAlign: 'center' },
   subtitle: {
     color: '#667085',
     fontSize: 14,
@@ -218,14 +267,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 10,
   },
-  cardTitle: {
-    color: '#0875D1',
-    fontSize: 21,
-    fontWeight: '800',
-    textAlign: 'center',
-  },
+  cardTitle: { fontSize: 21, fontWeight: '800', textAlign: 'center' },
   forgotButton: { alignSelf: 'flex-end', marginTop: -5 },
-  linkText: { color: '#0875D1', fontSize: 13, fontWeight: '700' },
+  linkText: { fontSize: 13, fontWeight: '700' },
   formError: {
     color: '#D92D20',
     fontSize: 13,
@@ -234,7 +278,6 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     alignItems: 'center',
-    backgroundColor: '#0875D1',
     borderRadius: 12,
     elevation: 2,
     flexDirection: 'row',
@@ -248,9 +291,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 26,
+    marginTop: 22,
   },
   registerPrompt: { color: '#667085', fontSize: 13 },
+  switchButton: {
+    alignItems: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 8,
+    height: 50,
+    justifyContent: 'center',
+    marginTop: 18,
+  },
+  switchButtonText: { fontSize: 14, fontWeight: '700' },
 });
 
-export default LoginScreen;
+export default LoginForm;

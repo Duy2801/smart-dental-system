@@ -24,7 +24,7 @@ const OnboardingScreen = () => {
         animated: true,
       });
     } else {
-      navigation.navigate(SCREEN_NAME.LOGIN);
+      navigation.navigate(SCREEN_NAME.PATIENT_LOGIN);
     }
   };
 

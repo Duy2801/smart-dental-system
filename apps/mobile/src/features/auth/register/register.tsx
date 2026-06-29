@@ -216,7 +216,9 @@ const RegisterScreen = () => {
               <View style={styles.loginRow}>
                 <Text style={styles.loginPrompt}>Đã có tài khoản? </Text>
                 <TouchableOpacity
-                  onPress={() => navigation.navigate(SCREEN_NAME.LOGIN)}
+                  onPress={() =>
+                    navigation.navigate(SCREEN_NAME.PATIENT_LOGIN)
+                  }
                 >
                   <Text style={styles.linkText}>Đăng nhập</Text>
                 </TouchableOpacity>

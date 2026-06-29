@@ -5,7 +5,7 @@ import { KEY_STORAGE } from '~src/constants/keyStorage';
 import { getItem } from '~src/utils/storage';
 
 const getApiBaseUrl = () => {
-  const configuredUrl = (Config.BACKEND_URL || 'http://localhost:3000').replace(
+  const configuredUrl = (Config.BACKEND_URL || '').replace(
     /\/$/,
     '',
   );
@@ -31,3 +31,4 @@ api.interceptors.request.use(async config => {
   }
   return config;
 });
+

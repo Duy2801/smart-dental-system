@@ -13,6 +13,7 @@ import {
 import { SCREEN_NAME } from '~src/constants/screenName';
 import { useSelector } from 'react-redux';
 import { RootState } from '~src/reducers/store';
+import { getHomeRoute } from '~src/routes/roleRoutes';
 
 const SplashScreen = () => {
   const navigation = useNavigation<any>();
@@ -37,9 +38,10 @@ const SplashScreen = () => {
     );
     const onboardingTimer = isHydrated
       ? setTimeout(() => {
-          navigation.replace(
-            isAuthenticated ? SCREEN_NAME.HOME : SCREEN_NAME.ONBOARDING,
-          );
+          const nextScreen = isAuthenticated
+            ? getHomeRoute(role!)
+            : SCREEN_NAME.ONBOARDING;
+          navigation.replace(nextScreen);
         }, 2200)
       : undefined;
 
@@ -49,7 +51,7 @@ const SplashScreen = () => {
       if (onboardingTimer) clearTimeout(onboardingTimer);
       loop.stop();
     };
-  }, [isAuthenticated, isHydrated, navigation, progress]);
+  }, [isAuthenticated, isHydrated, navigation, progress, role]);
 
   const runnerTranslateX = progress.interpolate({
     inputRange: [0, 1],

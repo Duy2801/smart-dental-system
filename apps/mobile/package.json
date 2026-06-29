@@ -25,6 +25,7 @@
     "react-native-get-random-values": "^2.0.0",
     "react-native-paper": "^5.15.3",
     "react-native-reanimated": "^4.5.0",
+    "react-native-restart": "^0.0.28",
     "react-native-restart-newarch": "^1.0.85",
     "react-native-safe-area-context": "^5.5.2",
     "react-native-screens": "^4.25.2",
