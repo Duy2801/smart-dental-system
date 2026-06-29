@@ -1,46 +1,49 @@
-import { createSlice } from "@reduxjs/toolkit";
-import { KEY_STORAGE } from "~src/constants/keyStorage";
-import { setItem } from "~src/utils/storage";
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { AuthSession, AuthUser, UserRole } from '~src/features/auth/types';
 
-const initialState = {
-    user: null,
-    accessToken: '',
-    role: '',
-    startDate: null,
-}
+export type LoginState = {
+  user: AuthUser | null;
+  accessToken: string;
+  role: UserRole | null;
+  isHydrated: boolean;
+};
 
-export const loginSlice = createSlice({
-    name: 'login',
-    initialState: initialState,
-    reducers: {
-        login: (state, action) => {
-            setItem(KEY_STORAGE.role, action.payload.role);
-            setItem(KEY_STORAGE.token, action.payload.accessToken);
-            setItem(KEY_STORAGE.user, action.payload.user);
-            return {
-                user: action.payload.user,
-                accessToken: action.payload.accessToken,
-                role: action.payload.role,
-                startDate: action.payload.startDate
-            }
-        },
-        updateStartdate: (state, action) => {
-            setItem(KEY_STORAGE.startDate, action.payload);
-            return {
-                ...state,
-                startDate: action.payload,
-            };
-        },
-        logout: () => {
-            setItem(KEY_STORAGE.token, '');
-            setItem(KEY_STORAGE.user, '');
-            setItem(KEY_STORAGE.role, '');
-            setItem(KEY_STORAGE.startDate, '');
-            return initialState;
-        },
-    }
-})
+const initialState: LoginState = {
+  user: null,
+  accessToken: '',
+  role: null,
+  isHydrated: false,
+};
 
-export const { login, logout } = loginSlice.actions;
+const loginSlice = createSlice({
+  name: 'login',
+  initialState,
+  reducers: {
+    setSession: (
+      state,
+      action: PayloadAction<AuthSession & { role: UserRole }>,
+    ) => {
+      state.user = action.payload.user;
+      state.accessToken = action.payload.accessToken;
+      state.role = action.payload.role;
+      state.isHydrated = true;
+    },
+    hydrateSession: (state, action: PayloadAction<LoginState | null>) => {
+      if (action.payload) {
+        state.user = action.payload.user;
+        state.accessToken = action.payload.accessToken;
+        state.role = action.payload.role;
+      }
+      state.isHydrated = true;
+    },
+    clearSession: state => {
+      state.user = null;
+      state.accessToken = '';
+      state.role = null;
+      state.isHydrated = true;
+    },
+  },
+});
 
+export const { clearSession, hydrateSession, setSession } = loginSlice.actions;
 export default loginSlice.reducer;

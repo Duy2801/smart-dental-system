@@ -69,8 +69,27 @@ export class AuthService {
 
   async register(data: RegisterDto, locale: 'en' | 'vi' = 'vi') {
     const email = this.normalizeEmail(data.email);
-    if (await this.userService.findByEmail(email)) {
+    const existingUser = await this.userService.findByEmail(email);
+    if (existingUser?.emailVerified) {
       throw new ConflictException('auth.email_exists');
+    }
+    if (existingUser) {
+      await this.issueEmailOtp(
+        existingUser.email,
+        existingUser.fullName,
+        locale,
+      );
+      return { message: 'auth.register_success' };
+    }
+
+    if (
+      data.phone &&
+      (await this.prismaService.user.findUnique({
+        where: { phone: data.phone },
+        select: { id: true },
+      }))
+    ) {
+      throw new ConflictException('auth.phone_exists');
     }
 
     const role = await this.getPatientRole();

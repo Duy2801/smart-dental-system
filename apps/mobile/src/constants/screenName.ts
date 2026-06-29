@@ -3,5 +3,16 @@ export const SCREEN_NAME = {
     ONBOARDING: 'Onboarding',
     LOGIN: 'Login',
     REGISTER: 'Register',
+    VERIFY_EMAIL: 'VerifyEmail',
     FORGOT_PASSWORD: 'ForgotPassword',
-}
+    HOME: 'Home',
+    HOME_TAB: 'HomeTab',
+    FUNCTION_TAB: 'FunctionTab',
+    REPORT_TAB: 'ReportTab',
+    PERSONAL_TAB: 'PersonalTab',
+    FUNCTION: 'Function',
+    AI: 'AI',
+    PROFILE: 'Profile',
+    REPORT: 'Report',
+    PERSONAL: 'Personal',
+};
