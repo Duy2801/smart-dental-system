@@ -52,10 +52,10 @@ export default function NewPrescriptionPage() {
               <p className="mt-1 text-sm text-muted-foreground">Tạo và xuất đơn thuốc điện tử cho bệnh nhân.</p>
             </div>
             <div className="flex gap-3">
-              <button className="rounded-lg border border-border bg-white px-4 py-2 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-slate-50">
+              <button className="rounded-lg border border-border bg-white px-4 py-2.5 text-sm font-medium text-brand-dark shadow-sm transition-all hover:bg-slate-50 hover:shadow active:scale-[0.98]">
                 Lưu nháp
               </button>
-              <button className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-dark">
+              <button className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-brand-dark hover:shadow active:scale-[0.98]">
                 <PrinterIcon className="h-4 w-4" /> Lưu & Xuất PDF
               </button>
             </div>
@@ -99,35 +99,39 @@ export default function NewPrescriptionPage() {
             
             <div className="overflow-x-auto p-6">
               <table className="w-full text-left text-sm min-w-[700px]">
-                <thead className="text-xs font-medium text-muted-foreground">
+                <thead className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                   <tr>
-                    <th className="pb-3 pr-4 font-medium uppercase">Tên thuốc <span className="text-red-500">*</span></th>
-                    <th className="pb-3 pr-4 font-medium uppercase w-28">Số lượng</th>
-                    <th className="pb-3 pr-4 font-medium uppercase w-36">Liều lượng</th>
-                    <th className="pb-3 pr-4 font-medium uppercase">Cách dùng</th>
-                    <th className="pb-3 font-medium uppercase w-12 text-center">Xóa</th>
+                    <th className="pb-3 pr-2 w-8 text-center">#</th>
+                    <th className="pb-3 pr-3">Tên thuốc <span className="text-red-500">*</span></th>
+                    <th className="pb-3 pr-3 w-24">Số lượng</th>
+                    <th className="pb-3 pr-3 w-32">Liều lượng</th>
+                    <th className="pb-3 pr-3">Cách dùng</th>
+                    <th className="pb-3 w-10 text-center">Xóa</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border/50">
-                  {medications.map((med) => (
-                    <tr key={med.id}>
-                      <td className="py-3 pr-4">
-                        <input type="text" placeholder="Ví dụ: Paracetamol 500mg" className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand" />
+                <tbody className="divide-y divide-border/30">
+                  {medications.map((med, index) => (
+                    <tr key={med.id} className="group transition-colors hover:bg-slate-50/50">
+                      <td className="py-2.5 pr-2 text-center text-xs font-medium text-muted-foreground/70">
+                        {index + 1}
                       </td>
-                      <td className="py-3 pr-4">
-                        <input type="text" placeholder="10 viên" className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand" />
+                      <td className="py-2.5 pr-3">
+                        <input type="text" placeholder="Ví dụ: Paracetamol 500mg" className="w-full rounded-md border-transparent bg-slate-50/80 px-3 py-2 text-sm text-brand-dark outline-none transition-all placeholder:text-muted-foreground/50 focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand shadow-none" />
                       </td>
-                      <td className="py-3 pr-4">
-                        <input type="text" placeholder="Sáng 1, Tối 1" className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand" />
+                      <td className="py-2.5 pr-3">
+                        <input type="text" placeholder="10 viên" className="w-full rounded-md border-transparent bg-slate-50/80 px-3 py-2 text-sm text-brand-dark outline-none transition-all placeholder:text-muted-foreground/50 focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand shadow-none" />
                       </td>
-                      <td className="py-3 pr-4">
-                        <input type="text" placeholder="Uống sau khi ăn no" className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand" />
+                      <td className="py-2.5 pr-3">
+                        <input type="text" placeholder="Sáng 1, Tối 1" className="w-full rounded-md border-transparent bg-slate-50/80 px-3 py-2 text-sm text-brand-dark outline-none transition-all placeholder:text-muted-foreground/50 focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand shadow-none" />
                       </td>
-                      <td className="py-3 text-center">
+                      <td className="py-2.5 pr-3">
+                        <input type="text" placeholder="Sau khi ăn no..." className="w-full rounded-md border-transparent bg-slate-50/80 px-3 py-2 text-sm text-brand-dark outline-none transition-all placeholder:text-muted-foreground/50 focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand shadow-none" />
+                      </td>
+                      <td className="py-2.5 text-center">
                         <button 
                           onClick={() => removeMedication(med.id)}
                           disabled={medications.length === 1}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded text-muted-foreground hover:bg-red-50 hover:text-red-600 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-muted-foreground transition-colors"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded text-muted-foreground opacity-30 group-hover:opacity-100 hover:bg-red-50 hover:text-red-600 disabled:opacity-0 transition-all active:scale-95"
                           title="Xóa thuốc này"
                         >
                           <TrashIcon />

@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { cn } from "@/src/lib/utils/cn";
 
 // Inline SVGs
 const ArrowLeftIcon = ({ className }: { className?: string }) => (
@@ -20,14 +21,17 @@ const SaveIcon = ({ className }: { className?: string }) => (
   <svg className={className} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
 );
 
-export default function NewTreatmentPage() {
+const CheckIcon = ({ className }: { className?: string }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+);
+
+export default function NewTreatmentPlanPage() {
   const [phases, setPhases] = useState([
-    { id: 1, name: "Giai đoạn 1: Khám và chuẩn bị", time: "", details: "" },
-    { id: 2, name: "Giai đoạn 2: Tiến hành điều trị", time: "", details: "" }
+    { id: 1, service: "", tooth: "", date: "", status: "PENDING" },
   ]);
 
   const addPhase = () => {
-    setPhases([...phases, { id: Date.now(), name: `Giai đoạn ${phases.length + 1}: `, time: "", details: "" }]);
+    setPhases([...phases, { id: Date.now(), service: "", tooth: "", date: "", status: "PENDING" }]);
   };
 
   const removePhase = (id: number) => {
@@ -36,135 +40,165 @@ export default function NewTreatmentPage() {
     }
   };
 
+  const toggleStatus = (id: number) => {
+    setPhases(phases.map(p => {
+      if (p.id === id) return { ...p, status: p.status === "PENDING" ? "COMPLETED" : "PENDING" };
+      return p;
+    }));
+  };
+
   return (
     <div className="min-h-screen bg-slate-50/50 px-6 py-8">
       <div className="mx-auto max-w-4xl">
         
         {/* Breadcrumb & Header */}
         <div className="mb-6 space-y-4">
-          <Link href="/doctor/treatment-plans" className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+          <Link href="/doctor/treatment-plans" className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-brand-dark">
             <ArrowLeftIcon /> Quay lại danh sách
           </Link>
           
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-2xl font-semibold text-brand-dark">Tạo kế hoạch điều trị</h1>
-              <p className="mt-1 text-sm text-muted-foreground">Lên phác đồ và lộ trình điều trị chi tiết cho bệnh nhân.</p>
+              <h1 className="text-2xl font-semibold text-brand-dark">Lập Kế hoạch Điều trị</h1>
+              <p className="mt-1 text-sm text-muted-foreground">Xây dựng lộ trình (phases) cho các dịch vụ phức tạp.</p>
             </div>
             <div className="flex gap-3">
-              <button className="rounded-lg border border-border bg-white px-4 py-2 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-slate-50">
-                Hủy bỏ
+              <button className="rounded-lg border border-border bg-white px-4 py-2.5 text-sm font-medium text-brand-dark shadow-sm transition-all hover:bg-slate-50 hover:shadow active:scale-[0.98]">
+                Lưu nháp
               </button>
-              <button className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-dark">
-                <SaveIcon className="h-4 w-4" /> Lưu phác đồ
+              <button className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-brand-dark hover:shadow active:scale-[0.98]">
+                <SaveIcon className="h-4 w-4" /> Kích hoạt Kế hoạch
               </button>
             </div>
           </div>
         </div>
 
         {/* Main Form */}
-        <div className="space-y-6">
+        <div className="space-y-8">
           
-          {/* Thông tin tổng quan */}
-          <div className="rounded-xl border border-border bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-base font-semibold text-foreground">1. Thông tin tổng quan</h2>
+          {/* 1. Thông tin tổng quan (treatment_plans) */}
+          <div className="rounded-2xl border border-border bg-white p-6 md:p-8 shadow-sm">
+            <h2 className="mb-6 text-base font-semibold text-brand-dark">1. Thông tin Tổng quát</h2>
             <div className="grid gap-6 md:grid-cols-2">
               <div className="space-y-1.5 md:col-span-2">
-                <label className="text-sm font-medium text-brand-dark">Tên phác đồ / Kế hoạch <span className="text-red-500">*</span></label>
-                <input type="text" placeholder="Ví dụ: Kế hoạch Niềng răng mắc cài kim loại - Giai đoạn 1" className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand" />
-              </div>
-              
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-brand-dark">Bệnh nhân <span className="text-red-500">*</span></label>
-                <select className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand">
-                  <option value="">-- Chọn bệnh nhân --</option>
+                <label className="text-sm font-semibold text-slate-900">Bệnh nhân <span className="text-red-500">*</span></label>
+                <select className="w-full rounded-lg border-transparent bg-slate-50 px-4 py-2.5 text-sm text-brand-dark outline-none transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand shadow-none font-medium">
+                  <option value="">-- Chọn bệnh nhân từ Hồ sơ --</option>
                   <option value="1">Lê Hoàng C - 0987654321</option>
                   <option value="2">Nguyễn Văn A - 0901234567</option>
-                  <option value="3">Phạm Thị D - 0911223344</option>
                 </select>
               </div>
               
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-brand-dark">Thời gian dự kiến hoàn thành</label>
-                <input type="text" placeholder="Ví dụ: 18 tháng, hoặc 4 tuần..." className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand" />
+                <label className="text-sm font-semibold text-slate-900">Ngày bắt đầu dự kiến</label>
+                <input type="date" className="w-full rounded-lg border-transparent bg-slate-50 px-4 py-2.5 text-sm text-brand-dark outline-none transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand shadow-none" />
+              </div>
+              
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-slate-900">Ngày kết thúc dự kiến</label>
+                <input type="date" className="w-full rounded-lg border-transparent bg-slate-50 px-4 py-2.5 text-sm text-brand-dark outline-none transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand shadow-none" />
+              </div>
+              
+              <div className="space-y-1.5 md:col-span-2">
+                <label className="text-sm font-semibold text-slate-900">Ghi chú lâm sàng chung</label>
+                <textarea 
+                  rows={2} 
+                  placeholder="Ví dụ: Kế hoạch niềng răng mắc cài kim loại, dự kiến nhổ 4 răng 4..." 
+                  className="w-full rounded-lg border-transparent bg-slate-50 px-4 py-2.5 text-sm text-brand-dark outline-none transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand shadow-none resize-y" 
+                />
               </div>
             </div>
           </div>
 
-          {/* Lộ trình điều trị */}
-          <div className="rounded-xl border border-border bg-white p-6 shadow-sm">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-base font-semibold text-foreground">2. Lộ trình điều trị chi tiết</h2>
+          {/* 2. Trình xây dựng Giai đoạn (Phases Builder) */}
+          <div className="rounded-2xl border border-border bg-white shadow-sm overflow-hidden flex flex-col">
+            <div className="border-b border-border bg-slate-50/50 p-6">
+              <h2 className="text-base font-semibold text-brand-dark">2. Trình Xây dựng Giai đoạn (Phases Builder)</h2>
+              <p className="text-sm text-muted-foreground mt-1">Lập danh sách các bước điều trị theo trình tự thời gian (Milestones).</p>
             </div>
             
-            <div className="space-y-4">
-              {phases.map((phase, index) => (
-                <div key={phase.id} className="relative rounded-lg border border-border/80 bg-slate-50/50 p-5 transition-colors hover:border-brand/30">
-                  
-                  {/* Dấu gạch chéo xóa */}
-                  <div className="absolute right-4 top-4">
-                    <button 
-                      onClick={() => removePhase(phase.id)}
-                      disabled={phases.length === 1}
-                      className="inline-flex h-7 w-7 items-center justify-center rounded text-muted-foreground hover:bg-red-100 hover:text-red-600 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
-                      title="Xóa giai đoạn này"
-                    >
-                      <TrashIcon className="h-4 w-4" />
-                    </button>
-                  </div>
-
-                  <div className="grid gap-5 md:grid-cols-3">
-                    <div className="space-y-1.5 md:col-span-2 pr-8">
-                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Tên buổi / Giai đoạn</label>
-                      <input 
-                        type="text" 
-                        defaultValue={phase.name}
-                        placeholder="Ví dụ: Buổi 1 - Gắn mắc cài hàm trên" 
-                        className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand font-medium" 
-                      />
+            <div className="p-6 md:p-8">
+              <div className="relative border-l-2 border-muted ml-3 md:ml-4 space-y-8 pb-4">
+                
+                {phases.map((phase, index) => {
+                  const isCompleted = phase.status === "COMPLETED";
+                  return (
+                    <div key={phase.id} className="relative pl-8 group">
+                      
+                      {/* Timeline Dot (Status Indicator) */}
+                      <button 
+                        onClick={() => toggleStatus(phase.id)}
+                        className={cn(
+                          "absolute -left-[11px] top-4 flex h-5 w-5 items-center justify-center rounded-full ring-4 ring-white transition-all cursor-pointer active:scale-95",
+                          isCompleted ? "bg-green-500 text-white" : "bg-muted-foreground/30 hover:bg-brand text-transparent hover:text-white"
+                        )}
+                        title={isCompleted ? "Đã hoàn thành" : "Đánh dấu hoàn thành"}
+                      >
+                        <CheckIcon className="w-3 h-3" />
+                      </button>
+                      
+                      <div className={cn("p-5 rounded-xl border transition-all duration-200 bg-white", isCompleted ? "border-green-200 shadow-sm" : "border-border shadow-sm hover:border-brand/30 hover:shadow-md")}>
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className={cn("text-sm font-bold uppercase tracking-wider", isCompleted ? "text-green-700" : "text-brand-dark")}>
+                            Giai đoạn {index + 1} {isCompleted && "✓"}
+                          </h3>
+                          <button 
+                            onClick={() => removePhase(phase.id)}
+                            disabled={phases.length === 1}
+                            className="text-muted-foreground opacity-30 group-hover:opacity-100 hover:text-red-600 disabled:opacity-0 transition-opacity p-1 rounded"
+                            title="Xóa giai đoạn"
+                          >
+                            <TrashIcon />
+                          </button>
+                        </div>
+                        
+                        <div className="grid gap-4 md:grid-cols-12">
+                          <div className="md:col-span-6 space-y-1.5">
+                            <label className="text-xs font-semibold text-slate-900">Dịch vụ (Service) <span className="text-red-500">*</span></label>
+                            <select className="w-full rounded-lg border-transparent bg-slate-50 px-3 py-2 text-sm text-brand-dark outline-none transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand shadow-none">
+                              <option value="">Chọn dịch vụ...</option>
+                              <option value="1">Khám tổng quát</option>
+                              <option value="2">Cắm trụ Implant</option>
+                              <option value="3">Gắn Abutment & Mão sứ</option>
+                              <option value="4">Nhổ răng khôn</option>
+                              <option value="5">Siết mắc cài định kỳ</option>
+                            </select>
+                          </div>
+                          
+                          <div className="md:col-span-3 space-y-1.5">
+                            <label className="text-xs font-semibold text-slate-900">Vị trí Răng</label>
+                            <input 
+                              type="text" 
+                              placeholder="VD: R46, R47" 
+                              className="w-full rounded-lg border-transparent bg-slate-50 px-3 py-2 font-mono text-sm text-brand-dark outline-none transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand shadow-none" 
+                            />
+                          </div>
+                          
+                          <div className="md:col-span-3 space-y-1.5">
+                            <label className="text-xs font-semibold text-slate-900">Ngày hẹn kiến</label>
+                            <input 
+                              type="date" 
+                              className="w-full rounded-lg border-transparent bg-slate-50 px-3 py-2 text-sm text-brand-dark outline-none transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand shadow-none" 
+                            />
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Thời gian dự kiến</label>
-                      <input 
-                        type="text" 
-                        placeholder="Ví dụ: Tuần 1, hoặc 15/07" 
-                        className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand" 
-                      />
-                    </div>
-                    
-                    <div className="space-y-1.5 md:col-span-3">
-                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Chi tiết thực hiện</label>
-                      <textarea 
-                        rows={2}
-                        placeholder="Mô tả các thao tác lâm sàng, vật liệu sử dụng..." 
-                        className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand resize-y" 
-                      ></textarea>
-                    </div>
-                  </div>
+                  );
+                })}
+                
+                {/* Nút thêm giai đoạn (Dashed box) */}
+                <div className="relative pl-8 pt-2">
+                  <button 
+                    onClick={addPhase}
+                    className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border py-4 text-sm font-medium text-muted-foreground transition-all hover:border-brand hover:text-brand hover:bg-brand/5 active:scale-[0.99]"
+                  >
+                    <PlusIcon className="h-5 w-5" /> Thêm Bước điều trị mới
+                  </button>
                 </div>
-              ))}
-            </div>
 
-            <div className="mt-5">
-              <button 
-                onClick={addPhase}
-                className="inline-flex items-center gap-1.5 rounded-md border border-dashed border-brand px-4 py-2 text-sm font-medium text-brand transition-colors hover:bg-brand/5"
-              >
-                <PlusIcon className="h-4 w-4" /> Thêm giai đoạn / buổi khám
-              </button>
+              </div>
             </div>
-          </div>
-
-          {/* Ghi chú nội bộ */}
-          <div className="rounded-xl border border-border bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-base font-semibold text-foreground">3. Ghi chú nội bộ (Private Notes)</h2>
-            <p className="mb-3 text-xs text-muted-foreground">Chỉ bác sĩ và quản lý mới thấy ghi chú này. Bệnh nhân không thể xem.</p>
-            <textarea 
-              rows={3}
-              placeholder="Nhập lưu ý nội bộ (ví dụ: cần xin ý kiến chuyên gia, tiên lượng khó...)"
-              className="w-full rounded-md border border-amber-200 bg-amber-50/30 px-3 py-2 text-sm text-amber-900 outline-none transition-colors focus:border-amber-400 focus:ring-1 focus:ring-amber-400 resize-y"
-            ></textarea>
           </div>
 
         </div>
