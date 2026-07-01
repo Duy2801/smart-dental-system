@@ -1,161 +1,174 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 
 // --- INLINE SVGS ---
-const SearchIcon = ({ className }: { className?: string }) => (
-  <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-);
-
-const UserPlusIcon = ({ className }: { className?: string }) => (
-  <svg className={className} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
-);
-
-const CheckCircleIcon = ({ className }: { className?: string }) => (
-  <svg className={className} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+const ArrowLeftIcon = ({ className }: { className?: string }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
 );
 
 const UserIcon = ({ className }: { className?: string }) => (
   <svg className={className} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
 );
 
-const PhoneIcon = ({ className }: { className?: string }) => (
-  <svg className={className} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+const ClockIcon = ({ className }: { className?: string }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
 );
 
-const PrinterIcon = ({ className }: { className?: string }) => (
-  <svg className={className} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
+const CheckCircleIcon = ({ className }: { className?: string }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+);
+
+const ActivityIcon = ({ className }: { className?: string }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+);
+
+const QrCodeIcon = ({ className }: { className?: string }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></svg>
 );
 
 export default function CheckInPage() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isPatientFound, setIsPatientFound] = useState(false);
-
-  // Mock Handle Search
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
-    // Giả lập tìm thấy khi gõ đúng SĐT này
-    if (e.target.value === "0901234567" || e.target.value.toLowerCase() === "nguyen van a") {
-      setIsPatientFound(true);
-    } else {
-      setIsPatientFound(false);
-    }
-  };
+  const [isScanningQR, setIsScanningQR] = useState(false);
 
   return (
-    <div className="min-h-screen bg-slate-50/50 p-4 sm:p-6 lg:p-8">
-      <div className="mx-auto max-w-6xl space-y-8">
+    <div className="min-h-screen bg-slate-50/50 px-4 py-8 sm:px-6 lg:px-8">
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes scan {
+          0% { top: 0; opacity: 0; }
+          10% { opacity: 1; }
+          90% { opacity: 1; }
+          100% { top: 100%; opacity: 0; }
+        }
+        .animate-scan {
+          animation: scan 2s ease-in-out infinite;
+        }
+      `}} />
+      <div className="mx-auto max-w-2xl">
         
-        {/* --- HEADER --- */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-brand-dark">Tiếp nhận & Check-in</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Xử lý nhanh khách hàng vừa đến phòng khám.</p>
-          </div>
-          <button className="inline-flex items-center gap-2 rounded-xl border border-brand bg-brand/5 px-4 py-2.5 text-sm font-bold text-brand shadow-sm transition-colors hover:bg-brand hover:text-white">
-            <UserPlusIcon className="h-4 w-4" />
-            Đăng ký khách mới
+        {/* Breadcrumb & Header */}
+        <div className="mb-6 flex items-center justify-between">
+          <Link href="/receptionist/appointments" className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground transition-colors hover:text-brand-dark">
+            <ArrowLeftIcon /> Quay lại Lịch hẹn
+          </Link>
+          
+          <button 
+            onClick={() => setIsScanningQR(!isScanningQR)}
+            className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-[0.95]"
+          >
+            <QrCodeIcon className="h-4 w-4" /> 
+            {isScanningQR ? "Hủy quét QR" : "Quét mã QR Bệnh nhân"}
           </button>
         </div>
 
-        <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
-          
-          {/* --- CỘT TRÁI: TÌM KIẾM & THÔNG TIN --- */}
-          <div className="space-y-6 lg:col-span-7">
-            
-            {/* Box Tìm kiếm */}
-            <div className="rounded-2xl border border-border bg-white p-6 shadow-sm">
-              <h2 className="mb-4 text-base font-bold text-foreground">1. Nhận diện khách hàng</h2>
-              <div className="relative">
-                <SearchIcon className="absolute left-4 top-1/2 h-6 w-6 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={handleSearch}
-                  placeholder="Nhập SĐT (thử '0901234567') hoặc Tên..."
-                  className="w-full rounded-xl border-2 border-slate-200 bg-slate-50 py-4 pl-14 pr-4 text-lg font-medium outline-none transition-all focus:border-brand focus:bg-white focus:ring-4 focus:ring-brand/10"
-                  autoFocus
+        {isScanningQR ? (
+          <div className="rounded-2xl border border-border bg-white p-8 shadow-sm text-center">
+            <div className="mx-auto h-64 w-64 overflow-hidden rounded-2xl border-2 border-dashed border-brand bg-slate-50 relative">
+              <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                <p className="text-sm font-semibold">Camera đang mở...</p>
+              </div>
+              <div className="absolute left-0 h-1 w-full bg-brand/60 shadow-[0_0_15px_rgba(14,165,233,0.8)] animate-scan" />
+            </div>
+            <h2 className="mt-6 text-lg font-bold text-slate-900">Đưa mã QR của bệnh nhân vào khung hình</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Khách hàng có thể mở mã QR trên Zalo Mini App hoặc Email xác nhận.
+            </p>
+            <button 
+              onClick={() => setIsScanningQR(false)}
+              className="mt-6 font-bold text-brand hover:underline"
+            >
+              Quay lại xác nhận thủ công
+            </button>
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-border bg-white shadow-sm overflow-hidden">
+            {/* Main Check-in Card */}
+            <div className="bg-brand/5 border-b border-border px-6 py-8 text-center">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-brand/10 text-brand mb-4">
+                <CheckCircleIcon className="h-8 w-8" />
+              </div>
+              <h1 className="text-2xl font-bold text-brand-dark">Xác nhận Check-in</h1>
+              <p className="mt-2 text-sm text-muted-foreground max-w-md mx-auto">
+                Xác nhận bệnh nhân đã có mặt tại phòng khám để hệ thống chuyển trạng thái sang phòng chờ cho Bác sĩ.
+              </p>
+            </div>
+
+            <div className="p-6 md:p-8 space-y-8">
+              
+              {/* Info Summary */}
+              <div className="rounded-xl border border-border bg-slate-50/50 p-5 space-y-4">
+                <div className="flex items-center justify-between border-b border-border/50 pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-border">
+                      <UserIcon className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-900">Đỗ Thu H</h3>
+                      <p className="font-mono text-xs text-muted-foreground">0977 889 900</p>
+                    </div>
+                  </div>
+                  <span className="rounded bg-brand/10 px-2 py-1 text-[10px] font-bold uppercase text-brand ring-1 ring-inset ring-brand/20">
+                    Lịch đặt trước
+                  </span>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Dịch vụ</span>
+                    <div className="flex items-center gap-1.5 font-medium text-slate-900">
+                      <ActivityIcon className="h-4 w-4 text-brand" /> Khám tổng quát
+                    </div>
+                  </div>
+                  <div>
+                    <span className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Giờ hẹn</span>
+                    <div className="flex items-center gap-1.5 font-medium text-slate-900">
+                      <ClockIcon className="h-4 w-4 text-brand" /> 10:30 - 11:30
+                    </div>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Bác sĩ phụ trách</span>
+                    <div className="inline-flex items-center rounded-md bg-indigo-50 px-2 py-1 text-xs font-bold text-indigo-700 ring-1 ring-inset ring-indigo-600/20">
+                      BS. Lê Hoàng
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Health check / Note */}
+              <div className="space-y-3">
+                <label className="text-sm font-bold text-slate-900">Kiểm tra thông tin y tế (Tùy chọn)</label>
+                <label className="flex items-start gap-3 rounded-xl border border-border bg-white p-4 cursor-pointer hover:bg-slate-50 transition-colors shadow-sm">
+                  <input type="checkbox" defaultChecked className="mt-0.5 h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand" />
+                  <div>
+                    <span className="block text-sm font-bold text-slate-900">Bệnh nhân không có thay đổi về tiền sử bệnh lý</span>
+                    <span className="block text-xs text-muted-foreground mt-0.5">Xác nhận nhanh thông tin dị ứng / huyết áp vẫn như hồ sơ cũ.</span>
+                  </div>
+                </label>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Cập nhật Ghi chú Lễ tân (Tùy chọn)</label>
+                <textarea 
+                  rows={2} 
+                  placeholder="VD: Bệnh nhân đến trễ 15 phút, đang ngồi tại sảnh chờ số 1..." 
+                  className="w-full rounded-xl border border-border bg-white px-4 py-3 text-sm font-medium text-slate-900 outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand/20 shadow-sm resize-y" 
                 />
               </div>
-            </div>
 
-            {/* Box Kết quả / Thông tin bệnh nhân */}
-            <div className={`rounded-2xl border border-border bg-white p-6 shadow-sm transition-all duration-300 ${!isPatientFound ? 'opacity-50 grayscale pointer-events-none' : ''}`}>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-base font-bold text-foreground">2. Thông tin bệnh nhân</h2>
-                {isPatientFound && <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-700">Đã tìm thấy hồ sơ</span>}
+              {/* Actions */}
+              <div className="pt-4 flex items-center justify-end gap-3 border-t border-border">
+                <Link href="/receptionist/appointments" className="rounded-xl px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 transition-colors">
+                  Hủy
+                </Link>
+                <Link href="/receptionist/appointments" className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-6 py-2.5 text-sm font-bold text-white shadow-sm ring-1 ring-inset ring-emerald-600/20 transition-all hover:bg-emerald-600 hover:shadow-md active:scale-[0.98]">
+                  <CheckCircleIcon className="h-4 w-4" /> Hoàn tất Check-in
+                </Link>
               </div>
-              
-              <div className="flex items-start gap-6">
-                <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-brand/10 text-brand">
-                  <UserIcon className="h-10 w-10" />
-                </div>
-                <div className="space-y-2 flex-1">
-                  <div className="flex items-center gap-3">
-                    <h3 className="text-xl font-bold text-brand-dark">Nguyễn Văn A</h3>
-                    <span className="font-mono text-sm text-muted-foreground">#BN-2026-001</span>
-                  </div>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1.5"><PhoneIcon className="h-4 w-4" /> 0901 234 567</span>
-                    <span>Nam, 32 tuổi</span>
-                  </div>
-                  <div className="mt-4 flex flex-col gap-2 rounded-xl bg-amber-50 p-3 text-sm text-amber-900 border border-amber-100">
-                    <div className="font-bold">Lịch hẹn hôm nay: 08:30</div>
-                    <div>Dịch vụ: Nhổ răng khôn - Bác sĩ: Trần Sơn</div>
-                  </div>
-                </div>
-              </div>
+
             </div>
           </div>
-
-          {/* --- CỘT PHẢI: LÝ DO KHÁM & CHỈ ĐỊNH --- */}
-          <div className={`space-y-6 lg:col-span-5 transition-all duration-300 ${!isPatientFound ? 'opacity-50 grayscale pointer-events-none' : ''}`}>
-            <div className="rounded-2xl border border-border bg-white p-6 shadow-sm">
-              <h2 className="mb-6 text-base font-bold text-foreground">3. Chỉ định tiếp nhận</h2>
-              
-              <div className="space-y-5">
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-brand-dark">Lý do khám / Dịch vụ yêu cầu</label>
-                  <select className="w-full rounded-xl border border-slate-200 bg-white py-3 px-4 text-sm font-medium outline-none transition-colors focus:border-brand focus:ring-2 focus:ring-brand/20">
-                    <option value="appointment">Theo lịch hẹn (Nhổ răng khôn)</option>
-                    <option value="khám">Khám tổng quát / Tư vấn</option>
-                    <option value="cấp_cứu">Cấp cứu nha khoa (Đau nhức)</option>
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-brand-dark">Bác sĩ phụ trách</label>
-                  <select className="w-full rounded-xl border border-slate-200 bg-white py-3 px-4 text-sm font-medium outline-none transition-colors focus:border-brand focus:ring-2 focus:ring-brand/20">
-                    <option value="BS Trần Sơn">BS. Trần Sơn (Có lịch hẹn)</option>
-                    <option value="BS Lê Hoàng">BS. Lê Hoàng (Đang rảnh)</option>
-                    <option value="BS Phạm Hà">BS. Phạm Hà</option>
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-bold text-brand-dark">Ghi chú cho Bác sĩ (Nếu có)</label>
-                  <textarea 
-                    rows={2}
-                    placeholder="Ví dụ: Bệnh nhân rất sợ đau..."
-                    className="w-full rounded-xl border border-slate-200 bg-white py-3 px-4 text-sm outline-none transition-colors focus:border-brand focus:ring-2 focus:ring-brand/20 resize-none"
-                  ></textarea>
-                </div>
-              </div>
-
-              <div className="mt-8 pt-6 border-t border-border">
-                <button className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 py-4 text-base font-bold text-white shadow-md transition-all hover:bg-emerald-600 hover:shadow-lg active:scale-[0.98]">
-                  <CheckCircleIcon className="h-5 w-5" />
-                  Xác nhận Check-in & Vào phòng chờ
-                </button>
-                <button className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-white py-3 text-sm font-bold text-muted-foreground hover:bg-slate-50 transition-colors">
-                  <PrinterIcon className="h-4 w-4" />
-                  In số thứ tự
-                </button>
-              </div>
-            </div>
-          </div>
-
-        </div>
+        )}
+        
       </div>
     </div>
   );

@@ -2,44 +2,41 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { cn } from "@/src/lib/utils/cn";
 
 // --- INLINE SVGS ---
 const SearchIcon = ({ className }: { className?: string }) => (
   <svg className={className} xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
 );
-
 const FilterIcon = ({ className }: { className?: string }) => (
   <svg className={className} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
 );
-
 const UserPlusIcon = ({ className }: { className?: string }) => (
   <svg className={className} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
 );
-
 const MoreHorizontalIcon = ({ className }: { className?: string }) => (
   <svg className={className} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
 );
-
 const ChevronLeftIcon = ({ className }: { className?: string }) => (
   <svg className={className} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
 );
-
 const ChevronRightIcon = ({ className }: { className?: string }) => (
   <svg className={className} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
 );
-
-const ArrowDownUpIcon = ({ className }: { className?: string }) => (
-  <svg className={className} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 16 4 4 4-4"/><path d="M7 20V4"/><path d="m21 8-4-4-4 4"/><path d="M17 4v16"/></svg>
+const PhoneIcon = ({ className }: { className?: string }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+);
+const HeartIcon = ({ className }: { className?: string }) => (
+  <svg className={className} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
 );
 
 // --- MOCK DATA ---
 const MOCK_PATIENTS = [
-  { id: "BN-2026-001", name: "Nguyễn Văn An", phone: "0901234567", gender: "Nam", age: 32, lastVisit: "27/06/2026", debt: 0, group: "Thường xuyên" },
-  { id: "BN-2026-002", name: "Lê Thị Bích Hạnh", phone: "0987654321", gender: "Nữ", age: 25, lastVisit: "26/06/2026", debt: 1500000, group: "Niềng răng" },
-  { id: "BN-2026-003", name: "Trần Minh Tùng", phone: "0911223344", gender: "Nam", age: 45, lastVisit: "15/05/2026", debt: 0, group: "Mới" },
-  { id: "BN-2026-004", name: "Phạm Hoàng Oanh", phone: "0933445566", gender: "Nữ", age: 28, lastVisit: "10/06/2026", debt: 500000, group: "Bọc sứ" },
-  { id: "BN-2026-005", name: "Vũ Hải Đăng", phone: "0977889900", gender: "Nam", age: 15, lastVisit: "27/06/2026", debt: 0, group: "Trẻ em" },
-  { id: "BN-2026-006", name: "Đinh Phương Thảo", phone: "0922334455", gender: "Nữ", age: 38, lastVisit: "02/04/2026", debt: 0, group: "Thường xuyên" },
+  { id: "BN-23001", name: "Nguyễn Văn An", phone: "0901234567", dob: "12/05/1990", gender: "MALE", lastVisit: "20/06/2026", medicalAlerts: ["Cao huyết áp", "Dị ứng Penicillin"], totalVisits: 5, avatarColor: "bg-blue-100 text-blue-700 ring-blue-600/20" },
+  { id: "BN-23002", name: "Trần Thị Bé", phone: "0911223344", dob: "08/11/1995", gender: "FEMALE", lastVisit: "Hôm nay", medicalAlerts: [], totalVisits: 2, avatarColor: "bg-pink-100 text-pink-700 ring-pink-600/20" },
+  { id: "BN-23003", name: "Lê Hoàng Công", phone: "0987654321", dob: "25/01/1985", gender: "MALE", lastVisit: "Chưa khám", medicalAlerts: ["Máu khó đông"], totalVisits: 0, avatarColor: "bg-amber-100 text-amber-700 ring-amber-600/20" },
+  { id: "BN-23004", name: "Đỗ Thu Hà", phone: "0977889900", dob: "14/09/2000", gender: "FEMALE", lastVisit: "15/06/2026", medicalAlerts: [], totalVisits: 12, avatarColor: "bg-emerald-100 text-emerald-700 ring-emerald-600/20" },
+  { id: "BN-23005", name: "Phạm Văn Dũng", phone: "0933445566", dob: "02/03/1980", gender: "MALE", lastVisit: "01/05/2026", medicalAlerts: ["Tiểu đường Type 2"], totalVisits: 8, avatarColor: "bg-indigo-100 text-indigo-700 ring-indigo-600/20" },
 ];
 
 export default function ReceptionistPatientsPage() {
@@ -50,128 +47,169 @@ export default function ReceptionistPatientsPage() {
         {/* --- HEADER --- */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-brand-dark">Hồ sơ Bệnh nhân</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Quản lý danh sách, thông tin liên lạc và lịch sử khám bệnh.</p>
+            <h1 className="text-2xl font-bold text-brand-dark">Quản lý Bệnh nhân</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Tra cứu hồ sơ, lịch sử điều trị và thông tin y tế của khách hàng.</p>
           </div>
-          <Link href="/receptionist/patients/new" className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-brand-dark">
+          <Link href="/receptionist/patients/new" className="inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-brand-dark active:scale-[0.98]">
             <UserPlusIcon className="h-4 w-4" />
-            Thêm bệnh nhân mới
+            + Bệnh Nhân Mới
           </Link>
         </div>
 
-        {/* --- STATS CARDS --- */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-xl border border-border bg-white p-5 shadow-sm">
-            <p className="text-sm font-medium text-muted-foreground">Tổng số bệnh nhân</p>
-            <p className="mt-2 text-2xl font-bold text-foreground">1,248</p>
-          </div>
-          <div className="rounded-xl border border-border bg-white p-5 shadow-sm">
-            <p className="text-sm font-medium text-muted-foreground">Khách hàng mới (Tháng này)</p>
-            <p className="mt-2 text-2xl font-bold text-emerald-600">+85</p>
-          </div>
-          <div className="rounded-xl border border-border bg-white p-5 shadow-sm">
-            <p className="text-sm font-medium text-muted-foreground">Có lịch hẹn hôm nay</p>
-            <p className="mt-2 text-2xl font-bold text-blue-600">24</p>
-          </div>
-          <div className="rounded-xl border border-border bg-white p-5 shadow-sm">
-            <p className="text-sm font-medium text-muted-foreground">Tổng công nợ cần thu</p>
-            <p className="mt-2 text-2xl font-bold text-red-600">42,500,000đ</p>
-          </div>
-        </div>
-
-        {/* --- FILTERS & TOOLBAR --- */}
-        <div className="rounded-2xl border border-border bg-white p-4 shadow-sm">
+        {/* --- FILTERS & TOOLBAR (Sticky) --- */}
+        <div className="sticky top-0 z-10 rounded-2xl border border-border bg-white/80 p-4 shadow-sm backdrop-blur-md">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             
             {/* Search */}
-            <div className="relative flex-1 max-w-md">
-              <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <div className="relative flex-1 max-w-2xl">
+              <SearchIcon className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Tìm bệnh nhân (Tên, SĐT, Mã HS)..."
-                className="w-full rounded-lg border border-border bg-white py-2 pl-9 pr-4 text-sm outline-none transition-all focus:border-brand focus:ring-1 focus:ring-brand"
+                placeholder="Nhập tên, số điện thoại, hoặc mã bệnh nhân (VD: BN-23001)..."
+                className="w-full rounded-xl border border-border bg-white py-3 pl-11 pr-4 text-sm font-medium outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand/20 shadow-sm"
               />
             </div>
 
             {/* Filters */}
             <div className="flex flex-wrap items-center gap-3">
-              <select className="rounded-lg border border-border bg-white px-3 py-2 text-sm font-medium outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand">
-                <option value="">Tất cả nhóm khách</option>
-                <option value="moi">Khách mới</option>
-                <option value="thuong_xuyen">Thường xuyên</option>
-                <option value="vip">VIP</option>
+              <select className="rounded-xl border border-border bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none shadow-sm transition-all focus:border-brand focus:ring-1 focus:ring-brand cursor-pointer">
+                <option value="">Phân loại Nhóm khách</option>
+                <option value="NEW">Khách mới chưa khám</option>
+                <option value="RETURNING">Đang điều trị</option>
+                <option value="VIP">Khách VIP (Niềng răng/Implant)</option>
               </select>
 
-              <select className="rounded-lg border border-border bg-white px-3 py-2 text-sm font-medium outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand">
-                <option value="">Trạng thái công nợ</option>
-                <option value="co_no">Có công nợ</option>
-                <option value="khong_no">Không nợ</option>
-              </select>
-
-              <button className="inline-flex items-center gap-2 rounded-lg border border-border bg-white px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-slate-50">
-                <ArrowDownUpIcon className="h-4 w-4 text-muted-foreground" />
-                Sắp xếp
-              </button>
-
-              <button className="inline-flex items-center justify-center rounded-lg border border-border bg-slate-50 p-2 text-muted-foreground transition-colors hover:bg-slate-100 hover:text-foreground">
-                <FilterIcon className="h-4 w-4" />
-              </button>
+              {/* Lọc nâng cao (Advanced Filter) */}
+              <div className="relative group/filter">
+                <button className="inline-flex h-[46px] w-[46px] items-center justify-center rounded-xl border border-border bg-white text-muted-foreground shadow-sm transition-all hover:bg-slate-50 hover:text-slate-900 active:scale-[0.95]">
+                  <FilterIcon className="h-5 w-5" />
+                </button>
+                <div className="absolute right-0 top-full mt-2 hidden w-64 flex-col rounded-2xl border border-border bg-white p-4 shadow-xl group-hover/filter:flex z-30">
+                  <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">Lọc nâng cao</h3>
+                  
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-900">Tiền sử bệnh lý (Alerts)</label>
+                      <select className="w-full rounded-lg border border-border bg-slate-50/50 px-3 py-2 text-xs font-semibold text-slate-700 outline-none cursor-pointer">
+                        <option>Tất cả</option>
+                        <option>Có cảnh báo Y tế</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-5 flex gap-2 border-t border-slate-100 pt-4">
+                    <button className="flex-1 rounded-lg px-3 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 transition-colors">
+                      Xóa lọc
+                    </button>
+                    <button className="flex-1 rounded-lg bg-brand px-3 py-2 text-xs font-bold text-white shadow-sm hover:bg-brand-dark transition-all">
+                      Áp dụng
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* --- DATA TABLE --- */}
+        {/* --- HIGH-DENSITY DATA TABLE --- */}
         <div className="rounded-2xl border border-border bg-white shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-border bg-slate-50/80 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            <table className="w-full text-left text-sm whitespace-nowrap">
+              <thead className="border-b border-border bg-slate-50/50 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                 <tr>
-                  <th className="px-6 py-4">Mã HS / Họ và tên</th>
-                  <th className="px-6 py-4">Thông tin</th>
+                  <th className="px-6 py-4">Bệnh Nhân</th>
                   <th className="px-6 py-4">Liên hệ</th>
-                  <th className="px-6 py-4">Lần khám cuối</th>
-                  <th className="px-6 py-4">Công nợ</th>
-                  <th className="px-6 py-4 text-right">Thao tác</th>
+                  <th className="px-6 py-4 w-64">Cảnh báo Y tế</th>
+                  <th className="px-6 py-4">Tương tác cuối</th>
+                  <th className="px-6 py-4 text-center">Số Ca Khám</th>
+                  <th className="px-6 py-4 text-right">Thao Tác</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border/50">
-                {MOCK_PATIENTS.map((patient) => (
-                  <tr key={patient.id} className="transition-colors hover:bg-slate-50/50 group">
-                    <td className="px-6 py-4">
-                      <div className="font-mono text-xs text-muted-foreground mb-1">{patient.id}</div>
-                      <div className="font-bold text-brand-dark flex items-center gap-2">
-                        {patient.name}
+              <tbody className="divide-y divide-border/40">
+                {MOCK_PATIENTS.map((patient, idx) => (
+                  <tr key={patient.id} className={cn("group transition-colors hover:bg-slate-50", idx % 2 === 0 ? "bg-white" : "bg-slate-50/30")}>
+                    
+                    {/* Patient Name & Avatar */}
+                    <td className="px-6 py-4 align-top">
+                      <div className="flex items-center gap-3">
+                        <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-bold ring-1 ring-inset", patient.avatarColor)}>
+                          {patient.name.split(" ").pop()?.charAt(0)}
+                        </div>
+                        <div>
+                          <Link href={`/receptionist/patients/${patient.id}`} className="font-bold text-slate-900 hover:text-brand hover:underline underline-offset-2 transition-colors">
+                            {patient.name}
+                          </Link>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="font-mono text-[10px] text-muted-foreground">{patient.id}</span>
+                            <span className="text-[10px] text-muted-foreground border-l border-border pl-2">{patient.gender === 'MALE' ? 'Nam' : 'Nữ'} • {patient.dob}</span>
+                          </div>
+                        </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="text-foreground">{patient.gender}, {patient.age} tuổi</div>
-                      <div className="mt-1">
-                        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-slate-600">{patient.group}</span>
+                    
+                    {/* Contact */}
+                    <td className="px-6 py-4 align-top">
+                      <div className="flex items-center gap-1.5 font-medium text-slate-800 pt-1">
+                        <PhoneIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="font-mono">{patient.phone}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="font-mono font-medium text-foreground">{patient.phone}</div>
-                    </td>
-                    <td className="px-6 py-4 text-muted-foreground">
-                      {patient.lastVisit}
-                    </td>
-                    <td className="px-6 py-4">
-                      {patient.debt > 0 ? (
-                        <span className="font-bold text-red-600">{patient.debt.toLocaleString()}đ</span>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button className="rounded bg-brand/10 px-3 py-1.5 text-xs font-bold text-brand hover:bg-brand hover:text-white transition-colors">
-                          Chi tiết
-                        </button>
-                        <button className="rounded p-1.5 text-muted-foreground hover:bg-slate-100 hover:text-foreground transition-colors">
-                          <MoreHorizontalIcon className="h-4 w-4" />
-                        </button>
+                    
+                    {/* Medical Alerts */}
+                    <td className="px-6 py-4 align-top whitespace-normal">
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {patient.medicalAlerts.length > 0 ? (
+                          patient.medicalAlerts.map((alert, i) => (
+                            <span key={i} className="inline-flex items-center gap-1 rounded bg-red-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-red-700 ring-1 ring-inset ring-red-600/20">
+                              <HeartIcon className="h-3 w-3" /> {alert}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-xs text-muted-foreground italic">Không có ghi nhận</span>
+                        )}
                       </div>
                     </td>
+                    
+                    {/* Last Visit */}
+                    <td className="px-6 py-4 align-top">
+                      <span className={cn("inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold ring-1 ring-inset pt-1 mt-1", 
+                        patient.lastVisit === "Hôm nay" ? "bg-emerald-50 text-emerald-700 ring-emerald-600/20" : 
+                        patient.lastVisit === "Chưa khám" ? "bg-slate-100 text-slate-600 ring-slate-500/20" : 
+                        "bg-transparent text-slate-700 ring-transparent"
+                      )}>
+                        {patient.lastVisit}
+                      </span>
+                    </td>
+
+                    {/* Total Visits */}
+                    <td className="px-6 py-4 align-top text-center pt-5">
+                      <span className="font-mono font-bold text-slate-900">{patient.totalVisits}</span>
+                    </td>
+                    
+                    {/* Actions */}
+                    <td className="px-6 py-4 align-top text-right pt-3.5">
+                      <div className="flex items-center justify-end gap-3 h-full">
+                        <Link href="/receptionist/appointments/new" className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:text-brand active:scale-[0.95]">
+                          + Lịch
+                        </Link>
+                        
+                        <div className="relative group/menu">
+                          <button className="p-1.5 text-muted-foreground hover:bg-slate-200 hover:text-slate-900 transition-colors rounded-md active:scale-[0.95]">
+                            <MoreHorizontalIcon className="h-4 w-4" />
+                          </button>
+                          
+                          <div className="absolute right-0 top-full mt-1 hidden w-40 flex-col rounded-xl border border-border bg-white p-1.5 shadow-lg group-hover/menu:flex z-20">
+                            <button className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-brand transition-colors text-left">
+                              Xem Hồ Sơ Bệnh Án
+                            </button>
+                            <button className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-brand transition-colors text-left">
+                              Chỉnh sửa thông tin
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    
                   </tr>
                 ))}
               </tbody>
@@ -179,24 +217,28 @@ export default function ReceptionistPatientsPage() {
           </div>
           
           {/* Pagination */}
-          <div className="flex items-center justify-between border-t border-border px-6 py-4 bg-slate-50/30">
-            <span className="text-sm text-muted-foreground">
-              Hiển thị <span className="font-bold text-foreground">1-6</span> trên tổng số <span className="font-bold text-foreground">1,248</span> bệnh nhân
+          <div className="flex items-center justify-between border-t border-border px-6 py-4 bg-slate-50/50">
+            <span className="text-sm font-medium text-muted-foreground">
+              Hiển thị <span className="font-bold text-slate-900">1-5</span> trên tổng số <span className="font-bold text-slate-900">1,248</span> bệnh nhân
             </span>
-            <div className="flex items-center gap-1">
-              <button className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-white text-muted-foreground hover:bg-slate-50 disabled:opacity-50">
+            <div className="flex items-center gap-1.5">
+              <button className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white text-muted-foreground hover:bg-slate-50 disabled:opacity-30">
                 <ChevronLeftIcon className="h-4 w-4" />
               </button>
-              <button className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-brand text-white font-medium">
+              <button className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-brand bg-brand text-white font-bold shadow-sm">
                 1
               </button>
-              <button className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-white text-muted-foreground hover:bg-slate-50">
+              <button className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white text-muted-foreground hover:bg-slate-50 hover:text-slate-900">
                 2
               </button>
-              <button className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-white text-muted-foreground hover:bg-slate-50">
+              <button className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white text-muted-foreground hover:bg-slate-50 hover:text-slate-900">
                 3
               </button>
-              <button className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-white text-muted-foreground hover:bg-slate-50 disabled:opacity-50">
+              <span className="px-1 text-muted-foreground">...</span>
+              <button className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white text-muted-foreground hover:bg-slate-50 hover:text-slate-900">
+                25
+              </button>
+              <button className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white text-muted-foreground hover:bg-slate-50 hover:text-slate-900">
                 <ChevronRightIcon className="h-4 w-4" />
               </button>
             </div>
