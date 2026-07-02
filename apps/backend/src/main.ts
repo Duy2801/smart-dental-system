@@ -12,7 +12,10 @@ async function bootstrap() {
   app.use(cookieParser());
   app.enableCors({
     origin: configService
-      .get<string>('CORS_ORIGINS', 'http://localhost:3001')
+      .get<string>(
+        'CORS_ORIGINS',
+        'http://localhost:3001,http://localhost:3002',
+      )
       .split(',')
       .map((origin) => origin.trim()),
     credentials: true,
