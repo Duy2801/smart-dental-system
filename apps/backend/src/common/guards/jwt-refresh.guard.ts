@@ -15,7 +15,6 @@ type RefreshPayload = {
 };
 
 type RefreshRequest = Request & {
-  cookies?: Record<string, string | undefined>;
   user?: RefreshPayload;
   refreshToken?: string;
 };
@@ -27,16 +26,33 @@ export class RefreshTokenGuard implements CanActivate {
     private readonly config: ConfigService,
   ) {}
 
+  private isRefreshPayload(payload: unknown): payload is RefreshPayload {
+    if (!payload || typeof payload !== 'object') return false;
+    const candidate = payload as Record<string, unknown>;
+    return (
+      typeof candidate.sub === 'string' &&
+      typeof candidate.email === 'string' &&
+      candidate.tokenType === 'refresh'
+    );
+  }
+
+  private getRefreshToken(request: Request): string | undefined {
+    const cookies = (request as { cookies?: unknown }).cookies;
+    if (!cookies || typeof cookies !== 'object') return undefined;
+    const token = (cookies as Record<string, unknown>).refreshToken;
+    return typeof token === 'string' ? token : undefined;
+  }
+
   canActivate(context: ExecutionContext) {
     const request = context.switchToHttp().getRequest<RefreshRequest>();
-    const token = request.cookies?.refreshToken;
+    const token = this.getRefreshToken(request);
     if (!token) throw new UnauthorizedException('auth.refresh_required');
 
     try {
-      const payload = this.jwt.verify<RefreshPayload>(token, {
+      const payload = this.jwt.verify(token, {
         secret: this.config.getOrThrow<string>('JWT_SECRET'),
-      });
-      if (payload.tokenType !== 'refresh') throw new Error('Wrong token type');
+      }) as unknown;
+      if (!this.isRefreshPayload(payload)) throw new Error('Wrong token type');
       request.user = payload;
       request.refreshToken = token;
       return true;
