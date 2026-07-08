@@ -33,7 +33,7 @@ export function Sidebar({ title, items, pathname }: SidebarProps) {
         </p>
         <h2 className="mt-1 text-lg font-semibold text-white">{title}</h2>
       </div>
-      <nav className="flex flex-1 flex-col gap-1 p-4">
+      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-4">
         {items.map((item) => {
           const isActive = isNavItemActive(pathname, item.href);
 
