@@ -16,7 +16,7 @@ import { apiLogout } from '~src/features/auth/api';
 import { removeAuthSession } from '~src/features/auth/session';
 import { clearSession } from '~src/reducers/loginReducer';
 import { AppDispatch, RootState } from '~src/reducers/store';
-import { SCREEN_NAME } from '~src/constants/screenName';
+import { getLoginRoute } from '~src/routes/roleRoutes';
 
 const PersonalScreen = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -38,7 +38,11 @@ const PersonalScreen = () => {
         ?.getParent()
         ?.reset({
           index: 0,
-          routes: [{ name: SCREEN_NAME.LOGIN }],
+          routes: [
+            {
+              name: getLoginRoute(role || 'PATIENT'),
+            },
+          ],
         });
       setIsLoggingOut(false);
     }

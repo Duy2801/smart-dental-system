@@ -21,7 +21,6 @@ import { apiResendOtp, apiVerifyEmail } from '../api';
 import { getAuthErrorMessage } from '../authError';
 import AuthTextField from '../components/AuthTextField';
 import { saveAuthSession } from '../session';
-import { getSupportedRole } from '../types';
 
 const VerifyEmailScreen = () => {
   const navigation = useNavigation<any>();
@@ -45,14 +44,16 @@ const VerifyEmailScreen = () => {
     setError('');
     try {
       const session = await verifyMutation.mutateAsync({ code: otp });
-      const role = getSupportedRole(session.user.roles || []);
-      if (!role) {
-        setError('Tài khoản không thuộc vai trò bác sĩ hoặc bệnh nhân');
+      if (!session.user.roles.includes('PATIENT')) {
+        setError('Tài khoản không thuộc vai trò bệnh nhân');
         return;
       }
-      await saveAuthSession(session, role);
-      dispatch(setSession({ ...session, role }));
-      navigation.reset({ index: 0, routes: [{ name: SCREEN_NAME.HOME }] });
+      await saveAuthSession(session, 'PATIENT');
+      dispatch(setSession({ ...session, role: 'PATIENT' }));
+      navigation.reset({
+        index: 0,
+        routes: [{ name: SCREEN_NAME.PATIENT_HOME }],
+      });
     } catch (requestError) {
       setError(getAuthErrorMessage(requestError));
     }
@@ -129,7 +130,7 @@ const VerifyEmailScreen = () => {
             </TouchableOpacity>
           </View>
           <TouchableOpacity
-            onPress={() => navigation.navigate(SCREEN_NAME.LOGIN)}
+            onPress={() => navigation.navigate(SCREEN_NAME.PATIENT_LOGIN)}
           >
             <Text style={styles.backLink}>Quay lại đăng nhập</Text>
           </TouchableOpacity>

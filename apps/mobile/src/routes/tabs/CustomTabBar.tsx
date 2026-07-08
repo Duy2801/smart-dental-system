@@ -50,8 +50,10 @@ const CustomTabBar = ({
 
   useEffect(() => {
     translateX.value = withSpring(state.index * tabWidth, {
-      damping: 18,
-      stiffness: 180,
+      damping: 24,
+      mass: 0.7,
+      overshootClamping: true,
+      stiffness: 150,
     });
   }, [state.index, tabWidth, translateX]);
 
