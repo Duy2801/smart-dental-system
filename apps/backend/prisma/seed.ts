@@ -65,12 +65,56 @@ const adminUsers = [
     fullName: 'Admin Test',
     phone: '0900000001',
     roleCode: 'ADMIN',
+    status: 'ACTIVE' as const,
   },
   {
     email: 'receptionist@smartdental.test',
     fullName: 'Receptionist Test',
     phone: '0900000002',
     roleCode: 'RECEPTIONIST',
+    status: 'ACTIVE' as const,
+  },
+  {
+    email: 'manager@smartdental.test',
+    fullName: 'Manager Test',
+    phone: '0900000003',
+    roleCode: 'MANAGER',
+    status: 'ACTIVE' as const,
+  },
+  {
+    email: 'accountant@smartdental.test',
+    fullName: 'Accountant Test',
+    phone: '0900000004',
+    roleCode: 'ACCOUNTANT',
+    status: 'ACTIVE' as const,
+  },
+  {
+    email: 'assistant@smartdental.test',
+    fullName: 'Assistant Test',
+    phone: '0900000005',
+    roleCode: 'ASSISTANT',
+    status: 'ACTIVE' as const,
+  },
+  {
+    email: 'support@smartdental.test',
+    fullName: 'Support Test',
+    phone: '0900000006',
+    roleCode: 'SUPPORT',
+    status: 'ACTIVE' as const,
+  },
+  {
+    email: 'marketing@smartdental.test',
+    fullName: 'Marketing Test',
+    phone: '0900000007',
+    roleCode: 'MARKETING',
+    status: 'INACTIVE' as const,
+  },
+  {
+    email: 'viewer@smartdental.test',
+    fullName: 'Viewer Test',
+    phone: '0900000008',
+    roleCode: 'VIEWER',
+    status: 'SUSPENDED' as const,
   },
 ];
 
@@ -80,7 +124,11 @@ const patientSeeds = Array.from({ length: 10 }, (_, index) => ({
   phone: `09100000${String(index + 1).padStart(2, '0')}`,
   patientCode: `PAT-SEED-${String(index + 1).padStart(3, '0')}`,
   dateOfBirth: dateOnly(`199${index % 10}-0${(index % 9) + 1}-15`),
-  gender: (index % 2 === 0 ? 'MALE' : 'FEMALE') as 'MALE' | 'FEMALE',
+  gender: (['MALE', 'FEMALE', 'OTHER', 'UNKNOWN'] as const)[index % 4],
+  status: (index === 8 ? 'INACTIVE' : index === 9 ? 'SUSPENDED' : 'ACTIVE') as
+    | 'ACTIVE'
+    | 'INACTIVE'
+    | 'SUSPENDED',
   address: `${index + 1} Nguyen Trai, District ${index + 1}, Ho Chi Minh City`,
   emergencyContactName: `Emergency Contact ${index + 1}`,
   emergencyContactPhone: `09810000${String(index + 1).padStart(2, '0')}`,
@@ -106,6 +154,8 @@ const doctorSeeds = Array.from({ length: 10 }, (_, index) => ({
     'Prosthodontics',
   ][index % 5],
   licenseNumber: `VN-DENT-SEED-${String(index + 1).padStart(4, '0')}`,
+  status: (index === 9 ? 'INACTIVE' : 'ACTIVE') as 'ACTIVE' | 'INACTIVE',
+  isActive: index !== 9,
 }));
 
 const services = [
@@ -163,8 +213,15 @@ const promotions = Array.from({ length: 10 }, (_, index) => ({
   minOrderAmount: String(200000 * (index + 1)),
   maxUses: 100 + index,
   usedCount: index,
-  startDate: addDays(-30 + index),
-  endDate: addDays(60 + index),
+  startDate:
+    index === 8
+      ? addDays(20)
+      : index === 9
+        ? addDays(-90)
+        : addDays(-30 + index),
+  endDate:
+    index === 8 ? addDays(90) : index === 9 ? addDays(-5) : addDays(60 + index),
+  isActive: index !== 7,
 }));
 
 async function seedBaseData() {
@@ -181,7 +238,7 @@ async function seedBaseData() {
     createdRoles.set(code, role);
   }
 
-  const createdPermissions: Array<{ id: string }> = [];
+  const createdPermissions: Array<{ id: string; code: string }> = [];
   for (const [code, name, module, action] of permissions) {
     createdPermissions.push(
       await prisma.permission.upsert({
@@ -194,26 +251,59 @@ async function seedBaseData() {
           action,
           description: `${name} permission`,
         },
-        select: { id: true },
+        select: { id: true, code: true },
       }),
     );
   }
 
-  const adminRole = createdRoles.get('ADMIN')!;
-  for (const permission of createdPermissions) {
-    await prisma.rolePermission.upsert({
-      where: {
-        roleId_permissionId: {
-          roleId: adminRole.id,
+  const permissionsByCode = new Map(
+    createdPermissions.map((permission) => [permission.code, permission]),
+  );
+  const rolePermissionCodes: Record<string, string[]> = {
+    ADMIN: createdPermissions.map((permission) => permission.code),
+    MANAGER: [
+      'users.read',
+      'appointments.read',
+      'appointments.manage',
+      'patients.manage',
+      'doctors.manage',
+      'reports.read',
+    ],
+    DOCTOR: ['appointments.read', 'patients.manage', 'reports.read'],
+    RECEPTIONIST: [
+      'appointments.read',
+      'appointments.manage',
+      'patients.manage',
+      'payments.manage',
+    ],
+    ACCOUNTANT: ['invoices.manage', 'payments.manage', 'reports.read'],
+    ASSISTANT: ['appointments.read', 'patients.manage'],
+    SUPPORT: ['users.read', 'appointments.read', 'patients.manage'],
+    MARKETING: ['reports.read'],
+    VIEWER: ['users.read', 'appointments.read', 'reports.read'],
+    PATIENT: ['appointments.read'],
+  };
+
+  for (const [roleCode, permissionCodes] of Object.entries(
+    rolePermissionCodes,
+  )) {
+    const role = createdRoles.get(roleCode)!;
+    for (const permissionCode of permissionCodes) {
+      const permission = permissionsByCode.get(permissionCode)!;
+      await prisma.rolePermission.upsert({
+        where: {
+          roleId_permissionId: {
+            roleId: role.id,
+            permissionId: permission.id,
+          },
+        },
+        update: {},
+        create: {
+          roleId: role.id,
           permissionId: permission.id,
         },
-      },
-      update: {},
-      create: {
-        roleId: adminRole.id,
-        permissionId: permission.id,
-      },
-    });
+      });
+    }
   }
 
   for (const config of clinicConfigs) {
@@ -232,7 +322,7 @@ async function seedBaseData() {
         fullName: userSeed.fullName,
         phone: userSeed.phone,
         passwordHash,
-        status: 'ACTIVE',
+        status: userSeed.status,
         emailVerified: true,
       },
       create: {
@@ -240,6 +330,7 @@ async function seedBaseData() {
         fullName: userSeed.fullName,
         phone: userSeed.phone,
         passwordHash,
+        status: userSeed.status,
         emailVerified: true,
       },
       select: { id: true },
@@ -263,7 +354,7 @@ async function seedBaseData() {
         fullName: patientSeed.fullName,
         phone: patientSeed.phone,
         passwordHash,
-        status: 'ACTIVE',
+        status: patientSeed.status,
         emailVerified: true,
       },
       create: {
@@ -271,6 +362,7 @@ async function seedBaseData() {
         fullName: patientSeed.fullName,
         phone: patientSeed.phone,
         passwordHash,
+        status: patientSeed.status,
         emailVerified: true,
       },
       select: { id: true },
@@ -318,7 +410,7 @@ async function seedBaseData() {
         fullName: doctorSeed.fullName,
         phone: doctorSeed.phone,
         passwordHash,
-        status: 'ACTIVE',
+        status: doctorSeed.status,
         emailVerified: true,
       },
       create: {
@@ -326,6 +418,7 @@ async function seedBaseData() {
         fullName: doctorSeed.fullName,
         phone: doctorSeed.phone,
         passwordHash,
+        status: doctorSeed.status,
         emailVerified: true,
       },
       select: { id: true },
@@ -344,14 +437,14 @@ async function seedBaseData() {
           userId: user.id,
           specialization: doctorSeed.specialization,
           licenseNumber: doctorSeed.licenseNumber,
-          isActive: true,
+          isActive: doctorSeed.isActive,
         },
         create: {
           userId: user.id,
           doctorCode: doctorSeed.doctorCode,
           specialization: doctorSeed.specialization,
           licenseNumber: doctorSeed.licenseNumber,
-          isActive: true,
+          isActive: doctorSeed.isActive,
         },
         select: { id: true, userId: true },
       }),
@@ -412,8 +505,8 @@ async function seedBaseData() {
     createdPromotions.push(
       await prisma.promotion.upsert({
         where: { code: promotion.code },
-        update: { ...promotion, isActive: true },
-        create: { ...promotion, isActive: true },
+        update: promotion,
+        create: promotion,
         select: { id: true },
       }),
     );
@@ -483,6 +576,28 @@ async function seedRelatedData(
       },
     });
   }
+  await prisma.doctorAvailability.create({
+    data: {
+      doctorId: context.doctors[0].id,
+      recordType: 'DATE_OVERRIDE',
+      specificDate: addDays(7),
+      startTime: '09:00',
+      endTime: '15:00',
+      reason: 'Seed availability date override',
+      isActive: true,
+    },
+  });
+  await prisma.doctorAvailability.create({
+    data: {
+      doctorId: context.doctors[1].id,
+      recordType: 'TIME_OFF',
+      specificDate: addDays(10),
+      startTime: '00:00',
+      endTime: '23:59',
+      reason: 'Seed availability time off',
+      isActive: false,
+    },
+  });
 
   const appointments: Array<{
     id: string;
@@ -494,20 +609,28 @@ async function seedRelatedData(
   const appointmentDayOffsets = [-6, -5, -4, -3, -2, -1, 0, 0, 1, 2];
   const appointmentStatuses = [
     'COMPLETED',
-    'COMPLETED',
     'CONFIRMED',
-    'COMPLETED',
+    'CHECKED_IN',
+    'IN_PROGRESS',
     'CANCELLED',
-    'COMPLETED',
+    'NO_SHOW',
     'PENDING',
-    'CONFIRMED',
     'RESCHEDULED',
+    'COMPLETED',
     'CONFIRMED',
+  ] as const;
+  const bookingSources = [
+    'PATIENT_APP',
+    'WEBSITE',
+    'RECEPTIONIST',
+    'AI',
+    'OTHER',
   ] as const;
   for (let index = 0; index < 10; index += 1) {
     const scheduledAt = addDays(appointmentDayOffsets[index]);
     scheduledAt.setHours(8 + (index % 6), index % 2 === 0 ? 0 : 30, 0, 0);
     const service = context.services[index];
+    const appointmentStatus = appointmentStatuses[index];
 
     appointments.push(
       await prisma.appointment.create({
@@ -518,32 +641,37 @@ async function seedRelatedData(
           serviceId: service.id,
           scheduledAt,
           endAt: new Date(scheduledAt.getTime() + (30 + index * 5) * 60 * 1000),
-          status: appointmentStatuses[index],
-          bookingSource:
-            index % 4 === 0
-              ? 'PATIENT_APP'
-              : index % 4 === 1
-                ? 'WEBSITE'
-                : index % 4 === 2
-                  ? 'RECEPTIONIST'
-                  : 'AI',
-          aiSuggestedTime: index % 3 === 0 ? addDays(appointmentDayOffsets[index] + 1) : null,
+          status: appointmentStatus,
+          bookingSource: bookingSources[index % bookingSources.length],
+          aiSuggestedTime:
+            index % 3 === 0 ? addDays(appointmentDayOffsets[index] + 1) : null,
           notes: `Seed appointment note ${index + 1}`,
           rescheduleHistory:
             index === 8
               ? [
                   {
-                    from: addDays(appointmentDayOffsets[index] - 1).toISOString(),
+                    from: addDays(
+                      appointmentDayOffsets[index] - 1,
+                    ).toISOString(),
                     to: scheduledAt.toISOString(),
                   },
                 ]
               : undefined,
           cancellationReason:
-            index === 6 ? 'Patient requested cancellation.' : null,
-          cancelledAt: index === 4 ? addDays(appointmentDayOffsets[index]) : null,
-          checkedInAt: index === 2 ? scheduledAt : null,
-          completedAt:
-            appointmentStatuses[index] === 'COMPLETED' ? scheduledAt : null,
+            appointmentStatus === 'CANCELLED'
+              ? 'Patient requested cancellation.'
+              : appointmentStatus === 'NO_SHOW'
+                ? 'Patient did not arrive.'
+                : null,
+          cancelledAt:
+            index === 4 ? addDays(appointmentDayOffsets[index]) : null,
+          checkedInAt:
+            appointmentStatus === 'CHECKED_IN' ||
+            appointmentStatus === 'IN_PROGRESS' ||
+            appointmentStatus === 'COMPLETED'
+              ? scheduledAt
+              : null,
+          completedAt: appointmentStatus === 'COMPLETED' ? scheduledAt : null,
           createdBy: context.receptionistUser.id,
         },
         select: {
@@ -689,7 +817,9 @@ async function seedRelatedData(
                 ? 'FAILED'
                 : 'REFUNDED',
         paidAt:
-          invoiceStatuses[index] === 'PAID' ? appointments[index].scheduledAt : null,
+          invoiceStatuses[index] === 'PAID'
+            ? appointments[index].scheduledAt
+            : null,
         receivedBy: context.receptionistUser.id,
       },
     });
@@ -812,7 +942,11 @@ async function seedRelatedData(
   ];
 
   for (const [campaignIndex, campaign] of marketingCampaigns.entries()) {
-    for (let patientIndex = 0; patientIndex < context.patients.length; patientIndex += 1) {
+    for (
+      let patientIndex = 0;
+      patientIndex < context.patients.length;
+      patientIndex += 1
+    ) {
       const status =
         campaignIndex === 2
           ? 'PENDING'
@@ -853,6 +987,36 @@ async function main() {
     {
       role: 'RECEPTIONIST',
       email: 'receptionist@smartdental.test',
+      password: TEST_PASSWORD,
+    },
+    {
+      role: 'MANAGER',
+      email: 'manager@smartdental.test',
+      password: TEST_PASSWORD,
+    },
+    {
+      role: 'ACCOUNTANT',
+      email: 'accountant@smartdental.test',
+      password: TEST_PASSWORD,
+    },
+    {
+      role: 'ASSISTANT',
+      email: 'assistant@smartdental.test',
+      password: TEST_PASSWORD,
+    },
+    {
+      role: 'SUPPORT',
+      email: 'support@smartdental.test',
+      password: TEST_PASSWORD,
+    },
+    {
+      role: 'MARKETING',
+      email: 'marketing@smartdental.test',
+      password: TEST_PASSWORD,
+    },
+    {
+      role: 'VIEWER',
+      email: 'viewer@smartdental.test',
       password: TEST_PASSWORD,
     },
     {
