@@ -1,0 +1,47 @@
+import {
+  IsBoolean,
+  IsDateString,
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Matches,
+  Max,
+  Min,
+} from 'class-validator';
+import { AvailabilityRecordType } from '../../../../prisma/generated/client';
+
+export class CreateDoctorAvailabilityDto {
+  @IsUUID()
+  doctorId: string;
+
+  @IsEnum(AvailabilityRecordType)
+  recordType: AvailabilityRecordType;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(7)
+  dayOfWeek?: number;
+
+  @IsOptional()
+  @IsDateString()
+  specificDate?: string;
+
+  @IsString()
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/)
+  startTime: string;
+
+  @IsString()
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/)
+  endTime: string;
+
+  @IsOptional()
+  @IsString()
+  reason?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+}

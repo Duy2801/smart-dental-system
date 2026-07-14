@@ -1,10 +1,13 @@
+import { UsersPageContent } from "@/src/components/admin/personnel";
 import { Header } from "@/src/components/layout/header";
-import { UsersPageContent } from "@/src/components/admin/users-page-content";
 
 export default function AdminUsersPage() {
   return (
     <>
-      <Header title="Nhân sự" description="Tạo tài khoản và phân quyền (Admin, Bác sĩ, Lễ tân)" />
+      <Header
+        title="Nhan su"
+        description="Tao tai khoan va phan quyen (Admin, Bac si, Le tan)"
+      />
       <UsersPageContent />
     </>
   );

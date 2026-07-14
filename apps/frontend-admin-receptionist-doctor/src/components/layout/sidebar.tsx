@@ -1,7 +1,10 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ROUTES } from "@/src/constants/routes";
-import { siteConfig } from "@/src/config/site";
 import { cn } from "@/src/lib/utils/cn";
+import { ClinicSidebarBrand } from "./clinic-brand";
 
 type NavItem = {
   label: string;
@@ -14,7 +17,6 @@ type SidebarProps = {
   pathname: string;
 };
 
-/** Route gốc dashboard chỉ active khi pathname khớp chính xác (tránh /admin/* làm sáng "Tổng quan"). */
 function isNavItemActive(pathname: string, href: string) {
   if (pathname === href) return true;
 
@@ -24,14 +26,25 @@ function isNavItemActive(pathname: string, href: string) {
   return pathname.startsWith(`${href}/`);
 }
 
+function removeCookie(name: string) {
+  document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
+}
+
 export function Sidebar({ title, items, pathname }: SidebarProps) {
+  const router = useRouter();
+
+  const handleLogout = () => {
+    ["access_token", "refresh_token", "role", "session", "user_info"].forEach(
+      removeCookie,
+    );
+    router.replace(ROUTES.LOGIN);
+    router.refresh();
+  };
+
   return (
     <aside className="flex w-64 shrink-0 flex-col bg-brand-dark text-white">
       <div className="border-b border-white/10 px-6 py-5">
-        <p className="text-xs font-medium uppercase tracking-wide text-white/60">
-          {siteConfig.name}
-        </p>
-        <h2 className="mt-1 text-lg font-semibold text-white">{title}</h2>
+        <ClinicSidebarBrand title={title} />
       </div>
       <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-4">
         {items.map((item) => {
@@ -54,12 +67,13 @@ export function Sidebar({ title, items, pathname }: SidebarProps) {
         })}
       </nav>
       <div className="border-t border-white/10 p-4">
-        <Link
-          href={ROUTES.LOGIN}
-          className="block rounded-lg px-3 py-2 text-sm font-medium text-white/75 transition-colors hover:bg-white/10 hover:text-white"
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="block w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-white/75 transition-colors hover:bg-white/10 hover:text-white"
         >
           Đăng xuất
-        </Link>
+        </button>
       </div>
     </aside>
   );

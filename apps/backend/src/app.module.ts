@@ -20,6 +20,7 @@ import { PermissionModule } from './modules/permission/permission.module';
 import { PromotionModule } from './modules/promotion/promotion.module';
 import { ReviewModule } from './modules/review/review.module';
 import { RoleModule } from './modules/role/role.module';
+import { ReportModule } from './modules/report/report.module';
 import { ServiceModule } from './modules/service/service.module';
 import { TreatmentPlanModule } from './modules/treatment-plan/treatment-plan.module';
 import { VideoConsultationModule } from './modules/video-consultation/video-consultation.module';
@@ -45,6 +46,7 @@ import { VideoConsultationModule } from './modules/video-consultation/video-cons
     InvoiceModule,
     PaymentModule,
     ReviewModule,
+    ReportModule,
     ChatbotConversationModule,
     VideoConsultationModule,
     NotificationModule,

@@ -130,6 +130,10 @@ export class AuthService {
     return this.createSession(user);
   }
 
+  async me(userId: string) {
+    return this.userService.findOne(userId);
+  }
+
   async logout(userId: string) {
     await this.redisService.del(`refresh_token:${userId}`);
     return { message: 'auth.logout_success' };

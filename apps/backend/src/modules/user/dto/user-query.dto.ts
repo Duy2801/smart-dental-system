@@ -1,6 +1,12 @@
 import { Type } from 'class-transformer';
-import { IsEnum, IsInt, IsOptional, Max, Min } from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 import { UserStatus } from '../../../../prisma/generated/enums';
+
+export enum StaffRoleCode {
+  ADMIN = 'ADMIN',
+  DOCTOR = 'DOCTOR',
+  RECEPTIONIST = 'RECEPTIONIST',
+}
 
 export class UserQueryDto {
   @IsOptional()
@@ -19,4 +25,12 @@ export class UserQueryDto {
   @IsOptional()
   @IsEnum(UserStatus)
   status?: UserStatus;
+
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @IsOptional()
+  @IsEnum(StaffRoleCode)
+  roleCode?: StaffRoleCode;
 }

@@ -1,4 +1,12 @@
-import { Body, Controller, Post, Req, Res, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiBearerAuth, ApiCookieAuth, ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
@@ -22,7 +30,7 @@ type LocalizedRequest = Request & {
 };
 
 @ApiTags('Auth')
-@Controller('auth')
+@Controller(['auth', 'admin/auth'])
 export class AuthController {
   constructor(
     private readonly auth: AuthService,
@@ -51,10 +59,9 @@ export class AuthController {
   private hideRefreshToken<T extends { refreshToken: string }>(
     session: T,
     response: Response,
-  ): Omit<T, 'refreshToken'> {
-    const { refreshToken, ...body } = session;
-    this.setRefreshCookie(response, refreshToken);
-    return body;
+  ): T {
+    this.setRefreshCookie(response, session.refreshToken);
+    return session;
   }
 
   @Post('register')
@@ -69,6 +76,13 @@ export class AuthController {
   ) {
     const session = await this.auth.login(dto.email, dto.password);
     return this.hideRefreshToken(session, response);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  me(@Req() req: Request & { user: { userId: string } }) {
+    return this.auth.me(req.user.userId);
   }
 
   @ApiCookieAuth('refreshToken')
