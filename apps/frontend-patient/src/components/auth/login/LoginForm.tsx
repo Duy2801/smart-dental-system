@@ -8,11 +8,19 @@ import { SecurityNotice } from "../common/SecurityNotice";
 
 type LoginFormProps = {
   passwordVisible: boolean;
+  error: string | null;
+  submitting: boolean;
   onTogglePassword: () => void;
   onSubmit: FormEventHandler<HTMLFormElement>;
 };
 
-export function LoginForm({ passwordVisible, onTogglePassword, onSubmit }: LoginFormProps) {
+export function LoginForm({
+  passwordVisible,
+  error,
+  submitting,
+  onTogglePassword,
+  onSubmit,
+}: LoginFormProps) {
   return (
     <section className="auth-card w-full max-w-[420px] rounded-xl border border-slate-200 bg-white p-6 shadow-[0_16px_50px_rgba(15,23,42,0.09)] sm:p-7">
       <div className="mb-7 text-center">
@@ -41,9 +49,10 @@ export function LoginForm({ passwordVisible, onTogglePassword, onSubmit }: Login
 
       <form className="space-y-4" onSubmit={onSubmit}>
         <FormField
-          label="Email hoặc số điện thoại"
+          label="Email"
           icon="mail"
-          name="identifier"
+          name="email"
+          type="email"
           placeholder="name@email.com"
           autoComplete="username"
           required
@@ -67,8 +76,16 @@ export function LoginForm({ passwordVisible, onTogglePassword, onSubmit }: Login
             </Link>
           }
         />
-        <PrimaryButton>
-          Đăng nhập <span aria-hidden="true">→</span>
+
+        {error && (
+          <p role="alert" className="text-xs font-medium text-red-600">
+            {error}
+          </p>
+        )}
+
+        <PrimaryButton disabled={submitting}>
+          {submitting ? "Đang đăng nhập..." : "Đăng nhập"}
+          {!submitting && <span aria-hidden="true">→</span>}
         </PrimaryButton>
       </form>
 
@@ -88,7 +105,10 @@ export function LoginForm({ passwordVisible, onTogglePassword, onSubmit }: Login
 
       <p className="my-5 text-center text-sm text-slate-500">
         Chưa có tài khoản?{" "}
-        <Link href="/auth/register" className="font-semibold text-[#0863c5] hover:underline">
+        <Link
+          href="/auth/register"
+          className="font-semibold text-[#0863c5] hover:underline"
+        >
           Tạo tài khoản bệnh nhân
         </Link>
       </p>

@@ -1,5 +1,5 @@
 generator client {
-  provider = "prisma-client"
+  provider     = "prisma-client"
   output       = "./generated"
   moduleFormat = "cjs"
 }
@@ -208,20 +208,72 @@ model RolePermission {
 }
 
 model Service {
-  id              String   @id @default(uuid()) @db.Uuid
-  category        String
-  name            String
-  description     String?  @db.Text
-  durationMinutes Int      @map("duration_minutes")
-  basePrice       Decimal  @map("base_price") @db.Decimal(12, 2)
-  isActive        Boolean  @default(true) @map("is_active")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  id               String   @id @default(uuid()) @db.Uuid
+  category         String
+  name             String
+  slug             String?  @unique
+  shortDescription String?  @map("short_description") @db.Text
+  description      String?  @db.Text
+  thumbnailUrl     String?  @map("thumbnail_url")
+  durationMinutes  Int      @map("duration_minutes")
+  basePrice        Decimal  @map("base_price") @db.Decimal(12, 2)
+  isFeatured       Boolean  @default(false) @map("is_featured")
+  displayOrder     Int      @default(0) @map("display_order")
+  isActive         Boolean  @default(true) @map("is_active")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
-  appointments Appointment[]
+  appointments   Appointment[]
+  media          ServiceMedia[]
+  procedureSteps ServiceProcedureStep[]
+  faqs           ServiceFaq[]
 
   @@index([category, isActive])
+  @@index([isFeatured, displayOrder])
   @@map("services")
+}
+
+model ServiceMedia {
+  id        String   @id @default(uuid()) @db.Uuid
+  serviceId String   @map("service_id") @db.Uuid
+  url       String
+  alt       String?
+  type      String
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@index([serviceId, sortOrder])
+  @@map("service_media")
+}
+
+model ServiceProcedureStep {
+  id              String @id @default(uuid()) @db.Uuid
+  serviceId       String @map("service_id") @db.Uuid
+  stepOrder       Int    @map("step_order")
+  title           String
+  description     String @db.Text
+  durationMinutes Int?   @map("duration_minutes")
+
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([serviceId, stepOrder])
+  @@index([serviceId])
+  @@map("service_procedure_steps")
+}
+
+model ServiceFaq {
+  id        String @id @default(uuid()) @db.Uuid
+  serviceId String @map("service_id") @db.Uuid
+  question  String
+  answer    String @db.Text
+  sortOrder Int    @default(0) @map("sort_order")
+
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@index([serviceId, sortOrder])
+  @@map("service_faqs")
 }
 
 model Promotion {

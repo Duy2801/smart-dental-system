@@ -67,6 +67,34 @@ export class AuthService {
     });
   }
 
+  private async generatePatientCode() {
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const code = `PAT-${new Date().getFullYear()}-${randomBytes(3).toString('hex').toUpperCase()}`;
+      const existing = await this.prismaService.patient.findUnique({
+        where: { patientCode: code },
+        select: { id: true },
+      });
+      if (!existing) return code;
+    }
+
+    return `PAT-${Date.now()}`;
+  }
+
+  private async ensurePatientProfile(userId: string) {
+    const existing = await this.prismaService.patient.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+    if (existing) return;
+
+    await this.prismaService.patient.create({
+      data: {
+        userId,
+        patientCode: await this.generatePatientCode(),
+      },
+    });
+  }
+
   async register(data: RegisterDto, locale: 'en' | 'vi' = 'vi') {
     const email = this.normalizeEmail(data.email);
     const existingUser = await this.userService.findByEmail(email);
@@ -94,6 +122,7 @@ export class AuthService {
 
     const role = await this.getPatientRole();
     const passwordHash = await bcrypt.hash(data.password, 10);
+    const patientCode = await this.generatePatientCode();
     const user = await this.prismaService.user.create({
       data: {
         email,
@@ -101,6 +130,9 @@ export class AuthService {
         fullName: data.fullName.trim(),
         phone: data.phone,
         roles: { create: { roleId: role.id } },
+        patientProfile: {
+          create: { patientCode },
+        },
       },
     });
 
@@ -219,6 +251,7 @@ export class AuthService {
     await this.redisService.del(key);
     const user = await this.userService.findByEmail(email);
     if (!user) throw new BadRequestException('user.not_found');
+    await this.ensurePatientProfile(user.id);
     return {
       ...(await this.createSession(user)),
       message: 'otp.verified',

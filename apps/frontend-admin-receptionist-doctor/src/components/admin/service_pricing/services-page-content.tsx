@@ -50,7 +50,7 @@ export function ServicesPageContent() {
       await invalidateServices();
     },
     onError: (err) => {
-      setError(getErrorMessage(err, "Luu dich vu that bai"));
+      setError(getErrorMessage(err, "Lưu dịch vụ thất bại"));
     },
   });
 
@@ -59,7 +59,7 @@ export function ServicesPageContent() {
       updateServiceStatus(service.id, !service.isActive),
     onSuccess: invalidateServices,
     onError: (err) => {
-      setError(getErrorMessage(err, "Cap nhat trang thai that bai"));
+      setError(getErrorMessage(err, "Cập nhật trạng thái thất bại"));
     },
   });
 
@@ -67,7 +67,7 @@ export function ServicesPageContent() {
     mutationFn: (service: DentalService) => deleteService(service.id),
     onSuccess: invalidateServices,
     onError: (err) => {
-      setError(getErrorMessage(err, "Xoa dich vu that bai"));
+      setError(getErrorMessage(err, "Xóa dịch vụ thất bại"));
     },
   });
 
@@ -111,9 +111,7 @@ export function ServicesPageContent() {
   };
 
   const removeService = async (service: DentalService) => {
-    const confirmed = window.confirm(
-      "Ban chac chan muon ngung dich vu nay?",
-    );
+    const confirmed = window.confirm("Bạn chắc chắn muốn ngừng dịch vụ này?");
     if (!confirmed) return;
 
     setError(null);
@@ -146,7 +144,7 @@ export function ServicesPageContent() {
 
       {showModal ? (
         <ServiceFormModal
-          title={editingService ? "Sua dich vu" : "Them dich vu moi"}
+          title={editingService ? "Sửa dịch vụ" : "Thêm dịch vụ mới"}
           initialValue={
             editingService
               ? toServiceFormState(editingService)

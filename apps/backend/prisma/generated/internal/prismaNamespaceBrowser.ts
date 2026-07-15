@@ -58,6 +58,9 @@ export const ModelName = {
   UserRole: 'UserRole',
   RolePermission: 'RolePermission',
   Service: 'Service',
+  ServiceMedia: 'ServiceMedia',
+  ServiceProcedureStep: 'ServiceProcedureStep',
+  ServiceFaq: 'ServiceFaq',
   Promotion: 'Promotion',
   Patient: 'Patient',
   Doctor: 'Doctor',
@@ -167,15 +170,56 @@ export const ServiceScalarFieldEnum = {
   id: 'id',
   category: 'category',
   name: 'name',
+  slug: 'slug',
+  shortDescription: 'shortDescription',
   description: 'description',
+  thumbnailUrl: 'thumbnailUrl',
   durationMinutes: 'durationMinutes',
   basePrice: 'basePrice',
+  isFeatured: 'isFeatured',
+  displayOrder: 'displayOrder',
   isActive: 'isActive',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
 export type ServiceScalarFieldEnum = (typeof ServiceScalarFieldEnum)[keyof typeof ServiceScalarFieldEnum]
+
+
+export const ServiceMediaScalarFieldEnum = {
+  id: 'id',
+  serviceId: 'serviceId',
+  url: 'url',
+  alt: 'alt',
+  type: 'type',
+  sortOrder: 'sortOrder',
+  createdAt: 'createdAt'
+} as const
+
+export type ServiceMediaScalarFieldEnum = (typeof ServiceMediaScalarFieldEnum)[keyof typeof ServiceMediaScalarFieldEnum]
+
+
+export const ServiceProcedureStepScalarFieldEnum = {
+  id: 'id',
+  serviceId: 'serviceId',
+  stepOrder: 'stepOrder',
+  title: 'title',
+  description: 'description',
+  durationMinutes: 'durationMinutes'
+} as const
+
+export type ServiceProcedureStepScalarFieldEnum = (typeof ServiceProcedureStepScalarFieldEnum)[keyof typeof ServiceProcedureStepScalarFieldEnum]
+
+
+export const ServiceFaqScalarFieldEnum = {
+  id: 'id',
+  serviceId: 'serviceId',
+  question: 'question',
+  answer: 'answer',
+  sortOrder: 'sortOrder'
+} as const
+
+export type ServiceFaqScalarFieldEnum = (typeof ServiceFaqScalarFieldEnum)[keyof typeof ServiceFaqScalarFieldEnum]
 
 
 export const PromotionScalarFieldEnum = {

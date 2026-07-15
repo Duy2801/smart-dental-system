@@ -24,12 +24,24 @@ const roles = [
   ['DOCTOR', 'Doctor', 'Dental doctor account'],
   ['RECEPTIONIST', 'Receptionist', 'Front desk account'],
   ['PATIENT', 'Patient', 'Patient portal account'],
-  ['MANAGER', 'Clinic Manager', 'Clinic operation manager'],
-  ['ACCOUNTANT', 'Accountant', 'Billing and payment staff'],
-  ['ASSISTANT', 'Dental Assistant', 'Doctor assistant'],
-  ['SUPPORT', 'Support Agent', 'Patient support staff'],
-  ['MARKETING', 'Marketing Staff', 'Promotion management staff'],
-  ['VIEWER', 'Viewer', 'Read-only account'],
+] as const;
+
+const obsoleteRoleCodes = [
+  'MANAGER',
+  'ACCOUNTANT',
+  'ASSISTANT',
+  'SUPPORT',
+  'MARKETING',
+  'VIEWER',
+] as const;
+
+const obsoleteStaffEmails = [
+  'manager@smartdental.test',
+  'accountant@smartdental.test',
+  'assistant@smartdental.test',
+  'support@smartdental.test',
+  'marketing@smartdental.test',
+  'viewer@smartdental.test',
 ] as const;
 
 const permissions = [
@@ -74,48 +86,6 @@ const adminUsers = [
     roleCode: 'RECEPTIONIST',
     status: 'ACTIVE' as const,
   },
-  {
-    email: 'manager@smartdental.test',
-    fullName: 'Manager Test',
-    phone: '0900000003',
-    roleCode: 'MANAGER',
-    status: 'ACTIVE' as const,
-  },
-  {
-    email: 'accountant@smartdental.test',
-    fullName: 'Accountant Test',
-    phone: '0900000004',
-    roleCode: 'ACCOUNTANT',
-    status: 'ACTIVE' as const,
-  },
-  {
-    email: 'assistant@smartdental.test',
-    fullName: 'Assistant Test',
-    phone: '0900000005',
-    roleCode: 'ASSISTANT',
-    status: 'ACTIVE' as const,
-  },
-  {
-    email: 'support@smartdental.test',
-    fullName: 'Support Test',
-    phone: '0900000006',
-    roleCode: 'SUPPORT',
-    status: 'ACTIVE' as const,
-  },
-  {
-    email: 'marketing@smartdental.test',
-    fullName: 'Marketing Test',
-    phone: '0900000007',
-    roleCode: 'MARKETING',
-    status: 'INACTIVE' as const,
-  },
-  {
-    email: 'viewer@smartdental.test',
-    fullName: 'Viewer Test',
-    phone: '0900000008',
-    roleCode: 'VIEWER',
-    status: 'SUSPENDED' as const,
-  },
 ];
 
 const patientSeeds = Array.from({ length: 10 }, (_, index) => ({
@@ -158,48 +128,567 @@ const doctorSeeds = Array.from({ length: 10 }, (_, index) => ({
   isActive: index !== 9,
 }));
 
+const serviceImageUrls = {
+  dentalCheckup:
+    'https://images.unsplash.com/photo-1606811971618-4486d14f3f99?auto=format&fit=crop&w=1200&q=80',
+  teethCleaning:
+    'https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=1200&q=80',
+  dentalFilling:
+    'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=1200&q=80',
+  rootCanal:
+    'https://images.unsplash.com/photo-1588776813677-77aaf5595b83?auto=format&fit=crop&w=1200&q=80',
+  teethWhitening:
+    'https://images.unsplash.com/photo-1598256989800-fe5f95da9787?auto=format&fit=crop&w=1200&q=80',
+  toothExtraction:
+    'https://images.unsplash.com/photo-1609840114035-3c981b782dfe?auto=format&fit=crop&w=1200&q=80',
+  braces:
+    'https://images.unsplash.com/photo-1606811841689-23dfddce3e95?auto=format&fit=crop&w=1200&q=80',
+  dentalCrown:
+    'https://images.unsplash.com/photo-1629909615184-74f495363b67?auto=format&fit=crop&w=1200&q=80',
+  implant:
+    'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=1200&q=80',
+  kidsDental:
+    'https://images.unsplash.com/photo-1606811971618-4486d14f3f99?auto=format&fit=crop&w=1200&q=80',
+} as const;
+
 const services = [
-  ['General', 'Dental Checkup', 'Routine dental examination.', 30, '200000'],
-  ['General', 'Teeth Cleaning', 'Scaling and polishing.', 45, '350000'],
-  ['Restorative', 'Dental Filling', 'Composite tooth filling.', 60, '600000'],
-  [
-    'Endodontics',
-    'Root Canal Treatment',
-    'Single-root canal therapy.',
-    90,
-    '1800000',
-  ],
-  [
-    'Cosmetic',
-    'Teeth Whitening',
-    'In-clinic whitening session.',
-    60,
-    '1500000',
-  ],
-  ['Surgery', 'Tooth Extraction', 'Simple extraction procedure.', 45, '500000'],
-  [
-    'Orthodontics',
-    'Braces Consultation',
-    'Initial orthodontic assessment.',
-    45,
-    '300000',
-  ],
-  [
-    'Prosthodontics',
-    'Dental Crown',
-    'Porcelain crown restoration.',
-    90,
-    '3500000',
-  ],
-  [
-    'Implant',
-    'Implant Consultation',
-    'Implant planning consultation.',
-    60,
-    '500000',
-  ],
-  ['Pediatric', 'Kids Dental Care', 'Dental care for children.', 30, '250000'],
+  {
+    category: 'Tổng quát',
+    name: 'Khám răng tổng quát',
+    slug: 'dental-checkup',
+    shortDescription:
+      'Thăm khám toàn diện tình trạng răng miệng và tư vấn điều trị.',
+    description:
+      'Kiểm tra răng, nướu, khớp cắn và tư vấn kế hoạch chăm sóc phù hợp.',
+    thumbnailUrl: serviceImageUrls.dentalCheckup,
+    durationMinutes: 30,
+    basePrice: '200000',
+    isFeatured: true,
+    displayOrder: 1,
+  },
+  {
+    category: 'Tổng quát',
+    name: 'Cạo vôi và đánh bóng răng',
+    slug: 'teeth-cleaning',
+    shortDescription: 'Làm sạch mảng bám, cao răng và đánh bóng bề mặt răng.',
+    description: 'Cạo vôi, làm sạch mảng bám và đánh bóng giúp nướu khỏe hơn.',
+    thumbnailUrl: serviceImageUrls.teethCleaning,
+    durationMinutes: 45,
+    basePrice: '350000',
+    isFeatured: true,
+    displayOrder: 2,
+  },
+  {
+    category: 'Phục hồi',
+    name: 'Trám răng thẩm mỹ',
+    slug: 'dental-filling',
+    shortDescription:
+      'Phục hồi răng sâu, mẻ hoặc mất mô bằng vật liệu composite.',
+    description:
+      'Trám răng bằng vật liệu cùng màu răng cho các lỗ sâu nhỏ và vừa.',
+    thumbnailUrl: serviceImageUrls.dentalFilling,
+    durationMinutes: 60,
+    basePrice: '600000',
+    isFeatured: false,
+    displayOrder: 3,
+  },
+  {
+    category: 'Nội nha',
+    name: 'Điều trị tủy',
+    slug: 'root-canal-treatment',
+    shortDescription: 'Xử lý tủy viêm, nhiễm trùng và đau nhức kéo dài.',
+    description:
+      'Làm sạch, sát khuẩn và trám bít ống tủy để bảo tồn răng thật.',
+    thumbnailUrl: serviceImageUrls.rootCanal,
+    durationMinutes: 90,
+    basePrice: '1800000',
+    isFeatured: true,
+    displayOrder: 4,
+  },
+  {
+    category: 'Thẩm mỹ',
+    name: 'Tẩy trắng răng',
+    slug: 'teeth-whitening',
+    shortDescription:
+      'Cải thiện màu răng, giúp nụ cười sáng hơn sau một buổi điều trị.',
+    description:
+      'Tẩy trắng tại phòng khám với gel chuyên dụng và quy trình kiểm soát an toàn.',
+    thumbnailUrl: serviceImageUrls.teethWhitening,
+    durationMinutes: 60,
+    basePrice: '1500000',
+    isFeatured: true,
+    displayOrder: 5,
+  },
+  {
+    category: 'Tiểu phẫu',
+    name: 'Nhổ răng',
+    slug: 'tooth-extraction',
+    shortDescription: 'Loại bỏ răng hư hỏng, lung lay hoặc không thể bảo tồn.',
+    description:
+      'Nhổ răng an toàn với gây tê tại chỗ và hướng dẫn chăm sóc sau điều trị.',
+    thumbnailUrl: serviceImageUrls.toothExtraction,
+    durationMinutes: 45,
+    basePrice: '500000',
+    isFeatured: false,
+    displayOrder: 6,
+  },
+  {
+    category: 'Chỉnh nha',
+    name: 'Tư vấn niềng răng',
+    slug: 'braces-consultation',
+    shortDescription:
+      'Đánh giá khớp cắn, tình trạng lệch lạc và lựa chọn phương án chỉnh nha.',
+    description:
+      'Tư vấn loại mắc cài, thời gian điều trị, chi phí dự kiến và kế hoạch theo dõi.',
+    thumbnailUrl: serviceImageUrls.braces,
+    durationMinutes: 45,
+    basePrice: '300000',
+    isFeatured: true,
+    displayOrder: 7,
+  },
+  {
+    category: 'Phục hình',
+    name: 'Bọc răng sứ',
+    slug: 'dental-crown',
+    shortDescription:
+      'Phục hồi răng yếu, mẻ lớn hoặc đã điều trị tủy bằng mão sứ.',
+    description: 'Bọc mão sứ giúp cải thiện chức năng ăn nhai và thẩm mỹ răng.',
+    thumbnailUrl: serviceImageUrls.dentalCrown,
+    durationMinutes: 90,
+    basePrice: '3500000',
+    isFeatured: false,
+    displayOrder: 8,
+  },
+  {
+    category: 'Implant',
+    name: 'Tư vấn cấy ghép Implant',
+    slug: 'implant-consultation',
+    shortDescription:
+      'Đánh giá mất răng, xương hàm và khả năng cấy ghép Implant.',
+    description:
+      'Tư vấn điều kiện cấy ghép, loại trụ, thời gian điều trị và chi phí dự kiến.',
+    thumbnailUrl: serviceImageUrls.implant,
+    durationMinutes: 60,
+    basePrice: '500000',
+    isFeatured: true,
+    displayOrder: 9,
+  },
+  {
+    category: 'Nha khoa trẻ em',
+    name: 'Chăm sóc răng trẻ em',
+    slug: 'kids-dental-care',
+    shortDescription:
+      'Thăm khám nhẹ nhàng, phòng ngừa sâu răng và hướng dẫn chăm sóc cho trẻ.',
+    description: 'Dịch vụ nha khoa cơ bản và dự phòng dành cho trẻ em.',
+    thumbnailUrl: serviceImageUrls.kidsDental,
+    durationMinutes: 30,
+    basePrice: '250000',
+    isFeatured: false,
+    displayOrder: 10,
+  },
 ] as const;
+
+const serviceContentBySlug = {
+  'dental-checkup': {
+    media: [
+      {
+        url: serviceImageUrls.dentalCheckup,
+        alt: 'Phòng khám răng tổng quát',
+        type: 'BANNER',
+      },
+      {
+        url: serviceImageUrls.dentalCheckup,
+        alt: 'Bác sĩ kiểm tra răng cho bệnh nhân',
+        type: 'PROCESS',
+      },
+    ],
+    steps: [
+      [
+        'Trao đổi triệu chứng',
+        'Bác sĩ hỏi về đau nhức, ê buốt, chảy máu nướu và thói quen chăm sóc răng miệng.',
+        5,
+      ],
+      [
+        'Khám răng miệng',
+        'Kiểm tra răng, nướu, khớp cắn và mô mềm trong khoang miệng.',
+        15,
+      ],
+      [
+        'Tư vấn kết quả',
+        'Bác sĩ giải thích tình trạng hiện tại và đề xuất hướng điều trị nếu cần.',
+        10,
+      ],
+    ],
+    faqs: [
+      [
+        'Bao lâu nên khám răng tổng quát một lần?',
+        'Thông thường nên khám định kỳ mỗi 6 tháng để phát hiện sớm các vấn đề răng miệng.',
+      ],
+      [
+        'Lần nào đi khám cũng cần chụp X-quang không?',
+        'Không bắt buộc. Bác sĩ chỉ chỉ định chụp X-quang khi cần thêm thông tin chẩn đoán.',
+      ],
+    ],
+  },
+  'teeth-cleaning': {
+    media: [
+      {
+        url: serviceImageUrls.teethCleaning,
+        alt: 'Quy trình cạo vôi và đánh bóng răng',
+        type: 'PROCESS',
+      },
+    ],
+    steps: [
+      [
+        'Đánh giá mảng bám',
+        'Bác sĩ kiểm tra lượng cao răng, mảng bám và tình trạng nướu.',
+        5,
+      ],
+      [
+        'Cạo vôi răng',
+        'Mảng bám và cao răng được làm sạch bằng dụng cụ nha khoa chuyên dụng.',
+        25,
+      ],
+      [
+        'Đánh bóng',
+        'Bề mặt răng được đánh bóng để giảm bám màu và tạo cảm giác sạch hơn.',
+        10,
+      ],
+      [
+        'Hướng dẫn chăm sóc',
+        'Bệnh nhân được hướng dẫn chải răng, dùng chỉ nha khoa và tái khám định kỳ.',
+        5,
+      ],
+    ],
+    faqs: [
+      [
+        'Cạo vôi răng có đau không?',
+        'Phần lớn bệnh nhân chỉ cảm thấy rung nhẹ hoặc ê buốt nhẹ trong lúc làm sạch.',
+      ],
+      [
+        'Cạo vôi có làm trắng răng không?',
+        'Cạo vôi giúp loại bỏ mảng bám và vết ố bề mặt, nhưng không thay thế tẩy trắng răng.',
+      ],
+    ],
+  },
+  'dental-filling': {
+    media: [
+      {
+        url: serviceImageUrls.dentalFilling,
+        alt: 'Trám răng bằng vật liệu composite',
+        type: 'PROCESS',
+      },
+    ],
+    steps: [
+      [
+        'Kiểm tra răng sâu',
+        'Bác sĩ xác định vị trí sâu răng, mẻ răng hoặc vùng cần phục hồi.',
+        10,
+      ],
+      [
+        'Làm sạch xoang trám',
+        'Vùng răng tổn thương được làm sạch và cách ly trước khi trám.',
+        15,
+      ],
+      [
+        'Đặt vật liệu trám',
+        'Composite được đưa vào, tạo hình và chiếu đèn để đông cứng.',
+        25,
+      ],
+      [
+        'Chỉnh khớp cắn',
+        'Miếng trám được đánh bóng và kiểm tra cảm giác khi cắn.',
+        10,
+      ],
+    ],
+    faqs: [
+      [
+        'Miếng trám dùng được bao lâu?',
+        'Trám composite có thể sử dụng nhiều năm nếu vệ sinh tốt và tái khám định kỳ.',
+      ],
+      [
+        'Trám răng xong có ăn ngay được không?',
+        'Thông thường nên ăn sau khi hết tê và tránh nhai mạnh ở vùng vừa trám trong thời gian đầu.',
+      ],
+    ],
+  },
+  'root-canal-treatment': {
+    media: [
+      {
+        url: serviceImageUrls.rootCanal,
+        alt: 'Minh họa điều trị tủy răng',
+        type: 'PROCESS',
+      },
+    ],
+    steps: [
+      [
+        'Chẩn đoán',
+        'Bác sĩ đánh giá triệu chứng đau nhức và có thể chỉ định chụp X-quang.',
+        15,
+      ],
+      [
+        'Làm sạch ống tủy',
+        'Mô tủy viêm hoặc nhiễm trùng được loại bỏ, ống tủy được sát khuẩn.',
+        40,
+      ],
+      [
+        'Trám bít ống tủy',
+        'Ống tủy đã làm sạch được trám bít bằng vật liệu chuyên dụng.',
+        25,
+      ],
+      [
+        'Tư vấn phục hồi',
+        'Bác sĩ có thể khuyến nghị trám hoặc bọc sứ để bảo vệ răng sau điều trị tủy.',
+        10,
+      ],
+    ],
+    faqs: [
+      [
+        'Điều trị tủy có đau không?',
+        'Bác sĩ sẽ gây tê tại chỗ để kiểm soát đau trong quá trình điều trị.',
+      ],
+      [
+        'Điều trị tủy cần mấy lần hẹn?',
+        'Nhiều trường hợp cần 1-2 lần hẹn, tùy mức độ viêm nhiễm và số ống tủy.',
+      ],
+    ],
+  },
+  'teeth-whitening': {
+    media: [
+      {
+        url: serviceImageUrls.teethWhitening,
+        alt: 'Hình ảnh trước và sau khi tẩy trắng răng',
+        type: 'BEFORE_AFTER',
+      },
+      {
+        url: serviceImageUrls.teethWhitening,
+        alt: 'Chiếu đèn tẩy trắng răng',
+        type: 'PROCESS',
+      },
+    ],
+    steps: [
+      [
+        'Đánh giá màu răng',
+        'Bác sĩ xác định màu răng hiện tại và nguy cơ ê buốt.',
+        10,
+      ],
+      [
+        'Bảo vệ nướu',
+        'Nướu được che chắn để hạn chế kích ứng trong quá trình tẩy trắng.',
+        10,
+      ],
+      [
+        'Tẩy trắng',
+        'Gel tẩy trắng được bôi lên răng và hoạt hóa theo từng chu kỳ kiểm soát.',
+        30,
+      ],
+      [
+        'Hướng dẫn sau điều trị',
+        'Bệnh nhân được dặn cách ăn uống và chăm sóc khi có ê buốt nhẹ.',
+        10,
+      ],
+    ],
+    faqs: [
+      [
+        'Tẩy trắng răng có bị ê buốt không?',
+        'Có thể ê buốt tạm thời, nhưng thường giảm nhanh sau điều trị.',
+      ],
+      [
+        'Kết quả tẩy trắng giữ được bao lâu?',
+        'Thời gian duy trì tùy thói quen ăn uống và chăm sóc, thường có thể giữ sáng trong nhiều tháng.',
+      ],
+    ],
+  },
+  'tooth-extraction': {
+    media: [
+      {
+        url: serviceImageUrls.toothExtraction,
+        alt: 'Hướng dẫn chăm sóc sau nhổ răng',
+        type: 'PROCESS',
+      },
+    ],
+    steps: [
+      [
+        'Khám chỉ định',
+        'Bác sĩ xác nhận lý do cần nhổ răng và đánh giá mức độ khó.',
+        10,
+      ],
+      ['Gây tê', 'Gây tê tại chỗ giúp giảm đau trong quá trình nhổ răng.', 10],
+      [
+        'Nhổ răng',
+        'Răng được lấy ra nhẹ nhàng bằng dụng cụ nha khoa phù hợp.',
+        15,
+      ],
+      [
+        'Cầm máu',
+        'Bệnh nhân được đặt gạc cầm máu và hướng dẫn chăm sóc tại nhà.',
+        10,
+      ],
+    ],
+    faqs: [
+      [
+        'Nhổ răng bao lâu thì lành?',
+        'Vết thương thường ổn định sau vài ngày đầu, tùy cơ địa và độ khó của ca nhổ.',
+      ],
+      [
+        'Sau nhổ răng nên kiêng gì?',
+        'Nên tránh hút thuốc, thức ăn cứng, súc miệng mạnh và dùng ống hút trong ngày đầu.',
+      ],
+    ],
+  },
+  'braces-consultation': {
+    media: [
+      {
+        url: serviceImageUrls.braces,
+        alt: 'Lập kế hoạch niềng răng',
+        type: 'PROCESS',
+      },
+    ],
+    steps: [
+      [
+        'Đánh giá khớp cắn',
+        'Bác sĩ kiểm tra răng chen chúc, lệch lạc và tương quan khớp cắn.',
+        15,
+      ],
+      [
+        'Thu thập dữ liệu',
+        'Hình ảnh, phim X-quang hoặc scan răng có thể được dùng để lập kế hoạch.',
+        10,
+      ],
+      [
+        'Tư vấn lựa chọn',
+        'Bác sĩ giải thích các loại niềng răng, thời gian điều trị và chi phí dự kiến.',
+        15,
+      ],
+      [
+        'Hẹn bước tiếp theo',
+        'Bệnh nhân nhận kế hoạch chỉnh nha sơ bộ và lịch hẹn tiếp theo nếu đồng ý điều trị.',
+        5,
+      ],
+    ],
+    faqs: [
+      [
+        'Niềng răng mất bao lâu?',
+        'Nhiều trường hợp kéo dài khoảng 18-24 tháng, tùy mức độ lệch lạc.',
+      ],
+      [
+        'Người lớn có niềng răng được không?',
+        'Có. Người lớn vẫn có thể chỉnh nha nếu tình trạng răng và nướu phù hợp.',
+      ],
+    ],
+  },
+  'dental-crown': {
+    media: [
+      {
+        url: serviceImageUrls.dentalCrown,
+        alt: 'Phục hồi răng bằng mão sứ',
+        type: 'PROCESS',
+      },
+    ],
+    steps: [
+      [
+        'Đánh giá răng',
+        'Bác sĩ kiểm tra răng có đủ điều kiện nâng đỡ mão sứ hay không.',
+        10,
+      ],
+      ['Mài chỉnh răng', 'Răng được tạo hình phù hợp để lắp mão sứ.', 30],
+      ['Lấy dấu', 'Bác sĩ lấy dấu hoặc scan răng để thiết kế mão sứ.', 15],
+      ['Gắn mão sứ', 'Mão sứ được thử, chỉnh khớp cắn và gắn cố định.', 35],
+    ],
+    faqs: [
+      [
+        'Khi nào cần bọc răng sứ?',
+        'Bọc sứ thường dùng cho răng yếu, nứt, mẻ lớn hoặc đã điều trị tủy.',
+      ],
+      [
+        'Răng sứ dùng được bao lâu?',
+        'Mão sứ có thể sử dụng nhiều năm nếu vệ sinh tốt và tái khám định kỳ.',
+      ],
+    ],
+  },
+  'implant-consultation': {
+    media: [
+      {
+        url: serviceImageUrls.implant,
+        alt: 'Lập kế hoạch cấy ghép Implant',
+        type: 'BANNER',
+      },
+    ],
+    steps: [
+      [
+        'Khai thác bệnh sử',
+        'Bác sĩ trao đổi về sức khỏe tổng quát, thuốc đang dùng và mong muốn phục hồi răng.',
+        10,
+      ],
+      [
+        'Đánh giá xương hàm',
+        'Vùng mất răng và điều kiện xương được kiểm tra để xem khả năng cấy ghép.',
+        20,
+      ],
+      [
+        'Lập kế hoạch điều trị',
+        'Bác sĩ tư vấn loại trụ, thời gian thực hiện và chi phí dự kiến.',
+        20,
+      ],
+      [
+        'Hướng dẫn chuẩn bị',
+        'Bệnh nhân được hướng dẫn bước chẩn đoán hoặc xét nghiệm tiếp theo nếu cần.',
+        10,
+      ],
+    ],
+    faqs: [
+      [
+        'Ai phù hợp để cấy ghép Implant?',
+        'Bệnh nhân cần có sức khỏe tổng quát ổn định và đủ điều kiện xương hàm để lập kế hoạch cấy ghép.',
+      ],
+      [
+        'Cấy Implant có xong trong một lần không?',
+        'Phần lớn ca Implant cần nhiều giai đoạn trong vài tháng để trụ tích hợp với xương.',
+      ],
+    ],
+  },
+  'kids-dental-care': {
+    media: [
+      {
+        url: serviceImageUrls.kidsDental,
+        alt: 'Chăm sóc răng miệng cho trẻ em',
+        type: 'BANNER',
+      },
+    ],
+    steps: [
+      [
+        'Làm quen nhẹ nhàng',
+        'Trẻ được làm quen với ghế nha khoa và dụng cụ theo cách thân thiện.',
+        5,
+      ],
+      [
+        'Khám răng miệng',
+        'Bác sĩ kiểm tra răng, nướu và quá trình mọc răng của trẻ.',
+        10,
+      ],
+      [
+        'Chăm sóc dự phòng',
+        'Có thể thực hiện làm sạch, bôi fluoride hoặc trám bít hố rãnh nếu phù hợp.',
+        10,
+      ],
+      [
+        'Hướng dẫn phụ huynh',
+        'Phụ huynh được tư vấn cách vệ sinh răng và chế độ ăn cho trẻ.',
+        5,
+      ],
+    ],
+    faqs: [
+      [
+        'Trẻ em nên đi nha sĩ khi nào?',
+        'Trẻ nên được thăm khám sớm và duy trì kiểm tra định kỳ để phòng ngừa sâu răng.',
+      ],
+      [
+        'Làm sao để trẻ bớt sợ nha sĩ?',
+        'Những lần khám ngắn, nhẹ nhàng và tích cực sẽ giúp trẻ quen dần với việc chăm sóc răng miệng.',
+      ],
+    ],
+  },
+} as const;
 
 const promotions = Array.from({ length: 10 }, (_, index) => ({
   code: `SEEDPROMO${String(index + 1).padStart(2, '0')}`,
@@ -224,8 +713,45 @@ const promotions = Array.from({ length: 10 }, (_, index) => ({
   isActive: index !== 7,
 }));
 
+async function cleanObsoleteAccountsAndRoles() {
+  const obsoleteUsers = await prisma.user.findMany({
+    where: { email: { in: [...obsoleteStaffEmails] } },
+    select: { id: true },
+  });
+  const obsoleteUserIds = obsoleteUsers.map((user) => user.id);
+
+  if (obsoleteUserIds.length > 0) {
+    await prisma.userRole.deleteMany({
+      where: { userId: { in: obsoleteUserIds } },
+    });
+    await prisma.user.deleteMany({
+      where: { id: { in: obsoleteUserIds } },
+    });
+  }
+
+  const obsoleteRoles = await prisma.role.findMany({
+    where: { code: { in: [...obsoleteRoleCodes] } },
+    select: { id: true },
+  });
+  const obsoleteRoleIds = obsoleteRoles.map((role) => role.id);
+
+  if (obsoleteRoleIds.length > 0) {
+    await prisma.rolePermission.deleteMany({
+      where: { roleId: { in: obsoleteRoleIds } },
+    });
+    await prisma.userRole.deleteMany({
+      where: { roleId: { in: obsoleteRoleIds } },
+    });
+    await prisma.role.deleteMany({
+      where: { id: { in: obsoleteRoleIds } },
+    });
+  }
+}
+
 async function seedBaseData() {
   const passwordHash = await bcrypt.hash(TEST_PASSWORD, 10);
+
+  await cleanObsoleteAccountsAndRoles();
 
   const createdRoles = new Map<string, { id: string }>();
   for (const [code, name, description] of roles) {
@@ -261,14 +787,6 @@ async function seedBaseData() {
   );
   const rolePermissionCodes: Record<string, string[]> = {
     ADMIN: createdPermissions.map((permission) => permission.code),
-    MANAGER: [
-      'users.read',
-      'appointments.read',
-      'appointments.manage',
-      'patients.manage',
-      'doctors.manage',
-      'reports.read',
-    ],
     DOCTOR: ['appointments.read', 'patients.manage', 'reports.read'],
     RECEPTIONIST: [
       'appointments.read',
@@ -276,11 +794,6 @@ async function seedBaseData() {
       'patients.manage',
       'payments.manage',
     ],
-    ACCOUNTANT: ['invoices.manage', 'payments.manage', 'reports.read'],
-    ASSISTANT: ['appointments.read', 'patients.manage'],
-    SUPPORT: ['users.read', 'appointments.read', 'patients.manage'],
-    MARKETING: ['reports.read'],
-    VIEWER: ['users.read', 'appointments.read', 'reports.read'],
     PATIENT: ['appointments.read'],
   };
 
@@ -456,48 +969,88 @@ async function seedBaseData() {
     name: string;
     basePrice: { toString(): string };
   }> = [];
-  for (const [
-    category,
-    name,
-    description,
-    durationMinutes,
-    basePrice,
-  ] of services) {
+  for (const serviceSeed of services) {
     const existingService = await prisma.service.findFirst({
-      where: { name },
+      where: {
+        OR: [{ slug: serviceSeed.slug }, { name: serviceSeed.name }],
+      },
       select: { id: true },
     });
 
+    const serviceData = {
+      category: serviceSeed.category,
+      name: serviceSeed.name,
+      slug: serviceSeed.slug,
+      shortDescription: serviceSeed.shortDescription,
+      description: serviceSeed.description,
+      thumbnailUrl: serviceSeed.thumbnailUrl,
+      durationMinutes: serviceSeed.durationMinutes,
+      basePrice: serviceSeed.basePrice,
+      isFeatured: serviceSeed.isFeatured,
+      displayOrder: serviceSeed.displayOrder,
+      isActive: true,
+    };
+
+    let service: {
+      id: string;
+      name: string;
+      basePrice: { toString(): string };
+    };
+
     if (existingService) {
-      createdServices.push(
-        await prisma.service.update({
-          where: { id: existingService.id },
-          data: {
-            category,
-            description,
-            durationMinutes,
-            basePrice,
-            isActive: true,
-          },
-          select: { id: true, name: true, basePrice: true },
-        }),
-      );
-      continue;
+      service = await prisma.service.update({
+        where: { id: existingService.id },
+        data: serviceData,
+        select: { id: true, name: true, basePrice: true },
+      });
+    } else {
+      service = await prisma.service.create({
+        data: serviceData,
+        select: { id: true, name: true, basePrice: true },
+      });
     }
 
-    createdServices.push(
-      await prisma.service.create({
-        data: {
-          category,
-          name,
+    await prisma.serviceMedia.deleteMany({
+      where: { serviceId: service.id },
+    });
+    await prisma.serviceProcedureStep.deleteMany({
+      where: { serviceId: service.id },
+    });
+    await prisma.serviceFaq.deleteMany({
+      where: { serviceId: service.id },
+    });
+
+    const serviceContent = serviceContentBySlug[serviceSeed.slug];
+    await prisma.serviceMedia.createMany({
+      data: serviceContent.media.map((media, mediaIndex) => ({
+        serviceId: service.id,
+        url: media.url,
+        alt: media.alt,
+        type: media.type,
+        sortOrder: mediaIndex + 1,
+      })),
+    });
+    await prisma.serviceProcedureStep.createMany({
+      data: serviceContent.steps.map(
+        ([title, description, durationMinutes], stepIndex) => ({
+          serviceId: service.id,
+          stepOrder: stepIndex + 1,
+          title,
           description,
           durationMinutes,
-          basePrice,
-          isActive: true,
-        },
-        select: { id: true, name: true, basePrice: true },
-      }),
-    );
+        }),
+      ),
+    });
+    await prisma.serviceFaq.createMany({
+      data: serviceContent.faqs.map(([question, answer], faqIndex) => ({
+        serviceId: service.id,
+        question,
+        answer,
+        sortOrder: faqIndex + 1,
+      })),
+    });
+
+    createdServices.push(service);
   }
 
   const createdPromotions: Array<{ id: string }> = [];
@@ -990,43 +1543,23 @@ async function main() {
       password: TEST_PASSWORD,
     },
     {
-      role: 'MANAGER',
-      email: 'manager@smartdental.test',
-      password: TEST_PASSWORD,
-    },
-    {
-      role: 'ACCOUNTANT',
-      email: 'accountant@smartdental.test',
-      password: TEST_PASSWORD,
-    },
-    {
-      role: 'ASSISTANT',
-      email: 'assistant@smartdental.test',
-      password: TEST_PASSWORD,
-    },
-    {
-      role: 'SUPPORT',
-      email: 'support@smartdental.test',
-      password: TEST_PASSWORD,
-    },
-    {
-      role: 'MARKETING',
-      email: 'marketing@smartdental.test',
-      password: TEST_PASSWORD,
-    },
-    {
-      role: 'VIEWER',
-      email: 'viewer@smartdental.test',
-      password: TEST_PASSWORD,
-    },
-    {
       role: 'DOCTOR',
       email: 'doctor@smartdental.test',
       password: TEST_PASSWORD,
     },
     {
+      role: 'DOCTOR',
+      email: 'doctor02@smartdental.test',
+      password: TEST_PASSWORD,
+    },
+    {
       role: 'PATIENT',
       email: 'patient01@smartdental.test',
+      password: TEST_PASSWORD,
+    },
+    {
+      role: 'PATIENT',
+      email: 'patient02@smartdental.test',
       password: TEST_PASSWORD,
     },
   ]);

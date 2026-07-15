@@ -33,7 +33,7 @@ export function ServiceGroupList({
   if (entries.length === 0) {
     return (
       <div className="rounded-xl border border-border border-dashed p-8 text-center text-sm text-muted-foreground">
-        Khong tim thay dich vu nao phu hop.
+        Không tìm thấy dịch vụ nào phù hợp.
       </div>
     );
   }
@@ -46,7 +46,12 @@ export function ServiceGroupList({
           className="overflow-hidden rounded-xl border border-border bg-white shadow-sm"
         >
           <div className="border-b border-border bg-muted/50 px-5 py-3">
-            <h3 className="font-semibold text-brand-dark">{category}</h3>
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="font-semibold text-brand-dark">{category}</h3>
+              <span className="text-xs font-medium text-muted-foreground">
+                {items.length} dịch vụ
+              </span>
+            </div>
           </div>
 
           <div className="divide-y divide-border">

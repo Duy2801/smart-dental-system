@@ -9,6 +9,7 @@ type RegisterFormProps = {
   passwordVisible: boolean;
   confirmPasswordVisible: boolean;
   error: string | null;
+  submitting: boolean;
   onTogglePassword: () => void;
   onToggleConfirmPassword: () => void;
   onSubmit: FormEventHandler<HTMLFormElement>;
@@ -18,6 +19,7 @@ export function RegisterForm({
   passwordVisible,
   confirmPasswordVisible,
   error,
+  submitting,
   onTogglePassword,
   onToggleConfirmPassword,
   onSubmit,
@@ -32,7 +34,8 @@ export function RegisterForm({
           Tạo tài khoản mới
         </h1>
         <p className="mx-auto mt-2 max-w-sm text-sm leading-5 text-slate-500">
-          Bắt đầu hành trình chăm sóc răng miệng hiện đại và an tâm hơn cùng DentaAI.
+          Bắt đầu hành trình chăm sóc răng miệng hiện đại và an tâm hơn cùng
+          DentaAI.
         </p>
       </div>
 
@@ -107,23 +110,34 @@ export function RegisterForm({
           />
           <span>
             Tôi đồng ý với{" "}
-            <Link href="/terms" className="font-semibold text-[#0863c5] hover:underline">
+            <Link
+              href="/terms"
+              className="font-semibold text-[#0863c5] hover:underline"
+            >
               Điều khoản sử dụng
             </Link>{" "}
             và{" "}
-            <Link href="/privacy" className="font-semibold text-[#0863c5] hover:underline">
+            <Link
+              href="/privacy"
+              className="font-semibold text-[#0863c5] hover:underline"
+            >
               Chính sách bảo mật
             </Link>{" "}
             của DentaAI.
           </span>
         </label>
 
-        <PrimaryButton>Đăng ký ngay</PrimaryButton>
+        <PrimaryButton disabled={submitting}>
+          {submitting ? "Đang đăng ký..." : "Đăng ký ngay"}
+        </PrimaryButton>
       </form>
 
       <p className="mt-5 border-t border-slate-100 pt-5 text-center text-sm text-slate-500">
         Đã có tài khoản?{" "}
-        <Link href="/auth/login" className="font-semibold text-[#0863c5] hover:underline">
+        <Link
+          href="/auth/login"
+          className="font-semibold text-[#0863c5] hover:underline"
+        >
           Đăng nhập tại đây
         </Link>
       </p>

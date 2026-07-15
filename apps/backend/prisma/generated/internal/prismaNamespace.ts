@@ -391,6 +391,9 @@ export const ModelName = {
   UserRole: 'UserRole',
   RolePermission: 'RolePermission',
   Service: 'Service',
+  ServiceMedia: 'ServiceMedia',
+  ServiceProcedureStep: 'ServiceProcedureStep',
+  ServiceFaq: 'ServiceFaq',
   Promotion: 'Promotion',
   Patient: 'Patient',
   Doctor: 'Doctor',
@@ -419,7 +422,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "clinicConfig" | "user" | "role" | "permission" | "userRole" | "rolePermission" | "service" | "promotion" | "patient" | "doctor" | "doctorAvailability" | "appointment" | "medicalRecord" | "treatmentPlan" | "invoice" | "payment" | "review" | "chatbotConversation" | "videoConsultation" | "notification"
+    modelProps: "clinicConfig" | "user" | "role" | "permission" | "userRole" | "rolePermission" | "service" | "serviceMedia" | "serviceProcedureStep" | "serviceFaq" | "promotion" | "patient" | "doctor" | "doctorAvailability" | "appointment" | "medicalRecord" | "treatmentPlan" | "invoice" | "payment" | "review" | "chatbotConversation" | "videoConsultation" | "notification"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -938,6 +941,228 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.ServiceCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.ServiceCountAggregateOutputType> | number
+        }
+      }
+    }
+    ServiceMedia: {
+      payload: Prisma.$ServiceMediaPayload<ExtArgs>
+      fields: Prisma.ServiceMediaFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ServiceMediaFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceMediaPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ServiceMediaFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceMediaPayload>
+        }
+        findFirst: {
+          args: Prisma.ServiceMediaFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceMediaPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ServiceMediaFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceMediaPayload>
+        }
+        findMany: {
+          args: Prisma.ServiceMediaFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceMediaPayload>[]
+        }
+        create: {
+          args: Prisma.ServiceMediaCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceMediaPayload>
+        }
+        createMany: {
+          args: Prisma.ServiceMediaCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ServiceMediaCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceMediaPayload>[]
+        }
+        delete: {
+          args: Prisma.ServiceMediaDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceMediaPayload>
+        }
+        update: {
+          args: Prisma.ServiceMediaUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceMediaPayload>
+        }
+        deleteMany: {
+          args: Prisma.ServiceMediaDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ServiceMediaUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ServiceMediaUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceMediaPayload>[]
+        }
+        upsert: {
+          args: Prisma.ServiceMediaUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceMediaPayload>
+        }
+        aggregate: {
+          args: Prisma.ServiceMediaAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateServiceMedia>
+        }
+        groupBy: {
+          args: Prisma.ServiceMediaGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ServiceMediaGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ServiceMediaCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ServiceMediaCountAggregateOutputType> | number
+        }
+      }
+    }
+    ServiceProcedureStep: {
+      payload: Prisma.$ServiceProcedureStepPayload<ExtArgs>
+      fields: Prisma.ServiceProcedureStepFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ServiceProcedureStepFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceProcedureStepPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ServiceProcedureStepFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceProcedureStepPayload>
+        }
+        findFirst: {
+          args: Prisma.ServiceProcedureStepFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceProcedureStepPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ServiceProcedureStepFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceProcedureStepPayload>
+        }
+        findMany: {
+          args: Prisma.ServiceProcedureStepFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceProcedureStepPayload>[]
+        }
+        create: {
+          args: Prisma.ServiceProcedureStepCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceProcedureStepPayload>
+        }
+        createMany: {
+          args: Prisma.ServiceProcedureStepCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ServiceProcedureStepCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceProcedureStepPayload>[]
+        }
+        delete: {
+          args: Prisma.ServiceProcedureStepDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceProcedureStepPayload>
+        }
+        update: {
+          args: Prisma.ServiceProcedureStepUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceProcedureStepPayload>
+        }
+        deleteMany: {
+          args: Prisma.ServiceProcedureStepDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ServiceProcedureStepUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ServiceProcedureStepUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceProcedureStepPayload>[]
+        }
+        upsert: {
+          args: Prisma.ServiceProcedureStepUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceProcedureStepPayload>
+        }
+        aggregate: {
+          args: Prisma.ServiceProcedureStepAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateServiceProcedureStep>
+        }
+        groupBy: {
+          args: Prisma.ServiceProcedureStepGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ServiceProcedureStepGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ServiceProcedureStepCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ServiceProcedureStepCountAggregateOutputType> | number
+        }
+      }
+    }
+    ServiceFaq: {
+      payload: Prisma.$ServiceFaqPayload<ExtArgs>
+      fields: Prisma.ServiceFaqFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ServiceFaqFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceFaqPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ServiceFaqFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceFaqPayload>
+        }
+        findFirst: {
+          args: Prisma.ServiceFaqFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceFaqPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ServiceFaqFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceFaqPayload>
+        }
+        findMany: {
+          args: Prisma.ServiceFaqFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceFaqPayload>[]
+        }
+        create: {
+          args: Prisma.ServiceFaqCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceFaqPayload>
+        }
+        createMany: {
+          args: Prisma.ServiceFaqCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ServiceFaqCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceFaqPayload>[]
+        }
+        delete: {
+          args: Prisma.ServiceFaqDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceFaqPayload>
+        }
+        update: {
+          args: Prisma.ServiceFaqUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceFaqPayload>
+        }
+        deleteMany: {
+          args: Prisma.ServiceFaqDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ServiceFaqUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ServiceFaqUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceFaqPayload>[]
+        }
+        upsert: {
+          args: Prisma.ServiceFaqUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServiceFaqPayload>
+        }
+        aggregate: {
+          args: Prisma.ServiceFaqAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateServiceFaq>
+        }
+        groupBy: {
+          args: Prisma.ServiceFaqGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ServiceFaqGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ServiceFaqCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ServiceFaqCountAggregateOutputType> | number
         }
       }
     }
@@ -2020,15 +2245,56 @@ export const ServiceScalarFieldEnum = {
   id: 'id',
   category: 'category',
   name: 'name',
+  slug: 'slug',
+  shortDescription: 'shortDescription',
   description: 'description',
+  thumbnailUrl: 'thumbnailUrl',
   durationMinutes: 'durationMinutes',
   basePrice: 'basePrice',
+  isFeatured: 'isFeatured',
+  displayOrder: 'displayOrder',
   isActive: 'isActive',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
 export type ServiceScalarFieldEnum = (typeof ServiceScalarFieldEnum)[keyof typeof ServiceScalarFieldEnum]
+
+
+export const ServiceMediaScalarFieldEnum = {
+  id: 'id',
+  serviceId: 'serviceId',
+  url: 'url',
+  alt: 'alt',
+  type: 'type',
+  sortOrder: 'sortOrder',
+  createdAt: 'createdAt'
+} as const
+
+export type ServiceMediaScalarFieldEnum = (typeof ServiceMediaScalarFieldEnum)[keyof typeof ServiceMediaScalarFieldEnum]
+
+
+export const ServiceProcedureStepScalarFieldEnum = {
+  id: 'id',
+  serviceId: 'serviceId',
+  stepOrder: 'stepOrder',
+  title: 'title',
+  description: 'description',
+  durationMinutes: 'durationMinutes'
+} as const
+
+export type ServiceProcedureStepScalarFieldEnum = (typeof ServiceProcedureStepScalarFieldEnum)[keyof typeof ServiceProcedureStepScalarFieldEnum]
+
+
+export const ServiceFaqScalarFieldEnum = {
+  id: 'id',
+  serviceId: 'serviceId',
+  question: 'question',
+  answer: 'answer',
+  sortOrder: 'sortOrder'
+} as const
+
+export type ServiceFaqScalarFieldEnum = (typeof ServiceFaqScalarFieldEnum)[keyof typeof ServiceFaqScalarFieldEnum]
 
 
 export const PromotionScalarFieldEnum = {
@@ -2713,6 +2979,9 @@ export type GlobalOmitConfig = {
   userRole?: Prisma.UserRoleOmit
   rolePermission?: Prisma.RolePermissionOmit
   service?: Prisma.ServiceOmit
+  serviceMedia?: Prisma.ServiceMediaOmit
+  serviceProcedureStep?: Prisma.ServiceProcedureStepOmit
+  serviceFaq?: Prisma.ServiceFaqOmit
   promotion?: Prisma.PromotionOmit
   patient?: Prisma.PatientOmit
   doctor?: Prisma.DoctorOmit

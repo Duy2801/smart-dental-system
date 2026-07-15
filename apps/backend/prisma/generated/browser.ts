@@ -53,6 +53,21 @@ export type RolePermission = Prisma.RolePermissionModel
  */
 export type Service = Prisma.ServiceModel
 /**
+ * Model ServiceMedia
+ * 
+ */
+export type ServiceMedia = Prisma.ServiceMediaModel
+/**
+ * Model ServiceProcedureStep
+ * 
+ */
+export type ServiceProcedureStep = Prisma.ServiceProcedureStepModel
+/**
+ * Model ServiceFaq
+ * 
+ */
+export type ServiceFaq = Prisma.ServiceFaqModel
+/**
  * Model Promotion
  * 
  */

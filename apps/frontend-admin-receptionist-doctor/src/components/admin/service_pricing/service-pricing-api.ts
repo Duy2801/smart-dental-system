@@ -13,10 +13,39 @@ function toPayload(form: ServiceFormState) {
   return {
     category: form.category,
     name: form.name,
+    slug: form.slug || undefined,
+    shortDescription: form.shortDescription || undefined,
     description: form.description || undefined,
+    thumbnailUrl: form.thumbnailUrl || undefined,
     durationMinutes: Number(form.durationMinutes),
     basePrice: Number(form.basePrice),
-    isActive: form.isActive,
+    displayOrder: Number(form.displayOrder),
+    media: form.media
+      .filter((media) => media.url.trim())
+      .map((media, index) => ({
+        url: media.url.trim(),
+        alt: media.alt.trim() || undefined,
+        type: media.type.trim() || "BANNER",
+        sortOrder: Number(media.sortOrder) || index + 1,
+      })),
+    procedureSteps: form.procedureSteps
+      .filter((step) => step.title.trim() || step.description.trim())
+      .map((step, index) => ({
+        stepOrder: Number(step.stepOrder) || index + 1,
+        title: step.title.trim(),
+        description: step.description.trim(),
+        durationMinutes:
+          step.durationMinutes === ""
+            ? undefined
+            : Number(step.durationMinutes),
+      })),
+    faqs: form.faqs
+      .filter((faq) => faq.question.trim() || faq.answer.trim())
+      .map((faq, index) => ({
+        question: faq.question.trim(),
+        answer: faq.answer.trim(),
+        sortOrder: Number(faq.sortOrder) || index + 1,
+      })),
   };
 }
 
