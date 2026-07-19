@@ -21,8 +21,8 @@ export class CreateDoctorAvailabilityDto {
 
   @IsOptional()
   @IsInt()
-  @Min(1)
-  @Max(7)
+  @Min(0)
+  @Max(6)
   dayOfWeek?: number;
 
   @IsOptional()

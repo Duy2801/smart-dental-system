@@ -3,48 +3,41 @@ import { AdminButton, AdminModal } from "@/src/components/admin/common";
 import { AutoScheduleFields } from "./auto-schedule-fields";
 import { ManualScheduleFields } from "./manual-schedule-fields";
 import type { ScheduleFormState } from "../types";
+import type { BusinessHour } from "../../setting/types";
 
 type ScheduleFormModalProps = {
-  addAutoShift: () => void;
+  businessHours: BusinessHour[];
   form: ScheduleFormState;
   onClose: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
-  removeAutoShift: (index: number) => void;
-  setAutoShift: (
-    index: number,
-    key: "startTime" | "endTime",
-    value: string,
-  ) => void;
   setForm: Dispatch<SetStateAction<ScheduleFormState>>;
   submitting: boolean;
   toggleSelectedDay: (dayOfWeek: number) => void;
 };
 
 export function ScheduleFormModal({
-  addAutoShift,
+  businessHours,
   form,
   onClose,
   onSubmit,
-  removeAutoShift,
-  setAutoShift,
   setForm,
   submitting,
   toggleSelectedDay,
 }: ScheduleFormModalProps) {
   return (
     <AdminModal
-      title="Thêm lịch mới"
-      description="Thiết lập ca trực mới hoặc tự động tạo lịch tuần cho bác sĩ."
+      title="Them lich moi"
+      description="Thiet lap ca truc moi hoac tu dong tao lich tuan cho bac si."
       onClose={onClose}
     >
       <form className="mt-6 flex flex-col gap-5" onSubmit={onSubmit}>
         <label className="flex items-center justify-between gap-4 rounded-lg border border-border bg-muted/60 px-4 py-3">
           <span>
             <span className="block text-sm font-semibold text-brand-dark">
-              Tự động lên lịch
+              Tu dong len lich
             </span>
             <span className="block text-xs text-muted-foreground">
-              Tạo nhiều ca cho nhiều ngày trong tuần cùng lúc.
+              Chi tao ca trong ngay phong kham dang mo cua.
             </span>
           </span>
           <input
@@ -62,15 +55,17 @@ export function ScheduleFormModal({
         </label>
 
         {!form.autoSchedule ? (
-          <ManualScheduleFields form={form} setForm={setForm} />
+          <ManualScheduleFields
+            businessHours={businessHours}
+            form={form}
+            setForm={setForm}
+          />
         ) : (
           <AutoScheduleFields
+            businessHours={businessHours}
             form={form}
             setForm={setForm}
             toggleSelectedDay={toggleSelectedDay}
-            setAutoShift={setAutoShift}
-            addAutoShift={addAutoShift}
-            removeAutoShift={removeAutoShift}
           />
         )}
 
@@ -80,7 +75,7 @@ export function ScheduleFormModal({
             onClick={onClose}
             disabled={submitting}
           >
-            Hủy
+            Huy
           </AdminButton>
           <AdminButton
             type="submit"
@@ -91,7 +86,7 @@ export function ScheduleFormModal({
                   form.autoShifts.length === 0))
             }
           >
-            {submitting ? "Đang lưu..." : "Thêm lịch"}
+            {submitting ? "Dang luu..." : "Them lich"}
           </AdminButton>
         </div>
       </form>

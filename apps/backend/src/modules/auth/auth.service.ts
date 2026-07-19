@@ -163,7 +163,68 @@ export class AuthService {
   }
 
   async me(userId: string) {
-    return this.userService.findOne(userId);
+    const user = await this.prismaService.user.findUnique({
+      where: { id: userId },
+      include: {
+        roles: { include: { role: true } },
+        patientProfile: {
+          include: {
+            appointments: {
+              orderBy: { scheduledAt: 'desc' },
+              take: 1,
+              select: {
+                id: true,
+                scheduledAt: true,
+                status: true,
+                service: { select: { name: true } },
+                doctor: {
+                  select: {
+                    user: { select: { fullName: true } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!user) throw new UnauthorizedException('user.not_found');
+
+    const lastAppointment = user.patientProfile?.appointments[0] ?? null;
+
+    return {
+      id: user.id,
+      email: user.email,
+      fullName: user.fullName,
+      phone: user.phone,
+      roles: user.roles.map(({ role }) => role.code),
+      status: user.status,
+      emailVerified: user.emailVerified,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+      patientProfile: user.patientProfile
+        ? {
+            id: user.patientProfile.id,
+            patientCode: user.patientProfile.patientCode,
+            dateOfBirth: user.patientProfile.dateOfBirth,
+            gender: user.patientProfile.gender,
+            address: user.patientProfile.address,
+            emergencyContactName: user.patientProfile.emergencyContactName,
+            emergencyContactPhone: user.patientProfile.emergencyContactPhone,
+            medicalHistory: user.patientProfile.medicalHistory,
+          }
+        : null,
+      lastAppointment: lastAppointment
+        ? {
+            id: lastAppointment.id,
+            scheduledAt: lastAppointment.scheduledAt,
+            status: lastAppointment.status,
+            serviceName: lastAppointment.service.name,
+            doctorName: lastAppointment.doctor.user.fullName,
+          }
+        : null,
+    };
   }
 
   async logout(userId: string) {

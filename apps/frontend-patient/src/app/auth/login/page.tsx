@@ -27,6 +27,17 @@ function getErrorMessage(error: unknown) {
   return "Không thể đăng nhập lúc này. Vui lòng thử lại.";
 }
 
+function getSafeRedirectPath() {
+  if (typeof window === "undefined") return "/home";
+
+  const redirect = new URLSearchParams(window.location.search).get("redirect");
+  if (!redirect || !redirect.startsWith("/") || redirect.startsWith("//")) {
+    return "/home";
+  }
+
+  return redirect;
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -59,7 +70,7 @@ export default function LoginPage() {
       }
 
       dispatch(login({ user: session.user, accessToken: session.accessToken }));
-      router.replace("/home");
+      router.replace(getSafeRedirectPath());
     } catch (loginError) {
       setError(getErrorMessage(loginError));
     } finally {

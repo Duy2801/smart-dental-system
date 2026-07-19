@@ -232,6 +232,7 @@ export type PatientWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"Patient"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   appointments?: Prisma.AppointmentListRelationFilter
+  clinicalCases?: Prisma.ClinicalCaseListRelationFilter
   medicalRecords?: Prisma.MedicalRecordListRelationFilter
   treatmentPlans?: Prisma.TreatmentPlanListRelationFilter
   invoices?: Prisma.InvoiceListRelationFilter
@@ -254,6 +255,7 @@ export type PatientOrderByWithRelationInput = {
   updatedAt?: Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
   appointments?: Prisma.AppointmentOrderByRelationAggregateInput
+  clinicalCases?: Prisma.ClinicalCaseOrderByRelationAggregateInput
   medicalRecords?: Prisma.MedicalRecordOrderByRelationAggregateInput
   treatmentPlans?: Prisma.TreatmentPlanOrderByRelationAggregateInput
   invoices?: Prisma.InvoiceOrderByRelationAggregateInput
@@ -279,6 +281,7 @@ export type PatientWhereUniqueInput = Prisma.AtLeast<{
   updatedAt?: Prisma.DateTimeFilter<"Patient"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   appointments?: Prisma.AppointmentListRelationFilter
+  clinicalCases?: Prisma.ClinicalCaseListRelationFilter
   medicalRecords?: Prisma.MedicalRecordListRelationFilter
   treatmentPlans?: Prisma.TreatmentPlanListRelationFilter
   invoices?: Prisma.InvoiceListRelationFilter
@@ -334,6 +337,7 @@ export type PatientCreateInput = {
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutPatientProfileInput
   appointments?: Prisma.AppointmentCreateNestedManyWithoutPatientInput
+  clinicalCases?: Prisma.ClinicalCaseCreateNestedManyWithoutPatientInput
   medicalRecords?: Prisma.MedicalRecordCreateNestedManyWithoutPatientInput
   treatmentPlans?: Prisma.TreatmentPlanCreateNestedManyWithoutPatientInput
   invoices?: Prisma.InvoiceCreateNestedManyWithoutPatientInput
@@ -355,6 +359,7 @@ export type PatientUncheckedCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   appointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutPatientInput
+  clinicalCases?: Prisma.ClinicalCaseUncheckedCreateNestedManyWithoutPatientInput
   medicalRecords?: Prisma.MedicalRecordUncheckedCreateNestedManyWithoutPatientInput
   treatmentPlans?: Prisma.TreatmentPlanUncheckedCreateNestedManyWithoutPatientInput
   invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutPatientInput
@@ -376,6 +381,7 @@ export type PatientUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutPatientProfileNestedInput
   appointments?: Prisma.AppointmentUpdateManyWithoutPatientNestedInput
+  clinicalCases?: Prisma.ClinicalCaseUpdateManyWithoutPatientNestedInput
   medicalRecords?: Prisma.MedicalRecordUpdateManyWithoutPatientNestedInput
   treatmentPlans?: Prisma.TreatmentPlanUpdateManyWithoutPatientNestedInput
   invoices?: Prisma.InvoiceUpdateManyWithoutPatientNestedInput
@@ -397,6 +403,7 @@ export type PatientUncheckedUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   appointments?: Prisma.AppointmentUncheckedUpdateManyWithoutPatientNestedInput
+  clinicalCases?: Prisma.ClinicalCaseUncheckedUpdateManyWithoutPatientNestedInput
   medicalRecords?: Prisma.MedicalRecordUncheckedUpdateManyWithoutPatientNestedInput
   treatmentPlans?: Prisma.TreatmentPlanUncheckedUpdateManyWithoutPatientNestedInput
   invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutPatientNestedInput
@@ -540,10 +547,12 @@ export type PatientCreateNestedOneWithoutAppointmentsInput = {
   connect?: Prisma.PatientWhereUniqueInput
 }
 
-export type PatientUpdateOneRequiredWithoutAppointmentsNestedInput = {
+export type PatientUpdateOneWithoutAppointmentsNestedInput = {
   create?: Prisma.XOR<Prisma.PatientCreateWithoutAppointmentsInput, Prisma.PatientUncheckedCreateWithoutAppointmentsInput>
   connectOrCreate?: Prisma.PatientCreateOrConnectWithoutAppointmentsInput
   upsert?: Prisma.PatientUpsertWithoutAppointmentsInput
+  disconnect?: Prisma.PatientWhereInput | boolean
+  delete?: Prisma.PatientWhereInput | boolean
   connect?: Prisma.PatientWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.PatientUpdateToOneWithWhereWithoutAppointmentsInput, Prisma.PatientUpdateWithoutAppointmentsInput>, Prisma.PatientUncheckedUpdateWithoutAppointmentsInput>
 }
@@ -574,6 +583,20 @@ export type PatientUpdateOneRequiredWithoutTreatmentPlansNestedInput = {
   upsert?: Prisma.PatientUpsertWithoutTreatmentPlansInput
   connect?: Prisma.PatientWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.PatientUpdateToOneWithWhereWithoutTreatmentPlansInput, Prisma.PatientUpdateWithoutTreatmentPlansInput>, Prisma.PatientUncheckedUpdateWithoutTreatmentPlansInput>
+}
+
+export type PatientCreateNestedOneWithoutClinicalCasesInput = {
+  create?: Prisma.XOR<Prisma.PatientCreateWithoutClinicalCasesInput, Prisma.PatientUncheckedCreateWithoutClinicalCasesInput>
+  connectOrCreate?: Prisma.PatientCreateOrConnectWithoutClinicalCasesInput
+  connect?: Prisma.PatientWhereUniqueInput
+}
+
+export type PatientUpdateOneRequiredWithoutClinicalCasesNestedInput = {
+  create?: Prisma.XOR<Prisma.PatientCreateWithoutClinicalCasesInput, Prisma.PatientUncheckedCreateWithoutClinicalCasesInput>
+  connectOrCreate?: Prisma.PatientCreateOrConnectWithoutClinicalCasesInput
+  upsert?: Prisma.PatientUpsertWithoutClinicalCasesInput
+  connect?: Prisma.PatientWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.PatientUpdateToOneWithWhereWithoutClinicalCasesInput, Prisma.PatientUpdateWithoutClinicalCasesInput>, Prisma.PatientUncheckedUpdateWithoutClinicalCasesInput>
 }
 
 export type PatientCreateNestedOneWithoutInvoicesInput = {
@@ -644,6 +667,7 @@ export type PatientCreateWithoutUserInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   appointments?: Prisma.AppointmentCreateNestedManyWithoutPatientInput
+  clinicalCases?: Prisma.ClinicalCaseCreateNestedManyWithoutPatientInput
   medicalRecords?: Prisma.MedicalRecordCreateNestedManyWithoutPatientInput
   treatmentPlans?: Prisma.TreatmentPlanCreateNestedManyWithoutPatientInput
   invoices?: Prisma.InvoiceCreateNestedManyWithoutPatientInput
@@ -664,6 +688,7 @@ export type PatientUncheckedCreateWithoutUserInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   appointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutPatientInput
+  clinicalCases?: Prisma.ClinicalCaseUncheckedCreateNestedManyWithoutPatientInput
   medicalRecords?: Prisma.MedicalRecordUncheckedCreateNestedManyWithoutPatientInput
   treatmentPlans?: Prisma.TreatmentPlanUncheckedCreateNestedManyWithoutPatientInput
   invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutPatientInput
@@ -700,6 +725,7 @@ export type PatientUpdateWithoutUserInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   appointments?: Prisma.AppointmentUpdateManyWithoutPatientNestedInput
+  clinicalCases?: Prisma.ClinicalCaseUpdateManyWithoutPatientNestedInput
   medicalRecords?: Prisma.MedicalRecordUpdateManyWithoutPatientNestedInput
   treatmentPlans?: Prisma.TreatmentPlanUpdateManyWithoutPatientNestedInput
   invoices?: Prisma.InvoiceUpdateManyWithoutPatientNestedInput
@@ -720,6 +746,7 @@ export type PatientUncheckedUpdateWithoutUserInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   appointments?: Prisma.AppointmentUncheckedUpdateManyWithoutPatientNestedInput
+  clinicalCases?: Prisma.ClinicalCaseUncheckedUpdateManyWithoutPatientNestedInput
   medicalRecords?: Prisma.MedicalRecordUncheckedUpdateManyWithoutPatientNestedInput
   treatmentPlans?: Prisma.TreatmentPlanUncheckedUpdateManyWithoutPatientNestedInput
   invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutPatientNestedInput
@@ -740,6 +767,7 @@ export type PatientCreateWithoutAppointmentsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutPatientProfileInput
+  clinicalCases?: Prisma.ClinicalCaseCreateNestedManyWithoutPatientInput
   medicalRecords?: Prisma.MedicalRecordCreateNestedManyWithoutPatientInput
   treatmentPlans?: Prisma.TreatmentPlanCreateNestedManyWithoutPatientInput
   invoices?: Prisma.InvoiceCreateNestedManyWithoutPatientInput
@@ -760,6 +788,7 @@ export type PatientUncheckedCreateWithoutAppointmentsInput = {
   medicalHistory?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  clinicalCases?: Prisma.ClinicalCaseUncheckedCreateNestedManyWithoutPatientInput
   medicalRecords?: Prisma.MedicalRecordUncheckedCreateNestedManyWithoutPatientInput
   treatmentPlans?: Prisma.TreatmentPlanUncheckedCreateNestedManyWithoutPatientInput
   invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutPatientInput
@@ -796,6 +825,7 @@ export type PatientUpdateWithoutAppointmentsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutPatientProfileNestedInput
+  clinicalCases?: Prisma.ClinicalCaseUpdateManyWithoutPatientNestedInput
   medicalRecords?: Prisma.MedicalRecordUpdateManyWithoutPatientNestedInput
   treatmentPlans?: Prisma.TreatmentPlanUpdateManyWithoutPatientNestedInput
   invoices?: Prisma.InvoiceUpdateManyWithoutPatientNestedInput
@@ -816,6 +846,7 @@ export type PatientUncheckedUpdateWithoutAppointmentsInput = {
   medicalHistory?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  clinicalCases?: Prisma.ClinicalCaseUncheckedUpdateManyWithoutPatientNestedInput
   medicalRecords?: Prisma.MedicalRecordUncheckedUpdateManyWithoutPatientNestedInput
   treatmentPlans?: Prisma.TreatmentPlanUncheckedUpdateManyWithoutPatientNestedInput
   invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutPatientNestedInput
@@ -837,6 +868,7 @@ export type PatientCreateWithoutMedicalRecordsInput = {
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutPatientProfileInput
   appointments?: Prisma.AppointmentCreateNestedManyWithoutPatientInput
+  clinicalCases?: Prisma.ClinicalCaseCreateNestedManyWithoutPatientInput
   treatmentPlans?: Prisma.TreatmentPlanCreateNestedManyWithoutPatientInput
   invoices?: Prisma.InvoiceCreateNestedManyWithoutPatientInput
   reviews?: Prisma.ReviewCreateNestedManyWithoutPatientInput
@@ -857,6 +889,7 @@ export type PatientUncheckedCreateWithoutMedicalRecordsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   appointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutPatientInput
+  clinicalCases?: Prisma.ClinicalCaseUncheckedCreateNestedManyWithoutPatientInput
   treatmentPlans?: Prisma.TreatmentPlanUncheckedCreateNestedManyWithoutPatientInput
   invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutPatientInput
   reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutPatientInput
@@ -893,6 +926,7 @@ export type PatientUpdateWithoutMedicalRecordsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutPatientProfileNestedInput
   appointments?: Prisma.AppointmentUpdateManyWithoutPatientNestedInput
+  clinicalCases?: Prisma.ClinicalCaseUpdateManyWithoutPatientNestedInput
   treatmentPlans?: Prisma.TreatmentPlanUpdateManyWithoutPatientNestedInput
   invoices?: Prisma.InvoiceUpdateManyWithoutPatientNestedInput
   reviews?: Prisma.ReviewUpdateManyWithoutPatientNestedInput
@@ -913,6 +947,7 @@ export type PatientUncheckedUpdateWithoutMedicalRecordsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   appointments?: Prisma.AppointmentUncheckedUpdateManyWithoutPatientNestedInput
+  clinicalCases?: Prisma.ClinicalCaseUncheckedUpdateManyWithoutPatientNestedInput
   treatmentPlans?: Prisma.TreatmentPlanUncheckedUpdateManyWithoutPatientNestedInput
   invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutPatientNestedInput
   reviews?: Prisma.ReviewUncheckedUpdateManyWithoutPatientNestedInput
@@ -933,6 +968,7 @@ export type PatientCreateWithoutTreatmentPlansInput = {
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutPatientProfileInput
   appointments?: Prisma.AppointmentCreateNestedManyWithoutPatientInput
+  clinicalCases?: Prisma.ClinicalCaseCreateNestedManyWithoutPatientInput
   medicalRecords?: Prisma.MedicalRecordCreateNestedManyWithoutPatientInput
   invoices?: Prisma.InvoiceCreateNestedManyWithoutPatientInput
   reviews?: Prisma.ReviewCreateNestedManyWithoutPatientInput
@@ -953,6 +989,7 @@ export type PatientUncheckedCreateWithoutTreatmentPlansInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   appointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutPatientInput
+  clinicalCases?: Prisma.ClinicalCaseUncheckedCreateNestedManyWithoutPatientInput
   medicalRecords?: Prisma.MedicalRecordUncheckedCreateNestedManyWithoutPatientInput
   invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutPatientInput
   reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutPatientInput
@@ -989,6 +1026,7 @@ export type PatientUpdateWithoutTreatmentPlansInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutPatientProfileNestedInput
   appointments?: Prisma.AppointmentUpdateManyWithoutPatientNestedInput
+  clinicalCases?: Prisma.ClinicalCaseUpdateManyWithoutPatientNestedInput
   medicalRecords?: Prisma.MedicalRecordUpdateManyWithoutPatientNestedInput
   invoices?: Prisma.InvoiceUpdateManyWithoutPatientNestedInput
   reviews?: Prisma.ReviewUpdateManyWithoutPatientNestedInput
@@ -1009,7 +1047,108 @@ export type PatientUncheckedUpdateWithoutTreatmentPlansInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   appointments?: Prisma.AppointmentUncheckedUpdateManyWithoutPatientNestedInput
+  clinicalCases?: Prisma.ClinicalCaseUncheckedUpdateManyWithoutPatientNestedInput
   medicalRecords?: Prisma.MedicalRecordUncheckedUpdateManyWithoutPatientNestedInput
+  invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutPatientNestedInput
+  reviews?: Prisma.ReviewUncheckedUpdateManyWithoutPatientNestedInput
+  chatbotConversations?: Prisma.ChatbotConversationUncheckedUpdateManyWithoutPatientNestedInput
+  videoConsultations?: Prisma.VideoConsultationUncheckedUpdateManyWithoutPatientNestedInput
+}
+
+export type PatientCreateWithoutClinicalCasesInput = {
+  id?: string
+  patientCode: string
+  dateOfBirth?: Date | string | null
+  gender?: $Enums.Gender
+  address?: string | null
+  emergencyContactName?: string | null
+  emergencyContactPhone?: string | null
+  medicalHistory?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  user: Prisma.UserCreateNestedOneWithoutPatientProfileInput
+  appointments?: Prisma.AppointmentCreateNestedManyWithoutPatientInput
+  medicalRecords?: Prisma.MedicalRecordCreateNestedManyWithoutPatientInput
+  treatmentPlans?: Prisma.TreatmentPlanCreateNestedManyWithoutPatientInput
+  invoices?: Prisma.InvoiceCreateNestedManyWithoutPatientInput
+  reviews?: Prisma.ReviewCreateNestedManyWithoutPatientInput
+  chatbotConversations?: Prisma.ChatbotConversationCreateNestedManyWithoutPatientInput
+  videoConsultations?: Prisma.VideoConsultationCreateNestedManyWithoutPatientInput
+}
+
+export type PatientUncheckedCreateWithoutClinicalCasesInput = {
+  id?: string
+  userId: string
+  patientCode: string
+  dateOfBirth?: Date | string | null
+  gender?: $Enums.Gender
+  address?: string | null
+  emergencyContactName?: string | null
+  emergencyContactPhone?: string | null
+  medicalHistory?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  appointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutPatientInput
+  medicalRecords?: Prisma.MedicalRecordUncheckedCreateNestedManyWithoutPatientInput
+  treatmentPlans?: Prisma.TreatmentPlanUncheckedCreateNestedManyWithoutPatientInput
+  invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutPatientInput
+  reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutPatientInput
+  chatbotConversations?: Prisma.ChatbotConversationUncheckedCreateNestedManyWithoutPatientInput
+  videoConsultations?: Prisma.VideoConsultationUncheckedCreateNestedManyWithoutPatientInput
+}
+
+export type PatientCreateOrConnectWithoutClinicalCasesInput = {
+  where: Prisma.PatientWhereUniqueInput
+  create: Prisma.XOR<Prisma.PatientCreateWithoutClinicalCasesInput, Prisma.PatientUncheckedCreateWithoutClinicalCasesInput>
+}
+
+export type PatientUpsertWithoutClinicalCasesInput = {
+  update: Prisma.XOR<Prisma.PatientUpdateWithoutClinicalCasesInput, Prisma.PatientUncheckedUpdateWithoutClinicalCasesInput>
+  create: Prisma.XOR<Prisma.PatientCreateWithoutClinicalCasesInput, Prisma.PatientUncheckedCreateWithoutClinicalCasesInput>
+  where?: Prisma.PatientWhereInput
+}
+
+export type PatientUpdateToOneWithWhereWithoutClinicalCasesInput = {
+  where?: Prisma.PatientWhereInput
+  data: Prisma.XOR<Prisma.PatientUpdateWithoutClinicalCasesInput, Prisma.PatientUncheckedUpdateWithoutClinicalCasesInput>
+}
+
+export type PatientUpdateWithoutClinicalCasesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  patientCode?: Prisma.StringFieldUpdateOperationsInput | string
+  dateOfBirth?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gender?: Prisma.EnumGenderFieldUpdateOperationsInput | $Enums.Gender
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emergencyContactName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emergencyContactPhone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  medicalHistory?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  user?: Prisma.UserUpdateOneRequiredWithoutPatientProfileNestedInput
+  appointments?: Prisma.AppointmentUpdateManyWithoutPatientNestedInput
+  medicalRecords?: Prisma.MedicalRecordUpdateManyWithoutPatientNestedInput
+  treatmentPlans?: Prisma.TreatmentPlanUpdateManyWithoutPatientNestedInput
+  invoices?: Prisma.InvoiceUpdateManyWithoutPatientNestedInput
+  reviews?: Prisma.ReviewUpdateManyWithoutPatientNestedInput
+  chatbotConversations?: Prisma.ChatbotConversationUpdateManyWithoutPatientNestedInput
+  videoConsultations?: Prisma.VideoConsultationUpdateManyWithoutPatientNestedInput
+}
+
+export type PatientUncheckedUpdateWithoutClinicalCasesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  patientCode?: Prisma.StringFieldUpdateOperationsInput | string
+  dateOfBirth?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gender?: Prisma.EnumGenderFieldUpdateOperationsInput | $Enums.Gender
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emergencyContactName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emergencyContactPhone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  medicalHistory?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  appointments?: Prisma.AppointmentUncheckedUpdateManyWithoutPatientNestedInput
+  medicalRecords?: Prisma.MedicalRecordUncheckedUpdateManyWithoutPatientNestedInput
+  treatmentPlans?: Prisma.TreatmentPlanUncheckedUpdateManyWithoutPatientNestedInput
   invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutPatientNestedInput
   reviews?: Prisma.ReviewUncheckedUpdateManyWithoutPatientNestedInput
   chatbotConversations?: Prisma.ChatbotConversationUncheckedUpdateManyWithoutPatientNestedInput
@@ -1029,6 +1168,7 @@ export type PatientCreateWithoutInvoicesInput = {
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutPatientProfileInput
   appointments?: Prisma.AppointmentCreateNestedManyWithoutPatientInput
+  clinicalCases?: Prisma.ClinicalCaseCreateNestedManyWithoutPatientInput
   medicalRecords?: Prisma.MedicalRecordCreateNestedManyWithoutPatientInput
   treatmentPlans?: Prisma.TreatmentPlanCreateNestedManyWithoutPatientInput
   reviews?: Prisma.ReviewCreateNestedManyWithoutPatientInput
@@ -1049,6 +1189,7 @@ export type PatientUncheckedCreateWithoutInvoicesInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   appointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutPatientInput
+  clinicalCases?: Prisma.ClinicalCaseUncheckedCreateNestedManyWithoutPatientInput
   medicalRecords?: Prisma.MedicalRecordUncheckedCreateNestedManyWithoutPatientInput
   treatmentPlans?: Prisma.TreatmentPlanUncheckedCreateNestedManyWithoutPatientInput
   reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutPatientInput
@@ -1085,6 +1226,7 @@ export type PatientUpdateWithoutInvoicesInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutPatientProfileNestedInput
   appointments?: Prisma.AppointmentUpdateManyWithoutPatientNestedInput
+  clinicalCases?: Prisma.ClinicalCaseUpdateManyWithoutPatientNestedInput
   medicalRecords?: Prisma.MedicalRecordUpdateManyWithoutPatientNestedInput
   treatmentPlans?: Prisma.TreatmentPlanUpdateManyWithoutPatientNestedInput
   reviews?: Prisma.ReviewUpdateManyWithoutPatientNestedInput
@@ -1105,6 +1247,7 @@ export type PatientUncheckedUpdateWithoutInvoicesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   appointments?: Prisma.AppointmentUncheckedUpdateManyWithoutPatientNestedInput
+  clinicalCases?: Prisma.ClinicalCaseUncheckedUpdateManyWithoutPatientNestedInput
   medicalRecords?: Prisma.MedicalRecordUncheckedUpdateManyWithoutPatientNestedInput
   treatmentPlans?: Prisma.TreatmentPlanUncheckedUpdateManyWithoutPatientNestedInput
   reviews?: Prisma.ReviewUncheckedUpdateManyWithoutPatientNestedInput
@@ -1125,6 +1268,7 @@ export type PatientCreateWithoutReviewsInput = {
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutPatientProfileInput
   appointments?: Prisma.AppointmentCreateNestedManyWithoutPatientInput
+  clinicalCases?: Prisma.ClinicalCaseCreateNestedManyWithoutPatientInput
   medicalRecords?: Prisma.MedicalRecordCreateNestedManyWithoutPatientInput
   treatmentPlans?: Prisma.TreatmentPlanCreateNestedManyWithoutPatientInput
   invoices?: Prisma.InvoiceCreateNestedManyWithoutPatientInput
@@ -1145,6 +1289,7 @@ export type PatientUncheckedCreateWithoutReviewsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   appointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutPatientInput
+  clinicalCases?: Prisma.ClinicalCaseUncheckedCreateNestedManyWithoutPatientInput
   medicalRecords?: Prisma.MedicalRecordUncheckedCreateNestedManyWithoutPatientInput
   treatmentPlans?: Prisma.TreatmentPlanUncheckedCreateNestedManyWithoutPatientInput
   invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutPatientInput
@@ -1181,6 +1326,7 @@ export type PatientUpdateWithoutReviewsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutPatientProfileNestedInput
   appointments?: Prisma.AppointmentUpdateManyWithoutPatientNestedInput
+  clinicalCases?: Prisma.ClinicalCaseUpdateManyWithoutPatientNestedInput
   medicalRecords?: Prisma.MedicalRecordUpdateManyWithoutPatientNestedInput
   treatmentPlans?: Prisma.TreatmentPlanUpdateManyWithoutPatientNestedInput
   invoices?: Prisma.InvoiceUpdateManyWithoutPatientNestedInput
@@ -1201,6 +1347,7 @@ export type PatientUncheckedUpdateWithoutReviewsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   appointments?: Prisma.AppointmentUncheckedUpdateManyWithoutPatientNestedInput
+  clinicalCases?: Prisma.ClinicalCaseUncheckedUpdateManyWithoutPatientNestedInput
   medicalRecords?: Prisma.MedicalRecordUncheckedUpdateManyWithoutPatientNestedInput
   treatmentPlans?: Prisma.TreatmentPlanUncheckedUpdateManyWithoutPatientNestedInput
   invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutPatientNestedInput
@@ -1221,6 +1368,7 @@ export type PatientCreateWithoutChatbotConversationsInput = {
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutPatientProfileInput
   appointments?: Prisma.AppointmentCreateNestedManyWithoutPatientInput
+  clinicalCases?: Prisma.ClinicalCaseCreateNestedManyWithoutPatientInput
   medicalRecords?: Prisma.MedicalRecordCreateNestedManyWithoutPatientInput
   treatmentPlans?: Prisma.TreatmentPlanCreateNestedManyWithoutPatientInput
   invoices?: Prisma.InvoiceCreateNestedManyWithoutPatientInput
@@ -1241,6 +1389,7 @@ export type PatientUncheckedCreateWithoutChatbotConversationsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   appointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutPatientInput
+  clinicalCases?: Prisma.ClinicalCaseUncheckedCreateNestedManyWithoutPatientInput
   medicalRecords?: Prisma.MedicalRecordUncheckedCreateNestedManyWithoutPatientInput
   treatmentPlans?: Prisma.TreatmentPlanUncheckedCreateNestedManyWithoutPatientInput
   invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutPatientInput
@@ -1277,6 +1426,7 @@ export type PatientUpdateWithoutChatbotConversationsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutPatientProfileNestedInput
   appointments?: Prisma.AppointmentUpdateManyWithoutPatientNestedInput
+  clinicalCases?: Prisma.ClinicalCaseUpdateManyWithoutPatientNestedInput
   medicalRecords?: Prisma.MedicalRecordUpdateManyWithoutPatientNestedInput
   treatmentPlans?: Prisma.TreatmentPlanUpdateManyWithoutPatientNestedInput
   invoices?: Prisma.InvoiceUpdateManyWithoutPatientNestedInput
@@ -1297,6 +1447,7 @@ export type PatientUncheckedUpdateWithoutChatbotConversationsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   appointments?: Prisma.AppointmentUncheckedUpdateManyWithoutPatientNestedInput
+  clinicalCases?: Prisma.ClinicalCaseUncheckedUpdateManyWithoutPatientNestedInput
   medicalRecords?: Prisma.MedicalRecordUncheckedUpdateManyWithoutPatientNestedInput
   treatmentPlans?: Prisma.TreatmentPlanUncheckedUpdateManyWithoutPatientNestedInput
   invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutPatientNestedInput
@@ -1317,6 +1468,7 @@ export type PatientCreateWithoutVideoConsultationsInput = {
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutPatientProfileInput
   appointments?: Prisma.AppointmentCreateNestedManyWithoutPatientInput
+  clinicalCases?: Prisma.ClinicalCaseCreateNestedManyWithoutPatientInput
   medicalRecords?: Prisma.MedicalRecordCreateNestedManyWithoutPatientInput
   treatmentPlans?: Prisma.TreatmentPlanCreateNestedManyWithoutPatientInput
   invoices?: Prisma.InvoiceCreateNestedManyWithoutPatientInput
@@ -1337,6 +1489,7 @@ export type PatientUncheckedCreateWithoutVideoConsultationsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   appointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutPatientInput
+  clinicalCases?: Prisma.ClinicalCaseUncheckedCreateNestedManyWithoutPatientInput
   medicalRecords?: Prisma.MedicalRecordUncheckedCreateNestedManyWithoutPatientInput
   treatmentPlans?: Prisma.TreatmentPlanUncheckedCreateNestedManyWithoutPatientInput
   invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutPatientInput
@@ -1373,6 +1526,7 @@ export type PatientUpdateWithoutVideoConsultationsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutPatientProfileNestedInput
   appointments?: Prisma.AppointmentUpdateManyWithoutPatientNestedInput
+  clinicalCases?: Prisma.ClinicalCaseUpdateManyWithoutPatientNestedInput
   medicalRecords?: Prisma.MedicalRecordUpdateManyWithoutPatientNestedInput
   treatmentPlans?: Prisma.TreatmentPlanUpdateManyWithoutPatientNestedInput
   invoices?: Prisma.InvoiceUpdateManyWithoutPatientNestedInput
@@ -1393,6 +1547,7 @@ export type PatientUncheckedUpdateWithoutVideoConsultationsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   appointments?: Prisma.AppointmentUncheckedUpdateManyWithoutPatientNestedInput
+  clinicalCases?: Prisma.ClinicalCaseUncheckedUpdateManyWithoutPatientNestedInput
   medicalRecords?: Prisma.MedicalRecordUncheckedUpdateManyWithoutPatientNestedInput
   treatmentPlans?: Prisma.TreatmentPlanUncheckedUpdateManyWithoutPatientNestedInput
   invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutPatientNestedInput
@@ -1407,6 +1562,7 @@ export type PatientUncheckedUpdateWithoutVideoConsultationsInput = {
 
 export type PatientCountOutputType = {
   appointments: number
+  clinicalCases: number
   medicalRecords: number
   treatmentPlans: number
   invoices: number
@@ -1417,6 +1573,7 @@ export type PatientCountOutputType = {
 
 export type PatientCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   appointments?: boolean | PatientCountOutputTypeCountAppointmentsArgs
+  clinicalCases?: boolean | PatientCountOutputTypeCountClinicalCasesArgs
   medicalRecords?: boolean | PatientCountOutputTypeCountMedicalRecordsArgs
   treatmentPlans?: boolean | PatientCountOutputTypeCountTreatmentPlansArgs
   invoices?: boolean | PatientCountOutputTypeCountInvoicesArgs
@@ -1440,6 +1597,13 @@ export type PatientCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Exte
  */
 export type PatientCountOutputTypeCountAppointmentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.AppointmentWhereInput
+}
+
+/**
+ * PatientCountOutputType without action
+ */
+export type PatientCountOutputTypeCountClinicalCasesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ClinicalCaseWhereInput
 }
 
 /**
@@ -1499,6 +1663,7 @@ export type PatientSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   appointments?: boolean | Prisma.Patient$appointmentsArgs<ExtArgs>
+  clinicalCases?: boolean | Prisma.Patient$clinicalCasesArgs<ExtArgs>
   medicalRecords?: boolean | Prisma.Patient$medicalRecordsArgs<ExtArgs>
   treatmentPlans?: boolean | Prisma.Patient$treatmentPlansArgs<ExtArgs>
   invoices?: boolean | Prisma.Patient$invoicesArgs<ExtArgs>
@@ -1556,6 +1721,7 @@ export type PatientOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
 export type PatientInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   appointments?: boolean | Prisma.Patient$appointmentsArgs<ExtArgs>
+  clinicalCases?: boolean | Prisma.Patient$clinicalCasesArgs<ExtArgs>
   medicalRecords?: boolean | Prisma.Patient$medicalRecordsArgs<ExtArgs>
   treatmentPlans?: boolean | Prisma.Patient$treatmentPlansArgs<ExtArgs>
   invoices?: boolean | Prisma.Patient$invoicesArgs<ExtArgs>
@@ -1576,6 +1742,7 @@ export type $PatientPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
   objects: {
     user: Prisma.$UserPayload<ExtArgs>
     appointments: Prisma.$AppointmentPayload<ExtArgs>[]
+    clinicalCases: Prisma.$ClinicalCasePayload<ExtArgs>[]
     medicalRecords: Prisma.$MedicalRecordPayload<ExtArgs>[]
     treatmentPlans: Prisma.$TreatmentPlanPayload<ExtArgs>[]
     invoices: Prisma.$InvoicePayload<ExtArgs>[]
@@ -1991,6 +2158,7 @@ export interface Prisma__PatientClient<T, Null = never, ExtArgs extends runtime.
   readonly [Symbol.toStringTag]: "PrismaPromise"
   user<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   appointments<T extends Prisma.Patient$appointmentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Patient$appointmentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AppointmentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  clinicalCases<T extends Prisma.Patient$clinicalCasesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Patient$clinicalCasesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ClinicalCasePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   medicalRecords<T extends Prisma.Patient$medicalRecordsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Patient$medicalRecordsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MedicalRecordPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   treatmentPlans<T extends Prisma.Patient$treatmentPlansArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Patient$treatmentPlansArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TreatmentPlanPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   invoices<T extends Prisma.Patient$invoicesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Patient$invoicesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$InvoicePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -2459,6 +2627,30 @@ export type Patient$appointmentsArgs<ExtArgs extends runtime.Types.Extensions.In
   take?: number
   skip?: number
   distinct?: Prisma.AppointmentScalarFieldEnum | Prisma.AppointmentScalarFieldEnum[]
+}
+
+/**
+ * Patient.clinicalCases
+ */
+export type Patient$clinicalCasesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ClinicalCase
+   */
+  select?: Prisma.ClinicalCaseSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ClinicalCase
+   */
+  omit?: Prisma.ClinicalCaseOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ClinicalCaseInclude<ExtArgs> | null
+  where?: Prisma.ClinicalCaseWhereInput
+  orderBy?: Prisma.ClinicalCaseOrderByWithRelationInput | Prisma.ClinicalCaseOrderByWithRelationInput[]
+  cursor?: Prisma.ClinicalCaseWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ClinicalCaseScalarFieldEnum | Prisma.ClinicalCaseScalarFieldEnum[]
 }
 
 /**

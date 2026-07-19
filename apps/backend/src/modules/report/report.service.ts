@@ -283,6 +283,7 @@ export class ReportService {
         orderBy: { createdAt: 'desc' },
         include: {
           patient: { include: { user: true } },
+          creator: true,
           service: true,
         },
       }),
@@ -303,7 +304,7 @@ export class ReportService {
         id: appointment.id,
         type: 'appointment',
         title: 'Dat lich moi',
-        description: `${appointment.patient.user.fullName} - ${appointment.service.name}`,
+        description: `${appointment.patient?.user.fullName ?? appointment.creator.fullName} - ${appointment.service.name}`,
         time: appointment.createdAt.toISOString(),
       })),
       ...patients.map((patient) => ({
@@ -333,6 +334,7 @@ export class ReportService {
         orderBy: { createdAt: 'desc' },
         include: {
           patient: { include: { user: true } },
+          creator: true,
         },
       }),
       this.prisma.invoice.findMany({
@@ -354,7 +356,7 @@ export class ReportService {
       ...pendingAppointments.map((appointment) => ({
         id: appointment.id,
         title: 'Lich hen can theo doi',
-        desc: `${appointment.patient.user.fullName} dat lich (${appointment.status}).`,
+        desc: `${appointment.patient?.user.fullName ?? appointment.creator.fullName} dat lich (${appointment.status}).`,
         time: appointment.createdAt.toISOString(),
         action: 'Xem lich hen',
         href: '/admin/schedules',
@@ -382,6 +384,7 @@ export class ReportService {
       orderBy: { scheduledAt: 'asc' },
       include: {
         patient: { include: { user: true } },
+        creator: true,
         doctor: { include: { user: true } },
         service: true,
       },
@@ -391,7 +394,7 @@ export class ReportService {
       id: appointment.id,
       start_time: this.formatTime(appointment.scheduledAt),
       end_time: this.formatTime(appointment.endAt),
-      patient_name: appointment.patient.user.fullName,
+      patient_name: appointment.patient?.user.fullName ?? appointment.creator.fullName,
       service_name: appointment.service.name,
       doctor_name: appointment.doctor.user.fullName,
       status: appointment.status,
@@ -466,6 +469,7 @@ export class ReportService {
 
     const visitByPatient = new Map<string, number>();
     appointments.forEach((appointment) => {
+      if (!appointment.patientId) return;
       visitByPatient.set(
         appointment.patientId,
         (visitByPatient.get(appointment.patientId) ?? 0) + 1,
@@ -475,6 +479,8 @@ export class ReportService {
     const reexamPatients = Array.from(visitByPatient.values()).filter(
       (visitCount) => visitCount > 1,
     ).length;
+
+    if (visitByPatient.size === 0) return 0;
 
     return Math.round((reexamPatients / visitByPatient.size) * 100);
   }

@@ -3,20 +3,27 @@ import { AdminInput, AdminSelect } from "@/src/components/admin/common";
 import { weekDays } from "../constants";
 import { TimeInput } from "./time-input";
 import type { ScheduleFormState } from "../types";
+import type { BusinessHour } from "../../setting/types";
 
 type ManualScheduleFieldsProps = {
+  businessHours: BusinessHour[];
   form: ScheduleFormState;
   setForm: Dispatch<SetStateAction<ScheduleFormState>>;
 };
 
 export function ManualScheduleFields({
+  businessHours,
   form,
   setForm,
 }: ManualScheduleFieldsProps) {
+  const selectedBusinessHour = businessHours.find(
+    (day) => day.id === form.dayOfWeek,
+  );
+
   return (
     <>
       <AdminSelect
-        label="Loại lịch"
+        label="Loai lich"
         value={form.recordType}
         onChange={(event) =>
           setForm((current) => ({
@@ -25,53 +32,81 @@ export function ManualScheduleFields({
           }))
         }
       >
-        <option value="WEEKLY">Ca làm việc</option>
-        <option value="TIME_OFF">Nghỉ phép</option>
+        <option value="WEEKLY">Ca lam viec</option>
+        <option value="TIME_OFF">Nghi phep</option>
       </AdminSelect>
 
       <AdminSelect
-        label="Ngày trong tuần"
+        label="Ngay trong tuan"
         value={form.dayOfWeek}
-        onChange={(event) =>
+        onChange={(event) => {
+          const dayOfWeek = Number(event.target.value);
+          const businessHour = businessHours.find(
+            (day) => day.id === dayOfWeek,
+          );
+
           setForm((current) => ({
             ...current,
-            dayOfWeek: Number(event.target.value),
-          }))
-        }
+            dayOfWeek,
+            startTime: businessHour?.start ?? current.startTime,
+            endTime: businessHour?.end ?? current.endTime,
+          }));
+        }}
       >
-        {weekDays.map((day) => (
-          <option key={day.index} value={day.index}>
-            {day.label}
-          </option>
-        ))}
+        {weekDays.map((day) => {
+          const businessHour = businessHours.find(
+            (hour) => hour.id === day.index,
+          );
+
+          return (
+            <option
+              key={day.index}
+              value={day.index}
+              disabled={form.recordType === "WEEKLY" && !businessHour?.isOpen}
+            >
+              {day.label}
+              {businessHour?.isOpen
+                ? ` (${businessHour.start}-${businessHour.end})`
+                : " (phong kham nghi)"}
+            </option>
+          );
+        })}
       </AdminSelect>
 
       {form.recordType === "WEEKLY" ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <TimeInput
-            label="Giờ bắt đầu"
-            value={form.startTime}
-            onChange={(value) =>
-              setForm((current) => ({ ...current, startTime: value }))
-            }
-          />
-          <TimeInput
-            label="Giờ kết thúc"
-            value={form.endTime}
-            onChange={(value) =>
-              setForm((current) => ({ ...current, endTime: value }))
-            }
-          />
-        </div>
+        <>
+          {selectedBusinessHour?.isOpen ? (
+            <p className="text-xs text-muted-foreground">
+              Khung gio phong kham: {selectedBusinessHour.start} -{" "}
+              {selectedBusinessHour.end}
+            </p>
+          ) : null}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <TimeInput
+              label="Gio bat dau"
+              value={form.startTime}
+              onChange={(value) =>
+                setForm((current) => ({ ...current, startTime: value }))
+              }
+            />
+            <TimeInput
+              label="Gio ket thuc"
+              value={form.endTime}
+              onChange={(value) =>
+                setForm((current) => ({ ...current, endTime: value }))
+              }
+            />
+          </div>
+        </>
       ) : (
         <AdminInput
-          label="Lý do nghỉ"
+          label="Ly do nghi"
           type="text"
           value={form.reason}
           onChange={(event) =>
             setForm((current) => ({ ...current, reason: event.target.value }))
           }
-          placeholder="VD: Nghỉ phép cá nhân"
+          placeholder="VD: Nghi phep ca nhan"
           required
         />
       )}

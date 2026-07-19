@@ -112,7 +112,7 @@ apiClient.interceptors.response.use(
   (response: AxiosResponse) => response.data,
   async (error: AxiosError) => {
     if (!error.response) {
-      console.error("Network Error: Khong the ket noi toi server.");
+      console.warn("Network Error: Khong the ket noi toi server.");
       return Promise.reject(error);
     }
 
@@ -120,12 +120,12 @@ apiClient.interceptors.response.use(
 
     if (status !== 401) {
       if (status === 403)
-        console.error("Forbidden: Ban khong co quyen truy cap.");
+        console.warn("Forbidden: Ban khong co quyen truy cap.");
       else if (status === 404)
-        console.error("Not Found: Khong tim thay tai nguyen.");
+        console.warn("Not Found: Khong tim thay tai nguyen.");
       else if (status === 500)
-        console.error("Server Error: Co loi tu phia may chu.");
-      else console.error("API Error:", error.message);
+        console.warn("Server Error: Co loi tu phia may chu.");
+      else console.warn("API Error:", error.message);
 
       return Promise.reject(error);
     }

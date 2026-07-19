@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AdminAlert } from "@/src/components/admin/common";
+import { getClinicConfig } from "@/src/components/admin/setting/settings-api";
 import { queryKeys } from "@/src/lib/query/query-keys";
 import { defaultScheduleForm } from "./constants";
 import {
@@ -16,6 +17,7 @@ import { ScheduleTable } from "./components/schedule-table";
 import { ScheduleToolbar } from "./components/schedule-toolbar";
 import { getErrorMessage } from "./schedule-utils";
 import type { ScheduleFormState } from "./types";
+import type { BusinessHour } from "../setting/types";
 
 export function SchedulesPageContent() {
   const queryClient = useQueryClient();
@@ -36,7 +38,15 @@ export function SchedulesPageContent() {
       return doctorList.filter((doctor) => doctor.isActive);
     },
   });
+  const { data: clinicConfig } = useQuery({
+    queryKey: queryKeys.admin.clinicConfig,
+    queryFn: getClinicConfig,
+  });
   const selectedDoctorId = doctorId || doctors[0]?.id || "";
+  const businessHours = clinicConfig?.businessHours ?? [];
+  const openBusinessHours = businessHours.filter((day) => day.isOpen);
+  const canManageSchedule =
+    Boolean(selectedDoctorId) && Boolean(clinicConfig?.isBusinessHoursConfigured);
 
   const {
     data: schedule = null,
@@ -66,12 +76,32 @@ export function SchedulesPageContent() {
     },
   });
 
+  const getBusinessHourForDay = (dayOfWeek: number) =>
+    businessHours.find((day) => day.id === dayOfWeek);
+
+  const getFallbackBusinessHour = (): BusinessHour | undefined =>
+    openBusinessHours[0] ?? businessHours[0];
+
   const openAddModal = (dayOfWeek = 1, autoSchedule = false) => {
+    const businessHour =
+      getBusinessHourForDay(dayOfWeek) ?? getFallbackBusinessHour();
+    const selectedDays = autoSchedule
+      ? openBusinessHours.map((day) => day.id)
+      : [businessHour?.id ?? dayOfWeek];
+
     setForm({
       ...defaultScheduleForm,
       autoSchedule,
-      dayOfWeek,
-      selectedDays: autoSchedule ? [1, 2, 3, 4, 5] : [dayOfWeek],
+      dayOfWeek: businessHour?.id ?? dayOfWeek,
+      startTime: businessHour?.start ?? defaultScheduleForm.startTime,
+      endTime: businessHour?.end ?? defaultScheduleForm.endTime,
+      selectedDays,
+      autoShifts: [
+        {
+          startTime: businessHour?.start ?? defaultScheduleForm.startTime,
+          endTime: businessHour?.end ?? defaultScheduleForm.endTime,
+        },
+      ],
     });
     setIsAddModalOpen(true);
   };
@@ -81,46 +111,18 @@ export function SchedulesPageContent() {
     setIsAddModalOpen(false);
   };
 
-  const setAutoShift = (
-    index: number,
-    key: "startTime" | "endTime",
-    value: string,
-  ) => {
-    setForm((current) => ({
-      ...current,
-      autoShifts: current.autoShifts.map((shift, shiftIndex) =>
-        shiftIndex === index ? { ...shift, [key]: value } : shift,
-      ),
-    }));
-  };
-
   const toggleSelectedDay = (dayOfWeek: number) => {
     setForm((current) => {
       const selectedDays = current.selectedDays.includes(dayOfWeek)
         ? current.selectedDays.filter((day) => day !== dayOfWeek)
-        : [...current.selectedDays, dayOfWeek].sort((a, b) => a - b);
+        : [...current.selectedDays, dayOfWeek].sort(
+            (a, b) =>
+              businessHours.findIndex((day) => day.id === a) -
+              businessHours.findIndex((day) => day.id === b),
+          );
 
       return { ...current, selectedDays };
     });
-  };
-
-  const addAutoShift = () => {
-    setForm((current) => ({
-      ...current,
-      autoShifts: [
-        ...current.autoShifts,
-        { startTime: "08:00", endTime: "12:00" },
-      ],
-    }));
-  };
-
-  const removeAutoShift = (index: number) => {
-    setForm((current) => ({
-      ...current,
-      autoShifts: current.autoShifts.filter(
-        (_, shiftIndex) => shiftIndex !== index,
-      ),
-    }));
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -131,7 +133,7 @@ export function SchedulesPageContent() {
     setError(null);
 
     try {
-      await createDoctorAvailability(selectedDoctorId, form);
+      await createDoctorAvailability(selectedDoctorId, form, businessHours);
       setIsAddModalOpen(false);
       await invalidateSchedule();
     } catch (err) {
@@ -168,13 +170,23 @@ export function SchedulesPageContent() {
           loadingDoctors={loadingDoctors}
           selectedDoctor={selectedDoctor}
           onDoctorChange={setDoctorId}
-          onOpenManual={() => openAddModal(1)}
-          onOpenAuto={() => openAddModal(1, true)}
+          onOpenManual={() => openAddModal(openBusinessHours[0]?.id ?? 1)}
+          onOpenAuto={() => openAddModal(openBusinessHours[0]?.id ?? 1, true)}
+          scheduleDisabled={!canManageSchedule}
         />
 
-        <AdminAlert message={error || queryError} />
+        <AdminAlert
+          message={
+            error ||
+            queryError ||
+            (clinicConfig && !clinicConfig.isBusinessHoursConfigured
+              ? "Can cau hinh gio lam viec phong kham truoc khi lap lich bac si."
+              : null)
+          }
+        />
 
         <ScheduleTable
+          businessHours={businessHours}
           loading={loadingSchedule}
           schedule={schedule}
           onAddDay={(dayOfWeek) => openAddModal(dayOfWeek)}
@@ -185,14 +197,12 @@ export function SchedulesPageContent() {
       {isAddModalOpen ? (
         <ScheduleFormModal
           form={form}
+          businessHours={businessHours}
           submitting={submitting}
           setForm={setForm}
           onClose={closeModal}
           onSubmit={handleSubmit}
           toggleSelectedDay={toggleSelectedDay}
-          setAutoShift={setAutoShift}
-          addAutoShift={addAutoShift}
-          removeAutoShift={removeAutoShift}
         />
       ) : null}
     </>

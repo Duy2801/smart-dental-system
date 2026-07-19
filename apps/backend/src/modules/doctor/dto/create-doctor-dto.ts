@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsEmail,
+  IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -44,4 +45,35 @@ export class CreateDoctorDto {
   @IsString()
   @IsNotEmpty()
   licenseNumber: string;
+
+  @ApiPropertyOptional({
+    example:
+      'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=900&q=80',
+  })
+  @IsOptional()
+  @IsString()
+  avatarUrl?: string;
+
+  @ApiPropertyOptional({
+    example:
+      'Bác sĩ có kinh nghiệm trong điều trị nha khoa thẩm mỹ và phục hình.',
+  })
+  @IsOptional()
+  @IsString()
+  bio?: string;
+
+  @ApiPropertyOptional({ example: 'Trưởng khoa Chỉnh nha' })
+  @IsOptional()
+  @IsString()
+  position?: string;
+
+  @ApiPropertyOptional({ example: 'Hệ thống Smart Dental AI' })
+  @IsOptional()
+  @IsString()
+  workplace?: string;
+
+  @ApiPropertyOptional({ example: 8 })
+  @IsOptional()
+  @IsInt()
+  yearsExperience?: number;
 }

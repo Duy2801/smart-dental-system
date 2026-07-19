@@ -19,19 +19,41 @@ export function StaffRow({
 }: StaffRowProps) {
   const role = user.role as Role;
   const isActive = user.status === "ACTIVE";
+  const initials = user.fullName
+    .split(" ")
+    .filter(Boolean)
+    .slice(-2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
 
   return (
     <div className="group relative flex items-center justify-between p-4 transition-colors hover:bg-muted/20">
-      <div className="flex flex-col pr-4 sm:w-[35%]">
-        <span className="font-medium text-brand-dark">{user.fullName}</span>
-        <span className="mt-0.5 text-sm text-muted-foreground">
-          {user.email}
-        </span>
-        {user.phone ? (
-          <span className="mt-0.5 text-xs text-muted-foreground">
-            SDT: {user.phone}
+      <div className="flex items-center gap-3 pr-4 sm:w-[35%]">
+        {user.doctorProfile?.avatarUrl ? (
+          <img
+            src={user.doctorProfile.avatarUrl}
+            alt={user.fullName}
+            className="h-11 w-11 shrink-0 rounded-full object-cover"
+          />
+        ) : (
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brand-light text-xs font-bold text-brand">
+            {initials || "NV"}
           </span>
-        ) : null}
+        )}
+        <div className="flex min-w-0 flex-col">
+          <span className="truncate font-medium text-brand-dark">
+            {user.fullName}
+          </span>
+          <span className="mt-0.5 truncate text-sm text-muted-foreground">
+            {user.email}
+          </span>
+          {user.phone ? (
+            <span className="mt-0.5 text-xs text-muted-foreground">
+              SDT: {user.phone}
+            </span>
+          ) : null}
+        </div>
       </div>
 
       <div className="hidden w-[20%] shrink-0 flex-col sm:flex">

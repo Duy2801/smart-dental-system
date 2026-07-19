@@ -228,6 +228,7 @@ export type TreatmentPlanWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"TreatmentPlan"> | Date | string
   patient?: Prisma.XOR<Prisma.PatientScalarRelationFilter, Prisma.PatientWhereInput>
   doctor?: Prisma.XOR<Prisma.DoctorScalarRelationFilter, Prisma.DoctorWhereInput>
+  clinicalCases?: Prisma.ClinicalCaseListRelationFilter
   notifications?: Prisma.NotificationListRelationFilter
 }
 
@@ -245,6 +246,7 @@ export type TreatmentPlanOrderByWithRelationInput = {
   updatedAt?: Prisma.SortOrder
   patient?: Prisma.PatientOrderByWithRelationInput
   doctor?: Prisma.DoctorOrderByWithRelationInput
+  clinicalCases?: Prisma.ClinicalCaseOrderByRelationAggregateInput
   notifications?: Prisma.NotificationOrderByRelationAggregateInput
 }
 
@@ -265,6 +267,7 @@ export type TreatmentPlanWhereUniqueInput = Prisma.AtLeast<{
   updatedAt?: Prisma.DateTimeFilter<"TreatmentPlan"> | Date | string
   patient?: Prisma.XOR<Prisma.PatientScalarRelationFilter, Prisma.PatientWhereInput>
   doctor?: Prisma.XOR<Prisma.DoctorScalarRelationFilter, Prisma.DoctorWhereInput>
+  clinicalCases?: Prisma.ClinicalCaseListRelationFilter
   notifications?: Prisma.NotificationListRelationFilter
 }, "id">
 
@@ -314,6 +317,7 @@ export type TreatmentPlanCreateInput = {
   updatedAt?: Date | string
   patient: Prisma.PatientCreateNestedOneWithoutTreatmentPlansInput
   doctor: Prisma.DoctorCreateNestedOneWithoutTreatmentPlansInput
+  clinicalCases?: Prisma.ClinicalCaseCreateNestedManyWithoutTreatmentPlanInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutTreatmentPlanInput
 }
 
@@ -329,6 +333,7 @@ export type TreatmentPlanUncheckedCreateInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  clinicalCases?: Prisma.ClinicalCaseUncheckedCreateNestedManyWithoutTreatmentPlanInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTreatmentPlanInput
 }
 
@@ -344,6 +349,7 @@ export type TreatmentPlanUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   patient?: Prisma.PatientUpdateOneRequiredWithoutTreatmentPlansNestedInput
   doctor?: Prisma.DoctorUpdateOneRequiredWithoutTreatmentPlansNestedInput
+  clinicalCases?: Prisma.ClinicalCaseUpdateManyWithoutTreatmentPlanNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutTreatmentPlanNestedInput
 }
 
@@ -359,6 +365,7 @@ export type TreatmentPlanUncheckedUpdateInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  clinicalCases?: Prisma.ClinicalCaseUncheckedUpdateManyWithoutTreatmentPlanNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTreatmentPlanNestedInput
 }
 
@@ -545,6 +552,22 @@ export type EnumTreatmentPlanStatusFieldUpdateOperationsInput = {
   set?: $Enums.TreatmentPlanStatus
 }
 
+export type TreatmentPlanCreateNestedOneWithoutClinicalCasesInput = {
+  create?: Prisma.XOR<Prisma.TreatmentPlanCreateWithoutClinicalCasesInput, Prisma.TreatmentPlanUncheckedCreateWithoutClinicalCasesInput>
+  connectOrCreate?: Prisma.TreatmentPlanCreateOrConnectWithoutClinicalCasesInput
+  connect?: Prisma.TreatmentPlanWhereUniqueInput
+}
+
+export type TreatmentPlanUpdateOneWithoutClinicalCasesNestedInput = {
+  create?: Prisma.XOR<Prisma.TreatmentPlanCreateWithoutClinicalCasesInput, Prisma.TreatmentPlanUncheckedCreateWithoutClinicalCasesInput>
+  connectOrCreate?: Prisma.TreatmentPlanCreateOrConnectWithoutClinicalCasesInput
+  upsert?: Prisma.TreatmentPlanUpsertWithoutClinicalCasesInput
+  disconnect?: Prisma.TreatmentPlanWhereInput | boolean
+  delete?: Prisma.TreatmentPlanWhereInput | boolean
+  connect?: Prisma.TreatmentPlanWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.TreatmentPlanUpdateToOneWithWhereWithoutClinicalCasesInput, Prisma.TreatmentPlanUpdateWithoutClinicalCasesInput>, Prisma.TreatmentPlanUncheckedUpdateWithoutClinicalCasesInput>
+}
+
 export type TreatmentPlanCreateNestedOneWithoutNotificationsInput = {
   create?: Prisma.XOR<Prisma.TreatmentPlanCreateWithoutNotificationsInput, Prisma.TreatmentPlanUncheckedCreateWithoutNotificationsInput>
   connectOrCreate?: Prisma.TreatmentPlanCreateOrConnectWithoutNotificationsInput
@@ -572,6 +595,7 @@ export type TreatmentPlanCreateWithoutPatientInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   doctor: Prisma.DoctorCreateNestedOneWithoutTreatmentPlansInput
+  clinicalCases?: Prisma.ClinicalCaseCreateNestedManyWithoutTreatmentPlanInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutTreatmentPlanInput
 }
 
@@ -586,6 +610,7 @@ export type TreatmentPlanUncheckedCreateWithoutPatientInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  clinicalCases?: Prisma.ClinicalCaseUncheckedCreateNestedManyWithoutTreatmentPlanInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTreatmentPlanInput
 }
 
@@ -643,6 +668,7 @@ export type TreatmentPlanCreateWithoutDoctorInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   patient: Prisma.PatientCreateNestedOneWithoutTreatmentPlansInput
+  clinicalCases?: Prisma.ClinicalCaseCreateNestedManyWithoutTreatmentPlanInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutTreatmentPlanInput
 }
 
@@ -657,6 +683,7 @@ export type TreatmentPlanUncheckedCreateWithoutDoctorInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  clinicalCases?: Prisma.ClinicalCaseUncheckedCreateNestedManyWithoutTreatmentPlanInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTreatmentPlanInput
 }
 
@@ -686,6 +713,82 @@ export type TreatmentPlanUpdateManyWithWhereWithoutDoctorInput = {
   data: Prisma.XOR<Prisma.TreatmentPlanUpdateManyMutationInput, Prisma.TreatmentPlanUncheckedUpdateManyWithoutDoctorInput>
 }
 
+export type TreatmentPlanCreateWithoutClinicalCasesInput = {
+  id?: string
+  title: string
+  description?: string | null
+  status?: $Enums.TreatmentPlanStatus
+  startDate?: Date | string | null
+  expectedEndDate?: Date | string | null
+  items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  patient: Prisma.PatientCreateNestedOneWithoutTreatmentPlansInput
+  doctor: Prisma.DoctorCreateNestedOneWithoutTreatmentPlansInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutTreatmentPlanInput
+}
+
+export type TreatmentPlanUncheckedCreateWithoutClinicalCasesInput = {
+  id?: string
+  patientId: string
+  doctorId: string
+  title: string
+  description?: string | null
+  status?: $Enums.TreatmentPlanStatus
+  startDate?: Date | string | null
+  expectedEndDate?: Date | string | null
+  items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTreatmentPlanInput
+}
+
+export type TreatmentPlanCreateOrConnectWithoutClinicalCasesInput = {
+  where: Prisma.TreatmentPlanWhereUniqueInput
+  create: Prisma.XOR<Prisma.TreatmentPlanCreateWithoutClinicalCasesInput, Prisma.TreatmentPlanUncheckedCreateWithoutClinicalCasesInput>
+}
+
+export type TreatmentPlanUpsertWithoutClinicalCasesInput = {
+  update: Prisma.XOR<Prisma.TreatmentPlanUpdateWithoutClinicalCasesInput, Prisma.TreatmentPlanUncheckedUpdateWithoutClinicalCasesInput>
+  create: Prisma.XOR<Prisma.TreatmentPlanCreateWithoutClinicalCasesInput, Prisma.TreatmentPlanUncheckedCreateWithoutClinicalCasesInput>
+  where?: Prisma.TreatmentPlanWhereInput
+}
+
+export type TreatmentPlanUpdateToOneWithWhereWithoutClinicalCasesInput = {
+  where?: Prisma.TreatmentPlanWhereInput
+  data: Prisma.XOR<Prisma.TreatmentPlanUpdateWithoutClinicalCasesInput, Prisma.TreatmentPlanUncheckedUpdateWithoutClinicalCasesInput>
+}
+
+export type TreatmentPlanUpdateWithoutClinicalCasesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumTreatmentPlanStatusFieldUpdateOperationsInput | $Enums.TreatmentPlanStatus
+  startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expectedEndDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  patient?: Prisma.PatientUpdateOneRequiredWithoutTreatmentPlansNestedInput
+  doctor?: Prisma.DoctorUpdateOneRequiredWithoutTreatmentPlansNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutTreatmentPlanNestedInput
+}
+
+export type TreatmentPlanUncheckedUpdateWithoutClinicalCasesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  patientId?: Prisma.StringFieldUpdateOperationsInput | string
+  doctorId?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumTreatmentPlanStatusFieldUpdateOperationsInput | $Enums.TreatmentPlanStatus
+  startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expectedEndDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTreatmentPlanNestedInput
+}
+
 export type TreatmentPlanCreateWithoutNotificationsInput = {
   id?: string
   title: string
@@ -698,6 +801,7 @@ export type TreatmentPlanCreateWithoutNotificationsInput = {
   updatedAt?: Date | string
   patient: Prisma.PatientCreateNestedOneWithoutTreatmentPlansInput
   doctor: Prisma.DoctorCreateNestedOneWithoutTreatmentPlansInput
+  clinicalCases?: Prisma.ClinicalCaseCreateNestedManyWithoutTreatmentPlanInput
 }
 
 export type TreatmentPlanUncheckedCreateWithoutNotificationsInput = {
@@ -712,6 +816,7 @@ export type TreatmentPlanUncheckedCreateWithoutNotificationsInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  clinicalCases?: Prisma.ClinicalCaseUncheckedCreateNestedManyWithoutTreatmentPlanInput
 }
 
 export type TreatmentPlanCreateOrConnectWithoutNotificationsInput = {
@@ -742,6 +847,7 @@ export type TreatmentPlanUpdateWithoutNotificationsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   patient?: Prisma.PatientUpdateOneRequiredWithoutTreatmentPlansNestedInput
   doctor?: Prisma.DoctorUpdateOneRequiredWithoutTreatmentPlansNestedInput
+  clinicalCases?: Prisma.ClinicalCaseUpdateManyWithoutTreatmentPlanNestedInput
 }
 
 export type TreatmentPlanUncheckedUpdateWithoutNotificationsInput = {
@@ -756,6 +862,7 @@ export type TreatmentPlanUncheckedUpdateWithoutNotificationsInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  clinicalCases?: Prisma.ClinicalCaseUncheckedUpdateManyWithoutTreatmentPlanNestedInput
 }
 
 export type TreatmentPlanCreateManyPatientInput = {
@@ -782,6 +889,7 @@ export type TreatmentPlanUpdateWithoutPatientInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   doctor?: Prisma.DoctorUpdateOneRequiredWithoutTreatmentPlansNestedInput
+  clinicalCases?: Prisma.ClinicalCaseUpdateManyWithoutTreatmentPlanNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutTreatmentPlanNestedInput
 }
 
@@ -796,6 +904,7 @@ export type TreatmentPlanUncheckedUpdateWithoutPatientInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  clinicalCases?: Prisma.ClinicalCaseUncheckedUpdateManyWithoutTreatmentPlanNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTreatmentPlanNestedInput
 }
 
@@ -836,6 +945,7 @@ export type TreatmentPlanUpdateWithoutDoctorInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   patient?: Prisma.PatientUpdateOneRequiredWithoutTreatmentPlansNestedInput
+  clinicalCases?: Prisma.ClinicalCaseUpdateManyWithoutTreatmentPlanNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutTreatmentPlanNestedInput
 }
 
@@ -850,6 +960,7 @@ export type TreatmentPlanUncheckedUpdateWithoutDoctorInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  clinicalCases?: Prisma.ClinicalCaseUncheckedUpdateManyWithoutTreatmentPlanNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTreatmentPlanNestedInput
 }
 
@@ -872,10 +983,12 @@ export type TreatmentPlanUncheckedUpdateManyWithoutDoctorInput = {
  */
 
 export type TreatmentPlanCountOutputType = {
+  clinicalCases: number
   notifications: number
 }
 
 export type TreatmentPlanCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  clinicalCases?: boolean | TreatmentPlanCountOutputTypeCountClinicalCasesArgs
   notifications?: boolean | TreatmentPlanCountOutputTypeCountNotificationsArgs
 }
 
@@ -887,6 +1000,13 @@ export type TreatmentPlanCountOutputTypeDefaultArgs<ExtArgs extends runtime.Type
    * Select specific fields to fetch from the TreatmentPlanCountOutputType
    */
   select?: Prisma.TreatmentPlanCountOutputTypeSelect<ExtArgs> | null
+}
+
+/**
+ * TreatmentPlanCountOutputType without action
+ */
+export type TreatmentPlanCountOutputTypeCountClinicalCasesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ClinicalCaseWhereInput
 }
 
 /**
@@ -911,6 +1031,7 @@ export type TreatmentPlanSelect<ExtArgs extends runtime.Types.Extensions.Interna
   updatedAt?: boolean
   patient?: boolean | Prisma.PatientDefaultArgs<ExtArgs>
   doctor?: boolean | Prisma.DoctorDefaultArgs<ExtArgs>
+  clinicalCases?: boolean | Prisma.TreatmentPlan$clinicalCasesArgs<ExtArgs>
   notifications?: boolean | Prisma.TreatmentPlan$notificationsArgs<ExtArgs>
   _count?: boolean | Prisma.TreatmentPlanCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["treatmentPlan"]>
@@ -965,6 +1086,7 @@ export type TreatmentPlanOmit<ExtArgs extends runtime.Types.Extensions.InternalA
 export type TreatmentPlanInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   patient?: boolean | Prisma.PatientDefaultArgs<ExtArgs>
   doctor?: boolean | Prisma.DoctorDefaultArgs<ExtArgs>
+  clinicalCases?: boolean | Prisma.TreatmentPlan$clinicalCasesArgs<ExtArgs>
   notifications?: boolean | Prisma.TreatmentPlan$notificationsArgs<ExtArgs>
   _count?: boolean | Prisma.TreatmentPlanCountOutputTypeDefaultArgs<ExtArgs>
 }
@@ -982,6 +1104,7 @@ export type $TreatmentPlanPayload<ExtArgs extends runtime.Types.Extensions.Inter
   objects: {
     patient: Prisma.$PatientPayload<ExtArgs>
     doctor: Prisma.$DoctorPayload<ExtArgs>
+    clinicalCases: Prisma.$ClinicalCasePayload<ExtArgs>[]
     notifications: Prisma.$NotificationPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
@@ -1392,6 +1515,7 @@ export interface Prisma__TreatmentPlanClient<T, Null = never, ExtArgs extends ru
   readonly [Symbol.toStringTag]: "PrismaPromise"
   patient<T extends Prisma.PatientDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.PatientDefaultArgs<ExtArgs>>): Prisma.Prisma__PatientClient<runtime.Types.Result.GetResult<Prisma.$PatientPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   doctor<T extends Prisma.DoctorDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DoctorDefaultArgs<ExtArgs>>): Prisma.Prisma__DoctorClient<runtime.Types.Result.GetResult<Prisma.$DoctorPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  clinicalCases<T extends Prisma.TreatmentPlan$clinicalCasesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.TreatmentPlan$clinicalCasesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ClinicalCasePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   notifications<T extends Prisma.TreatmentPlan$notificationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.TreatmentPlan$notificationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$NotificationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -1831,6 +1955,30 @@ export type TreatmentPlanDeleteManyArgs<ExtArgs extends runtime.Types.Extensions
    * Limit how many TreatmentPlans to delete.
    */
   limit?: number
+}
+
+/**
+ * TreatmentPlan.clinicalCases
+ */
+export type TreatmentPlan$clinicalCasesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ClinicalCase
+   */
+  select?: Prisma.ClinicalCaseSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ClinicalCase
+   */
+  omit?: Prisma.ClinicalCaseOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ClinicalCaseInclude<ExtArgs> | null
+  where?: Prisma.ClinicalCaseWhereInput
+  orderBy?: Prisma.ClinicalCaseOrderByWithRelationInput | Prisma.ClinicalCaseOrderByWithRelationInput[]
+  cursor?: Prisma.ClinicalCaseWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ClinicalCaseScalarFieldEnum | Prisma.ClinicalCaseScalarFieldEnum[]
 }
 
 /**

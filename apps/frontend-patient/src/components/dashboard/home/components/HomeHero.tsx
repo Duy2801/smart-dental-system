@@ -58,7 +58,7 @@ export function HomeHero({ patientName }: { patientName: string }) {
           phác đồ chăm sóc được cá nhân hóa.
         </p>
         <Link
-          href="/appointment"
+          href="/appointment?intent=booking"
           className="mt-7 inline-flex h-12 w-fit items-center gap-2 rounded-xl bg-white px-5 text-sm font-bold text-[#0863c5] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
         >
           Tư vấn cùng chuyên gia

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ChangeEvent } from "react";
 import type { StaffFormState, StaffUser } from "../types";
 import { StaffFormField } from "./staff-form-field";
 
@@ -10,6 +10,61 @@ type StaffModalProps = {
   submitting: boolean;
   title: string;
 };
+
+function DoctorAvatarPicker({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => onChange(String(reader.result ?? ""));
+    reader.readAsDataURL(file);
+  };
+
+  return (
+    <StaffFormField label="Ảnh bác sĩ">
+      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-white p-3">
+        {value ? (
+          <img
+            src={value}
+            alt="Ảnh bác sĩ"
+            className="h-20 w-20 rounded-lg object-cover"
+          />
+        ) : (
+          <div className="grid h-20 w-20 place-items-center rounded-lg bg-muted text-xs font-medium text-muted-foreground">
+            Chưa có ảnh
+          </div>
+        )}
+        <div className="flex flex-col gap-2">
+          <label className="inline-flex cursor-pointer items-center justify-center rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-dark">
+            Chọn ảnh
+            <input
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              onChange={handleFileChange}
+            />
+          </label>
+          {value ? (
+            <button
+              type="button"
+              onClick={() => onChange("")}
+              className="text-left text-xs font-medium text-red-600 hover:underline"
+            >
+              Xóa ảnh
+            </button>
+          ) : null}
+        </div>
+      </div>
+    </StaffFormField>
+  );
+}
 
 export function StaffModal({
   editingUser,
@@ -92,40 +147,46 @@ export function StaffModal({
           </StaffFormField>
 
           {isDoctor ? (
-            <div className="grid gap-4 sm:grid-cols-3">
-              <StaffFormField label="Ma bac si">
-                <input
-                  required
-                  value={form.doctorCode}
-                  onChange={(event) =>
-                    setField("doctorCode", event.target.value)
-                  }
-                  placeholder="DOC-001"
-                  className="rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand"
-                />
-              </StaffFormField>
-              <StaffFormField label="Chuyen khoa">
-                <input
-                  required
-                  value={form.specialization}
-                  onChange={(event) =>
-                    setField("specialization", event.target.value)
-                  }
-                  placeholder="Chinh nha"
-                  className="rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand"
-                />
-              </StaffFormField>
-              <StaffFormField label="So giay phep">
-                <input
-                  required
-                  value={form.licenseNumber}
-                  onChange={(event) =>
-                    setField("licenseNumber", event.target.value)
-                  }
-                  placeholder="VN-DENT-0001"
-                  className="rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand"
-                />
-              </StaffFormField>
+            <div className="grid gap-4">
+              <DoctorAvatarPicker
+                value={form.avatarUrl}
+                onChange={(value) => setField("avatarUrl", value)}
+              />
+              <div className="grid gap-4 sm:grid-cols-3">
+                <StaffFormField label="Ma bac si">
+                  <input
+                    required
+                    value={form.doctorCode}
+                    onChange={(event) =>
+                      setField("doctorCode", event.target.value)
+                    }
+                    placeholder="DOC-001"
+                    className="rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand"
+                  />
+                </StaffFormField>
+                <StaffFormField label="Chuyen khoa">
+                  <input
+                    required
+                    value={form.specialization}
+                    onChange={(event) =>
+                      setField("specialization", event.target.value)
+                    }
+                    placeholder="Chinh nha"
+                    className="rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand"
+                  />
+                </StaffFormField>
+                <StaffFormField label="So giay phep">
+                  <input
+                    required
+                    value={form.licenseNumber}
+                    onChange={(event) =>
+                      setField("licenseNumber", event.target.value)
+                    }
+                    placeholder="VN-DENT-0001"
+                    className="rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand"
+                  />
+                </StaffFormField>
+              </div>
             </div>
           ) : null}
 

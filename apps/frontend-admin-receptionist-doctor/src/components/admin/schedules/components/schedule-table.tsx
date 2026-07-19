@@ -2,8 +2,10 @@ import { SkeletonRows } from "@/src/components/admin/common";
 import { weekDays } from "../constants";
 import { ScheduleChip } from "./schedule-chip";
 import type { AvailabilityResponse } from "../types";
+import type { BusinessHour } from "../../setting/types";
 
 type ScheduleTableProps = {
+  businessHours: BusinessHour[];
   loading: boolean;
   onAddDay: (dayOfWeek: number) => void;
   onRemove: (id: string) => void;
@@ -11,6 +13,7 @@ type ScheduleTableProps = {
 };
 
 export function ScheduleTable({
+  businessHours,
   loading,
   onAddDay,
   onRemove,
@@ -25,6 +28,10 @@ export function ScheduleTable({
           const daySchedule = schedule?.weekly.find(
             (item) => item.dayOfWeek === day.index,
           );
+          const businessHour = businessHours.find(
+            (hour) => hour.id === day.index,
+          );
+          const canAddShift = Boolean(businessHour?.isOpen);
           const shifts = daySchedule?.shifts ?? [];
           const timeOff = daySchedule?.timeOff ?? [];
 
@@ -40,11 +47,19 @@ export function ScheduleTable({
                 <button
                   type="button"
                   onClick={() => onAddDay(day.index)}
-                  className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-brand"
+                  disabled={!canAddShift}
+                  className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-brand disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <span className="text-base leading-none">+</span>
                   Them ca
                 </button>
+                {businessHour ? (
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    {businessHour.isOpen
+                      ? `${businessHour.start} - ${businessHour.end}`
+                      : "Phong kham nghi"}
+                  </span>
+                ) : null}
               </div>
 
               <div className="flex flex-1 flex-wrap gap-2">

@@ -1,13 +1,13 @@
 import type { ScheduleFormState } from "./types";
 
 export const weekDays = [
-  { label: "Thứ 2", index: 1 },
-  { label: "Thứ 3", index: 2 },
-  { label: "Thứ 4", index: 3 },
-  { label: "Thứ 5", index: 4 },
-  { label: "Thứ 6", index: 5 },
-  { label: "Thứ 7", index: 6 },
-  { label: "Chủ nhật", index: 7 },
+  { label: "Thu 2", index: 1 },
+  { label: "Thu 3", index: 2 },
+  { label: "Thu 4", index: 3 },
+  { label: "Thu 5", index: 4 },
+  { label: "Thu 6", index: 5 },
+  { label: "Thu 7", index: 6 },
+  { label: "Chu nhat", index: 0 },
 ];
 
 export const defaultScheduleForm: ScheduleFormState = {

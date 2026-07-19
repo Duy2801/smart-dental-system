@@ -57,7 +57,33 @@ const permissions = [
   ['reports.read', 'View reports', 'reports', 'read'],
 ] as const;
 
-const clinicConfigs = Array.from({ length: 10 }, (_, index) => ({
+const seededBusinessHours = [
+  { id: 1, label: 'Thu Hai', isOpen: true, start: '08:00', end: '17:00' },
+  { id: 2, label: 'Thu Ba', isOpen: true, start: '08:00', end: '17:00' },
+  { id: 3, label: 'Thu Tu', isOpen: true, start: '08:00', end: '17:00' },
+  { id: 4, label: 'Thu Nam', isOpen: true, start: '08:00', end: '17:00' },
+  { id: 5, label: 'Thu Sau', isOpen: true, start: '08:00', end: '17:00' },
+  { id: 6, label: 'Thu Bay', isOpen: true, start: '08:00', end: '12:00' },
+  { id: 0, label: 'Chu Nhat', isOpen: false, start: '08:00', end: '12:00' },
+];
+
+const clinicProfileConfigs = [
+  ['clinic.name', 'Smart Dental Clinic'],
+  ['clinic.phone', '1900 1234'],
+  ['clinic.email', 'contact@smartdental.com'],
+  ['clinic.address', '123 Nguyen Van Linh, Da Nang'],
+  ['clinic.logoUrl', ''],
+  ['clinic.businessHours', JSON.stringify(seededBusinessHours)],
+  ['clinic.slotIntervalMinutes', '30'],
+  ['clinic.specialDates', '[]'],
+].map(([configKey, configValue]) => ({
+  configType: 'CLINIC_PROFILE',
+  configKey,
+  configValue,
+  configDate: null,
+}));
+
+const legacyClinicConfigs = Array.from({ length: 10 }, (_, index) => ({
   configType: index < 5 ? 'BUSINESS' : 'SYSTEM',
   configKey: `seed.config.${String(index + 1).padStart(2, '0')}`,
   configValue:
@@ -70,6 +96,8 @@ const clinicConfigs = Array.from({ length: 10 }, (_, index) => ({
           : `Seed configuration value ${index + 1}`,
   configDate: index < 3 ? null : addDays(index),
 }));
+
+const clinicConfigs = [...clinicProfileConfigs, ...legacyClinicConfigs];
 
 const adminUsers = [
   {
@@ -108,24 +136,146 @@ const patientSeeds = Array.from({ length: 10 }, (_, index) => ({
       : 'No significant medical history.',
 }));
 
+const doctorAvatarUrls = [
+  'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=900&q=80',
+  'https://images.unsplash.com/photo-1594824476967-48c8b964273f?auto=format&fit=crop&w=900&q=80',
+  'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&w=900&q=80',
+  'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=900&q=80',
+  'https://images.unsplash.com/photo-1582750433449-648ed127bb54?auto=format&fit=crop&w=900&q=80',
+  'https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&w=900&q=80',
+  'https://images.unsplash.com/photo-1527613426441-4da17471b66d?auto=format&fit=crop&w=900&q=80',
+  'https://images.unsplash.com/photo-1622902046580-2b47f47f5471?auto=format&fit=crop&w=900&q=80',
+  'https://images.unsplash.com/photo-1607990281513-2c110a25bd8c?auto=format&fit=crop&w=900&q=80',
+  'https://images.unsplash.com/photo-1629909615184-74f495363b67?auto=format&fit=crop&w=900&q=80',
+];
+
+const doctorNames = [
+  'ThS.BS. Lê Hoàng Nam',
+  'BS. Nguyễn Minh Anh',
+  'BS. Trần Thu Hà',
+  'BS. Phạm Bảo Long',
+  'BS. Đỗ Khánh Linh',
+  'BS. Võ Quang Huy',
+  'BS. Huỳnh Mai Chi',
+  'BS. Bùi Đức Tâm',
+  'BS. Phan Ngọc Ánh',
+  'BS. Đặng Minh Khoa',
+];
+
+const doctorSpecializations = [
+  'Cấy ghép Implant và Phục hình',
+  'Chỉnh nha',
+  'Nha khoa Thẩm mỹ',
+  'Điều trị Tổng quát',
+  'Nha chu',
+  'Nội nha',
+  'Răng trẻ em',
+  'Phục hình sứ',
+  'Tẩy trắng và chăm sóc nụ cười',
+  'Phẫu thuật miệng',
+];
+
+const doctorPositions = [
+  'Giám đốc chuyên môn',
+  'Trưởng khoa Chỉnh nha',
+  'Bác sĩ Nha khoa thẩm mỹ',
+  'Bác sĩ điều trị tổng quát',
+  'Bác sĩ Nha chu',
+  'Bác sĩ Nội nha',
+  'Bác sĩ Răng trẻ em',
+  'Bác sĩ Phục hình',
+  'Bác sĩ chăm sóc nụ cười',
+  'Bác sĩ phẫu thuật miệng',
+];
+
+const doctorBios = [
+  'Bác sĩ Lê Hoàng Nam tập trung vào các ca Implant phức tạp, phục hình toàn hàm và tái tạo xương. Bác sĩ ưu tiên kế hoạch điều trị ít xâm lấn, ứng dụng dữ liệu hình ảnh số để tăng độ chính xác và rút ngắn thời gian hồi phục.',
+  'Bác sĩ Nguyễn Minh Anh chuyên chỉnh nha cá nhân hóa cho người lớn và trẻ em. Bác sĩ kết hợp mô phỏng nụ cười 3D, phân tích khớp cắn và theo dõi tiến trình để người bệnh hiểu rõ từng giai đoạn điều trị.',
+  'Bác sĩ Trần Thu Hà theo đuổi nha khoa thẩm mỹ bảo tồn, thiết kế nụ cười hài hòa với gương mặt và ưu tiên vật liệu tự nhiên, bền vững.',
+  'Bác sĩ Phạm Bảo Long có kinh nghiệm trong điều trị tổng quát, xử lý đau nha khoa và chăm sóc dự phòng. Phong cách tư vấn rõ ràng giúp người bệnh dễ theo dõi kế hoạch điều trị.',
+  'Bác sĩ Đỗ Khánh Linh chuyên điều trị bệnh lý nha chu, kiểm soát viêm nướu và xây dựng lộ trình chăm sóc mô quanh răng lâu dài.',
+  'Bác sĩ Võ Quang Huy tập trung vào nội nha kính hiển vi, điều trị tủy bảo tồn và phục hồi răng sau điều trị bằng quy trình kiểm soát nhiễm khuẩn chặt chẽ.',
+  'Bác sĩ Huỳnh Mai Chi có kinh nghiệm chăm sóc nha khoa trẻ em, tư vấn dự phòng sâu răng và giúp trẻ hình thành thói quen chăm sóc răng miệng tích cực.',
+  'Bác sĩ Bùi Đức Tâm chuyên phục hình sứ và khôi phục chức năng ăn nhai, chú trọng cân bằng giữa thẩm mỹ, khớp cắn và độ bền lâu dài.',
+  'Bác sĩ Phan Ngọc Ánh phụ trách các dịch vụ tẩy trắng, chăm sóc nụ cười và duy trì sức khỏe men răng bằng phác đồ nhẹ nhàng.',
+  'Bác sĩ Đặng Minh Khoa có kinh nghiệm phẫu thuật miệng, nhổ răng khôn và xử lý các thủ thuật nha khoa cần kiểm soát đau tốt.',
+];
+
+const doctorMediaUrls = [
+  'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1584982751601-97dcc096659c?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1606811841689-23dfddce3e95?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1583912267550-d44c7d69922d?auto=format&fit=crop&w=1200&q=80',
+];
+
 const doctorSeeds = Array.from({ length: 10 }, (_, index) => ({
   email:
     index === 0
       ? 'doctor@smartdental.test'
       : `doctor${String(index + 1).padStart(2, '0')}@smartdental.test`,
-  fullName: `Doctor Seed ${String(index + 1).padStart(2, '0')}`,
+  fullName: doctorNames[index],
   phone: `09200000${String(index + 1).padStart(2, '0')}`,
   doctorCode: `DOC-SEED-${String(index + 1).padStart(3, '0')}`,
-  specialization: [
-    'General Dentistry',
-    'Orthodontics',
-    'Endodontics',
-    'Periodontics',
-    'Prosthodontics',
-  ][index % 5],
+  specialization: doctorSpecializations[index],
   licenseNumber: `VN-DENT-SEED-${String(index + 1).padStart(4, '0')}`,
+  avatarUrl: doctorAvatarUrls[index],
+  bio: doctorBios[index],
+  position: doctorPositions[index],
+  workplace: 'Hệ thống Smart Dental AI',
+  yearsExperience: [15, 11, 9, 8, 7, 10, 6, 12, 5, 9][index],
   status: (index === 9 ? 'INACTIVE' : 'ACTIVE') as 'ACTIVE' | 'INACTIVE',
   isActive: index !== 9,
+  educations: [
+    {
+      degree: 'Bác sĩ Răng Hàm Mặt',
+      school: index % 2 === 0 ? 'Đại học Y Dược TP.HCM' : 'Đại học Y Hà Nội',
+      major: doctorSpecializations[index],
+      graduationYear: 2010 + (index % 7),
+      description:
+        'Nền tảng đào tạo chính quy về chẩn đoán, điều trị và chăm sóc sức khỏe răng miệng.',
+    },
+    {
+      degree:
+        index < 3 ? 'Thạc sĩ Răng Hàm Mặt' : 'Chứng nhận đào tạo sau đại học',
+      school: 'Viện Đào tạo Nha khoa Quốc tế',
+      major: doctorSpecializations[index],
+      graduationYear: 2016 + (index % 5),
+      description:
+        'Đào tạo nâng cao về lập kế hoạch điều trị và ứng dụng công nghệ số trong nha khoa.',
+    },
+  ],
+  certificates: [
+    {
+      title: `Chứng chỉ chuyên sâu ${doctorSpecializations[index]}`,
+      issuer: 'Smart Dental Academy',
+      issuedAt: new Date(Date.UTC(2021, index % 12, 10)),
+      imageUrl: doctorMediaUrls[index % doctorMediaUrls.length],
+      description:
+        'Chứng nhận năng lực chuyên môn sau chương trình đào tạo thực hành lâm sàng.',
+    },
+    {
+      title: 'Chứng nhận kiểm soát nhiễm khuẩn nha khoa',
+      issuer: 'Hiệp hội Nha khoa Việt Nam',
+      issuedAt: new Date(Date.UTC(2022, index % 12, 18)),
+      imageUrl: doctorMediaUrls[(index + 1) % doctorMediaUrls.length],
+      description:
+        'Đào tạo quy trình vô khuẩn, an toàn người bệnh và quản lý dụng cụ nha khoa.',
+    },
+  ],
+  media: [
+    {
+      url: doctorMediaUrls[index % doctorMediaUrls.length],
+      alt: `Minh chứng chuyên môn của ${doctorNames[index]}`,
+      type: 'CERTIFICATE',
+    },
+    {
+      url: doctorMediaUrls[(index + 2) % doctorMediaUrls.length],
+      alt: `${doctorNames[index]} trong môi trường lâm sàng`,
+      type: 'PROFILE',
+    },
+  ],
 }));
 
 const serviceImageUrls = {
@@ -943,25 +1093,79 @@ async function seedBaseData() {
       create: { userId: user.id, roleId: doctorRole.id },
     });
 
-    doctors.push(
-      await prisma.doctor.upsert({
-        where: { doctorCode: doctorSeed.doctorCode },
-        update: {
-          userId: user.id,
-          specialization: doctorSeed.specialization,
-          licenseNumber: doctorSeed.licenseNumber,
-          isActive: doctorSeed.isActive,
-        },
-        create: {
-          userId: user.id,
-          doctorCode: doctorSeed.doctorCode,
-          specialization: doctorSeed.specialization,
-          licenseNumber: doctorSeed.licenseNumber,
-          isActive: doctorSeed.isActive,
-        },
-        select: { id: true, userId: true },
-      }),
-    );
+    const doctor = await prisma.doctor.upsert({
+      where: { doctorCode: doctorSeed.doctorCode },
+      update: {
+        userId: user.id,
+        specialization: doctorSeed.specialization,
+        licenseNumber: doctorSeed.licenseNumber,
+        avatarUrl: doctorSeed.avatarUrl,
+        bio: doctorSeed.bio,
+        position: doctorSeed.position,
+        workplace: doctorSeed.workplace,
+        yearsExperience: doctorSeed.yearsExperience,
+        isActive: doctorSeed.isActive,
+      },
+      create: {
+        userId: user.id,
+        doctorCode: doctorSeed.doctorCode,
+        specialization: doctorSeed.specialization,
+        licenseNumber: doctorSeed.licenseNumber,
+        avatarUrl: doctorSeed.avatarUrl,
+        bio: doctorSeed.bio,
+        position: doctorSeed.position,
+        workplace: doctorSeed.workplace,
+        yearsExperience: doctorSeed.yearsExperience,
+        isActive: doctorSeed.isActive,
+      },
+      select: { id: true, userId: true },
+    });
+
+    await prisma.doctorEducation.deleteMany({
+      where: { doctorId: doctor.id },
+    });
+    await prisma.doctorCertificate.deleteMany({
+      where: { doctorId: doctor.id },
+    });
+    await prisma.doctorMedia.deleteMany({
+      where: { doctorId: doctor.id },
+    });
+
+    await prisma.doctorEducation.createMany({
+      data: doctorSeed.educations.map((education, educationIndex) => ({
+        doctorId: doctor.id,
+        degree: education.degree,
+        school: education.school,
+        major: education.major,
+        graduationYear: education.graduationYear,
+        description: education.description,
+        sortOrder: educationIndex + 1,
+      })),
+    });
+
+    await prisma.doctorCertificate.createMany({
+      data: doctorSeed.certificates.map((certificate, certificateIndex) => ({
+        doctorId: doctor.id,
+        title: certificate.title,
+        issuer: certificate.issuer,
+        issuedAt: certificate.issuedAt,
+        imageUrl: certificate.imageUrl,
+        description: certificate.description,
+        sortOrder: certificateIndex + 1,
+      })),
+    });
+
+    await prisma.doctorMedia.createMany({
+      data: doctorSeed.media.map((media, mediaIndex) => ({
+        doctorId: doctor.id,
+        url: media.url,
+        alt: media.alt,
+        type: media.type,
+        sortOrder: mediaIndex + 1,
+      })),
+    });
+
+    doctors.push(doctor);
   }
 
   const createdServices: Array<{
@@ -1091,6 +1295,9 @@ async function cleanGeneratedSampleData() {
   await prisma.invoice.deleteMany({
     where: { invoiceCode: { startsWith: 'INV-SEED-' } },
   });
+  await prisma.clinicalCase.deleteMany({
+    where: { title: { startsWith: 'Seed clinical case' } },
+  });
   await prisma.medicalRecord.deleteMany({
     where: { chiefComplaint: { startsWith: 'Seed complaint' } },
   });
@@ -1154,7 +1361,7 @@ async function seedRelatedData(
 
   const appointments: Array<{
     id: string;
-    patientId: string;
+    patientId: string | null;
     doctorId: string;
     serviceId: string;
     scheduledAt: Date;
@@ -1162,13 +1369,13 @@ async function seedRelatedData(
   const appointmentDayOffsets = [-6, -5, -4, -3, -2, -1, 0, 0, 1, 2];
   const appointmentStatuses = [
     'COMPLETED',
-    'CONFIRMED',
-    'CHECKED_IN',
+    'COMPLETED',
+    'COMPLETED',
     'IN_PROGRESS',
     'CANCELLED',
     'NO_SHOW',
     'PENDING',
-    'RESCHEDULED',
+    'CHECKED_IN',
     'COMPLETED',
     'CONFIRMED',
   ] as const;
@@ -1270,33 +1477,90 @@ async function seedRelatedData(
     );
   }
 
+  const medicalRecords: Array<{ id: string }> = [];
   for (let index = 0; index < 10; index += 1) {
-    await prisma.medicalRecord.create({
-      data: {
-        patientId: context.patients[index].id,
-        appointmentId: appointments[index].id,
-        doctorId: context.doctors[index].id,
-        chiefComplaint: `Seed complaint ${index + 1}`,
-        diagnosis: `Seed diagnosis ${index + 1}`,
-        treatmentNotes: `Treatment completed for sample case ${index + 1}.`,
-        internalNotes: `Internal seed note ${index + 1}.`,
-        followUpDate: addDays(index + 14),
-        dentalChart: {
-          teeth: [
+    medicalRecords.push(
+      await prisma.medicalRecord.create({
+        data: {
+          patientId: context.patients[index].id,
+          appointmentId: appointments[index].id,
+          doctorId: context.doctors[index].id,
+          chiefComplaint: `Seed complaint ${index + 1}`,
+          diagnosis: `Seed diagnosis ${index + 1}`,
+          treatmentNotes: `Treatment completed for sample case ${index + 1}.`,
+          internalNotes: `Internal seed note ${index + 1}.`,
+          followUpDate: addDays(index + 14),
+          dentalChart: {
+            teeth: [
+              {
+                number: 11 + index,
+                status: index % 2 === 0 ? 'healthy' : 'treated',
+              },
+            ],
+          },
+          images: [],
+          prescriptions: [
             {
-              number: 11 + index,
-              status: index % 2 === 0 ? 'healthy' : 'treated',
+              name: 'Paracetamol',
+              dosage: '500mg',
+              instruction: 'Use when needed after meal.',
             },
           ],
         },
-        images: [],
-        prescriptions: [
-          {
-            name: 'Paracetamol',
-            dosage: '500mg',
-            instruction: 'Use when needed after meal.',
-          },
-        ],
+        select: { id: true },
+      }),
+    );
+  }
+
+  await prisma.clinicalCase.deleteMany({
+    where: { title: { startsWith: 'Seed clinical case' } },
+  });
+
+  const clinicalCaseImages = [
+    {
+      before:
+        'https://images.unsplash.com/photo-1609840114035-3c981b782dfe?auto=format&fit=crop&w=1200&q=80',
+      after:
+        'https://images.unsplash.com/photo-1606811971618-4486d14f3f99?auto=format&fit=crop&w=1200&q=80',
+    },
+    {
+      before:
+        'https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=1200&q=80',
+      after:
+        'https://images.unsplash.com/photo-1606811841689-23dfddce3e95?auto=format&fit=crop&w=1200&q=80',
+    },
+    {
+      before:
+        'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=1200&q=80',
+      after:
+        'https://images.unsplash.com/photo-1606811842243-8d7e4d055798?auto=format&fit=crop&w=1200&q=80',
+    },
+  ];
+
+  const clinicalCaseTitles = [
+    'Seed clinical case - Phục hồi nụ cười sau chỉnh nha',
+    'Seed clinical case - Cải thiện thẩm mỹ răng sứ',
+    'Seed clinical case - Cấy ghép Implant phục hồi ăn nhai',
+  ];
+
+  for (let index = 0; index < clinicalCaseTitles.length; index += 1) {
+    await prisma.clinicalCase.create({
+      data: {
+        patientId: appointments[index].patientId!,
+        doctorId: appointments[index].doctorId,
+        serviceId: appointments[index].serviceId,
+        appointmentId: appointments[index].id,
+        medicalRecordId: medicalRecords[index].id,
+        treatmentPlanId: treatmentPlans[index].id,
+        title: clinicalCaseTitles[index],
+        description:
+          'Ca lâm sàng mẫu được liên kết với lịch hẹn, hồ sơ bệnh án và kế hoạch điều trị thật trong hệ thống seed.',
+        treatmentDuration: ['18 tháng', '7 ngày', '3 tháng'][index],
+        beforeImageUrl: clinicalCaseImages[index].before,
+        afterImageUrl: clinicalCaseImages[index].after,
+        patientConsentPublic: true,
+        isPublished: true,
+        displayOrder: index + 1,
       },
     });
   }

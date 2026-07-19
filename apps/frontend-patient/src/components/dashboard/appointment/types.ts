@@ -5,6 +5,9 @@ export type AppointmentService = {
   name: string;
   description: string;
   icon: DashboardIconName;
+  price: string;
+  durationMinutes: number;
+  href: string;
 };
 
 export type Dentist = {
@@ -21,6 +24,7 @@ export type BookingDate = {
   weekday: string;
   day: string;
   month: string;
+  isOpen: boolean;
 };
 
 export type CurrentAppointment = {

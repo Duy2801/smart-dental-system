@@ -24,6 +24,24 @@ export class DoctorService {
           },
         },
       },
+      educations: {
+        orderBy: { sortOrder: 'asc' as const },
+      },
+      certificates: {
+        orderBy: { sortOrder: 'asc' as const },
+      },
+      media: {
+        orderBy: { sortOrder: 'asc' as const },
+      },
+      reviews: {
+        where: { isVisible: true },
+        include: {
+          patient: { include: { user: true } },
+          appointment: { include: { service: true } },
+        },
+        orderBy: { createdAt: 'desc' as const },
+        take: 8,
+      },
     };
   }
 
@@ -87,6 +105,11 @@ export class DoctorService {
           doctorCode: dto.doctorCode.trim(),
           specialization: dto.specialization.trim(),
           licenseNumber: dto.licenseNumber.trim(),
+          avatarUrl: dto.avatarUrl?.trim() || undefined,
+          bio: dto.bio?.trim() || undefined,
+          position: dto.position?.trim() || undefined,
+          workplace: dto.workplace?.trim() || undefined,
+          yearsExperience: dto.yearsExperience ?? 0,
           isActive: true,
         },
         include: this.includeDoctorRelations(),
@@ -180,6 +203,20 @@ export class DoctorService {
           doctorCode: dto.doctorCode?.trim(),
           specialization: dto.specialization?.trim(),
           licenseNumber: dto.licenseNumber?.trim(),
+          avatarUrl:
+            dto.avatarUrl === undefined
+              ? undefined
+              : dto.avatarUrl.trim() || null,
+          bio: dto.bio === undefined ? undefined : dto.bio.trim() || null,
+          position:
+            dto.position === undefined
+              ? undefined
+              : dto.position.trim() || null,
+          workplace:
+            dto.workplace === undefined
+              ? undefined
+              : dto.workplace.trim() || null,
+          yearsExperience: dto.yearsExperience,
           isActive:
             dto.isActive ?? (dto.status ? dto.status === 'ACTIVE' : undefined),
         },

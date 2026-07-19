@@ -17,7 +17,7 @@ export function HealthOverview({ score, metrics }: { score: number; metrics: Hea
     <section className="flex h-full flex-col">
       <h2 className="mb-4 flex items-center gap-2.5 text-xl font-bold tracking-[-0.02em] text-slate-900">
         <DashboardIcon name="heart" className="h-6 w-6 text-[#0863c5]" />
-        Chỉ số sức khỏe AI
+        Chỉ số sức khỏe
       </h2>
       <div className="flex flex-1 flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
         <div className="flex items-center gap-5">

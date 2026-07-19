@@ -15,11 +15,14 @@ export const initialBusinessHours: BusinessHour[] = [
   { id: 0, label: "Chu Nhat", isOpen: false, start: "08:00", end: "12:00" },
 ];
 
-export const defaultClinicConfig = {
-  name: "Smart Dental Clinic",
-  phone: "1900 1234",
-  email: "contact@smartdental.com",
-  address: "123 Nguyen Van Linh, Da Nang",
+export const emptyClinicConfig = {
+  name: "",
+  phone: "",
+  email: "",
+  address: "",
   logoUrl: "",
-  businessHours: initialBusinessHours,
+  businessHours: [],
+  slotIntervalMinutes: 30,
+  specialDates: [],
+  isBusinessHoursConfigured: false,
 };

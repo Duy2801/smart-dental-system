@@ -34,8 +34,8 @@ export class AutoWeeklyAvailabilityDto {
   @IsArray()
   @ArrayMinSize(1)
   @IsInt({ each: true })
-  @Min(1, { each: true })
-  @Max(7, { each: true })
+  @Min(0, { each: true })
+  @Max(6, { each: true })
   daysOfWeek: number[];
 
   @IsArray()

@@ -5,6 +5,8 @@ import {
 } from '@nestjs/common';
 import { AvailabilityRecordType } from '../../../prisma/generated/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { ClinicConfigService } from '../clinic-config/clinic-config.service';
+import type { BusinessHourDto } from '../clinic-config/dto/update-clinic-config.dto';
 import {
   AutoScheduleMode,
   AutoWeeklyAvailabilityDto,
@@ -32,7 +34,10 @@ type AvailabilityRecord = {
 
 @Injectable()
 export class DoctorAvailabilityService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly clinicConfigService: ClinicConfigService,
+  ) {}
 
   async findByDoctor(doctorId: string) {
     await this.ensureDoctorExists(doctorId);
@@ -56,6 +61,7 @@ export class DoctorAvailabilityService {
   async create(dto: CreateDoctorAvailabilityDto) {
     await this.ensureDoctorExists(dto.doctorId);
     this.validateAvailabilityPayload(dto);
+    await this.ensureWithinClinicHours(dto);
 
     const existing = await this.findExistingForSameSlot(dto);
     this.ensureNoOverlap([...existing, dto]);
@@ -81,6 +87,7 @@ export class DoctorAvailabilityService {
 
     const daysOfWeek = [...new Set(dto.daysOfWeek)].sort((a, b) => a - b);
     this.ensureNoOverlap(dto.shifts);
+    await this.ensureWeeklyShiftsWithinClinicHours(daysOfWeek, dto.shifts);
 
     if (dto.mode === AutoScheduleMode.APPEND) {
       await this.ensureNoOverlapWithExistingWeekly(
@@ -157,6 +164,7 @@ export class DoctorAvailabilityService {
 
     await this.ensureDoctorExists(next.doctorId);
     this.validateAvailabilityPayload(next);
+    await this.ensureWithinClinicHours(next);
 
     const existing = await this.findExistingForSameSlot(next, id);
     this.ensureNoOverlap([...existing, next]);
@@ -218,7 +226,10 @@ export class DoctorAvailabilityService {
       throw new BadRequestException('availability.invalid_time_range');
     }
 
-    if (dto.recordType === AvailabilityRecordType.WEEKLY && !dto.dayOfWeek) {
+    if (
+      dto.recordType === AvailabilityRecordType.WEEKLY &&
+      dto.dayOfWeek === undefined
+    ) {
       throw new BadRequestException('availability.day_of_week_required');
     }
 
@@ -231,7 +242,7 @@ export class DoctorAvailabilityService {
 
     if (
       dto.recordType === AvailabilityRecordType.TIME_OFF &&
-      !dto.dayOfWeek &&
+      dto.dayOfWeek === undefined &&
       !dto.specificDate
     ) {
       throw new BadRequestException(
@@ -288,6 +299,58 @@ export class DoctorAvailabilityService {
     }
   }
 
+  private async ensureWithinClinicHours(
+    dto: Omit<CreateDoctorAvailabilityDto, 'specificDate'> & {
+      specificDate?: string;
+    },
+  ) {
+    if (dto.recordType === AvailabilityRecordType.TIME_OFF) return;
+
+    const businessHours =
+      await this.clinicConfigService.getConfiguredBusinessHours();
+    const dayOfWeek =
+      dto.recordType === AvailabilityRecordType.DATE_OVERRIDE &&
+      dto.specificDate
+        ? this.toDateOnly(dto.specificDate).getUTCDay()
+        : dto.dayOfWeek;
+
+    if (dayOfWeek === undefined) return;
+
+    this.ensureShiftWithinClinicHours(dayOfWeek, dto, businessHours);
+  }
+
+  private async ensureWeeklyShiftsWithinClinicHours(
+    daysOfWeek: number[],
+    shifts: ShiftRange[],
+  ) {
+    const businessHours =
+      await this.clinicConfigService.getConfiguredBusinessHours();
+
+    for (const dayOfWeek of daysOfWeek) {
+      for (const shift of shifts) {
+        this.ensureShiftWithinClinicHours(dayOfWeek, shift, businessHours);
+      }
+    }
+  }
+
+  private ensureShiftWithinClinicHours(
+    dayOfWeek: number,
+    shift: ShiftRange,
+    businessHours: BusinessHourDto[],
+  ) {
+    const businessHour = businessHours.find((hour) => hour.id === dayOfWeek);
+    if (!businessHour?.isOpen) {
+      throw new BadRequestException('clinic.closed_at_selected_time');
+    }
+
+    if (
+      shift.startTime < businessHour.start ||
+      shift.endTime > businessHour.end
+    ) {
+      throw new BadRequestException('clinic.closed_at_selected_time');
+    }
+  }
+
   private ensureNoOverlap(shifts: ShiftRange[]) {
     const sorted = [...shifts].sort((a, b) =>
       a.startTime.localeCompare(b.startTime),
@@ -307,9 +370,9 @@ export class DoctorAvailabilityService {
   }
 
   private groupWeekly(records: AvailabilityRecord[]) {
-    return [1, 2, 3, 4, 5, 6, 7].map((dayOfWeek) => {
+    return [1, 2, 3, 4, 5, 6, 0].map((dayOfWeek) => {
       const dayRecords = records.filter(
-        (record) => record.dayOfWeek === dayOfWeek,
+        (record) => this.normalizeDayOfWeek(record.dayOfWeek) === dayOfWeek,
       );
       const shifts = dayRecords.filter(
         (record) => record.recordType === AvailabilityRecordType.WEEKLY,
@@ -335,10 +398,14 @@ export class DoctorAvailabilityService {
       4: 'Thu 5',
       5: 'Thu 6',
       6: 'Thu 7',
-      7: 'Chu nhat',
+      0: 'Chu nhat',
     };
 
     return labels[dayOfWeek];
+  }
+
+  private normalizeDayOfWeek(dayOfWeek: number | null) {
+    return dayOfWeek === 7 ? 0 : dayOfWeek;
   }
 
   private toDateOnly(value: string) {

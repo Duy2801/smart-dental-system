@@ -16,6 +16,7 @@ export type DashboardIconName =
   | "home"
   | "grid"
   | "implant"
+  | "logout"
   | "mail"
   | "search"
   | "shield"
@@ -67,6 +68,7 @@ export function DashboardIcon({ name, className = "h-5 w-5" }: DashboardIconProp
         <path d="M10 14.5h4M10.5 17h3M11 19.5h2M12 14.5V22" />
       </>
     ),
+    logout: <path d="M10 6H6v12h4M14 8l4 4-4 4m4-4H9" />,
     grid: <path d="M4 4h6v6H4V4Zm10 0h6v6h-6V4ZM4 14h6v6H4v-6Zm10 0h6v6h-6v-6Z" />,
     mail: <path d="M4 6h16v12H4V6Zm.5.5L12 13l7.5-6.5" />,
     home: <path d="m3 11 9-8 9 8v10h-6v-6H9v6H3V11Z" />,

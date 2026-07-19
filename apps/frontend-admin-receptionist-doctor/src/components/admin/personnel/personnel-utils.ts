@@ -10,6 +10,7 @@ export function toStaffFormState(user: StaffUser): StaffFormState {
     doctorCode: user.doctorProfile?.doctorCode ?? "",
     specialization: user.doctorProfile?.specialization ?? "",
     licenseNumber: user.doctorProfile?.licenseNumber ?? "",
+    avatarUrl: user.doctorProfile?.avatarUrl ?? "",
   };
 }
 

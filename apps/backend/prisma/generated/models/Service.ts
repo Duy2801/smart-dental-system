@@ -297,6 +297,7 @@ export type ServiceWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"Service"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Service"> | Date | string
   appointments?: Prisma.AppointmentListRelationFilter
+  clinicalCases?: Prisma.ClinicalCaseListRelationFilter
   media?: Prisma.ServiceMediaListRelationFilter
   procedureSteps?: Prisma.ServiceProcedureStepListRelationFilter
   faqs?: Prisma.ServiceFaqListRelationFilter
@@ -318,6 +319,7 @@ export type ServiceOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   appointments?: Prisma.AppointmentOrderByRelationAggregateInput
+  clinicalCases?: Prisma.ClinicalCaseOrderByRelationAggregateInput
   media?: Prisma.ServiceMediaOrderByRelationAggregateInput
   procedureSteps?: Prisma.ServiceProcedureStepOrderByRelationAggregateInput
   faqs?: Prisma.ServiceFaqOrderByRelationAggregateInput
@@ -342,6 +344,7 @@ export type ServiceWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"Service"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Service"> | Date | string
   appointments?: Prisma.AppointmentListRelationFilter
+  clinicalCases?: Prisma.ClinicalCaseListRelationFilter
   media?: Prisma.ServiceMediaListRelationFilter
   procedureSteps?: Prisma.ServiceProcedureStepListRelationFilter
   faqs?: Prisma.ServiceFaqListRelationFilter
@@ -405,6 +408,7 @@ export type ServiceCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   appointments?: Prisma.AppointmentCreateNestedManyWithoutServiceInput
+  clinicalCases?: Prisma.ClinicalCaseCreateNestedManyWithoutServiceInput
   media?: Prisma.ServiceMediaCreateNestedManyWithoutServiceInput
   procedureSteps?: Prisma.ServiceProcedureStepCreateNestedManyWithoutServiceInput
   faqs?: Prisma.ServiceFaqCreateNestedManyWithoutServiceInput
@@ -426,6 +430,7 @@ export type ServiceUncheckedCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   appointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutServiceInput
+  clinicalCases?: Prisma.ClinicalCaseUncheckedCreateNestedManyWithoutServiceInput
   media?: Prisma.ServiceMediaUncheckedCreateNestedManyWithoutServiceInput
   procedureSteps?: Prisma.ServiceProcedureStepUncheckedCreateNestedManyWithoutServiceInput
   faqs?: Prisma.ServiceFaqUncheckedCreateNestedManyWithoutServiceInput
@@ -447,6 +452,7 @@ export type ServiceUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   appointments?: Prisma.AppointmentUpdateManyWithoutServiceNestedInput
+  clinicalCases?: Prisma.ClinicalCaseUpdateManyWithoutServiceNestedInput
   media?: Prisma.ServiceMediaUpdateManyWithoutServiceNestedInput
   procedureSteps?: Prisma.ServiceProcedureStepUpdateManyWithoutServiceNestedInput
   faqs?: Prisma.ServiceFaqUpdateManyWithoutServiceNestedInput
@@ -468,6 +474,7 @@ export type ServiceUncheckedUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   appointments?: Prisma.AppointmentUncheckedUpdateManyWithoutServiceNestedInput
+  clinicalCases?: Prisma.ClinicalCaseUncheckedUpdateManyWithoutServiceNestedInput
   media?: Prisma.ServiceMediaUncheckedUpdateManyWithoutServiceNestedInput
   procedureSteps?: Prisma.ServiceProcedureStepUncheckedUpdateManyWithoutServiceNestedInput
   faqs?: Prisma.ServiceFaqUncheckedUpdateManyWithoutServiceNestedInput
@@ -664,6 +671,20 @@ export type ServiceUpdateOneRequiredWithoutAppointmentsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.ServiceUpdateToOneWithWhereWithoutAppointmentsInput, Prisma.ServiceUpdateWithoutAppointmentsInput>, Prisma.ServiceUncheckedUpdateWithoutAppointmentsInput>
 }
 
+export type ServiceCreateNestedOneWithoutClinicalCasesInput = {
+  create?: Prisma.XOR<Prisma.ServiceCreateWithoutClinicalCasesInput, Prisma.ServiceUncheckedCreateWithoutClinicalCasesInput>
+  connectOrCreate?: Prisma.ServiceCreateOrConnectWithoutClinicalCasesInput
+  connect?: Prisma.ServiceWhereUniqueInput
+}
+
+export type ServiceUpdateOneRequiredWithoutClinicalCasesNestedInput = {
+  create?: Prisma.XOR<Prisma.ServiceCreateWithoutClinicalCasesInput, Prisma.ServiceUncheckedCreateWithoutClinicalCasesInput>
+  connectOrCreate?: Prisma.ServiceCreateOrConnectWithoutClinicalCasesInput
+  upsert?: Prisma.ServiceUpsertWithoutClinicalCasesInput
+  connect?: Prisma.ServiceWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ServiceUpdateToOneWithWhereWithoutClinicalCasesInput, Prisma.ServiceUpdateWithoutClinicalCasesInput>, Prisma.ServiceUncheckedUpdateWithoutClinicalCasesInput>
+}
+
 export type ServiceCreateWithoutMediaInput = {
   id?: string
   category: string
@@ -680,6 +701,7 @@ export type ServiceCreateWithoutMediaInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   appointments?: Prisma.AppointmentCreateNestedManyWithoutServiceInput
+  clinicalCases?: Prisma.ClinicalCaseCreateNestedManyWithoutServiceInput
   procedureSteps?: Prisma.ServiceProcedureStepCreateNestedManyWithoutServiceInput
   faqs?: Prisma.ServiceFaqCreateNestedManyWithoutServiceInput
 }
@@ -700,6 +722,7 @@ export type ServiceUncheckedCreateWithoutMediaInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   appointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutServiceInput
+  clinicalCases?: Prisma.ClinicalCaseUncheckedCreateNestedManyWithoutServiceInput
   procedureSteps?: Prisma.ServiceProcedureStepUncheckedCreateNestedManyWithoutServiceInput
   faqs?: Prisma.ServiceFaqUncheckedCreateNestedManyWithoutServiceInput
 }
@@ -736,6 +759,7 @@ export type ServiceUpdateWithoutMediaInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   appointments?: Prisma.AppointmentUpdateManyWithoutServiceNestedInput
+  clinicalCases?: Prisma.ClinicalCaseUpdateManyWithoutServiceNestedInput
   procedureSteps?: Prisma.ServiceProcedureStepUpdateManyWithoutServiceNestedInput
   faqs?: Prisma.ServiceFaqUpdateManyWithoutServiceNestedInput
 }
@@ -756,6 +780,7 @@ export type ServiceUncheckedUpdateWithoutMediaInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   appointments?: Prisma.AppointmentUncheckedUpdateManyWithoutServiceNestedInput
+  clinicalCases?: Prisma.ClinicalCaseUncheckedUpdateManyWithoutServiceNestedInput
   procedureSteps?: Prisma.ServiceProcedureStepUncheckedUpdateManyWithoutServiceNestedInput
   faqs?: Prisma.ServiceFaqUncheckedUpdateManyWithoutServiceNestedInput
 }
@@ -776,6 +801,7 @@ export type ServiceCreateWithoutProcedureStepsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   appointments?: Prisma.AppointmentCreateNestedManyWithoutServiceInput
+  clinicalCases?: Prisma.ClinicalCaseCreateNestedManyWithoutServiceInput
   media?: Prisma.ServiceMediaCreateNestedManyWithoutServiceInput
   faqs?: Prisma.ServiceFaqCreateNestedManyWithoutServiceInput
 }
@@ -796,6 +822,7 @@ export type ServiceUncheckedCreateWithoutProcedureStepsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   appointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutServiceInput
+  clinicalCases?: Prisma.ClinicalCaseUncheckedCreateNestedManyWithoutServiceInput
   media?: Prisma.ServiceMediaUncheckedCreateNestedManyWithoutServiceInput
   faqs?: Prisma.ServiceFaqUncheckedCreateNestedManyWithoutServiceInput
 }
@@ -832,6 +859,7 @@ export type ServiceUpdateWithoutProcedureStepsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   appointments?: Prisma.AppointmentUpdateManyWithoutServiceNestedInput
+  clinicalCases?: Prisma.ClinicalCaseUpdateManyWithoutServiceNestedInput
   media?: Prisma.ServiceMediaUpdateManyWithoutServiceNestedInput
   faqs?: Prisma.ServiceFaqUpdateManyWithoutServiceNestedInput
 }
@@ -852,6 +880,7 @@ export type ServiceUncheckedUpdateWithoutProcedureStepsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   appointments?: Prisma.AppointmentUncheckedUpdateManyWithoutServiceNestedInput
+  clinicalCases?: Prisma.ClinicalCaseUncheckedUpdateManyWithoutServiceNestedInput
   media?: Prisma.ServiceMediaUncheckedUpdateManyWithoutServiceNestedInput
   faqs?: Prisma.ServiceFaqUncheckedUpdateManyWithoutServiceNestedInput
 }
@@ -872,6 +901,7 @@ export type ServiceCreateWithoutFaqsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   appointments?: Prisma.AppointmentCreateNestedManyWithoutServiceInput
+  clinicalCases?: Prisma.ClinicalCaseCreateNestedManyWithoutServiceInput
   media?: Prisma.ServiceMediaCreateNestedManyWithoutServiceInput
   procedureSteps?: Prisma.ServiceProcedureStepCreateNestedManyWithoutServiceInput
 }
@@ -892,6 +922,7 @@ export type ServiceUncheckedCreateWithoutFaqsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   appointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutServiceInput
+  clinicalCases?: Prisma.ClinicalCaseUncheckedCreateNestedManyWithoutServiceInput
   media?: Prisma.ServiceMediaUncheckedCreateNestedManyWithoutServiceInput
   procedureSteps?: Prisma.ServiceProcedureStepUncheckedCreateNestedManyWithoutServiceInput
 }
@@ -928,6 +959,7 @@ export type ServiceUpdateWithoutFaqsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   appointments?: Prisma.AppointmentUpdateManyWithoutServiceNestedInput
+  clinicalCases?: Prisma.ClinicalCaseUpdateManyWithoutServiceNestedInput
   media?: Prisma.ServiceMediaUpdateManyWithoutServiceNestedInput
   procedureSteps?: Prisma.ServiceProcedureStepUpdateManyWithoutServiceNestedInput
 }
@@ -948,6 +980,7 @@ export type ServiceUncheckedUpdateWithoutFaqsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   appointments?: Prisma.AppointmentUncheckedUpdateManyWithoutServiceNestedInput
+  clinicalCases?: Prisma.ClinicalCaseUncheckedUpdateManyWithoutServiceNestedInput
   media?: Prisma.ServiceMediaUncheckedUpdateManyWithoutServiceNestedInput
   procedureSteps?: Prisma.ServiceProcedureStepUncheckedUpdateManyWithoutServiceNestedInput
 }
@@ -967,6 +1000,7 @@ export type ServiceCreateWithoutAppointmentsInput = {
   isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  clinicalCases?: Prisma.ClinicalCaseCreateNestedManyWithoutServiceInput
   media?: Prisma.ServiceMediaCreateNestedManyWithoutServiceInput
   procedureSteps?: Prisma.ServiceProcedureStepCreateNestedManyWithoutServiceInput
   faqs?: Prisma.ServiceFaqCreateNestedManyWithoutServiceInput
@@ -987,6 +1021,7 @@ export type ServiceUncheckedCreateWithoutAppointmentsInput = {
   isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  clinicalCases?: Prisma.ClinicalCaseUncheckedCreateNestedManyWithoutServiceInput
   media?: Prisma.ServiceMediaUncheckedCreateNestedManyWithoutServiceInput
   procedureSteps?: Prisma.ServiceProcedureStepUncheckedCreateNestedManyWithoutServiceInput
   faqs?: Prisma.ServiceFaqUncheckedCreateNestedManyWithoutServiceInput
@@ -1023,6 +1058,7 @@ export type ServiceUpdateWithoutAppointmentsInput = {
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  clinicalCases?: Prisma.ClinicalCaseUpdateManyWithoutServiceNestedInput
   media?: Prisma.ServiceMediaUpdateManyWithoutServiceNestedInput
   procedureSteps?: Prisma.ServiceProcedureStepUpdateManyWithoutServiceNestedInput
   faqs?: Prisma.ServiceFaqUpdateManyWithoutServiceNestedInput
@@ -1043,6 +1079,107 @@ export type ServiceUncheckedUpdateWithoutAppointmentsInput = {
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  clinicalCases?: Prisma.ClinicalCaseUncheckedUpdateManyWithoutServiceNestedInput
+  media?: Prisma.ServiceMediaUncheckedUpdateManyWithoutServiceNestedInput
+  procedureSteps?: Prisma.ServiceProcedureStepUncheckedUpdateManyWithoutServiceNestedInput
+  faqs?: Prisma.ServiceFaqUncheckedUpdateManyWithoutServiceNestedInput
+}
+
+export type ServiceCreateWithoutClinicalCasesInput = {
+  id?: string
+  category: string
+  name: string
+  slug?: string | null
+  shortDescription?: string | null
+  description?: string | null
+  thumbnailUrl?: string | null
+  durationMinutes: number
+  basePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
+  isFeatured?: boolean
+  displayOrder?: number
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  appointments?: Prisma.AppointmentCreateNestedManyWithoutServiceInput
+  media?: Prisma.ServiceMediaCreateNestedManyWithoutServiceInput
+  procedureSteps?: Prisma.ServiceProcedureStepCreateNestedManyWithoutServiceInput
+  faqs?: Prisma.ServiceFaqCreateNestedManyWithoutServiceInput
+}
+
+export type ServiceUncheckedCreateWithoutClinicalCasesInput = {
+  id?: string
+  category: string
+  name: string
+  slug?: string | null
+  shortDescription?: string | null
+  description?: string | null
+  thumbnailUrl?: string | null
+  durationMinutes: number
+  basePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
+  isFeatured?: boolean
+  displayOrder?: number
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  appointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutServiceInput
+  media?: Prisma.ServiceMediaUncheckedCreateNestedManyWithoutServiceInput
+  procedureSteps?: Prisma.ServiceProcedureStepUncheckedCreateNestedManyWithoutServiceInput
+  faqs?: Prisma.ServiceFaqUncheckedCreateNestedManyWithoutServiceInput
+}
+
+export type ServiceCreateOrConnectWithoutClinicalCasesInput = {
+  where: Prisma.ServiceWhereUniqueInput
+  create: Prisma.XOR<Prisma.ServiceCreateWithoutClinicalCasesInput, Prisma.ServiceUncheckedCreateWithoutClinicalCasesInput>
+}
+
+export type ServiceUpsertWithoutClinicalCasesInput = {
+  update: Prisma.XOR<Prisma.ServiceUpdateWithoutClinicalCasesInput, Prisma.ServiceUncheckedUpdateWithoutClinicalCasesInput>
+  create: Prisma.XOR<Prisma.ServiceCreateWithoutClinicalCasesInput, Prisma.ServiceUncheckedCreateWithoutClinicalCasesInput>
+  where?: Prisma.ServiceWhereInput
+}
+
+export type ServiceUpdateToOneWithWhereWithoutClinicalCasesInput = {
+  where?: Prisma.ServiceWhereInput
+  data: Prisma.XOR<Prisma.ServiceUpdateWithoutClinicalCasesInput, Prisma.ServiceUncheckedUpdateWithoutClinicalCasesInput>
+}
+
+export type ServiceUpdateWithoutClinicalCasesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  category?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  durationMinutes?: Prisma.IntFieldUpdateOperationsInput | number
+  basePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  isFeatured?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  appointments?: Prisma.AppointmentUpdateManyWithoutServiceNestedInput
+  media?: Prisma.ServiceMediaUpdateManyWithoutServiceNestedInput
+  procedureSteps?: Prisma.ServiceProcedureStepUpdateManyWithoutServiceNestedInput
+  faqs?: Prisma.ServiceFaqUpdateManyWithoutServiceNestedInput
+}
+
+export type ServiceUncheckedUpdateWithoutClinicalCasesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  category?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  durationMinutes?: Prisma.IntFieldUpdateOperationsInput | number
+  basePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  isFeatured?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  appointments?: Prisma.AppointmentUncheckedUpdateManyWithoutServiceNestedInput
   media?: Prisma.ServiceMediaUncheckedUpdateManyWithoutServiceNestedInput
   procedureSteps?: Prisma.ServiceProcedureStepUncheckedUpdateManyWithoutServiceNestedInput
   faqs?: Prisma.ServiceFaqUncheckedUpdateManyWithoutServiceNestedInput
@@ -1055,6 +1192,7 @@ export type ServiceUncheckedUpdateWithoutAppointmentsInput = {
 
 export type ServiceCountOutputType = {
   appointments: number
+  clinicalCases: number
   media: number
   procedureSteps: number
   faqs: number
@@ -1062,6 +1200,7 @@ export type ServiceCountOutputType = {
 
 export type ServiceCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   appointments?: boolean | ServiceCountOutputTypeCountAppointmentsArgs
+  clinicalCases?: boolean | ServiceCountOutputTypeCountClinicalCasesArgs
   media?: boolean | ServiceCountOutputTypeCountMediaArgs
   procedureSteps?: boolean | ServiceCountOutputTypeCountProcedureStepsArgs
   faqs?: boolean | ServiceCountOutputTypeCountFaqsArgs
@@ -1082,6 +1221,13 @@ export type ServiceCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Exte
  */
 export type ServiceCountOutputTypeCountAppointmentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.AppointmentWhereInput
+}
+
+/**
+ * ServiceCountOutputType without action
+ */
+export type ServiceCountOutputTypeCountClinicalCasesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ClinicalCaseWhereInput
 }
 
 /**
@@ -1122,6 +1268,7 @@ export type ServiceSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   createdAt?: boolean
   updatedAt?: boolean
   appointments?: boolean | Prisma.Service$appointmentsArgs<ExtArgs>
+  clinicalCases?: boolean | Prisma.Service$clinicalCasesArgs<ExtArgs>
   media?: boolean | Prisma.Service$mediaArgs<ExtArgs>
   procedureSteps?: boolean | Prisma.Service$procedureStepsArgs<ExtArgs>
   faqs?: boolean | Prisma.Service$faqsArgs<ExtArgs>
@@ -1182,6 +1329,7 @@ export type ServiceSelectScalar = {
 export type ServiceOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "category" | "name" | "slug" | "shortDescription" | "description" | "thumbnailUrl" | "durationMinutes" | "basePrice" | "isFeatured" | "displayOrder" | "isActive" | "createdAt" | "updatedAt", ExtArgs["result"]["service"]>
 export type ServiceInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   appointments?: boolean | Prisma.Service$appointmentsArgs<ExtArgs>
+  clinicalCases?: boolean | Prisma.Service$clinicalCasesArgs<ExtArgs>
   media?: boolean | Prisma.Service$mediaArgs<ExtArgs>
   procedureSteps?: boolean | Prisma.Service$procedureStepsArgs<ExtArgs>
   faqs?: boolean | Prisma.Service$faqsArgs<ExtArgs>
@@ -1194,6 +1342,7 @@ export type $ServicePayload<ExtArgs extends runtime.Types.Extensions.InternalArg
   name: "Service"
   objects: {
     appointments: Prisma.$AppointmentPayload<ExtArgs>[]
+    clinicalCases: Prisma.$ClinicalCasePayload<ExtArgs>[]
     media: Prisma.$ServiceMediaPayload<ExtArgs>[]
     procedureSteps: Prisma.$ServiceProcedureStepPayload<ExtArgs>[]
     faqs: Prisma.$ServiceFaqPayload<ExtArgs>[]
@@ -1608,6 +1757,7 @@ readonly fields: ServiceFieldRefs;
 export interface Prisma__ServiceClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   appointments<T extends Prisma.Service$appointmentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Service$appointmentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AppointmentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  clinicalCases<T extends Prisma.Service$clinicalCasesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Service$clinicalCasesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ClinicalCasePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   media<T extends Prisma.Service$mediaArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Service$mediaArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ServiceMediaPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   procedureSteps<T extends Prisma.Service$procedureStepsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Service$procedureStepsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ServiceProcedureStepPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   faqs<T extends Prisma.Service$faqsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Service$faqsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ServiceFaqPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -2068,6 +2218,30 @@ export type Service$appointmentsArgs<ExtArgs extends runtime.Types.Extensions.In
   take?: number
   skip?: number
   distinct?: Prisma.AppointmentScalarFieldEnum | Prisma.AppointmentScalarFieldEnum[]
+}
+
+/**
+ * Service.clinicalCases
+ */
+export type Service$clinicalCasesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ClinicalCase
+   */
+  select?: Prisma.ClinicalCaseSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ClinicalCase
+   */
+  omit?: Prisma.ClinicalCaseOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ClinicalCaseInclude<ExtArgs> | null
+  where?: Prisma.ClinicalCaseWhereInput
+  orderBy?: Prisma.ClinicalCaseOrderByWithRelationInput | Prisma.ClinicalCaseOrderByWithRelationInput[]
+  cursor?: Prisma.ClinicalCaseWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ClinicalCaseScalarFieldEnum | Prisma.ClinicalCaseScalarFieldEnum[]
 }
 
 /**

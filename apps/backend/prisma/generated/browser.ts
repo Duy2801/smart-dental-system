@@ -83,6 +83,21 @@ export type Patient = Prisma.PatientModel
  */
 export type Doctor = Prisma.DoctorModel
 /**
+ * Model DoctorEducation
+ * 
+ */
+export type DoctorEducation = Prisma.DoctorEducationModel
+/**
+ * Model DoctorCertificate
+ * 
+ */
+export type DoctorCertificate = Prisma.DoctorCertificateModel
+/**
+ * Model DoctorMedia
+ * 
+ */
+export type DoctorMedia = Prisma.DoctorMediaModel
+/**
  * Model DoctorAvailability
  * 
  */
@@ -102,6 +117,11 @@ export type MedicalRecord = Prisma.MedicalRecordModel
  * 
  */
 export type TreatmentPlan = Prisma.TreatmentPlanModel
+/**
+ * Model ClinicalCase
+ * 
+ */
+export type ClinicalCase = Prisma.ClinicalCaseModel
 /**
  * Model Invoice
  * 

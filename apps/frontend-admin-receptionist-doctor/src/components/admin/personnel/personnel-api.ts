@@ -43,6 +43,7 @@ export async function createStaffUser(form: StaffFormState) {
       doctorCode: form.doctorCode || buildDoctorCode(),
       specialization: form.specialization,
       licenseNumber: form.licenseNumber,
+      avatarUrl: form.avatarUrl || undefined,
     });
     return;
   }
@@ -74,6 +75,7 @@ export async function updateStaffUser(user: StaffUser, form: StaffFormState) {
       doctorCode: form.doctorCode,
       specialization: form.specialization,
       licenseNumber: form.licenseNumber,
+      avatarUrl: form.avatarUrl,
     });
     return;
   }

@@ -4,12 +4,12 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { SkeletonSettings } from "@/src/components/admin/common";
 import { queryKeys } from "@/src/lib/query/query-keys";
-import { defaultClinicConfig } from "./constants";
+import { emptyClinicConfig, initialBusinessHours } from "./constants";
 import { BusinessHoursPanel } from "./components/business-hours-panel";
 import { GeneralSettingsPanel } from "./components/general-settings-panel";
 import { SettingsSidebar } from "./components/settings-sidebar";
 import { getClinicConfig, updateClinicConfig } from "./settings-api";
-import type { ClinicConfig, SettingsTab } from "./types";
+import type { ClinicConfig, ClinicSpecialDate, SettingsTab } from "./types";
 
 export function SettingsPageContent() {
   const queryClient = useQueryClient();
@@ -41,7 +41,7 @@ export function SettingsPageContent() {
     },
   });
 
-  const form = draftConfig ?? config ?? defaultClinicConfig;
+  const form = draftConfig ?? config ?? emptyClinicConfig;
 
   const toggleDay = (index: number) => {
     setDraftConfig((current) => {
@@ -66,6 +66,66 @@ export function SettingsPageContent() {
         ...currentConfig,
         businessHours: currentConfig.businessHours.map((day, currentIndex) =>
           currentIndex === index ? { ...day, [field]: value } : day,
+        ),
+      };
+    });
+  };
+
+  const initializeBusinessHours = () => {
+    setDraftConfig((current) => ({
+      ...(current ?? form),
+      businessHours: initialBusinessHours,
+      isBusinessHoursConfigured: true,
+    }));
+  };
+
+  const updateSlotIntervalMinutes = (value: number) => {
+    setDraftConfig((current) => ({
+      ...(current ?? form),
+      slotIntervalMinutes: value,
+    }));
+  };
+
+  const updateSpecialDate = (
+    index: number,
+    field: keyof ClinicSpecialDate,
+    value: string | boolean,
+  ) => {
+    setDraftConfig((current) => {
+      const currentConfig = current ?? form;
+      return {
+        ...currentConfig,
+        specialDates: currentConfig.specialDates.map((item, currentIndex) =>
+          currentIndex === index ? { ...item, [field]: value } : item,
+        ),
+      };
+    });
+  };
+
+  const addSpecialDate = () => {
+    setDraftConfig((current) => {
+      const currentConfig = current ?? form;
+      return {
+        ...currentConfig,
+        specialDates: [
+          ...currentConfig.specialDates,
+          {
+            date: "",
+            label: "",
+            isClosed: true,
+          },
+        ],
+      };
+    });
+  };
+
+  const removeSpecialDate = (index: number) => {
+    setDraftConfig((current) => {
+      const currentConfig = current ?? form;
+      return {
+        ...currentConfig,
+        specialDates: currentConfig.specialDates.filter(
+          (_, currentIndex) => currentIndex !== index,
         ),
       };
     });
@@ -101,7 +161,15 @@ export function SettingsPageContent() {
         {!isLoading && activeTab === "hours" ? (
           <BusinessHoursPanel
             businessHours={form.businessHours}
+            slotIntervalMinutes={form.slotIntervalMinutes}
+            specialDates={form.specialDates}
+            isConfigured={form.isBusinessHoursConfigured}
             onChangeTime={changeTime}
+            onChangeSlotInterval={updateSlotIntervalMinutes}
+            onChangeSpecialDate={updateSpecialDate}
+            onAddSpecialDate={addSpecialDate}
+            onInitialize={initializeBusinessHours}
+            onRemoveSpecialDate={removeSpecialDate}
             onToggleDay={toggleDay}
           />
         ) : null}

@@ -8,6 +8,25 @@ export type AuthUser = {
   roles?: string[];
   status: string;
   emailVerified: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  patientProfile?: {
+    id: string;
+    patientCode: string;
+    dateOfBirth?: string | null;
+    gender?: "MALE" | "FEMALE" | "OTHER" | "UNKNOWN";
+    address?: string | null;
+    emergencyContactName?: string | null;
+    emergencyContactPhone?: string | null;
+    medicalHistory?: string | null;
+  } | null;
+  lastAppointment?: {
+    id: string;
+    scheduledAt: string;
+    status: string;
+    serviceName: string;
+    doctorName: string;
+  } | null;
 };
 
 export type AuthSession = {
@@ -44,6 +63,8 @@ export const apiLogin = (body: LoginBody) =>
 export const apiRefresh = () => apiClient.post<RefreshSession>("/auth/refresh");
 
 export const apiMe = () => apiClient.get<AuthUser>("/auth/me");
+
+export const apiLogout = () => apiClient.post<{ message: string }>("/auth/logout");
 
 export const apiRegister = (body: RegisterBody) =>
   apiClient.post<{ message: string }>("/auth/register", body);

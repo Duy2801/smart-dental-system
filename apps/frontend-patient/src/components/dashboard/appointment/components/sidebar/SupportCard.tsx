@@ -9,7 +9,8 @@ export function SupportCard() {
       </span>
       <h2 className="mt-4 text-lg font-bold">Cần trợ giúp?</h2>
       <p className="mt-2 text-xs leading-5 text-blue-100">
-        Đội ngũ tư vấn luôn sẵn sàng hỗ trợ bạn lựa chọn dịch vụ và bác sĩ phù hợp.
+        Đội ngũ tư vấn luôn sẵn sàng hỗ trợ bạn lựa chọn dịch vụ và bác sĩ phù
+        hợp.
       </p>
       <Link
         href="/contact"

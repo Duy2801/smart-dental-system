@@ -1,0 +1,412 @@
+"use client";
+
+import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState, type FormEvent } from "react";
+import { DashboardIcon } from "../common/DashboardIcon";
+import { getDoctorDetail, type DoctorDetail } from "../home/api";
+
+function formatDate(value?: string | null) {
+  if (!value) return "Đang cập nhật";
+  return new Intl.DateTimeFormat("vi-VN", {
+    month: "2-digit",
+    year: "numeric",
+  }).format(new Date(value));
+}
+
+function DoctorHeroImage({ doctor }: { doctor: DoctorDetail }) {
+  if (doctor.avatarUrl) {
+    return (
+      <img
+        src={doctor.avatarUrl}
+        alt={doctor.name}
+        className="h-full min-h-[420px] w-full object-cover object-top"
+      />
+    );
+  }
+
+  const initials = doctor.name
+    .split(" ")
+    .filter(Boolean)
+    .slice(-2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+
+  return (
+    <div className="relative grid min-h-[420px] place-items-center bg-gradient-to-br from-[#0058bc] to-[#00b8d9]">
+      <DashboardIcon
+        name="user"
+        className="absolute bottom-0 h-80 w-80 text-white/15"
+      />
+      <span className="relative grid h-28 w-28 place-items-center rounded-full border-2 border-white/30 bg-white/15 text-3xl font-extrabold text-white backdrop-blur">
+        {initials || "BS"}
+      </span>
+    </div>
+  );
+}
+
+function ContactPanel({ doctor }: { doctor: DoctorDetail }) {
+  const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState([
+    `Xin chào, tôi là trợ lý của ${doctor.name}. Bạn muốn bác sĩ tư vấn vấn đề gì?`,
+  ]);
+
+  function sendMessage(event: FormEvent) {
+    event.preventDefault();
+    const content = message.trim();
+    if (!content) return;
+    setMessages((current) => [...current, content]);
+    setMessage("");
+  }
+
+  return (
+    <aside className="space-y-5 lg:sticky lg:top-24">
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 className="flex items-center gap-2 font-bold text-slate-900">
+          <DashboardIcon name="calendar" className="h-5 w-5 text-[#0058bc]" />
+          Đặt lịch với bác sĩ
+        </h2>
+        <p className="mt-2 text-xs leading-5 text-slate-500">
+          Chọn bác sĩ này khi đặt lịch để hệ thống gợi ý khung giờ phù hợp.
+        </p>
+        <Link
+          href={`/appointment?doctorId=${doctor.id}`}
+          className="mt-4 block rounded-xl bg-[#0058bc] px-5 py-3.5 text-center text-sm font-bold text-white shadow-lg shadow-blue-200 transition hover:bg-[#004ca3]"
+        >
+          Đặt lịch hẹn
+        </Link>
+      </section>
+
+      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex items-center gap-3 border-b border-slate-100 p-5">
+          <span className="relative grid h-10 w-10 place-items-center overflow-hidden rounded-full bg-blue-100 text-xs font-bold text-[#0058bc]">
+            {doctor.avatarUrl ? (
+              <img
+                src={doctor.avatarUrl}
+                alt={doctor.name}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              "BS"
+            )}
+            <i className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500" />
+          </span>
+          <div>
+            <h2 className="text-sm font-bold text-slate-900">
+              Trao đổi với bác sĩ
+            </h2>
+            <p className="text-[10px] text-emerald-600">
+              Trực tuyến qua trợ lý phòng khám
+            </p>
+          </div>
+        </div>
+        <div className="h-52 space-y-3 overflow-y-auto bg-slate-50 p-4">
+          {messages.map((text, index) => (
+            <div
+              key={`${text}-${index}`}
+              className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs leading-5 ${
+                index === 0
+                  ? "rounded-tl-sm bg-white text-slate-600 shadow-sm"
+                  : "ml-auto rounded-tr-sm bg-[#0058bc] text-white"
+              }`}
+            >
+              {text}
+            </div>
+          ))}
+        </div>
+        <form
+          onSubmit={sendMessage}
+          className="flex gap-2 border-t border-slate-100 p-3"
+        >
+          <input
+            value={message}
+            onChange={(event) => setMessage(event.target.value)}
+            placeholder="Nhập câu hỏi cho bác sĩ..."
+            className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2.5 text-xs outline-none focus:border-blue-400"
+          />
+          <button
+            aria-label="Gửi tin nhắn"
+            className="grid h-10 w-10 place-items-center rounded-xl bg-[#0058bc] text-white"
+          >
+            <DashboardIcon name="send" className="h-4 w-4" />
+          </button>
+        </form>
+      </section>
+    </aside>
+  );
+}
+
+function LoadingState() {
+  return (
+    <main className="mx-auto w-full max-w-[1360px] px-4 py-7 sm:px-6 lg:px-8">
+      <div className="h-[520px] animate-pulse rounded-3xl bg-slate-100" />
+      <div className="mt-7 grid gap-7 lg:grid-cols-[1fr_380px]">
+        <div className="space-y-5">
+          <div className="h-56 animate-pulse rounded-2xl bg-slate-100" />
+          <div className="h-56 animate-pulse rounded-2xl bg-slate-100" />
+        </div>
+        <div className="h-80 animate-pulse rounded-2xl bg-slate-100" />
+      </div>
+    </main>
+  );
+}
+
+export function DoctorDetailExperience({ doctorId }: { doctorId: string }) {
+  const { data: doctor = null, isLoading: loading } = useQuery({
+    queryKey: ["patient", "doctor-detail", doctorId],
+    queryFn: () => getDoctorDetail(doctorId),
+    enabled: Boolean(doctorId),
+  });
+
+  const visibleMedia = useMemo(() => doctor?.media.slice(0, 4) ?? [], [doctor]);
+
+  if (loading) return <LoadingState />;
+
+  if (!doctor) {
+    return (
+      <main className="mx-auto grid min-h-[60vh] w-full max-w-[960px] place-items-center px-4 py-10 text-center">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">
+            Không tìm thấy bác sĩ
+          </h1>
+          <p className="mt-2 text-sm text-slate-500">
+            Hồ sơ bác sĩ có thể đã ngừng hoạt động hoặc chưa được công khai.
+          </p>
+          <Link
+            href="/home"
+            className="mt-5 inline-flex rounded-xl bg-[#0058bc] px-5 py-3 text-sm font-bold text-white"
+          >
+            Về trang chủ
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="mx-auto w-full max-w-[1360px] px-4 py-7 sm:px-6 lg:px-8">
+      <nav className="mb-6 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+        <Link href="/home" className="hover:text-[#0058bc]">
+          Trang chủ
+        </Link>
+        <span>/</span>
+        <span>Đội ngũ bác sĩ</span>
+        <span>/</span>
+        <span className="font-semibold text-slate-800">{doctor.name}</span>
+      </nav>
+
+      <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+        <div className="grid lg:grid-cols-[390px_1fr]">
+          <div className="relative overflow-hidden">
+            <DoctorHeroImage doctor={doctor} />
+            <div className="absolute inset-x-6 bottom-6 rounded-2xl border border-white/25 bg-slate-950/35 p-4 text-white backdrop-blur">
+              <p className="text-xs text-white/70">Nơi công tác</p>
+              <p className="mt-1 text-sm font-bold">{doctor.workplace}</p>
+            </div>
+          </div>
+
+          <div className="p-7 sm:p-10">
+            <span className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-bold text-[#0058bc]">
+              {doctor.specialization}
+            </span>
+            <h1 className="mt-5 text-3xl font-extrabold text-[#0058bc] sm:text-4xl">
+              {doctor.name}
+            </h1>
+            <p className="mt-3 text-base text-slate-600">
+              <strong className="text-slate-900">Chức vụ:</strong>{" "}
+              {doctor.position}
+            </p>
+            <p className="mt-5 max-w-3xl text-sm leading-7 text-slate-600">
+              {doctor.bio}
+            </p>
+
+            <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="rounded-2xl bg-blue-50 p-4">
+                <strong className="text-2xl text-[#0058bc]">
+                  {doctor.yearsExperience}
+                </strong>
+                <p className="mt-1 text-[11px] text-slate-500">
+                  Năm kinh nghiệm
+                </p>
+              </div>
+              <div className="rounded-2xl bg-emerald-50 p-4">
+                <strong className="text-2xl text-emerald-600">
+                  {doctor.educations.length}
+                </strong>
+                <p className="mt-1 text-[11px] text-slate-500">Bằng cấp</p>
+              </div>
+              <div className="rounded-2xl bg-amber-50 p-4">
+                <strong className="text-2xl text-amber-500">
+                  {doctor.averageRating ? `★ ${doctor.averageRating}` : "Mới"}
+                </strong>
+                <p className="mt-1 text-[11px] text-slate-500">
+                  {doctor.reviews.length} đánh giá
+                </p>
+              </div>
+              <div className="rounded-2xl bg-violet-50 p-4">
+                <strong className="text-2xl text-violet-600">
+                  {doctor.certificates.length}
+                </strong>
+                <p className="mt-1 text-[11px] text-slate-500">Chứng chỉ</p>
+              </div>
+            </div>
+
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link
+                href={`/appointment?doctorId=${doctor.id}`}
+                className="rounded-xl bg-[#0058bc] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-blue-200"
+              >
+                Đặt lịch hẹn
+              </Link>
+              <a
+                href="#doctor-chat"
+                className="rounded-xl border border-[#0058bc] px-5 py-3 text-sm font-bold text-[#0058bc]"
+              >
+                Trao đổi với bác sĩ
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div className="mt-7 grid items-start gap-7 lg:grid-cols-[1fr_380px]">
+        <div className="space-y-7">
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+            <h2 className="text-xl font-bold text-slate-900">
+              Học vấn và bằng cấp
+            </h2>
+            <div className="mt-6 space-y-4">
+              {doctor.educations.map((education, index) => (
+                <article key={education.id} className="flex gap-4">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#0058bc] text-xs font-bold text-white">
+                    {index + 1}
+                  </span>
+                  <div className="border-b border-slate-100 pb-4">
+                    <h3 className="font-bold text-slate-900">
+                      {education.degree}
+                    </h3>
+                    <p className="mt-1 text-sm text-[#0058bc]">
+                      {education.school}
+                      {education.graduationYear
+                        ? ` · ${education.graduationYear}`
+                        : ""}
+                    </p>
+                    {education.description ? (
+                      <p className="mt-2 text-sm leading-6 text-slate-500">
+                        {education.description}
+                      </p>
+                    ) : null}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+            <h2 className="text-xl font-bold text-slate-900">
+              Chứng chỉ chuyên môn
+            </h2>
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              {doctor.certificates.map((certificate) => (
+                <article
+                  key={certificate.id}
+                  className="overflow-hidden rounded-2xl border border-slate-100 bg-slate-50"
+                >
+                  {certificate.imageUrl ? (
+                    <img
+                      src={certificate.imageUrl}
+                      alt={certificate.title}
+                      className="aspect-[16/9] w-full object-cover"
+                    />
+                  ) : null}
+                  <div className="p-4">
+                    <h3 className="font-bold text-slate-900">
+                      {certificate.title}
+                    </h3>
+                    <p className="mt-1 text-xs font-semibold text-[#0058bc]">
+                      {certificate.issuer} · {formatDate(certificate.issuedAt)}
+                    </p>
+                    {certificate.description ? (
+                      <p className="mt-2 text-xs leading-5 text-slate-500">
+                        {certificate.description}
+                      </p>
+                    ) : null}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          {visibleMedia.length ? (
+            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+              <h2 className="text-xl font-bold text-slate-900">
+                Hình ảnh minh chứng
+              </h2>
+              <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                {visibleMedia.map((media) => (
+                  <figure
+                    key={media.id}
+                    className="overflow-hidden rounded-2xl border border-slate-100 bg-slate-50"
+                  >
+                    <img
+                      src={media.url}
+                      alt={media.alt || doctor.name}
+                      className="aspect-[4/3] w-full object-cover"
+                    />
+                    <figcaption className="p-3 text-xs text-slate-500">
+                      {media.alt || "Hình ảnh hồ sơ bác sĩ"}
+                    </figcaption>
+                  </figure>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+            <h2 className="text-xl font-bold text-slate-900">
+              Đánh giá từ bệnh nhân
+            </h2>
+            {doctor.reviews.length ? (
+              <div className="mt-6 space-y-4">
+                {doctor.reviews.map((review) => (
+                  <article
+                    key={review.id}
+                    className="rounded-2xl border border-slate-100 bg-slate-50 p-4"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <h3 className="font-bold text-slate-900">
+                          {review.patient.user.fullName}
+                        </h3>
+                        <p className="text-xs text-slate-500">
+                          {review.appointment.service.name}
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-600">
+                        ★ {review.rating}
+                      </span>
+                    </div>
+                    {review.comment ? (
+                      <p className="mt-3 text-sm leading-6 text-slate-600">
+                        {review.comment}
+                      </p>
+                    ) : null}
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-slate-500">
+                Bác sĩ chưa có đánh giá công khai.
+              </p>
+            )}
+          </section>
+        </div>
+
+        <div id="doctor-chat">
+          <ContactPanel doctor={doctor} />
+        </div>
+      </div>
+    </main>
+  );
+}

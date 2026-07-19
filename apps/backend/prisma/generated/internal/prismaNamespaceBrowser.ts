@@ -64,10 +64,14 @@ export const ModelName = {
   Promotion: 'Promotion',
   Patient: 'Patient',
   Doctor: 'Doctor',
+  DoctorEducation: 'DoctorEducation',
+  DoctorCertificate: 'DoctorCertificate',
+  DoctorMedia: 'DoctorMedia',
   DoctorAvailability: 'DoctorAvailability',
   Appointment: 'Appointment',
   MedicalRecord: 'MedicalRecord',
   TreatmentPlan: 'TreatmentPlan',
+  ClinicalCase: 'ClinicalCase',
   Invoice: 'Invoice',
   Payment: 'Payment',
   Review: 'Review',
@@ -264,11 +268,59 @@ export const DoctorScalarFieldEnum = {
   doctorCode: 'doctorCode',
   specialization: 'specialization',
   licenseNumber: 'licenseNumber',
+  avatarUrl: 'avatarUrl',
+  bio: 'bio',
+  position: 'position',
+  workplace: 'workplace',
+  yearsExperience: 'yearsExperience',
   isActive: 'isActive',
   createdAt: 'createdAt'
 } as const
 
 export type DoctorScalarFieldEnum = (typeof DoctorScalarFieldEnum)[keyof typeof DoctorScalarFieldEnum]
+
+
+export const DoctorEducationScalarFieldEnum = {
+  id: 'id',
+  doctorId: 'doctorId',
+  degree: 'degree',
+  school: 'school',
+  major: 'major',
+  graduationYear: 'graduationYear',
+  description: 'description',
+  sortOrder: 'sortOrder'
+} as const
+
+export type DoctorEducationScalarFieldEnum = (typeof DoctorEducationScalarFieldEnum)[keyof typeof DoctorEducationScalarFieldEnum]
+
+
+export const DoctorCertificateScalarFieldEnum = {
+  id: 'id',
+  doctorId: 'doctorId',
+  title: 'title',
+  issuer: 'issuer',
+  issuedAt: 'issuedAt',
+  expiresAt: 'expiresAt',
+  certificateUrl: 'certificateUrl',
+  imageUrl: 'imageUrl',
+  description: 'description',
+  sortOrder: 'sortOrder'
+} as const
+
+export type DoctorCertificateScalarFieldEnum = (typeof DoctorCertificateScalarFieldEnum)[keyof typeof DoctorCertificateScalarFieldEnum]
+
+
+export const DoctorMediaScalarFieldEnum = {
+  id: 'id',
+  doctorId: 'doctorId',
+  url: 'url',
+  alt: 'alt',
+  type: 'type',
+  sortOrder: 'sortOrder',
+  createdAt: 'createdAt'
+} as const
+
+export type DoctorMediaScalarFieldEnum = (typeof DoctorMediaScalarFieldEnum)[keyof typeof DoctorMediaScalarFieldEnum]
 
 
 export const DoctorAvailabilityScalarFieldEnum = {
@@ -347,6 +399,29 @@ export const TreatmentPlanScalarFieldEnum = {
 } as const
 
 export type TreatmentPlanScalarFieldEnum = (typeof TreatmentPlanScalarFieldEnum)[keyof typeof TreatmentPlanScalarFieldEnum]
+
+
+export const ClinicalCaseScalarFieldEnum = {
+  id: 'id',
+  patientId: 'patientId',
+  doctorId: 'doctorId',
+  serviceId: 'serviceId',
+  appointmentId: 'appointmentId',
+  medicalRecordId: 'medicalRecordId',
+  treatmentPlanId: 'treatmentPlanId',
+  title: 'title',
+  description: 'description',
+  treatmentDuration: 'treatmentDuration',
+  beforeImageUrl: 'beforeImageUrl',
+  afterImageUrl: 'afterImageUrl',
+  patientConsentPublic: 'patientConsentPublic',
+  isPublished: 'isPublished',
+  displayOrder: 'displayOrder',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ClinicalCaseScalarFieldEnum = (typeof ClinicalCaseScalarFieldEnum)[keyof typeof ClinicalCaseScalarFieldEnum]
 
 
 export const InvoiceScalarFieldEnum = {

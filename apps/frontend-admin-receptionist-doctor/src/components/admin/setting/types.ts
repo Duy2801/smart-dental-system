@@ -8,6 +8,14 @@ export type BusinessHour = {
   end: string;
 };
 
+export type ClinicSpecialDate = {
+  date: string;
+  label: string;
+  isClosed: boolean;
+  start?: string;
+  end?: string;
+};
+
 export type ClinicConfig = {
   name: string;
   phone: string;
@@ -15,6 +23,9 @@ export type ClinicConfig = {
   address: string;
   logoUrl: string;
   businessHours: BusinessHour[];
+  slotIntervalMinutes: number;
+  specialDates: ClinicSpecialDate[];
+  isBusinessHoursConfigured: boolean;
 };
 
 export type SettingsMenuItem = {

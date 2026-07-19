@@ -44,7 +44,7 @@ export function DoctorSection({ doctors }: { doctors: Doctor[] }) {
               </div>
               <p className="mt-2 text-xs text-slate-400">{doctor.experience} kinh nghiệm</p>
               <Link
-                href="/appointment"
+                href="/appointment?intent=booking"
                 className="mt-4 flex h-9 items-center justify-center gap-1 rounded-lg bg-[#0863c5] text-xs font-bold text-white hover:bg-[#0756aa]"
               >
                 Đặt lịch ngay <DashboardIcon name="chevron" className="h-4 w-4" />

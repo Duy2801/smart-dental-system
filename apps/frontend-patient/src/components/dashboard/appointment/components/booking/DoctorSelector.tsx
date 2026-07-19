@@ -12,10 +12,19 @@ type DoctorSelectorProps = {
   onSelect: (id: string) => void;
 };
 
-export function DoctorSelector({ doctors, selectedId, onSelect }: DoctorSelectorProps) {
+export function DoctorSelector({
+  doctors,
+  selectedId,
+  onSelect,
+}: DoctorSelectorProps) {
   return (
     <fieldset>
-      <legend className="sr-only">Chọn bác sĩ</legend>
+      <legend className="sr-only">Chon bac si</legend>
+      {doctors.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
+          Khong co bac si trong khung gio nay. Vui long chon ngay hoac gio khac.
+        </div>
+      ) : null}
       <div className="grid gap-4 md:grid-cols-2">
         {doctors.map((doctor) => {
           const selected = selectedId === doctor.id;
@@ -31,18 +40,30 @@ export function DoctorSelector({ doctors, selectedId, onSelect }: DoctorSelector
                   : "border-slate-200 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md"
               }`}
             >
-              <span className={`grid h-16 w-14 shrink-0 place-items-center rounded-xl bg-gradient-to-br text-xs font-bold ${tones[doctor.tone]}`}>
+              <span
+                className={`grid h-16 w-14 shrink-0 place-items-center rounded-xl bg-gradient-to-br text-xs font-bold ${tones[doctor.tone]}`}
+              >
                 {doctor.initials}
               </span>
               <span className="min-w-0 flex-1">
-                <strong className="block truncate text-sm text-slate-900">{doctor.name}</strong>
-                <span className="mt-1 block text-[11px] leading-4 text-slate-500">{doctor.specialty}</span>
+                <strong className="block truncate text-sm text-slate-900">
+                  {doctor.name}
+                </strong>
+                <span className="mt-1 block text-[11px] leading-4 text-slate-500">
+                  {doctor.specialty}
+                </span>
                 <span className="mt-2 block text-[10px] font-semibold text-amber-500">
-                  ★ 4.9 · {doctor.experience} kinh nghiệm
+                  {doctor.experience} kinh nghiem
                 </span>
               </span>
-              <span className={`absolute right-3 top-3 grid h-5 w-5 place-items-center rounded-full border-2 ${selected ? "border-[#0863c5]" : "border-slate-300"}`}>
-                {selected && <span className="h-2.5 w-2.5 rounded-full bg-[#0863c5]" />}
+              <span
+                className={`absolute right-3 top-3 grid h-5 w-5 place-items-center rounded-full border-2 ${
+                  selected ? "border-[#0863c5]" : "border-slate-300"
+                }`}
+              >
+                {selected ? (
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#0863c5]" />
+                ) : null}
               </span>
             </button>
           );

@@ -3,10 +3,12 @@ import {
   IsArray,
   IsBoolean,
   IsInt,
+  IsDateString,
   IsOptional,
   IsString,
   Matches,
   Max,
+  MaxLength,
   Min,
   ValidateNested,
 } from 'class-validator';
@@ -30,6 +32,28 @@ export class BusinessHourDto {
   @IsString()
   @Matches(/^([01]\d|2[0-3]):[0-5]\d$/)
   end: string;
+}
+
+export class ClinicSpecialDateDto {
+  @IsDateString()
+  date: string;
+
+  @IsString()
+  @MaxLength(120)
+  label: string;
+
+  @IsBoolean()
+  isClosed: boolean;
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/)
+  start?: string;
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/)
+  end?: string;
 }
 
 export class UpdateClinicConfigDto {
@@ -58,4 +82,16 @@ export class UpdateClinicConfigDto {
   @ValidateNested({ each: true })
   @Type(() => BusinessHourDto)
   businessHours?: BusinessHourDto[];
+
+  @IsOptional()
+  @IsInt()
+  @Min(5)
+  @Max(240)
+  slotIntervalMinutes?: number;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ClinicSpecialDateDto)
+  specialDates?: ClinicSpecialDateDto[];
 }

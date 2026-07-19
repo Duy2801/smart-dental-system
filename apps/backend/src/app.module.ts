@@ -8,6 +8,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { RedisModule } from './modules/redis/redis.module';
 import { AppointmentModule } from './modules/appointment/appointment.module';
 import { ChatbotConversationModule } from './modules/chatbot-conversation/chatbot-conversation.module';
+import { ClinicalCaseModule } from './modules/clinical-case/clinical-case.module';
 import { ClinicConfigModule } from './modules/clinic-config/clinic-config.module';
 import { DoctorAvailabilityModule } from './modules/doctor-availability/doctor-availability.module';
 import { DoctorModule } from './modules/doctor/doctor.module';
@@ -32,6 +33,7 @@ import { VideoConsultationModule } from './modules/video-consultation/video-cons
     RedisModule,
     AuthModule,
     UserModule,
+    ClinicalCaseModule,
     ClinicConfigModule,
     RoleModule,
     PermissionModule,

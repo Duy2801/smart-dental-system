@@ -1,30 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   BusinessHourDto,
+  ClinicSpecialDateDto,
   UpdateClinicConfigDto,
 } from './dto/update-clinic-config.dto';
+
+const defaultSlotIntervalMinutes = 30;
 
 @Injectable()
 export class ClinicConfigService {
   constructor(private readonly prisma: PrismaService) {}
-
-  private readonly defaultConfig = {
-    name: 'Smart Dental Clinic',
-    phone: '1900 1234',
-    email: 'contact@smartdental.com',
-    address: '123 Nguyen Van Linh, Da Nang',
-    logoUrl: '',
-    businessHours: [
-      { id: 1, label: 'Thu Hai', isOpen: true, start: '08:00', end: '17:00' },
-      { id: 2, label: 'Thu Ba', isOpen: true, start: '08:00', end: '17:00' },
-      { id: 3, label: 'Thu Tu', isOpen: true, start: '08:00', end: '17:00' },
-      { id: 4, label: 'Thu Nam', isOpen: true, start: '08:00', end: '17:00' },
-      { id: 5, label: 'Thu Sau', isOpen: true, start: '08:00', end: '17:00' },
-      { id: 6, label: 'Thu Bay', isOpen: true, start: '08:00', end: '12:00' },
-      { id: 0, label: 'Chu Nhat', isOpen: false, start: '08:00', end: '12:00' },
-    ],
-  };
 
   async getClinicConfig() {
     const rows = await this.prisma.clinicConfig.findMany({
@@ -36,13 +22,24 @@ export class ClinicConfigService {
       return acc;
     }, {});
 
+    const businessHours = this.parseBusinessHours(
+      values['clinic.businessHours'],
+    );
+    const slotIntervalMinutes = this.parseSlotInterval(
+      values['clinic.slotIntervalMinutes'],
+    );
+    const specialDates = this.parseSpecialDates(values['clinic.specialDates']);
+
     return {
-      name: values['clinic.name'] ?? this.defaultConfig.name,
-      phone: values['clinic.phone'] ?? this.defaultConfig.phone,
-      email: values['clinic.email'] ?? this.defaultConfig.email,
-      address: values['clinic.address'] ?? this.defaultConfig.address,
-      logoUrl: values['clinic.logoUrl'] ?? this.defaultConfig.logoUrl,
-      businessHours: this.parseBusinessHours(values['clinic.businessHours']),
+      name: values['clinic.name'] ?? '',
+      phone: values['clinic.phone'] ?? '',
+      email: values['clinic.email'] ?? '',
+      address: values['clinic.address'] ?? '',
+      logoUrl: values['clinic.logoUrl'] ?? '',
+      businessHours,
+      slotIntervalMinutes,
+      specialDates,
+      isBusinessHoursConfigured: businessHours.length === 7,
     };
   }
 
@@ -52,7 +49,14 @@ export class ClinicConfigService {
       ...current,
       ...dto,
       businessHours: dto.businessHours ?? current.businessHours,
+      slotIntervalMinutes:
+        dto.slotIntervalMinutes ?? current.slotIntervalMinutes,
+      specialDates: dto.specialDates ?? current.specialDates,
     };
+
+    this.validateBusinessHours(next.businessHours);
+    this.validateSlotInterval(next.slotIntervalMinutes);
+    this.validateSpecialDates(next.specialDates);
 
     await this.upsertConfig('clinic.name', next.name);
     await this.upsertConfig('clinic.phone', next.phone);
@@ -63,22 +67,63 @@ export class ClinicConfigService {
       'clinic.businessHours',
       JSON.stringify(next.businessHours),
     );
+    await this.upsertConfig(
+      'clinic.slotIntervalMinutes',
+      String(next.slotIntervalMinutes),
+    );
+    await this.upsertConfig(
+      'clinic.specialDates',
+      JSON.stringify(next.specialDates),
+    );
 
     return next;
   }
 
+  async getConfiguredBusinessHours() {
+    const { businessHours, isBusinessHoursConfigured } =
+      await this.getClinicConfig();
+
+    if (!isBusinessHoursConfigured) {
+      throw new BadRequestException('clinic.business_hours_not_configured');
+    }
+
+    return businessHours;
+  }
+
+  async getClinicScheduleConfig() {
+    const { businessHours, isBusinessHoursConfigured, slotIntervalMinutes, specialDates } =
+      await this.getClinicConfig();
+
+    if (!isBusinessHoursConfigured) {
+      throw new BadRequestException('clinic.business_hours_not_configured');
+    }
+
+    return {
+      businessHours,
+      slotIntervalMinutes,
+      specialDates,
+    };
+  }
+
   private parseBusinessHours(value?: string): BusinessHourDto[] {
-    if (!value) return this.defaultConfig.businessHours;
+    if (!value) return [];
 
     try {
       const parsed: unknown = JSON.parse(value);
-      if (!Array.isArray(parsed)) return this.defaultConfig.businessHours;
+      if (!Array.isArray(parsed)) return [];
 
-      return parsed.every((item) => this.isBusinessHour(item))
-        ? parsed
-        : this.defaultConfig.businessHours;
+      if (!parsed.every((item) => this.isBusinessHour(item))) return [];
+
+      const dayIds = new Set(parsed.map((item) => item.id));
+      const complete = [0, 1, 2, 3, 4, 5, 6].every((dayId) =>
+        dayIds.has(dayId),
+      );
+
+      return parsed.length === 7 && complete
+        ? [...parsed].sort((a, b) => this.sortDay(a.id) - this.sortDay(b.id))
+        : [];
     } catch {
-      return this.defaultConfig.businessHours;
+      return [];
     }
   }
 
@@ -93,6 +138,101 @@ export class ClinicConfigService {
       typeof item.start === 'string' &&
       typeof item.end === 'string'
     );
+  }
+
+  private parseSlotInterval(value?: string) {
+    const parsed = Number(value);
+
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+      return defaultSlotIntervalMinutes;
+    }
+
+    return parsed;
+  }
+
+  private parseSpecialDates(value?: string): ClinicSpecialDateDto[] {
+    if (!value) return [];
+
+    try {
+      const parsed: unknown = JSON.parse(value);
+      if (!Array.isArray(parsed)) return [];
+
+      const valid = parsed.filter((item): item is ClinicSpecialDateDto =>
+        this.isSpecialDate(item),
+      );
+
+      return valid.sort((left, right) => left.date.localeCompare(right.date));
+    } catch {
+      return [];
+    }
+  }
+
+  private isSpecialDate(value: unknown): value is ClinicSpecialDateDto {
+    if (!value || typeof value !== 'object') return false;
+
+    const item = value as Record<string, unknown>;
+    return (
+      typeof item.date === 'string' &&
+      typeof item.label === 'string' &&
+      typeof item.isClosed === 'boolean' &&
+      (item.start === undefined || typeof item.start === 'string') &&
+      (item.end === undefined || typeof item.end === 'string')
+    );
+  }
+
+  private validateBusinessHours(businessHours: BusinessHourDto[]) {
+    if (businessHours.length !== 7) {
+      throw new BadRequestException('clinic.business_hours_required');
+    }
+
+    const expectedDayIds = new Set([0, 1, 2, 3, 4, 5, 6]);
+    const receivedDayIds = new Set(businessHours.map((hour) => hour.id));
+
+    if (
+      receivedDayIds.size !== expectedDayIds.size ||
+      [...expectedDayIds].some((dayId) => !receivedDayIds.has(dayId))
+    ) {
+      throw new BadRequestException('clinic.business_hours_invalid_days');
+    }
+
+    const invalidTimeRange = businessHours.some(
+      (hour) => hour.isOpen && hour.start >= hour.end,
+    );
+    if (invalidTimeRange) {
+      throw new BadRequestException('clinic.business_hours_invalid_time_range');
+    }
+  }
+
+  private validateSlotInterval(slotIntervalMinutes: number) {
+    if (
+      !Number.isInteger(slotIntervalMinutes) ||
+      slotIntervalMinutes < 5 ||
+      slotIntervalMinutes > 240
+    ) {
+      throw new BadRequestException('clinic.slot_interval_invalid');
+    }
+  }
+
+  private validateSpecialDates(specialDates: ClinicSpecialDateDto[]) {
+    const seenDates = new Set<string>();
+
+    for (const specialDate of specialDates) {
+      if (seenDates.has(specialDate.date)) {
+        throw new BadRequestException('clinic.special_dates_duplicate');
+      }
+      seenDates.add(specialDate.date);
+
+      if (
+        !specialDate.isClosed &&
+        (!specialDate.start || !specialDate.end || specialDate.start >= specialDate.end)
+      ) {
+        throw new BadRequestException('clinic.special_dates_invalid_time_range');
+      }
+    }
+  }
+
+  private sortDay(dayId: number) {
+    return dayId === 0 ? 7 : dayId;
   }
 
   private upsertConfig(configKey: string, configValue: string) {

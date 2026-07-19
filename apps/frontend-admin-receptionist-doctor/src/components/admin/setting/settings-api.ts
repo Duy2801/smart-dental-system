@@ -7,9 +7,19 @@ export async function getClinicConfig() {
 }
 
 export async function updateClinicConfig(payload: ClinicConfig) {
+  const body = {
+    name: payload.name,
+    phone: payload.phone,
+    email: payload.email,
+    address: payload.address,
+    logoUrl: payload.logoUrl,
+    businessHours: payload.businessHours,
+    slotIntervalMinutes: payload.slotIntervalMinutes,
+    specialDates: payload.specialDates,
+  };
   const response = await apiClient.patch<ClinicConfig>(
     "/clinic-config",
-    payload,
+    body,
   );
   return response.data;
 }

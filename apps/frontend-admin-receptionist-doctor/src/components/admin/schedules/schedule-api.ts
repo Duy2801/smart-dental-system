@@ -1,5 +1,6 @@
 import apiClient from "@/src/lib/api/client";
 import type { AvailabilityResponse, Doctor, ScheduleFormState } from "./types";
+import type { BusinessHour } from "../setting/types";
 
 export async function getDoctors() {
   const response = await apiClient.get<Doctor[]>("/doctors");
@@ -17,14 +18,37 @@ export async function getDoctorAvailability(doctorId: string) {
 export async function createDoctorAvailability(
   doctorId: string,
   form: ScheduleFormState,
+  businessHours: BusinessHour[],
 ) {
   if (form.autoSchedule) {
-    await apiClient.post("/doctor-availability/auto-weekly", {
-      doctorId,
-      daysOfWeek: form.selectedDays,
-      shifts: form.autoShifts,
-      mode: form.autoMode,
-    });
+    const selectedOpenDays = form.selectedDays
+      .map((dayId) => businessHours.find((day) => day.id === dayId))
+      .filter((day): day is BusinessHour => Boolean(day?.isOpen));
+
+    if (selectedOpenDays.length === 0) {
+      throw new Error("availability.no_open_days_selected");
+    }
+
+    const groupedByHours = selectedOpenDays.reduce<
+      Record<string, BusinessHour[]>
+    >((groups, day) => {
+      const key = `${day.start}-${day.end}`;
+      return {
+        ...groups,
+        [key]: [...(groups[key] ?? []), day],
+      };
+    }, {});
+
+    await Promise.all(
+      Object.values(groupedByHours).map((days) =>
+        apiClient.post("/doctor-availability/auto-weekly", {
+          doctorId,
+          daysOfWeek: days.map((day) => day.id),
+          shifts: [{ startTime: days[0].start, endTime: days[0].end }],
+          mode: form.autoMode,
+        }),
+      ),
+    );
     return;
   }
 

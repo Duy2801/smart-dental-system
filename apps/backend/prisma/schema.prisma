@@ -224,6 +224,7 @@ model Service {
   updatedAt        DateTime @updatedAt @map("updated_at")
 
   appointments   Appointment[]
+  clinicalCases  ClinicalCase[]
   media          ServiceMedia[]
   procedureSteps ServiceProcedureStep[]
   faqs           ServiceFaq[]
@@ -312,6 +313,7 @@ model Patient {
 
   user                 User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   appointments         Appointment[]
+  clinicalCases        ClinicalCase[]
   medicalRecords       MedicalRecord[]
   treatmentPlans       TreatmentPlan[]
   invoices             Invoice[]
@@ -323,17 +325,26 @@ model Patient {
 }
 
 model Doctor {
-  id             String   @id @default(uuid()) @db.Uuid
-  userId         String   @unique @map("user_id") @db.Uuid
-  doctorCode     String   @unique @map("doctor_code")
-  specialization String
-  licenseNumber  String   @unique @map("license_number")
-  isActive       Boolean  @default(true) @map("is_active")
-  createdAt      DateTime @default(now()) @map("created_at")
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @unique @map("user_id") @db.Uuid
+  doctorCode      String   @unique @map("doctor_code")
+  specialization  String
+  licenseNumber   String   @unique @map("license_number")
+  avatarUrl       String?  @map("avatar_url") @db.Text
+  bio             String?  @db.Text
+  position        String?
+  workplace       String?
+  yearsExperience Int      @default(0) @map("years_experience")
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
 
   user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   availability       DoctorAvailability[]
   appointments       Appointment[]
+  certificates       DoctorCertificate[]
+  clinicalCases      ClinicalCase[]
+  educations         DoctorEducation[]
+  media              DoctorMedia[]
   medicalRecords     MedicalRecord[]
   treatmentPlans     TreatmentPlan[]
   reviews            Review[]
@@ -341,6 +352,57 @@ model Doctor {
 
   @@index([specialization, isActive])
   @@map("doctors")
+}
+
+model DoctorEducation {
+  id             String  @id @default(uuid()) @db.Uuid
+  doctorId       String  @map("doctor_id") @db.Uuid
+  degree         String
+  school         String
+  major          String?
+  graduationYear Int?    @map("graduation_year")
+  description    String? @db.Text
+  sortOrder      Int     @default(0) @map("sort_order")
+
+  doctor Doctor @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@unique([doctorId, degree, school])
+  @@index([doctorId, sortOrder])
+  @@map("doctor_educations")
+}
+
+model DoctorCertificate {
+  id             String    @id @default(uuid()) @db.Uuid
+  doctorId       String    @map("doctor_id") @db.Uuid
+  title          String
+  issuer         String
+  issuedAt       DateTime? @map("issued_at") @db.Date
+  expiresAt      DateTime? @map("expires_at") @db.Date
+  certificateUrl String?   @map("certificate_url") @db.Text
+  imageUrl       String?   @map("image_url") @db.Text
+  description    String?   @db.Text
+  sortOrder      Int       @default(0) @map("sort_order")
+
+  doctor Doctor @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@unique([doctorId, title, issuer])
+  @@index([doctorId, sortOrder])
+  @@map("doctor_certificates")
+}
+
+model DoctorMedia {
+  id        String   @id @default(uuid()) @db.Uuid
+  doctorId  String   @map("doctor_id") @db.Uuid
+  url       String   @db.Text
+  alt       String?
+  type      String
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  doctor Doctor @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@index([doctorId, sortOrder])
+  @@map("doctor_media")
 }
 
 model DoctorAvailability {
@@ -364,7 +426,7 @@ model DoctorAvailability {
 model Appointment {
   id                 String            @id @default(uuid()) @db.Uuid
   appointmentCode    String            @unique @map("appointment_code")
-  patientId          String            @map("patient_id") @db.Uuid
+  patientId          String?           @map("patient_id") @db.Uuid
   doctorId           String            @map("doctor_id") @db.Uuid
   serviceId          String            @map("service_id") @db.Uuid
   scheduledAt        DateTime          @map("scheduled_at")
@@ -382,10 +444,11 @@ model Appointment {
   createdAt          DateTime          @default(now()) @map("created_at")
   updatedAt          DateTime          @updatedAt @map("updated_at")
 
-  patient        Patient         @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  patient        Patient?        @relation(fields: [patientId], references: [id], onDelete: Restrict)
   doctor         Doctor          @relation(fields: [doctorId], references: [id], onDelete: Restrict)
   service        Service         @relation(fields: [serviceId], references: [id], onDelete: Restrict)
   creator        User            @relation("AppointmentCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  clinicalCases  ClinicalCase[]
   medicalRecords MedicalRecord[]
   invoices       Invoice[]
   reviews        Review[]
@@ -416,9 +479,10 @@ model MedicalRecord {
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
 
-  patient     Patient     @relation(fields: [patientId], references: [id], onDelete: Restrict)
-  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Restrict)
-  doctor      Doctor      @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  patient       Patient        @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  appointment   Appointment    @relation(fields: [appointmentId], references: [id], onDelete: Restrict)
+  clinicalCases ClinicalCase[]
+  doctor        Doctor         @relation(fields: [doctorId], references: [id], onDelete: Restrict)
 
   @@index([patientId, createdAt])
   @@index([appointmentId])
@@ -441,11 +505,48 @@ model TreatmentPlan {
 
   patient       Patient        @relation(fields: [patientId], references: [id], onDelete: Restrict)
   doctor        Doctor         @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  clinicalCases ClinicalCase[]
   notifications Notification[]
 
   @@index([patientId, status])
   @@index([doctorId])
   @@map("treatment_plans")
+}
+
+model ClinicalCase {
+  id                   String   @id @default(uuid()) @db.Uuid
+  patientId            String   @map("patient_id") @db.Uuid
+  doctorId             String   @map("doctor_id") @db.Uuid
+  serviceId            String   @map("service_id") @db.Uuid
+  appointmentId        String   @map("appointment_id") @db.Uuid
+  medicalRecordId      String   @map("medical_record_id") @db.Uuid
+  treatmentPlanId      String?  @map("treatment_plan_id") @db.Uuid
+  title                String
+  description          String?  @db.Text
+  treatmentDuration    String?  @map("treatment_duration")
+  beforeImageUrl       String   @map("before_image_url") @db.Text
+  afterImageUrl        String   @map("after_image_url") @db.Text
+  patientConsentPublic Boolean  @default(false) @map("patient_consent_public")
+  isPublished          Boolean  @default(false) @map("is_published")
+  displayOrder         Int      @default(0) @map("display_order")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  patient       Patient        @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  doctor        Doctor         @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  service       Service        @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  appointment   Appointment    @relation(fields: [appointmentId], references: [id], onDelete: Restrict)
+  medicalRecord MedicalRecord  @relation(fields: [medicalRecordId], references: [id], onDelete: Restrict)
+  treatmentPlan TreatmentPlan? @relation(fields: [treatmentPlanId], references: [id], onDelete: SetNull)
+
+  @@index([isPublished, patientConsentPublic, displayOrder])
+  @@index([patientId, createdAt])
+  @@index([doctorId])
+  @@index([serviceId])
+  @@index([appointmentId])
+  @@index([medicalRecordId])
+  @@index([treatmentPlanId])
+  @@map("clinical_cases")
 }
 
 model Invoice {

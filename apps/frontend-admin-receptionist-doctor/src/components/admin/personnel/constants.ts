@@ -9,6 +9,7 @@ export const emptyStaffForm: StaffFormState = {
   doctorCode: "",
   specialization: "",
   licenseNumber: "",
+  avatarUrl: "",
 };
 
 export const roleConfig: Record<Role, { label: string; color: string }> = {

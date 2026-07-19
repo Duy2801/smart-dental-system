@@ -7,6 +7,7 @@ export type DoctorProfile = {
   doctorCode: string;
   specialization: string;
   licenseNumber: string;
+  avatarUrl: string | null;
   isActive: boolean;
 };
 
@@ -42,4 +43,5 @@ export type StaffFormState = {
   doctorCode: string;
   specialization: string;
   licenseNumber: string;
+  avatarUrl: string;
 };

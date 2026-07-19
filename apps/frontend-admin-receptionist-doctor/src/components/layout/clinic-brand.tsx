@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useQuery } from "@tanstack/react-query";
-import { defaultClinicConfig } from "@/src/components/admin/setting/constants";
+import { emptyClinicConfig } from "@/src/components/admin/setting/constants";
 import { getClinicConfig } from "@/src/components/admin/setting/settings-api";
 import { queryKeys } from "@/src/lib/query/query-keys";
 import { cn } from "@/src/lib/utils/cn";
@@ -13,7 +13,7 @@ function useClinicBrand() {
     queryFn: getClinicConfig,
   });
 
-  return data ?? defaultClinicConfig;
+  return data ?? emptyClinicConfig;
 }
 
 function getInitials(name: string) {
@@ -38,10 +38,10 @@ export function ClinicHeaderBrand() {
       />
       <div className="hidden min-w-0 text-right sm:block">
         <p className="max-w-48 truncate text-sm font-semibold text-brand-dark">
-          {clinic.name}
+          {clinic.name || "Chua cau hinh phong kham"}
         </p>
         <p className="max-w-48 truncate text-xs text-muted-foreground">
-          {clinic.phone}
+          {clinic.phone || "Chua co hotline"}
         </p>
       </div>
     </div>
@@ -50,7 +50,7 @@ export function ClinicHeaderBrand() {
 
 export function ClinicSidebarName() {
   const clinic = useClinicBrand();
-  return <>{clinic.name}</>;
+  return <>{clinic.name || "Chua cau hinh"}</>;
 }
 
 export function ClinicSidebarBrand({ title }: { title: string }) {
@@ -65,7 +65,7 @@ export function ClinicSidebarBrand({ title }: { title: string }) {
       />
       <div className="min-w-0">
         <p className="truncate text-xs font-medium uppercase tracking-wide text-white/60">
-          {clinic.name}
+          {clinic.name || "Chua cau hinh phong kham"}
         </p>
         <h2 className="mt-1 truncate text-lg font-semibold text-white">
           {title}
