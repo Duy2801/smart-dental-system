@@ -16,10 +16,30 @@ function toPayload(form: ServiceFormState) {
     slug: form.slug || undefined,
     shortDescription: form.shortDescription || undefined,
     description: form.description || undefined,
+    detailSummary: form.detailSummary || undefined,
     thumbnailUrl: form.thumbnailUrl || undefined,
     durationMinutes: Number(form.durationMinutes),
     basePrice: Number(form.basePrice),
     displayOrder: Number(form.displayOrder),
+    highlights: form.highlights
+      .filter((item) => item.title.trim() || item.description.trim())
+      .map((item) => ({
+        title: item.title.trim(),
+        description: item.description.trim(),
+        icon: item.icon.trim() || "shield",
+      })),
+    suitableFor: form.suitableFor.map((item) => item.trim()).filter(Boolean),
+    includedItems: form.includedItems.map((item) => item.trim()).filter(Boolean),
+    preparationNotes: form.preparationNotes
+      .map((item) => item.trim())
+      .filter(Boolean),
+    aftercareNotes: form.aftercareNotes
+      .map((item) => item.trim())
+      .filter(Boolean),
+    importantNotes: form.importantNotes
+      .map((item) => item.trim())
+      .filter(Boolean),
+    pricingNote: form.pricingNote || undefined,
     media: form.media
       .filter((media) => media.url.trim())
       .map((media, index) => ({

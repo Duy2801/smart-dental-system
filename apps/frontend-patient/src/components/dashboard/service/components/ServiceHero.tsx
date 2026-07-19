@@ -8,8 +8,8 @@ export function ServiceHero() {
         Danh mục Dịch vụ <span className="text-[#0863c5]">Cao cấp</span>
       </h1>
       <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-500">
-        Trải nghiệm chăm sóc nha khoa chuẩn chuyên môn, ứng dụng trí tuệ nhân tạo và công nghệ
-        hiện đại vì sức khỏe chính xác, an toàn của bạn.
+        Trải nghiệm chăm sóc nha khoa chuẩn chuyên môn, ứng dụng công nghệ hiện
+        đại để lên kế hoạch điều trị chính xác, an toàn và phù hợp với bạn.
       </p>
     </section>
   );

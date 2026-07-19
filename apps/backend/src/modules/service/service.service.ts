@@ -15,6 +15,26 @@ function cleanOptionalText(value?: string) {
   return trimmed ? trimmed : null;
 }
 
+function cleanTextList(values?: string[]) {
+  if (!values) return undefined;
+  return values
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+
+function cleanHighlights(
+  values?: { title: string; description: string; icon: string }[],
+) {
+  if (!values) return undefined;
+  return values
+    .map((value) => ({
+      title: value.title.trim(),
+      description: value.description.trim(),
+      icon: value.icon.trim() || 'shield',
+    }))
+    .filter((value) => value.title || value.description);
+}
+
 @Injectable()
 export class ServiceService {
   constructor(private readonly prisma: PrismaService) {}
@@ -100,9 +120,17 @@ export class ServiceService {
         slug: cleanOptionalText(dto.slug),
         shortDescription: cleanOptionalText(dto.shortDescription),
         description: cleanOptionalText(dto.description),
+        detailSummary: cleanOptionalText(dto.detailSummary),
         thumbnailUrl: cleanOptionalText(dto.thumbnailUrl),
         durationMinutes: dto.durationMinutes,
         basePrice: dto.basePrice,
+        highlights: cleanHighlights(dto.highlights),
+        suitableFor: cleanTextList(dto.suitableFor),
+        includedItems: cleanTextList(dto.includedItems),
+        preparationNotes: cleanTextList(dto.preparationNotes),
+        aftercareNotes: cleanTextList(dto.aftercareNotes),
+        importantNotes: cleanTextList(dto.importantNotes),
+        pricingNote: cleanOptionalText(dto.pricingNote),
         isActive: dto.isActive ?? true,
         isFeatured: dto.isFeatured ?? false,
         displayOrder: dto.displayOrder ?? 0,
@@ -159,12 +187,44 @@ export class ServiceService {
             dto.description === undefined
               ? undefined
               : cleanOptionalText(dto.description),
+          detailSummary:
+            dto.detailSummary === undefined
+              ? undefined
+              : cleanOptionalText(dto.detailSummary),
           thumbnailUrl:
             dto.thumbnailUrl === undefined
               ? undefined
               : cleanOptionalText(dto.thumbnailUrl),
           durationMinutes: dto.durationMinutes,
           basePrice: dto.basePrice,
+          highlights:
+            dto.highlights === undefined
+              ? undefined
+              : cleanHighlights(dto.highlights),
+          suitableFor:
+            dto.suitableFor === undefined
+              ? undefined
+              : cleanTextList(dto.suitableFor),
+          includedItems:
+            dto.includedItems === undefined
+              ? undefined
+              : cleanTextList(dto.includedItems),
+          preparationNotes:
+            dto.preparationNotes === undefined
+              ? undefined
+              : cleanTextList(dto.preparationNotes),
+          aftercareNotes:
+            dto.aftercareNotes === undefined
+              ? undefined
+              : cleanTextList(dto.aftercareNotes),
+          importantNotes:
+            dto.importantNotes === undefined
+              ? undefined
+              : cleanTextList(dto.importantNotes),
+          pricingNote:
+            dto.pricingNote === undefined
+              ? undefined
+              : cleanOptionalText(dto.pricingNote),
           isActive: dto.isActive,
           isFeatured: dto.isFeatured,
           displayOrder: dto.displayOrder,

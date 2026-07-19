@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   AdminButton,
   AdminInput,
@@ -18,8 +18,10 @@ type ServiceFormModalProps = {
 type StepItem = ServiceFormState["procedureSteps"][number];
 type MediaItem = ServiceFormState["media"][number];
 type FaqItem = ServiceFormState["faqs"][number];
+type HighlightItem = ServiceFormState["highlights"][number];
 
 const mediaTypes = ["BANNER", "PROCESS", "BEFORE_AFTER", "GALLERY"];
+const highlightIcons = ["shield", "sparkles", "checkup", "clock"];
 
 function TextareaField({
   label,
@@ -115,6 +117,47 @@ function ImagePicker({
   );
 }
 
+function ContentListSection({
+  addLabel,
+  items,
+  onAdd,
+  onChange,
+  onRemove,
+  title,
+}: {
+  addLabel: string;
+  items: string[];
+  onAdd: () => void;
+  onChange: (index: number, value: string) => void;
+  onRemove: (index: number) => void;
+  title: string;
+}) {
+  return (
+    <div className="space-y-3">
+      <h5 className="text-sm font-semibold text-brand-dark">{title}</h5>
+      {items.map((item, index) => (
+        <div key={index} className="flex gap-2">
+          <AdminInput
+            label={`Dòng ${index + 1}`}
+            value={item}
+            onChange={(event) => onChange(index, event.target.value)}
+          />
+          <AdminButton
+            variant="danger"
+            className="self-end"
+            onClick={() => onRemove(index)}
+          >
+            Xóa
+          </AdminButton>
+        </div>
+      ))}
+      <AdminButton variant="secondary" onClick={onAdd}>
+        {addLabel}
+      </AdminButton>
+    </div>
+  );
+}
+
 export function ServiceFormModal({
   initialValue,
   onClose,
@@ -123,6 +166,10 @@ export function ServiceFormModal({
   title,
 }: ServiceFormModalProps) {
   const [form, setForm] = useState<ServiceFormState>(initialValue);
+
+  useEffect(() => {
+    setForm(initialValue);
+  }, [initialValue]);
 
   const setField = <Key extends keyof ServiceFormState>(
     key: Key,
@@ -170,6 +217,39 @@ export function ServiceFormModal({
     }));
   };
 
+  const updateHighlight = <Key extends keyof HighlightItem>(
+    index: number,
+    key: Key,
+    value: HighlightItem[Key],
+  ) => {
+    setForm((current) => ({
+      ...current,
+      highlights: current.highlights.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, [key]: value } : item,
+      ),
+    }));
+  };
+
+  const updateTextList = (
+    key: Extract<
+      keyof ServiceFormState,
+      | "suitableFor"
+      | "includedItems"
+      | "preparationNotes"
+      | "aftercareNotes"
+      | "importantNotes"
+    >,
+    index: number,
+    value: string,
+  ) => {
+    setForm((current) => ({
+      ...current,
+      [key]: current[key].map((item, itemIndex) =>
+        itemIndex === index ? value : item,
+      ),
+    }));
+  };
+
   const addMedia = () => {
     setField("media", [
       ...form.media,
@@ -194,6 +274,43 @@ export function ServiceFormModal({
       ...form.faqs,
       { question: "", answer: "", sortOrder: form.faqs.length + 1 },
     ]);
+  };
+
+  const addHighlight = () => {
+    setField("highlights", [
+      ...form.highlights,
+      { title: "", description: "", icon: "shield" },
+    ]);
+  };
+
+  const addTextListItem = (
+    key: Extract<
+      keyof ServiceFormState,
+      | "suitableFor"
+      | "includedItems"
+      | "preparationNotes"
+      | "aftercareNotes"
+      | "importantNotes"
+    >,
+  ) => {
+    setField(key, [...form[key], ""]);
+  };
+
+  const removeTextListItem = (
+    key: Extract<
+      keyof ServiceFormState,
+      | "suitableFor"
+      | "includedItems"
+      | "preparationNotes"
+      | "aftercareNotes"
+      | "importantNotes"
+    >,
+    index: number,
+  ) => {
+    setField(
+      key,
+      form[key].filter((_, itemIndex) => itemIndex !== index),
+    );
   };
 
   return (
@@ -249,15 +366,149 @@ export function ServiceFormModal({
             placeholder="Một câu ngắn để hiển thị ở card dịch vụ."
           />
 
-          <TextareaField
-            label="Mô tả chi tiết"
-            value={form.description}
-            onChange={(value) => setField("description", value)}
-            placeholder="Thông tin chuyên môn, lợi ích và lưu ý của dịch vụ."
-          />
-        </Section>
+        <TextareaField
+          label="Mô tả chi tiết"
+          value={form.description}
+          onChange={(value) => setField("description", value)}
+          placeholder="Thông tin chuyên môn, lợi ích và lưu ý của dịch vụ."
+        />
 
-        <Section title="Giá và sắp xếp">
+        <TextareaField
+          label="Tóm tắt chuyên sâu trên trang chi tiết"
+          rows={4}
+          value={form.detailSummary}
+          onChange={(value) => setField("detailSummary", value)}
+          placeholder="Đoạn giải thích nổi bật ở đầu trang chi tiết dịch vụ."
+        />
+      </Section>
+
+      <Section title="Nội dung trang chi tiết">
+        <TextareaField
+          label="Ghi chú giá"
+          rows={2}
+          value={form.pricingNote}
+          onChange={(value) => setField("pricingNote", value)}
+          placeholder="VD: Giá hiển thị là mức khởi điểm, chi phí cuối cùng xác nhận sau thăm khám."
+        />
+
+        <div className="space-y-3">
+          <h5 className="text-sm font-semibold text-brand-dark">
+            Điểm nổi bật
+          </h5>
+          {form.highlights.map((highlight, index) => (
+            <div
+              key={index}
+              className="grid grid-cols-1 gap-3 rounded-lg border border-border bg-white p-3 lg:grid-cols-[160px_1fr_auto]"
+            >
+              <AdminSelect
+                label="Icon"
+                value={highlight.icon}
+                onChange={(event) =>
+                  updateHighlight(index, "icon", event.target.value)
+                }
+              >
+                {highlightIcons.map((icon) => (
+                  <option key={icon} value={icon}>
+                    {icon}
+                  </option>
+                ))}
+              </AdminSelect>
+              <div className="space-y-3">
+                <AdminInput
+                  label="Tiêu đề"
+                  value={highlight.title}
+                  onChange={(event) =>
+                    updateHighlight(index, "title", event.target.value)
+                  }
+                />
+                <TextareaField
+                  label="Mô tả"
+                  rows={2}
+                  value={highlight.description}
+                  onChange={(value) =>
+                    updateHighlight(index, "description", value)
+                  }
+                />
+              </div>
+              <AdminButton
+                variant="danger"
+                className="self-end"
+                onClick={() =>
+                  setField(
+                    "highlights",
+                    form.highlights.filter(
+                      (_, itemIndex) => itemIndex !== index,
+                    ),
+                  )
+                }
+              >
+                Xóa
+              </AdminButton>
+            </div>
+          ))}
+          <AdminButton variant="secondary" onClick={addHighlight}>
+            Thêm điểm nổi bật
+          </AdminButton>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <ContentListSection
+            title="Phù hợp với ai?"
+            addLabel="Thêm đối tượng"
+            items={form.suitableFor}
+            onAdd={() => addTextListItem("suitableFor")}
+            onChange={(index, value) =>
+              updateTextList("suitableFor", index, value)
+            }
+            onRemove={(index) => removeTextListItem("suitableFor", index)}
+          />
+          <ContentListSection
+            title="Bao gồm trong buổi hẹn"
+            addLabel="Thêm quyền lợi"
+            items={form.includedItems}
+            onAdd={() => addTextListItem("includedItems")}
+            onChange={(index, value) =>
+              updateTextList("includedItems", index, value)
+            }
+            onRemove={(index) => removeTextListItem("includedItems", index)}
+          />
+          <ContentListSection
+            title="Chuẩn bị trước buổi hẹn"
+            addLabel="Thêm lưu ý chuẩn bị"
+            items={form.preparationNotes}
+            onAdd={() => addTextListItem("preparationNotes")}
+            onChange={(index, value) =>
+              updateTextList("preparationNotes", index, value)
+            }
+            onRemove={(index) =>
+              removeTextListItem("preparationNotes", index)
+            }
+          />
+          <ContentListSection
+            title="Chăm sóc sau điều trị"
+            addLabel="Thêm hướng dẫn"
+            items={form.aftercareNotes}
+            onAdd={() => addTextListItem("aftercareNotes")}
+            onChange={(index, value) =>
+              updateTextList("aftercareNotes", index, value)
+            }
+            onRemove={(index) => removeTextListItem("aftercareNotes", index)}
+          />
+        </div>
+
+        <ContentListSection
+          title="Lưu ý quan trọng"
+          addLabel="Thêm lưu ý"
+          items={form.importantNotes}
+          onAdd={() => addTextListItem("importantNotes")}
+          onChange={(index, value) =>
+            updateTextList("importantNotes", index, value)
+          }
+          onRemove={(index) => removeTextListItem("importantNotes", index)}
+        />
+      </Section>
+
+      <Section title="Giá và sắp xếp">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <AdminInput
               label="Thời lượng"

@@ -5,9 +5,17 @@ export type DentalService = {
   slug: string | null;
   shortDescription: string | null;
   description: string | null;
+  detailSummary: string | null;
   thumbnailUrl: string | null;
   durationMinutes: number;
   basePrice: number | string;
+  highlights: ServiceHighlight[] | null;
+  suitableFor: string[] | null;
+  includedItems: string[] | null;
+  preparationNotes: string[] | null;
+  aftercareNotes: string[] | null;
+  importantNotes: string[] | null;
+  pricingNote: string | null;
   isFeatured: boolean;
   displayOrder: number;
   isActive: boolean;
@@ -16,6 +24,12 @@ export type DentalService = {
   faqs: ServiceFaq[];
   createdAt: string;
   updatedAt: string;
+};
+
+export type ServiceHighlight = {
+  title: string;
+  description: string;
+  icon: string;
 };
 
 export type ServiceMedia = {
@@ -57,9 +71,17 @@ export type ServiceFormState = {
   slug: string;
   shortDescription: string;
   description: string;
+  detailSummary: string;
   thumbnailUrl: string;
   durationMinutes: number;
   basePrice: number;
+  highlights: ServiceHighlight[];
+  suitableFor: string[];
+  includedItems: string[];
+  preparationNotes: string[];
+  aftercareNotes: string[];
+  importantNotes: string[];
+  pricingNote: string;
   isFeatured: boolean;
   displayOrder: number;
   isActive: boolean;

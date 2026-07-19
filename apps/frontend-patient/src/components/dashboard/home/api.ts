@@ -165,7 +165,7 @@ function mapService(service: ServiceDto): HomeServiceCard {
       service.description ||
       "Dịch vụ nha khoa với quy trình chăm sóc chuyên nghiệp.",
     price: formatVnd(service.basePrice),
-    href: service.slug ? `/service?service=${service.slug}` : "/service",
+    href: `/service/${service.id}`,
     imageUrl: service.thumbnailUrl ?? null,
     imageAlt: service.name,
     durationMinutes: service.durationMinutes,

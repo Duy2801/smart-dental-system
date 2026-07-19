@@ -214,9 +214,17 @@ model Service {
   slug             String?  @unique
   shortDescription String?  @map("short_description") @db.Text
   description      String?  @db.Text
+  detailSummary    String?  @map("detail_summary") @db.Text
   thumbnailUrl     String?  @map("thumbnail_url")
   durationMinutes  Int      @map("duration_minutes")
   basePrice        Decimal  @map("base_price") @db.Decimal(12, 2)
+  highlights       Json?
+  suitableFor      Json?    @map("suitable_for")
+  includedItems    Json?    @map("included_items")
+  preparationNotes Json?    @map("preparation_notes")
+  aftercareNotes   Json?    @map("aftercare_notes")
+  importantNotes   Json?    @map("important_notes")
+  pricingNote      String?  @map("pricing_note") @db.Text
   isFeatured       Boolean  @default(false) @map("is_featured")
   displayOrder     Int      @default(0) @map("display_order")
   isActive         Boolean  @default(true) @map("is_active")

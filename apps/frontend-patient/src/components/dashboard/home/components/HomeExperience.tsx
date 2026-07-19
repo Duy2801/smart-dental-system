@@ -2,12 +2,20 @@
 
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
-  DashboardIcon,
-  type DashboardIconName,
-} from "../../common/DashboardIcon";
-import { getHomeDoctors, type HomeDoctorCard } from "../api";
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { DashboardIcon } from "../../common/DashboardIcon";
+import {
+  getHomeDoctors,
+  getHomeServices,
+  type HomeDoctorCard,
+  type HomeServiceCard,
+} from "../api";
 
 export function Reveal({
   children,
@@ -53,102 +61,174 @@ export function Reveal({
   );
 }
 
-const slides = [
-  {
-    badge: "Hệ thống Chẩn đoán AI v2.0",
-    title: "Nha khoa kỹ thuật số chuyên sâu AI",
-    text: "Phân tích dữ liệu lâm sàng siêu tốc, phát hiện sớm các vấn đề răng miệng với độ chính xác vượt trội.",
-    icon: "sparkles" as DashboardIconName,
-  },
-  {
-    badge: "Công nghệ Implant hiện đại",
-    title: "Phục hồi nụ cười bền vững, tự nhiên",
-    text: "Lập kế hoạch cấy ghép kỹ thuật số, ít xâm lấn và rút ngắn thời gian hồi phục.",
-    icon: "implant" as DashboardIconName,
-  },
-  {
-    badge: "Chỉnh nha cá nhân hóa",
-    title: "Kiến tạo nụ cười phù hợp riêng với bạn",
-    text: "Mô phỏng kết quả trước điều trị và theo dõi tiến trình thông minh trên từng giai đoạn.",
-    icon: "braces" as DashboardIconName,
-  },
-];
-
-function ScanVisual({ icon }: { icon: DashboardIconName }) {
+function HeroSkeleton() {
   return (
-    <div className="relative grid min-h-[320px] place-items-center overflow-hidden bg-[#031b32]">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_48%,rgba(76,211,239,.3),transparent_44%)]" />
+    <section className="overflow-hidden rounded-2xl bg-[#0066d9] shadow-xl shadow-blue-900/15">
+      <div className="grid min-h-[500px] lg:grid-cols-[1.05fr_.95fr]">
+        <div className="space-y-5 p-8 sm:p-10 lg:p-12">
+          <div className="h-8 w-56 animate-pulse rounded-full bg-white/15" />
+          <div className="h-24 w-4/5 animate-pulse rounded-2xl bg-white/15" />
+          <div className="h-20 w-3/4 animate-pulse rounded-2xl bg-white/15" />
+          <div className="flex gap-3">
+            <div className="h-14 w-44 animate-pulse rounded-xl bg-white/20" />
+            <div className="h-14 w-44 animate-pulse rounded-xl bg-white/10" />
+          </div>
+        </div>
+        <div className="relative hidden bg-[#031b32] lg:block">
+          <div className="absolute inset-16 animate-pulse rounded-[28px] bg-white/10" />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ServiceVisual({ service }: { service: HomeServiceCard }) {
+  return (
+    <div className="relative grid min-h-[320px] place-items-center overflow-hidden bg-[#031b32] lg:min-h-[500px]">
+      {service.imageUrl ? (
+        <img
+          src={service.imageUrl}
+          alt={service.imageAlt}
+          className="absolute inset-0 h-full w-full object-cover opacity-72 transition duration-700 ease-out"
+        />
+      ) : null}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_48%,rgba(76,211,239,.24),transparent_45%),linear-gradient(90deg,rgba(3,27,50,.62),rgba(3,27,50,.78))]" />
       <div className="absolute h-72 w-72 rounded-full border border-cyan-300/20" />
       <div className="absolute h-52 w-52 rounded-full border border-cyan-300/20" />
-      <DashboardIcon
-        name={icon}
-        className="relative h-40 w-40 text-cyan-100/55"
-      />
       <div className="absolute inset-x-16 top-1/2 h-px animate-pulse bg-cyan-300/70 shadow-[0_0_18px_4px_rgba(103,232,249,.35)]" />
-      <span className="absolute right-6 top-6 rounded-full border border-cyan-200/20 bg-cyan-200/10 px-3 py-1.5 text-[10px] font-bold tracking-widest text-cyan-100">
-        AI DENTAL SCAN
+      <DashboardIcon
+        name="tooth"
+        className="relative h-32 w-32 text-cyan-100/55 drop-shadow-[0_0_26px_rgba(125,211,252,.35)]"
+      />
+      <span className="absolute right-6 top-6 rounded-full border border-cyan-200/20 bg-cyan-200/10 px-3 py-1.5 text-[10px] font-bold tracking-widest text-cyan-100 backdrop-blur">
+        SERVICE DATA
       </span>
     </div>
   );
 }
 
 export function HomeHeroSlideshow() {
+  const { data: services = [], isLoading } = useQuery({
+    queryKey: ["patient", "home", "services"],
+    queryFn: getHomeServices,
+  });
   const [active, setActive] = useState(0);
 
   useEffect(() => {
-    const timer = window.setInterval(
-      () => setActive((value) => (value + 1) % slides.length),
-      5500,
-    );
-    return () => window.clearInterval(timer);
-  }, []);
+    if (services.length <= 1) return;
 
-  const slide = slides[active];
+    const timer = window.setInterval(
+      () => setActive((value) => (value + 1) % services.length),
+      5600,
+    );
+
+    return () => window.clearInterval(timer);
+  }, [services.length]);
+
+  useEffect(() => {
+    if (active >= services.length) {
+      setActive(0);
+    }
+  }, [active, services.length]);
+
+  const slide = services[active];
+  const selectors = useMemo(() => services.slice(0, 4), [services]);
+
+  if (isLoading) return <HeroSkeleton />;
+
+  if (!slide) {
+    return (
+      <section className="rounded-2xl border border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-500 shadow-sm">
+        Chưa có dịch vụ nổi bật để hiển thị.
+      </section>
+    );
+  }
 
   return (
-    <section className="relative grid min-h-[500px] overflow-hidden rounded-2xl bg-gradient-to-br from-[#0058bc] to-[#0070eb] text-white shadow-xl shadow-blue-900/15 lg:grid-cols-[1.05fr_.95fr]">
+    <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0058bc] via-[#0572df] to-[#0087ea] text-white shadow-xl shadow-blue-900/15">
       <div
-        key={active}
-        className="z-10 flex animate-[hero-in_.55s_ease-out] flex-col justify-center px-7 py-12 sm:px-10 lg:px-12"
+        key={slide.id}
+        className="grid min-h-[500px] animate-[hero-in_.55s_ease-out] lg:grid-cols-[1.05fr_.95fr]"
       >
-        <span className="mb-5 inline-flex w-fit items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold backdrop-blur">
-          <DashboardIcon name={slide.icon} className="h-4 w-4" />
-          {slide.badge}
-        </span>
-        <h1 className="max-w-xl text-4xl font-extrabold leading-[1.05] sm:text-5xl lg:text-[56px]">
-          {slide.title}
-        </h1>
-        <p className="mt-5 max-w-lg text-base leading-7 text-white/80">
-          {slide.text}
-        </p>
-        <div className="mt-8 flex flex-wrap gap-3">
-          <Link
-            href="/appointment?intent=booking"
-            className="rounded-xl bg-white px-6 py-4 text-sm font-bold text-[#0058bc] shadow-lg transition hover:-translate-y-1"
-          >
-            Đặt lịch hẹn ngay
-          </Link>
-          <Link
-            href="/service"
-            className="rounded-xl border border-white/30 bg-white/10 px-6 py-4 text-sm font-bold hover:bg-white/15"
-          >
-            Khám phá dịch vụ
-          </Link>
+        <div className="relative z-10 flex flex-col justify-center px-7 py-10 sm:px-10 lg:px-12">
+          <div className="mb-5 flex flex-wrap items-center gap-2">
+            <span className="inline-flex w-fit items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold backdrop-blur">
+              <DashboardIcon name="sparkles" className="h-4 w-4" />
+              Dịch vụ nổi bật
+            </span>
+            <span className="inline-flex rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/85 backdrop-blur">
+              Từ {slide.price} đ
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/85 backdrop-blur">
+              <DashboardIcon name="clock" className="h-3.5 w-3.5" />
+              {slide.durationMinutes} phút
+            </span>
+          </div>
+
+          <h1 className="max-w-xl text-4xl font-extrabold leading-[1.05] sm:text-5xl lg:text-[56px]">
+            {slide.title}
+          </h1>
+          <p className="mt-5 max-w-lg text-base leading-7 text-white/82">
+            {slide.description}
+          </p>
+
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link
+              href={`/appointment?service=${slide.id}&intent=booking`}
+              className="inline-flex h-14 items-center gap-2 rounded-xl bg-white px-6 text-sm font-bold text-[#0058bc] shadow-lg transition hover:-translate-y-1"
+            >
+              Đặt lịch hẹn ngay
+              <DashboardIcon name="arrow" className="h-4 w-4" />
+            </Link>
+            <Link
+              href={slide.href}
+              className="inline-flex h-14 items-center rounded-xl border border-white/30 bg-white/10 px-6 text-sm font-bold text-white backdrop-blur transition hover:bg-white/15"
+            >
+              Xem chi tiết dịch vụ
+            </Link>
+          </div>
+
+          <div className="mt-10 flex items-center gap-3">
+            {selectors.map((service, index) => (
+              <button
+                key={service.id}
+                type="button"
+                onClick={() => setActive(index)}
+                aria-label={`Chọn ${service.title}`}
+                className={`h-2.5 rounded-full transition-all duration-300 ${
+                  active === index ? "w-11 bg-white" : "w-2.5 bg-white/45 hover:bg-white/75"
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="relative lg:order-none">
+          <ServiceVisual service={slide} />
         </div>
       </div>
-      <ScanVisual icon={slide.icon} />
-      <div className="absolute bottom-5 left-7 z-20 flex gap-2 sm:left-10 lg:left-12">
-        {slides.map((item, index) => (
-          <button
-            key={item.title}
-            onClick={() => setActive(index)}
-            aria-label={`Xem slide ${index + 1}`}
-            className={`h-2 rounded-full transition-all ${
-              active === index ? "w-8 bg-white" : "w-2 bg-white/45"
-            }`}
-          />
-        ))}
-      </div>
+
+      {selectors.length > 1 ? (
+        <div className="absolute bottom-5 right-5 hidden max-w-[430px] gap-2 lg:grid lg:grid-cols-2">
+          {selectors.map((service, index) => (
+            <button
+              key={service.id}
+              type="button"
+              onClick={() => setActive(index)}
+              className={`min-w-0 rounded-xl border px-3 py-2.5 text-left text-xs backdrop-blur transition ${
+                active === index
+                  ? "border-white/45 bg-white/18 text-white"
+                  : "border-white/15 bg-white/8 text-white/70 hover:bg-white/14 hover:text-white"
+              }`}
+            >
+              <span className="block truncate font-bold">{service.title}</span>
+              <span className="mt-1 block truncate text-white/65">
+                Từ {service.price} đ
+              </span>
+            </button>
+          ))}
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -278,3 +358,5 @@ export function DoctorDirectory() {
     </section>
   );
 }
+
+

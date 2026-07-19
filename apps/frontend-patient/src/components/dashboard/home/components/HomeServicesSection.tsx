@@ -72,9 +72,11 @@ export function HomeServicesSection() {
       ) : services.length ? (
         <div className="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
           {services.map((service) => (
-            <article
+            <Link
               key={service.id}
-              className="flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+              href={service.href}
+              className="group flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+              aria-label={`Xem chi tiết ${service.title}`}
             >
               <ServiceImage service={service} />
               <h3 className="mt-4 text-lg font-bold text-slate-900">
@@ -97,14 +99,11 @@ export function HomeServicesSection() {
                     {service.durationMinutes} phút
                   </span>
                 </div>
-                <Link
-                  href={service.href}
-                  className="mt-4 block rounded-lg border border-[#0058bc] py-2.5 text-center text-xs font-bold text-[#0058bc] transition hover:bg-[#0058bc] hover:text-white"
-                >
+                <span className="mt-4 block rounded-lg border border-[#0058bc] py-2.5 text-center text-xs font-bold text-[#0058bc] transition group-hover:bg-[#0058bc] group-hover:text-white">
                   Chi tiết
-                </Link>
+                </span>
               </div>
-            </article>
+            </Link>
           ))}
         </div>
       ) : (

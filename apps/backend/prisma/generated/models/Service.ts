@@ -45,9 +45,11 @@ export type ServiceMinAggregateOutputType = {
   slug: string | null
   shortDescription: string | null
   description: string | null
+  detailSummary: string | null
   thumbnailUrl: string | null
   durationMinutes: number | null
   basePrice: runtime.Decimal | null
+  pricingNote: string | null
   isFeatured: boolean | null
   displayOrder: number | null
   isActive: boolean | null
@@ -62,9 +64,11 @@ export type ServiceMaxAggregateOutputType = {
   slug: string | null
   shortDescription: string | null
   description: string | null
+  detailSummary: string | null
   thumbnailUrl: string | null
   durationMinutes: number | null
   basePrice: runtime.Decimal | null
+  pricingNote: string | null
   isFeatured: boolean | null
   displayOrder: number | null
   isActive: boolean | null
@@ -79,9 +83,17 @@ export type ServiceCountAggregateOutputType = {
   slug: number
   shortDescription: number
   description: number
+  detailSummary: number
   thumbnailUrl: number
   durationMinutes: number
   basePrice: number
+  highlights: number
+  suitableFor: number
+  includedItems: number
+  preparationNotes: number
+  aftercareNotes: number
+  importantNotes: number
+  pricingNote: number
   isFeatured: number
   displayOrder: number
   isActive: number
@@ -110,9 +122,11 @@ export type ServiceMinAggregateInputType = {
   slug?: true
   shortDescription?: true
   description?: true
+  detailSummary?: true
   thumbnailUrl?: true
   durationMinutes?: true
   basePrice?: true
+  pricingNote?: true
   isFeatured?: true
   displayOrder?: true
   isActive?: true
@@ -127,9 +141,11 @@ export type ServiceMaxAggregateInputType = {
   slug?: true
   shortDescription?: true
   description?: true
+  detailSummary?: true
   thumbnailUrl?: true
   durationMinutes?: true
   basePrice?: true
+  pricingNote?: true
   isFeatured?: true
   displayOrder?: true
   isActive?: true
@@ -144,9 +160,17 @@ export type ServiceCountAggregateInputType = {
   slug?: true
   shortDescription?: true
   description?: true
+  detailSummary?: true
   thumbnailUrl?: true
   durationMinutes?: true
   basePrice?: true
+  highlights?: true
+  suitableFor?: true
+  includedItems?: true
+  preparationNotes?: true
+  aftercareNotes?: true
+  importantNotes?: true
+  pricingNote?: true
   isFeatured?: true
   displayOrder?: true
   isActive?: true
@@ -248,9 +272,17 @@ export type ServiceGroupByOutputType = {
   slug: string | null
   shortDescription: string | null
   description: string | null
+  detailSummary: string | null
   thumbnailUrl: string | null
   durationMinutes: number
   basePrice: runtime.Decimal
+  highlights: runtime.JsonValue | null
+  suitableFor: runtime.JsonValue | null
+  includedItems: runtime.JsonValue | null
+  preparationNotes: runtime.JsonValue | null
+  aftercareNotes: runtime.JsonValue | null
+  importantNotes: runtime.JsonValue | null
+  pricingNote: string | null
   isFeatured: boolean
   displayOrder: number
   isActive: boolean
@@ -288,9 +320,17 @@ export type ServiceWhereInput = {
   slug?: Prisma.StringNullableFilter<"Service"> | string | null
   shortDescription?: Prisma.StringNullableFilter<"Service"> | string | null
   description?: Prisma.StringNullableFilter<"Service"> | string | null
+  detailSummary?: Prisma.StringNullableFilter<"Service"> | string | null
   thumbnailUrl?: Prisma.StringNullableFilter<"Service"> | string | null
   durationMinutes?: Prisma.IntFilter<"Service"> | number
   basePrice?: Prisma.DecimalFilter<"Service"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  highlights?: Prisma.JsonNullableFilter<"Service">
+  suitableFor?: Prisma.JsonNullableFilter<"Service">
+  includedItems?: Prisma.JsonNullableFilter<"Service">
+  preparationNotes?: Prisma.JsonNullableFilter<"Service">
+  aftercareNotes?: Prisma.JsonNullableFilter<"Service">
+  importantNotes?: Prisma.JsonNullableFilter<"Service">
+  pricingNote?: Prisma.StringNullableFilter<"Service"> | string | null
   isFeatured?: Prisma.BoolFilter<"Service"> | boolean
   displayOrder?: Prisma.IntFilter<"Service"> | number
   isActive?: Prisma.BoolFilter<"Service"> | boolean
@@ -310,9 +350,17 @@ export type ServiceOrderByWithRelationInput = {
   slug?: Prisma.SortOrderInput | Prisma.SortOrder
   shortDescription?: Prisma.SortOrderInput | Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
+  detailSummary?: Prisma.SortOrderInput | Prisma.SortOrder
   thumbnailUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   durationMinutes?: Prisma.SortOrder
   basePrice?: Prisma.SortOrder
+  highlights?: Prisma.SortOrderInput | Prisma.SortOrder
+  suitableFor?: Prisma.SortOrderInput | Prisma.SortOrder
+  includedItems?: Prisma.SortOrderInput | Prisma.SortOrder
+  preparationNotes?: Prisma.SortOrderInput | Prisma.SortOrder
+  aftercareNotes?: Prisma.SortOrderInput | Prisma.SortOrder
+  importantNotes?: Prisma.SortOrderInput | Prisma.SortOrder
+  pricingNote?: Prisma.SortOrderInput | Prisma.SortOrder
   isFeatured?: Prisma.SortOrder
   displayOrder?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
@@ -335,9 +383,17 @@ export type ServiceWhereUniqueInput = Prisma.AtLeast<{
   name?: Prisma.StringFilter<"Service"> | string
   shortDescription?: Prisma.StringNullableFilter<"Service"> | string | null
   description?: Prisma.StringNullableFilter<"Service"> | string | null
+  detailSummary?: Prisma.StringNullableFilter<"Service"> | string | null
   thumbnailUrl?: Prisma.StringNullableFilter<"Service"> | string | null
   durationMinutes?: Prisma.IntFilter<"Service"> | number
   basePrice?: Prisma.DecimalFilter<"Service"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  highlights?: Prisma.JsonNullableFilter<"Service">
+  suitableFor?: Prisma.JsonNullableFilter<"Service">
+  includedItems?: Prisma.JsonNullableFilter<"Service">
+  preparationNotes?: Prisma.JsonNullableFilter<"Service">
+  aftercareNotes?: Prisma.JsonNullableFilter<"Service">
+  importantNotes?: Prisma.JsonNullableFilter<"Service">
+  pricingNote?: Prisma.StringNullableFilter<"Service"> | string | null
   isFeatured?: Prisma.BoolFilter<"Service"> | boolean
   displayOrder?: Prisma.IntFilter<"Service"> | number
   isActive?: Prisma.BoolFilter<"Service"> | boolean
@@ -357,9 +413,17 @@ export type ServiceOrderByWithAggregationInput = {
   slug?: Prisma.SortOrderInput | Prisma.SortOrder
   shortDescription?: Prisma.SortOrderInput | Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
+  detailSummary?: Prisma.SortOrderInput | Prisma.SortOrder
   thumbnailUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   durationMinutes?: Prisma.SortOrder
   basePrice?: Prisma.SortOrder
+  highlights?: Prisma.SortOrderInput | Prisma.SortOrder
+  suitableFor?: Prisma.SortOrderInput | Prisma.SortOrder
+  includedItems?: Prisma.SortOrderInput | Prisma.SortOrder
+  preparationNotes?: Prisma.SortOrderInput | Prisma.SortOrder
+  aftercareNotes?: Prisma.SortOrderInput | Prisma.SortOrder
+  importantNotes?: Prisma.SortOrderInput | Prisma.SortOrder
+  pricingNote?: Prisma.SortOrderInput | Prisma.SortOrder
   isFeatured?: Prisma.SortOrder
   displayOrder?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
@@ -382,9 +446,17 @@ export type ServiceScalarWhereWithAggregatesInput = {
   slug?: Prisma.StringNullableWithAggregatesFilter<"Service"> | string | null
   shortDescription?: Prisma.StringNullableWithAggregatesFilter<"Service"> | string | null
   description?: Prisma.StringNullableWithAggregatesFilter<"Service"> | string | null
+  detailSummary?: Prisma.StringNullableWithAggregatesFilter<"Service"> | string | null
   thumbnailUrl?: Prisma.StringNullableWithAggregatesFilter<"Service"> | string | null
   durationMinutes?: Prisma.IntWithAggregatesFilter<"Service"> | number
   basePrice?: Prisma.DecimalWithAggregatesFilter<"Service"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  highlights?: Prisma.JsonNullableWithAggregatesFilter<"Service">
+  suitableFor?: Prisma.JsonNullableWithAggregatesFilter<"Service">
+  includedItems?: Prisma.JsonNullableWithAggregatesFilter<"Service">
+  preparationNotes?: Prisma.JsonNullableWithAggregatesFilter<"Service">
+  aftercareNotes?: Prisma.JsonNullableWithAggregatesFilter<"Service">
+  importantNotes?: Prisma.JsonNullableWithAggregatesFilter<"Service">
+  pricingNote?: Prisma.StringNullableWithAggregatesFilter<"Service"> | string | null
   isFeatured?: Prisma.BoolWithAggregatesFilter<"Service"> | boolean
   displayOrder?: Prisma.IntWithAggregatesFilter<"Service"> | number
   isActive?: Prisma.BoolWithAggregatesFilter<"Service"> | boolean
@@ -399,9 +471,17 @@ export type ServiceCreateInput = {
   slug?: string | null
   shortDescription?: string | null
   description?: string | null
+  detailSummary?: string | null
   thumbnailUrl?: string | null
   durationMinutes: number
   basePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
+  highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  suitableFor?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  includedItems?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  preparationNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  aftercareNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  importantNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  pricingNote?: string | null
   isFeatured?: boolean
   displayOrder?: number
   isActive?: boolean
@@ -421,9 +501,17 @@ export type ServiceUncheckedCreateInput = {
   slug?: string | null
   shortDescription?: string | null
   description?: string | null
+  detailSummary?: string | null
   thumbnailUrl?: string | null
   durationMinutes: number
   basePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
+  highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  suitableFor?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  includedItems?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  preparationNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  aftercareNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  importantNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  pricingNote?: string | null
   isFeatured?: boolean
   displayOrder?: number
   isActive?: boolean
@@ -443,9 +531,17 @@ export type ServiceUpdateInput = {
   slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  detailSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   durationMinutes?: Prisma.IntFieldUpdateOperationsInput | number
   basePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  suitableFor?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  includedItems?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  preparationNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  aftercareNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  importantNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  pricingNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isFeatured?: Prisma.BoolFieldUpdateOperationsInput | boolean
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -465,9 +561,17 @@ export type ServiceUncheckedUpdateInput = {
   slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  detailSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   durationMinutes?: Prisma.IntFieldUpdateOperationsInput | number
   basePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  suitableFor?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  includedItems?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  preparationNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  aftercareNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  importantNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  pricingNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isFeatured?: Prisma.BoolFieldUpdateOperationsInput | boolean
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -487,9 +591,17 @@ export type ServiceCreateManyInput = {
   slug?: string | null
   shortDescription?: string | null
   description?: string | null
+  detailSummary?: string | null
   thumbnailUrl?: string | null
   durationMinutes: number
   basePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
+  highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  suitableFor?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  includedItems?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  preparationNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  aftercareNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  importantNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  pricingNote?: string | null
   isFeatured?: boolean
   displayOrder?: number
   isActive?: boolean
@@ -504,9 +616,17 @@ export type ServiceUpdateManyMutationInput = {
   slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  detailSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   durationMinutes?: Prisma.IntFieldUpdateOperationsInput | number
   basePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  suitableFor?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  includedItems?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  preparationNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  aftercareNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  importantNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  pricingNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isFeatured?: Prisma.BoolFieldUpdateOperationsInput | boolean
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -521,9 +641,17 @@ export type ServiceUncheckedUpdateManyInput = {
   slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  detailSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   durationMinutes?: Prisma.IntFieldUpdateOperationsInput | number
   basePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  suitableFor?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  includedItems?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  preparationNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  aftercareNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  importantNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  pricingNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isFeatured?: Prisma.BoolFieldUpdateOperationsInput | boolean
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -538,9 +666,17 @@ export type ServiceCountOrderByAggregateInput = {
   slug?: Prisma.SortOrder
   shortDescription?: Prisma.SortOrder
   description?: Prisma.SortOrder
+  detailSummary?: Prisma.SortOrder
   thumbnailUrl?: Prisma.SortOrder
   durationMinutes?: Prisma.SortOrder
   basePrice?: Prisma.SortOrder
+  highlights?: Prisma.SortOrder
+  suitableFor?: Prisma.SortOrder
+  includedItems?: Prisma.SortOrder
+  preparationNotes?: Prisma.SortOrder
+  aftercareNotes?: Prisma.SortOrder
+  importantNotes?: Prisma.SortOrder
+  pricingNote?: Prisma.SortOrder
   isFeatured?: Prisma.SortOrder
   displayOrder?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
@@ -561,9 +697,11 @@ export type ServiceMaxOrderByAggregateInput = {
   slug?: Prisma.SortOrder
   shortDescription?: Prisma.SortOrder
   description?: Prisma.SortOrder
+  detailSummary?: Prisma.SortOrder
   thumbnailUrl?: Prisma.SortOrder
   durationMinutes?: Prisma.SortOrder
   basePrice?: Prisma.SortOrder
+  pricingNote?: Prisma.SortOrder
   isFeatured?: Prisma.SortOrder
   displayOrder?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
@@ -578,9 +716,11 @@ export type ServiceMinOrderByAggregateInput = {
   slug?: Prisma.SortOrder
   shortDescription?: Prisma.SortOrder
   description?: Prisma.SortOrder
+  detailSummary?: Prisma.SortOrder
   thumbnailUrl?: Prisma.SortOrder
   durationMinutes?: Prisma.SortOrder
   basePrice?: Prisma.SortOrder
+  pricingNote?: Prisma.SortOrder
   isFeatured?: Prisma.SortOrder
   displayOrder?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
@@ -692,9 +832,17 @@ export type ServiceCreateWithoutMediaInput = {
   slug?: string | null
   shortDescription?: string | null
   description?: string | null
+  detailSummary?: string | null
   thumbnailUrl?: string | null
   durationMinutes: number
   basePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
+  highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  suitableFor?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  includedItems?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  preparationNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  aftercareNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  importantNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  pricingNote?: string | null
   isFeatured?: boolean
   displayOrder?: number
   isActive?: boolean
@@ -713,9 +861,17 @@ export type ServiceUncheckedCreateWithoutMediaInput = {
   slug?: string | null
   shortDescription?: string | null
   description?: string | null
+  detailSummary?: string | null
   thumbnailUrl?: string | null
   durationMinutes: number
   basePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
+  highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  suitableFor?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  includedItems?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  preparationNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  aftercareNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  importantNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  pricingNote?: string | null
   isFeatured?: boolean
   displayOrder?: number
   isActive?: boolean
@@ -750,9 +906,17 @@ export type ServiceUpdateWithoutMediaInput = {
   slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  detailSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   durationMinutes?: Prisma.IntFieldUpdateOperationsInput | number
   basePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  suitableFor?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  includedItems?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  preparationNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  aftercareNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  importantNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  pricingNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isFeatured?: Prisma.BoolFieldUpdateOperationsInput | boolean
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -771,9 +935,17 @@ export type ServiceUncheckedUpdateWithoutMediaInput = {
   slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  detailSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   durationMinutes?: Prisma.IntFieldUpdateOperationsInput | number
   basePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  suitableFor?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  includedItems?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  preparationNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  aftercareNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  importantNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  pricingNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isFeatured?: Prisma.BoolFieldUpdateOperationsInput | boolean
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -792,9 +964,17 @@ export type ServiceCreateWithoutProcedureStepsInput = {
   slug?: string | null
   shortDescription?: string | null
   description?: string | null
+  detailSummary?: string | null
   thumbnailUrl?: string | null
   durationMinutes: number
   basePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
+  highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  suitableFor?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  includedItems?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  preparationNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  aftercareNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  importantNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  pricingNote?: string | null
   isFeatured?: boolean
   displayOrder?: number
   isActive?: boolean
@@ -813,9 +993,17 @@ export type ServiceUncheckedCreateWithoutProcedureStepsInput = {
   slug?: string | null
   shortDescription?: string | null
   description?: string | null
+  detailSummary?: string | null
   thumbnailUrl?: string | null
   durationMinutes: number
   basePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
+  highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  suitableFor?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  includedItems?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  preparationNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  aftercareNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  importantNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  pricingNote?: string | null
   isFeatured?: boolean
   displayOrder?: number
   isActive?: boolean
@@ -850,9 +1038,17 @@ export type ServiceUpdateWithoutProcedureStepsInput = {
   slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  detailSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   durationMinutes?: Prisma.IntFieldUpdateOperationsInput | number
   basePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  suitableFor?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  includedItems?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  preparationNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  aftercareNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  importantNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  pricingNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isFeatured?: Prisma.BoolFieldUpdateOperationsInput | boolean
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -871,9 +1067,17 @@ export type ServiceUncheckedUpdateWithoutProcedureStepsInput = {
   slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  detailSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   durationMinutes?: Prisma.IntFieldUpdateOperationsInput | number
   basePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  suitableFor?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  includedItems?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  preparationNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  aftercareNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  importantNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  pricingNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isFeatured?: Prisma.BoolFieldUpdateOperationsInput | boolean
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -892,9 +1096,17 @@ export type ServiceCreateWithoutFaqsInput = {
   slug?: string | null
   shortDescription?: string | null
   description?: string | null
+  detailSummary?: string | null
   thumbnailUrl?: string | null
   durationMinutes: number
   basePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
+  highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  suitableFor?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  includedItems?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  preparationNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  aftercareNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  importantNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  pricingNote?: string | null
   isFeatured?: boolean
   displayOrder?: number
   isActive?: boolean
@@ -913,9 +1125,17 @@ export type ServiceUncheckedCreateWithoutFaqsInput = {
   slug?: string | null
   shortDescription?: string | null
   description?: string | null
+  detailSummary?: string | null
   thumbnailUrl?: string | null
   durationMinutes: number
   basePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
+  highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  suitableFor?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  includedItems?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  preparationNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  aftercareNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  importantNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  pricingNote?: string | null
   isFeatured?: boolean
   displayOrder?: number
   isActive?: boolean
@@ -950,9 +1170,17 @@ export type ServiceUpdateWithoutFaqsInput = {
   slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  detailSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   durationMinutes?: Prisma.IntFieldUpdateOperationsInput | number
   basePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  suitableFor?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  includedItems?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  preparationNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  aftercareNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  importantNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  pricingNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isFeatured?: Prisma.BoolFieldUpdateOperationsInput | boolean
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -971,9 +1199,17 @@ export type ServiceUncheckedUpdateWithoutFaqsInput = {
   slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  detailSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   durationMinutes?: Prisma.IntFieldUpdateOperationsInput | number
   basePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  suitableFor?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  includedItems?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  preparationNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  aftercareNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  importantNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  pricingNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isFeatured?: Prisma.BoolFieldUpdateOperationsInput | boolean
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -992,9 +1228,17 @@ export type ServiceCreateWithoutAppointmentsInput = {
   slug?: string | null
   shortDescription?: string | null
   description?: string | null
+  detailSummary?: string | null
   thumbnailUrl?: string | null
   durationMinutes: number
   basePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
+  highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  suitableFor?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  includedItems?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  preparationNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  aftercareNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  importantNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  pricingNote?: string | null
   isFeatured?: boolean
   displayOrder?: number
   isActive?: boolean
@@ -1013,9 +1257,17 @@ export type ServiceUncheckedCreateWithoutAppointmentsInput = {
   slug?: string | null
   shortDescription?: string | null
   description?: string | null
+  detailSummary?: string | null
   thumbnailUrl?: string | null
   durationMinutes: number
   basePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
+  highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  suitableFor?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  includedItems?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  preparationNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  aftercareNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  importantNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  pricingNote?: string | null
   isFeatured?: boolean
   displayOrder?: number
   isActive?: boolean
@@ -1050,9 +1302,17 @@ export type ServiceUpdateWithoutAppointmentsInput = {
   slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  detailSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   durationMinutes?: Prisma.IntFieldUpdateOperationsInput | number
   basePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  suitableFor?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  includedItems?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  preparationNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  aftercareNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  importantNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  pricingNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isFeatured?: Prisma.BoolFieldUpdateOperationsInput | boolean
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -1071,9 +1331,17 @@ export type ServiceUncheckedUpdateWithoutAppointmentsInput = {
   slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  detailSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   durationMinutes?: Prisma.IntFieldUpdateOperationsInput | number
   basePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  suitableFor?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  includedItems?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  preparationNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  aftercareNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  importantNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  pricingNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isFeatured?: Prisma.BoolFieldUpdateOperationsInput | boolean
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -1092,9 +1360,17 @@ export type ServiceCreateWithoutClinicalCasesInput = {
   slug?: string | null
   shortDescription?: string | null
   description?: string | null
+  detailSummary?: string | null
   thumbnailUrl?: string | null
   durationMinutes: number
   basePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
+  highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  suitableFor?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  includedItems?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  preparationNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  aftercareNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  importantNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  pricingNote?: string | null
   isFeatured?: boolean
   displayOrder?: number
   isActive?: boolean
@@ -1113,9 +1389,17 @@ export type ServiceUncheckedCreateWithoutClinicalCasesInput = {
   slug?: string | null
   shortDescription?: string | null
   description?: string | null
+  detailSummary?: string | null
   thumbnailUrl?: string | null
   durationMinutes: number
   basePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
+  highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  suitableFor?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  includedItems?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  preparationNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  aftercareNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  importantNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  pricingNote?: string | null
   isFeatured?: boolean
   displayOrder?: number
   isActive?: boolean
@@ -1150,9 +1434,17 @@ export type ServiceUpdateWithoutClinicalCasesInput = {
   slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  detailSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   durationMinutes?: Prisma.IntFieldUpdateOperationsInput | number
   basePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  suitableFor?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  includedItems?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  preparationNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  aftercareNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  importantNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  pricingNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isFeatured?: Prisma.BoolFieldUpdateOperationsInput | boolean
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -1171,9 +1463,17 @@ export type ServiceUncheckedUpdateWithoutClinicalCasesInput = {
   slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  detailSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   durationMinutes?: Prisma.IntFieldUpdateOperationsInput | number
   basePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  suitableFor?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  includedItems?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  preparationNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  aftercareNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  importantNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  pricingNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isFeatured?: Prisma.BoolFieldUpdateOperationsInput | boolean
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -1259,9 +1559,17 @@ export type ServiceSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   slug?: boolean
   shortDescription?: boolean
   description?: boolean
+  detailSummary?: boolean
   thumbnailUrl?: boolean
   durationMinutes?: boolean
   basePrice?: boolean
+  highlights?: boolean
+  suitableFor?: boolean
+  includedItems?: boolean
+  preparationNotes?: boolean
+  aftercareNotes?: boolean
+  importantNotes?: boolean
+  pricingNote?: boolean
   isFeatured?: boolean
   displayOrder?: boolean
   isActive?: boolean
@@ -1282,9 +1590,17 @@ export type ServiceSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   slug?: boolean
   shortDescription?: boolean
   description?: boolean
+  detailSummary?: boolean
   thumbnailUrl?: boolean
   durationMinutes?: boolean
   basePrice?: boolean
+  highlights?: boolean
+  suitableFor?: boolean
+  includedItems?: boolean
+  preparationNotes?: boolean
+  aftercareNotes?: boolean
+  importantNotes?: boolean
+  pricingNote?: boolean
   isFeatured?: boolean
   displayOrder?: boolean
   isActive?: boolean
@@ -1299,9 +1615,17 @@ export type ServiceSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   slug?: boolean
   shortDescription?: boolean
   description?: boolean
+  detailSummary?: boolean
   thumbnailUrl?: boolean
   durationMinutes?: boolean
   basePrice?: boolean
+  highlights?: boolean
+  suitableFor?: boolean
+  includedItems?: boolean
+  preparationNotes?: boolean
+  aftercareNotes?: boolean
+  importantNotes?: boolean
+  pricingNote?: boolean
   isFeatured?: boolean
   displayOrder?: boolean
   isActive?: boolean
@@ -1316,9 +1640,17 @@ export type ServiceSelectScalar = {
   slug?: boolean
   shortDescription?: boolean
   description?: boolean
+  detailSummary?: boolean
   thumbnailUrl?: boolean
   durationMinutes?: boolean
   basePrice?: boolean
+  highlights?: boolean
+  suitableFor?: boolean
+  includedItems?: boolean
+  preparationNotes?: boolean
+  aftercareNotes?: boolean
+  importantNotes?: boolean
+  pricingNote?: boolean
   isFeatured?: boolean
   displayOrder?: boolean
   isActive?: boolean
@@ -1326,7 +1658,7 @@ export type ServiceSelectScalar = {
   updatedAt?: boolean
 }
 
-export type ServiceOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "category" | "name" | "slug" | "shortDescription" | "description" | "thumbnailUrl" | "durationMinutes" | "basePrice" | "isFeatured" | "displayOrder" | "isActive" | "createdAt" | "updatedAt", ExtArgs["result"]["service"]>
+export type ServiceOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "category" | "name" | "slug" | "shortDescription" | "description" | "detailSummary" | "thumbnailUrl" | "durationMinutes" | "basePrice" | "highlights" | "suitableFor" | "includedItems" | "preparationNotes" | "aftercareNotes" | "importantNotes" | "pricingNote" | "isFeatured" | "displayOrder" | "isActive" | "createdAt" | "updatedAt", ExtArgs["result"]["service"]>
 export type ServiceInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   appointments?: boolean | Prisma.Service$appointmentsArgs<ExtArgs>
   clinicalCases?: boolean | Prisma.Service$clinicalCasesArgs<ExtArgs>
@@ -1354,9 +1686,17 @@ export type $ServicePayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     slug: string | null
     shortDescription: string | null
     description: string | null
+    detailSummary: string | null
     thumbnailUrl: string | null
     durationMinutes: number
     basePrice: runtime.Decimal
+    highlights: runtime.JsonValue | null
+    suitableFor: runtime.JsonValue | null
+    includedItems: runtime.JsonValue | null
+    preparationNotes: runtime.JsonValue | null
+    aftercareNotes: runtime.JsonValue | null
+    importantNotes: runtime.JsonValue | null
+    pricingNote: string | null
     isFeatured: boolean
     displayOrder: number
     isActive: boolean
@@ -1796,9 +2136,17 @@ export interface ServiceFieldRefs {
   readonly slug: Prisma.FieldRef<"Service", 'String'>
   readonly shortDescription: Prisma.FieldRef<"Service", 'String'>
   readonly description: Prisma.FieldRef<"Service", 'String'>
+  readonly detailSummary: Prisma.FieldRef<"Service", 'String'>
   readonly thumbnailUrl: Prisma.FieldRef<"Service", 'String'>
   readonly durationMinutes: Prisma.FieldRef<"Service", 'Int'>
   readonly basePrice: Prisma.FieldRef<"Service", 'Decimal'>
+  readonly highlights: Prisma.FieldRef<"Service", 'Json'>
+  readonly suitableFor: Prisma.FieldRef<"Service", 'Json'>
+  readonly includedItems: Prisma.FieldRef<"Service", 'Json'>
+  readonly preparationNotes: Prisma.FieldRef<"Service", 'Json'>
+  readonly aftercareNotes: Prisma.FieldRef<"Service", 'Json'>
+  readonly importantNotes: Prisma.FieldRef<"Service", 'Json'>
+  readonly pricingNote: Prisma.FieldRef<"Service", 'String'>
   readonly isFeatured: Prisma.FieldRef<"Service", 'Boolean'>
   readonly displayOrder: Prisma.FieldRef<"Service", 'Int'>
   readonly isActive: Prisma.FieldRef<"Service", 'Boolean'>

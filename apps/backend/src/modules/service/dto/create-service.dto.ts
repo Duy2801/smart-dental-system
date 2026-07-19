@@ -58,6 +58,17 @@ export class ServiceFaqDto {
   sortOrder?: number;
 }
 
+export class ServiceHighlightDto {
+  @IsString()
+  title: string;
+
+  @IsString()
+  description: string;
+
+  @IsString()
+  icon: string;
+}
+
 export class CreateServiceDto {
   @IsString()
   category: string;
@@ -76,6 +87,10 @@ export class CreateServiceDto {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @IsOptional()
+  @IsString()
+  detailSummary?: string;
 
   @IsOptional()
   @IsString()
@@ -101,6 +116,41 @@ export class CreateServiceDto {
   @IsInt()
   @Min(0)
   displayOrder?: number;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ServiceHighlightDto)
+  highlights?: ServiceHighlightDto[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  suitableFor?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  includedItems?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  preparationNotes?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  aftercareNotes?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  importantNotes?: string[];
+
+  @IsOptional()
+  @IsString()
+  pricingNote?: string;
 
   @IsOptional()
   @IsArray()

@@ -202,7 +202,7 @@ function mapService(item: ServiceDto): AppointmentService {
     icon,
     price: new Intl.NumberFormat("vi-VN").format(Number(item.basePrice ?? 0)),
     durationMinutes: item.durationMinutes ?? 30,
-    href: item.slug ? `/service?service=${item.slug}` : "/service",
+    href: `/service/${item.id}`,
   };
 }
 

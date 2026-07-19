@@ -2548,9 +2548,17 @@ export const ServiceScalarFieldEnum = {
   slug: 'slug',
   shortDescription: 'shortDescription',
   description: 'description',
+  detailSummary: 'detailSummary',
   thumbnailUrl: 'thumbnailUrl',
   durationMinutes: 'durationMinutes',
   basePrice: 'basePrice',
+  highlights: 'highlights',
+  suitableFor: 'suitableFor',
+  includedItems: 'includedItems',
+  preparationNotes: 'preparationNotes',
+  aftercareNotes: 'aftercareNotes',
+  importantNotes: 'importantNotes',
+  pricingNote: 'pricingNote',
   isFeatured: 'isFeatured',
   displayOrder: 'displayOrder',
   isActive: 'isActive',
@@ -3025,6 +3033,20 @@ export type ListDecimalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaMo
 
 
 /**
+ * Reference to a field of type 'Json'
+ */
+export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
+    
+
+
+/**
+ * Reference to a field of type 'QueryMode'
+ */
+export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
+    
+
+
+/**
  * Reference to a field of type 'DiscountType'
  */
 export type EnumDiscountTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DiscountType'>
@@ -3091,20 +3113,6 @@ export type EnumBookingSourceFieldRefInput<$PrismaModel> = FieldRefInputType<$Pr
  * Reference to a field of type 'BookingSource[]'
  */
 export type ListEnumBookingSourceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BookingSource[]'>
-    
-
-
-/**
- * Reference to a field of type 'Json'
- */
-export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
-    
-
-
-/**
- * Reference to a field of type 'QueryMode'
- */
-export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
     
 
 

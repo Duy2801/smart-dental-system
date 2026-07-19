@@ -6,9 +6,17 @@ type ServiceFiltersProps = {
   onSelect: (category: ServiceCategory) => void;
 };
 
-export function ServiceFilters({ filters, selected, onSelect }: ServiceFiltersProps) {
+export function ServiceFilters({
+  filters,
+  selected,
+  onSelect,
+}: ServiceFiltersProps) {
   return (
-    <div className="flex flex-wrap justify-center gap-2.5" role="group" aria-label="Lọc dịch vụ">
+    <div
+      className="flex flex-wrap justify-center gap-2.5"
+      role="group"
+      aria-label="Lọc dịch vụ"
+    >
       {filters.map((filter) => {
         const active = selected === filter.id;
         return (
