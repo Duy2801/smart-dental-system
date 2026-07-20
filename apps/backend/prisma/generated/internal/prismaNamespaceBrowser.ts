@@ -71,8 +71,11 @@ export const ModelName = {
   Appointment: 'Appointment',
   MedicalRecord: 'MedicalRecord',
   TreatmentPlan: 'TreatmentPlan',
+  TreatmentPlanStep: 'TreatmentPlanStep',
   ClinicalCase: 'ClinicalCase',
   Invoice: 'Invoice',
+  Prescription: 'Prescription',
+  PrescriptionItem: 'PrescriptionItem',
   Payment: 'Payment',
   Review: 'Review',
   ChatbotConversation: 'ChatbotConversation',
@@ -191,6 +194,10 @@ export const ServiceScalarFieldEnum = {
   isFeatured: 'isFeatured',
   displayOrder: 'displayOrder',
   isActive: 'isActive',
+  depositOverrideEnabled: 'depositOverrideEnabled',
+  depositRequired: 'depositRequired',
+  depositCalculationMode: 'depositCalculationMode',
+  depositValue: 'depositValue',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -352,10 +359,16 @@ export const AppointmentScalarFieldEnum = {
   patientId: 'patientId',
   doctorId: 'doctorId',
   serviceId: 'serviceId',
+  treatmentPlanStepId: 'treatmentPlanStepId',
   scheduledAt: 'scheduledAt',
   endAt: 'endAt',
   status: 'status',
   bookingSource: 'bookingSource',
+  paymentOption: 'paymentOption',
+  paymentStatus: 'paymentStatus',
+  depositPercent: 'depositPercent',
+  depositAmount: 'depositAmount',
+  scheduleConfirmedAt: 'scheduleConfirmedAt',
   aiSuggestedTime: 'aiSuggestedTime',
   notes: 'notes',
   rescheduleHistory: 'rescheduleHistory',
@@ -376,6 +389,7 @@ export const MedicalRecordScalarFieldEnum = {
   patientId: 'patientId',
   appointmentId: 'appointmentId',
   doctorId: 'doctorId',
+  treatmentPlanStepId: 'treatmentPlanStepId',
   chiefComplaint: 'chiefComplaint',
   diagnosis: 'diagnosis',
   treatmentNotes: 'treatmentNotes',
@@ -401,12 +415,40 @@ export const TreatmentPlanScalarFieldEnum = {
   status: 'status',
   startDate: 'startDate',
   expectedEndDate: 'expectedEndDate',
+  schedulePaymentOption: 'schedulePaymentOption',
+  schedulePaymentStatus: 'schedulePaymentStatus',
+  depositPercent: 'depositPercent',
+  depositAmount: 'depositAmount',
+  scheduleConfirmedAt: 'scheduleConfirmedAt',
   items: 'items',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
 export type TreatmentPlanScalarFieldEnum = (typeof TreatmentPlanScalarFieldEnum)[keyof typeof TreatmentPlanScalarFieldEnum]
+
+
+export const TreatmentPlanStepScalarFieldEnum = {
+  id: 'id',
+  treatmentPlanId: 'treatmentPlanId',
+  doctorId: 'doctorId',
+  stepOrder: 'stepOrder',
+  title: 'title',
+  description: 'description',
+  targetTooth: 'targetTooth',
+  status: 'status',
+  estimatedCost: 'estimatedCost',
+  paymentAmount: 'paymentAmount',
+  paymentStatus: 'paymentStatus',
+  paymentDueAt: 'paymentDueAt',
+  paidAt: 'paidAt',
+  expectedDate: 'expectedDate',
+  completedAt: 'completedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TreatmentPlanStepScalarFieldEnum = (typeof TreatmentPlanStepScalarFieldEnum)[keyof typeof TreatmentPlanStepScalarFieldEnum]
 
 
 export const ClinicalCaseScalarFieldEnum = {
@@ -437,7 +479,10 @@ export const InvoiceScalarFieldEnum = {
   invoiceCode: 'invoiceCode',
   patientId: 'patientId',
   appointmentId: 'appointmentId',
+  treatmentPlanId: 'treatmentPlanId',
+  treatmentPlanStepId: 'treatmentPlanStepId',
   promotionId: 'promotionId',
+  invoiceType: 'invoiceType',
   items: 'items',
   subtotal: 'subtotal',
   discountAmount: 'discountAmount',
@@ -449,6 +494,33 @@ export const InvoiceScalarFieldEnum = {
 } as const
 
 export type InvoiceScalarFieldEnum = (typeof InvoiceScalarFieldEnum)[keyof typeof InvoiceScalarFieldEnum]
+
+
+export const PrescriptionScalarFieldEnum = {
+  id: 'id',
+  medicalRecordId: 'medicalRecordId',
+  treatmentPlanStepId: 'treatmentPlanStepId',
+  doctorId: 'doctorId',
+  patientId: 'patientId',
+  notes: 'notes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type PrescriptionScalarFieldEnum = (typeof PrescriptionScalarFieldEnum)[keyof typeof PrescriptionScalarFieldEnum]
+
+
+export const PrescriptionItemScalarFieldEnum = {
+  id: 'id',
+  prescriptionId: 'prescriptionId',
+  medicineName: 'medicineName',
+  dosage: 'dosage',
+  frequency: 'frequency',
+  duration: 'duration',
+  instruction: 'instruction'
+} as const
+
+export type PrescriptionItemScalarFieldEnum = (typeof PrescriptionItemScalarFieldEnum)[keyof typeof PrescriptionItemScalarFieldEnum]
 
 
 export const PaymentScalarFieldEnum = {

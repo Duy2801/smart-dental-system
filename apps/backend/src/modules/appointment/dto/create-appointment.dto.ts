@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsDateString, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsDateString, IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
+import { AppointmentPaymentOption } from '../../../../prisma/generated/enums';
 
 export class CreateAppointmentDto {
   @ApiProperty()
@@ -18,4 +19,9 @@ export class CreateAppointmentDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @ApiPropertyOptional({ enum: AppointmentPaymentOption })
+  @IsOptional()
+  @IsEnum(AppointmentPaymentOption)
+  paymentOption?: AppointmentPaymentOption;
 }

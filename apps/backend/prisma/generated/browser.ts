@@ -118,6 +118,11 @@ export type MedicalRecord = Prisma.MedicalRecordModel
  */
 export type TreatmentPlan = Prisma.TreatmentPlanModel
 /**
+ * Model TreatmentPlanStep
+ * 
+ */
+export type TreatmentPlanStep = Prisma.TreatmentPlanStepModel
+/**
  * Model ClinicalCase
  * 
  */
@@ -127,6 +132,16 @@ export type ClinicalCase = Prisma.ClinicalCaseModel
  * 
  */
 export type Invoice = Prisma.InvoiceModel
+/**
+ * Model Prescription
+ * 
+ */
+export type Prescription = Prisma.PrescriptionModel
+/**
+ * Model PrescriptionItem
+ * 
+ */
+export type PrescriptionItem = Prisma.PrescriptionItemModel
 /**
  * Model Payment
  * 

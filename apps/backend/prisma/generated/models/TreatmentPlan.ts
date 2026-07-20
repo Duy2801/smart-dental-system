@@ -20,8 +20,20 @@ export type TreatmentPlanModel = runtime.Types.Result.DefaultSelection<Prisma.$T
 
 export type AggregateTreatmentPlan = {
   _count: TreatmentPlanCountAggregateOutputType | null
+  _avg: TreatmentPlanAvgAggregateOutputType | null
+  _sum: TreatmentPlanSumAggregateOutputType | null
   _min: TreatmentPlanMinAggregateOutputType | null
   _max: TreatmentPlanMaxAggregateOutputType | null
+}
+
+export type TreatmentPlanAvgAggregateOutputType = {
+  depositPercent: runtime.Decimal | null
+  depositAmount: runtime.Decimal | null
+}
+
+export type TreatmentPlanSumAggregateOutputType = {
+  depositPercent: runtime.Decimal | null
+  depositAmount: runtime.Decimal | null
 }
 
 export type TreatmentPlanMinAggregateOutputType = {
@@ -33,6 +45,11 @@ export type TreatmentPlanMinAggregateOutputType = {
   status: $Enums.TreatmentPlanStatus | null
   startDate: Date | null
   expectedEndDate: Date | null
+  schedulePaymentOption: $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus: $Enums.SchedulePaymentStatus | null
+  depositPercent: runtime.Decimal | null
+  depositAmount: runtime.Decimal | null
+  scheduleConfirmedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -46,6 +63,11 @@ export type TreatmentPlanMaxAggregateOutputType = {
   status: $Enums.TreatmentPlanStatus | null
   startDate: Date | null
   expectedEndDate: Date | null
+  schedulePaymentOption: $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus: $Enums.SchedulePaymentStatus | null
+  depositPercent: runtime.Decimal | null
+  depositAmount: runtime.Decimal | null
+  scheduleConfirmedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -59,12 +81,27 @@ export type TreatmentPlanCountAggregateOutputType = {
   status: number
   startDate: number
   expectedEndDate: number
+  schedulePaymentOption: number
+  schedulePaymentStatus: number
+  depositPercent: number
+  depositAmount: number
+  scheduleConfirmedAt: number
   items: number
   createdAt: number
   updatedAt: number
   _all: number
 }
 
+
+export type TreatmentPlanAvgAggregateInputType = {
+  depositPercent?: true
+  depositAmount?: true
+}
+
+export type TreatmentPlanSumAggregateInputType = {
+  depositPercent?: true
+  depositAmount?: true
+}
 
 export type TreatmentPlanMinAggregateInputType = {
   id?: true
@@ -75,6 +112,11 @@ export type TreatmentPlanMinAggregateInputType = {
   status?: true
   startDate?: true
   expectedEndDate?: true
+  schedulePaymentOption?: true
+  schedulePaymentStatus?: true
+  depositPercent?: true
+  depositAmount?: true
+  scheduleConfirmedAt?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -88,6 +130,11 @@ export type TreatmentPlanMaxAggregateInputType = {
   status?: true
   startDate?: true
   expectedEndDate?: true
+  schedulePaymentOption?: true
+  schedulePaymentStatus?: true
+  depositPercent?: true
+  depositAmount?: true
+  scheduleConfirmedAt?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -101,6 +148,11 @@ export type TreatmentPlanCountAggregateInputType = {
   status?: true
   startDate?: true
   expectedEndDate?: true
+  schedulePaymentOption?: true
+  schedulePaymentStatus?: true
+  depositPercent?: true
+  depositAmount?: true
+  scheduleConfirmedAt?: true
   items?: true
   createdAt?: true
   updatedAt?: true
@@ -145,6 +197,18 @@ export type TreatmentPlanAggregateArgs<ExtArgs extends runtime.Types.Extensions.
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
    * 
+   * Select which fields to average
+  **/
+  _avg?: TreatmentPlanAvgAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
+   * Select which fields to sum
+  **/
+  _sum?: TreatmentPlanSumAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
    * Select which fields to find the minimum value
   **/
   _min?: TreatmentPlanMinAggregateInputType
@@ -175,6 +239,8 @@ export type TreatmentPlanGroupByArgs<ExtArgs extends runtime.Types.Extensions.In
   take?: number
   skip?: number
   _count?: TreatmentPlanCountAggregateInputType | true
+  _avg?: TreatmentPlanAvgAggregateInputType
+  _sum?: TreatmentPlanSumAggregateInputType
   _min?: TreatmentPlanMinAggregateInputType
   _max?: TreatmentPlanMaxAggregateInputType
 }
@@ -188,10 +254,17 @@ export type TreatmentPlanGroupByOutputType = {
   status: $Enums.TreatmentPlanStatus
   startDate: Date | null
   expectedEndDate: Date | null
+  schedulePaymentOption: $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus: $Enums.SchedulePaymentStatus
+  depositPercent: runtime.Decimal
+  depositAmount: runtime.Decimal | null
+  scheduleConfirmedAt: Date | null
   items: runtime.JsonValue | null
   createdAt: Date
   updatedAt: Date
   _count: TreatmentPlanCountAggregateOutputType | null
+  _avg: TreatmentPlanAvgAggregateOutputType | null
+  _sum: TreatmentPlanSumAggregateOutputType | null
   _min: TreatmentPlanMinAggregateOutputType | null
   _max: TreatmentPlanMaxAggregateOutputType | null
 }
@@ -223,12 +296,19 @@ export type TreatmentPlanWhereInput = {
   status?: Prisma.EnumTreatmentPlanStatusFilter<"TreatmentPlan"> | $Enums.TreatmentPlanStatus
   startDate?: Prisma.DateTimeNullableFilter<"TreatmentPlan"> | Date | string | null
   expectedEndDate?: Prisma.DateTimeNullableFilter<"TreatmentPlan"> | Date | string | null
+  schedulePaymentOption?: Prisma.EnumSchedulePaymentOptionNullableFilter<"TreatmentPlan"> | $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: Prisma.EnumSchedulePaymentStatusFilter<"TreatmentPlan"> | $Enums.SchedulePaymentStatus
+  depositPercent?: Prisma.DecimalFilter<"TreatmentPlan"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: Prisma.DecimalNullableFilter<"TreatmentPlan"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Prisma.DateTimeNullableFilter<"TreatmentPlan"> | Date | string | null
   items?: Prisma.JsonNullableFilter<"TreatmentPlan">
   createdAt?: Prisma.DateTimeFilter<"TreatmentPlan"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"TreatmentPlan"> | Date | string
   patient?: Prisma.XOR<Prisma.PatientScalarRelationFilter, Prisma.PatientWhereInput>
   doctor?: Prisma.XOR<Prisma.DoctorScalarRelationFilter, Prisma.DoctorWhereInput>
+  steps?: Prisma.TreatmentPlanStepListRelationFilter
   clinicalCases?: Prisma.ClinicalCaseListRelationFilter
+  invoices?: Prisma.InvoiceListRelationFilter
   notifications?: Prisma.NotificationListRelationFilter
 }
 
@@ -241,12 +321,19 @@ export type TreatmentPlanOrderByWithRelationInput = {
   status?: Prisma.SortOrder
   startDate?: Prisma.SortOrderInput | Prisma.SortOrder
   expectedEndDate?: Prisma.SortOrderInput | Prisma.SortOrder
+  schedulePaymentOption?: Prisma.SortOrderInput | Prisma.SortOrder
+  schedulePaymentStatus?: Prisma.SortOrder
+  depositPercent?: Prisma.SortOrder
+  depositAmount?: Prisma.SortOrderInput | Prisma.SortOrder
+  scheduleConfirmedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   items?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   patient?: Prisma.PatientOrderByWithRelationInput
   doctor?: Prisma.DoctorOrderByWithRelationInput
+  steps?: Prisma.TreatmentPlanStepOrderByRelationAggregateInput
   clinicalCases?: Prisma.ClinicalCaseOrderByRelationAggregateInput
+  invoices?: Prisma.InvoiceOrderByRelationAggregateInput
   notifications?: Prisma.NotificationOrderByRelationAggregateInput
 }
 
@@ -262,12 +349,19 @@ export type TreatmentPlanWhereUniqueInput = Prisma.AtLeast<{
   status?: Prisma.EnumTreatmentPlanStatusFilter<"TreatmentPlan"> | $Enums.TreatmentPlanStatus
   startDate?: Prisma.DateTimeNullableFilter<"TreatmentPlan"> | Date | string | null
   expectedEndDate?: Prisma.DateTimeNullableFilter<"TreatmentPlan"> | Date | string | null
+  schedulePaymentOption?: Prisma.EnumSchedulePaymentOptionNullableFilter<"TreatmentPlan"> | $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: Prisma.EnumSchedulePaymentStatusFilter<"TreatmentPlan"> | $Enums.SchedulePaymentStatus
+  depositPercent?: Prisma.DecimalFilter<"TreatmentPlan"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: Prisma.DecimalNullableFilter<"TreatmentPlan"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Prisma.DateTimeNullableFilter<"TreatmentPlan"> | Date | string | null
   items?: Prisma.JsonNullableFilter<"TreatmentPlan">
   createdAt?: Prisma.DateTimeFilter<"TreatmentPlan"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"TreatmentPlan"> | Date | string
   patient?: Prisma.XOR<Prisma.PatientScalarRelationFilter, Prisma.PatientWhereInput>
   doctor?: Prisma.XOR<Prisma.DoctorScalarRelationFilter, Prisma.DoctorWhereInput>
+  steps?: Prisma.TreatmentPlanStepListRelationFilter
   clinicalCases?: Prisma.ClinicalCaseListRelationFilter
+  invoices?: Prisma.InvoiceListRelationFilter
   notifications?: Prisma.NotificationListRelationFilter
 }, "id">
 
@@ -280,12 +374,19 @@ export type TreatmentPlanOrderByWithAggregationInput = {
   status?: Prisma.SortOrder
   startDate?: Prisma.SortOrderInput | Prisma.SortOrder
   expectedEndDate?: Prisma.SortOrderInput | Prisma.SortOrder
+  schedulePaymentOption?: Prisma.SortOrderInput | Prisma.SortOrder
+  schedulePaymentStatus?: Prisma.SortOrder
+  depositPercent?: Prisma.SortOrder
+  depositAmount?: Prisma.SortOrderInput | Prisma.SortOrder
+  scheduleConfirmedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   items?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.TreatmentPlanCountOrderByAggregateInput
+  _avg?: Prisma.TreatmentPlanAvgOrderByAggregateInput
   _max?: Prisma.TreatmentPlanMaxOrderByAggregateInput
   _min?: Prisma.TreatmentPlanMinOrderByAggregateInput
+  _sum?: Prisma.TreatmentPlanSumOrderByAggregateInput
 }
 
 export type TreatmentPlanScalarWhereWithAggregatesInput = {
@@ -300,6 +401,11 @@ export type TreatmentPlanScalarWhereWithAggregatesInput = {
   status?: Prisma.EnumTreatmentPlanStatusWithAggregatesFilter<"TreatmentPlan"> | $Enums.TreatmentPlanStatus
   startDate?: Prisma.DateTimeNullableWithAggregatesFilter<"TreatmentPlan"> | Date | string | null
   expectedEndDate?: Prisma.DateTimeNullableWithAggregatesFilter<"TreatmentPlan"> | Date | string | null
+  schedulePaymentOption?: Prisma.EnumSchedulePaymentOptionNullableWithAggregatesFilter<"TreatmentPlan"> | $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: Prisma.EnumSchedulePaymentStatusWithAggregatesFilter<"TreatmentPlan"> | $Enums.SchedulePaymentStatus
+  depositPercent?: Prisma.DecimalWithAggregatesFilter<"TreatmentPlan"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: Prisma.DecimalNullableWithAggregatesFilter<"TreatmentPlan"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"TreatmentPlan"> | Date | string | null
   items?: Prisma.JsonNullableWithAggregatesFilter<"TreatmentPlan">
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"TreatmentPlan"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"TreatmentPlan"> | Date | string
@@ -312,12 +418,19 @@ export type TreatmentPlanCreateInput = {
   status?: $Enums.TreatmentPlanStatus
   startDate?: Date | string | null
   expectedEndDate?: Date | string | null
+  schedulePaymentOption?: $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: $Enums.SchedulePaymentStatus
+  depositPercent?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Date | string | null
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   patient: Prisma.PatientCreateNestedOneWithoutTreatmentPlansInput
   doctor: Prisma.DoctorCreateNestedOneWithoutTreatmentPlansInput
+  steps?: Prisma.TreatmentPlanStepCreateNestedManyWithoutTreatmentPlanInput
   clinicalCases?: Prisma.ClinicalCaseCreateNestedManyWithoutTreatmentPlanInput
+  invoices?: Prisma.InvoiceCreateNestedManyWithoutTreatmentPlanInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutTreatmentPlanInput
 }
 
@@ -330,10 +443,17 @@ export type TreatmentPlanUncheckedCreateInput = {
   status?: $Enums.TreatmentPlanStatus
   startDate?: Date | string | null
   expectedEndDate?: Date | string | null
+  schedulePaymentOption?: $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: $Enums.SchedulePaymentStatus
+  depositPercent?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Date | string | null
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  steps?: Prisma.TreatmentPlanStepUncheckedCreateNestedManyWithoutTreatmentPlanInput
   clinicalCases?: Prisma.ClinicalCaseUncheckedCreateNestedManyWithoutTreatmentPlanInput
+  invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutTreatmentPlanInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTreatmentPlanInput
 }
 
@@ -344,12 +464,19 @@ export type TreatmentPlanUpdateInput = {
   status?: Prisma.EnumTreatmentPlanStatusFieldUpdateOperationsInput | $Enums.TreatmentPlanStatus
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   expectedEndDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  schedulePaymentOption?: Prisma.NullableEnumSchedulePaymentOptionFieldUpdateOperationsInput | $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: Prisma.EnumSchedulePaymentStatusFieldUpdateOperationsInput | $Enums.SchedulePaymentStatus
+  depositPercent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   patient?: Prisma.PatientUpdateOneRequiredWithoutTreatmentPlansNestedInput
   doctor?: Prisma.DoctorUpdateOneRequiredWithoutTreatmentPlansNestedInput
+  steps?: Prisma.TreatmentPlanStepUpdateManyWithoutTreatmentPlanNestedInput
   clinicalCases?: Prisma.ClinicalCaseUpdateManyWithoutTreatmentPlanNestedInput
+  invoices?: Prisma.InvoiceUpdateManyWithoutTreatmentPlanNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutTreatmentPlanNestedInput
 }
 
@@ -362,10 +489,17 @@ export type TreatmentPlanUncheckedUpdateInput = {
   status?: Prisma.EnumTreatmentPlanStatusFieldUpdateOperationsInput | $Enums.TreatmentPlanStatus
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   expectedEndDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  schedulePaymentOption?: Prisma.NullableEnumSchedulePaymentOptionFieldUpdateOperationsInput | $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: Prisma.EnumSchedulePaymentStatusFieldUpdateOperationsInput | $Enums.SchedulePaymentStatus
+  depositPercent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  steps?: Prisma.TreatmentPlanStepUncheckedUpdateManyWithoutTreatmentPlanNestedInput
   clinicalCases?: Prisma.ClinicalCaseUncheckedUpdateManyWithoutTreatmentPlanNestedInput
+  invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutTreatmentPlanNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTreatmentPlanNestedInput
 }
 
@@ -378,6 +512,11 @@ export type TreatmentPlanCreateManyInput = {
   status?: $Enums.TreatmentPlanStatus
   startDate?: Date | string | null
   expectedEndDate?: Date | string | null
+  schedulePaymentOption?: $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: $Enums.SchedulePaymentStatus
+  depositPercent?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Date | string | null
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -390,6 +529,11 @@ export type TreatmentPlanUpdateManyMutationInput = {
   status?: Prisma.EnumTreatmentPlanStatusFieldUpdateOperationsInput | $Enums.TreatmentPlanStatus
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   expectedEndDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  schedulePaymentOption?: Prisma.NullableEnumSchedulePaymentOptionFieldUpdateOperationsInput | $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: Prisma.EnumSchedulePaymentStatusFieldUpdateOperationsInput | $Enums.SchedulePaymentStatus
+  depositPercent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -404,6 +548,11 @@ export type TreatmentPlanUncheckedUpdateManyInput = {
   status?: Prisma.EnumTreatmentPlanStatusFieldUpdateOperationsInput | $Enums.TreatmentPlanStatus
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   expectedEndDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  schedulePaymentOption?: Prisma.NullableEnumSchedulePaymentOptionFieldUpdateOperationsInput | $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: Prisma.EnumSchedulePaymentStatusFieldUpdateOperationsInput | $Enums.SchedulePaymentStatus
+  depositPercent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -428,9 +577,19 @@ export type TreatmentPlanCountOrderByAggregateInput = {
   status?: Prisma.SortOrder
   startDate?: Prisma.SortOrder
   expectedEndDate?: Prisma.SortOrder
+  schedulePaymentOption?: Prisma.SortOrder
+  schedulePaymentStatus?: Prisma.SortOrder
+  depositPercent?: Prisma.SortOrder
+  depositAmount?: Prisma.SortOrder
+  scheduleConfirmedAt?: Prisma.SortOrder
   items?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+}
+
+export type TreatmentPlanAvgOrderByAggregateInput = {
+  depositPercent?: Prisma.SortOrder
+  depositAmount?: Prisma.SortOrder
 }
 
 export type TreatmentPlanMaxOrderByAggregateInput = {
@@ -442,6 +601,11 @@ export type TreatmentPlanMaxOrderByAggregateInput = {
   status?: Prisma.SortOrder
   startDate?: Prisma.SortOrder
   expectedEndDate?: Prisma.SortOrder
+  schedulePaymentOption?: Prisma.SortOrder
+  schedulePaymentStatus?: Prisma.SortOrder
+  depositPercent?: Prisma.SortOrder
+  depositAmount?: Prisma.SortOrder
+  scheduleConfirmedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -455,8 +619,23 @@ export type TreatmentPlanMinOrderByAggregateInput = {
   status?: Prisma.SortOrder
   startDate?: Prisma.SortOrder
   expectedEndDate?: Prisma.SortOrder
+  schedulePaymentOption?: Prisma.SortOrder
+  schedulePaymentStatus?: Prisma.SortOrder
+  depositPercent?: Prisma.SortOrder
+  depositAmount?: Prisma.SortOrder
+  scheduleConfirmedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+}
+
+export type TreatmentPlanSumOrderByAggregateInput = {
+  depositPercent?: Prisma.SortOrder
+  depositAmount?: Prisma.SortOrder
+}
+
+export type TreatmentPlanScalarRelationFilter = {
+  is?: Prisma.TreatmentPlanWhereInput
+  isNot?: Prisma.TreatmentPlanWhereInput
 }
 
 export type TreatmentPlanNullableScalarRelationFilter = {
@@ -552,6 +731,28 @@ export type EnumTreatmentPlanStatusFieldUpdateOperationsInput = {
   set?: $Enums.TreatmentPlanStatus
 }
 
+export type NullableEnumSchedulePaymentOptionFieldUpdateOperationsInput = {
+  set?: $Enums.SchedulePaymentOption | null
+}
+
+export type EnumSchedulePaymentStatusFieldUpdateOperationsInput = {
+  set?: $Enums.SchedulePaymentStatus
+}
+
+export type TreatmentPlanCreateNestedOneWithoutStepsInput = {
+  create?: Prisma.XOR<Prisma.TreatmentPlanCreateWithoutStepsInput, Prisma.TreatmentPlanUncheckedCreateWithoutStepsInput>
+  connectOrCreate?: Prisma.TreatmentPlanCreateOrConnectWithoutStepsInput
+  connect?: Prisma.TreatmentPlanWhereUniqueInput
+}
+
+export type TreatmentPlanUpdateOneRequiredWithoutStepsNestedInput = {
+  create?: Prisma.XOR<Prisma.TreatmentPlanCreateWithoutStepsInput, Prisma.TreatmentPlanUncheckedCreateWithoutStepsInput>
+  connectOrCreate?: Prisma.TreatmentPlanCreateOrConnectWithoutStepsInput
+  upsert?: Prisma.TreatmentPlanUpsertWithoutStepsInput
+  connect?: Prisma.TreatmentPlanWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.TreatmentPlanUpdateToOneWithWhereWithoutStepsInput, Prisma.TreatmentPlanUpdateWithoutStepsInput>, Prisma.TreatmentPlanUncheckedUpdateWithoutStepsInput>
+}
+
 export type TreatmentPlanCreateNestedOneWithoutClinicalCasesInput = {
   create?: Prisma.XOR<Prisma.TreatmentPlanCreateWithoutClinicalCasesInput, Prisma.TreatmentPlanUncheckedCreateWithoutClinicalCasesInput>
   connectOrCreate?: Prisma.TreatmentPlanCreateOrConnectWithoutClinicalCasesInput
@@ -566,6 +767,22 @@ export type TreatmentPlanUpdateOneWithoutClinicalCasesNestedInput = {
   delete?: Prisma.TreatmentPlanWhereInput | boolean
   connect?: Prisma.TreatmentPlanWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.TreatmentPlanUpdateToOneWithWhereWithoutClinicalCasesInput, Prisma.TreatmentPlanUpdateWithoutClinicalCasesInput>, Prisma.TreatmentPlanUncheckedUpdateWithoutClinicalCasesInput>
+}
+
+export type TreatmentPlanCreateNestedOneWithoutInvoicesInput = {
+  create?: Prisma.XOR<Prisma.TreatmentPlanCreateWithoutInvoicesInput, Prisma.TreatmentPlanUncheckedCreateWithoutInvoicesInput>
+  connectOrCreate?: Prisma.TreatmentPlanCreateOrConnectWithoutInvoicesInput
+  connect?: Prisma.TreatmentPlanWhereUniqueInput
+}
+
+export type TreatmentPlanUpdateOneWithoutInvoicesNestedInput = {
+  create?: Prisma.XOR<Prisma.TreatmentPlanCreateWithoutInvoicesInput, Prisma.TreatmentPlanUncheckedCreateWithoutInvoicesInput>
+  connectOrCreate?: Prisma.TreatmentPlanCreateOrConnectWithoutInvoicesInput
+  upsert?: Prisma.TreatmentPlanUpsertWithoutInvoicesInput
+  disconnect?: Prisma.TreatmentPlanWhereInput | boolean
+  delete?: Prisma.TreatmentPlanWhereInput | boolean
+  connect?: Prisma.TreatmentPlanWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.TreatmentPlanUpdateToOneWithWhereWithoutInvoicesInput, Prisma.TreatmentPlanUpdateWithoutInvoicesInput>, Prisma.TreatmentPlanUncheckedUpdateWithoutInvoicesInput>
 }
 
 export type TreatmentPlanCreateNestedOneWithoutNotificationsInput = {
@@ -591,11 +808,18 @@ export type TreatmentPlanCreateWithoutPatientInput = {
   status?: $Enums.TreatmentPlanStatus
   startDate?: Date | string | null
   expectedEndDate?: Date | string | null
+  schedulePaymentOption?: $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: $Enums.SchedulePaymentStatus
+  depositPercent?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Date | string | null
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   doctor: Prisma.DoctorCreateNestedOneWithoutTreatmentPlansInput
+  steps?: Prisma.TreatmentPlanStepCreateNestedManyWithoutTreatmentPlanInput
   clinicalCases?: Prisma.ClinicalCaseCreateNestedManyWithoutTreatmentPlanInput
+  invoices?: Prisma.InvoiceCreateNestedManyWithoutTreatmentPlanInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutTreatmentPlanInput
 }
 
@@ -607,10 +831,17 @@ export type TreatmentPlanUncheckedCreateWithoutPatientInput = {
   status?: $Enums.TreatmentPlanStatus
   startDate?: Date | string | null
   expectedEndDate?: Date | string | null
+  schedulePaymentOption?: $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: $Enums.SchedulePaymentStatus
+  depositPercent?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Date | string | null
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  steps?: Prisma.TreatmentPlanStepUncheckedCreateNestedManyWithoutTreatmentPlanInput
   clinicalCases?: Prisma.ClinicalCaseUncheckedCreateNestedManyWithoutTreatmentPlanInput
+  invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutTreatmentPlanInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTreatmentPlanInput
 }
 
@@ -652,6 +883,11 @@ export type TreatmentPlanScalarWhereInput = {
   status?: Prisma.EnumTreatmentPlanStatusFilter<"TreatmentPlan"> | $Enums.TreatmentPlanStatus
   startDate?: Prisma.DateTimeNullableFilter<"TreatmentPlan"> | Date | string | null
   expectedEndDate?: Prisma.DateTimeNullableFilter<"TreatmentPlan"> | Date | string | null
+  schedulePaymentOption?: Prisma.EnumSchedulePaymentOptionNullableFilter<"TreatmentPlan"> | $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: Prisma.EnumSchedulePaymentStatusFilter<"TreatmentPlan"> | $Enums.SchedulePaymentStatus
+  depositPercent?: Prisma.DecimalFilter<"TreatmentPlan"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: Prisma.DecimalNullableFilter<"TreatmentPlan"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Prisma.DateTimeNullableFilter<"TreatmentPlan"> | Date | string | null
   items?: Prisma.JsonNullableFilter<"TreatmentPlan">
   createdAt?: Prisma.DateTimeFilter<"TreatmentPlan"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"TreatmentPlan"> | Date | string
@@ -664,11 +900,18 @@ export type TreatmentPlanCreateWithoutDoctorInput = {
   status?: $Enums.TreatmentPlanStatus
   startDate?: Date | string | null
   expectedEndDate?: Date | string | null
+  schedulePaymentOption?: $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: $Enums.SchedulePaymentStatus
+  depositPercent?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Date | string | null
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   patient: Prisma.PatientCreateNestedOneWithoutTreatmentPlansInput
+  steps?: Prisma.TreatmentPlanStepCreateNestedManyWithoutTreatmentPlanInput
   clinicalCases?: Prisma.ClinicalCaseCreateNestedManyWithoutTreatmentPlanInput
+  invoices?: Prisma.InvoiceCreateNestedManyWithoutTreatmentPlanInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutTreatmentPlanInput
 }
 
@@ -680,10 +923,17 @@ export type TreatmentPlanUncheckedCreateWithoutDoctorInput = {
   status?: $Enums.TreatmentPlanStatus
   startDate?: Date | string | null
   expectedEndDate?: Date | string | null
+  schedulePaymentOption?: $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: $Enums.SchedulePaymentStatus
+  depositPercent?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Date | string | null
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  steps?: Prisma.TreatmentPlanStepUncheckedCreateNestedManyWithoutTreatmentPlanInput
   clinicalCases?: Prisma.ClinicalCaseUncheckedCreateNestedManyWithoutTreatmentPlanInput
+  invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutTreatmentPlanInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTreatmentPlanInput
 }
 
@@ -713,6 +963,110 @@ export type TreatmentPlanUpdateManyWithWhereWithoutDoctorInput = {
   data: Prisma.XOR<Prisma.TreatmentPlanUpdateManyMutationInput, Prisma.TreatmentPlanUncheckedUpdateManyWithoutDoctorInput>
 }
 
+export type TreatmentPlanCreateWithoutStepsInput = {
+  id?: string
+  title: string
+  description?: string | null
+  status?: $Enums.TreatmentPlanStatus
+  startDate?: Date | string | null
+  expectedEndDate?: Date | string | null
+  schedulePaymentOption?: $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: $Enums.SchedulePaymentStatus
+  depositPercent?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Date | string | null
+  items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  patient: Prisma.PatientCreateNestedOneWithoutTreatmentPlansInput
+  doctor: Prisma.DoctorCreateNestedOneWithoutTreatmentPlansInput
+  clinicalCases?: Prisma.ClinicalCaseCreateNestedManyWithoutTreatmentPlanInput
+  invoices?: Prisma.InvoiceCreateNestedManyWithoutTreatmentPlanInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutTreatmentPlanInput
+}
+
+export type TreatmentPlanUncheckedCreateWithoutStepsInput = {
+  id?: string
+  patientId: string
+  doctorId: string
+  title: string
+  description?: string | null
+  status?: $Enums.TreatmentPlanStatus
+  startDate?: Date | string | null
+  expectedEndDate?: Date | string | null
+  schedulePaymentOption?: $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: $Enums.SchedulePaymentStatus
+  depositPercent?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Date | string | null
+  items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  clinicalCases?: Prisma.ClinicalCaseUncheckedCreateNestedManyWithoutTreatmentPlanInput
+  invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutTreatmentPlanInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTreatmentPlanInput
+}
+
+export type TreatmentPlanCreateOrConnectWithoutStepsInput = {
+  where: Prisma.TreatmentPlanWhereUniqueInput
+  create: Prisma.XOR<Prisma.TreatmentPlanCreateWithoutStepsInput, Prisma.TreatmentPlanUncheckedCreateWithoutStepsInput>
+}
+
+export type TreatmentPlanUpsertWithoutStepsInput = {
+  update: Prisma.XOR<Prisma.TreatmentPlanUpdateWithoutStepsInput, Prisma.TreatmentPlanUncheckedUpdateWithoutStepsInput>
+  create: Prisma.XOR<Prisma.TreatmentPlanCreateWithoutStepsInput, Prisma.TreatmentPlanUncheckedCreateWithoutStepsInput>
+  where?: Prisma.TreatmentPlanWhereInput
+}
+
+export type TreatmentPlanUpdateToOneWithWhereWithoutStepsInput = {
+  where?: Prisma.TreatmentPlanWhereInput
+  data: Prisma.XOR<Prisma.TreatmentPlanUpdateWithoutStepsInput, Prisma.TreatmentPlanUncheckedUpdateWithoutStepsInput>
+}
+
+export type TreatmentPlanUpdateWithoutStepsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumTreatmentPlanStatusFieldUpdateOperationsInput | $Enums.TreatmentPlanStatus
+  startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expectedEndDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  schedulePaymentOption?: Prisma.NullableEnumSchedulePaymentOptionFieldUpdateOperationsInput | $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: Prisma.EnumSchedulePaymentStatusFieldUpdateOperationsInput | $Enums.SchedulePaymentStatus
+  depositPercent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  patient?: Prisma.PatientUpdateOneRequiredWithoutTreatmentPlansNestedInput
+  doctor?: Prisma.DoctorUpdateOneRequiredWithoutTreatmentPlansNestedInput
+  clinicalCases?: Prisma.ClinicalCaseUpdateManyWithoutTreatmentPlanNestedInput
+  invoices?: Prisma.InvoiceUpdateManyWithoutTreatmentPlanNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutTreatmentPlanNestedInput
+}
+
+export type TreatmentPlanUncheckedUpdateWithoutStepsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  patientId?: Prisma.StringFieldUpdateOperationsInput | string
+  doctorId?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumTreatmentPlanStatusFieldUpdateOperationsInput | $Enums.TreatmentPlanStatus
+  startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expectedEndDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  schedulePaymentOption?: Prisma.NullableEnumSchedulePaymentOptionFieldUpdateOperationsInput | $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: Prisma.EnumSchedulePaymentStatusFieldUpdateOperationsInput | $Enums.SchedulePaymentStatus
+  depositPercent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  clinicalCases?: Prisma.ClinicalCaseUncheckedUpdateManyWithoutTreatmentPlanNestedInput
+  invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutTreatmentPlanNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTreatmentPlanNestedInput
+}
+
 export type TreatmentPlanCreateWithoutClinicalCasesInput = {
   id?: string
   title: string
@@ -720,11 +1074,18 @@ export type TreatmentPlanCreateWithoutClinicalCasesInput = {
   status?: $Enums.TreatmentPlanStatus
   startDate?: Date | string | null
   expectedEndDate?: Date | string | null
+  schedulePaymentOption?: $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: $Enums.SchedulePaymentStatus
+  depositPercent?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Date | string | null
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   patient: Prisma.PatientCreateNestedOneWithoutTreatmentPlansInput
   doctor: Prisma.DoctorCreateNestedOneWithoutTreatmentPlansInput
+  steps?: Prisma.TreatmentPlanStepCreateNestedManyWithoutTreatmentPlanInput
+  invoices?: Prisma.InvoiceCreateNestedManyWithoutTreatmentPlanInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutTreatmentPlanInput
 }
 
@@ -737,9 +1098,16 @@ export type TreatmentPlanUncheckedCreateWithoutClinicalCasesInput = {
   status?: $Enums.TreatmentPlanStatus
   startDate?: Date | string | null
   expectedEndDate?: Date | string | null
+  schedulePaymentOption?: $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: $Enums.SchedulePaymentStatus
+  depositPercent?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Date | string | null
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  steps?: Prisma.TreatmentPlanStepUncheckedCreateNestedManyWithoutTreatmentPlanInput
+  invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutTreatmentPlanInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTreatmentPlanInput
 }
 
@@ -766,11 +1134,18 @@ export type TreatmentPlanUpdateWithoutClinicalCasesInput = {
   status?: Prisma.EnumTreatmentPlanStatusFieldUpdateOperationsInput | $Enums.TreatmentPlanStatus
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   expectedEndDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  schedulePaymentOption?: Prisma.NullableEnumSchedulePaymentOptionFieldUpdateOperationsInput | $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: Prisma.EnumSchedulePaymentStatusFieldUpdateOperationsInput | $Enums.SchedulePaymentStatus
+  depositPercent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   patient?: Prisma.PatientUpdateOneRequiredWithoutTreatmentPlansNestedInput
   doctor?: Prisma.DoctorUpdateOneRequiredWithoutTreatmentPlansNestedInput
+  steps?: Prisma.TreatmentPlanStepUpdateManyWithoutTreatmentPlanNestedInput
+  invoices?: Prisma.InvoiceUpdateManyWithoutTreatmentPlanNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutTreatmentPlanNestedInput
 }
 
@@ -783,9 +1158,120 @@ export type TreatmentPlanUncheckedUpdateWithoutClinicalCasesInput = {
   status?: Prisma.EnumTreatmentPlanStatusFieldUpdateOperationsInput | $Enums.TreatmentPlanStatus
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   expectedEndDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  schedulePaymentOption?: Prisma.NullableEnumSchedulePaymentOptionFieldUpdateOperationsInput | $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: Prisma.EnumSchedulePaymentStatusFieldUpdateOperationsInput | $Enums.SchedulePaymentStatus
+  depositPercent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  steps?: Prisma.TreatmentPlanStepUncheckedUpdateManyWithoutTreatmentPlanNestedInput
+  invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutTreatmentPlanNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTreatmentPlanNestedInput
+}
+
+export type TreatmentPlanCreateWithoutInvoicesInput = {
+  id?: string
+  title: string
+  description?: string | null
+  status?: $Enums.TreatmentPlanStatus
+  startDate?: Date | string | null
+  expectedEndDate?: Date | string | null
+  schedulePaymentOption?: $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: $Enums.SchedulePaymentStatus
+  depositPercent?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Date | string | null
+  items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  patient: Prisma.PatientCreateNestedOneWithoutTreatmentPlansInput
+  doctor: Prisma.DoctorCreateNestedOneWithoutTreatmentPlansInput
+  steps?: Prisma.TreatmentPlanStepCreateNestedManyWithoutTreatmentPlanInput
+  clinicalCases?: Prisma.ClinicalCaseCreateNestedManyWithoutTreatmentPlanInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutTreatmentPlanInput
+}
+
+export type TreatmentPlanUncheckedCreateWithoutInvoicesInput = {
+  id?: string
+  patientId: string
+  doctorId: string
+  title: string
+  description?: string | null
+  status?: $Enums.TreatmentPlanStatus
+  startDate?: Date | string | null
+  expectedEndDate?: Date | string | null
+  schedulePaymentOption?: $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: $Enums.SchedulePaymentStatus
+  depositPercent?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Date | string | null
+  items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  steps?: Prisma.TreatmentPlanStepUncheckedCreateNestedManyWithoutTreatmentPlanInput
+  clinicalCases?: Prisma.ClinicalCaseUncheckedCreateNestedManyWithoutTreatmentPlanInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTreatmentPlanInput
+}
+
+export type TreatmentPlanCreateOrConnectWithoutInvoicesInput = {
+  where: Prisma.TreatmentPlanWhereUniqueInput
+  create: Prisma.XOR<Prisma.TreatmentPlanCreateWithoutInvoicesInput, Prisma.TreatmentPlanUncheckedCreateWithoutInvoicesInput>
+}
+
+export type TreatmentPlanUpsertWithoutInvoicesInput = {
+  update: Prisma.XOR<Prisma.TreatmentPlanUpdateWithoutInvoicesInput, Prisma.TreatmentPlanUncheckedUpdateWithoutInvoicesInput>
+  create: Prisma.XOR<Prisma.TreatmentPlanCreateWithoutInvoicesInput, Prisma.TreatmentPlanUncheckedCreateWithoutInvoicesInput>
+  where?: Prisma.TreatmentPlanWhereInput
+}
+
+export type TreatmentPlanUpdateToOneWithWhereWithoutInvoicesInput = {
+  where?: Prisma.TreatmentPlanWhereInput
+  data: Prisma.XOR<Prisma.TreatmentPlanUpdateWithoutInvoicesInput, Prisma.TreatmentPlanUncheckedUpdateWithoutInvoicesInput>
+}
+
+export type TreatmentPlanUpdateWithoutInvoicesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumTreatmentPlanStatusFieldUpdateOperationsInput | $Enums.TreatmentPlanStatus
+  startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expectedEndDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  schedulePaymentOption?: Prisma.NullableEnumSchedulePaymentOptionFieldUpdateOperationsInput | $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: Prisma.EnumSchedulePaymentStatusFieldUpdateOperationsInput | $Enums.SchedulePaymentStatus
+  depositPercent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  patient?: Prisma.PatientUpdateOneRequiredWithoutTreatmentPlansNestedInput
+  doctor?: Prisma.DoctorUpdateOneRequiredWithoutTreatmentPlansNestedInput
+  steps?: Prisma.TreatmentPlanStepUpdateManyWithoutTreatmentPlanNestedInput
+  clinicalCases?: Prisma.ClinicalCaseUpdateManyWithoutTreatmentPlanNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutTreatmentPlanNestedInput
+}
+
+export type TreatmentPlanUncheckedUpdateWithoutInvoicesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  patientId?: Prisma.StringFieldUpdateOperationsInput | string
+  doctorId?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumTreatmentPlanStatusFieldUpdateOperationsInput | $Enums.TreatmentPlanStatus
+  startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expectedEndDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  schedulePaymentOption?: Prisma.NullableEnumSchedulePaymentOptionFieldUpdateOperationsInput | $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: Prisma.EnumSchedulePaymentStatusFieldUpdateOperationsInput | $Enums.SchedulePaymentStatus
+  depositPercent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  steps?: Prisma.TreatmentPlanStepUncheckedUpdateManyWithoutTreatmentPlanNestedInput
+  clinicalCases?: Prisma.ClinicalCaseUncheckedUpdateManyWithoutTreatmentPlanNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTreatmentPlanNestedInput
 }
 
@@ -796,12 +1282,19 @@ export type TreatmentPlanCreateWithoutNotificationsInput = {
   status?: $Enums.TreatmentPlanStatus
   startDate?: Date | string | null
   expectedEndDate?: Date | string | null
+  schedulePaymentOption?: $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: $Enums.SchedulePaymentStatus
+  depositPercent?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Date | string | null
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   patient: Prisma.PatientCreateNestedOneWithoutTreatmentPlansInput
   doctor: Prisma.DoctorCreateNestedOneWithoutTreatmentPlansInput
+  steps?: Prisma.TreatmentPlanStepCreateNestedManyWithoutTreatmentPlanInput
   clinicalCases?: Prisma.ClinicalCaseCreateNestedManyWithoutTreatmentPlanInput
+  invoices?: Prisma.InvoiceCreateNestedManyWithoutTreatmentPlanInput
 }
 
 export type TreatmentPlanUncheckedCreateWithoutNotificationsInput = {
@@ -813,10 +1306,17 @@ export type TreatmentPlanUncheckedCreateWithoutNotificationsInput = {
   status?: $Enums.TreatmentPlanStatus
   startDate?: Date | string | null
   expectedEndDate?: Date | string | null
+  schedulePaymentOption?: $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: $Enums.SchedulePaymentStatus
+  depositPercent?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Date | string | null
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  steps?: Prisma.TreatmentPlanStepUncheckedCreateNestedManyWithoutTreatmentPlanInput
   clinicalCases?: Prisma.ClinicalCaseUncheckedCreateNestedManyWithoutTreatmentPlanInput
+  invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutTreatmentPlanInput
 }
 
 export type TreatmentPlanCreateOrConnectWithoutNotificationsInput = {
@@ -842,12 +1342,19 @@ export type TreatmentPlanUpdateWithoutNotificationsInput = {
   status?: Prisma.EnumTreatmentPlanStatusFieldUpdateOperationsInput | $Enums.TreatmentPlanStatus
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   expectedEndDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  schedulePaymentOption?: Prisma.NullableEnumSchedulePaymentOptionFieldUpdateOperationsInput | $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: Prisma.EnumSchedulePaymentStatusFieldUpdateOperationsInput | $Enums.SchedulePaymentStatus
+  depositPercent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   patient?: Prisma.PatientUpdateOneRequiredWithoutTreatmentPlansNestedInput
   doctor?: Prisma.DoctorUpdateOneRequiredWithoutTreatmentPlansNestedInput
+  steps?: Prisma.TreatmentPlanStepUpdateManyWithoutTreatmentPlanNestedInput
   clinicalCases?: Prisma.ClinicalCaseUpdateManyWithoutTreatmentPlanNestedInput
+  invoices?: Prisma.InvoiceUpdateManyWithoutTreatmentPlanNestedInput
 }
 
 export type TreatmentPlanUncheckedUpdateWithoutNotificationsInput = {
@@ -859,10 +1366,17 @@ export type TreatmentPlanUncheckedUpdateWithoutNotificationsInput = {
   status?: Prisma.EnumTreatmentPlanStatusFieldUpdateOperationsInput | $Enums.TreatmentPlanStatus
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   expectedEndDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  schedulePaymentOption?: Prisma.NullableEnumSchedulePaymentOptionFieldUpdateOperationsInput | $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: Prisma.EnumSchedulePaymentStatusFieldUpdateOperationsInput | $Enums.SchedulePaymentStatus
+  depositPercent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  steps?: Prisma.TreatmentPlanStepUncheckedUpdateManyWithoutTreatmentPlanNestedInput
   clinicalCases?: Prisma.ClinicalCaseUncheckedUpdateManyWithoutTreatmentPlanNestedInput
+  invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutTreatmentPlanNestedInput
 }
 
 export type TreatmentPlanCreateManyPatientInput = {
@@ -873,6 +1387,11 @@ export type TreatmentPlanCreateManyPatientInput = {
   status?: $Enums.TreatmentPlanStatus
   startDate?: Date | string | null
   expectedEndDate?: Date | string | null
+  schedulePaymentOption?: $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: $Enums.SchedulePaymentStatus
+  depositPercent?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Date | string | null
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -885,11 +1404,18 @@ export type TreatmentPlanUpdateWithoutPatientInput = {
   status?: Prisma.EnumTreatmentPlanStatusFieldUpdateOperationsInput | $Enums.TreatmentPlanStatus
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   expectedEndDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  schedulePaymentOption?: Prisma.NullableEnumSchedulePaymentOptionFieldUpdateOperationsInput | $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: Prisma.EnumSchedulePaymentStatusFieldUpdateOperationsInput | $Enums.SchedulePaymentStatus
+  depositPercent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   doctor?: Prisma.DoctorUpdateOneRequiredWithoutTreatmentPlansNestedInput
+  steps?: Prisma.TreatmentPlanStepUpdateManyWithoutTreatmentPlanNestedInput
   clinicalCases?: Prisma.ClinicalCaseUpdateManyWithoutTreatmentPlanNestedInput
+  invoices?: Prisma.InvoiceUpdateManyWithoutTreatmentPlanNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutTreatmentPlanNestedInput
 }
 
@@ -901,10 +1427,17 @@ export type TreatmentPlanUncheckedUpdateWithoutPatientInput = {
   status?: Prisma.EnumTreatmentPlanStatusFieldUpdateOperationsInput | $Enums.TreatmentPlanStatus
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   expectedEndDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  schedulePaymentOption?: Prisma.NullableEnumSchedulePaymentOptionFieldUpdateOperationsInput | $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: Prisma.EnumSchedulePaymentStatusFieldUpdateOperationsInput | $Enums.SchedulePaymentStatus
+  depositPercent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  steps?: Prisma.TreatmentPlanStepUncheckedUpdateManyWithoutTreatmentPlanNestedInput
   clinicalCases?: Prisma.ClinicalCaseUncheckedUpdateManyWithoutTreatmentPlanNestedInput
+  invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutTreatmentPlanNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTreatmentPlanNestedInput
 }
 
@@ -916,6 +1449,11 @@ export type TreatmentPlanUncheckedUpdateManyWithoutPatientInput = {
   status?: Prisma.EnumTreatmentPlanStatusFieldUpdateOperationsInput | $Enums.TreatmentPlanStatus
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   expectedEndDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  schedulePaymentOption?: Prisma.NullableEnumSchedulePaymentOptionFieldUpdateOperationsInput | $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: Prisma.EnumSchedulePaymentStatusFieldUpdateOperationsInput | $Enums.SchedulePaymentStatus
+  depositPercent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -929,6 +1467,11 @@ export type TreatmentPlanCreateManyDoctorInput = {
   status?: $Enums.TreatmentPlanStatus
   startDate?: Date | string | null
   expectedEndDate?: Date | string | null
+  schedulePaymentOption?: $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: $Enums.SchedulePaymentStatus
+  depositPercent?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Date | string | null
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -941,11 +1484,18 @@ export type TreatmentPlanUpdateWithoutDoctorInput = {
   status?: Prisma.EnumTreatmentPlanStatusFieldUpdateOperationsInput | $Enums.TreatmentPlanStatus
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   expectedEndDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  schedulePaymentOption?: Prisma.NullableEnumSchedulePaymentOptionFieldUpdateOperationsInput | $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: Prisma.EnumSchedulePaymentStatusFieldUpdateOperationsInput | $Enums.SchedulePaymentStatus
+  depositPercent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   patient?: Prisma.PatientUpdateOneRequiredWithoutTreatmentPlansNestedInput
+  steps?: Prisma.TreatmentPlanStepUpdateManyWithoutTreatmentPlanNestedInput
   clinicalCases?: Prisma.ClinicalCaseUpdateManyWithoutTreatmentPlanNestedInput
+  invoices?: Prisma.InvoiceUpdateManyWithoutTreatmentPlanNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutTreatmentPlanNestedInput
 }
 
@@ -957,10 +1507,17 @@ export type TreatmentPlanUncheckedUpdateWithoutDoctorInput = {
   status?: Prisma.EnumTreatmentPlanStatusFieldUpdateOperationsInput | $Enums.TreatmentPlanStatus
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   expectedEndDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  schedulePaymentOption?: Prisma.NullableEnumSchedulePaymentOptionFieldUpdateOperationsInput | $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: Prisma.EnumSchedulePaymentStatusFieldUpdateOperationsInput | $Enums.SchedulePaymentStatus
+  depositPercent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  steps?: Prisma.TreatmentPlanStepUncheckedUpdateManyWithoutTreatmentPlanNestedInput
   clinicalCases?: Prisma.ClinicalCaseUncheckedUpdateManyWithoutTreatmentPlanNestedInput
+  invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutTreatmentPlanNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTreatmentPlanNestedInput
 }
 
@@ -972,6 +1529,11 @@ export type TreatmentPlanUncheckedUpdateManyWithoutDoctorInput = {
   status?: Prisma.EnumTreatmentPlanStatusFieldUpdateOperationsInput | $Enums.TreatmentPlanStatus
   startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   expectedEndDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  schedulePaymentOption?: Prisma.NullableEnumSchedulePaymentOptionFieldUpdateOperationsInput | $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: Prisma.EnumSchedulePaymentStatusFieldUpdateOperationsInput | $Enums.SchedulePaymentStatus
+  depositPercent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -983,12 +1545,16 @@ export type TreatmentPlanUncheckedUpdateManyWithoutDoctorInput = {
  */
 
 export type TreatmentPlanCountOutputType = {
+  steps: number
   clinicalCases: number
+  invoices: number
   notifications: number
 }
 
 export type TreatmentPlanCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  steps?: boolean | TreatmentPlanCountOutputTypeCountStepsArgs
   clinicalCases?: boolean | TreatmentPlanCountOutputTypeCountClinicalCasesArgs
+  invoices?: boolean | TreatmentPlanCountOutputTypeCountInvoicesArgs
   notifications?: boolean | TreatmentPlanCountOutputTypeCountNotificationsArgs
 }
 
@@ -1005,8 +1571,22 @@ export type TreatmentPlanCountOutputTypeDefaultArgs<ExtArgs extends runtime.Type
 /**
  * TreatmentPlanCountOutputType without action
  */
+export type TreatmentPlanCountOutputTypeCountStepsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.TreatmentPlanStepWhereInput
+}
+
+/**
+ * TreatmentPlanCountOutputType without action
+ */
 export type TreatmentPlanCountOutputTypeCountClinicalCasesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.ClinicalCaseWhereInput
+}
+
+/**
+ * TreatmentPlanCountOutputType without action
+ */
+export type TreatmentPlanCountOutputTypeCountInvoicesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.InvoiceWhereInput
 }
 
 /**
@@ -1026,12 +1606,19 @@ export type TreatmentPlanSelect<ExtArgs extends runtime.Types.Extensions.Interna
   status?: boolean
   startDate?: boolean
   expectedEndDate?: boolean
+  schedulePaymentOption?: boolean
+  schedulePaymentStatus?: boolean
+  depositPercent?: boolean
+  depositAmount?: boolean
+  scheduleConfirmedAt?: boolean
   items?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   patient?: boolean | Prisma.PatientDefaultArgs<ExtArgs>
   doctor?: boolean | Prisma.DoctorDefaultArgs<ExtArgs>
+  steps?: boolean | Prisma.TreatmentPlan$stepsArgs<ExtArgs>
   clinicalCases?: boolean | Prisma.TreatmentPlan$clinicalCasesArgs<ExtArgs>
+  invoices?: boolean | Prisma.TreatmentPlan$invoicesArgs<ExtArgs>
   notifications?: boolean | Prisma.TreatmentPlan$notificationsArgs<ExtArgs>
   _count?: boolean | Prisma.TreatmentPlanCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["treatmentPlan"]>
@@ -1045,6 +1632,11 @@ export type TreatmentPlanSelectCreateManyAndReturn<ExtArgs extends runtime.Types
   status?: boolean
   startDate?: boolean
   expectedEndDate?: boolean
+  schedulePaymentOption?: boolean
+  schedulePaymentStatus?: boolean
+  depositPercent?: boolean
+  depositAmount?: boolean
+  scheduleConfirmedAt?: boolean
   items?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -1061,6 +1653,11 @@ export type TreatmentPlanSelectUpdateManyAndReturn<ExtArgs extends runtime.Types
   status?: boolean
   startDate?: boolean
   expectedEndDate?: boolean
+  schedulePaymentOption?: boolean
+  schedulePaymentStatus?: boolean
+  depositPercent?: boolean
+  depositAmount?: boolean
+  scheduleConfirmedAt?: boolean
   items?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -1077,16 +1674,23 @@ export type TreatmentPlanSelectScalar = {
   status?: boolean
   startDate?: boolean
   expectedEndDate?: boolean
+  schedulePaymentOption?: boolean
+  schedulePaymentStatus?: boolean
+  depositPercent?: boolean
+  depositAmount?: boolean
+  scheduleConfirmedAt?: boolean
   items?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type TreatmentPlanOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "patientId" | "doctorId" | "title" | "description" | "status" | "startDate" | "expectedEndDate" | "items" | "createdAt" | "updatedAt", ExtArgs["result"]["treatmentPlan"]>
+export type TreatmentPlanOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "patientId" | "doctorId" | "title" | "description" | "status" | "startDate" | "expectedEndDate" | "schedulePaymentOption" | "schedulePaymentStatus" | "depositPercent" | "depositAmount" | "scheduleConfirmedAt" | "items" | "createdAt" | "updatedAt", ExtArgs["result"]["treatmentPlan"]>
 export type TreatmentPlanInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   patient?: boolean | Prisma.PatientDefaultArgs<ExtArgs>
   doctor?: boolean | Prisma.DoctorDefaultArgs<ExtArgs>
+  steps?: boolean | Prisma.TreatmentPlan$stepsArgs<ExtArgs>
   clinicalCases?: boolean | Prisma.TreatmentPlan$clinicalCasesArgs<ExtArgs>
+  invoices?: boolean | Prisma.TreatmentPlan$invoicesArgs<ExtArgs>
   notifications?: boolean | Prisma.TreatmentPlan$notificationsArgs<ExtArgs>
   _count?: boolean | Prisma.TreatmentPlanCountOutputTypeDefaultArgs<ExtArgs>
 }
@@ -1104,7 +1708,9 @@ export type $TreatmentPlanPayload<ExtArgs extends runtime.Types.Extensions.Inter
   objects: {
     patient: Prisma.$PatientPayload<ExtArgs>
     doctor: Prisma.$DoctorPayload<ExtArgs>
+    steps: Prisma.$TreatmentPlanStepPayload<ExtArgs>[]
     clinicalCases: Prisma.$ClinicalCasePayload<ExtArgs>[]
+    invoices: Prisma.$InvoicePayload<ExtArgs>[]
     notifications: Prisma.$NotificationPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
@@ -1116,6 +1722,11 @@ export type $TreatmentPlanPayload<ExtArgs extends runtime.Types.Extensions.Inter
     status: $Enums.TreatmentPlanStatus
     startDate: Date | null
     expectedEndDate: Date | null
+    schedulePaymentOption: $Enums.SchedulePaymentOption | null
+    schedulePaymentStatus: $Enums.SchedulePaymentStatus
+    depositPercent: runtime.Decimal
+    depositAmount: runtime.Decimal | null
+    scheduleConfirmedAt: Date | null
     items: runtime.JsonValue | null
     createdAt: Date
     updatedAt: Date
@@ -1515,7 +2126,9 @@ export interface Prisma__TreatmentPlanClient<T, Null = never, ExtArgs extends ru
   readonly [Symbol.toStringTag]: "PrismaPromise"
   patient<T extends Prisma.PatientDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.PatientDefaultArgs<ExtArgs>>): Prisma.Prisma__PatientClient<runtime.Types.Result.GetResult<Prisma.$PatientPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   doctor<T extends Prisma.DoctorDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DoctorDefaultArgs<ExtArgs>>): Prisma.Prisma__DoctorClient<runtime.Types.Result.GetResult<Prisma.$DoctorPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  steps<T extends Prisma.TreatmentPlan$stepsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.TreatmentPlan$stepsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TreatmentPlanStepPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   clinicalCases<T extends Prisma.TreatmentPlan$clinicalCasesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.TreatmentPlan$clinicalCasesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ClinicalCasePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  invoices<T extends Prisma.TreatmentPlan$invoicesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.TreatmentPlan$invoicesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$InvoicePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   notifications<T extends Prisma.TreatmentPlan$notificationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.TreatmentPlan$notificationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$NotificationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -1554,6 +2167,11 @@ export interface TreatmentPlanFieldRefs {
   readonly status: Prisma.FieldRef<"TreatmentPlan", 'TreatmentPlanStatus'>
   readonly startDate: Prisma.FieldRef<"TreatmentPlan", 'DateTime'>
   readonly expectedEndDate: Prisma.FieldRef<"TreatmentPlan", 'DateTime'>
+  readonly schedulePaymentOption: Prisma.FieldRef<"TreatmentPlan", 'SchedulePaymentOption'>
+  readonly schedulePaymentStatus: Prisma.FieldRef<"TreatmentPlan", 'SchedulePaymentStatus'>
+  readonly depositPercent: Prisma.FieldRef<"TreatmentPlan", 'Decimal'>
+  readonly depositAmount: Prisma.FieldRef<"TreatmentPlan", 'Decimal'>
+  readonly scheduleConfirmedAt: Prisma.FieldRef<"TreatmentPlan", 'DateTime'>
   readonly items: Prisma.FieldRef<"TreatmentPlan", 'Json'>
   readonly createdAt: Prisma.FieldRef<"TreatmentPlan", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"TreatmentPlan", 'DateTime'>
@@ -1958,6 +2576,30 @@ export type TreatmentPlanDeleteManyArgs<ExtArgs extends runtime.Types.Extensions
 }
 
 /**
+ * TreatmentPlan.steps
+ */
+export type TreatmentPlan$stepsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the TreatmentPlanStep
+   */
+  select?: Prisma.TreatmentPlanStepSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the TreatmentPlanStep
+   */
+  omit?: Prisma.TreatmentPlanStepOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.TreatmentPlanStepInclude<ExtArgs> | null
+  where?: Prisma.TreatmentPlanStepWhereInput
+  orderBy?: Prisma.TreatmentPlanStepOrderByWithRelationInput | Prisma.TreatmentPlanStepOrderByWithRelationInput[]
+  cursor?: Prisma.TreatmentPlanStepWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.TreatmentPlanStepScalarFieldEnum | Prisma.TreatmentPlanStepScalarFieldEnum[]
+}
+
+/**
  * TreatmentPlan.clinicalCases
  */
 export type TreatmentPlan$clinicalCasesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1979,6 +2621,30 @@ export type TreatmentPlan$clinicalCasesArgs<ExtArgs extends runtime.Types.Extens
   take?: number
   skip?: number
   distinct?: Prisma.ClinicalCaseScalarFieldEnum | Prisma.ClinicalCaseScalarFieldEnum[]
+}
+
+/**
+ * TreatmentPlan.invoices
+ */
+export type TreatmentPlan$invoicesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Invoice
+   */
+  select?: Prisma.InvoiceSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Invoice
+   */
+  omit?: Prisma.InvoiceOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.InvoiceInclude<ExtArgs> | null
+  where?: Prisma.InvoiceWhereInput
+  orderBy?: Prisma.InvoiceOrderByWithRelationInput | Prisma.InvoiceOrderByWithRelationInput[]
+  cursor?: Prisma.InvoiceWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.InvoiceScalarFieldEnum | Prisma.InvoiceScalarFieldEnum[]
 }
 
 /**

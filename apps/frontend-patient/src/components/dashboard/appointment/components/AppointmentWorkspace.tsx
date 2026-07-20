@@ -10,7 +10,7 @@ import { usePatientAppointments } from "../hooks/usePatientAppointments";
 import { useAppointmentWorkspaceSync } from "../hooks/useAppointmentWorkspaceSync";
 import { useAppointmentWorkspaceView } from "../hooks/useAppointmentWorkspaceView";
 import { useCancelAppointment } from "../hooks/useCancelAppointment";
-import type { NotificationPreferences } from "../types";
+import type { AppointmentPaymentOption, NotificationPreferences } from "../types";
 import { BookingModeView } from "./booking/BookingModeView";
 import { ManageModeView } from "./workspace/ManageModeView";
 import { RescheduleAppointmentModal } from "./workspace/RescheduleAppointmentModal";
@@ -35,6 +35,8 @@ export function AppointmentWorkspace({
   const [selectedDoctorId, setSelectedDoctorId] = useState("");
   const [selectedDateId, setSelectedDateId] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
+  const [selectedPaymentOption, setSelectedPaymentOption] =
+    useState<AppointmentPaymentOption>("DEPOSIT_30_PERCENT");
   const [bookingSuccessMessage, setBookingSuccessMessage] = useState<
     string | null
   >(null);
@@ -95,6 +97,7 @@ export function AppointmentWorkspace({
     selectedServiceId,
     selectedDateId,
     selectedTime,
+    selectedPaymentOption,
     ensureLoggedInBeforeBooking,
     onSelectedTimeChange: setSelectedTime,
     onSelectedDoctorChange: setSelectedDoctorId,
@@ -156,6 +159,7 @@ export function AppointmentWorkspace({
         selectedService={selectedService}
         selectedDoctor={selectedDoctor}
         selectedDate={selectedDate}
+        selectedPaymentOption={selectedPaymentOption}
         slotIntervalMinutes={slotIntervalMinutes}
         current={current}
         notifications={notifications}
@@ -166,6 +170,7 @@ export function AppointmentWorkspace({
         onSelectDoctor={setSelectedDoctorId}
         onSelectDate={setSelectedDateId}
         onSelectTime={setSelectedTime}
+        onSelectPaymentOption={setSelectedPaymentOption}
         onToggleNotification={(key) =>
           setNotifications((value) => ({ ...value, [key]: !value[key] }))
         }
@@ -177,10 +182,12 @@ export function AppointmentWorkspace({
           setSelectedDoctorId("");
           setSelectedDateId("");
           setSelectedTime("");
+          setSelectedPaymentOption("DEPOSIT_30_PERCENT");
           setMode("manage");
         }}
         onCloseSuccess={() => {
           setBookingSuccessMessage(null);
+          setSelectedPaymentOption("DEPOSIT_30_PERCENT");
           setMode("manage");
         }}
       />

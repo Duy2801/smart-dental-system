@@ -1,6 +1,16 @@
-import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bull';
+import { BadRequestException, ConflictException, Injectable, Logger } from '@nestjs/common';
+import type { Queue } from 'bull';
 import { randomBytes } from 'crypto';
-import { AppointmentStatus, BookingSource, InvoiceStatus } from 'prisma/generated/enums';
+import {
+  AppointmentPaymentOption,
+  AppointmentPaymentStatus,
+  AppointmentStatus,
+  BookingSource,
+  DepositCalculationMode,
+  InvoiceStatus,
+  InvoiceType,
+} from 'prisma/generated/enums';
 import { PrismaService } from '../prisma/prisma.service';
 import { ClinicConfigService } from '../clinic-config/clinic-config.service';
 import type {
@@ -63,11 +73,20 @@ type PatientBookingPolicy = {
   onlineBookingBlocked: boolean;
 };
 
+type DepositPolicy = {
+  enabled: boolean;
+  calculationMode: DepositCalculationMode;
+  value: number;
+};
+
 @Injectable()
 export class AppointmentService {
+  private readonly logger = new Logger(AppointmentService.name);
+
   constructor(
     private prisma: PrismaService,
     private clinicConfigService: ClinicConfigService,
+    @InjectQueue('mail-queue') private readonly mailQueue: Queue,
   ) { }
 
   async createAppointmentForPatient(userId: string, dto: CreateAppointmentDto) {
@@ -79,6 +98,7 @@ export class AppointmentService {
       serviceId: dto.serviceId,
       scheduledAt: dto.scheduledAt,
       notes: dto.notes,
+      paymentOption: dto.paymentOption,
       bookingSource: BookingSource.PATIENT_APP,
       createdBy: userId,
     });
@@ -407,6 +427,7 @@ export class AppointmentService {
     serviceId: string;
     scheduledAt: string;
     notes?: string;
+    paymentOption?: AppointmentPaymentOption;
     bookingSource: BookingSource;
     createdBy: string;
   }) {
@@ -443,6 +464,11 @@ export class AppointmentService {
       input.createdBy,
     );
     this.ensureOnlineBookingAllowed(bookingPolicy);
+    const clinicConfig = await this.clinicConfigService.getClinicConfig();
+    const depositPolicy = this.resolveDepositPolicy(service, clinicConfig);
+    const depositAmount = depositPolicy.enabled
+      ? this.calculateDepositAmount(Number(service.basePrice), depositPolicy)
+      : 0;
 
     const endAt = new Date(
       scheduledAt.getTime() + service.durationMinutes * 60 * 1000,
@@ -469,6 +495,21 @@ export class AppointmentService {
       scheduledAt,
     );
 
+    const paymentStatus =
+      input.paymentOption === AppointmentPaymentOption.DEPOSIT_30_PERCENT &&
+      depositPolicy.enabled
+        ? AppointmentPaymentStatus.PENDING_DEPOSIT
+        : input.paymentOption === AppointmentPaymentOption.PAY_AT_COUNTER
+          ? AppointmentPaymentStatus.PAY_AT_COUNTER_SELECTED
+          : AppointmentPaymentStatus.NOT_SELECTED;
+
+    if (
+      input.paymentOption === AppointmentPaymentOption.DEPOSIT_30_PERCENT &&
+      !depositPolicy.enabled
+    ) {
+      throw new BadRequestException('appointment.deposit_not_available');
+    }
+
     const appointment = await this.prisma.appointment.create({
       data: {
         appointmentCode: await this.generateAppointmentCode(),
@@ -479,6 +520,21 @@ export class AppointmentService {
         endAt,
         status: AppointmentStatus.PENDING,
         bookingSource: input.bookingSource,
+        paymentOption: input.paymentOption,
+        paymentStatus,
+        depositPercent:
+          depositPolicy.calculationMode === DepositCalculationMode.PERCENT
+            ? depositPolicy.value
+            : 0,
+        depositAmount:
+          input.paymentOption === AppointmentPaymentOption.DEPOSIT_30_PERCENT &&
+          depositPolicy.enabled
+            ? depositAmount
+            : null,
+        scheduleConfirmedAt:
+          input.paymentOption === AppointmentPaymentOption.PAY_AT_COUNTER
+            ? new Date()
+            : null,
         notes: input.notes,
         createdBy: input.createdBy,
       },
@@ -486,27 +542,69 @@ export class AppointmentService {
     });
 
     const depositInvoice =
-      bookingPolicy.requiresDeposit && input.patientId
+      input.paymentOption === AppointmentPaymentOption.DEPOSIT_30_PERCENT &&
+      depositPolicy.enabled &&
+      input.patientId
         ? await this.createDepositInvoiceForAppointment({
             appointmentId: appointment.id,
             patientId: input.patientId,
             serviceId: service.id,
             serviceName: service.name,
             serviceBasePrice: Number(service.basePrice),
+            depositPolicy,
+            depositAmount,
             createdBy: input.createdBy,
           })
         : null;
+
+    await this.queueAppointmentConfirmationEmail({
+      appointment,
+      depositAmount: depositInvoice ? depositAmount : 0,
+    });
 
     return {
       ...appointment,
       bookingPolicy: {
         ...bookingPolicy,
-        depositAmount: bookingPolicy.requiresDeposit
-          ? Number(service.basePrice) * 0.5
-          : 0,
+        depositAmount: depositInvoice ? depositAmount : 0,
         depositInvoiceId: depositInvoice?.id ?? null,
       },
     };
+  }
+
+  private async queueAppointmentConfirmationEmail(input: {
+    appointment: Awaited<ReturnType<typeof this.prisma.appointment.create>>;
+    depositAmount: number;
+  }) {
+    const { appointment, depositAmount } = input;
+    const patientUser = appointment.patient?.user;
+    if (!patientUser?.email) return;
+
+    const paymentLabel =
+      appointment.paymentOption === AppointmentPaymentOption.DEPOSIT_30_PERCENT
+        ? 'Coc truoc'
+        : appointment.paymentOption === AppointmentPaymentOption.PAY_AT_COUNTER
+          ? 'Thanh toan tai quay'
+          : 'Chua chon';
+
+    try {
+      await this.mailQueue.add('send-appointment-confirmation', {
+        name: patientUser.fullName,
+        email: patientUser.email,
+        locale: 'vi',
+        serviceName: appointment.service.name,
+        doctorName: appointment.doctor.user.fullName,
+        scheduledAt: appointment.scheduledAt.toISOString(),
+        paymentLabel,
+        depositAmount,
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Could not queue appointment confirmation email: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
   }
 
   private buildAppointmentOwnerWhere(
@@ -663,43 +761,107 @@ export class AppointmentService {
     serviceId: string;
     serviceName: string;
     serviceBasePrice: number;
+    depositPolicy: DepositPolicy;
+    depositAmount: number;
     createdBy: string;
   }) {
-    const subtotal = input.serviceBasePrice;
-    const depositAmount = Number((subtotal * 0.5).toFixed(2));
-    const remainingAmount = Number((subtotal - depositAmount).toFixed(2));
+    const remainingAmount = Number(
+      (input.serviceBasePrice - input.depositAmount).toFixed(2),
+    );
 
     return this.prisma.invoice.create({
       data: {
         invoiceCode: await this.generateInvoiceCode(),
         patientId: input.patientId,
         appointmentId: input.appointmentId,
+        invoiceType: InvoiceType.DEPOSIT,
         items: [
           {
             service_id: input.serviceId,
-            description: `Coc 50% cho ${input.serviceName}`,
+            description:
+              input.depositPolicy.calculationMode === DepositCalculationMode.PERCENT
+                ? `Coc ${input.depositPolicy.value}% cho ${input.serviceName}`
+                : `Coc ${input.depositAmount} cho ${input.serviceName}`,
             qty: 1,
-            unit_price: depositAmount,
-            amount: depositAmount,
+            unit_price: input.depositAmount,
+            amount: input.depositAmount,
             type: 'DEPOSIT',
           },
           {
             service_id: input.serviceId,
-            description: `Con lai 50% cho ${input.serviceName}`,
+            description:
+              input.depositPolicy.calculationMode === DepositCalculationMode.PERCENT
+                ? `Con lai ${100 - input.depositPolicy.value}% cho ${input.serviceName}`
+                : `Con lai ${Number((input.serviceBasePrice - input.depositAmount).toFixed(2))} cho ${input.serviceName}`,
             qty: 1,
             unit_price: remainingAmount,
             amount: remainingAmount,
             type: 'BALANCE',
           },
         ],
-        subtotal,
-        finalAmount: subtotal,
+        subtotal: input.depositAmount,
+        finalAmount: input.depositAmount,
         status: InvoiceStatus.ISSUED,
         issuedAt: new Date(),
         createdBy: input.createdBy,
       },
       select: { id: true },
     });
+  }
+
+  private resolveDepositPolicy(
+    service: {
+      depositOverrideEnabled: boolean;
+      depositRequired: boolean;
+      depositCalculationMode: DepositCalculationMode | null;
+      depositValue: unknown;
+      basePrice: unknown;
+    },
+    clinicConfig: {
+      bookingDepositEnabled: boolean;
+      bookingDepositCalculationMode: DepositCalculationMode;
+      bookingDepositValue: number;
+    },
+  ): DepositPolicy {
+    const mode =
+      service.depositOverrideEnabled && service.depositCalculationMode
+        ? service.depositCalculationMode
+        : clinicConfig.bookingDepositCalculationMode;
+
+    const valueFromService =
+      typeof service.depositValue === 'number'
+        ? service.depositValue
+        : Number(service.depositValue);
+
+    const value =
+      service.depositOverrideEnabled && Number.isFinite(valueFromService)
+        ? valueFromService
+        : clinicConfig.bookingDepositValue;
+
+    const enabled =
+      service.depositOverrideEnabled
+        ? service.depositRequired
+        : clinicConfig.bookingDepositEnabled;
+
+    return {
+      enabled,
+      calculationMode: mode,
+      value,
+    };
+  }
+
+  private calculateDepositAmount(basePrice: number, policy: DepositPolicy) {
+    if (policy.calculationMode === DepositCalculationMode.FIXED) {
+      if (policy.value > basePrice) {
+        throw new BadRequestException('appointment.deposit_exceeds_service_price');
+      }
+      return Number(policy.value.toFixed(2));
+    }
+
+    if (policy.value < 0 || policy.value > 100) {
+      throw new BadRequestException('appointment.deposit_percentage_invalid');
+    }
+    return Number((basePrice * (policy.value / 100)).toFixed(2));
   }
 
   private ensurePatientCancellationAllowed(appointment: {

@@ -521,7 +521,9 @@ export class ReportService {
     const serviceRevenue = new Map<string, { name: string; revenue: number }>();
 
     invoices.forEach((invoice) => {
-      const service = invoice.appointment.service;
+      const service = invoice.appointment?.service;
+      if (!service) return;
+
       const current = serviceRevenue.get(service.id) ?? {
         name: service.name,
         revenue: 0,

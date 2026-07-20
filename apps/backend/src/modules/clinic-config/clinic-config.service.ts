@@ -5,6 +5,7 @@ import {
   ClinicSpecialDateDto,
   UpdateClinicConfigDto,
 } from './dto/update-clinic-config.dto';
+import { DepositCalculationMode } from '../../../prisma/generated/enums';
 
 const defaultSlotIntervalMinutes = 30;
 
@@ -29,6 +30,11 @@ export class ClinicConfigService {
       values['clinic.slotIntervalMinutes'],
     );
     const specialDates = this.parseSpecialDates(values['clinic.specialDates']);
+    const bookingDepositEnabled =
+      values['booking.deposit.enabled'] === 'true';
+    const bookingDepositCalculationMode =
+      this.parseDepositCalculationMode(values['booking.deposit.mode']);
+    const bookingDepositValue = this.parseDecimal(values['booking.deposit.value']);
 
     return {
       name: values['clinic.name'] ?? '',
@@ -39,6 +45,9 @@ export class ClinicConfigService {
       businessHours,
       slotIntervalMinutes,
       specialDates,
+      bookingDepositEnabled,
+      bookingDepositCalculationMode,
+      bookingDepositValue,
       isBusinessHoursConfigured: businessHours.length === 7,
     };
   }
@@ -74,6 +83,18 @@ export class ClinicConfigService {
     await this.upsertConfig(
       'clinic.specialDates',
       JSON.stringify(next.specialDates),
+    );
+    await this.upsertConfig(
+      'booking.deposit.enabled',
+      String(next.bookingDepositEnabled ?? false),
+    );
+    await this.upsertConfig(
+      'booking.deposit.mode',
+      next.bookingDepositCalculationMode ?? 'PERCENT',
+    );
+    await this.upsertConfig(
+      'booking.deposit.value',
+      String(next.bookingDepositValue ?? 30),
     );
 
     return next;
@@ -165,6 +186,17 @@ export class ClinicConfigService {
     } catch {
       return [];
     }
+  }
+
+  private parseDepositCalculationMode(
+    value?: string,
+  ): DepositCalculationMode {
+    return value === 'FIXED' ? DepositCalculationMode.FIXED : DepositCalculationMode.PERCENT;
+  }
+
+  private parseDecimal(value?: string) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : 30;
   }
 
   private isSpecialDate(value: unknown): value is ClinicSpecialDateDto {

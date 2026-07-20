@@ -51,11 +51,60 @@ enum BookingSource {
   OTHER
 }
 
+enum DepositCalculationMode {
+  PERCENT
+  FIXED
+}
+
+enum AppointmentPaymentOption {
+  DEPOSIT_30_PERCENT
+  PAY_AT_COUNTER
+}
+
+enum AppointmentPaymentStatus {
+  NOT_SELECTED
+  PENDING_DEPOSIT
+  DEPOSIT_PAID
+  PAY_AT_COUNTER_SELECTED
+  COUNTER_PAID
+  WAIVED
+}
+
 enum TreatmentPlanStatus {
   PLANNED
   IN_PROGRESS
   COMPLETED
   CANCELLED
+}
+
+enum SchedulePaymentOption {
+  DEPOSIT_30_PERCENT
+  PAY_AT_COUNTER
+}
+
+enum SchedulePaymentStatus {
+  NOT_SELECTED
+  PENDING_DEPOSIT
+  DEPOSIT_PAID
+  PAY_AT_COUNTER_SELECTED
+  COUNTER_PAID
+  WAIVED
+}
+
+enum TreatmentStepStatus {
+  PLANNED
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum TreatmentStepPaymentStatus {
+  UNBILLED
+  INVOICED
+  PARTIALLY_PAID
+  PAID
+  WAIVED
 }
 
 enum InvoiceStatus {
@@ -65,6 +114,13 @@ enum InvoiceStatus {
   PAID
   CANCELLED
   REFUNDED
+}
+
+enum InvoiceType {
+  SERVICE
+  DEPOSIT
+  STEP_PAYMENT
+  FINAL_PAYMENT
 }
 
 enum PaymentMethod {
@@ -228,6 +284,10 @@ model Service {
   isFeatured       Boolean  @default(false) @map("is_featured")
   displayOrder     Int      @default(0) @map("display_order")
   isActive         Boolean  @default(true) @map("is_active")
+  depositOverrideEnabled Boolean @default(false) @map("deposit_override_enabled")
+  depositRequired  Boolean  @default(true) @map("deposit_required")
+  depositCalculationMode  DepositCalculationMode? @map("deposit_calculation_mode")
+  depositValue     Decimal? @map("deposit_value") @db.Decimal(12, 2)
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
@@ -324,6 +384,7 @@ model Patient {
   clinicalCases        ClinicalCase[]
   medicalRecords       MedicalRecord[]
   treatmentPlans       TreatmentPlan[]
+  prescriptions        Prescription[]
   invoices             Invoice[]
   reviews              Review[]
   chatbotConversations ChatbotConversation[]
@@ -355,6 +416,8 @@ model Doctor {
   media              DoctorMedia[]
   medicalRecords     MedicalRecord[]
   treatmentPlans     TreatmentPlan[]
+  treatmentPlanSteps TreatmentPlanStep[]
+  prescriptions      Prescription[]
   reviews            Review[]
   videoConsultations VideoConsultation[]
 
@@ -432,93 +495,147 @@ model DoctorAvailability {
 }
 
 model Appointment {
-  id                 String            @id @default(uuid()) @db.Uuid
-  appointmentCode    String            @unique @map("appointment_code")
-  patientId          String?           @map("patient_id") @db.Uuid
-  doctorId           String            @map("doctor_id") @db.Uuid
-  serviceId          String            @map("service_id") @db.Uuid
-  scheduledAt        DateTime          @map("scheduled_at")
-  endAt              DateTime          @map("end_at")
-  status             AppointmentStatus @default(PENDING)
-  bookingSource      BookingSource     @map("booking_source")
-  aiSuggestedTime    DateTime?         @map("ai_suggested_time")
-  notes              String?           @db.Text
-  rescheduleHistory  Json?             @map("reschedule_history")
-  cancellationReason String?           @map("cancellation_reason") @db.Text
-  cancelledAt        DateTime?         @map("cancelled_at")
-  checkedInAt        DateTime?         @map("checked_in_at")
-  completedAt        DateTime?         @map("completed_at")
-  createdBy          String            @map("created_by") @db.Uuid
-  createdAt          DateTime          @default(now()) @map("created_at")
-  updatedAt          DateTime          @updatedAt @map("updated_at")
+  id                  String                    @id @default(uuid()) @db.Uuid
+  appointmentCode     String                    @unique @map("appointment_code")
+  patientId           String?                   @map("patient_id") @db.Uuid
+  doctorId            String                    @map("doctor_id") @db.Uuid
+  serviceId           String                    @map("service_id") @db.Uuid
+  treatmentPlanStepId String?                   @map("treatment_plan_step_id") @db.Uuid
+  scheduledAt         DateTime                  @map("scheduled_at")
+  endAt               DateTime                  @map("end_at")
+  status              AppointmentStatus         @default(PENDING)
+  bookingSource       BookingSource             @map("booking_source")
+  paymentOption       AppointmentPaymentOption? @map("payment_option")
+  paymentStatus       AppointmentPaymentStatus  @default(NOT_SELECTED) @map("payment_status")
+  depositPercent      Decimal                   @default(30.00) @map("deposit_percent") @db.Decimal(5, 2)
+  depositAmount       Decimal?                  @map("deposit_amount") @db.Decimal(12, 2)
+  scheduleConfirmedAt DateTime?                 @map("schedule_confirmed_at")
+  aiSuggestedTime     DateTime?                 @map("ai_suggested_time")
+  notes               String?                   @db.Text
+  rescheduleHistory   Json?                     @map("reschedule_history")
+  cancellationReason  String?                   @map("cancellation_reason") @db.Text
+  cancelledAt         DateTime?                 @map("cancelled_at")
+  checkedInAt         DateTime?                 @map("checked_in_at")
+  completedAt         DateTime?                 @map("completed_at")
+  createdBy           String                    @map("created_by") @db.Uuid
+  createdAt           DateTime                  @default(now()) @map("created_at")
+  updatedAt           DateTime                  @updatedAt @map("updated_at")
 
-  patient        Patient?        @relation(fields: [patientId], references: [id], onDelete: Restrict)
-  doctor         Doctor          @relation(fields: [doctorId], references: [id], onDelete: Restrict)
-  service        Service         @relation(fields: [serviceId], references: [id], onDelete: Restrict)
-  creator        User            @relation("AppointmentCreator", fields: [createdBy], references: [id], onDelete: Restrict)
-  clinicalCases  ClinicalCase[]
-  medicalRecords MedicalRecord[]
-  invoices       Invoice[]
-  reviews        Review[]
-  notifications  Notification[]
+  patient           Patient?           @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  doctor            Doctor             @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  service           Service            @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  treatmentPlanStep TreatmentPlanStep? @relation(fields: [treatmentPlanStepId], references: [id], onDelete: SetNull)
+  creator           User               @relation("AppointmentCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  clinicalCases     ClinicalCase[]
+  medicalRecords    MedicalRecord[]
+  invoices          Invoice[]
+  reviews           Review[]
+  notifications     Notification[]
 
   @@index([patientId, scheduledAt])
   @@index([doctorId, scheduledAt])
   @@index([status, scheduledAt])
+  @@index([paymentStatus])
   @@index([serviceId])
+  @@index([treatmentPlanStepId])
   @@index([createdBy])
   @@map("appointments")
 }
 
 model MedicalRecord {
-  id             String    @id @default(uuid()) @db.Uuid
-  patientId      String    @map("patient_id") @db.Uuid
-  appointmentId  String    @map("appointment_id") @db.Uuid
-  doctorId       String    @map("doctor_id") @db.Uuid
-  chiefComplaint String?   @map("chief_complaint") @db.Text
-  diagnosis      String?   @db.Text
-  treatmentNotes String?   @map("treatment_notes") @db.Text
-  internalNotes  String?   @map("internal_notes") @db.Text
-  followUpDate   DateTime? @map("follow_up_date") @db.Date
-  dentalChart    Json?     @map("dental_chart")
-  images         Json?
-  prescriptions  Json?
-  exportPdfUrl   String?   @map("export_pdf_url")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
+  id                  String    @id @default(uuid()) @db.Uuid
+  patientId           String    @map("patient_id") @db.Uuid
+  appointmentId       String    @map("appointment_id") @db.Uuid
+  doctorId            String    @map("doctor_id") @db.Uuid
+  treatmentPlanStepId String?   @map("treatment_plan_step_id") @db.Uuid
+  chiefComplaint      String?   @map("chief_complaint") @db.Text
+  diagnosis           String?   @db.Text
+  treatmentNotes      String?   @map("treatment_notes") @db.Text
+  internalNotes       String?   @map("internal_notes") @db.Text
+  followUpDate        DateTime? @map("follow_up_date") @db.Date
+  dentalChart         Json?     @map("dental_chart")
+  images              Json?
+  prescriptions       Json?
+  exportPdfUrl        String?   @map("export_pdf_url")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
 
-  patient       Patient        @relation(fields: [patientId], references: [id], onDelete: Restrict)
-  appointment   Appointment    @relation(fields: [appointmentId], references: [id], onDelete: Restrict)
-  clinicalCases ClinicalCase[]
-  doctor        Doctor         @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  patient             Patient            @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  appointment         Appointment        @relation(fields: [appointmentId], references: [id], onDelete: Restrict)
+  clinicalCases       ClinicalCase[]
+  doctor              Doctor             @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  treatmentPlanStep   TreatmentPlanStep? @relation(fields: [treatmentPlanStepId], references: [id], onDelete: SetNull)
+  prescriptionRecords Prescription[]
 
   @@index([patientId, createdAt])
   @@index([appointmentId])
   @@index([doctorId])
+  @@index([treatmentPlanStepId])
   @@map("medical_records")
 }
 
 model TreatmentPlan {
-  id              String              @id @default(uuid()) @db.Uuid
-  patientId       String              @map("patient_id") @db.Uuid
-  doctorId        String              @map("doctor_id") @db.Uuid
-  title           String
-  description     String?             @db.Text
-  status          TreatmentPlanStatus @default(PLANNED)
-  startDate       DateTime?           @map("start_date") @db.Date
-  expectedEndDate DateTime?           @map("expected_end_date") @db.Date
-  items           Json?
-  createdAt       DateTime            @default(now()) @map("created_at")
-  updatedAt       DateTime            @updatedAt @map("updated_at")
+  id                    String                 @id @default(uuid()) @db.Uuid
+  patientId             String                 @map("patient_id") @db.Uuid
+  doctorId              String                 @map("doctor_id") @db.Uuid
+  title                 String
+  description           String?                @db.Text
+  status                TreatmentPlanStatus    @default(PLANNED)
+  startDate             DateTime?              @map("start_date") @db.Date
+  expectedEndDate       DateTime?              @map("expected_end_date") @db.Date
+  schedulePaymentOption SchedulePaymentOption? @map("schedule_payment_option")
+  schedulePaymentStatus SchedulePaymentStatus  @default(NOT_SELECTED) @map("schedule_payment_status")
+  depositPercent        Decimal                @default(30.00) @map("deposit_percent") @db.Decimal(5, 2)
+  depositAmount         Decimal?               @map("deposit_amount") @db.Decimal(12, 2)
+  scheduleConfirmedAt   DateTime?              @map("schedule_confirmed_at")
+  items                 Json?
+  createdAt             DateTime               @default(now()) @map("created_at")
+  updatedAt             DateTime               @updatedAt @map("updated_at")
 
-  patient       Patient        @relation(fields: [patientId], references: [id], onDelete: Restrict)
-  doctor        Doctor         @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  patient       Patient             @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  doctor        Doctor              @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  steps         TreatmentPlanStep[]
   clinicalCases ClinicalCase[]
+  invoices      Invoice[]
   notifications Notification[]
 
   @@index([patientId, status])
   @@index([doctorId])
+  @@index([schedulePaymentStatus])
   @@map("treatment_plans")
+}
+
+model TreatmentPlanStep {
+  id              String                     @id @default(uuid()) @db.Uuid
+  treatmentPlanId String                     @map("treatment_plan_id") @db.Uuid
+  doctorId        String                     @map("doctor_id") @db.Uuid
+  stepOrder       Int                        @map("step_order")
+  title           String
+  description     String?                    @db.Text
+  targetTooth     String?                    @map("target_tooth")
+  status          TreatmentStepStatus        @default(PLANNED)
+  estimatedCost   Decimal?                   @map("estimated_cost") @db.Decimal(12, 2)
+  paymentAmount   Decimal?                   @map("payment_amount") @db.Decimal(12, 2)
+  paymentStatus   TreatmentStepPaymentStatus @default(UNBILLED) @map("payment_status")
+  paymentDueAt    DateTime?                  @map("payment_due_at")
+  paidAt          DateTime?                  @map("paid_at")
+  expectedDate    DateTime?                  @map("expected_date") @db.Date
+  completedAt     DateTime?                  @map("completed_at")
+  createdAt       DateTime                   @default(now()) @map("created_at")
+  updatedAt       DateTime                   @updatedAt @map("updated_at")
+
+  treatmentPlan  TreatmentPlan   @relation(fields: [treatmentPlanId], references: [id], onDelete: Cascade)
+  doctor         Doctor          @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  appointments   Appointment[]
+  medicalRecords MedicalRecord[]
+  prescriptions  Prescription[]
+  invoices       Invoice[]
+
+  @@unique([treatmentPlanId, stepOrder])
+  @@index([doctorId])
+  @@index([status, expectedDate])
+  @@index([paymentStatus, paymentDueAt])
+  @@map("treatment_plan_steps")
 }
 
 model ClinicalCase {
@@ -558,32 +675,78 @@ model ClinicalCase {
 }
 
 model Invoice {
-  id             String        @id @default(uuid()) @db.Uuid
-  invoiceCode    String        @unique @map("invoice_code")
-  patientId      String        @map("patient_id") @db.Uuid
-  appointmentId  String        @map("appointment_id") @db.Uuid
-  promotionId    String?       @map("promotion_id") @db.Uuid
-  items          Json
-  subtotal       Decimal       @db.Decimal(12, 2)
-  discountAmount Decimal       @default(0) @map("discount_amount") @db.Decimal(12, 2)
-  finalAmount    Decimal       @map("final_amount") @db.Decimal(12, 2)
-  status         InvoiceStatus @default(DRAFT)
-  exportFileUrl  String?       @map("export_file_url")
-  issuedAt       DateTime?     @map("issued_at")
-  createdBy      String        @map("created_by") @db.Uuid
+  id                  String        @id @default(uuid()) @db.Uuid
+  invoiceCode         String        @unique @map("invoice_code")
+  patientId           String        @map("patient_id") @db.Uuid
+  appointmentId       String?       @map("appointment_id") @db.Uuid
+  treatmentPlanId     String?       @map("treatment_plan_id") @db.Uuid
+  treatmentPlanStepId String?       @map("treatment_plan_step_id") @db.Uuid
+  promotionId         String?       @map("promotion_id") @db.Uuid
+  invoiceType         InvoiceType   @default(SERVICE) @map("invoice_type")
+  items               Json
+  subtotal            Decimal       @db.Decimal(12, 2)
+  discountAmount      Decimal       @default(0) @map("discount_amount") @db.Decimal(12, 2)
+  finalAmount         Decimal       @map("final_amount") @db.Decimal(12, 2)
+  status              InvoiceStatus @default(DRAFT)
+  exportFileUrl       String?       @map("export_file_url")
+  issuedAt            DateTime?     @map("issued_at")
+  createdBy           String        @map("created_by") @db.Uuid
 
-  patient     Patient     @relation(fields: [patientId], references: [id], onDelete: Restrict)
-  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Restrict)
-  promotion   Promotion?  @relation(fields: [promotionId], references: [id], onDelete: SetNull)
-  creator     User        @relation("InvoiceCreator", fields: [createdBy], references: [id], onDelete: Restrict)
-  payments    Payment[]
+  patient           Patient            @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  appointment       Appointment?       @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  treatmentPlan     TreatmentPlan?     @relation(fields: [treatmentPlanId], references: [id], onDelete: SetNull)
+  treatmentPlanStep TreatmentPlanStep? @relation(fields: [treatmentPlanStepId], references: [id], onDelete: SetNull)
+  promotion         Promotion?         @relation(fields: [promotionId], references: [id], onDelete: SetNull)
+  creator           User               @relation("InvoiceCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  payments          Payment[]
 
   @@index([patientId])
   @@index([appointmentId])
+  @@index([treatmentPlanId])
+  @@index([treatmentPlanStepId])
+  @@index([invoiceType])
   @@index([promotionId])
   @@index([status])
   @@index([createdBy])
   @@map("invoices")
+}
+
+model Prescription {
+  id                  String   @id @default(uuid()) @db.Uuid
+  medicalRecordId     String   @map("medical_record_id") @db.Uuid
+  treatmentPlanStepId String?  @map("treatment_plan_step_id") @db.Uuid
+  doctorId            String   @map("doctor_id") @db.Uuid
+  patientId           String   @map("patient_id") @db.Uuid
+  notes               String?  @db.Text
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  medicalRecord     MedicalRecord      @relation(fields: [medicalRecordId], references: [id], onDelete: Cascade)
+  treatmentPlanStep TreatmentPlanStep? @relation(fields: [treatmentPlanStepId], references: [id], onDelete: SetNull)
+  doctor            Doctor             @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  patient           Patient            @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  items             PrescriptionItem[]
+
+  @@index([medicalRecordId])
+  @@index([treatmentPlanStepId])
+  @@index([doctorId])
+  @@index([patientId, createdAt])
+  @@map("prescriptions")
+}
+
+model PrescriptionItem {
+  id             String  @id @default(uuid()) @db.Uuid
+  prescriptionId String  @map("prescription_id") @db.Uuid
+  medicineName   String  @map("medicine_name")
+  dosage         String
+  frequency      String?
+  duration       String?
+  instruction    String? @db.Text
+
+  prescription Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+
+  @@index([prescriptionId])
+  @@map("prescription_items")
 }
 
 model Payment {

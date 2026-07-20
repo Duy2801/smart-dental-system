@@ -133,6 +133,11 @@ export class ServiceService {
         pricingNote: cleanOptionalText(dto.pricingNote),
         isActive: dto.isActive ?? true,
         isFeatured: dto.isFeatured ?? false,
+        depositOverrideEnabled: dto.depositOverrideEnabled ?? false,
+        depositRequired: dto.depositPolicyEnabled ?? true,
+        depositCalculationMode: dto.depositCalculationMode,
+        depositValue:
+          dto.depositValue === undefined ? undefined : dto.depositValue,
         displayOrder: dto.displayOrder ?? 0,
         media: dto.media?.length
           ? {
@@ -227,6 +232,11 @@ export class ServiceService {
               : cleanOptionalText(dto.pricingNote),
           isActive: dto.isActive,
           isFeatured: dto.isFeatured,
+          depositOverrideEnabled: dto.depositOverrideEnabled,
+          depositRequired: dto.depositPolicyEnabled,
+          depositCalculationMode: dto.depositCalculationMode,
+          depositValue:
+            dto.depositValue === undefined ? undefined : dto.depositValue,
           displayOrder: dto.displayOrder,
         },
       });

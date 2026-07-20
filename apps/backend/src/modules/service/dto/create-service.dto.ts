@@ -3,12 +3,14 @@ import {
   IsBoolean,
   IsInt,
   IsNumber,
+  IsEnum,
   IsOptional,
   IsString,
   Min,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { DepositCalculationMode } from '../../../../prisma/generated/enums';
 
 export class ServiceMediaDto {
   @IsString()
@@ -111,6 +113,23 @@ export class CreateServiceDto {
   @IsOptional()
   @IsBoolean()
   isFeatured?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  depositOverrideEnabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  depositPolicyEnabled?: boolean;
+
+  @IsOptional()
+  @IsEnum(DepositCalculationMode)
+  depositCalculationMode?: DepositCalculationMode;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  depositValue?: number;
 
   @IsOptional()
   @IsInt()

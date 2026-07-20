@@ -30,12 +30,14 @@ export type ServiceAvgAggregateOutputType = {
   durationMinutes: number | null
   basePrice: runtime.Decimal | null
   displayOrder: number | null
+  depositValue: runtime.Decimal | null
 }
 
 export type ServiceSumAggregateOutputType = {
   durationMinutes: number | null
   basePrice: runtime.Decimal | null
   displayOrder: number | null
+  depositValue: runtime.Decimal | null
 }
 
 export type ServiceMinAggregateOutputType = {
@@ -53,6 +55,10 @@ export type ServiceMinAggregateOutputType = {
   isFeatured: boolean | null
   displayOrder: number | null
   isActive: boolean | null
+  depositOverrideEnabled: boolean | null
+  depositRequired: boolean | null
+  depositCalculationMode: $Enums.DepositCalculationMode | null
+  depositValue: runtime.Decimal | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -72,6 +78,10 @@ export type ServiceMaxAggregateOutputType = {
   isFeatured: boolean | null
   displayOrder: number | null
   isActive: boolean | null
+  depositOverrideEnabled: boolean | null
+  depositRequired: boolean | null
+  depositCalculationMode: $Enums.DepositCalculationMode | null
+  depositValue: runtime.Decimal | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -97,6 +107,10 @@ export type ServiceCountAggregateOutputType = {
   isFeatured: number
   displayOrder: number
   isActive: number
+  depositOverrideEnabled: number
+  depositRequired: number
+  depositCalculationMode: number
+  depositValue: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -107,12 +121,14 @@ export type ServiceAvgAggregateInputType = {
   durationMinutes?: true
   basePrice?: true
   displayOrder?: true
+  depositValue?: true
 }
 
 export type ServiceSumAggregateInputType = {
   durationMinutes?: true
   basePrice?: true
   displayOrder?: true
+  depositValue?: true
 }
 
 export type ServiceMinAggregateInputType = {
@@ -130,6 +146,10 @@ export type ServiceMinAggregateInputType = {
   isFeatured?: true
   displayOrder?: true
   isActive?: true
+  depositOverrideEnabled?: true
+  depositRequired?: true
+  depositCalculationMode?: true
+  depositValue?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -149,6 +169,10 @@ export type ServiceMaxAggregateInputType = {
   isFeatured?: true
   displayOrder?: true
   isActive?: true
+  depositOverrideEnabled?: true
+  depositRequired?: true
+  depositCalculationMode?: true
+  depositValue?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -174,6 +198,10 @@ export type ServiceCountAggregateInputType = {
   isFeatured?: true
   displayOrder?: true
   isActive?: true
+  depositOverrideEnabled?: true
+  depositRequired?: true
+  depositCalculationMode?: true
+  depositValue?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -286,6 +314,10 @@ export type ServiceGroupByOutputType = {
   isFeatured: boolean
   displayOrder: number
   isActive: boolean
+  depositOverrideEnabled: boolean
+  depositRequired: boolean
+  depositCalculationMode: $Enums.DepositCalculationMode | null
+  depositValue: runtime.Decimal | null
   createdAt: Date
   updatedAt: Date
   _count: ServiceCountAggregateOutputType | null
@@ -334,6 +366,10 @@ export type ServiceWhereInput = {
   isFeatured?: Prisma.BoolFilter<"Service"> | boolean
   displayOrder?: Prisma.IntFilter<"Service"> | number
   isActive?: Prisma.BoolFilter<"Service"> | boolean
+  depositOverrideEnabled?: Prisma.BoolFilter<"Service"> | boolean
+  depositRequired?: Prisma.BoolFilter<"Service"> | boolean
+  depositCalculationMode?: Prisma.EnumDepositCalculationModeNullableFilter<"Service"> | $Enums.DepositCalculationMode | null
+  depositValue?: Prisma.DecimalNullableFilter<"Service"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFilter<"Service"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Service"> | Date | string
   appointments?: Prisma.AppointmentListRelationFilter
@@ -364,6 +400,10 @@ export type ServiceOrderByWithRelationInput = {
   isFeatured?: Prisma.SortOrder
   displayOrder?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  depositOverrideEnabled?: Prisma.SortOrder
+  depositRequired?: Prisma.SortOrder
+  depositCalculationMode?: Prisma.SortOrderInput | Prisma.SortOrder
+  depositValue?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   appointments?: Prisma.AppointmentOrderByRelationAggregateInput
@@ -397,6 +437,10 @@ export type ServiceWhereUniqueInput = Prisma.AtLeast<{
   isFeatured?: Prisma.BoolFilter<"Service"> | boolean
   displayOrder?: Prisma.IntFilter<"Service"> | number
   isActive?: Prisma.BoolFilter<"Service"> | boolean
+  depositOverrideEnabled?: Prisma.BoolFilter<"Service"> | boolean
+  depositRequired?: Prisma.BoolFilter<"Service"> | boolean
+  depositCalculationMode?: Prisma.EnumDepositCalculationModeNullableFilter<"Service"> | $Enums.DepositCalculationMode | null
+  depositValue?: Prisma.DecimalNullableFilter<"Service"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFilter<"Service"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Service"> | Date | string
   appointments?: Prisma.AppointmentListRelationFilter
@@ -427,6 +471,10 @@ export type ServiceOrderByWithAggregationInput = {
   isFeatured?: Prisma.SortOrder
   displayOrder?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  depositOverrideEnabled?: Prisma.SortOrder
+  depositRequired?: Prisma.SortOrder
+  depositCalculationMode?: Prisma.SortOrderInput | Prisma.SortOrder
+  depositValue?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.ServiceCountOrderByAggregateInput
@@ -460,6 +508,10 @@ export type ServiceScalarWhereWithAggregatesInput = {
   isFeatured?: Prisma.BoolWithAggregatesFilter<"Service"> | boolean
   displayOrder?: Prisma.IntWithAggregatesFilter<"Service"> | number
   isActive?: Prisma.BoolWithAggregatesFilter<"Service"> | boolean
+  depositOverrideEnabled?: Prisma.BoolWithAggregatesFilter<"Service"> | boolean
+  depositRequired?: Prisma.BoolWithAggregatesFilter<"Service"> | boolean
+  depositCalculationMode?: Prisma.EnumDepositCalculationModeNullableWithAggregatesFilter<"Service"> | $Enums.DepositCalculationMode | null
+  depositValue?: Prisma.DecimalNullableWithAggregatesFilter<"Service"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Service"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Service"> | Date | string
 }
@@ -485,6 +537,10 @@ export type ServiceCreateInput = {
   isFeatured?: boolean
   displayOrder?: number
   isActive?: boolean
+  depositOverrideEnabled?: boolean
+  depositRequired?: boolean
+  depositCalculationMode?: $Enums.DepositCalculationMode | null
+  depositValue?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   appointments?: Prisma.AppointmentCreateNestedManyWithoutServiceInput
@@ -515,6 +571,10 @@ export type ServiceUncheckedCreateInput = {
   isFeatured?: boolean
   displayOrder?: number
   isActive?: boolean
+  depositOverrideEnabled?: boolean
+  depositRequired?: boolean
+  depositCalculationMode?: $Enums.DepositCalculationMode | null
+  depositValue?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   appointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutServiceInput
@@ -545,6 +605,10 @@ export type ServiceUpdateInput = {
   isFeatured?: Prisma.BoolFieldUpdateOperationsInput | boolean
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  depositOverrideEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  depositRequired?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  depositCalculationMode?: Prisma.NullableEnumDepositCalculationModeFieldUpdateOperationsInput | $Enums.DepositCalculationMode | null
+  depositValue?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   appointments?: Prisma.AppointmentUpdateManyWithoutServiceNestedInput
@@ -575,6 +639,10 @@ export type ServiceUncheckedUpdateInput = {
   isFeatured?: Prisma.BoolFieldUpdateOperationsInput | boolean
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  depositOverrideEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  depositRequired?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  depositCalculationMode?: Prisma.NullableEnumDepositCalculationModeFieldUpdateOperationsInput | $Enums.DepositCalculationMode | null
+  depositValue?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   appointments?: Prisma.AppointmentUncheckedUpdateManyWithoutServiceNestedInput
@@ -605,6 +673,10 @@ export type ServiceCreateManyInput = {
   isFeatured?: boolean
   displayOrder?: number
   isActive?: boolean
+  depositOverrideEnabled?: boolean
+  depositRequired?: boolean
+  depositCalculationMode?: $Enums.DepositCalculationMode | null
+  depositValue?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -630,6 +702,10 @@ export type ServiceUpdateManyMutationInput = {
   isFeatured?: Prisma.BoolFieldUpdateOperationsInput | boolean
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  depositOverrideEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  depositRequired?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  depositCalculationMode?: Prisma.NullableEnumDepositCalculationModeFieldUpdateOperationsInput | $Enums.DepositCalculationMode | null
+  depositValue?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -655,6 +731,10 @@ export type ServiceUncheckedUpdateManyInput = {
   isFeatured?: Prisma.BoolFieldUpdateOperationsInput | boolean
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  depositOverrideEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  depositRequired?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  depositCalculationMode?: Prisma.NullableEnumDepositCalculationModeFieldUpdateOperationsInput | $Enums.DepositCalculationMode | null
+  depositValue?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -680,6 +760,10 @@ export type ServiceCountOrderByAggregateInput = {
   isFeatured?: Prisma.SortOrder
   displayOrder?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  depositOverrideEnabled?: Prisma.SortOrder
+  depositRequired?: Prisma.SortOrder
+  depositCalculationMode?: Prisma.SortOrder
+  depositValue?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -688,6 +772,7 @@ export type ServiceAvgOrderByAggregateInput = {
   durationMinutes?: Prisma.SortOrder
   basePrice?: Prisma.SortOrder
   displayOrder?: Prisma.SortOrder
+  depositValue?: Prisma.SortOrder
 }
 
 export type ServiceMaxOrderByAggregateInput = {
@@ -705,6 +790,10 @@ export type ServiceMaxOrderByAggregateInput = {
   isFeatured?: Prisma.SortOrder
   displayOrder?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  depositOverrideEnabled?: Prisma.SortOrder
+  depositRequired?: Prisma.SortOrder
+  depositCalculationMode?: Prisma.SortOrder
+  depositValue?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -724,6 +813,10 @@ export type ServiceMinOrderByAggregateInput = {
   isFeatured?: Prisma.SortOrder
   displayOrder?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  depositOverrideEnabled?: Prisma.SortOrder
+  depositRequired?: Prisma.SortOrder
+  depositCalculationMode?: Prisma.SortOrder
+  depositValue?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -732,6 +825,7 @@ export type ServiceSumOrderByAggregateInput = {
   durationMinutes?: Prisma.SortOrder
   basePrice?: Prisma.SortOrder
   displayOrder?: Prisma.SortOrder
+  depositValue?: Prisma.SortOrder
 }
 
 export type ServiceScalarRelationFilter = {
@@ -749,6 +843,18 @@ export type IntFieldUpdateOperationsInput = {
 
 export type DecimalFieldUpdateOperationsInput = {
   set?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  increment?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  decrement?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  multiply?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  divide?: runtime.Decimal | runtime.DecimalJsLike | number | string
+}
+
+export type NullableEnumDepositCalculationModeFieldUpdateOperationsInput = {
+  set?: $Enums.DepositCalculationMode | null
+}
+
+export type NullableDecimalFieldUpdateOperationsInput = {
+  set?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   increment?: runtime.Decimal | runtime.DecimalJsLike | number | string
   decrement?: runtime.Decimal | runtime.DecimalJsLike | number | string
   multiply?: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -846,6 +952,10 @@ export type ServiceCreateWithoutMediaInput = {
   isFeatured?: boolean
   displayOrder?: number
   isActive?: boolean
+  depositOverrideEnabled?: boolean
+  depositRequired?: boolean
+  depositCalculationMode?: $Enums.DepositCalculationMode | null
+  depositValue?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   appointments?: Prisma.AppointmentCreateNestedManyWithoutServiceInput
@@ -875,6 +985,10 @@ export type ServiceUncheckedCreateWithoutMediaInput = {
   isFeatured?: boolean
   displayOrder?: number
   isActive?: boolean
+  depositOverrideEnabled?: boolean
+  depositRequired?: boolean
+  depositCalculationMode?: $Enums.DepositCalculationMode | null
+  depositValue?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   appointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutServiceInput
@@ -920,6 +1034,10 @@ export type ServiceUpdateWithoutMediaInput = {
   isFeatured?: Prisma.BoolFieldUpdateOperationsInput | boolean
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  depositOverrideEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  depositRequired?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  depositCalculationMode?: Prisma.NullableEnumDepositCalculationModeFieldUpdateOperationsInput | $Enums.DepositCalculationMode | null
+  depositValue?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   appointments?: Prisma.AppointmentUpdateManyWithoutServiceNestedInput
@@ -949,6 +1067,10 @@ export type ServiceUncheckedUpdateWithoutMediaInput = {
   isFeatured?: Prisma.BoolFieldUpdateOperationsInput | boolean
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  depositOverrideEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  depositRequired?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  depositCalculationMode?: Prisma.NullableEnumDepositCalculationModeFieldUpdateOperationsInput | $Enums.DepositCalculationMode | null
+  depositValue?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   appointments?: Prisma.AppointmentUncheckedUpdateManyWithoutServiceNestedInput
@@ -978,6 +1100,10 @@ export type ServiceCreateWithoutProcedureStepsInput = {
   isFeatured?: boolean
   displayOrder?: number
   isActive?: boolean
+  depositOverrideEnabled?: boolean
+  depositRequired?: boolean
+  depositCalculationMode?: $Enums.DepositCalculationMode | null
+  depositValue?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   appointments?: Prisma.AppointmentCreateNestedManyWithoutServiceInput
@@ -1007,6 +1133,10 @@ export type ServiceUncheckedCreateWithoutProcedureStepsInput = {
   isFeatured?: boolean
   displayOrder?: number
   isActive?: boolean
+  depositOverrideEnabled?: boolean
+  depositRequired?: boolean
+  depositCalculationMode?: $Enums.DepositCalculationMode | null
+  depositValue?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   appointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutServiceInput
@@ -1052,6 +1182,10 @@ export type ServiceUpdateWithoutProcedureStepsInput = {
   isFeatured?: Prisma.BoolFieldUpdateOperationsInput | boolean
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  depositOverrideEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  depositRequired?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  depositCalculationMode?: Prisma.NullableEnumDepositCalculationModeFieldUpdateOperationsInput | $Enums.DepositCalculationMode | null
+  depositValue?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   appointments?: Prisma.AppointmentUpdateManyWithoutServiceNestedInput
@@ -1081,6 +1215,10 @@ export type ServiceUncheckedUpdateWithoutProcedureStepsInput = {
   isFeatured?: Prisma.BoolFieldUpdateOperationsInput | boolean
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  depositOverrideEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  depositRequired?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  depositCalculationMode?: Prisma.NullableEnumDepositCalculationModeFieldUpdateOperationsInput | $Enums.DepositCalculationMode | null
+  depositValue?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   appointments?: Prisma.AppointmentUncheckedUpdateManyWithoutServiceNestedInput
@@ -1110,6 +1248,10 @@ export type ServiceCreateWithoutFaqsInput = {
   isFeatured?: boolean
   displayOrder?: number
   isActive?: boolean
+  depositOverrideEnabled?: boolean
+  depositRequired?: boolean
+  depositCalculationMode?: $Enums.DepositCalculationMode | null
+  depositValue?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   appointments?: Prisma.AppointmentCreateNestedManyWithoutServiceInput
@@ -1139,6 +1281,10 @@ export type ServiceUncheckedCreateWithoutFaqsInput = {
   isFeatured?: boolean
   displayOrder?: number
   isActive?: boolean
+  depositOverrideEnabled?: boolean
+  depositRequired?: boolean
+  depositCalculationMode?: $Enums.DepositCalculationMode | null
+  depositValue?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   appointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutServiceInput
@@ -1184,6 +1330,10 @@ export type ServiceUpdateWithoutFaqsInput = {
   isFeatured?: Prisma.BoolFieldUpdateOperationsInput | boolean
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  depositOverrideEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  depositRequired?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  depositCalculationMode?: Prisma.NullableEnumDepositCalculationModeFieldUpdateOperationsInput | $Enums.DepositCalculationMode | null
+  depositValue?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   appointments?: Prisma.AppointmentUpdateManyWithoutServiceNestedInput
@@ -1213,6 +1363,10 @@ export type ServiceUncheckedUpdateWithoutFaqsInput = {
   isFeatured?: Prisma.BoolFieldUpdateOperationsInput | boolean
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  depositOverrideEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  depositRequired?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  depositCalculationMode?: Prisma.NullableEnumDepositCalculationModeFieldUpdateOperationsInput | $Enums.DepositCalculationMode | null
+  depositValue?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   appointments?: Prisma.AppointmentUncheckedUpdateManyWithoutServiceNestedInput
@@ -1242,6 +1396,10 @@ export type ServiceCreateWithoutAppointmentsInput = {
   isFeatured?: boolean
   displayOrder?: number
   isActive?: boolean
+  depositOverrideEnabled?: boolean
+  depositRequired?: boolean
+  depositCalculationMode?: $Enums.DepositCalculationMode | null
+  depositValue?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   clinicalCases?: Prisma.ClinicalCaseCreateNestedManyWithoutServiceInput
@@ -1271,6 +1429,10 @@ export type ServiceUncheckedCreateWithoutAppointmentsInput = {
   isFeatured?: boolean
   displayOrder?: number
   isActive?: boolean
+  depositOverrideEnabled?: boolean
+  depositRequired?: boolean
+  depositCalculationMode?: $Enums.DepositCalculationMode | null
+  depositValue?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   clinicalCases?: Prisma.ClinicalCaseUncheckedCreateNestedManyWithoutServiceInput
@@ -1316,6 +1478,10 @@ export type ServiceUpdateWithoutAppointmentsInput = {
   isFeatured?: Prisma.BoolFieldUpdateOperationsInput | boolean
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  depositOverrideEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  depositRequired?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  depositCalculationMode?: Prisma.NullableEnumDepositCalculationModeFieldUpdateOperationsInput | $Enums.DepositCalculationMode | null
+  depositValue?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   clinicalCases?: Prisma.ClinicalCaseUpdateManyWithoutServiceNestedInput
@@ -1345,6 +1511,10 @@ export type ServiceUncheckedUpdateWithoutAppointmentsInput = {
   isFeatured?: Prisma.BoolFieldUpdateOperationsInput | boolean
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  depositOverrideEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  depositRequired?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  depositCalculationMode?: Prisma.NullableEnumDepositCalculationModeFieldUpdateOperationsInput | $Enums.DepositCalculationMode | null
+  depositValue?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   clinicalCases?: Prisma.ClinicalCaseUncheckedUpdateManyWithoutServiceNestedInput
@@ -1374,6 +1544,10 @@ export type ServiceCreateWithoutClinicalCasesInput = {
   isFeatured?: boolean
   displayOrder?: number
   isActive?: boolean
+  depositOverrideEnabled?: boolean
+  depositRequired?: boolean
+  depositCalculationMode?: $Enums.DepositCalculationMode | null
+  depositValue?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   appointments?: Prisma.AppointmentCreateNestedManyWithoutServiceInput
@@ -1403,6 +1577,10 @@ export type ServiceUncheckedCreateWithoutClinicalCasesInput = {
   isFeatured?: boolean
   displayOrder?: number
   isActive?: boolean
+  depositOverrideEnabled?: boolean
+  depositRequired?: boolean
+  depositCalculationMode?: $Enums.DepositCalculationMode | null
+  depositValue?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   appointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutServiceInput
@@ -1448,6 +1626,10 @@ export type ServiceUpdateWithoutClinicalCasesInput = {
   isFeatured?: Prisma.BoolFieldUpdateOperationsInput | boolean
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  depositOverrideEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  depositRequired?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  depositCalculationMode?: Prisma.NullableEnumDepositCalculationModeFieldUpdateOperationsInput | $Enums.DepositCalculationMode | null
+  depositValue?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   appointments?: Prisma.AppointmentUpdateManyWithoutServiceNestedInput
@@ -1477,6 +1659,10 @@ export type ServiceUncheckedUpdateWithoutClinicalCasesInput = {
   isFeatured?: Prisma.BoolFieldUpdateOperationsInput | boolean
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  depositOverrideEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  depositRequired?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  depositCalculationMode?: Prisma.NullableEnumDepositCalculationModeFieldUpdateOperationsInput | $Enums.DepositCalculationMode | null
+  depositValue?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   appointments?: Prisma.AppointmentUncheckedUpdateManyWithoutServiceNestedInput
@@ -1573,6 +1759,10 @@ export type ServiceSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   isFeatured?: boolean
   displayOrder?: boolean
   isActive?: boolean
+  depositOverrideEnabled?: boolean
+  depositRequired?: boolean
+  depositCalculationMode?: boolean
+  depositValue?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   appointments?: boolean | Prisma.Service$appointmentsArgs<ExtArgs>
@@ -1604,6 +1794,10 @@ export type ServiceSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   isFeatured?: boolean
   displayOrder?: boolean
   isActive?: boolean
+  depositOverrideEnabled?: boolean
+  depositRequired?: boolean
+  depositCalculationMode?: boolean
+  depositValue?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["service"]>
@@ -1629,6 +1823,10 @@ export type ServiceSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   isFeatured?: boolean
   displayOrder?: boolean
   isActive?: boolean
+  depositOverrideEnabled?: boolean
+  depositRequired?: boolean
+  depositCalculationMode?: boolean
+  depositValue?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["service"]>
@@ -1654,11 +1852,15 @@ export type ServiceSelectScalar = {
   isFeatured?: boolean
   displayOrder?: boolean
   isActive?: boolean
+  depositOverrideEnabled?: boolean
+  depositRequired?: boolean
+  depositCalculationMode?: boolean
+  depositValue?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type ServiceOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "category" | "name" | "slug" | "shortDescription" | "description" | "detailSummary" | "thumbnailUrl" | "durationMinutes" | "basePrice" | "highlights" | "suitableFor" | "includedItems" | "preparationNotes" | "aftercareNotes" | "importantNotes" | "pricingNote" | "isFeatured" | "displayOrder" | "isActive" | "createdAt" | "updatedAt", ExtArgs["result"]["service"]>
+export type ServiceOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "category" | "name" | "slug" | "shortDescription" | "description" | "detailSummary" | "thumbnailUrl" | "durationMinutes" | "basePrice" | "highlights" | "suitableFor" | "includedItems" | "preparationNotes" | "aftercareNotes" | "importantNotes" | "pricingNote" | "isFeatured" | "displayOrder" | "isActive" | "depositOverrideEnabled" | "depositRequired" | "depositCalculationMode" | "depositValue" | "createdAt" | "updatedAt", ExtArgs["result"]["service"]>
 export type ServiceInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   appointments?: boolean | Prisma.Service$appointmentsArgs<ExtArgs>
   clinicalCases?: boolean | Prisma.Service$clinicalCasesArgs<ExtArgs>
@@ -1700,6 +1902,10 @@ export type $ServicePayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     isFeatured: boolean
     displayOrder: number
     isActive: boolean
+    depositOverrideEnabled: boolean
+    depositRequired: boolean
+    depositCalculationMode: $Enums.DepositCalculationMode | null
+    depositValue: runtime.Decimal | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["service"]>
@@ -2150,6 +2356,10 @@ export interface ServiceFieldRefs {
   readonly isFeatured: Prisma.FieldRef<"Service", 'Boolean'>
   readonly displayOrder: Prisma.FieldRef<"Service", 'Int'>
   readonly isActive: Prisma.FieldRef<"Service", 'Boolean'>
+  readonly depositOverrideEnabled: Prisma.FieldRef<"Service", 'Boolean'>
+  readonly depositRequired: Prisma.FieldRef<"Service", 'Boolean'>
+  readonly depositCalculationMode: Prisma.FieldRef<"Service", 'DepositCalculationMode'>
+  readonly depositValue: Prisma.FieldRef<"Service", 'Decimal'>
   readonly createdAt: Prisma.FieldRef<"Service", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Service", 'DateTime'>
 }

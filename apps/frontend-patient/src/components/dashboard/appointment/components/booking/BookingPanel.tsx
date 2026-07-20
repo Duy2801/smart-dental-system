@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { AppointmentService, BookingDate, Dentist } from "../../types";
+import type {
+  AppointmentPaymentOption,
+  AppointmentService,
+  BookingDate,
+  Dentist,
+} from "../../types";
 import { DashboardIcon } from "../../../common/DashboardIcon";
 import { DoctorSelector } from "./DoctorSelector";
 import { SchedulePicker } from "./SchedulePicker";
@@ -22,6 +27,7 @@ type BookingPanelProps = {
   selectedService?: AppointmentService;
   selectedDoctor?: Dentist;
   selectedDate?: BookingDate;
+  selectedPaymentOption: AppointmentPaymentOption;
   successMessage: string | null;
   isSubmitting?: boolean;
   isCheckingAvailability?: boolean;
@@ -29,6 +35,7 @@ type BookingPanelProps = {
   onSelectDoctor: (id: string) => void;
   onSelectDate: (id: string) => void;
   onSelectTime: (time: string) => void;
+  onSelectPaymentOption: (value: AppointmentPaymentOption) => void;
   onOpenReview: () => void;
   onConfirmBooking: () => void;
   onCloseSuccess: () => void;
@@ -85,7 +92,7 @@ export function BookingPanel(props: BookingPanelProps) {
     <>
       <div className="space-y-8">
         <section>
-          <StepTitle number={1}>Chọn dịch vụ</StepTitle>
+          <StepTitle number={1}>Chon dich vu</StepTitle>
           <ServiceSelector
             services={props.services}
             selectedId={props.selectedServiceId}
@@ -94,7 +101,7 @@ export function BookingPanel(props: BookingPanelProps) {
         </section>
 
         <section>
-          <StepTitle number={2}>Chọn ngày và giờ khám</StepTitle>
+          <StepTitle number={2}>Chon ngay va gio kham</StepTitle>
           <SchedulePicker
             dates={props.dates}
             times={props.times}
@@ -109,12 +116,39 @@ export function BookingPanel(props: BookingPanelProps) {
         </section>
 
         <section>
-          <StepTitle number={3}>Chọn bác sĩ</StepTitle>
+          <StepTitle number={3}>Chon bac si</StepTitle>
           <DoctorSelector
             doctors={props.doctors}
             selectedId={props.selectedDoctorId}
             onSelect={props.onSelectDoctor}
           />
+        </section>
+
+        <section>
+          <StepTitle number={4}>Chon cach giu lich</StepTitle>
+          <div className="grid gap-3 md:grid-cols-2">
+            <PaymentOptionCard
+              title="Coc truoc"
+              description="Giu lich ngay. He thong se tao hoa don coc theo cau hinh phong kham."
+              selected={props.selectedPaymentOption === "DEPOSIT_30_PERCENT"}
+              onClick={() => props.onSelectPaymentOption("DEPOSIT_30_PERCENT")}
+            />
+            <PaymentOptionCard
+              title="Thanh toan tai quay"
+              description="Gui yeu cau dat lich truoc, thanh toan khi ban den kham."
+              selected={props.selectedPaymentOption === "PAY_AT_COUNTER"}
+              onClick={() => props.onSelectPaymentOption("PAY_AT_COUNTER")}
+            />
+          </div>
+          <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50/70 p-4">
+            <p className="text-sm font-bold text-[#0a5fbe]">
+              Phi coc duoc tinh theo cau hinh phong kham
+            </p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Neu chon coc truoc, he thong se tao hoa don loai <strong>DEPOSIT</strong>.
+              Neu chon thanh toan tai quay, lich van duoc gui va ban thanh toan luc den kham.
+            </p>
+          </div>
         </section>
 
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
@@ -123,7 +157,7 @@ export function BookingPanel(props: BookingPanelProps) {
             onClick={props.onCancelBooking}
             className="inline-flex h-12 w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-6 text-sm font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 sm:w-auto"
           >
-            Hủy đặt lịch
+            Huy dat lich
           </button>
           <button
             type="button"
@@ -136,7 +170,7 @@ export function BookingPanel(props: BookingPanelProps) {
             className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#0758b7] px-7 text-sm font-bold text-white shadow-lg shadow-blue-100 transition hover:bg-[#064b9c] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
           >
             <DashboardIcon name="appointment" className="h-4 w-4" />
-            Xác nhận đặt lịch
+            Xac nhan dat lich
             <DashboardIcon name="arrow" className="h-4 w-4" />
           </button>
         </div>
@@ -155,7 +189,7 @@ export function BookingPanel(props: BookingPanelProps) {
                   <DashboardIcon name="checkup" className="h-8 w-8" />
                 </div>
                 <h3 className="mt-5 text-2xl font-bold text-slate-900">
-                  Đặt lịch thành công
+                  Dat lich thanh cong
                 </h3>
                 <p className="mt-3 text-sm leading-6 text-slate-500">
                   {props.successMessage}
@@ -169,7 +203,7 @@ export function BookingPanel(props: BookingPanelProps) {
                   }}
                   className="mt-6 inline-flex h-12 items-center justify-center rounded-2xl bg-[#0758b7] px-6 text-sm font-bold text-white shadow-lg shadow-blue-100 transition hover:bg-[#064b9c]"
                 >
-                  Về quản lý lịch hẹn
+                  Ve quan ly lich hen
                 </button>
               </div>
             ) : (
@@ -178,13 +212,13 @@ export function BookingPanel(props: BookingPanelProps) {
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0863c5]">
-                        Xem lại trước khi đặt lịch
+                        Xem lai truoc khi dat lich
                       </p>
                       <h3 className="mt-2 text-[30px] font-bold text-slate-900">
-                        Xác nhận thông tin đã chọn
+                        Xac nhan thong tin da chon
                       </h3>
                       <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-                        Vui lòng kiểm tra lại lịch hẹn, chính sách và xác nhận trước khi gửi yêu cầu đến phòng khám.
+                        Vui long kiem tra lai lich hen, cach giu lich va xac nhan truoc khi gui yeu cau den phong kham.
                       </p>
                     </div>
                     <button
@@ -194,7 +228,7 @@ export function BookingPanel(props: BookingPanelProps) {
                         setReviewAccepted(false);
                       }}
                       className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-slate-200 bg-white text-slate-400 transition hover:border-slate-300 hover:text-slate-700"
-                      aria-label="Đóng hộp xác nhận"
+                      aria-label="Dong hop xac nhan"
                     >
                       <span className="text-xl leading-none">x</span>
                     </button>
@@ -207,7 +241,7 @@ export function BookingPanel(props: BookingPanelProps) {
                       <div className="flex items-start justify-between gap-4">
                         <div>
                           <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/75">
-                            Lịch hẹn sắp gửi
+                            Lich hen sap gui
                           </p>
                           <h4 className="mt-3 text-3xl font-bold">
                             {props.selectedTime || "--:--"}
@@ -215,7 +249,7 @@ export function BookingPanel(props: BookingPanelProps) {
                           <p className="mt-2 text-sm text-white/85">
                             {props.selectedDate
                               ? `${props.selectedDate.weekday} ${props.selectedDate.day} ${props.selectedDate.month}`
-                              : "Chưa chọn ngày khám"}
+                              : "Chua chon ngay kham"}
                           </p>
                         </div>
                         <span className="grid h-14 w-14 place-items-center rounded-2xl bg-white/14 text-white">
@@ -226,7 +260,7 @@ export function BookingPanel(props: BookingPanelProps) {
                         <SummaryLine
                           icon="appointment"
                           label="Dich vu"
-                          value={props.selectedService?.name ?? "Chưa chọn"}
+                          value={props.selectedService?.name ?? "Chua chon"}
                           detail={
                             props.selectedService
                               ? `${props.selectedService.price} d`
@@ -237,7 +271,7 @@ export function BookingPanel(props: BookingPanelProps) {
                         <SummaryLine
                           icon="user"
                           label="Bac si"
-                          value={props.selectedDoctor?.name ?? "Chưa chọn"}
+                          value={props.selectedDoctor?.name ?? "Chua chon"}
                           detail={props.selectedDoctor?.specialty ?? ""}
                           inverse
                         />
@@ -269,9 +303,17 @@ export function BookingPanel(props: BookingPanelProps) {
                       />
                       <ReviewCard
                         icon="document"
-                        label="Ho so dat lich"
-                        value="Thong tin da san sang"
-                        detail="Phong kham se doi chieu khi tiep nhan"
+                        label="Cach giu lich"
+                        value={
+                          props.selectedPaymentOption === "DEPOSIT_30_PERCENT"
+                            ? "Coc truoc"
+                            : "Thanh toan tai quay"
+                        }
+                        detail={
+                          props.selectedPaymentOption === "DEPOSIT_30_PERCENT"
+                            ? "He thong se tao hoa don coc"
+                            : "Thanh toan khi den kham"
+                        }
                       />
                     </div>
                   </section>
@@ -281,10 +323,10 @@ export function BookingPanel(props: BookingPanelProps) {
                       <div className="flex items-center justify-between gap-3">
                         <div>
                           <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#0863c5]">
-                            Chính sách phòng khám
+                            Chinh sach phong kham
                           </p>
                           <h4 className="mt-2 text-xl font-bold text-slate-900">
-                            Điều kiện cần lưu ý
+                            Dieu kien can luu y
                           </h4>
                         </div>
                         <span className="rounded-full bg-[#0863c5] px-3 py-1 text-[10px] font-bold text-white">
@@ -293,16 +335,16 @@ export function BookingPanel(props: BookingPanelProps) {
                       </div>
                       <div className="mt-4 grid gap-3">
                         <PolicyItem
-                          title="Hủy lịch trước 12 giờ"
-                          text="Thông báo sớm để được hủy lịch miễn phí và không bị đánh dấu vắng mặt."
+                          title="Chon cach giu lich"
+                          text="Ban co the coc truoc hoac chon thanh toan tai quay khi den kham."
                         />
                         <PolicyItem
-                          title="Đổi lịch trước 6 giờ"
-                          text="Phòng khám chỉ hỗ trợ đổi lịch online khi còn đủ tối thiểu 6 giờ."
+                          title="Phan tram / so tien"
+                          text="Muc coc co the la % gia dich vu hoac so tien co dinh theo cau hinh admin."
                         />
                         <PolicyItem
-                          title="No-show và đặt cọc"
-                          text="Từ 2 lần no-show sẽ yêu cầu cọc 50%. Từ 3 lần trở lên, vui lòng liên hệ lễ tân."
+                          title="Ghi nhan vao hoa don"
+                          text="Neu coc truoc, he thong tao hoa don DEPOSIT va ghi nhan trang thai giu lich."
                         />
                       </div>
                     </section>
@@ -314,10 +356,10 @@ export function BookingPanel(props: BookingPanelProps) {
                         </span>
                         <div>
                           <h4 className="text-base font-bold text-slate-900">
-                            Xác nhận trước khi gửi lịch hẹn
+                            Xac nhan truoc khi gui lich hen
                           </h4>
                           <p className="mt-1 text-sm leading-6 text-slate-500">
-                            Hệ thống sẽ gửi yêu cầu đặt lịch đến phòng khám ngay sau khi bạn xác nhận.
+                            He thong se gui yeu cau dat lich den phong kham ngay sau khi ban xac nhan.
                           </p>
                         </div>
                       </div>
@@ -330,7 +372,7 @@ export function BookingPanel(props: BookingPanelProps) {
                           className="mt-1 h-4 w-4 rounded border-slate-300 accent-[#0863c5]"
                         />
                         <span className="text-sm leading-6 text-slate-600">
-                          Tôi đã đọc kỹ thông tin đặt lịch và đồng ý với chính sách của phòng khám.
+                          Toi da doc ky thong tin dat lich va dong y voi chinh sach cua phong kham.
                         </span>
                       </label>
                     </section>
@@ -340,7 +382,7 @@ export function BookingPanel(props: BookingPanelProps) {
                 <div className="border-t border-slate-200/80 bg-white px-6 py-4 sm:px-7">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <p className="text-sm text-slate-500">
-                      Vui lòng kiểm tra kỹ trước khi gửi yêu cầu đặt lịch.
+                      Vui long kiem tra ky truoc khi gui yeu cau dat lich.
                     </p>
                     <div className="flex flex-col-reverse gap-3 sm:flex-row">
                       <button
@@ -348,7 +390,7 @@ export function BookingPanel(props: BookingPanelProps) {
                         onClick={props.onCancelBooking}
                         className="inline-flex h-12 items-center justify-center rounded-2xl border border-slate-200 px-5 text-sm font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
                       >
-                        Hủy đặt lịch
+                        Huy dat lich
                       </button>
                       <button
                         type="button"
@@ -362,7 +404,7 @@ export function BookingPanel(props: BookingPanelProps) {
                         ) : (
                           <DashboardIcon name="appointment" className="h-4 w-4" />
                         )}
-                        {props.isSubmitting ? "Đang xử lý..." : "Đặt lịch ngay"}
+                        {props.isSubmitting ? "Dang xu ly..." : "Dat lich ngay"}
                       </button>
                     </div>
                   </div>
@@ -373,6 +415,45 @@ export function BookingPanel(props: BookingPanelProps) {
         </div>
       ) : null}
     </>
+  );
+}
+
+function PaymentOptionCard({
+  title,
+  description,
+  selected,
+  onClick,
+}: {
+  title: string;
+  description: string;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={selected}
+      className={`rounded-2xl border p-4 text-left transition ${
+        selected
+          ? "border-[#0863c5] bg-blue-50/70 ring-2 ring-blue-100"
+          : "border-slate-200 bg-white hover:border-blue-200 hover:bg-blue-50/40"
+      }`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-bold text-slate-900">{title}</p>
+          <p className="mt-2 text-sm leading-6 text-slate-500">{description}</p>
+        </div>
+        <span
+          className={`grid h-5 w-5 place-items-center rounded-full border-2 ${
+            selected ? "border-[#0863c5]" : "border-slate-300"
+          }`}
+        >
+          {selected ? <span className="h-2.5 w-2.5 rounded-full bg-[#0863c5]" /> : null}
+        </span>
+      </div>
+    </button>
   );
 }
 
@@ -416,16 +497,10 @@ function ReviewCard({
   );
 }
 
-function PolicyItem({
-  title,
-  text,
-}: {
-  title: string;
-  text: string;
-}) {
+function PolicyItem({ title, text }: { title: string; text: string }) {
   return (
     <div className="flex gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_8px_20px_rgba(15,23,42,.03)]">
-      <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-blue-50 text-[#0863c5]">
+      <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-blue-50 text-[#0863c5]">
         <DashboardIcon name="shield" className="h-4 w-4" />
       </span>
       <div>
@@ -453,9 +528,7 @@ function SummaryLine({
     <div className="flex items-start gap-3">
       <span
         className={`grid h-10 w-10 shrink-0 place-items-center rounded-2xl ${
-          inverse
-            ? "bg-white/14 text-white"
-            : "bg-blue-50 text-[#0863c5]"
+          inverse ? "bg-white/14 text-white" : "bg-blue-50 text-[#0863c5]"
         }`}
       >
         <DashboardIcon name={icon} className="h-5 w-5" />

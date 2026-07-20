@@ -404,8 +404,11 @@ export const ModelName = {
   Appointment: 'Appointment',
   MedicalRecord: 'MedicalRecord',
   TreatmentPlan: 'TreatmentPlan',
+  TreatmentPlanStep: 'TreatmentPlanStep',
   ClinicalCase: 'ClinicalCase',
   Invoice: 'Invoice',
+  Prescription: 'Prescription',
+  PrescriptionItem: 'PrescriptionItem',
   Payment: 'Payment',
   Review: 'Review',
   ChatbotConversation: 'ChatbotConversation',
@@ -426,7 +429,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "clinicConfig" | "user" | "role" | "permission" | "userRole" | "rolePermission" | "service" | "serviceMedia" | "serviceProcedureStep" | "serviceFaq" | "promotion" | "patient" | "doctor" | "doctorEducation" | "doctorCertificate" | "doctorMedia" | "doctorAvailability" | "appointment" | "medicalRecord" | "treatmentPlan" | "clinicalCase" | "invoice" | "payment" | "review" | "chatbotConversation" | "videoConsultation" | "notification"
+    modelProps: "clinicConfig" | "user" | "role" | "permission" | "userRole" | "rolePermission" | "service" | "serviceMedia" | "serviceProcedureStep" | "serviceFaq" | "promotion" | "patient" | "doctor" | "doctorEducation" | "doctorCertificate" | "doctorMedia" | "doctorAvailability" | "appointment" | "medicalRecord" | "treatmentPlan" | "treatmentPlanStep" | "clinicalCase" | "invoice" | "prescription" | "prescriptionItem" | "payment" | "review" | "chatbotConversation" | "videoConsultation" | "notification"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1910,6 +1913,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    TreatmentPlanStep: {
+      payload: Prisma.$TreatmentPlanStepPayload<ExtArgs>
+      fields: Prisma.TreatmentPlanStepFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.TreatmentPlanStepFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TreatmentPlanStepPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.TreatmentPlanStepFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TreatmentPlanStepPayload>
+        }
+        findFirst: {
+          args: Prisma.TreatmentPlanStepFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TreatmentPlanStepPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.TreatmentPlanStepFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TreatmentPlanStepPayload>
+        }
+        findMany: {
+          args: Prisma.TreatmentPlanStepFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TreatmentPlanStepPayload>[]
+        }
+        create: {
+          args: Prisma.TreatmentPlanStepCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TreatmentPlanStepPayload>
+        }
+        createMany: {
+          args: Prisma.TreatmentPlanStepCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.TreatmentPlanStepCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TreatmentPlanStepPayload>[]
+        }
+        delete: {
+          args: Prisma.TreatmentPlanStepDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TreatmentPlanStepPayload>
+        }
+        update: {
+          args: Prisma.TreatmentPlanStepUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TreatmentPlanStepPayload>
+        }
+        deleteMany: {
+          args: Prisma.TreatmentPlanStepDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.TreatmentPlanStepUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.TreatmentPlanStepUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TreatmentPlanStepPayload>[]
+        }
+        upsert: {
+          args: Prisma.TreatmentPlanStepUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TreatmentPlanStepPayload>
+        }
+        aggregate: {
+          args: Prisma.TreatmentPlanStepAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateTreatmentPlanStep>
+        }
+        groupBy: {
+          args: Prisma.TreatmentPlanStepGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TreatmentPlanStepGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.TreatmentPlanStepCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TreatmentPlanStepCountAggregateOutputType> | number
+        }
+      }
+    }
     ClinicalCase: {
       payload: Prisma.$ClinicalCasePayload<ExtArgs>
       fields: Prisma.ClinicalCaseFieldRefs
@@ -2055,6 +2132,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.InvoiceCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.InvoiceCountAggregateOutputType> | number
+        }
+      }
+    }
+    Prescription: {
+      payload: Prisma.$PrescriptionPayload<ExtArgs>
+      fields: Prisma.PrescriptionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.PrescriptionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.PrescriptionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionPayload>
+        }
+        findFirst: {
+          args: Prisma.PrescriptionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.PrescriptionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionPayload>
+        }
+        findMany: {
+          args: Prisma.PrescriptionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionPayload>[]
+        }
+        create: {
+          args: Prisma.PrescriptionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionPayload>
+        }
+        createMany: {
+          args: Prisma.PrescriptionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.PrescriptionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionPayload>[]
+        }
+        delete: {
+          args: Prisma.PrescriptionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionPayload>
+        }
+        update: {
+          args: Prisma.PrescriptionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionPayload>
+        }
+        deleteMany: {
+          args: Prisma.PrescriptionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.PrescriptionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.PrescriptionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionPayload>[]
+        }
+        upsert: {
+          args: Prisma.PrescriptionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionPayload>
+        }
+        aggregate: {
+          args: Prisma.PrescriptionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregatePrescription>
+        }
+        groupBy: {
+          args: Prisma.PrescriptionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PrescriptionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.PrescriptionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PrescriptionCountAggregateOutputType> | number
+        }
+      }
+    }
+    PrescriptionItem: {
+      payload: Prisma.$PrescriptionItemPayload<ExtArgs>
+      fields: Prisma.PrescriptionItemFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.PrescriptionItemFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionItemPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.PrescriptionItemFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionItemPayload>
+        }
+        findFirst: {
+          args: Prisma.PrescriptionItemFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionItemPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.PrescriptionItemFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionItemPayload>
+        }
+        findMany: {
+          args: Prisma.PrescriptionItemFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionItemPayload>[]
+        }
+        create: {
+          args: Prisma.PrescriptionItemCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionItemPayload>
+        }
+        createMany: {
+          args: Prisma.PrescriptionItemCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.PrescriptionItemCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionItemPayload>[]
+        }
+        delete: {
+          args: Prisma.PrescriptionItemDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionItemPayload>
+        }
+        update: {
+          args: Prisma.PrescriptionItemUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionItemPayload>
+        }
+        deleteMany: {
+          args: Prisma.PrescriptionItemDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.PrescriptionItemUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.PrescriptionItemUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionItemPayload>[]
+        }
+        upsert: {
+          args: Prisma.PrescriptionItemUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionItemPayload>
+        }
+        aggregate: {
+          args: Prisma.PrescriptionItemAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregatePrescriptionItem>
+        }
+        groupBy: {
+          args: Prisma.PrescriptionItemGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PrescriptionItemGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.PrescriptionItemCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PrescriptionItemCountAggregateOutputType> | number
         }
       }
     }
@@ -2562,6 +2787,10 @@ export const ServiceScalarFieldEnum = {
   isFeatured: 'isFeatured',
   displayOrder: 'displayOrder',
   isActive: 'isActive',
+  depositOverrideEnabled: 'depositOverrideEnabled',
+  depositRequired: 'depositRequired',
+  depositCalculationMode: 'depositCalculationMode',
+  depositValue: 'depositValue',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -2723,10 +2952,16 @@ export const AppointmentScalarFieldEnum = {
   patientId: 'patientId',
   doctorId: 'doctorId',
   serviceId: 'serviceId',
+  treatmentPlanStepId: 'treatmentPlanStepId',
   scheduledAt: 'scheduledAt',
   endAt: 'endAt',
   status: 'status',
   bookingSource: 'bookingSource',
+  paymentOption: 'paymentOption',
+  paymentStatus: 'paymentStatus',
+  depositPercent: 'depositPercent',
+  depositAmount: 'depositAmount',
+  scheduleConfirmedAt: 'scheduleConfirmedAt',
   aiSuggestedTime: 'aiSuggestedTime',
   notes: 'notes',
   rescheduleHistory: 'rescheduleHistory',
@@ -2747,6 +2982,7 @@ export const MedicalRecordScalarFieldEnum = {
   patientId: 'patientId',
   appointmentId: 'appointmentId',
   doctorId: 'doctorId',
+  treatmentPlanStepId: 'treatmentPlanStepId',
   chiefComplaint: 'chiefComplaint',
   diagnosis: 'diagnosis',
   treatmentNotes: 'treatmentNotes',
@@ -2772,12 +3008,40 @@ export const TreatmentPlanScalarFieldEnum = {
   status: 'status',
   startDate: 'startDate',
   expectedEndDate: 'expectedEndDate',
+  schedulePaymentOption: 'schedulePaymentOption',
+  schedulePaymentStatus: 'schedulePaymentStatus',
+  depositPercent: 'depositPercent',
+  depositAmount: 'depositAmount',
+  scheduleConfirmedAt: 'scheduleConfirmedAt',
   items: 'items',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
 export type TreatmentPlanScalarFieldEnum = (typeof TreatmentPlanScalarFieldEnum)[keyof typeof TreatmentPlanScalarFieldEnum]
+
+
+export const TreatmentPlanStepScalarFieldEnum = {
+  id: 'id',
+  treatmentPlanId: 'treatmentPlanId',
+  doctorId: 'doctorId',
+  stepOrder: 'stepOrder',
+  title: 'title',
+  description: 'description',
+  targetTooth: 'targetTooth',
+  status: 'status',
+  estimatedCost: 'estimatedCost',
+  paymentAmount: 'paymentAmount',
+  paymentStatus: 'paymentStatus',
+  paymentDueAt: 'paymentDueAt',
+  paidAt: 'paidAt',
+  expectedDate: 'expectedDate',
+  completedAt: 'completedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TreatmentPlanStepScalarFieldEnum = (typeof TreatmentPlanStepScalarFieldEnum)[keyof typeof TreatmentPlanStepScalarFieldEnum]
 
 
 export const ClinicalCaseScalarFieldEnum = {
@@ -2808,7 +3072,10 @@ export const InvoiceScalarFieldEnum = {
   invoiceCode: 'invoiceCode',
   patientId: 'patientId',
   appointmentId: 'appointmentId',
+  treatmentPlanId: 'treatmentPlanId',
+  treatmentPlanStepId: 'treatmentPlanStepId',
   promotionId: 'promotionId',
+  invoiceType: 'invoiceType',
   items: 'items',
   subtotal: 'subtotal',
   discountAmount: 'discountAmount',
@@ -2820,6 +3087,33 @@ export const InvoiceScalarFieldEnum = {
 } as const
 
 export type InvoiceScalarFieldEnum = (typeof InvoiceScalarFieldEnum)[keyof typeof InvoiceScalarFieldEnum]
+
+
+export const PrescriptionScalarFieldEnum = {
+  id: 'id',
+  medicalRecordId: 'medicalRecordId',
+  treatmentPlanStepId: 'treatmentPlanStepId',
+  doctorId: 'doctorId',
+  patientId: 'patientId',
+  notes: 'notes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type PrescriptionScalarFieldEnum = (typeof PrescriptionScalarFieldEnum)[keyof typeof PrescriptionScalarFieldEnum]
+
+
+export const PrescriptionItemScalarFieldEnum = {
+  id: 'id',
+  prescriptionId: 'prescriptionId',
+  medicineName: 'medicineName',
+  dosage: 'dosage',
+  frequency: 'frequency',
+  duration: 'duration',
+  instruction: 'instruction'
+} as const
+
+export type PrescriptionItemScalarFieldEnum = (typeof PrescriptionItemScalarFieldEnum)[keyof typeof PrescriptionItemScalarFieldEnum]
 
 
 export const PaymentScalarFieldEnum = {
@@ -3047,6 +3341,20 @@ export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$Prisma
 
 
 /**
+ * Reference to a field of type 'DepositCalculationMode'
+ */
+export type EnumDepositCalculationModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DepositCalculationMode'>
+    
+
+
+/**
+ * Reference to a field of type 'DepositCalculationMode[]'
+ */
+export type ListEnumDepositCalculationModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DepositCalculationMode[]'>
+    
+
+
+/**
  * Reference to a field of type 'DiscountType'
  */
 export type EnumDiscountTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DiscountType'>
@@ -3117,6 +3425,34 @@ export type ListEnumBookingSourceFieldRefInput<$PrismaModel> = FieldRefInputType
 
 
 /**
+ * Reference to a field of type 'AppointmentPaymentOption'
+ */
+export type EnumAppointmentPaymentOptionFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AppointmentPaymentOption'>
+    
+
+
+/**
+ * Reference to a field of type 'AppointmentPaymentOption[]'
+ */
+export type ListEnumAppointmentPaymentOptionFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AppointmentPaymentOption[]'>
+    
+
+
+/**
+ * Reference to a field of type 'AppointmentPaymentStatus'
+ */
+export type EnumAppointmentPaymentStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AppointmentPaymentStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'AppointmentPaymentStatus[]'
+ */
+export type ListEnumAppointmentPaymentStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AppointmentPaymentStatus[]'>
+    
+
+
+/**
  * Reference to a field of type 'TreatmentPlanStatus'
  */
 export type EnumTreatmentPlanStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TreatmentPlanStatus'>
@@ -3127,6 +3463,76 @@ export type EnumTreatmentPlanStatusFieldRefInput<$PrismaModel> = FieldRefInputTy
  * Reference to a field of type 'TreatmentPlanStatus[]'
  */
 export type ListEnumTreatmentPlanStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TreatmentPlanStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'SchedulePaymentOption'
+ */
+export type EnumSchedulePaymentOptionFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SchedulePaymentOption'>
+    
+
+
+/**
+ * Reference to a field of type 'SchedulePaymentOption[]'
+ */
+export type ListEnumSchedulePaymentOptionFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SchedulePaymentOption[]'>
+    
+
+
+/**
+ * Reference to a field of type 'SchedulePaymentStatus'
+ */
+export type EnumSchedulePaymentStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SchedulePaymentStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'SchedulePaymentStatus[]'
+ */
+export type ListEnumSchedulePaymentStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SchedulePaymentStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'TreatmentStepStatus'
+ */
+export type EnumTreatmentStepStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TreatmentStepStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'TreatmentStepStatus[]'
+ */
+export type ListEnumTreatmentStepStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TreatmentStepStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'TreatmentStepPaymentStatus'
+ */
+export type EnumTreatmentStepPaymentStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TreatmentStepPaymentStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'TreatmentStepPaymentStatus[]'
+ */
+export type ListEnumTreatmentStepPaymentStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TreatmentStepPaymentStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'InvoiceType'
+ */
+export type EnumInvoiceTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'InvoiceType'>
+    
+
+
+/**
+ * Reference to a field of type 'InvoiceType[]'
+ */
+export type ListEnumInvoiceTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'InvoiceType[]'>
     
 
 
@@ -3371,8 +3777,11 @@ export type GlobalOmitConfig = {
   appointment?: Prisma.AppointmentOmit
   medicalRecord?: Prisma.MedicalRecordOmit
   treatmentPlan?: Prisma.TreatmentPlanOmit
+  treatmentPlanStep?: Prisma.TreatmentPlanStepOmit
   clinicalCase?: Prisma.ClinicalCaseOmit
   invoice?: Prisma.InvoiceOmit
+  prescription?: Prisma.PrescriptionOmit
+  prescriptionItem?: Prisma.PrescriptionItemOmit
   payment?: Prisma.PaymentOmit
   review?: Prisma.ReviewOmit
   chatbotConversation?: Prisma.ChatbotConversationOmit

@@ -52,4 +52,61 @@ export class MailService {
         : `Hello ${data.name}, reset your password here: ${resetUrl}. The link expires in 15 minutes.`,
     });
   }
+
+  sendAppointmentConfirmation(data: {
+    name: string;
+    email: string;
+    serviceName: string;
+    doctorName: string;
+    scheduledAt: string;
+    paymentLabel: string;
+    depositAmount?: number;
+    locale: MailLocale;
+  }) {
+    const vietnamese = data.locale === 'vi';
+    const time = new Intl.DateTimeFormat(vietnamese ? 'vi-VN' : 'en-US', {
+      dateStyle: 'full',
+      timeStyle: 'short',
+      timeZone: 'Asia/Ho_Chi_Minh',
+    }).format(new Date(data.scheduledAt));
+    const depositLine =
+      data.depositAmount && data.depositAmount > 0
+        ? vietnamese
+          ? `So tien coc: ${new Intl.NumberFormat('vi-VN').format(data.depositAmount)} VND.`
+          : `Deposit amount: ${new Intl.NumberFormat('en-US').format(data.depositAmount)} VND.`
+        : '';
+
+    return this.transporter.sendMail({
+      from: this.config.from,
+      to: data.email,
+      subject: vietnamese
+        ? 'Xac nhan yeu cau dat lich Smart Dental'
+        : 'Smart Dental appointment request confirmation',
+      text: vietnamese
+        ? [
+            `Xin chao ${data.name},`,
+            `Smart Dental da nhan yeu cau dat lich cua ban.`,
+            `Dich vu: ${data.serviceName}.`,
+            `Bac si: ${data.doctorName}.`,
+            `Thoi gian: ${time}.`,
+            `Cach giu lich: ${data.paymentLabel}.`,
+            depositLine,
+            'Phong kham se tiep tuc xu ly va thong bao khi lich duoc xac nhan.',
+          ]
+            .filter(Boolean)
+            .join('\n')
+        : [
+            `Hello ${data.name},`,
+            'Smart Dental has received your appointment request.',
+            `Service: ${data.serviceName}.`,
+            `Doctor: ${data.doctorName}.`,
+            `Time: ${time}.`,
+            `Booking hold option: ${data.paymentLabel}.`,
+            depositLine,
+            'The clinic will continue processing and notify you when the appointment is confirmed.',
+          ]
+            .filter(Boolean)
+            .join('\n'),
+    });
+  }
 }

@@ -5,7 +5,7 @@ import {
   getAppointmentOptions,
 } from "../api";
 import { getCreateAppointmentErrorMessage } from "../utils";
-import type { BookingDate } from "../types";
+import type { AppointmentPaymentOption, BookingDate } from "../types";
 
 type UseCreateAppointmentParams = {
   dates: BookingDate[];
@@ -14,6 +14,7 @@ type UseCreateAppointmentParams = {
   selectedServiceId: string;
   selectedDateId: string;
   selectedTime: string;
+  selectedPaymentOption: AppointmentPaymentOption;
   ensureLoggedInBeforeBooking: () => Promise<boolean>;
   onSelectedTimeChange: (time: string) => void;
   onSelectedDoctorChange: (doctorId: string) => void;
@@ -27,6 +28,7 @@ export function useCreateAppointment({
   selectedServiceId,
   selectedDateId,
   selectedTime,
+  selectedPaymentOption,
   ensureLoggedInBeforeBooking,
   onSelectedTimeChange,
   onSelectedDoctorChange,
@@ -110,12 +112,17 @@ export function useCreateAppointment({
         scheduledAt: new Date(
           `${selectedDateId}T${selectedTime}:00`,
         ).toISOString(),
+        paymentOption: selectedPaymentOption,
       });
 
-      const successMessage = `${created.appointment.service} luc ${created.appointment.time}. Phong kham se xac nhan trong it phut.`;
-      const policyDescription = created.bookingPolicy?.requiresDeposit
-        ? `Lich hen nay can coc truoc ${created.bookingPolicy.depositAmount.toLocaleString("vi-VN")}d vi ban da co ${created.bookingPolicy.noShowCount} lan vang mat.`
-        : successMessage;
+      const successMessage =
+        selectedPaymentOption === "DEPOSIT_30_PERCENT"
+          ? `${created.appointment.service} luc ${created.appointment.time}. Ban da chon coc truoc de giu lich.`
+          : `${created.appointment.service} luc ${created.appointment.time}. Ban da chon thanh toan tai quay khi den kham.`;
+      const policyDescription =
+        selectedPaymentOption === "DEPOSIT_30_PERCENT"
+          ? `Lich hen nay se giu bang khoan coc ${created.bookingPolicy?.depositAmount.toLocaleString("vi-VN") ?? "theo cau hinh"}d.`
+          : "Lich hen nay duoc giu va thanh toan tai quay khi den kham.";
 
       toast.success("Dat lich thanh cong", policyDescription);
       onSuccess(successMessage);

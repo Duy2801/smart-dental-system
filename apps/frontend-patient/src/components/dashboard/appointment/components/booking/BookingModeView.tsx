@@ -1,4 +1,11 @@
-import type { AppointmentService, BookingDate, CurrentAppointment, Dentist, NotificationPreferences } from "../../types";
+import type {
+  AppointmentPaymentOption,
+  AppointmentService,
+  BookingDate,
+  CurrentAppointment,
+  Dentist,
+  NotificationPreferences,
+} from "../../types";
 import { BookingPanel } from "./BookingPanel";
 import { CurrentAppointmentCard } from "../sidebar/CurrentAppointmentCard";
 import { NotificationSettings } from "../sidebar/NotificationSettings";
@@ -19,6 +26,7 @@ type BookingModeViewProps = {
   selectedService?: AppointmentService;
   selectedDoctor?: Dentist;
   selectedDate?: BookingDate;
+  selectedPaymentOption: AppointmentPaymentOption;
   current: CurrentAppointment | null;
   notifications: NotificationPreferences;
   successMessage: string | null;
@@ -28,6 +36,7 @@ type BookingModeViewProps = {
   onSelectDoctor: (id: string) => void;
   onSelectDate: (id: string) => void;
   onSelectTime: (time: string) => void;
+  onSelectPaymentOption: (value: AppointmentPaymentOption) => void;
   onToggleNotification: (key: keyof NotificationPreferences) => void;
   onOpenReview: () => void;
   onConfirmBooking: () => void;
@@ -50,6 +59,7 @@ export function BookingModeView({
   selectedService,
   selectedDoctor,
   selectedDate,
+  selectedPaymentOption,
   current,
   notifications,
   successMessage,
@@ -59,6 +69,7 @@ export function BookingModeView({
   onSelectDoctor,
   onSelectDate,
   onSelectTime,
+  onSelectPaymentOption,
   onToggleNotification,
   onOpenReview,
   onConfirmBooking,
@@ -94,6 +105,7 @@ export function BookingModeView({
           selectedService={selectedService}
           selectedDoctor={selectedDoctor}
           selectedDate={selectedDate}
+          selectedPaymentOption={selectedPaymentOption}
           successMessage={successMessage}
           isSubmitting={isSubmitting}
           isCheckingAvailability={isCheckingAvailability}
@@ -105,6 +117,7 @@ export function BookingModeView({
           onConfirmBooking={onConfirmBooking}
           onCloseSuccess={onCloseSuccess}
           onCancelBooking={onCancelBooking}
+          onSelectPaymentOption={onSelectPaymentOption}
         />
         <aside className="space-y-5 lg:sticky lg:top-24">
           <CurrentAppointmentCard appointment={current} />

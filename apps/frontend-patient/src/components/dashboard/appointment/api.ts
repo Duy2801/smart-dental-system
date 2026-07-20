@@ -1,7 +1,12 @@
 import apiClient from "@/lib/axios";
 import axios from "axios";
 import type { DashboardIconName } from "../common/DashboardIcon";
-import type { AppointmentService, BookingDate, Dentist } from "./types";
+import type {
+  AppointmentPaymentOption,
+  AppointmentService,
+  BookingDate,
+  Dentist,
+} from "./types";
 
 type ServiceDto = {
   id: string;
@@ -91,6 +96,7 @@ type CreateAppointmentPayload = {
   serviceId: string;
   scheduledAt: string;
   notes?: string;
+  paymentOption?: AppointmentPaymentOption;
 };
 
 type BookingPolicyDto = {

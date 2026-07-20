@@ -70,6 +70,34 @@ export const BookingSource = {
 export type BookingSource = (typeof BookingSource)[keyof typeof BookingSource]
 
 
+export const DepositCalculationMode = {
+  PERCENT: 'PERCENT',
+  FIXED: 'FIXED'
+} as const
+
+export type DepositCalculationMode = (typeof DepositCalculationMode)[keyof typeof DepositCalculationMode]
+
+
+export const AppointmentPaymentOption = {
+  DEPOSIT_30_PERCENT: 'DEPOSIT_30_PERCENT',
+  PAY_AT_COUNTER: 'PAY_AT_COUNTER'
+} as const
+
+export type AppointmentPaymentOption = (typeof AppointmentPaymentOption)[keyof typeof AppointmentPaymentOption]
+
+
+export const AppointmentPaymentStatus = {
+  NOT_SELECTED: 'NOT_SELECTED',
+  PENDING_DEPOSIT: 'PENDING_DEPOSIT',
+  DEPOSIT_PAID: 'DEPOSIT_PAID',
+  PAY_AT_COUNTER_SELECTED: 'PAY_AT_COUNTER_SELECTED',
+  COUNTER_PAID: 'COUNTER_PAID',
+  WAIVED: 'WAIVED'
+} as const
+
+export type AppointmentPaymentStatus = (typeof AppointmentPaymentStatus)[keyof typeof AppointmentPaymentStatus]
+
+
 export const TreatmentPlanStatus = {
   PLANNED: 'PLANNED',
   IN_PROGRESS: 'IN_PROGRESS',
@@ -78,6 +106,48 @@ export const TreatmentPlanStatus = {
 } as const
 
 export type TreatmentPlanStatus = (typeof TreatmentPlanStatus)[keyof typeof TreatmentPlanStatus]
+
+
+export const SchedulePaymentOption = {
+  DEPOSIT_30_PERCENT: 'DEPOSIT_30_PERCENT',
+  PAY_AT_COUNTER: 'PAY_AT_COUNTER'
+} as const
+
+export type SchedulePaymentOption = (typeof SchedulePaymentOption)[keyof typeof SchedulePaymentOption]
+
+
+export const SchedulePaymentStatus = {
+  NOT_SELECTED: 'NOT_SELECTED',
+  PENDING_DEPOSIT: 'PENDING_DEPOSIT',
+  DEPOSIT_PAID: 'DEPOSIT_PAID',
+  PAY_AT_COUNTER_SELECTED: 'PAY_AT_COUNTER_SELECTED',
+  COUNTER_PAID: 'COUNTER_PAID',
+  WAIVED: 'WAIVED'
+} as const
+
+export type SchedulePaymentStatus = (typeof SchedulePaymentStatus)[keyof typeof SchedulePaymentStatus]
+
+
+export const TreatmentStepStatus = {
+  PLANNED: 'PLANNED',
+  SCHEDULED: 'SCHEDULED',
+  IN_PROGRESS: 'IN_PROGRESS',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED'
+} as const
+
+export type TreatmentStepStatus = (typeof TreatmentStepStatus)[keyof typeof TreatmentStepStatus]
+
+
+export const TreatmentStepPaymentStatus = {
+  UNBILLED: 'UNBILLED',
+  INVOICED: 'INVOICED',
+  PARTIALLY_PAID: 'PARTIALLY_PAID',
+  PAID: 'PAID',
+  WAIVED: 'WAIVED'
+} as const
+
+export type TreatmentStepPaymentStatus = (typeof TreatmentStepPaymentStatus)[keyof typeof TreatmentStepPaymentStatus]
 
 
 export const InvoiceStatus = {
@@ -90,6 +160,16 @@ export const InvoiceStatus = {
 } as const
 
 export type InvoiceStatus = (typeof InvoiceStatus)[keyof typeof InvoiceStatus]
+
+
+export const InvoiceType = {
+  SERVICE: 'SERVICE',
+  DEPOSIT: 'DEPOSIT',
+  STEP_PAYMENT: 'STEP_PAYMENT',
+  FINAL_PAYMENT: 'FINAL_PAYMENT'
+} as const
+
+export type InvoiceType = (typeof InvoiceType)[keyof typeof InvoiceType]
 
 
 export const PaymentMethod = {

@@ -4,7 +4,9 @@ import {
   IsBoolean,
   IsInt,
   IsDateString,
+  IsEnum,
   IsOptional,
+  IsNumber,
   IsString,
   Matches,
   Max,
@@ -12,6 +14,7 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
+import { DepositCalculationMode } from '../../../../prisma/generated/enums';
 
 export class BusinessHourDto {
   @IsInt()
@@ -94,4 +97,17 @@ export class UpdateClinicConfigDto {
   @ValidateNested({ each: true })
   @Type(() => ClinicSpecialDateDto)
   specialDates?: ClinicSpecialDateDto[];
+
+  @IsOptional()
+  @IsBoolean()
+  bookingDepositEnabled?: boolean;
+
+  @IsOptional()
+  @IsEnum(DepositCalculationMode)
+  bookingDepositCalculationMode?: DepositCalculationMode;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  bookingDepositValue?: number;
 }
