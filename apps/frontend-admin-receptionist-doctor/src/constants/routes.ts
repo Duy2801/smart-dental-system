@@ -27,6 +27,7 @@ export const ROUTES = {
     ROOT: "/doctor",
     SCHEDULE: "/doctor/schedule",
     PATIENTS: "/doctor/patients",
+    MEDICAL_RECORDS: "/doctor/medical-records",
     PRESCRIPTIONS: "/doctor/prescriptions",
     TREATMENT_PLANS: "/doctor/treatment-plans",
   },

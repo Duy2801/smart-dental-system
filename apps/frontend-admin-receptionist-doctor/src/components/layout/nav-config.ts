@@ -24,6 +24,8 @@ export const receptionistNavItems = [
 export const doctorNavItems = [
   { label: "Tổng quan", href: ROUTES.DOCTOR.ROOT },
   { label: "Lịch khám", href: ROUTES.DOCTOR.SCHEDULE },
+  { label: "Bệnh nhân", href: ROUTES.DOCTOR.PATIENTS },
+  { label: "Hồ sơ bệnh án", href: ROUTES.DOCTOR.MEDICAL_RECORDS },
   { label: "Đơn thuốc", href: ROUTES.DOCTOR.PRESCRIPTIONS },
   { label: "Kế hoạch điều trị", href: ROUTES.DOCTOR.TREATMENT_PLANS },
 ];
