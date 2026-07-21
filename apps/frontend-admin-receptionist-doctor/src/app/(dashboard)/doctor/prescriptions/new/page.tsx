@@ -1,17 +1,34 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft,
   Plus,
   Trash,
-  Printer,
-  FloppyDisk,
+  SpinnerGap,
+  Warning,
+  CheckCircle,
 } from "@phosphor-icons/react";
+import apiClient from "@/src/lib/api/client";
+
+type Patient = {
+  id: string;
+  patientCode: string;
+  fullName: string;
+};
+
+type RecordSummary = {
+  id: string;
+  patientId: string;
+  patientName: string;
+  diagnosis: string | null;
+  scheduledAt: string | null;
+};
 
 type MedItem = {
-  id: number;
+  key: number;
   medicineName: string;
   dosage: string;
   frequency: string;
@@ -19,42 +36,131 @@ type MedItem = {
   instruction: string;
 };
 
-export default function NewPrescriptionPage() {
+function getUserInfo(): { doctorId: string | null } {
+  if (typeof document === "undefined") return { doctorId: null };
+  const raw = document.cookie
+    .split("; ")
+    .find((c) => c.startsWith("user_info="))
+    ?.split("=")
+    .slice(1)
+    .join("=");
+  if (!raw) return { doctorId: null };
+  try {
+    return JSON.parse(decodeURIComponent(raw));
+  } catch {
+    return { doctorId: null };
+  }
+}
+
+function formatDate(iso: string | null) {
+  if (!iso) return "";
+  return new Date(iso).toLocaleDateString("vi-VN");
+}
+
+function NewPrescriptionContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const initPatientId = searchParams.get("patientId") ?? "";
+  const initRecordId = searchParams.get("recordId") ?? "";
+
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [records, setRecords] = useState<RecordSummary[]>([]);
+  const [selectedPatientId, setSelectedPatientId] = useState(initPatientId);
+  const [selectedRecordId, setSelectedRecordId] = useState(initRecordId);
+  const [notes, setNotes] = useState("");
   const [medications, setMedications] = useState<MedItem[]>([
-    {
-      id: 1,
-      medicineName: "",
-      dosage: "",
-      frequency: "",
-      duration: "",
-      instruction: "",
-    },
+    { key: 1, medicineName: "", dosage: "", frequency: "", duration: "", instruction: "" },
   ]);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  const doctorId = getUserInfo().doctorId;
+
+  // Load patients
+  useEffect(() => {
+    if (!doctorId) return;
+    apiClient
+      .get<Patient[]>(`/patients?doctorId=${doctorId}`)
+      .then((res) => setPatients(res.data))
+      .catch(() => {});
+  }, [doctorId]);
+
+  // Load medical records when patient changes
+  useEffect(() => {
+    if (!doctorId || !selectedPatientId) {
+      setRecords([]);
+      setSelectedRecordId("");
+      return;
+    }
+    apiClient
+      .get<RecordSummary[]>(`/medical-records?doctorId=${doctorId}`)
+      .then((res) => {
+        const filtered = res.data.filter(
+          (r) => r.patientId === selectedPatientId,
+        );
+        setRecords(filtered);
+        setSelectedRecordId(filtered[0]?.id ?? "");
+      })
+      .catch(() => {});
+  }, [doctorId, selectedPatientId]);
 
   const addMedication = () => {
     setMedications((prev) => [
       ...prev,
-      {
-        id: Date.now(),
-        medicineName: "",
-        dosage: "",
-        frequency: "",
-        duration: "",
-        instruction: "",
-      },
+      { key: Date.now(), medicineName: "", dosage: "", frequency: "", duration: "", instruction: "" },
     ]);
   };
 
-  const removeMedication = (id: number) => {
+  const removeMedication = (key: number) => {
     if (medications.length > 1) {
-      setMedications((prev) => prev.filter((m) => m.id !== id));
+      setMedications((prev) => prev.filter((m) => m.key !== key));
+    }
+  };
+
+  const updateMed = (key: number, field: keyof Omit<MedItem, "key">, value: string) => {
+    setMedications((prev) =>
+      prev.map((m) => (m.key === key ? { ...m, [field]: value } : m)),
+    );
+  };
+
+  const handleSubmit = async () => {
+    if (!selectedPatientId || !selectedRecordId) {
+      setError("Vui lòng chọn bệnh nhân và hồ sơ bệnh án.");
+      return;
+    }
+    const validItems = medications.filter((m) => m.medicineName.trim());
+    if (validItems.length === 0) {
+      setError("Vui lòng thêm ít nhất một loại thuốc.");
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    try {
+      await apiClient.post(`/prescriptions?doctorId=${doctorId}`, {
+        patientId: selectedPatientId,
+        medicalRecordId: selectedRecordId,
+        notes: notes.trim() || undefined,
+        items: validItems.map((m) => ({
+          medicineName: m.medicineName.trim(),
+          dosage: m.dosage.trim(),
+          frequency: m.frequency.trim() || undefined,
+          duration: m.duration.trim() || undefined,
+          instruction: m.instruction.trim() || undefined,
+        })),
+      });
+      setSuccess(true);
+      setTimeout(() => router.push("/doctor/prescriptions"), 1500);
+    } catch {
+      setError("Tạo đơn thuốc thất bại. Vui lòng thử lại.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
     <div className="min-h-screen bg-slate-50/50 px-6 py-8">
       <div className="mx-auto max-w-4xl">
-        {/* Breadcrumb & Header */}
         <div className="mb-6 space-y-4">
           <Link
             href="/doctor/prescriptions"
@@ -70,62 +176,84 @@ export default function NewPrescriptionPage() {
                 Kê đơn thuốc mới
               </h1>
               <p className="mt-1 text-sm text-muted-foreground">
-                Tạo và xuất đơn thuốc điện tử cho bệnh nhân.
+                Tạo và lưu đơn thuốc điện tử cho bệnh nhân.
               </p>
             </div>
             <div className="flex gap-3">
-              <button className="inline-flex items-center gap-2 rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-medium text-brand-dark shadow-sm transition-all hover:bg-slate-50 hover:shadow active:scale-[0.98]">
-                <FloppyDisk size={15} />
-                Lưu nháp
-              </button>
-              <button className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-brand-dark hover:shadow active:scale-[0.98]">
-                <Printer size={15} />
-                Lưu & Xuất PDF
+              <button
+                onClick={handleSubmit}
+                disabled={submitting || success}
+                className="inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-brand-dark hover:shadow active:scale-[0.98] disabled:opacity-60"
+              >
+                {submitting ? (
+                  <SpinnerGap size={15} className="animate-spin" />
+                ) : success ? (
+                  <CheckCircle size={15} weight="fill" />
+                ) : (
+                  <Plus size={15} weight="bold" />
+                )}
+                {success ? "Đã lưu!" : submitting ? "Đang lưu..." : "Lưu đơn thuốc"}
               </button>
             </div>
           </div>
         </div>
 
+        {error && (
+          <div className="mb-4 flex items-center gap-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-inset ring-red-200">
+            <Warning size={18} className="shrink-0" />
+            {error}
+          </div>
+        )}
+
         <div className="space-y-6">
-          {/* 1. Thông tin chẩn đoán */}
+          {/* 1. Thông tin */}
           <div className="rounded-2xl border border-border bg-white p-6 shadow-sm">
             <h2 className="mb-4 text-base font-semibold text-brand-dark">
-              1. Thông tin chẩn đoán
+              1. Thông tin bệnh nhân
             </h2>
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="grid gap-5 md:grid-cols-2">
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-brand-dark">
                   Bệnh nhân <span className="text-red-500">*</span>
                 </label>
-                <select className="w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand">
+                <select
+                  value={selectedPatientId}
+                  onChange={(e) => setSelectedPatientId(e.target.value)}
+                  className="w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand"
+                >
                   <option value="">-- Chọn bệnh nhân --</option>
-                  <option value="pt-001">Nguyễn Văn A — BN-2001</option>
-                  <option value="pt-002">Trần Thị B — BN-2002</option>
-                  <option value="pt-003">Phạm Dũng — BN-2003</option>
-                  <option value="pt-004">Hoàng Thị Oanh — BN-2004</option>
-                  <option value="pt-005">Lê Minh Cường — BN-2005</option>
-                  <option value="pt-006">Đỗ Thu Hà — BN-2006</option>
+                  {patients.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.fullName} — {p.patientCode}
+                    </option>
+                  ))}
                 </select>
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-brand-dark">
-                  Lịch hẹn liên quan
+                  Hồ sơ bệnh án liên quan <span className="text-red-500">*</span>
                 </label>
-                <select className="w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand">
-                  <option value="">-- Chọn lịch hẹn --</option>
+                <select
+                  value={selectedRecordId}
+                  onChange={(e) => setSelectedRecordId(e.target.value)}
+                  disabled={!selectedPatientId || records.length === 0}
+                  className="w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand disabled:opacity-50"
+                >
+                  {records.length === 0 ? (
+                    <option value="">
+                      {selectedPatientId
+                        ? "Không có hồ sơ"
+                        : "-- Chọn bệnh nhân trước --"}
+                    </option>
+                  ) : (
+                    records.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {formatDate(r.scheduledAt)}{r.diagnosis ? ` — ${r.diagnosis}` : ""}
+                      </option>
+                    ))
+                  )}
                 </select>
-              </div>
-
-              <div className="space-y-1.5 md:col-span-2">
-                <label className="text-sm font-medium text-brand-dark">
-                  Chẩn đoán lâm sàng <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ví dụ: [K04.0] Viêm tủy không hồi phục răng 38..."
-                  className="w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand"
-                />
               </div>
 
               <div className="space-y-1.5 md:col-span-2">
@@ -134,6 +262,8 @@ export default function NewPrescriptionPage() {
                 </label>
                 <textarea
                   rows={2}
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
                   placeholder="Lời dặn thêm cho bệnh nhân..."
                   className="w-full resize-none rounded-xl border border-border bg-white px-3 py-2.5 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand"
                 />
@@ -167,7 +297,7 @@ export default function NewPrescriptionPage() {
                 <tbody className="divide-y divide-border/30">
                   {medications.map((med, index) => (
                     <tr
-                      key={med.id}
+                      key={med.key}
                       className="group transition-colors hover:bg-slate-50/50"
                     >
                       <td className="py-2.5 pr-2 text-center text-xs font-medium text-muted-foreground/70">
@@ -176,6 +306,10 @@ export default function NewPrescriptionPage() {
                       <td className="py-2.5 pr-3">
                         <input
                           type="text"
+                          value={med.medicineName}
+                          onChange={(e) =>
+                            updateMed(med.key, "medicineName", e.target.value)
+                          }
                           placeholder="Paracetamol 500mg"
                           className="w-full rounded-lg border-transparent bg-slate-50/80 px-3 py-2 text-sm text-brand-dark outline-none placeholder:text-muted-foreground/50 transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand"
                         />
@@ -183,6 +317,10 @@ export default function NewPrescriptionPage() {
                       <td className="py-2.5 pr-3">
                         <input
                           type="text"
+                          value={med.dosage}
+                          onChange={(e) =>
+                            updateMed(med.key, "dosage", e.target.value)
+                          }
                           placeholder="500mg"
                           className="w-full rounded-lg border-transparent bg-slate-50/80 px-3 py-2 text-sm text-brand-dark outline-none placeholder:text-muted-foreground/50 transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand"
                         />
@@ -190,6 +328,10 @@ export default function NewPrescriptionPage() {
                       <td className="py-2.5 pr-3">
                         <input
                           type="text"
+                          value={med.frequency}
+                          onChange={(e) =>
+                            updateMed(med.key, "frequency", e.target.value)
+                          }
                           placeholder="3 lần/ngày"
                           className="w-full rounded-lg border-transparent bg-slate-50/80 px-3 py-2 text-sm text-brand-dark outline-none placeholder:text-muted-foreground/50 transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand"
                         />
@@ -197,6 +339,10 @@ export default function NewPrescriptionPage() {
                       <td className="py-2.5 pr-3">
                         <input
                           type="text"
+                          value={med.duration}
+                          onChange={(e) =>
+                            updateMed(med.key, "duration", e.target.value)
+                          }
                           placeholder="5 ngày"
                           className="w-full rounded-lg border-transparent bg-slate-50/80 px-3 py-2 text-sm text-brand-dark outline-none placeholder:text-muted-foreground/50 transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand"
                         />
@@ -204,13 +350,17 @@ export default function NewPrescriptionPage() {
                       <td className="py-2.5 pr-3">
                         <input
                           type="text"
+                          value={med.instruction}
+                          onChange={(e) =>
+                            updateMed(med.key, "instruction", e.target.value)
+                          }
                           placeholder="Uống sau ăn"
                           className="w-full rounded-lg border-transparent bg-slate-50/80 px-3 py-2 text-sm text-brand-dark outline-none placeholder:text-muted-foreground/50 transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand"
                         />
                       </td>
                       <td className="py-2.5 text-center">
                         <button
-                          onClick={() => removeMedication(med.id)}
+                          onClick={() => removeMedication(med.key)}
                           disabled={medications.length === 1}
                           className="inline-flex h-8 w-8 items-center justify-center rounded text-muted-foreground opacity-30 transition-all hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 disabled:opacity-0 active:scale-95"
                         >
@@ -236,5 +386,17 @@ export default function NewPrescriptionPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function NewPrescriptionPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-64 items-center justify-center">
+        <SpinnerGap size={32} className="animate-spin text-brand" />
+      </div>
+    }>
+      <NewPrescriptionContent />
+    </Suspense>
   );
 }

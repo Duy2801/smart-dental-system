@@ -1512,6 +1512,42 @@ async function seedRelatedData(
     );
   }
 
+  // Seed Prescription records (linked to medicalRecords)
+  await prisma.prescriptionItem.deleteMany({
+    where: { prescription: { notes: { startsWith: 'Seed prescription' } } },
+  });
+  await prisma.prescription.deleteMany({
+    where: { notes: { startsWith: 'Seed prescription' } },
+  });
+  for (let index = 0; index < 6; index += 1) {
+    await prisma.prescription.create({
+      data: {
+        doctorId: context.doctors[index % 2].id,
+        patientId: context.patients[index].id,
+        medicalRecordId: medicalRecords[index].id,
+        notes: `Seed prescription ${index + 1}`,
+        items: {
+          create: [
+            {
+              medicineName: ['Paracetamol 500mg', 'Amoxicillin 500mg', 'Ibuprofen 400mg', 'Metronidazole 250mg'][index % 4],
+              dosage: ['500mg', '500mg', '400mg', '250mg'][index % 4],
+              frequency: '3 lần/ngày',
+              duration: `${5 + index} ngày`,
+              instruction: ['Uống sau ăn', 'Uống sau ăn, đủ liệu trình', 'Uống sau ăn, tối đa 3 viên/ngày', 'Uống trong bữa ăn'][index % 4],
+            },
+            {
+              medicineName: 'Chlorhexidine 0.12%',
+              dosage: '10ml',
+              frequency: '2 lần/ngày',
+              duration: '7 ngày',
+              instruction: 'Súc miệng 30 giây, không nuốt',
+            },
+          ],
+        },
+      },
+    });
+  }
+
   await prisma.clinicalCase.deleteMany({
     where: { title: { startsWith: 'Seed clinical case' } },
   });

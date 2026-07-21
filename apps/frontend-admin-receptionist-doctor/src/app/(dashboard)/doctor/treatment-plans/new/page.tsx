@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/src/lib/utils/cn";
 import {
@@ -8,69 +9,93 @@ import {
   Plus,
   Trash,
   Check,
-  FloppyDisk,
-  Lightning,
   ArrowUp,
   ArrowDown,
+  SpinnerGap,
+  Warning,
+  CheckCircle,
+  Lightning,
 } from "@phosphor-icons/react";
+import apiClient from "@/src/lib/api/client";
 
-type Phase = {
-  id: number;
+type Patient = {
+  id: string;
+  patientCode: string;
+  fullName: string;
+};
+
+type Step = {
+  key: number;
   title: string;
   targetTooth: string;
   estimatedCost: string;
   expectedDate: string;
   description: string;
-  status: "PENDING" | "COMPLETED";
 };
 
-export default function NewTreatmentPlanPage() {
-  const [phases, setPhases] = useState<Phase[]>([
-    {
-      id: 1,
-      title: "",
-      targetTooth: "",
-      estimatedCost: "",
-      expectedDate: "",
-      description: "",
-      status: "PENDING",
-    },
-  ]);
+function getUserInfo(): { doctorId: string | null } {
+  if (typeof document === "undefined") return { doctorId: null };
+  const raw = document.cookie
+    .split("; ")
+    .find((c) => c.startsWith("user_info="))
+    ?.split("=")
+    .slice(1)
+    .join("=");
+  if (!raw) return { doctorId: null };
+  try {
+    return JSON.parse(decodeURIComponent(raw));
+  } catch {
+    return { doctorId: null };
+  }
+}
 
-  const addPhase = () => {
-    setPhases((prev) => [
+export default function NewTreatmentPlanPage() {
+  const router = useRouter();
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [patientId, setPatientId] = useState("");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [expectedEndDate, setExpectedEndDate] = useState("");
+  const [steps, setSteps] = useState<Step[]>([
+    { key: 1, title: "", targetTooth: "", estimatedCost: "", expectedDate: "", description: "" },
+  ]);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  const doctorId = getUserInfo().doctorId;
+
+  useEffect(() => {
+    if (!doctorId) return;
+    apiClient
+      .get<Patient[]>(`/patients?doctorId=${doctorId}`)
+      .then((res) => setPatients(res.data))
+      .catch(() => {});
+  }, [doctorId]);
+
+  const addStep = () => {
+    setSteps((prev) => [
       ...prev,
-      {
-        id: Date.now(),
-        title: "",
-        targetTooth: "",
-        estimatedCost: "",
-        expectedDate: "",
-        description: "",
-        status: "PENDING",
-      },
+      { key: Date.now(), title: "", targetTooth: "", estimatedCost: "", expectedDate: "", description: "" },
     ]);
   };
 
-  const removePhase = (id: number) => {
-    if (phases.length > 1) {
-      setPhases((prev) => prev.filter((p) => p.id !== id));
+  const removeStep = (key: number) => {
+    if (steps.length > 1) {
+      setSteps((prev) => prev.filter((s) => s.key !== key));
     }
   };
 
-  const toggleStatus = (id: number) => {
-    setPhases((prev) =>
-      prev.map((p) =>
-        p.id === id
-          ? { ...p, status: p.status === "PENDING" ? "COMPLETED" : "PENDING" }
-          : p,
-      ),
+  const updateStep = (key: number, field: keyof Omit<Step, "key">, value: string) => {
+    setSteps((prev) =>
+      prev.map((s) => (s.key === key ? { ...s, [field]: value } : s)),
     );
   };
 
   const moveUp = (index: number) => {
     if (index === 0) return;
-    setPhases((prev) => {
+    setSteps((prev) => {
       const next = [...prev];
       [next[index - 1], next[index]] = [next[index], next[index - 1]];
       return next;
@@ -78,18 +103,55 @@ export default function NewTreatmentPlanPage() {
   };
 
   const moveDown = (index: number) => {
-    if (index === phases.length - 1) return;
-    setPhases((prev) => {
+    if (index === steps.length - 1) return;
+    setSteps((prev) => {
       const next = [...prev];
       [next[index], next[index + 1]] = [next[index + 1], next[index]];
       return next;
     });
   };
 
+  const handleSubmit = async () => {
+    if (!patientId) {
+      setError("Vui lòng chọn bệnh nhân.");
+      return;
+    }
+    if (!title.trim()) {
+      setError("Vui lòng nhập tên kế hoạch.");
+      return;
+    }
+    const validSteps = steps.filter((s) => s.title.trim());
+    setSubmitting(true);
+    setError(null);
+    try {
+      await apiClient.post(`/treatment-plans?doctorId=${doctorId}`, {
+        patientId,
+        title: title.trim(),
+        description: description.trim() || undefined,
+        startDate: startDate || undefined,
+        expectedEndDate: expectedEndDate || undefined,
+        steps: validSteps.length
+          ? validSteps.map((s) => ({
+              title: s.title.trim(),
+              description: s.description.trim() || undefined,
+              targetTooth: s.targetTooth.trim() || undefined,
+              estimatedCost: s.estimatedCost ? Number(s.estimatedCost) : undefined,
+              expectedDate: s.expectedDate || undefined,
+            }))
+          : undefined,
+      });
+      setSuccess(true);
+      setTimeout(() => router.push("/doctor/treatment-plans"), 1500);
+    } catch {
+      setError("Tạo kế hoạch thất bại. Vui lòng thử lại.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50/50 px-6 py-8">
       <div className="mx-auto max-w-4xl">
-        {/* Breadcrumb & Header */}
         <div className="mb-6 space-y-4">
           <Link
             href="/doctor/treatment-plans"
@@ -108,18 +170,29 @@ export default function NewTreatmentPlanPage() {
                 Xây dựng lộ trình các bước điều trị theo trình tự.
               </p>
             </div>
-            <div className="flex gap-3">
-              <button className="inline-flex items-center gap-2 rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-medium text-brand-dark shadow-sm transition-all hover:bg-slate-50 hover:shadow active:scale-[0.98]">
-                <FloppyDisk size={15} />
-                Lưu nháp
-              </button>
-              <button className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-brand-dark hover:shadow active:scale-[0.98]">
+            <button
+              onClick={handleSubmit}
+              disabled={submitting || success}
+              className="inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-brand-dark hover:shadow active:scale-[0.98] disabled:opacity-60"
+            >
+              {submitting ? (
+                <SpinnerGap size={15} className="animate-spin" />
+              ) : success ? (
+                <CheckCircle size={15} weight="fill" />
+              ) : (
                 <Lightning size={15} weight="fill" />
-                Kích hoạt
-              </button>
-            </div>
+              )}
+              {success ? "Đã tạo!" : submitting ? "Đang lưu..." : "Lưu kế hoạch"}
+            </button>
           </div>
         </div>
+
+        {error && (
+          <div className="mb-4 flex items-center gap-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-inset ring-red-200">
+            <Warning size={18} className="shrink-0" />
+            {error}
+          </div>
+        )}
 
         <div className="space-y-8">
           {/* 1. Thông tin tổng quát */}
@@ -134,6 +207,8 @@ export default function NewTreatmentPlanPage() {
                 </label>
                 <input
                   type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
                   placeholder="Ví dụ: Niềng răng mắc cài kim loại..."
                   className="w-full rounded-xl border border-border bg-slate-50 px-4 py-2.5 text-sm font-medium text-brand-dark outline-none transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand"
                 />
@@ -143,12 +218,17 @@ export default function NewTreatmentPlanPage() {
                 <label className="text-sm font-semibold text-slate-900">
                   Bệnh nhân <span className="text-red-500">*</span>
                 </label>
-                <select className="w-full rounded-xl border border-border bg-slate-50 px-4 py-2.5 text-sm font-medium text-brand-dark outline-none transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand">
+                <select
+                  value={patientId}
+                  onChange={(e) => setPatientId(e.target.value)}
+                  className="w-full rounded-xl border border-border bg-slate-50 px-4 py-2.5 text-sm font-medium text-brand-dark outline-none transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand"
+                >
                   <option value="">-- Chọn bệnh nhân --</option>
-                  <option value="pt-001">Nguyễn Văn A — BN-2001</option>
-                  <option value="pt-002">Trần Thị B — BN-2002</option>
-                  <option value="pt-003">Phạm Dũng — BN-2003</option>
-                  <option value="pt-006">Đỗ Thu Hà — BN-2006</option>
+                  {patients.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.fullName} — {p.patientCode}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -158,6 +238,8 @@ export default function NewTreatmentPlanPage() {
                 </label>
                 <input
                   type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
                   className="w-full rounded-xl border border-border bg-slate-50 px-4 py-2.5 text-sm text-brand-dark outline-none transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand"
                 />
               </div>
@@ -168,29 +250,8 @@ export default function NewTreatmentPlanPage() {
                 </label>
                 <input
                   type="date"
-                  className="w-full rounded-xl border border-border bg-slate-50 px-4 py-2.5 text-sm text-brand-dark outline-none transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-slate-900">
-                  Hình thức thanh toán
-                </label>
-                <select className="w-full rounded-xl border border-border bg-slate-50 px-4 py-2.5 text-sm font-medium text-brand-dark outline-none transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand">
-                  <option value="PAY_AT_COUNTER">Thanh toán tại quầy</option>
-                  <option value="DEPOSIT_30_PERCENT">Đặt cọc 30%</option>
-                </select>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-slate-900">
-                  % Đặt cọc
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  max={100}
-                  placeholder="30"
+                  value={expectedEndDate}
+                  onChange={(e) => setExpectedEndDate(e.target.value)}
                   className="w-full rounded-xl border border-border bg-slate-50 px-4 py-2.5 text-sm text-brand-dark outline-none transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand"
                 />
               </div>
@@ -201,6 +262,8 @@ export default function NewTreatmentPlanPage() {
                 </label>
                 <textarea
                   rows={2}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
                   placeholder="Ví dụ: Kế hoạch niềng răng mắc cài kim loại, dự kiến nhổ 4 răng..."
                   className="w-full resize-y rounded-xl border border-border bg-slate-50 px-4 py-2.5 text-sm text-brand-dark outline-none transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand"
                 />
@@ -208,7 +271,7 @@ export default function NewTreatmentPlanPage() {
             </div>
           </div>
 
-          {/* 2. Phases Builder */}
+          {/* 2. Steps Builder */}
           <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
             <div className="border-b border-border bg-slate-50/50 p-6">
               <h2 className="text-base font-semibold text-brand-dark">
@@ -221,132 +284,121 @@ export default function NewTreatmentPlanPage() {
 
             <div className="p-6 md:p-8">
               <div className="relative ml-3 space-y-8 border-l-2 border-muted pb-4 md:ml-4">
-                {phases.map((phase, index) => {
-                  const isCompleted = phase.status === "COMPLETED";
-                  return (
-                    <div key={phase.id} className="group relative pl-8">
-                      <button
-                        onClick={() => toggleStatus(phase.id)}
-                        className={cn(
-                          "absolute -left-[11px] top-4 flex h-5 w-5 cursor-pointer items-center justify-center rounded-full ring-4 ring-white transition-all active:scale-95",
-                          isCompleted
-                            ? "bg-green-500 text-white"
-                            : "bg-muted-foreground/30 text-transparent hover:bg-brand hover:text-white",
-                        )}
-                        title="Đánh dấu hoàn thành"
-                      >
-                        <Check size={11} weight="bold" />
-                      </button>
+                {steps.map((step, index) => (
+                  <div key={step.key} className="group relative pl-8">
+                    <div className="absolute -left-[11px] top-4 flex h-5 w-5 items-center justify-center rounded-full bg-muted-foreground/30 ring-4 ring-white">
+                      <Check size={11} className="text-transparent" weight="bold" />
+                    </div>
 
-                      <div
-                        className={cn(
-                          "rounded-xl border p-5 shadow-sm transition-all duration-200",
-                          isCompleted
-                            ? "border-green-200 bg-green-50/30"
-                            : "border-border bg-white hover:border-brand/30 hover:shadow-md",
-                        )}
-                      >
-                        <div className="mb-4 flex items-center justify-between">
-                          <h3
+                    <div className="rounded-xl border border-border bg-white p-5 shadow-sm transition-all duration-200 hover:border-brand/30 hover:shadow-md">
+                      <div className="mb-4 flex items-center justify-between">
+                        <h3 className="text-sm font-bold uppercase tracking-wider text-brand-dark">
+                          Bước {index + 1}
+                        </h3>
+
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => moveUp(index)}
+                            disabled={index === 0}
                             className={cn(
-                              "text-sm font-bold uppercase tracking-wider",
-                              isCompleted
-                                ? "text-green-700"
-                                : "text-brand-dark",
+                              "rounded p-1 text-muted-foreground transition-opacity hover:bg-muted",
+                              index === 0 ? "opacity-0 pointer-events-none" : "opacity-0 group-hover:opacity-100",
                             )}
                           >
-                            Bước {index + 1}
-                            {isCompleted && " ✓"}
-                          </h3>
+                            <ArrowUp size={14} />
+                          </button>
+                          <button
+                            onClick={() => moveDown(index)}
+                            disabled={index === steps.length - 1}
+                            className={cn(
+                              "rounded p-1 text-muted-foreground transition-opacity hover:bg-muted",
+                              index === steps.length - 1 ? "opacity-0 pointer-events-none" : "opacity-0 group-hover:opacity-100",
+                            )}
+                          >
+                            <ArrowDown size={14} />
+                          </button>
+                          <button
+                            onClick={() => removeStep(step.key)}
+                            disabled={steps.length === 1}
+                            className="rounded p-1 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-red-600 disabled:hidden"
+                          >
+                            <Trash size={14} />
+                          </button>
+                        </div>
+                      </div>
 
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => moveUp(index)}
-                              disabled={index === 0}
-                              className="rounded p-1 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-muted disabled:opacity-0"
-                            >
-                              <ArrowUp size={14} />
-                            </button>
-                            <button
-                              onClick={() => moveDown(index)}
-                              disabled={index === phases.length - 1}
-                              className="rounded p-1 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-muted disabled:opacity-0"
-                            >
-                              <ArrowDown size={14} />
-                            </button>
-                            <button
-                              onClick={() => removePhase(phase.id)}
-                              disabled={phases.length === 1}
-                              className="rounded p-1 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-red-600 disabled:opacity-0"
-                            >
-                              <Trash size={14} />
-                            </button>
-                          </div>
+                      <div className="grid gap-4 md:grid-cols-12">
+                        <div className="space-y-1.5 md:col-span-6">
+                          <label className="text-xs font-semibold text-slate-900">
+                            Tên bước <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={step.title}
+                            onChange={(e) => updateStep(step.key, "title", e.target.value)}
+                            placeholder="Ví dụ: Cắm trụ Implant"
+                            className="w-full rounded-lg border-transparent bg-slate-50 px-3 py-2 text-sm text-brand-dark outline-none transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand"
+                          />
                         </div>
 
-                        <div className="grid gap-4 md:grid-cols-12">
-                          <div className="space-y-1.5 md:col-span-6">
-                            <label className="text-xs font-semibold text-slate-900">
-                              Tên bước <span className="text-red-500">*</span>
-                            </label>
-                            <input
-                              type="text"
-                              placeholder="Ví dụ: Cắm trụ Implant"
-                              className="w-full rounded-lg border-transparent bg-slate-50 px-3 py-2 text-sm text-brand-dark outline-none transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand"
-                            />
-                          </div>
+                        <div className="space-y-1.5 md:col-span-3">
+                          <label className="text-xs font-semibold text-slate-900">
+                            Vị trí răng
+                          </label>
+                          <input
+                            type="text"
+                            value={step.targetTooth}
+                            onChange={(e) => updateStep(step.key, "targetTooth", e.target.value)}
+                            placeholder="R46, R47"
+                            className="w-full rounded-lg border-transparent bg-slate-50 px-3 py-2 font-mono text-sm text-brand-dark outline-none transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand"
+                          />
+                        </div>
 
-                          <div className="space-y-1.5 md:col-span-3">
-                            <label className="text-xs font-semibold text-slate-900">
-                              Vị trí răng
-                            </label>
-                            <input
-                              type="text"
-                              placeholder="R46, R47"
-                              className="w-full rounded-lg border-transparent bg-slate-50 px-3 py-2 font-mono text-sm text-brand-dark outline-none transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand"
-                            />
-                          </div>
+                        <div className="space-y-1.5 md:col-span-3">
+                          <label className="text-xs font-semibold text-slate-900">
+                            Ngày dự kiến
+                          </label>
+                          <input
+                            type="date"
+                            value={step.expectedDate}
+                            onChange={(e) => updateStep(step.key, "expectedDate", e.target.value)}
+                            className="w-full rounded-lg border-transparent bg-slate-50 px-3 py-2 text-sm text-brand-dark outline-none transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand"
+                          />
+                        </div>
 
-                          <div className="space-y-1.5 md:col-span-3">
-                            <label className="text-xs font-semibold text-slate-900">
-                              Ngày dự kiến
-                            </label>
-                            <input
-                              type="date"
-                              className="w-full rounded-lg border-transparent bg-slate-50 px-3 py-2 text-sm text-brand-dark outline-none transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand"
-                            />
-                          </div>
+                        <div className="space-y-1.5 md:col-span-6">
+                          <label className="text-xs font-semibold text-slate-900">
+                            Mô tả bước
+                          </label>
+                          <input
+                            type="text"
+                            value={step.description}
+                            onChange={(e) => updateStep(step.key, "description", e.target.value)}
+                            placeholder="Mô tả ngắn..."
+                            className="w-full rounded-lg border-transparent bg-slate-50 px-3 py-2 text-sm text-brand-dark outline-none transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand"
+                          />
+                        </div>
 
-                          <div className="space-y-1.5 md:col-span-6">
-                            <label className="text-xs font-semibold text-slate-900">
-                              Mô tả bước
-                            </label>
-                            <input
-                              type="text"
-                              placeholder="Mô tả ngắn..."
-                              className="w-full rounded-lg border-transparent bg-slate-50 px-3 py-2 text-sm text-brand-dark outline-none transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand"
-                            />
-                          </div>
-
-                          <div className="space-y-1.5 md:col-span-6">
-                            <label className="text-xs font-semibold text-slate-900">
-                              Chi phí ước tính (VNĐ)
-                            </label>
-                            <input
-                              type="number"
-                              placeholder="5,000,000"
-                              className="w-full rounded-lg border-transparent bg-slate-50 px-3 py-2 text-sm text-brand-dark outline-none transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand"
-                            />
-                          </div>
+                        <div className="space-y-1.5 md:col-span-6">
+                          <label className="text-xs font-semibold text-slate-900">
+                            Chi phí ước tính (VNĐ)
+                          </label>
+                          <input
+                            type="number"
+                            value={step.estimatedCost}
+                            onChange={(e) => updateStep(step.key, "estimatedCost", e.target.value)}
+                            placeholder="5000000"
+                            className="w-full rounded-lg border-transparent bg-slate-50 px-3 py-2 text-sm text-brand-dark outline-none transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand"
+                          />
                         </div>
                       </div>
                     </div>
-                  );
-                })}
+                  </div>
+                ))}
 
                 <div className="relative pl-8 pt-2">
                   <button
-                    onClick={addPhase}
+                    onClick={addStep}
                     className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border py-4 text-sm font-medium text-muted-foreground transition-all hover:border-brand hover:bg-brand/5 hover:text-brand active:scale-[0.99]"
                   >
                     <Plus size={18} weight="bold" />

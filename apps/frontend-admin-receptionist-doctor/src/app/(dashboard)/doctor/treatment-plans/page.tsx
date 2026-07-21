@@ -1,7 +1,17 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/src/lib/utils/cn";
 import { Header } from "@/src/components/layout/header";
-import { Plus, ArrowUpRight, ClipboardText } from "@phosphor-icons/react/dist/ssr";
+import {
+  Plus,
+  ArrowUpRight,
+  ClipboardText,
+  SpinnerGap,
+  Warning,
+} from "@phosphor-icons/react";
+import apiClient from "@/src/lib/api/client";
 
 type PlanStatus = "PLANNED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
 
@@ -24,54 +34,63 @@ const statusMap: Record<PlanStatus, { label: string; color: string }> = {
   },
 };
 
-const MOCK_PLANS = [
-  {
-    id: "tp-001",
-    title: "Niềng răng mắc cài kim loại",
-    patient: "Đỗ Thu Hà",
-    patientCode: "BN-2006",
-    completedSteps: 6,
-    totalSteps: 24,
-    status: "IN_PROGRESS" as PlanStatus,
-    startDate: "10/01/2026",
-    expectedEndDate: "10/01/2028",
-  },
-  {
-    id: "tp-002",
-    title: "Cắm 2 trụ Implant R46, R47",
-    patient: "Nguyễn Văn A",
-    patientCode: "BN-2001",
-    completedSteps: 2,
-    totalSteps: 5,
-    status: "IN_PROGRESS" as PlanStatus,
-    startDate: "01/06/2026",
-    expectedEndDate: "01/12/2026",
-  },
-  {
-    id: "tp-003",
-    title: "Chữa tủy và bọc sứ R38",
-    patient: "Lê Minh Cường",
-    patientCode: "BN-2005",
-    completedSteps: 1,
-    totalSteps: 3,
-    status: "IN_PROGRESS" as PlanStatus,
-    startDate: "15/07/2026",
-    expectedEndDate: "15/08/2026",
-  },
-  {
-    id: "tp-004",
-    title: "Tẩy trắng răng Laser",
-    patient: "Hoàng Thị Oanh",
-    patientCode: "BN-2004",
-    completedSteps: 1,
-    totalSteps: 1,
-    status: "COMPLETED" as PlanStatus,
-    startDate: "10/07/2026",
-    expectedEndDate: "10/07/2026",
-  },
-];
+type Plan = {
+  id: string;
+  title: string;
+  description: string | null;
+  status: PlanStatus;
+  patientId: string;
+  patientName: string;
+  patientCode: string;
+  startDate: string | null;
+  expectedEndDate: string | null;
+  totalSteps: number;
+  completedSteps: number;
+  progressPercent: number;
+  createdAt: string;
+};
+
+function getUserInfo(): { doctorId: string | null } {
+  if (typeof document === "undefined") return { doctorId: null };
+  const raw = document.cookie
+    .split("; ")
+    .find((c) => c.startsWith("user_info="))
+    ?.split("=")
+    .slice(1)
+    .join("=");
+  if (!raw) return { doctorId: null };
+  try {
+    return JSON.parse(decodeURIComponent(raw));
+  } catch {
+    return { doctorId: null };
+  }
+}
+
+function formatDate(iso: string | null) {
+  if (!iso) return "?";
+  return new Date(iso).toLocaleDateString("vi-VN");
+}
 
 export default function TreatmentPlansPage() {
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const doctorId = getUserInfo().doctorId;
+
+  useEffect(() => {
+    if (!doctorId) {
+      setError("Không tìm thấy thông tin bác sĩ. Vui lòng đăng nhập lại.");
+      setLoading(false);
+      return;
+    }
+    apiClient
+      .get<Plan[]>(`/treatment-plans?doctorId=${doctorId}`)
+      .then((res) => setPlans(res.data))
+      .catch(() => setError("Không thể tải danh sách kế hoạch điều trị."))
+      .finally(() => setLoading(false));
+  }, [doctorId]);
+
   return (
     <>
       <Header
@@ -88,7 +107,18 @@ export default function TreatmentPlansPage() {
       </Header>
 
       <div className="p-6 md:p-8">
-        {MOCK_PLANS.length === 0 ? (
+        {error && (
+          <div className="mb-4 flex items-center gap-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-inset ring-red-200">
+            <Warning size={18} className="shrink-0" />
+            {error}
+          </div>
+        )}
+
+        {loading ? (
+          <div className="flex h-48 items-center justify-center rounded-2xl border border-border bg-white shadow-sm">
+            <SpinnerGap size={28} className="animate-spin text-brand" />
+          </div>
+        ) : !error && plans.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-2xl border border-border bg-white py-24 shadow-sm">
             <ClipboardText
               size={48}
@@ -105,13 +135,11 @@ export default function TreatmentPlansPage() {
               Tạo kế hoạch mới
             </Link>
           </div>
-        ) : (
+        ) : !error ? (
           <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {MOCK_PLANS.map((plan) => {
-              const pct = Math.round(
-                (plan.completedSteps / plan.totalSteps) * 100,
-              );
-              const s = statusMap[plan.status];
+            {plans.map((plan) => {
+              const pct = plan.progressPercent;
+              const s = statusMap[plan.status] ?? statusMap.PLANNED;
               return (
                 <div
                   key={plan.id}
@@ -120,19 +148,28 @@ export default function TreatmentPlansPage() {
                   <div className="mb-4 flex items-start justify-between">
                     <div>
                       <span className="font-mono text-xs text-muted-foreground">
-                        {plan.id.toUpperCase()}
+                        #{plan.id.slice(-6).toUpperCase()}
                       </span>
-                      <h3 className="mt-1 text-base font-semibold text-slate-900 leading-tight">
+                      <h3 className="mt-1 text-base font-semibold leading-tight text-slate-900">
                         {plan.title}
                       </h3>
                       <div className="mt-1.5 flex items-center gap-1.5">
-                        <span className="text-sm text-muted-foreground">
-                          {plan.patient}
-                        </span>
+                        <Link
+                          href={`/doctor/patients/${plan.patientId}`}
+                          className="text-sm text-muted-foreground hover:text-brand transition-colors"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {plan.patientName}
+                        </Link>
                         <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
                           {plan.patientCode}
                         </span>
                       </div>
+                      {plan.description && (
+                        <p className="mt-1.5 line-clamp-2 text-xs text-slate-500">
+                          {plan.description}
+                        </p>
+                      )}
                     </div>
                     <span
                       className={cn(
@@ -145,27 +182,29 @@ export default function TreatmentPlansPage() {
                   </div>
 
                   <div className="mt-auto space-y-4">
-                    <div>
-                      <div className="mb-1.5 flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">Tiến độ</span>
-                        <span className="font-semibold text-brand-dark">
-                          {plan.completedSteps}/{plan.totalSteps} bước ({pct}%)
-                        </span>
+                    {plan.totalSteps > 0 && (
+                      <div>
+                        <div className="mb-1.5 flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground">Tiến độ</span>
+                          <span className="font-semibold text-brand-dark">
+                            {plan.completedSteps}/{plan.totalSteps} bước ({pct}%)
+                          </span>
+                        </div>
+                        <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                          <div
+                            className={cn(
+                              "h-full rounded-full transition-all duration-500",
+                              pct === 100 ? "bg-green-500" : "bg-brand",
+                            )}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
                       </div>
-                      <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-                        <div
-                          className={cn(
-                            "h-full rounded-full transition-all duration-500",
-                            pct === 100 ? "bg-green-500" : "bg-brand",
-                          )}
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                    </div>
+                    )}
 
                     <div className="flex items-center justify-between border-t border-border/50 pt-4 text-xs text-muted-foreground">
                       <span>
-                        {plan.startDate} → {plan.expectedEndDate}
+                        {formatDate(plan.startDate)} → {formatDate(plan.expectedEndDate)}
                       </span>
                       <Link
                         href={`/doctor/treatment-plans/${plan.id}`}
@@ -179,7 +218,7 @@ export default function TreatmentPlansPage() {
               );
             })}
           </div>
-        )}
+        ) : null}
       </div>
     </>
   );

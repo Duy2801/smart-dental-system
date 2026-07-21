@@ -16,6 +16,7 @@ type LoginResponse = {
     fullName: string;
     roles?: string[];
     role?: Role;
+    doctorId?: string | null;
   };
   accessToken: string;
   refreshToken: string;
