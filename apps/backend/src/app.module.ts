@@ -25,6 +25,7 @@ import { ReportModule } from './modules/report/report.module';
 import { ServiceModule } from './modules/service/service.module';
 import { TreatmentPlanModule } from './modules/treatment-plan/treatment-plan.module';
 import { VideoConsultationModule } from './modules/video-consultation/video-consultation.module';
+import { PrescriptionModule } from './modules/prescription/prescription.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { VideoConsultationModule } from './modules/video-consultation/video-cons
     ChatbotConversationModule,
     VideoConsultationModule,
     NotificationModule,
+    PrescriptionModule,
   ],
   controllers: [AppController],
   providers: [AppService],

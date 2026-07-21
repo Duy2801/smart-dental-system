@@ -1,89 +1,233 @@
-import React from "react";
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Header } from "@/src/components/layout/header";
+import {
+  Plus,
+  Pill,
+  SpinnerGap,
+  Warning,
+  CaretDown,
+  CaretRight,
+} from "@phosphor-icons/react";
+import apiClient from "@/src/lib/api/client";
 
-const SearchIcon = ({ className }: { className?: string }) => (
-  <svg className={className} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-);
+type PrescriptionItem = {
+  id: string;
+  medicineName: string;
+  dosage: string;
+  frequency: string | null;
+  duration: string | null;
+  instruction: string | null;
+};
 
-const PlusIcon = ({ className }: { className?: string }) => (
-  <svg className={className} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
-);
+type Prescription = {
+  id: string;
+  patientId: string;
+  patientName: string;
+  patientCode: string;
+  diagnosis: string | null;
+  scheduledAt: string | null;
+  notes: string | null;
+  itemCount: number;
+  items: PrescriptionItem[];
+  createdAt: string;
+};
 
-const PrinterIcon = ({ className }: { className?: string }) => (
-  <svg className={className} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
-);
+function getUserInfo(): { doctorId: string | null } {
+  if (typeof document === "undefined") return { doctorId: null };
+  const raw = document.cookie
+    .split("; ")
+    .find((c) => c.startsWith("user_info="))
+    ?.split("=")
+    .slice(1)
+    .join("=");
+  if (!raw) return { doctorId: null };
+  try {
+    return JSON.parse(decodeURIComponent(raw));
+  } catch {
+    return { doctorId: null };
+  }
+}
 
-const MOCK_PRESCRIPTIONS = [
-  { id: "RX-2026-001", date: "27/06/2026", patient: "Lê Hoàng C", diagnosis: "Viêm tủy răng 38", status: "Chờ duyệt" },
-  { id: "RX-2026-002", date: "26/06/2026", patient: "Nguyễn Văn A", diagnosis: "Viêm nha chu nhẹ", status: "Đã xuất" },
-  { id: "RX-2026-003", date: "25/06/2026", patient: "Phạm Thị D", diagnosis: "Đau nhức sau cắm Implant", status: "Đã xuất" },
-];
+function formatDate(iso: string | null) {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("vi-VN");
+}
 
 export default function PrescriptionsPage() {
-  return (
-    <div className="min-h-screen bg-slate-50/50 px-6 py-8">
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold text-brand-dark">Đơn thuốc điện tử</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Kê đơn, phê duyệt và in đơn thuốc cho bệnh nhân.</p>
-          </div>
-          <Link href="/doctor/prescriptions/new" className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-dark">
-            <PlusIcon className="h-4 w-4" />
-            Kê đơn mới
-          </Link>
-        </div>
+  const doctorId = getUserInfo().doctorId;
+  const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
+  const [loading, setLoading] = useState(!!doctorId);
+  const [error, setError] = useState<string | null>(
+    !doctorId ? "Không tìm thấy thông tin bác sĩ. Vui lòng đăng nhập lại." : null,
+  );
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
-        <div className="rounded-xl border border-border bg-white shadow-sm">
-          <div className="border-b border-border p-4">
-            <div className="relative w-full max-w-sm">
-              <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Tìm mã đơn, tên bệnh nhân..."
-                className="w-full rounded-md border border-border py-1.5 pl-9 pr-3 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand"
-              />
+  useEffect(() => {
+    if (!doctorId) return;
+    apiClient
+      .get<Prescription[]>(`/prescriptions?doctorId=${doctorId}`)
+      .then((res) => setPrescriptions(res.data))
+      .catch(() => setError("Không thể tải danh sách đơn thuốc."))
+      .finally(() => setLoading(false));
+  }, [doctorId]);
+
+  return (
+    <>
+      <Header
+        title="Đơn thuốc điện tử"
+        description="Kê đơn và theo dõi đơn thuốc cho bệnh nhân"
+      >
+        <Link
+          href="/doctor/prescriptions/new"
+          className="ml-auto inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-dark active:scale-[0.98]"
+        >
+          <Plus size={16} weight="bold" />
+          Kê đơn mới
+        </Link>
+      </Header>
+
+      <div className="p-6 md:p-8">
+        {error && (
+          <div className="mb-4 flex items-center gap-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-inset ring-red-200">
+            <Warning size={18} className="shrink-0" />
+            {error}
+          </div>
+        )}
+
+        {loading ? (
+          <div className="flex h-48 items-center justify-center rounded-2xl border border-border bg-white shadow-sm">
+            <SpinnerGap size={28} className="animate-spin text-brand" />
+          </div>
+        ) : !error && prescriptions.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-border bg-white py-24 shadow-sm">
+            <Pill size={48} className="mb-4 text-slate-300" weight="duotone" />
+            <p className="text-sm text-muted-foreground">
+              Chưa có đơn thuốc nào
+            </p>
+            <Link
+              href="/doctor/prescriptions/new"
+              className="mt-4 inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-dark"
+            >
+              Kê đơn mới
+            </Link>
+          </div>
+        ) : !error ? (
+          <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="border-b border-border bg-slate-50/50 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  <tr>
+                    <th className="w-8 px-3 py-3.5" />
+                    <th className="px-5 py-3.5">Ngày kê</th>
+                    <th className="px-5 py-3.5">Bệnh nhân</th>
+                    <th className="px-5 py-3.5">Chẩn đoán</th>
+                    <th className="px-5 py-3.5 text-center">Số thuốc</th>
+                    <th className="px-5 py-3.5">Ghi chú</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {prescriptions.map((rx) => (
+                    <>
+                      <tr
+                        key={rx.id}
+                        className="cursor-pointer border-b border-border/50 transition-colors hover:bg-slate-50/50"
+                        onClick={() =>
+                          setExpandedId((prev) =>
+                            prev === rx.id ? null : rx.id,
+                          )
+                        }
+                      >
+                        <td className="pl-4 pr-0 py-4">
+                          {expandedId === rx.id ? (
+                            <CaretDown
+                              size={13}
+                              className="text-muted-foreground"
+                            />
+                          ) : (
+                            <CaretRight
+                              size={13}
+                              className="text-muted-foreground"
+                            />
+                          )}
+                        </td>
+                        <td className="px-5 py-4 text-muted-foreground">
+                          {formatDate(rx.scheduledAt ?? rx.createdAt)}
+                        </td>
+                        <td className="px-5 py-4">
+                          <p className="font-medium text-slate-900">
+                            {rx.patientName}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {rx.patientCode}
+                          </p>
+                        </td>
+                        <td className="px-5 py-4 text-muted-foreground">
+                          {rx.diagnosis ?? "—"}
+                        </td>
+                        <td className="px-5 py-4 text-center">
+                          <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-brand/10 text-xs font-bold text-brand">
+                            {rx.itemCount}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4 text-sm italic text-slate-500">
+                          {rx.notes ?? "—"}
+                        </td>
+                      </tr>
+                      {expandedId === rx.id && (
+                        <tr
+                          key={`${rx.id}-detail`}
+                          className="border-b border-border/50 bg-slate-50/80"
+                        >
+                          <td />
+                          <td colSpan={5} className="px-5 py-4">
+                            <div className="rounded-xl border border-border bg-white overflow-hidden">
+                              <table className="w-full text-sm">
+                                <thead className="border-b border-border bg-slate-50 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                  <tr>
+                                    <th className="px-4 py-2.5">Tên thuốc</th>
+                                    <th className="px-4 py-2.5">Liều dùng</th>
+                                    <th className="px-4 py-2.5">Tần suất</th>
+                                    <th className="px-4 py-2.5">Thời gian</th>
+                                    <th className="px-4 py-2.5">Hướng dẫn</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-border/50">
+                                  {rx.items.map((item) => (
+                                    <tr key={item.id}>
+                                      <td className="px-4 py-2.5 font-medium text-slate-900">
+                                        {item.medicineName}
+                                      </td>
+                                      <td className="px-4 py-2.5 text-muted-foreground">
+                                        {item.dosage}
+                                      </td>
+                                      <td className="px-4 py-2.5 text-muted-foreground">
+                                        {item.frequency ?? "—"}
+                                      </td>
+                                      <td className="px-4 py-2.5 text-muted-foreground">
+                                        {item.duration ?? "—"}
+                                      </td>
+                                      <td className="px-4 py-2.5 italic text-slate-500">
+                                        {item.instruction ?? "—"}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-border bg-slate-50/50 text-xs font-medium uppercase text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-3">Mã đơn thuốc</th>
-                  <th className="px-4 py-3">Ngày kê</th>
-                  <th className="px-4 py-3">Bệnh nhân</th>
-                  <th className="px-4 py-3">Chẩn đoán</th>
-                  <th className="px-4 py-3">Trạng thái</th>
-                  <th className="px-4 py-3 text-right">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/50">
-                {MOCK_PRESCRIPTIONS.map((rx) => (
-                  <tr key={rx.id} className="transition-colors hover:bg-slate-50/50">
-                    <td className="whitespace-nowrap px-4 py-3 font-medium text-brand-dark">{rx.id}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{rx.date}</td>
-                    <td className="px-4 py-3 font-medium text-foreground">{rx.patient}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{rx.diagnosis}</td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ${
-                        rx.status === 'Chờ duyệt' ? 'bg-amber-50 text-amber-700 ring-amber-600/20' : 'bg-green-50 text-green-700 ring-green-600/20'
-                      }`}>
-                        {rx.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <button className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-slate-100 hover:text-foreground">
-                        <PrinterIcon className="h-3.5 w-3.5" /> In đơn
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        ) : null}
       </div>
-    </div>
+    </>
   );
 }

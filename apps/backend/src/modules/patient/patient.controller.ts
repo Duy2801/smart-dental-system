@@ -1,4 +1,10 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from 'src/common/decorators/curent-user.decorator';
 import { Roles } from 'src/common/decorators/roles.decorator';
@@ -9,7 +15,7 @@ import { PatientService } from './patient.service';
 
 @ApiTags('Patient')
 @ApiBearerAuth()
-@Controller('patients')
+@Controller(['patients', 'admin/patients'])
 export class PatientController {
   constructor(private readonly patientService: PatientService) {}
 
@@ -18,5 +24,22 @@ export class PatientController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   getMyRecords(@CurrentUser() user: AuthenticatedUser) {
     return this.patientService.getMyRecords(user.userId);
+  }
+
+  @Get()
+  @Roles('DOCTOR', 'ADMIN', 'RECEPTIONIST')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  findByDoctor(@Query('doctorId') doctorId: string) {
+    return this.patientService.findPatientsByDoctor(doctorId);
+  }
+
+  @Get(':id')
+  @Roles('DOCTOR', 'ADMIN', 'RECEPTIONIST')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  findOne(
+    @Param('id') id: string,
+    @Query('doctorId') doctorId?: string,
+  ) {
+    return this.patientService.findPatientDetail(id, doctorId);
   }
 }

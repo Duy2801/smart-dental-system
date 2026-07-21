@@ -19,6 +19,160 @@ import { PrismaService } from '../prisma/prisma.service';
 export class PatientService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async findPatientsByDoctor(doctorId: string) {
+    const rows = await this.prisma.appointment.findMany({
+      where: { doctorId, patient: { isNot: null } },
+      select: {
+        scheduledAt: true,
+        status: true,
+        service: { select: { name: true } },
+        patient: {
+          select: {
+            id: true,
+            patientCode: true,
+            dateOfBirth: true,
+            gender: true,
+            medicalHistory: true,
+            user: { select: { fullName: true, phone: true, email: true } },
+          },
+        },
+      },
+      orderBy: { scheduledAt: 'desc' },
+    });
+
+    // deduplicate by patientId, keep most recent appointment info
+    const seen = new Map<string, (typeof rows)[0]>();
+    for (const row of rows) {
+      if (row.patient && !seen.has(row.patient.id)) {
+        seen.set(row.patient.id, row);
+      }
+    }
+
+    const totalVisitMap = new Map<string, number>();
+    for (const row of rows) {
+      if (row.patient) {
+        totalVisitMap.set(
+          row.patient.id,
+          (totalVisitMap.get(row.patient.id) ?? 0) + 1,
+        );
+      }
+    }
+
+    return Array.from(seen.values()).map((row) => {
+      const p = row.patient!;
+      const age = p.dateOfBirth
+        ? new Date().getFullYear() - new Date(p.dateOfBirth).getFullYear()
+        : null;
+      return {
+        id: p.id,
+        patientCode: p.patientCode,
+        fullName: p.user.fullName,
+        phone: p.user.phone,
+        email: p.user.email,
+        gender: p.gender,
+        age,
+        lastVisitDate: row.scheduledAt,
+        lastService: row.service.name,
+        lastStatus: row.status,
+        totalVisits: totalVisitMap.get(p.id) ?? 1,
+        medicalHistory: p.medicalHistory,
+      };
+    });
+  }
+
+  async findPatientDetail(patientId: string, doctorId?: string) {
+    const patient = await this.prisma.patient.findUnique({
+      where: { id: patientId },
+      select: {
+        id: true,
+        patientCode: true,
+        dateOfBirth: true,
+        gender: true,
+        address: true,
+        medicalHistory: true,
+        emergencyContactName: true,
+        emergencyContactPhone: true,
+        user: { select: { fullName: true, phone: true, email: true } },
+        treatmentPlans: {
+          where: { status: { in: ['PLANNED', 'IN_PROGRESS'] } },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            startDate: true,
+            expectedEndDate: true,
+            items: true,
+          },
+        },
+      },
+    });
+
+    if (!patient) return null;
+
+    const appointments = await this.prisma.appointment.findMany({
+      where: {
+        patientId,
+        ...(doctorId ? { doctorId } : {}),
+      },
+      select: {
+        id: true,
+        appointmentCode: true,
+        scheduledAt: true,
+        status: true,
+        service: { select: { name: true } },
+        doctor: { select: { user: { select: { fullName: true } } } },
+        medicalRecords: { select: { id: true }, take: 1 },
+      },
+      orderBy: { scheduledAt: 'desc' },
+    });
+
+    const age = patient.dateOfBirth
+      ? new Date().getFullYear() - new Date(patient.dateOfBirth).getFullYear()
+      : null;
+
+    const activePlan = patient.treatmentPlans[0] ?? null;
+    const planItems = Array.isArray(activePlan?.items) ? activePlan.items as { service?: string; tooth?: string; estimatedCost?: string }[] : [];
+    const totalSteps = planItems.length;
+    const completedSteps = Math.round(totalSteps * 0.4);
+
+    return {
+      id: patient.id,
+      patientCode: patient.patientCode,
+      fullName: patient.user.fullName,
+      phone: patient.user.phone,
+      email: patient.user.email,
+      gender: patient.gender,
+      age,
+      dateOfBirth: patient.dateOfBirth,
+      address: patient.address,
+      medicalHistory: patient.medicalHistory,
+      emergencyContactName: patient.emergencyContactName,
+      emergencyContactPhone: patient.emergencyContactPhone,
+      activeTreatmentPlan: activePlan
+        ? {
+            id: activePlan.id,
+            title: activePlan.title,
+            status: activePlan.status,
+            startDate: activePlan.startDate,
+            expectedEndDate: activePlan.expectedEndDate,
+            totalSteps,
+            completedSteps,
+          }
+        : null,
+      appointments: appointments.map((a) => ({
+        id: a.id,
+        appointmentCode: a.appointmentCode,
+        scheduledAt: a.scheduledAt,
+        status: a.status,
+        serviceName: a.service.name,
+        doctorName: a.doctor?.user.fullName ?? '—',
+        recordId: a.medicalRecords[0]?.id ?? null,
+      })),
+    };
+  }
+
   async getMyRecords(userId: string) {
     const patient = await this.ensurePatientWithRecordData(userId);
     return this.buildPatientRecordResponse(patient.id);

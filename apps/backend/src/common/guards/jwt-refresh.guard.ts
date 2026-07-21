@@ -37,10 +37,20 @@ export class RefreshTokenGuard implements CanActivate {
   }
 
   private getRefreshToken(request: Request): string | undefined {
+    // Try httpOnly cookie first
     const cookies = (request as { cookies?: unknown }).cookies;
-    if (!cookies || typeof cookies !== 'object') return undefined;
-    const token = (cookies as Record<string, unknown>).refreshToken;
-    return typeof token === 'string' ? token : undefined;
+    if (cookies && typeof cookies === 'object') {
+      const token = (cookies as Record<string, unknown>).refreshToken;
+      if (typeof token === 'string') return token;
+    }
+
+    // Fall back to Authorization: Bearer <token> header (used by frontend)
+    const authHeader = request.headers.authorization;
+    if (authHeader?.startsWith('Bearer ')) {
+      return authHeader.slice(7);
+    }
+
+    return undefined;
   }
 
   canActivate(context: ExecutionContext) {

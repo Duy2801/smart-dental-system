@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { ClinicHeaderBrand } from "./clinic-brand";
 
 type HeaderProps = {
   title: string;
@@ -16,10 +15,7 @@ export function Header({ title, description, children }: HeaderProps) {
           <p className="mt-1 text-sm text-muted-foreground">{description}</p>
         ) : null}
       </div>
-      <div className="flex shrink-0 items-center gap-3">
-        {children ? <div className="shrink-0">{children}</div> : null}
-        <ClinicHeaderBrand />
-      </div>
+      {children ? <div className="shrink-0">{children}</div> : null}
     </header>
   );
 }

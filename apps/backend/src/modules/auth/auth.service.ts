@@ -262,13 +262,17 @@ export class AuthService {
     );
     const sessionUser = await this.prismaService.user.findUnique({
       where: { id: user.id },
-      include: { roles: { include: { role: true } } },
+      include: {
+        roles: { include: { role: true } },
+        doctorProfile: { select: { id: true } },
+      },
     });
     if (!sessionUser) throw new UnauthorizedException('user.not_found');
     return {
       user: this.toUserResponse({
         ...sessionUser,
         roles: sessionUser.roles.map(({ role }) => role.code),
+        doctorId: sessionUser.doctorProfile?.id ?? null,
       }),
       accessToken,
       refreshToken,

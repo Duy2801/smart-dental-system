@@ -1,6 +1,51 @@
-import { Controller } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/common/guards/roles.guard';
+import { TreatmentPlanService } from './treatment-plan.service';
 
 @ApiTags('Treatment Plan')
-@Controller('treatment-plans')
-export class TreatmentPlanController {}
+@ApiBearerAuth()
+@Controller(['treatment-plans', 'admin/treatment-plans'])
+export class TreatmentPlanController {
+  constructor(private service: TreatmentPlanService) {}
+
+  @Get()
+  @Roles('DOCTOR', 'ADMIN')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  findByDoctor(@Query('doctorId') doctorId: string) {
+    return this.service.findByDoctor(doctorId);
+  }
+
+  @Get(':id')
+  @Roles('DOCTOR', 'ADMIN')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  findOne(@Param('id') id: string) {
+    return this.service.findOne(id);
+  }
+
+  @Post()
+  @Roles('DOCTOR', 'ADMIN')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  create(
+    @Query('doctorId') doctorId: string,
+    @Body()
+    dto: {
+      patientId: string;
+      title: string;
+      description?: string;
+      startDate?: string;
+      expectedEndDate?: string;
+      steps?: Array<{
+        title: string;
+        description?: string;
+        targetTooth?: string;
+        estimatedCost?: number;
+        expectedDate?: string;
+      }>;
+    },
+  ) {
+    return this.service.create(doctorId, dto);
+  }
+}

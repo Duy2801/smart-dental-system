@@ -222,6 +222,68 @@ export class AppointmentService {
     });
   }
 
+  async findByDoctorAndWeek(doctorId: string, from: string, to: string) {
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+    toDate.setHours(23, 59, 59, 999);
+
+    return this.prisma.appointment.findMany({
+      where: {
+        doctorId,
+        scheduledAt: { gte: fromDate, lte: toDate },
+      },
+      include: appointmentInclude,
+      orderBy: { scheduledAt: 'asc' },
+    });
+  }
+
+  async startAppointment(appointmentId: string) {
+    const appointment = await this.prisma.appointment.findUnique({
+      where: { id: appointmentId },
+    });
+
+    if (!appointment) {
+      throw new BadRequestException('appointment.not_found');
+    }
+
+    if (appointment.status !== AppointmentStatus.CHECKED_IN) {
+      throw new BadRequestException(
+        'appointment.must_be_checked_in_to_start',
+      );
+    }
+
+    return this.prisma.appointment.update({
+      where: { id: appointmentId },
+      data: { status: AppointmentStatus.IN_PROGRESS },
+      include: appointmentInclude,
+    });
+  }
+
+  async completeAppointment(appointmentId: string) {
+    const appointment = await this.prisma.appointment.findUnique({
+      where: { id: appointmentId },
+    });
+
+    if (!appointment) {
+      throw new BadRequestException('appointment.not_found');
+    }
+
+    if (appointment.status !== AppointmentStatus.IN_PROGRESS) {
+      throw new BadRequestException(
+        'appointment.must_be_in_progress_to_complete',
+      );
+    }
+
+    return this.prisma.appointment.update({
+      where: { id: appointmentId },
+      data: {
+        status: AppointmentStatus.COMPLETED,
+        completedAt: new Date(),
+      },
+      include: appointmentInclude,
+    });
+  }
+
   async getBookingOptions(query: BookingOptionQuery) {
     const [services, doctors, clinicConfig] = await Promise.all([
       this.prisma.service.findMany({

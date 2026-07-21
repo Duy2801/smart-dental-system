@@ -16,6 +16,7 @@ type LoginResponse = {
     fullName: string;
     roles?: string[];
     role?: Role;
+    doctorId?: string | null;
   };
   accessToken: string;
   refreshToken: string;
@@ -76,7 +77,7 @@ export default function LoginPage() {
       const role = getStaffRole(session.user);
 
       if (!role) {
-        setError("Tai khoan nay khong co quyen truy cap he thong noi bo.");
+        setError("Tài khoản này không có quyền truy cập hệ thống nội bộ.");
         return;
       }
 
@@ -92,6 +93,7 @@ export default function LoginPage() {
           fullName: session.user.fullName,
           roles: session.user.roles ?? [role],
           role,
+          doctorId: session.user.doctorId ?? null,
         }),
       );
 
@@ -107,7 +109,7 @@ export default function LoginPage() {
       const message =
         err instanceof Error
           ? err.message
-          : "Dang nhap that bai. Vui long thu lai.";
+          : "Đăng nhập thất bại. Vui lòng thử lại.";
       setError(message);
     } finally {
       setIsLoading(false);
@@ -123,10 +125,10 @@ export default function LoginPage() {
               Smart Dental System
             </div>
             <h1 className="text-3xl font-medium tracking-tight text-brand-dark">
-              Dang nhap he thong
+              Đăng nhập hệ thống
             </h1>
             <p className="mt-3 text-base text-muted-foreground">
-              Quan ly phong kham nha khoa thong minh.
+              Quản lý phòng khám nha khoa thông minh.
             </p>
           </div>
 
@@ -155,13 +157,13 @@ export default function LoginPage() {
                     htmlFor="password"
                     className="block text-sm font-medium text-brand-dark"
                   >
-                    Mat khau
+                    Mật khẩu
                   </label>
                   <Link
                     href={ROUTES.FORGOT_PASSWORD}
                     className="text-sm font-medium text-brand transition-colors hover:text-brand-dark hover:underline"
                   >
-                    Quen mat khau?
+                    Quên mật khẩu?
                   </Link>
                 </div>
                 <input
@@ -208,10 +210,10 @@ export default function LoginPage() {
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     />
                   </svg>
-                  Dang dang nhap
+                  Đang đăng nhập...
                 </span>
               ) : (
-                "Dang nhap"
+                "Đăng nhập"
               )}
             </button>
           </form>
@@ -221,7 +223,7 @@ export default function LoginPage() {
       <div className="relative hidden w-full overflow-hidden bg-brand-light lg:block lg:w-[55%]">
         <Image
           src="/dental-hero-v2.png"
-          alt="Khong gian phong kham nha khoa hien dai"
+          alt="Không gian phòng khám nha khoa hiện đại"
           fill
           priority
           className="scale-[1.05] object-cover"

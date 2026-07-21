@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from 'src/common/decorators/curent-user.decorator';
 import { Roles } from 'src/common/decorators/roles.decorator';
@@ -11,7 +20,7 @@ import { AppointmentService } from './appointment.service';
 
 @ApiTags('Appointment')
 @ApiBearerAuth()
-@Controller('appointments')
+@Controller(['appointments', 'admin/appointments'])
 export class AppointmentController {
   constructor(private appointmentService: AppointmentService) {}
 
@@ -51,6 +60,31 @@ export class AppointmentController {
       id,
       dto,
     );
+  }
+
+  @Patch(':id/start')
+  @Roles('DOCTOR', 'ADMIN', 'RECEPTIONIST')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  startAppointment(@Param('id') id: string) {
+    return this.appointmentService.startAppointment(id);
+  }
+
+  @Patch(':id/complete')
+  @Roles('DOCTOR', 'ADMIN', 'RECEPTIONIST')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  completeAppointment(@Param('id') id: string) {
+    return this.appointmentService.completeAppointment(id);
+  }
+
+  @Get()
+  @Roles('DOCTOR', 'ADMIN', 'RECEPTIONIST')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  findByDoctorAndWeek(
+    @Query('doctorId') doctorId: string,
+    @Query('from') from: string,
+    @Query('to') to: string,
+  ) {
+    return this.appointmentService.findByDoctorAndWeek(doctorId, from, to);
   }
 
   @Get('booking-options')
