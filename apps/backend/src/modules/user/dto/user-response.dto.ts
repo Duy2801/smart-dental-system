@@ -31,6 +31,10 @@ export class UserResponseDto {
   @Expose()
   emailVerified: boolean;
 
+  @ApiPropertyOptional()
+  @Expose()
+  doctorId?: string | null;
+
   @ApiProperty()
   @Expose()
   createdAt: Date;

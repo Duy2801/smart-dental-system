@@ -1,116 +1,20 @@
 "use client";
 
+import { useState } from "react";
 import { cn } from "@/src/lib/utils/cn";
+import { SpinnerGap } from "@phosphor-icons/react";
+import type { ScheduleAppointment, AppointmentStatus } from "./types";
+import { statusConfig } from "./types";
+import { AppointmentDetailPanel } from "./AppointmentDetailPanel";
 
-type AppointmentStatus =
-  | "PENDING"
-  | "CONFIRMED"
-  | "CHECKED_IN"
-  | "IN_PROGRESS"
-  | "COMPLETED"
-  | "CANCELLED"
-  | "NO_SHOW";
-
-const statusConfig: Record<
-  AppointmentStatus,
-  { label: string; color: string; ring: string }
-> = {
-  PENDING: {
-    label: "Chờ xác nhận",
-    color: "bg-amber-50 text-amber-700",
-    ring: "ring-1 ring-inset ring-amber-600/20",
-  },
-  CONFIRMED: {
-    label: "Đã xác nhận",
-    color: "bg-blue-50 text-blue-700",
-    ring: "ring-1 ring-inset ring-blue-600/20",
-  },
-  CHECKED_IN: {
-    label: "Đã check-in",
-    color: "bg-violet-50 text-violet-700",
-    ring: "ring-1 ring-inset ring-violet-600/20",
-  },
-  IN_PROGRESS: {
-    label: "Đang khám",
-    color: "bg-orange-50 text-orange-700",
-    ring: "ring-1 ring-inset ring-orange-600/20",
-  },
-  COMPLETED: {
-    label: "Đã hoàn thành",
-    color: "bg-green-50 text-green-700",
-    ring: "ring-1 ring-inset ring-green-600/20",
-  },
-  CANCELLED: {
-    label: "Đã hủy",
-    color: "bg-red-50 text-red-700",
-    ring: "ring-1 ring-inset ring-red-600/10",
-  },
-  NO_SHOW: {
-    label: "Không đến",
-    color: "bg-slate-50 text-slate-700",
-    ring: "ring-1 ring-inset ring-slate-600/20",
-  },
+type Props = {
+  weekDays: { date: string; day: string; isToday: boolean; iso: string }[];
+  appointments: ScheduleAppointment[];
+  loading: boolean;
+  onStatusChange: (id: string, action: "start" | "complete") => Promise<void>;
 };
 
-const weekDays = [
-  { date: "21/07", day: "Thứ 2" },
-  { date: "22/07", day: "Thứ 3" },
-  { date: "23/07", day: "Thứ 4", isToday: true },
-  { date: "24/07", day: "Thứ 5" },
-  { date: "25/07", day: "Thứ 6" },
-  { date: "26/07", day: "Thứ 7" },
-  { date: "27/07", day: "Chủ Nhật" },
-];
-
 const hours = Array.from({ length: 12 }, (_, i) => i + 7);
-
-const mockAppointments = [
-  {
-    id: "1",
-    dayIdx: 0,
-    startHour: 8,
-    duration: 1,
-    patient: "Nguyễn Văn A",
-    service: "Khám tổng quát",
-    status: "COMPLETED" as AppointmentStatus,
-  },
-  {
-    id: "2",
-    dayIdx: 0,
-    startHour: 9.5,
-    duration: 1.5,
-    patient: "Trần Thị B",
-    service: "Nhổ răng khôn",
-    status: "COMPLETED" as AppointmentStatus,
-  },
-  {
-    id: "3",
-    dayIdx: 2,
-    startHour: 10,
-    duration: 1,
-    patient: "Phạm Dũng",
-    service: "Tái khám niềng răng",
-    status: "CHECKED_IN" as AppointmentStatus,
-  },
-  {
-    id: "4",
-    dayIdx: 3,
-    startHour: 14,
-    duration: 1.5,
-    patient: "Hoàng Oanh",
-    service: "Cấy ghép Implant",
-    status: "CONFIRMED" as AppointmentStatus,
-  },
-  {
-    id: "5",
-    dayIdx: 4,
-    startHour: 8.5,
-    duration: 1,
-    patient: "Lê Cường",
-    service: "Tẩy trắng răng",
-    status: "PENDING" as AppointmentStatus,
-  },
-];
 
 function formatHour(h: number) {
   const hh = Math.floor(h).toString().padStart(2, "0");
@@ -118,114 +22,148 @@ function formatHour(h: number) {
   return `${hh}:${mm}`;
 }
 
-export function WeekCalendar() {
+function getGridRow(isoDate: string) {
+  const d = new Date(isoDate);
+  const h = d.getHours() + d.getMinutes() / 60;
+  return (h - 7) * 2 + 1;
+}
+
+function getDuration(isoStart: string, durationMin: number) {
+  return (durationMin / 60) * 2;
+}
+
+export function WeekCalendar({ weekDays, appointments, loading, onStatusChange }: Props) {
+  const [selected, setSelected] = useState<ScheduleAppointment | null>(null);
+
   return (
-    <div className="flex h-[700px] flex-col overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
-      {/* Day headers */}
-      <div className="grid grid-cols-8 border-b border-border bg-slate-50/50">
-        <div className="flex items-center justify-center border-r border-border p-4">
-          <span className="text-xs font-semibold text-muted-foreground">
-            GMT+7
-          </span>
-        </div>
-        {weekDays.map((day, i) => (
-          <div
-            key={i}
-            className="border-r border-border/40 p-4 text-center last:border-r-0"
-          >
-            <span
-              className={cn(
-                "text-[11px] font-medium uppercase tracking-wider",
-                day.isToday ? "text-brand" : "text-muted-foreground",
-              )}
-            >
-              {day.day}
+    <div className="flex gap-4">
+      <div className="flex-1 flex flex-col overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
+        {/* Day headers */}
+        <div className="grid grid-cols-8 border-b border-border bg-slate-50/50">
+          <div className="flex items-center justify-center border-r border-border p-4">
+            <span className="text-xs font-semibold text-muted-foreground">
+              GMT+7
             </span>
-            <div
-              className={cn(
-                "mt-1 text-sm font-bold",
-                day.isToday ? "text-brand" : "text-slate-900",
-              )}
-            >
-              {day.date}
-            </div>
           </div>
-        ))}
-      </div>
-
-      {/* Grid */}
-      <div className="relative flex-1 overflow-y-auto bg-white">
-        <div
-          className="grid grid-cols-8"
-          style={{
-            gridTemplateRows: `repeat(${hours.length * 2}, 30px)`,
-          }}
-        >
-          {/* Time labels */}
-          {hours.map((hour, idx) => (
+          {weekDays.map((day, i) => (
             <div
-              key={hour}
-              className="col-start-1 border-r border-b border-border/30 bg-white pr-3 pt-1 text-right font-mono text-[11px] text-muted-foreground/60"
-              style={{ gridRow: `${idx * 2 + 1} / span 2` }}
+              key={i}
+              className="border-r border-border/40 p-4 text-center last:border-r-0"
             >
-              {hour.toString().padStart(2, "0")}:00
-            </div>
-          ))}
-
-          {/* Day column backgrounds */}
-          {weekDays.map((day, dayIdx) => (
-            <div
-              key={`col-${dayIdx}`}
-              className={cn(
-                "relative border-r border-border/30 last:border-r-0",
-                day.isToday && "bg-brand/[0.02]",
-              )}
-              style={{
-                gridColumn: dayIdx + 2,
-                gridRow: `1 / span ${hours.length * 2}`,
-              }}
-            >
-              {hours.map((_, hIdx) => (
-                <div
-                  key={hIdx}
-                  className="h-[60px] w-full border-b border-border/20"
-                />
-              ))}
-            </div>
-          ))}
-
-          {/* Appointments */}
-          {mockAppointments.map((apt) => {
-            const config = statusConfig[apt.status];
-            return (
-              <div
-                key={apt.id}
+              <span
                 className={cn(
-                  "m-0.5 cursor-pointer overflow-hidden rounded-xl p-2 text-xs shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md hover:z-10 relative",
-                  config.color,
-                  config.ring,
+                  "text-[11px] font-medium uppercase tracking-wider",
+                  day.isToday ? "text-brand" : "text-muted-foreground",
+                )}
+              >
+                {day.day}
+              </span>
+              <div
+                className={cn(
+                  "mt-1 text-sm font-bold",
+                  day.isToday ? "text-brand" : "text-slate-900",
+                )}
+              >
+                {day.date}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Grid */}
+        <div className="relative h-[620px] overflow-y-auto bg-white">
+          {loading && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70">
+              <SpinnerGap size={28} className="animate-spin text-brand" />
+            </div>
+          )}
+          <div
+            className="grid grid-cols-8"
+            style={{ gridTemplateRows: `repeat(${hours.length * 2}, 30px)` }}
+          >
+            {/* Time labels */}
+            {hours.map((hour, idx) => (
+              <div
+                key={hour}
+                className="col-start-1 border-r border-b border-border/30 bg-white pr-3 pt-1 text-right font-mono text-[11px] text-muted-foreground/60"
+                style={{ gridRow: `${idx * 2 + 1} / span 2` }}
+              >
+                {hour.toString().padStart(2, "0")}:00
+              </div>
+            ))}
+
+            {/* Day column backgrounds */}
+            {weekDays.map((day, dayIdx) => (
+              <div
+                key={`col-${dayIdx}`}
+                className={cn(
+                  "relative border-r border-border/30 last:border-r-0",
+                  day.isToday && "bg-brand/[0.02]",
                 )}
                 style={{
-                  gridColumn: apt.dayIdx + 2,
-                  gridRow: (apt.startHour - 7) * 2 + 1,
-                  gridRowEnd: `span ${apt.duration * 2}`,
+                  gridColumn: dayIdx + 2,
+                  gridRow: `1 / span ${hours.length * 2}`,
                 }}
-                title={`${apt.patient} — ${apt.service}`}
               >
-                <span className="mb-0.5 block font-mono text-[10px] opacity-70 leading-none">
-                  {formatHour(apt.startHour)} – {formatHour(apt.startHour + apt.duration)}
-                </span>
-                <span className="block truncate font-semibold text-[13px] leading-tight text-slate-900">
-                  {apt.patient}
-                </span>
-                <span className="block truncate text-[11px] leading-tight opacity-80">
-                  {apt.service}
-                </span>
+                {hours.map((_, hIdx) => (
+                  <div
+                    key={hIdx}
+                    className="h-[60px] w-full border-b border-border/20"
+                  />
+                ))}
               </div>
-            );
-          })}
+            ))}
+
+            {/* Appointments */}
+            {appointments.map((apt) => {
+              const dayIdx = weekDays.findIndex((d) => d.iso === apt.dayIso);
+              if (dayIdx < 0) return null;
+              const config = statusConfig[apt.status as AppointmentStatus] ?? statusConfig.PENDING;
+              const gridRow = getGridRow(apt.scheduledAt);
+              const span = getDuration(apt.scheduledAt, apt.durationMinutes);
+              return (
+                <div
+                  key={apt.id}
+                  onClick={() => setSelected(apt)}
+                  className={cn(
+                    "m-0.5 cursor-pointer overflow-hidden rounded-xl p-2 text-xs shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md hover:z-10 relative",
+                    config.color,
+                    config.ring,
+                    selected?.id === apt.id && "ring-2 ring-brand",
+                  )}
+                  style={{
+                    gridColumn: dayIdx + 2,
+                    gridRow: `${gridRow} / span ${Math.max(1, Math.round(span))}`,
+                  }}
+                  title={`${apt.patientName} — ${apt.serviceName}`}
+                >
+                  <span className="mb-0.5 block font-mono text-[10px] opacity-70 leading-none">
+                    {new Date(apt.scheduledAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                  <span className="block truncate font-semibold text-[13px] leading-tight text-slate-900">
+                    {apt.patientName}
+                  </span>
+                  <span className="block truncate text-[11px] leading-tight opacity-80">
+                    {apt.serviceName}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
+
+      {/* Detail panel */}
+      {selected && (
+        <AppointmentDetailPanel
+          appointment={selected}
+          onClose={() => setSelected(null)}
+          onStatusChange={async (id, action) => {
+            await onStatusChange(id, action);
+            setSelected(null);
+          }}
+        />
+      )}
     </div>
   );
 }

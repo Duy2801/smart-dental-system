@@ -87,6 +87,8 @@ export default function DoctorDashboardPage() {
     year: "numeric",
   });
 
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
   const fetchDashboard = async () => {
     setLoading(true);
     setError(null);
@@ -97,6 +99,30 @@ export default function DoctorDashboardPage() {
       setError("Không thể tải dữ liệu. Vui lòng thử lại.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleStartAppointment = async (id: string) => {
+    setActionLoading(id);
+    try {
+      await apiClient.patch(`/appointments/${id}/start`);
+      await fetchDashboard();
+    } catch {
+      alert("Không thể bắt đầu ca khám. Vui lòng thử lại.");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleCompleteAppointment = async (id: string) => {
+    setActionLoading(id);
+    try {
+      await apiClient.patch(`/appointments/${id}/complete`);
+      await fetchDashboard();
+    } catch {
+      alert("Không thể kết thúc ca khám. Vui lòng thử lại.");
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -257,13 +283,21 @@ export default function DoctorDashboardPage() {
                               {cfg.label}
                             </span>
                             {item.status === "CHECKED_IN" && (
-                              <Link href="/doctor/medical-records" className="inline-flex items-center justify-center rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-dark active:scale-[0.98]">
-                                Bắt đầu khám
-                              </Link>
+                              <button
+                                onClick={() => handleStartAppointment(item.id)}
+                                disabled={actionLoading === item.id}
+                                className="inline-flex items-center justify-center rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-dark active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+                              >
+                                {actionLoading === item.id ? "Đang xử lý..." : "Bắt đầu khám"}
+                              </button>
                             )}
                             {item.status === "IN_PROGRESS" && (
-                              <button className="inline-flex items-center justify-center rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-600 active:scale-[0.98]">
-                                Kết thúc khám
+                              <button
+                                onClick={() => handleCompleteAppointment(item.id)}
+                                disabled={actionLoading === item.id}
+                                className="inline-flex items-center justify-center rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-600 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+                              >
+                                {actionLoading === item.id ? "Đang xử lý..." : "Kết thúc khám"}
                               </button>
                             )}
                             {item.status === "COMPLETED" && (

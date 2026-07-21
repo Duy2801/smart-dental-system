@@ -1397,7 +1397,7 @@ async function seedRelatedData(
         data: {
           appointmentCode: `APT-SEED-${String(index + 1).padStart(3, '0')}`,
           patientId: context.patients[index].id,
-          doctorId: context.doctors[index].id,
+          doctorId: context.doctors[index % 2].id,
           serviceId: service.id,
           scheduledAt,
           endAt: new Date(scheduledAt.getTime() + (30 + index * 5) * 60 * 1000),
@@ -1451,7 +1451,7 @@ async function seedRelatedData(
       await prisma.treatmentPlan.create({
         data: {
           patientId: context.patients[index].id,
-          doctorId: context.doctors[index].id,
+          doctorId: context.doctors[index % 2].id,
           title: `Seed Treatment Plan ${index + 1}`,
           description: `Sample dental treatment plan ${index + 1}`,
           status:
@@ -1484,7 +1484,7 @@ async function seedRelatedData(
         data: {
           patientId: context.patients[index].id,
           appointmentId: appointments[index].id,
-          doctorId: context.doctors[index].id,
+          doctorId: context.doctors[index % 2].id,
           chiefComplaint: `Seed complaint ${index + 1}`,
           diagnosis: `Seed diagnosis ${index + 1}`,
           treatmentNotes: `Treatment completed for sample case ${index + 1}.`,
