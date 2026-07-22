@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
@@ -47,5 +47,55 @@ export class TreatmentPlanController {
     },
   ) {
     return this.service.create(doctorId, dto);
+  }
+
+  @Patch(':id')
+  @Roles('DOCTOR', 'ADMIN')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  update(
+    @Param('id') id: string,
+    @Body()
+    dto: {
+      title?: string;
+      description?: string;
+      status?: string;
+      startDate?: string | null;
+      expectedEndDate?: string | null;
+      steps?: Array<{
+        title: string;
+        description?: string;
+        targetTooth?: string;
+        estimatedCost?: number;
+        expectedDate?: string;
+      }>;
+    },
+  ) {
+    return this.service.update(id, dto);
+  }
+
+  @Delete(':id')
+  @Roles('DOCTOR', 'ADMIN')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  remove(@Param('id') id: string) {
+    return this.service.remove(id);
+  }
+
+  @Patch(':id/steps/:stepId')
+  @Roles('DOCTOR', 'ADMIN')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  updateStep(
+    @Param('id') id: string,
+    @Param('stepId') stepId: string,
+    @Body()
+    dto: {
+      status?: string;
+      title?: string;
+      description?: string;
+      targetTooth?: string;
+      estimatedCost?: number;
+      expectedDate?: string | null;
+    },
+  ) {
+    return this.service.updateStep(id, stepId, dto);
   }
 }
