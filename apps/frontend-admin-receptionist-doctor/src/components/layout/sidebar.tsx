@@ -65,16 +65,15 @@ export function Sidebar({ title, items, pathname }: SidebarProps) {
             </Link>
           );
         })}
-      </nav>
-      <div className="border-t border-white/10 p-4">
+
         <button
           type="button"
           onClick={handleLogout}
-          className="block w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-white/75 transition-colors hover:bg-white/10 hover:text-white"
+          className="mt-1 rounded-lg px-3 py-2 text-left text-sm font-medium text-white/75 transition-colors hover:bg-white/10 hover:text-white"
         >
           Đăng xuất
         </button>
-      </div>
+      </nav>
     </aside>
   );
 }

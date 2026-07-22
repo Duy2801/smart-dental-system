@@ -81,7 +81,7 @@ export default function LoginPage() {
         return;
       }
 
-      setCookie("access_token", session.accessToken, 15 * 60);
+      setCookie("access_token", session.accessToken, 20 * 60);
       setCookie("refresh_token", session.refreshToken);
       setCookie("role", role);
       setCookie("session", "authenticated");

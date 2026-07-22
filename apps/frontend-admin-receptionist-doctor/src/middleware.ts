@@ -27,8 +27,14 @@ export function middleware(request: NextRequest) {
   const role = request.cookies.get("role")?.value;
   const session = request.cookies.get("session")?.value;
   const accessToken = request.cookies.get("access_token")?.value;
+  const refreshToken = request.cookies.get("refresh_token")?.value;
+  // Coi là đã xác thực nếu còn session hợp lệ + ít nhất 1 trong 2 token còn tồn tại.
+  // access_token chết sau 15-20 phút nhưng refresh_token còn 7 ngày — axios interceptor
+  // sẽ tự refresh khi API trả 401, không cần đá user ra ở đây.
   const isAuthenticated =
-    session === "authenticated" && Boolean(accessToken) && isValidRole(role);
+    session === "authenticated" &&
+    (Boolean(accessToken) || Boolean(refreshToken)) &&
+    isValidRole(role);
 
   if (
     PUBLIC_ROUTES.some(
