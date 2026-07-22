@@ -54,15 +54,28 @@ export interface CustomAxiosInstance extends Omit<
 const getCookie = (name: string) => {
   if (typeof document === "undefined") return undefined;
 
-  return document.cookie
+  const raw = document.cookie
     .split("; ")
     .find((row) => row.startsWith(`${name}=`))
-    ?.split("=")[1];
+    ?.slice(name.length + 1);
+
+  if (!raw) return undefined;
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
 };
 
-const setCookie = (name: string, value: string, maxAgeSeconds = 20 * 60) => {
+const ACCESS_TOKEN_MAX_AGE = 20 * 60;
+const REFRESH_TOKEN_MAX_AGE = 7 * 24 * 60 * 60;
+
+const setCookie = (name: string, value: string, maxAgeSeconds?: number) => {
   if (typeof document === "undefined") return;
-  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAgeSeconds}; SameSite=Lax`;
+  const maxAge =
+    maxAgeSeconds ??
+    (name === "refresh_token" ? REFRESH_TOKEN_MAX_AGE : ACCESS_TOKEN_MAX_AGE);
+  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}; SameSite=Lax`;
 };
 
 const removeCookie = (name: string) => {

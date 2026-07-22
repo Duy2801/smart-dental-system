@@ -14,9 +14,16 @@ export default async function DashboardGroupLayout({
   const cookieStore = await cookies();
   const session = cookieStore.get("session")?.value;
   const accessToken = cookieStore.get("access_token")?.value;
+  const refreshToken = cookieStore.get("refresh_token")?.value;
   const role = cookieStore.get("role")?.value;
 
-  if (session !== "authenticated" || !accessToken || !isValidRole(role)) {
+  // Khớp middleware: đủ session + role + ít nhất 1 token.
+  // access_token có thể hết hạn sớm; refresh_token còn thì axios sẽ tự refresh.
+  if (
+    session !== "authenticated" ||
+    (!accessToken && !refreshToken) ||
+    !isValidRole(role)
+  ) {
     redirect(ROUTES.LOGIN);
   }
 
