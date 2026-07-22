@@ -60,9 +60,9 @@ const getCookie = (name: string) => {
     ?.split("=")[1];
 };
 
-const setCookie = (name: string, value: string) => {
+const setCookie = (name: string, value: string, maxAgeSeconds = 20 * 60) => {
   if (typeof document === "undefined") return;
-  document.cookie = `${name}=${value}; path=/; SameSite=Lax`;
+  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAgeSeconds}; SameSite=Lax`;
 };
 
 const removeCookie = (name: string) => {
