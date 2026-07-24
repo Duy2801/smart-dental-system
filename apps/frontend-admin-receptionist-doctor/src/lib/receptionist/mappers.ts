@@ -1,5 +1,13 @@
 import type { AppointmentStatus } from "@/src/components/shared/appointment-status-badge";
 
+/** YYYY-MM-DD theo giờ máy local (tránh lệch UTC của toISOString). */
+export function localDateStr(d: Date = new Date()): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 /** Prisma appointment include shape from backend */
 export type ApiAppointment = {
   id: string;

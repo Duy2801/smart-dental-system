@@ -6,7 +6,7 @@ import { cn } from "@/src/lib/utils/cn";
 import { Header } from "@/src/components/layout/header";
 import { AppointmentStatusBadge } from "@/src/components/shared/appointment-status-badge";
 import apiClient from "@/src/lib/api/client";
-import { mapAppointments } from "@/src/lib/receptionist/mappers";
+import { mapAppointments, localDateStr } from "@/src/lib/receptionist/mappers";
 import type { ReceptionistAppointment } from "@/src/lib/receptionist/mappers";
 import {
   CalendarBlank,
@@ -131,7 +131,7 @@ export default function ReceptionistDashboard() {
   // --------------------------------------------------
 
   useEffect(() => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDateStr();
 
     const fetchAll = async () => {
       try {

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { cn } from "@/src/lib/utils/cn";
 import { Header } from "@/src/components/layout/header";
 import apiClient from "@/src/lib/api/client";
-import { mapAppointments } from "@/src/lib/receptionist/mappers";
+import { mapAppointments, localDateStr } from "@/src/lib/receptionist/mappers";
 import {
   ArrowLeft,
   QrCode,
@@ -109,7 +109,7 @@ export default function CheckInPage() {
     setSearchError("");
 
     try {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = localDateStr();
       const res = await apiClient.get(
         `/appointments?date=${today}&search=${encodeURIComponent(searchValue.trim())}`,
       );
