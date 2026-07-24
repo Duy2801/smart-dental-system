@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { InvoiceStatus } from '../../../prisma/generated/enums';
+import { InvoiceStatus, InvoiceType } from '../../../prisma/generated/enums';
 import { PrismaService } from '../prisma/prisma.service';
 import { InvoiceQueryDto } from './dto/invoice-query.dto';
 
@@ -48,6 +48,12 @@ export class InvoiceService {
       },
       include: {
         patient: { include: { user: true } },
+        appointment: {
+          include: {
+            doctor: { include: { user: true } },
+            service: true,
+          },
+        },
         payments: {
           orderBy: { createdAt: 'desc' },
           take: 1,
@@ -58,17 +64,25 @@ export class InvoiceService {
 
     return invoices.map((invoice) => {
       const payment = invoice.payments[0];
+      const doctorName =
+        invoice.appointment?.doctor?.user?.fullName ?? null;
 
       return {
         id: invoice.id,
         invoice_code: invoice.invoiceCode,
+        invoice_type: invoice.invoiceType,
         patient_name: invoice.patient.user.fullName,
+        doctor_name: doctorName,
         issued_at: (invoice.issuedAt ?? new Date()).toISOString(),
         subtotal: Number(invoice.subtotal),
         discount_amount: Number(invoice.discountAmount),
         final_amount: Number(invoice.finalAmount),
         status: this.mapInvoiceStatus(invoice.status),
         payment_method: payment?.paymentMethod,
+        payment_option:
+          invoice.invoiceType === InvoiceType.DEPOSIT
+            ? 'DEPOSIT_30_PERCENT'
+            : 'PAY_AT_COUNTER',
         items: this.normalizeItems(invoice.items),
       };
     });

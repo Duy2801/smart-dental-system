@@ -539,6 +539,7 @@ export class AppointmentService {
   async completeAppointment(appointmentId: string) {
     const appointment = await this.prisma.appointment.findUnique({
       where: { id: appointmentId },
+      include: { service: true },
     });
 
     if (!appointment) {
@@ -551,7 +552,7 @@ export class AppointmentService {
       );
     }
 
-    return this.prisma.appointment.update({
+    const updated = await this.prisma.appointment.update({
       where: { id: appointmentId },
       data: {
         status: AppointmentStatus.COMPLETED,
@@ -559,6 +560,51 @@ export class AppointmentService {
       },
       include: appointmentInclude,
     });
+
+    // Tạo hóa đơn SERVICE nếu chưa có hóa đơn chờ thu gắn lịch này
+    if (appointment.patientId) {
+      const openInvoice = await this.prisma.invoice.findFirst({
+        where: {
+          appointmentId,
+          status: {
+            in: [
+              InvoiceStatus.DRAFT,
+              InvoiceStatus.ISSUED,
+              InvoiceStatus.PARTIALLY_PAID,
+            ],
+          },
+        },
+        select: { id: true },
+      });
+
+      if (!openInvoice) {
+        const price = Number(appointment.service.basePrice);
+        await this.prisma.invoice.create({
+          data: {
+            invoiceCode: await this.generateInvoiceCode(),
+            patientId: appointment.patientId,
+            appointmentId: appointment.id,
+            invoiceType: InvoiceType.SERVICE,
+            items: [
+              {
+                service_id: appointment.serviceId,
+                description: appointment.service.name,
+                qty: 1,
+                unit_price: price,
+                amount: price,
+              },
+            ],
+            subtotal: price,
+            finalAmount: price,
+            status: InvoiceStatus.ISSUED,
+            issuedAt: new Date(),
+            createdBy: appointment.createdBy,
+          },
+        });
+      }
+    }
+
+    return updated;
   }
 
   async getBookingOptions(query: BookingOptionQuery) {
