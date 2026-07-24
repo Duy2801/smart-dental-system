@@ -155,13 +155,26 @@ export class PatientService {
     });
     if (!patient) throw new BadRequestException('patient.not_found');
 
+    const allergies =
+      dto.allergies !== undefined
+        ? dto.allergies.map((s) => s.trim()).filter(Boolean)
+        : this.parseAllergies(patient.medicalHistory);
+    const historyOnly =
+      dto.medicalHistory !== undefined
+        ? this.stripAllergyLine(dto.medicalHistory)
+        : this.stripAllergyLine(patient.medicalHistory);
+    const medicalHistory =
+      this.mergeMedicalHistory(historyOnly || undefined, allergies) ?? null;
+
     await this.prisma.$transaction([
       this.prisma.user.update({
         where: { id: patient.userId },
         data: {
           ...(dto.fullName ? { fullName: dto.fullName.trim() } : {}),
           ...(dto.phone ? { phone: dto.phone.trim() } : {}),
-          ...(dto.email ? { email: dto.email.trim().toLowerCase() } : {}),
+          ...(dto.email?.trim()
+            ? { email: dto.email.trim().toLowerCase() }
+            : {}),
         },
       }),
       this.prisma.patient.update({
@@ -170,8 +183,13 @@ export class PatientService {
           ...(dto.address !== undefined
             ? { address: dto.address.trim() || null }
             : {}),
-          ...(dto.medicalHistory !== undefined
-            ? { medicalHistory: dto.medicalHistory.trim() || null }
+          medicalHistory,
+          ...(dto.dateOfBirth !== undefined
+            ? {
+                dateOfBirth: dto.dateOfBirth
+                  ? new Date(dto.dateOfBirth)
+                  : null,
+              }
             : {}),
           ...(dto.gender ? { gender: dto.gender } : {}),
           ...(dto.emergencyContactName !== undefined
@@ -201,6 +219,13 @@ export class PatientService {
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean);
+  }
+
+  private stripAllergyLine(medicalHistory?: string | null): string {
+    if (!medicalHistory) return '';
+    return medicalHistory
+      .replace(/Dị ứng:\s*.+(?:\n|$)/gi, '')
+      .trim();
   }
 
   private mergeMedicalHistory(

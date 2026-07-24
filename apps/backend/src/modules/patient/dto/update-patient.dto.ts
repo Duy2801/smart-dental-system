@@ -1,5 +1,13 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
+import {
+  IsArray,
+  IsDateString,
+  IsEmail,
+  IsEnum,
+  IsOptional,
+  IsString,
+  MinLength,
+} from 'class-validator';
 import { Gender } from '../../../../prisma/generated/enums';
 
 export class UpdatePatientDto {
@@ -21,6 +29,11 @@ export class UpdatePatientDto {
 
   @ApiPropertyOptional()
   @IsOptional()
+  @IsDateString()
+  dateOfBirth?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsString()
   address?: string;
 
@@ -28,6 +41,12 @@ export class UpdatePatientDto {
   @IsOptional()
   @IsString()
   medicalHistory?: string;
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  allergies?: string[];
 
   @ApiPropertyOptional({ enum: Gender })
   @IsOptional()

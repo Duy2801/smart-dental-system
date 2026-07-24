@@ -29,10 +29,11 @@ import {
 
 interface Patient {
   id: string;
+  patientCode: string;
   fullName: string;
   phone: string;
   dateOfBirth?: string | null;
-  gender?: "MALE" | "FEMALE" | null;
+  gender?: "MALE" | "FEMALE" | string | null;
   allergies?: string[];
   medicalHistory?: string | null;
   lastVisit?: string | null;
@@ -69,8 +70,10 @@ function getAvatarColor(name: string): string {
 
 function formatDob(dob?: string | null): string {
   if (!dob) return "--";
+  const m = String(dob).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return `${m[3]}/${m[2]}/${m[1]}`;
   try {
-    return new Date(dob).toLocaleDateString("vi-VN");
+    return new Date(dob).toLocaleDateString("vi-VN", { timeZone: "UTC" });
   } catch {
     return dob;
   }
@@ -308,6 +311,7 @@ export default function ReceptionistPatientsPage() {
               totalVisits?: number;
             }) => ({
               id: p.id,
+              patientCode: p.patientCode ?? p.id.slice(0, 8).toUpperCase(),
               fullName: p.fullName,
               phone: p.phone ?? "",
               dateOfBirth: p.dateOfBirth,
@@ -508,11 +512,24 @@ export default function ReceptionistPatientsPage() {
                                 )}
                               </div>
                               <div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted-foreground">
-                                <span className="font-mono">{patient.id}</span>
-                                {patient.gender && (
+                                <span className="font-mono">{patient.patientCode}</span>
+                                {patient.gender &&
+                                  patient.gender !== "UNKNOWN" && (
                                   <span className="border-l border-border pl-2">
-                                    {patient.gender === "MALE" ? "Nam" : "Nữ"}
-                                    {patient.dateOfBirth && ` • ${formatDob(patient.dateOfBirth)}`}
+                                    {patient.gender === "MALE"
+                                      ? "Nam"
+                                      : patient.gender === "FEMALE"
+                                        ? "Nữ"
+                                        : patient.gender}
+                                    {patient.dateOfBirth &&
+                                      ` • ${formatDob(patient.dateOfBirth)}`}
+                                  </span>
+                                )}
+                                {(!patient.gender ||
+                                  patient.gender === "UNKNOWN") &&
+                                  patient.dateOfBirth && (
+                                  <span className="border-l border-border pl-2">
+                                    {formatDob(patient.dateOfBirth)}
                                   </span>
                                 )}
                               </div>

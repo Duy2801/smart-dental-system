@@ -47,6 +47,35 @@ type PatientDetail = {
   }[];
 };
 
+function stripAllergyLine(history?: string | null) {
+  if (!history) return "";
+  return history.replace(/Dị ứng:\s*.+(?:\n|$)/gi, "").trim();
+}
+
+function formatDob(dob?: string | null) {
+  if (!dob) return "--";
+  const m = String(dob).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return `${m[3]}/${m[2]}/${m[1]}`;
+  return new Date(dob).toLocaleDateString("vi-VN", { timeZone: "UTC" });
+}
+
+function dobInputValue(dob?: string | null) {
+  if (!dob) return "";
+  const m = String(dob).match(/^(\d{4}-\d{2}-\d{2})/);
+  return m?.[1] ?? "";
+}
+
+function genderLabel(g?: string | null) {
+  if (g === "MALE") return "Nam";
+  if (g === "FEMALE") return "Nữ";
+  if (!g || g === "UNKNOWN") return "";
+  return g;
+}
+
+function doctorLabel(name: string) {
+  return /^bs\.?\s/i.test(name) ? name : `BS. ${name}`;
+}
+
 function InfoRow({
   icon,
   label,
@@ -74,13 +103,18 @@ function PatientDetailContent() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(searchParams.get("tab") === "edit");
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [draft, setDraft] = useState({
     fullName: "",
     phone: "",
     email: "",
     address: "",
+    dateOfBirth: "",
+    gender: "" as "" | "MALE" | "FEMALE",
     medicalHistory: "",
     allergies: "",
+    emergencyContactName: "",
+    emergencyContactPhone: "",
   });
 
   useEffect(() => {
@@ -95,8 +129,15 @@ function PatientDetailContent() {
           phone: data.phone ?? "",
           email: data.email ?? "",
           address: data.address ?? "",
-          medicalHistory: data.medicalHistory ?? "",
+          dateOfBirth: dobInputValue(data.dateOfBirth),
+          gender:
+            data.gender === "MALE" || data.gender === "FEMALE"
+              ? data.gender
+              : "",
+          medicalHistory: stripAllergyLine(data.medicalHistory),
           allergies: (data.allergies ?? []).join(", "),
+          emergencyContactName: data.emergencyContactName ?? "",
+          emergencyContactPhone: data.emergencyContactPhone ?? "",
         });
       })
       .catch(() => setPatient(null))
@@ -106,30 +147,37 @@ function PatientDetailContent() {
   const handleSave = async () => {
     if (!patient) return;
     setSaving(true);
-    const next = {
-      ...patient,
+    setSaveError(null);
+    const allergies = draft.allergies
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const payload = {
       fullName: draft.fullName.trim() || patient.fullName,
       phone: draft.phone.trim() || patient.phone,
       email: draft.email.trim() || null,
       address: draft.address.trim() || null,
+      dateOfBirth: draft.dateOfBirth || null,
+      gender: draft.gender || undefined,
       medicalHistory: draft.medicalHistory.trim() || null,
-      allergies: draft.allergies
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean),
+      allergies,
+      emergencyContactName: draft.emergencyContactName.trim() || null,
+      emergencyContactPhone: draft.emergencyContactPhone.trim() || null,
     };
     try {
-      await apiClient.patch(`/patients/${patient.id}`, {
-        fullName: next.fullName,
-        phone: next.phone,
-        email: next.email,
-        address: next.address,
-        medicalHistory: next.medicalHistory,
-      });
-      setPatient(next);
+      const res = await apiClient.patch(`/patients/${patient.id}`, payload);
+      const updated = res.data as PatientDetail;
+      setPatient(updated?.id ? updated : { ...patient, ...payload, allergies });
+      setDraft((d) => ({
+        ...d,
+        medicalHistory: stripAllergyLine(
+          updated?.medicalHistory ?? d.medicalHistory,
+        ),
+        allergies: (updated?.allergies ?? allergies).join(", "),
+      }));
       setEditing(false);
     } catch {
-      // keep editing open
+      setSaveError("Không lưu được. Kiểm tra SĐT/email và thử lại.");
     } finally {
       setSaving(false);
     }
@@ -222,6 +270,13 @@ function PatientDetailContent() {
           <ArrowLeft size={16} /> Quay lại danh sách
         </Link>
 
+        {saveError && (
+          <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+            <Warning size={16} weight="fill" />
+            {saveError}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
           <div className="xl:col-span-1 space-y-4">
             <div className="rounded-2xl border border-border bg-white p-6 shadow-sm">
@@ -251,39 +306,135 @@ function PatientDetailContent() {
 
               {editing ? (
                 <div className="space-y-3">
-                  {(
-                    [
-                      ["phone", "SĐT"],
-                      ["email", "Email"],
-                      ["address", "Địa chỉ"],
-                      ["allergies", "Dị ứng"],
-                      ["medicalHistory", "Tiền sử"],
-                    ] as const
-                  ).map(([key, label]) => (
-                    <div key={key} className="space-y-1">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-semibold text-muted-foreground">
+                      SĐT
+                    </label>
+                    <input
+                      value={draft.phone}
+                      onChange={(e) =>
+                        setDraft((d) => ({ ...d, phone: e.target.value }))
+                      }
+                      className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-semibold text-muted-foreground">
+                      Email
+                    </label>
+                    <input
+                      value={draft.email}
+                      onChange={(e) =>
+                        setDraft((d) => ({ ...d, email: e.target.value }))
+                      }
+                      className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
                       <label className="text-[11px] font-semibold text-muted-foreground">
-                        {label}
+                        Ngày sinh
                       </label>
-                      {key === "medicalHistory" ? (
-                        <textarea
-                          rows={2}
-                          value={draft[key]}
-                          onChange={(e) =>
-                            setDraft((d) => ({ ...d, [key]: e.target.value }))
-                          }
-                          className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
-                        />
-                      ) : (
-                        <input
-                          value={draft[key]}
-                          onChange={(e) =>
-                            setDraft((d) => ({ ...d, [key]: e.target.value }))
-                          }
-                          className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
-                        />
-                      )}
+                      <input
+                        type="date"
+                        value={draft.dateOfBirth}
+                        onChange={(e) =>
+                          setDraft((d) => ({
+                            ...d,
+                            dateOfBirth: e.target.value,
+                          }))
+                        }
+                        className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
+                      />
                     </div>
-                  ))}
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-semibold text-muted-foreground">
+                        Giới tính
+                      </label>
+                      <select
+                        value={draft.gender}
+                        onChange={(e) =>
+                          setDraft((d) => ({
+                            ...d,
+                            gender: e.target.value as "" | "MALE" | "FEMALE",
+                          }))
+                        }
+                        className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
+                      >
+                        <option value="">—</option>
+                        <option value="MALE">Nam</option>
+                        <option value="FEMALE">Nữ</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-semibold text-muted-foreground">
+                      Địa chỉ
+                    </label>
+                    <input
+                      value={draft.address}
+                      onChange={(e) =>
+                        setDraft((d) => ({ ...d, address: e.target.value }))
+                      }
+                      className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-semibold text-muted-foreground">
+                      Dị ứng
+                    </label>
+                    <input
+                      value={draft.allergies}
+                      onChange={(e) =>
+                        setDraft((d) => ({ ...d, allergies: e.target.value }))
+                      }
+                      placeholder="Penicillin, Latex..."
+                      className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-semibold text-muted-foreground">
+                      Tiền sử
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={draft.medicalHistory}
+                      onChange={(e) =>
+                        setDraft((d) => ({
+                          ...d,
+                          medicalHistory: e.target.value,
+                        }))
+                      }
+                      className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-semibold text-muted-foreground">
+                      Liên hệ khẩn cấp
+                    </label>
+                    <input
+                      value={draft.emergencyContactName}
+                      onChange={(e) =>
+                        setDraft((d) => ({
+                          ...d,
+                          emergencyContactName: e.target.value,
+                        }))
+                      }
+                      placeholder="Họ tên"
+                      className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
+                    />
+                    <input
+                      value={draft.emergencyContactPhone}
+                      onChange={(e) =>
+                        setDraft((d) => ({
+                          ...d,
+                          emergencyContactPhone: e.target.value,
+                        }))
+                      }
+                      placeholder="SĐT"
+                      className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
+                    />
+                  </div>
                 </div>
               ) : (
                 <div className="flex flex-col gap-3.5">
@@ -301,15 +452,19 @@ function PatientDetailContent() {
                       value={patient.email}
                     />
                   )}
-                  {patient.dateOfBirth && (
+                  {(patient.dateOfBirth || genderLabel(patient.gender)) && (
                     <InfoRow
                       icon={<CalendarBlank size={15} />}
                       label="Ngày sinh"
-                      value={`${new Date(patient.dateOfBirth).toLocaleDateString("vi-VN")}${
-                        patient.gender
-                          ? ` • ${patient.gender === "MALE" ? "Nam" : patient.gender === "FEMALE" ? "Nữ" : patient.gender}`
-                          : ""
-                      }${patient.age ? ` (${patient.age} tuổi)` : ""}`}
+                      value={[
+                        patient.dateOfBirth
+                          ? formatDob(patient.dateOfBirth)
+                          : null,
+                        genderLabel(patient.gender) || null,
+                        patient.age ? `${patient.age} tuổi` : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" • ")}
                     />
                   )}
                   {patient.address && (
@@ -336,7 +491,7 @@ function PatientDetailContent() {
                 </div>
               )}
 
-              {!editing && patient.medicalHistory && (
+              {!editing && stripAllergyLine(patient.medicalHistory) && (
                 <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4">
                   <div className="mb-2 flex items-center gap-2">
                     <Warning size={15} className="text-amber-600" weight="fill" />
@@ -344,7 +499,9 @@ function PatientDetailContent() {
                       Tiền sử bệnh
                     </span>
                   </div>
-                  <p className="text-sm text-amber-900">{patient.medicalHistory}</p>
+                  <p className="text-sm text-amber-900">
+                    {stripAllergyLine(patient.medicalHistory)}
+                  </p>
                 </div>
               )}
 
@@ -409,7 +566,8 @@ function PatientDetailContent() {
                             hour: "2-digit",
                             minute: "2-digit",
                           })}
-                          {" • "}BS. {apt.doctorName}
+                          {" • "}
+                          {doctorLabel(apt.doctorName)}
                         </p>
                       </div>
                       <Link
