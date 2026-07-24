@@ -384,11 +384,7 @@ export class AppointmentService {
   async markNoShow(appointmentId: string) {
     return this.transitionAppointment(
       appointmentId,
-      [
-        AppointmentStatus.PENDING,
-        AppointmentStatus.CONFIRMED,
-        AppointmentStatus.CHECKED_IN,
-      ],
+      [AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED],
       { status: AppointmentStatus.NO_SHOW },
       'appointment.cannot_mark_no_show',
     );
@@ -397,17 +393,92 @@ export class AppointmentService {
   async cancelByStaff(appointmentId: string) {
     return this.transitionAppointment(
       appointmentId,
-      [
-        AppointmentStatus.PENDING,
-        AppointmentStatus.CONFIRMED,
-        AppointmentStatus.CHECKED_IN,
-      ],
+      [AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED],
       {
         status: AppointmentStatus.CANCELLED,
         cancelledAt: new Date(),
       },
       'appointment.cannot_cancel',
     );
+  }
+
+  /** Lễ tân/admin đổi giờ — không áp hạn mức/notice của bệnh nhân. */
+  async rescheduleByStaff(
+    appointmentId: string,
+    dto: { scheduledAt: string },
+  ) {
+    const appointment = await this.prisma.appointment.findUnique({
+      where: { id: appointmentId },
+      include: {
+        doctor: true,
+        service: true,
+      },
+    });
+
+    if (!appointment) {
+      throw new BadRequestException('appointment.not_found');
+    }
+
+    const reschedulable: AppointmentStatus[] = [
+      AppointmentStatus.PENDING,
+      AppointmentStatus.CONFIRMED,
+    ];
+    if (!reschedulable.includes(appointment.status)) {
+      throw new ConflictException('appointment.reschedule_not_allowed');
+    }
+
+    const scheduledAt = new Date(dto.scheduledAt);
+    if (Number.isNaN(scheduledAt.getTime())) {
+      throw new BadRequestException('appointment.invalid_time');
+    }
+
+    const endAt = new Date(
+      scheduledAt.getTime() +
+        appointment.service.durationMinutes * 60 * 1000,
+    );
+
+    const previousSchedule = {
+      scheduledAt: appointment.scheduledAt,
+      endAt: appointment.endAt,
+      status: appointment.status,
+      changedAt: new Date(),
+    };
+    const rescheduleHistory = Array.isArray(appointment.rescheduleHistory)
+      ? appointment.rescheduleHistory
+      : [];
+
+    await this.ensureClinicOpen(scheduledAt, endAt);
+    await this.ensureDoctorAvailableForExistingAppointment(
+      appointment.doctorId,
+      appointment.id,
+      scheduledAt,
+      endAt,
+    );
+    if (appointment.patientId) {
+      await this.ensurePatientHasNoOverlappingAppointment(
+        appointment.patientId,
+        appointment.createdBy,
+        scheduledAt,
+        endAt,
+        appointment.id,
+      );
+    }
+    await this.ensureNoConflict(
+      appointment.doctorId,
+      scheduledAt,
+      endAt,
+      appointment.id,
+    );
+
+    return this.prisma.appointment.update({
+      where: { id: appointment.id },
+      data: {
+        scheduledAt,
+        endAt,
+        rescheduleHistory: [...rescheduleHistory, previousSchedule],
+      },
+      include: appointmentInclude,
+    });
   }
 
   private async transitionAppointment(

@@ -16,6 +16,7 @@ export type ApiAppointment = {
   endAt?: string | null;
   status: AppointmentStatus;
   notes?: string | null;
+  paymentStatus?: string | null;
   patient?: {
     id: string;
     user?: { fullName?: string | null; phone?: string | null } | null;
@@ -24,11 +25,12 @@ export type ApiAppointment = {
     id: string;
     user?: { fullName?: string | null } | null;
   } | null;
-  service?: { name?: string | null } | null;
+  service?: { id?: string; name?: string | null } | null;
 };
 
 export type ReceptionistAppointment = {
   id: string;
+  appointmentCode: string;
   startTime: string;
   endTime?: string;
   scheduledAt?: string;
@@ -37,7 +39,7 @@ export type ReceptionistAppointment = {
   invoicePending?: boolean;
   patient?: { id: string; fullName: string; phone: string } | null;
   doctor?: { id: string; fullName: string } | null;
-  service?: { name: string } | null;
+  service?: { id?: string; name: string } | null;
 };
 
 function timeFromIso(iso?: string | null): string {
@@ -47,14 +49,24 @@ function timeFromIso(iso?: string | null): string {
   return d.toTimeString().slice(0, 8);
 }
 
+const PAID_PAYMENT_STATUSES = new Set([
+  "COUNTER_PAID",
+  "DEPOSIT_PAID",
+  "WAIVED",
+]);
+
 export function mapAppointment(raw: ApiAppointment): ReceptionistAppointment {
+  const paymentStatus = raw.paymentStatus ?? "";
   return {
     id: raw.id,
+    appointmentCode: raw.appointmentCode ?? raw.id.slice(0, 8).toUpperCase(),
     startTime: timeFromIso(raw.scheduledAt),
     endTime: raw.endAt ? timeFromIso(raw.endAt) : undefined,
     scheduledAt: raw.scheduledAt,
     status: raw.status,
     notes: raw.notes,
+    invoicePending:
+      raw.status === "COMPLETED" && !PAID_PAYMENT_STATUSES.has(paymentStatus),
     patient: raw.patient
       ? {
           id: raw.patient.id,
@@ -68,7 +80,9 @@ export function mapAppointment(raw: ApiAppointment): ReceptionistAppointment {
           fullName: raw.doctor.user?.fullName ?? "",
         }
       : null,
-    service: raw.service?.name ? { name: raw.service.name } : null,
+    service: raw.service?.name
+      ? { id: raw.service.id, name: raw.service.name }
+      : null,
   };
 }
 

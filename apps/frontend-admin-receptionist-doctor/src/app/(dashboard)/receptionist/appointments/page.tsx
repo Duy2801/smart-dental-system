@@ -153,22 +153,29 @@ function ActionMenu({
               <Eye size={13} /> Hồ sơ bệnh nhân
             </Link>
           )}
-          <div className="my-1 mx-2 h-px bg-slate-100" />
-          {apt.status !== "CANCELLED" && apt.status !== "COMPLETED" && (
-            <button
-              onClick={() => { onStatusChange(apt.id, "CANCELLED"); setOpen(false); }}
-              className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
-            >
-              <X size={13} /> Khách báo hủy
-            </button>
-          )}
-          {apt.status !== "NO_SHOW" && apt.status !== "COMPLETED" && apt.status !== "CANCELLED" && (
-            <button
-              onClick={() => { onStatusChange(apt.id, "NO_SHOW"); setOpen(false); }}
-              className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
-            >
-              <UserMinus size={13} /> Đánh dấu vắng mặt
-            </button>
+          {(apt.status === "PENDING" || apt.status === "CONFIRMED") && (
+            <>
+              <div className="my-1 mx-2 h-px bg-slate-100" />
+              <button
+                onClick={() => { onStatusChange(apt.id, "CANCELLED"); setOpen(false); }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
+              >
+                <X size={13} /> Khách báo hủy
+              </button>
+              <button
+                onClick={() => { onStatusChange(apt.id, "NO_SHOW"); setOpen(false); }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
+              >
+                <UserMinus size={13} /> Đánh dấu vắng mặt
+              </button>
+              <Link
+                href={`/receptionist/appointments/${apt.id}`}
+                className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-muted hover:text-brand-dark"
+                onClick={() => setOpen(false)}
+              >
+                <CalendarDots size={13} /> Đổi lịch
+              </Link>
+            </>
           )}
         </div>
       )}
@@ -326,6 +333,7 @@ export default function ReceptionistAppointmentsPage() {
     return (
       a.patient?.fullName.toLowerCase().includes(q) ||
       a.patient?.phone.includes(q) ||
+      a.appointmentCode.toLowerCase().includes(q) ||
       a.id.toLowerCase().includes(q) ||
       a.service?.name.toLowerCase().includes(q)
     );
@@ -574,7 +582,7 @@ export default function ReceptionistAppointmentsPage() {
                       >
                         {/* Time */}
                         <td className="px-5 py-3.5">
-                          <p className="font-mono text-[11px] text-muted-foreground">{apt.id}</p>
+                          <p className="font-mono text-[11px] text-muted-foreground">{apt.appointmentCode}</p>
                           <p className="font-mono text-xs font-bold text-slate-900 mt-0.5">
                             {formatTime(apt.startTime)}
                             {apt.endTime && (
@@ -619,7 +627,9 @@ export default function ReceptionistAppointmentsPage() {
                         <td className="px-5 py-3.5">
                           {apt.doctor ? (
                             <span className="inline-flex items-center rounded-md bg-brand-light px-2 py-1 text-xs font-semibold text-brand-dark ring-1 ring-inset ring-brand/20">
-                              BS. {apt.doctor.fullName}
+                              {/^bs\.?\s/i.test(apt.doctor.fullName)
+                                ? apt.doctor.fullName
+                                : `BS. ${apt.doctor.fullName}`}
                             </span>
                           ) : (
                             <span className="text-xs text-muted-foreground">--</span>

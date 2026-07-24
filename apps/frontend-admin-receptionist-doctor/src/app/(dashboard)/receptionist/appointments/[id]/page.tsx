@@ -7,8 +7,13 @@ import { Header } from "@/src/components/layout/header";
 import { AppointmentStatusBadge } from "@/src/components/shared/appointment-status-badge";
 import type { AppointmentStatus } from "@/src/components/shared/appointment-status-badge";
 import apiClient from "@/src/lib/api/client";
-import { mapAppointment } from "@/src/lib/receptionist/mappers";
-import type { ApiAppointment, ReceptionistAppointment } from "@/src/lib/receptionist/mappers";
+import { localDateStr, mapAppointment } from "@/src/lib/receptionist/mappers";
+import type {
+  ApiAppointment,
+  ReceptionistAppointment,
+} from "@/src/lib/receptionist/mappers";
+import { cn } from "@/src/lib/utils/cn";
+import { AxiosError } from "axios";
 import {
   ArrowLeft,
   Phone,
@@ -23,11 +28,27 @@ import {
   CheckCircle,
   XCircle,
   UserMinus,
+  ClockCountdown,
 } from "@phosphor-icons/react";
 
 function formatTime(t?: string) {
   if (!t) return "--:--";
   return t.slice(0, 5);
+}
+
+function apiErrorMessage(err: unknown, fallback: string) {
+  if (err instanceof AxiosError) {
+    const msg = (err.response?.data as { message?: string | string[] })
+      ?.message;
+    if (Array.isArray(msg) && msg[0]) return String(msg[0]);
+    if (typeof msg === "string" && msg) return msg;
+  }
+  return fallback;
+}
+
+function dateFromIso(iso?: string) {
+  if (!iso) return localDateStr();
+  return localDateStr(new Date(iso));
 }
 
 export default function AppointmentDetailPage() {
@@ -38,13 +59,54 @@ export default function AppointmentDetailPage() {
   const [toast, setToast] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const [showReschedule, setShowReschedule] = useState(false);
+  const [rescheduleDate, setRescheduleDate] = useState(localDateStr());
+  const [rescheduleTime, setRescheduleTime] = useState("");
+  const [timeSlots, setTimeSlots] = useState<string[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+
+  const loadAppointment = async () => {
+    const res = await apiClient.get(`/appointments/${id}`);
+    const mapped = mapAppointment(res.data as ApiAppointment);
+    setApt(mapped);
+    setRescheduleDate(dateFromIso(mapped.scheduledAt));
+    setRescheduleTime(formatTime(mapped.startTime));
+  };
+
   useEffect(() => {
-    apiClient
-      .get(`/appointments/${id}`)
-      .then((res) => setApt(mapAppointment(res.data as ApiAppointment)))
+    loadAppointment()
       .catch(() => setError("Không tải được lịch hẹn từ máy chủ."))
       .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  useEffect(() => {
+    if (!showReschedule || !apt?.doctor?.id || !apt.service?.id) return;
+    setLoadingSlots(true);
+    apiClient
+      .get("/appointments/booking-options", {
+        params: {
+          doctorId: apt.doctor.id,
+          serviceId: apt.service.id,
+          date: rescheduleDate,
+        },
+      })
+      .then((res) => {
+        const slots = (res.data as { timeSlots?: string[] }).timeSlots ?? [];
+        const current =
+          dateFromIso(apt.scheduledAt) === rescheduleDate
+            ? formatTime(apt.startTime)
+            : "";
+        const merged =
+          current && !slots.includes(current) ? [current, ...slots] : slots;
+        setTimeSlots(merged);
+        if (merged.length && !merged.includes(rescheduleTime)) {
+          setRescheduleTime(current || "");
+        }
+      })
+      .catch(() => setTimeSlots([]))
+      .finally(() => setLoadingSlots(false));
+  }, [showReschedule, apt?.doctor?.id, apt?.service?.id, rescheduleDate]);
 
   const updateStatus = async (
     status: AppointmentStatus,
@@ -53,13 +115,40 @@ export default function AppointmentDetailPage() {
   ) => {
     if (!apt) return;
     setActing(true);
+    setError(null);
     try {
       await apiClient.patch(`/appointments/${apt.id}/${endpoint}`);
       setApt({ ...apt, status });
       setToast(message);
       setTimeout(() => setToast(null), 2500);
-    } catch {
-      setError("Cập nhật trạng thái thất bại.");
+    } catch (err) {
+      setError(apiErrorMessage(err, "Cập nhật trạng thái thất bại."));
+    } finally {
+      setActing(false);
+    }
+  };
+
+  const handleReschedule = async () => {
+    if (!apt || !rescheduleDate || !rescheduleTime) {
+      setError("Chọn ngày và giờ mới.");
+      return;
+    }
+    setActing(true);
+    setError(null);
+    try {
+      const scheduledAt = new Date(
+        `${rescheduleDate}T${rescheduleTime}:00`,
+      ).toISOString();
+      const res = await apiClient.patch(
+        `/appointments/${apt.id}/reschedule`,
+        { scheduledAt },
+      );
+      setApt(mapAppointment(res.data as ApiAppointment));
+      setShowReschedule(false);
+      setToast("Đã đổi lịch hẹn");
+      setTimeout(() => setToast(null), 2500);
+    } catch (err) {
+      setError(apiErrorMessage(err, "Đổi lịch thất bại."));
     } finally {
       setActing(false);
     }
@@ -93,10 +182,12 @@ export default function AppointmentDetailPage() {
   if (!apt) return null;
 
   const name = apt.patient?.fullName ?? "Khách vãng lai";
+  const canReschedule =
+    apt.status === "PENDING" || apt.status === "CONFIRMED";
 
   return (
     <>
-      <Header title="Chi tiết lịch hẹn" description={apt.id} />
+      <Header title="Chi tiết lịch hẹn" description={apt.appointmentCode} />
 
       <div className="bg-muted min-h-screen p-6 space-y-5">
         <Link
@@ -124,8 +215,12 @@ export default function AppointmentDetailPage() {
             <div className="rounded-2xl border border-border bg-white p-6 shadow-sm space-y-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="font-mono text-xs text-muted-foreground">{apt.id}</p>
-                  <h1 className="mt-1 text-xl font-bold text-brand-dark">{name}</h1>
+                  <p className="font-mono text-xs text-muted-foreground">
+                    {apt.appointmentCode}
+                  </p>
+                  <h1 className="mt-1 text-xl font-bold text-brand-dark">
+                    {name}
+                  </h1>
                   {apt.patient?.phone && (
                     <p className="mt-1 flex items-center gap-1.5 font-mono text-sm text-muted-foreground">
                       <Phone size={14} /> {apt.patient.phone}
@@ -164,7 +259,9 @@ export default function AppointmentDetailPage() {
                   </p>
                   {apt.doctor && (
                     <p className="mt-0.5 text-xs text-muted-foreground">
-                      BS. {apt.doctor.fullName}
+                      {/^bs\.?\s/i.test(apt.doctor.fullName)
+                        ? apt.doctor.fullName
+                        : `BS. ${apt.doctor.fullName}`}
                     </p>
                   )}
                 </div>
@@ -176,6 +273,76 @@ export default function AppointmentDetailPage() {
                     <NotePencil size={12} /> Ghi chú
                   </p>
                   <p className="text-sm text-slate-700">{apt.notes}</p>
+                </div>
+              )}
+
+              {showReschedule && (
+                <div className="rounded-xl border border-brand/30 bg-brand/5 p-4 space-y-4">
+                  <p className="text-sm font-bold text-brand-dark flex items-center gap-2">
+                    <ClockCountdown size={16} /> Đổi ngày / giờ
+                  </p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">
+                        Ngày mới
+                      </label>
+                      <input
+                        type="date"
+                        value={rescheduleDate}
+                        onChange={(e) => setRescheduleDate(e.target.value)}
+                        className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm font-semibold outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">
+                        Giờ mới
+                      </label>
+                      {loadingSlots ? (
+                        <p className="text-xs text-muted-foreground py-2">
+                          Đang tải slot...
+                        </p>
+                      ) : timeSlots.length === 0 ? (
+                        <p className="text-xs text-muted-foreground py-2">
+                          Không còn khung giờ trống.
+                        </p>
+                      ) : (
+                        <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto">
+                          {timeSlots.map((t) => (
+                            <button
+                              key={t}
+                              type="button"
+                              onClick={() => setRescheduleTime(t)}
+                              className={cn(
+                                "rounded-md border px-2 py-1 font-mono text-xs font-bold",
+                                rescheduleTime === t
+                                  ? "border-brand bg-brand text-white"
+                                  : "border-border bg-white text-slate-700 hover:border-brand/50",
+                              )}
+                            >
+                              {t}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      disabled={acting || !rescheduleTime}
+                      onClick={() => void handleReschedule()}
+                      className="rounded-lg bg-brand px-4 py-2 text-xs font-bold text-white hover:bg-brand-dark disabled:opacity-60"
+                    >
+                      Lưu lịch mới
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowReschedule(false)}
+                      className="rounded-lg px-4 py-2 text-xs font-semibold text-muted-foreground hover:bg-white"
+                    >
+                      Hủy
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -191,7 +358,11 @@ export default function AppointmentDetailPage() {
                 <button
                   disabled={acting}
                   onClick={() =>
-                    void updateStatus("CONFIRMED", "confirm", "Đã xác nhận lịch hẹn")
+                    void updateStatus(
+                      "CONFIRMED",
+                      "confirm",
+                      "Đã xác nhận lịch hẹn",
+                    )
                   }
                   className="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-amber-600 disabled:opacity-60"
                 >
@@ -203,7 +374,11 @@ export default function AppointmentDetailPage() {
                 <button
                   disabled={acting}
                   onClick={() =>
-                    void updateStatus("CHECKED_IN", "check-in", "Check-in thành công")
+                    void updateStatus(
+                      "CHECKED_IN",
+                      "check-in",
+                      "Check-in thành công",
+                    )
                   }
                   className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-brand-dark disabled:opacity-60"
                 >
@@ -215,7 +390,11 @@ export default function AppointmentDetailPage() {
                 <button
                   disabled={acting}
                   onClick={() =>
-                    void updateStatus("IN_PROGRESS", "start", "Đã nhắc bác sĩ bắt đầu khám")
+                    void updateStatus(
+                      "IN_PROGRESS",
+                      "start",
+                      "Đã nhắc bác sĩ bắt đầu khám",
+                    )
                   }
                   className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-bold text-brand-dark shadow-sm hover:bg-muted disabled:opacity-60"
                 >
@@ -223,7 +402,17 @@ export default function AppointmentDetailPage() {
                 </button>
               )}
 
-              {apt.status === "COMPLETED" && (
+              {canReschedule && !showReschedule && (
+                <button
+                  disabled={acting}
+                  onClick={() => setShowReschedule(true)}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-muted disabled:opacity-60"
+                >
+                  <ClockCountdown size={15} /> Đổi lịch
+                </button>
+              )}
+
+              {apt.status === "COMPLETED" && apt.invoicePending && (
                 <Link
                   href="/receptionist/billing"
                   className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-brand-dark"
@@ -241,14 +430,16 @@ export default function AppointmentDetailPage() {
                 </Link>
               )}
 
-              {apt.status !== "CANCELLED" &&
-                apt.status !== "COMPLETED" &&
-                apt.status !== "NO_SHOW" && (
+              {(apt.status === "PENDING" || apt.status === "CONFIRMED") && (
                   <div className="border-t border-border pt-3 space-y-2">
                     <button
                       disabled={acting}
                       onClick={() =>
-                        void updateStatus("CANCELLED", "cancel", "Đã hủy lịch hẹn")
+                        void updateStatus(
+                          "CANCELLED",
+                          "cancel",
+                          "Đã hủy lịch hẹn",
+                        )
                       }
                       className="flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60"
                     >
@@ -257,7 +448,11 @@ export default function AppointmentDetailPage() {
                     <button
                       disabled={acting}
                       onClick={() =>
-                        void updateStatus("NO_SHOW", "no-show", "Đã đánh dấu vắng mặt")
+                        void updateStatus(
+                          "NO_SHOW",
+                          "no-show",
+                          "Đã đánh dấu vắng mặt",
+                        )
                       }
                       className="flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60"
                     >

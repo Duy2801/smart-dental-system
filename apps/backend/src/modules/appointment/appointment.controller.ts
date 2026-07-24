@@ -65,18 +65,25 @@ export class AppointmentController {
   }
 
   @Patch(':id/reschedule')
-  @Roles('PATIENT')
+  @Roles('PATIENT', 'RECEPTIONIST', 'ADMIN')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  rescheduleForPatient(
+  reschedule(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
     @Body() dto: RescheduleAppointmentDto,
   ) {
-    return this.appointmentService.rescheduleAppointmentForPatient(
-      user.userId,
-      id,
-      dto,
-    );
+    const isPatientOnly =
+      user.roles.includes('PATIENT') &&
+      !user.roles.includes('RECEPTIONIST') &&
+      !user.roles.includes('ADMIN');
+    if (isPatientOnly) {
+      return this.appointmentService.rescheduleAppointmentForPatient(
+        user.userId,
+        id,
+        dto,
+      );
+    }
+    return this.appointmentService.rescheduleByStaff(id, dto);
   }
 
   @Patch(':id/confirm')

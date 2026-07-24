@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/src/lib/utils/cn";
 import apiClient from "@/src/lib/api/client";
+import { localDateStr } from "@/src/lib/receptionist/mappers";
 import {
   ArrowLeft,
   UserPlus,
@@ -13,6 +14,7 @@ import {
   Check,
   SpinnerGap,
 } from "@phosphor-icons/react";
+import { AxiosError } from "axios";
 
 type PatientOpt = { id: string; name: string; phone: string };
 type ServiceOpt = { id: string; name: string };
@@ -23,8 +25,13 @@ type DoctorOpt = {
   status: "AVAILABLE" | "BUSY";
 };
 
-function todayStr() {
-  return new Date().toISOString().slice(0, 10);
+function apiErrorMessage(err: unknown, fallback: string) {
+  if (err instanceof AxiosError) {
+    const msg = (err.response?.data as { message?: string | string[] })?.message;
+    if (Array.isArray(msg) && msg[0]) return String(msg[0]);
+    if (typeof msg === "string" && msg) return msg;
+  }
+  return fallback;
 }
 
 function NewAppointmentForm() {
@@ -43,7 +50,7 @@ function NewAppointmentForm() {
 
   const [patientId, setPatientId] = useState(prefillId);
   const [serviceId, setServiceId] = useState("");
-  const [date, setDate] = useState(todayStr());
+  const [date, setDate] = useState(localDateStr());
   const [checkInMode, setCheckInMode] = useState<"PENDING" | "WAITING">("PENDING");
   const [selectedDoctor, setSelectedDoctor] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
@@ -165,8 +172,13 @@ function NewAppointmentForm() {
         paymentOption: "PAY_AT_COUNTER",
       });
       router.push(`/receptionist/appointments/${res.data?.id ?? ""}`);
-    } catch {
-      setError("Tạo lịch hẹn thất bại. Kiểm tra slot còn trống và thử lại.");
+    } catch (err) {
+      setError(
+        apiErrorMessage(
+          err,
+          "Tạo lịch hẹn thất bại. Kiểm tra slot còn trống và thử lại.",
+        ),
+      );
       setSubmitting(false);
     }
   };
