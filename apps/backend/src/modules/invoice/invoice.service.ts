@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { InvoiceStatus, InvoiceType } from '../../../prisma/generated/enums';
+import {
+  InvoiceStatus,
+  InvoiceType,
+  PaymentStatus,
+} from '../../../prisma/generated/enums';
 import { PrismaService } from '../prisma/prisma.service';
 import { InvoiceQueryDto } from './dto/invoice-query.dto';
 
@@ -55,15 +59,23 @@ export class InvoiceService {
           },
         },
         payments: {
+          where: { status: PaymentStatus.SUCCESS },
           orderBy: { createdAt: 'desc' },
-          take: 1,
         },
       },
       orderBy: [{ issuedAt: 'desc' }, { invoiceCode: 'desc' }],
     });
 
     return invoices.map((invoice) => {
-      const payment = invoice.payments[0];
+      const paidAmount = invoice.payments.reduce(
+        (sum, p) => sum + Number(p.amount),
+        0,
+      );
+      const finalAmount = Number(invoice.finalAmount);
+      const remainingAmount = Number(
+        Math.max(0, finalAmount - paidAmount).toFixed(2),
+      );
+      const lastMethod = invoice.payments[0]?.paymentMethod;
       const doctorName =
         invoice.appointment?.doctor?.user?.fullName ?? null;
 
@@ -76,13 +88,19 @@ export class InvoiceService {
         issued_at: (invoice.issuedAt ?? new Date()).toISOString(),
         subtotal: Number(invoice.subtotal),
         discount_amount: Number(invoice.discountAmount),
-        final_amount: Number(invoice.finalAmount),
+        final_amount: finalAmount,
+        paid_amount: Number(paidAmount.toFixed(2)),
+        remaining_amount: remainingAmount,
         status: this.mapInvoiceStatus(invoice.status),
-        payment_method: payment?.paymentMethod,
+        payment_method: lastMethod,
         payment_option:
           invoice.invoiceType === InvoiceType.DEPOSIT
             ? 'DEPOSIT_30_PERCENT'
-            : 'PAY_AT_COUNTER',
+            : invoice.invoiceType === InvoiceType.FINAL_PAYMENT
+              ? 'BALANCE_AFTER_DEPOSIT'
+              : invoice.invoiceType === InvoiceType.STEP_PAYMENT
+                ? 'STEP_PAYMENT'
+                : 'PAY_AT_COUNTER',
         items: this.normalizeItems(invoice.items),
       };
     });
@@ -95,6 +113,10 @@ export class InvoiceService {
 
     if (status === InvoiceStatus.CANCELLED || status === InvoiceStatus.REFUNDED) {
       return 'CANCELLED';
+    }
+
+    if (status === InvoiceStatus.PARTIALLY_PAID) {
+      return 'PARTIAL';
     }
 
     return 'UNPAID';

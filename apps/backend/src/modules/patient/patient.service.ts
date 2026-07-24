@@ -358,6 +358,8 @@ export class PatientService {
     const totalSteps = planItems.length;
     const completedSteps = Math.round(totalSteps * 0.4);
 
+    const finance = await this.getPatientFinance(patientId, activePlan?.id);
+
     return {
       id: patient.id,
       patientCode: patient.patientCode,
@@ -372,6 +374,7 @@ export class PatientService {
       allergies: this.parseAllergies(patient.medicalHistory),
       emergencyContactName: patient.emergencyContactName,
       emergencyContactPhone: patient.emergencyContactPhone,
+      finance,
       activeTreatmentPlan: activePlan
         ? {
             id: activePlan.id,
@@ -381,6 +384,7 @@ export class PatientService {
             expectedEndDate: activePlan.expectedEndDate,
             totalSteps,
             completedSteps,
+            estimatedTotal: finance.planTotal,
           }
         : null,
       appointments: appointments.map((a) => ({
@@ -392,6 +396,63 @@ export class PatientService {
         doctorName: a.doctor?.user.fullName ?? '—',
         recordId: a.medicalRecords[0]?.id ?? null,
       })),
+    };
+  }
+
+  /** Tổng hợp tài chính BN: đã trả / còn nợ / tổng kế hoạch. */
+  private async getPatientFinance(patientId: string, planId?: string) {
+    const invoices = await this.prisma.invoice.findMany({
+      where: {
+        patientId,
+        status: {
+          notIn: [InvoiceStatus.CANCELLED, InvoiceStatus.REFUNDED],
+        },
+      },
+      select: {
+        finalAmount: true,
+        status: true,
+        payments: {
+          where: { status: PaymentStatus.SUCCESS },
+          select: { amount: true },
+        },
+      },
+    });
+
+    let billedTotal = 0;
+    let paidTotal = 0;
+    for (const inv of invoices) {
+      billedTotal += Number(inv.finalAmount);
+      paidTotal += inv.payments.reduce((s, p) => s + Number(p.amount), 0);
+    }
+    billedTotal = Number(billedTotal.toFixed(2));
+    paidTotal = Number(paidTotal.toFixed(2));
+    const debtTotal = Number(Math.max(0, billedTotal - paidTotal).toFixed(2));
+
+    let planTotal = 0;
+    if (planId) {
+      const steps = await this.prisma.treatmentPlanStep.findMany({
+        where: { treatmentPlanId: planId },
+        select: { estimatedCost: true },
+      });
+      planTotal = Number(
+        steps
+          .reduce((s, step) => s + Number(step.estimatedCost ?? 0), 0)
+          .toFixed(2),
+      );
+      if (planTotal <= 0) {
+        // fallback: dùng tổng HĐ nếu kế hoạch chưa có estimatedCost
+        planTotal = billedTotal;
+      }
+    } else {
+      planTotal = billedTotal;
+    }
+
+    return {
+      planTotal,
+      billedTotal,
+      paidTotal,
+      debtTotal,
+      invoiceCount: invoices.length,
     };
   }
 

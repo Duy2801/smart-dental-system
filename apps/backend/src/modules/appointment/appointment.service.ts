@@ -561,50 +561,180 @@ export class AppointmentService {
       include: appointmentInclude,
     });
 
-    // Tạo hóa đơn SERVICE nếu chưa có hóa đơn chờ thu gắn lịch này
+    // Sau khám: tạo HĐ thu tiền phù hợp (ca ngắn / phần còn lại sau cọc)
     if (appointment.patientId) {
-      const openInvoice = await this.prisma.invoice.findFirst({
-        where: {
-          appointmentId,
-          status: {
-            in: [
-              InvoiceStatus.DRAFT,
-              InvoiceStatus.ISSUED,
-              InvoiceStatus.PARTIALLY_PAID,
-            ],
-          },
-        },
-        select: { id: true },
-      });
-
-      if (!openInvoice) {
-        const price = Number(appointment.service.basePrice);
-        await this.prisma.invoice.create({
-          data: {
-            invoiceCode: await this.generateInvoiceCode(),
-            patientId: appointment.patientId,
-            appointmentId: appointment.id,
-            invoiceType: InvoiceType.SERVICE,
-            items: [
-              {
-                service_id: appointment.serviceId,
-                description: appointment.service.name,
-                qty: 1,
-                unit_price: price,
-                amount: price,
-              },
-            ],
-            subtotal: price,
-            finalAmount: price,
-            status: InvoiceStatus.ISSUED,
-            issuedAt: new Date(),
-            createdBy: appointment.createdBy,
-          },
-        });
-      }
+      await this.ensureInvoiceAfterComplete(appointment);
     }
 
     return updated;
+  }
+
+  /** Ca ngắn → SERVICE. Có cọc → FINAL. Lịch gắn bước KH → STEP. */
+  private async ensureInvoiceAfterComplete(appointment: {
+    id: string;
+    patientId: string | null;
+    serviceId: string;
+    createdBy: string;
+    treatmentPlanStepId?: string | null;
+    service: { name: string; basePrice: unknown };
+  }) {
+    if (!appointment.patientId) return;
+
+    if (appointment.treatmentPlanStepId) {
+      await this.ensureStepInvoice({
+        stepId: appointment.treatmentPlanStepId,
+        appointmentId: appointment.id,
+        patientId: appointment.patientId,
+        createdBy: appointment.createdBy,
+        fallbackServiceName: appointment.service.name,
+        fallbackAmount: Number(appointment.service.basePrice),
+      });
+      return;
+    }
+
+    const invoices = await this.prisma.invoice.findMany({
+      where: { appointmentId: appointment.id },
+      select: {
+        id: true,
+        invoiceType: true,
+        status: true,
+        finalAmount: true,
+      },
+    });
+
+    const openStatuses: InvoiceStatus[] = [
+      InvoiceStatus.DRAFT,
+      InvoiceStatus.ISSUED,
+      InvoiceStatus.PARTIALLY_PAID,
+    ];
+    const hasOpen = invoices.some((inv) => openStatuses.includes(inv.status));
+    if (hasOpen) return;
+
+    const paidDeposit = invoices.find(
+      (inv) =>
+        inv.invoiceType === InvoiceType.DEPOSIT &&
+        inv.status === InvoiceStatus.PAID,
+    );
+    const hasServiceOrFinal = invoices.some(
+      (inv) =>
+        inv.invoiceType === InvoiceType.SERVICE ||
+        inv.invoiceType === InvoiceType.FINAL_PAYMENT ||
+        inv.invoiceType === InvoiceType.STEP_PAYMENT,
+    );
+    if (hasServiceOrFinal) return;
+
+    const basePrice = Number(appointment.service.basePrice);
+    const depositPaid = paidDeposit ? Number(paidDeposit.finalAmount) : 0;
+    const remaining = Number((basePrice - depositPaid).toFixed(2));
+
+    if (remaining <= 0) return;
+
+    const isBalance = depositPaid > 0;
+    await this.prisma.invoice.create({
+      data: {
+        invoiceCode: await this.generateInvoiceCode(),
+        patientId: appointment.patientId,
+        appointmentId: appointment.id,
+        invoiceType: isBalance
+          ? InvoiceType.FINAL_PAYMENT
+          : InvoiceType.SERVICE,
+        items: [
+          {
+            service_id: appointment.serviceId,
+            description: isBalance
+              ? `Phan con lai sau coc — ${appointment.service.name}`
+              : appointment.service.name,
+            qty: 1,
+            unit_price: remaining,
+            amount: remaining,
+            type: isBalance ? 'BALANCE' : 'SERVICE',
+          },
+        ],
+        subtotal: remaining,
+        finalAmount: remaining,
+        status: InvoiceStatus.ISSUED,
+        issuedAt: new Date(),
+        createdBy: appointment.createdBy,
+      },
+    });
+  }
+
+  /** Tạo HĐ STEP_PAYMENT cho một bước kế hoạch (idempotent). */
+  async ensureStepInvoice(input: {
+    stepId: string;
+    appointmentId?: string | null;
+    patientId: string;
+    createdBy: string;
+    fallbackServiceName?: string;
+    fallbackAmount?: number;
+  }) {
+    const existing = await this.prisma.invoice.findFirst({
+      where: {
+        treatmentPlanStepId: input.stepId,
+        status: {
+          notIn: [InvoiceStatus.CANCELLED, InvoiceStatus.REFUNDED],
+        },
+      },
+      select: { id: true },
+    });
+    if (existing) return existing;
+
+    const step = await this.prisma.treatmentPlanStep.findUnique({
+      where: { id: input.stepId },
+      select: {
+        id: true,
+        title: true,
+        stepOrder: true,
+        estimatedCost: true,
+        paymentAmount: true,
+        treatmentPlanId: true,
+        paymentStatus: true,
+      },
+    });
+    if (!step) return null;
+
+    const amount = Number(
+      step.paymentAmount ??
+        step.estimatedCost ??
+        input.fallbackAmount ??
+        0,
+    );
+    if (amount <= 0) return null;
+
+    const invoice = await this.prisma.invoice.create({
+      data: {
+        invoiceCode: await this.generateInvoiceCode(),
+        patientId: input.patientId,
+        appointmentId: input.appointmentId ?? null,
+        treatmentPlanId: step.treatmentPlanId,
+        treatmentPlanStepId: step.id,
+        invoiceType: InvoiceType.STEP_PAYMENT,
+        items: [
+          {
+            description: `Dot ${step.stepOrder}: ${step.title}`,
+            qty: 1,
+            unit_price: amount,
+            amount,
+            type: 'STEP',
+          },
+        ],
+        subtotal: amount,
+        finalAmount: amount,
+        status: InvoiceStatus.ISSUED,
+        issuedAt: new Date(),
+        createdBy: input.createdBy,
+      },
+      select: { id: true },
+    });
+
+    if (step.paymentStatus === 'UNBILLED') {
+      await this.prisma.treatmentPlanStep.update({
+        where: { id: step.id },
+        data: { paymentStatus: 'INVOICED' },
+      });
+    }
+
+    return invoice;
   }
 
   async getBookingOptions(query: BookingOptionQuery) {
@@ -854,7 +984,19 @@ export class AppointmentService {
       this.ensureOnlineBookingAllowed(bookingPolicy);
     }
     const clinicConfig = await this.clinicConfigService.getClinicConfig();
-    const depositPolicy = this.resolveDepositPolicy(service, clinicConfig);
+    let depositPolicy = this.resolveDepositPolicy(service, clinicConfig);
+    // Lễ tân chọn cọc: luôn cho phép ~30% kể cả khi clinic tắt cọc online
+    if (
+      input.paymentOption === AppointmentPaymentOption.DEPOSIT_30_PERCENT &&
+      !depositPolicy.enabled &&
+      input.bookingSource === BookingSource.RECEPTIONIST
+    ) {
+      depositPolicy = {
+        enabled: true,
+        calculationMode: DepositCalculationMode.PERCENT,
+        value: 30,
+      };
+    }
     const depositAmount = depositPolicy.enabled
       ? this.calculateDepositAmount(Number(service.basePrice), depositPolicy)
       : 0;

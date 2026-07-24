@@ -12,6 +12,7 @@ import type {
   ApiAppointment,
   ReceptionistAppointment,
 } from "@/src/lib/receptionist/mappers";
+import { formatDoctorName } from "@/src/lib/utils/format";
 import { cn } from "@/src/lib/utils/cn";
 import { AxiosError } from "axios";
 import {
@@ -259,9 +260,7 @@ export default function AppointmentDetailPage() {
                   </p>
                   {apt.doctor && (
                     <p className="mt-0.5 text-xs text-muted-foreground">
-                      {/^bs\.?\s/i.test(apt.doctor.fullName)
-                        ? apt.doctor.fullName
-                        : `BS. ${apt.doctor.fullName}`}
+                      {formatDoctorName(apt.doctor.fullName)}
                     </p>
                   )}
                 </div>

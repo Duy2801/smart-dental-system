@@ -66,11 +66,18 @@ export class PaymentService {
       });
     }
 
-    const amount =
-      dto.amount != null ? Number(dto.amount) : finalAmount;
-    if (amount <= 0) {
+    const paidSoFar = await this.sumSuccessfulPayments(invoice.id);
+    const remaining = Number((finalAmount - paidSoFar).toFixed(2));
+    if (remaining <= 0) {
+      throw new BadRequestException('invoice.already_paid');
+    }
+
+    const requested =
+      dto.amount != null ? Number(dto.amount) : remaining;
+    if (requested <= 0) {
       throw new BadRequestException('payment.invalid_amount');
     }
+    const amount = Number(Math.min(requested, remaining).toFixed(2));
 
     if (dto.method === 'CASH') {
       return this.markPaid({
@@ -94,13 +101,25 @@ export class PaymentService {
       orderBy: { createdAt: 'desc' },
     });
 
-    const transferCode =
-      existing?.transactionRef ??
-      this.buildTransferCode(invoice.invoiceCode);
+    const transferCode = this.buildTransferCode(invoice.invoiceCode);
 
-    const payment =
-      existing ??
-      (await this.prisma.payment.create({
+    let payment = existing;
+    if (existing) {
+      if (
+        !existing.transactionRef?.toUpperCase().includes('SEVQR') ||
+        Number(existing.amount) !== amount
+      ) {
+        payment = await this.prisma.payment.update({
+          where: { id: existing.id },
+          data: {
+            transactionRef: transferCode,
+            amount,
+            receivedBy: userId,
+          },
+        });
+      }
+    } else {
+      payment = await this.prisma.payment.create({
         data: {
           invoiceId: invoice.id,
           amount,
@@ -109,12 +128,18 @@ export class PaymentService {
           status: PaymentStatus.PENDING,
           receivedBy: userId,
         },
-      }));
+      });
+    }
+
+    if (!payment) {
+      throw new BadRequestException('payment.create_failed');
+    }
 
     const bank = this.getBankConfig();
+    const content = payment.transactionRef ?? transferCode;
     const qrImageUrl = this.buildVietQrUrl({
       amount: Number(payment.amount),
-      addInfo: transferCode,
+      addInfo: content,
       accountNo: bank.accountNo,
       accountName: bank.accountName,
       bankBin: bank.bankBin,
@@ -126,9 +151,11 @@ export class PaymentService {
       invoiceId: invoice.id,
       invoiceCode: invoice.invoiceCode,
       amount: Number(payment.amount),
+      remainingAfter: Number((remaining - Number(payment.amount)).toFixed(2)),
+      invoiceRemaining: remaining,
       method: PaymentMethod.BANK_TRANSFER,
       status: payment.status,
-      transferContent: transferCode,
+      transferContent: content,
       bankAccountNo: bank.accountNo,
       bankAccountName: bank.accountName,
       bankBin: bank.bankBin,
@@ -265,7 +292,35 @@ export class PaymentService {
     existingPaymentId?: string;
     externalRef?: string;
   }) {
-    await this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
+      const invoice = await tx.invoice.findUnique({
+        where: { id: input.invoiceId },
+      });
+      if (!invoice) {
+        throw new NotFoundException('invoice.not_found');
+      }
+
+      const prior = await tx.payment.aggregate({
+        where: {
+          invoiceId: input.invoiceId,
+          status: PaymentStatus.SUCCESS,
+          ...(input.existingPaymentId
+            ? { id: { not: input.existingPaymentId } }
+            : {}),
+        },
+        _sum: { amount: true },
+      });
+      const paidBefore = Number(prior._sum.amount ?? 0);
+      const finalAmount = Number(invoice.finalAmount);
+      const payAmount = Number(
+        Math.min(input.amount, Math.max(0, finalAmount - paidBefore)).toFixed(
+          2,
+        ),
+      );
+      if (payAmount <= 0) {
+        throw new BadRequestException('invoice.already_paid');
+      }
+
       if (input.existingPaymentId) {
         await tx.payment.update({
           where: { id: input.existingPaymentId },
@@ -273,20 +328,14 @@ export class PaymentService {
             status: PaymentStatus.SUCCESS,
             paidAt: new Date(),
             receivedBy: input.receivedBy,
-            // giữ transferContent; lưu ref ngân hàng vào notes không có field —
-            // nếu externalRef khác, chỉ update khi chưa trùng unique
-            ...(input.externalRef &&
-            input.externalRef !== input.transactionRef
-              ? {}
-              : {}),
-            amount: input.amount,
+            amount: payAmount,
           },
         });
       } else {
         await tx.payment.create({
           data: {
             invoiceId: input.invoiceId,
-            amount: input.amount,
+            amount: payAmount,
             paymentMethod: input.method,
             transactionRef: input.transactionRef,
             status: PaymentStatus.SUCCESS,
@@ -296,15 +345,21 @@ export class PaymentService {
         });
       }
 
+      const paidTotal = Number((paidBefore + payAmount).toFixed(2));
+      const fullyPaid = paidTotal >= finalAmount - 0.01;
+      const nextStatus = fullyPaid
+        ? InvoiceStatus.PAID
+        : InvoiceStatus.PARTIALLY_PAID;
+
       await tx.invoice.update({
         where: { id: input.invoiceId },
         data: {
-          status: InvoiceStatus.PAID,
-          issuedAt: new Date(),
+          status: nextStatus,
+          issuedAt: invoice.issuedAt ?? new Date(),
         },
       });
 
-      if (input.appointmentId) {
+      if (input.appointmentId && fullyPaid) {
         const paymentStatus =
           input.invoiceType === InvoiceType.DEPOSIT
             ? AppointmentPaymentStatus.DEPOSIT_PAID
@@ -315,23 +370,46 @@ export class PaymentService {
           data: { paymentStatus },
         });
       }
-    });
 
-    const invoice = await this.prisma.invoice.findUnique({
-      where: { id: input.invoiceId },
-      include: {
-        payments: { orderBy: { createdAt: 'desc' }, take: 1 },
-      },
+      if (invoice.treatmentPlanStepId) {
+        await tx.treatmentPlanStep.update({
+          where: { id: invoice.treatmentPlanStepId },
+          data: {
+            paymentStatus: fullyPaid
+              ? 'PAID'
+              : 'PARTIALLY_PAID',
+            ...(fullyPaid ? { paidAt: new Date() } : {}),
+          },
+        });
+      }
+
+      return {
+        paymentId: input.existingPaymentId,
+        payAmount,
+        paidTotal,
+        remaining: Number(Math.max(0, finalAmount - paidTotal).toFixed(2)),
+        invoiceStatus: nextStatus,
+      };
     });
 
     return {
-      id: invoice?.payments[0]?.id,
+      id: result.paymentId,
       invoiceId: input.invoiceId,
-      amount: input.amount,
+      amount: result.payAmount,
+      paidTotal: result.paidTotal,
+      remaining: result.remaining,
       method: input.method,
       status: PaymentStatus.SUCCESS,
-      invoiceStatus: InvoiceStatus.PAID,
+      invoiceStatus: result.invoiceStatus,
     };
+  }
+
+  private async sumSuccessfulPayments(invoiceId: string) {
+    const agg = await this.prisma.payment.aggregate({
+      where: { invoiceId, status: PaymentStatus.SUCCESS },
+      _sum: { amount: true },
+    });
+    return Number(agg._sum.amount ?? 0);
   }
 
   private async applyPromotion(code: string, subtotal: number) {
@@ -369,9 +447,9 @@ export class PaymentService {
   }
 
   private buildTransferCode(invoiceCode: string) {
-    // Nội dung CK ngắn, dễ match webhook SePay
-    const compact = invoiceCode.replace(/[^A-Za-z0-9]/g, '').slice(-12);
-    return `SDH${compact}`.toUpperCase();
+    // SePay yêu cầu nội dung CK có SEVQR để nhận diện giao dịch
+    const compact = invoiceCode.replace(/[^A-Za-z0-9]/g, '').slice(-10);
+    return `SEVQR${compact}`.toUpperCase();
   }
 
   private getBankConfig() {

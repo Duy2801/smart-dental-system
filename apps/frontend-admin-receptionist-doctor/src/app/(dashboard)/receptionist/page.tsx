@@ -8,6 +8,7 @@ import { AppointmentStatusBadge } from "@/src/components/shared/appointment-stat
 import apiClient from "@/src/lib/api/client";
 import { mapAppointments, localDateStr } from "@/src/lib/receptionist/mappers";
 import type { ReceptionistAppointment } from "@/src/lib/receptionist/mappers";
+import { formatDoctorName } from "@/src/lib/utils/format";
 import {
   CalendarBlank,
   Clock,
@@ -442,7 +443,7 @@ export default function ReceptionistDashboard() {
                               </span>
                             )}
                             {apt.doctor?.fullName && (
-                              <span className="text-slate-500">BS. {apt.doctor.fullName}</span>
+                              <span className="text-slate-500">{formatDoctorName(apt.doctor.fullName)}</span>
                             )}
                           </div>
                         </div>

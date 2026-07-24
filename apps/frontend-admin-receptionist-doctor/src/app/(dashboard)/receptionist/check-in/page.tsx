@@ -10,6 +10,7 @@ import {
   localDateStr,
   type ReceptionistAppointment,
 } from "@/src/lib/receptionist/mappers";
+import { formatDoctorName } from "@/src/lib/utils/format";
 import {
   ArrowLeft,
   QrCode,
@@ -53,7 +54,7 @@ function getInitials(name: string): string {
 }
 
 function doctorLabel(name: string) {
-  return /^bs\.?\s/i.test(name) ? name : `BS. ${name}`;
+  return formatDoctorName(name);
 }
 
 function bookingLabel(source?: string | null) {

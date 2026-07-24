@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/src/lib/utils/cn";
 import { Header } from "@/src/components/layout/header";
 import apiClient from "@/src/lib/api/client";
+import { formatDoctorName } from "@/src/lib/utils/format";
 import {
   MagnifyingGlass,
   Receipt,
@@ -33,11 +34,21 @@ interface Invoice {
   patientInitials: string;
   doctor: string;
   total: number;
+  paid: number;
+  remaining: number;
   discount: number;
   date: string;
-  status: "UNPAID" | "PAID";
+  status: "UNPAID" | "PARTIAL" | "PAID";
   services: ServiceLine[];
-  paymentOption?: "DEPOSIT_30_PERCENT" | "PAY_AT_COUNTER";
+  paymentOption?:
+    | "DEPOSIT_30_PERCENT"
+    | "BALANCE_AFTER_DEPOSIT"
+    | "STEP_PAYMENT"
+    | "PAY_AT_COUNTER";
+}
+
+function isOpenInvoice(status: Invoice["status"]) {
+  return status === "UNPAID" || status === "PARTIAL";
 }
 
 type PaymentMethod = "TRANSFER" | "CASH";
@@ -68,7 +79,7 @@ function formatVND(amount: number): string {
 
 function doctorLabel(name: string) {
   if (!name || name === "—") return "—";
-  return /^bs\.?\s/i.test(name) ? name : `BS. ${name}`;
+  return formatDoctorName(name);
 }
 
 function Toast({
@@ -140,24 +151,46 @@ function InvoiceItem({
             </p>
           </div>
         </div>
-        <p
-          className={cn(
-            "shrink-0 font-mono text-sm font-bold",
-            inv.status === "UNPAID" ? "text-red-600" : "text-emerald-600",
+        <div className="shrink-0 text-right">
+          <p
+            className={cn(
+              "font-mono text-sm font-bold",
+              isOpenInvoice(inv.status) ? "text-red-600" : "text-emerald-600",
+            )}
+          >
+            {formatVND(isOpenInvoice(inv.status) ? inv.remaining : inv.total)}
+          </p>
+          {inv.status === "PARTIAL" && (
+            <p className="text-[10px] font-medium text-amber-600">Còn nợ</p>
           )}
-        >
-          {formatVND(inv.total)}
-        </p>
+        </div>
       </div>
       <div className="mt-2.5 flex items-center justify-between border-t border-border/60 pt-2.5">
         <p className="text-[11px] font-medium text-muted-foreground">
           {doctorLabel(inv.doctor)}
         </p>
-        {inv.paymentOption === "DEPOSIT_30_PERCENT" && (
-          <span className="inline-flex items-center gap-1 rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 ring-1 ring-inset ring-amber-600/20">
-            <Tag size={9} weight="fill" /> Đặt cọc
-          </span>
-        )}
+        <div className="flex items-center gap-1">
+          {inv.paymentOption === "DEPOSIT_30_PERCENT" && (
+            <span className="inline-flex items-center gap-1 rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 ring-1 ring-inset ring-amber-600/20">
+              <Tag size={9} weight="fill" /> Đặt cọc
+            </span>
+          )}
+          {inv.paymentOption === "BALANCE_AFTER_DEPOSIT" && (
+            <span className="inline-flex items-center gap-1 rounded bg-sky-50 px-1.5 py-0.5 text-[10px] font-bold text-sky-700 ring-1 ring-inset ring-sky-600/20">
+              <Tag size={9} weight="fill" /> Còn lại
+            </span>
+          )}
+          {inv.paymentOption === "STEP_PAYMENT" && (
+            <span className="inline-flex items-center gap-1 rounded bg-violet-50 px-1.5 py-0.5 text-[10px] font-bold text-violet-700 ring-1 ring-inset ring-violet-600/20">
+              <Tag size={9} weight="fill" /> Đợt điều trị
+            </span>
+          )}
+          {inv.status === "PARTIAL" && (
+            <span className="rounded bg-orange-50 px-1.5 py-0.5 text-[10px] font-bold text-orange-700 ring-1 ring-inset ring-orange-600/20">
+              Trả 1 phần
+            </span>
+          )}
+        </div>
       </div>
     </button>
   );
@@ -170,6 +203,7 @@ export default function BillingPage() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Invoice | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("TRANSFER");
+  const [payAmount, setPayAmount] = useState("");
   const [discountCode, setDiscountCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [transfer, setTransfer] = useState<TransferSession | null>(null);
@@ -193,27 +227,45 @@ export default function BillingPage() {
         patient_name?: string;
         doctor_name?: string | null;
         final_amount?: number;
+        paid_amount?: number;
+        remaining_amount?: number;
         discount_amount?: number;
         issued_at?: string;
         status?: string;
-        payment_option?: "DEPOSIT_30_PERCENT" | "PAY_AT_COUNTER";
+        payment_option?:
+          | "DEPOSIT_30_PERCENT"
+          | "BALANCE_AFTER_DEPOSIT"
+          | "STEP_PAYMENT"
+          | "PAY_AT_COUNTER";
         items?: { description?: string; qty?: number; unit_price?: number }[];
       },
-      forceStatus?: "UNPAID" | "PAID",
+      tab?: "UNPAID" | "PAID",
     ): Invoice => {
       const name = inv.patient_name ?? "—";
+      const total = Number(inv.final_amount ?? 0);
+      const paid = Number(inv.paid_amount ?? 0);
+      const remaining =
+        inv.remaining_amount != null
+          ? Number(inv.remaining_amount)
+          : Math.max(0, total - paid);
+      let status: Invoice["status"] = "UNPAID";
+      if (tab === "PAID" || inv.status === "PAID") status = "PAID";
+      else if (inv.status === "PARTIAL" || (paid > 0 && remaining > 0))
+        status = "PARTIAL";
       return {
         id: inv.id,
         code: inv.invoice_code ?? inv.id.slice(0, 8).toUpperCase(),
         patient: name,
         patientInitials: getInitials(name),
         doctor: inv.doctor_name ?? "—",
-        total: Number(inv.final_amount ?? 0),
+        total,
+        paid,
+        remaining,
         discount: Number(inv.discount_amount ?? 0),
         date: inv.issued_at
           ? new Date(inv.issued_at).toLocaleDateString("vi-VN")
           : "",
-        status: forceStatus ?? (inv.status === "PAID" ? "PAID" : "UNPAID"),
+        status,
         paymentOption: inv.payment_option,
         services: (inv.items ?? []).map((it) => ({
           name: it.description ?? "Dịch vụ",
@@ -245,7 +297,7 @@ export default function BillingPage() {
           const fresh = all.find((i) => i.id === prev.id);
           if (fresh) return fresh;
         }
-        return all.find((i) => i.status === "UNPAID") ?? all[0] ?? null;
+        return all.find((i) => isOpenInvoice(i.status)) ?? all[0] ?? null;
       });
     } catch {
       setInvoices([]);
@@ -271,19 +323,40 @@ export default function BillingPage() {
   const markLocalPaid = (invoiceId: string) => {
     setInvoices((prev) =>
       prev.map((inv) =>
-        inv.id === invoiceId ? { ...inv, status: "PAID" as const } : inv,
+        inv.id === invoiceId
+          ? {
+              ...inv,
+              status: "PAID" as const,
+              paid: inv.total,
+              remaining: 0,
+            }
+          : inv,
       ),
     );
     setSelected((prev) =>
-      prev?.id === invoiceId ? { ...prev, status: "PAID" } : prev,
+      prev?.id === invoiceId
+        ? { ...prev, status: "PAID", paid: prev.total, remaining: 0 }
+        : prev,
     );
     setTransfer(null);
     stopPoll();
   };
 
-  const startTransfer = async (invoice: Invoice, promo?: string) => {
+  const parsePayAmount = (invoice: Invoice, override?: string) => {
+    const raw = (override ?? payAmount).replace(/\D/g, "");
+    const n = raw ? Number(raw) : invoice.remaining;
+    if (!Number.isFinite(n) || n <= 0) return invoice.remaining;
+    return Math.min(n, invoice.remaining);
+  };
+
+  const startTransfer = async (
+    invoice: Invoice,
+    promo?: string,
+    amountOverride?: string,
+  ) => {
     setTransferLoading(true);
     setTransfer(null);
+    const amount = parsePayAmount(invoice, amountOverride);
     try {
       const res = await apiClient.post<{
         id: string;
@@ -293,18 +366,25 @@ export default function BillingPage() {
         bankAccountName: string;
         bankName: string;
         amount: number;
+        remainingAfter?: number;
         status: string;
       }>("/payments", {
         invoiceId: invoice.id,
         method: "BANK_TRANSFER",
-        amount: invoice.total,
+        amount,
         promotionCode: promo?.trim() || undefined,
       });
       const data = res.data;
       if (!data?.id) throw new Error("missing payment");
       if (data.status === "SUCCESS") {
-        markLocalPaid(invoice.id);
-        showToast("Thanh toán đã được ghi nhận!", "success");
+        if ((data.remainingAfter ?? 0) <= 0) markLocalPaid(invoice.id);
+        showToast(
+          (data.remainingAfter ?? 0) > 0
+            ? "Đã ghi nhận một phần. Còn nợ trên hóa đơn."
+            : "Thanh toán đã được ghi nhận!",
+          "success",
+        );
+        void fetchInvoices();
         return;
       }
       setTransfer({
@@ -324,8 +404,9 @@ export default function BillingPage() {
             `/payments/${data.id}`,
           );
           if (st.data?.status === "SUCCESS") {
-            markLocalPaid(invoice.id);
             showToast("SePay xác nhận đã nhận tiền!", "success");
+            stopPoll();
+            setTransfer(null);
             void fetchInvoices();
           }
         } catch {
@@ -343,8 +424,14 @@ export default function BillingPage() {
     stopPoll();
     setTransfer(null);
     setDiscountCode("");
+    if (selected && isOpenInvoice(selected.status)) {
+      setPayAmount(String(Math.round(selected.remaining)));
+    } else {
+      setPayAmount("");
+    }
     if (
-      selected?.status === "UNPAID" &&
+      selected &&
+      isOpenInvoice(selected.status) &&
       paymentMethod === "TRANSFER"
     ) {
       void startTransfer(selected);
@@ -353,27 +440,44 @@ export default function BillingPage() {
   }, [selected?.id, paymentMethod]);
 
   const handleConfirm = async () => {
-    if (!selected || selected.status !== "UNPAID") return;
+    if (!selected || !isOpenInvoice(selected.status)) return;
     setSubmitting(true);
+    const amount = parsePayAmount(selected);
     try {
       if (paymentMethod === "CASH") {
-        await apiClient.post("/payments", {
+        const res = await apiClient.post<{
+          remaining?: number;
+          remainingAfter?: number;
+          status?: string;
+        }>("/payments", {
           invoiceId: selected.id,
           method: "CASH",
-          amount: selected.total,
+          amount,
           promotionCode: discountCode.trim() || undefined,
         });
-        markLocalPaid(selected.id);
-        showToast("Đã thu tiền mặt thành công!", "success");
+        const left = Number(
+          res.data?.remaining ?? res.data?.remainingAfter ?? 0,
+        );
+        if (left <= 0) markLocalPaid(selected.id);
+        showToast(
+          left > 0
+            ? `Đã thu ${formatVND(amount)}. Còn nợ ${formatVND(left)}.`
+            : "Đã thu tiền mặt thành công!",
+          "success",
+        );
         void fetchInvoices();
       } else if (transfer?.paymentId) {
         await apiClient.patch(`/payments/${transfer.paymentId}/confirm`);
-        markLocalPaid(selected.id);
         showToast("Đã xác nhận chuyển khoản thành công!", "success");
+        setTransfer(null);
+        stopPoll();
         void fetchInvoices();
       } else {
         await startTransfer(selected, discountCode);
-        showToast("Đã tạo QR. Chờ SePay hoặc bấm xác nhận sau khi nhận tiền.", "success");
+        showToast(
+          "Đã tạo QR. Chờ SePay hoặc bấm xác nhận sau khi nhận tiền.",
+          "success",
+        );
       }
     } catch {
       showToast("Thu tiền thất bại. Thử lại.", "error");
@@ -383,14 +487,30 @@ export default function BillingPage() {
   };
 
   const applyPromo = async () => {
-    if (!selected || !discountCode.trim() || paymentMethod !== "TRANSFER") {
+    if (
+      !selected ||
+      !discountCode.trim() ||
+      paymentMethod !== "TRANSFER" ||
+      !isOpenInvoice(selected.status)
+    ) {
       return;
     }
     await startTransfer(selected, discountCode);
   };
 
+  const refreshQrForAmount = async (amountOverride?: string) => {
+    if (!selected || !isOpenInvoice(selected.status)) return;
+    if (paymentMethod === "TRANSFER") {
+      await startTransfer(selected, discountCode, amountOverride);
+    }
+  };
+
   const filtered = invoices.filter((inv) => {
-    if (inv.status !== activeTab) return false;
+    const inTab =
+      activeTab === "PAID"
+        ? inv.status === "PAID"
+        : isOpenInvoice(inv.status);
+    if (!inTab) return false;
     if (!search) return true;
     const q = search.toLowerCase();
     return (
@@ -400,11 +520,13 @@ export default function BillingPage() {
     );
   });
 
-  const unpaidCount = invoices.filter((i) => i.status === "UNPAID").length;
+  const unpaidCount = invoices.filter((i) => isOpenInvoice(i.status)).length;
 
   const switchTab = (tab: "UNPAID" | "PAID") => {
     setActiveTab(tab);
-    const first = invoices.find((i) => i.status === tab);
+    const first = invoices.find((i) =>
+      tab === "PAID" ? i.status === "PAID" : isOpenInvoice(i.status),
+    );
     if (first) setSelected(first);
   };
 
@@ -523,6 +645,10 @@ export default function BillingPage() {
                       <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
                         <CheckCircle size={14} weight="fill" /> Đã thanh toán
                       </span>
+                    ) : selected.status === "PARTIAL" ? (
+                      <span className="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700 ring-1 ring-inset ring-amber-600/20">
+                        <WarningCircle size={14} weight="fill" /> Trả một phần
+                      </span>
                     ) : (
                       <span className="inline-flex animate-pulse items-center gap-1.5 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-bold text-red-700 ring-1 ring-inset ring-red-600/20">
                         <WarningCircle size={14} weight="fill" /> Chờ thanh toán
@@ -626,8 +752,59 @@ export default function BillingPage() {
                           ))}
                         </div>
 
+                        {isOpenInvoice(selected.status) && (
+                          <div className="mt-3 space-y-2 rounded-xl border border-border bg-muted/60 p-3">
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-muted-foreground">
+                                Số tiền thu lần này
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const full = String(
+                                    Math.round(selected.remaining),
+                                  );
+                                  setPayAmount(full);
+                                  if (paymentMethod === "TRANSFER") {
+                                    void refreshQrForAmount(full);
+                                  }
+                                }}
+                                className="font-semibold text-brand hover:underline"
+                              >
+                                Thu hết còn lại
+                              </button>
+                            </div>
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                value={payAmount}
+                                onChange={(e) =>
+                                  setPayAmount(
+                                    e.target.value.replace(/[^\d]/g, ""),
+                                  )
+                                }
+                                className="w-full rounded-lg border border-border bg-white px-3 py-2 font-mono text-sm font-bold outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
+                              />
+                              {paymentMethod === "TRANSFER" && (
+                                <button
+                                  type="button"
+                                  onClick={() => void refreshQrForAmount()}
+                                  className="shrink-0 rounded-lg border border-border bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-muted"
+                                >
+                                  Cập nhật QR
+                                </button>
+                              )}
+                            </div>
+                            <p className="text-[10px] text-muted-foreground">
+                              Có thể thu một phần; phần còn lại giữ trên hóa
+                              đơn.
+                            </p>
+                          </div>
+                        )}
+
                         {paymentMethod === "TRANSFER" &&
-                          selected.status === "UNPAID" && (
+                          isOpenInvoice(selected.status) && (
                             <div className="mt-3 space-y-3 rounded-xl border border-dashed border-border bg-muted p-4">
                               {transferLoading ? (
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -699,7 +876,7 @@ export default function BillingPage() {
                         <div
                           className={cn(
                             "pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full opacity-30 blur-3xl",
-                            selected.status === "UNPAID"
+                            isOpenInvoice(selected.status)
                               ? "bg-rose-400"
                               : "bg-brand",
                           )}
@@ -707,17 +884,25 @@ export default function BillingPage() {
                         <div className="relative z-10 space-y-3">
                           <div className="flex items-center justify-between text-sm">
                             <span className="font-medium text-slate-400">
-                              Tổng cộng
+                              Tổng hóa đơn
                             </span>
                             <span className="font-mono font-bold text-slate-200">
-                              {formatVND(selected.total + selected.discount)}
+                              {formatVND(selected.total)}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="font-medium text-slate-400">
+                              Đã trả
+                            </span>
+                            <span className="font-mono font-bold text-emerald-400">
+                              {formatVND(selected.paid)}
                             </span>
                           </div>
                           <div className="flex items-center justify-between text-sm">
                             <span className="font-medium text-slate-400">
                               Khuyến mãi
                             </span>
-                            {selected.status === "UNPAID" ? (
+                            {isOpenInvoice(selected.status) ? (
                               <div className="flex items-center gap-1">
                                 <input
                                   type="text"
@@ -750,24 +935,38 @@ export default function BillingPage() {
                             <div className="flex items-end justify-between">
                               <div>
                                 <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                                  Thành tiền
+                                  {isOpenInvoice(selected.status)
+                                    ? "Còn nợ"
+                                    : "Thành tiền"}
                                 </p>
                                 <p className="mt-0.5 text-xs font-bold text-slate-300">
-                                  Khách cần trả
+                                  {isOpenInvoice(selected.status)
+                                    ? "Thu lần này"
+                                    : "Đã thanh toán đủ"}
                                 </p>
                               </div>
-                              <span
-                                className={cn(
-                                  "font-mono text-3xl font-black tracking-tighter",
-                                  selected.status === "UNPAID"
-                                    ? "text-rose-400"
-                                    : "text-emerald-400",
+                              <div className="text-right">
+                                {isOpenInvoice(selected.status) && (
+                                  <p className="mb-1 font-mono text-sm font-bold text-rose-300">
+                                    {formatVND(selected.remaining)}
+                                  </p>
                                 )}
-                              >
-                                {formatVND(
-                                  transfer?.amount ?? selected.total,
-                                )}
-                              </span>
+                                <span
+                                  className={cn(
+                                    "font-mono text-3xl font-black tracking-tighter",
+                                    isOpenInvoice(selected.status)
+                                      ? "text-rose-400"
+                                      : "text-emerald-400",
+                                  )}
+                                >
+                                  {formatVND(
+                                    isOpenInvoice(selected.status)
+                                      ? (transfer?.amount ??
+                                          parsePayAmount(selected))
+                                      : selected.total,
+                                  )}
+                                </span>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -783,7 +982,7 @@ export default function BillingPage() {
                         <Printer size={15} />
                         In hóa đơn
                       </button>
-                      {selected.status === "UNPAID" && (
+                      {isOpenInvoice(selected.status) && (
                         <button
                           onClick={() => void handleConfirm()}
                           disabled={

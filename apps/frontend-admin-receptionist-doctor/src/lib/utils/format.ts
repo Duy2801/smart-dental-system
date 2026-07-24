@@ -12,3 +12,11 @@ export function formatPhone(phone: string) {
   }
   return phone;
 }
+
+/** Tránh "BS. ThS.BS. ..." khi fullName đã có học hàm/học vị. */
+export function formatDoctorName(name?: string | null): string {
+  const n = (name ?? "").trim();
+  if (!n || n === "—" || n === "--") return n || "—";
+  if (/^(?:pgs|ts|ths|bs)\.?\b/i.test(n)) return n;
+  return `BS. ${n}`;
+}

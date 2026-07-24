@@ -9,6 +9,7 @@ import type { AppointmentStatus } from "@/src/components/shared/appointment-stat
 import apiClient from "@/src/lib/api/client";
 import { mapAppointments, localDateStr } from "@/src/lib/receptionist/mappers";
 import type { ReceptionistAppointment } from "@/src/lib/receptionist/mappers";
+import { formatDoctorName } from "@/src/lib/utils/format";
 import {
   CalendarPlus,
   MagnifyingGlass,
@@ -480,7 +481,7 @@ export default function ReceptionistAppointmentsPage() {
             <option value="">Tất cả bác sĩ</option>
             {doctors.map((d) => (
               <option key={d.id} value={d.id}>
-                BS. {d.fullName}
+                {formatDoctorName(d.fullName)}
               </option>
             ))}
           </select>
@@ -627,9 +628,7 @@ export default function ReceptionistAppointmentsPage() {
                         <td className="px-5 py-3.5">
                           {apt.doctor ? (
                             <span className="inline-flex items-center rounded-md bg-brand-light px-2 py-1 text-xs font-semibold text-brand-dark ring-1 ring-inset ring-brand/20">
-                              {/^bs\.?\s/i.test(apt.doctor.fullName)
-                                ? apt.doctor.fullName
-                                : `BS. ${apt.doctor.fullName}`}
+                              {formatDoctorName(apt.doctor.fullName)}
                             </span>
                           ) : (
                             <span className="text-xs text-muted-foreground">--</span>

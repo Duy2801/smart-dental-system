@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/src/lib/utils/cn";
 import apiClient from "@/src/lib/api/client";
 import { localDateStr } from "@/src/lib/receptionist/mappers";
+import { formatDoctorName } from "@/src/lib/utils/format";
 import {
   ArrowLeft,
   UserPlus,
@@ -52,6 +53,9 @@ function NewAppointmentForm() {
   const [serviceId, setServiceId] = useState("");
   const [date, setDate] = useState(localDateStr());
   const [checkInMode, setCheckInMode] = useState<"PENDING" | "WAITING">("PENDING");
+  const [paymentOption, setPaymentOption] = useState<
+    "PAY_AT_COUNTER" | "DEPOSIT_30_PERCENT"
+  >("PAY_AT_COUNTER");
   const [selectedDoctor, setSelectedDoctor] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
   const [notes, setNotes] = useState("");
@@ -102,7 +106,7 @@ function NewAppointmentForm() {
         setDoctors(
           (opts.doctors ?? []).map((d) => ({
             id: d.id,
-            name: `BS. ${d.user?.fullName ?? "—"}`,
+            name: formatDoctorName(d.user?.fullName ?? "—"),
             spec: d.specialization ?? "",
             status: "AVAILABLE" as const,
           })),
@@ -142,7 +146,7 @@ function NewAppointmentForm() {
           setDoctors(
             opts.doctors.map((d) => ({
               id: d.id,
-              name: `BS. ${d.user?.fullName ?? "—"}`,
+              name: formatDoctorName(d.user?.fullName ?? "—"),
               spec: d.specialization ?? "",
               status: "AVAILABLE" as const,
             })),
@@ -169,9 +173,13 @@ function NewAppointmentForm() {
         scheduledAt,
         notes: notes.trim() || undefined,
         walkIn: checkInMode === "WAITING",
-        paymentOption: "PAY_AT_COUNTER",
+        paymentOption,
       });
-      router.push(`/receptionist/appointments/${res.data?.id ?? ""}`);
+      if (paymentOption === "DEPOSIT_30_PERCENT") {
+        router.push("/receptionist/billing");
+      } else {
+        router.push(`/receptionist/appointments/${res.data?.id ?? ""}`);
+      }
     } catch (err) {
       setError(
         apiErrorMessage(
@@ -331,6 +339,44 @@ function NewAppointmentForm() {
                       <option value="PENDING">Đặt trước (xác nhận luôn)</option>
                       <option value="WAITING">Walk-in (check-in ngay)</option>
                     </select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Cách thu tiền
+                  </label>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentOption("PAY_AT_COUNTER")}
+                      className={cn(
+                        "rounded-xl border px-4 py-3 text-left text-sm transition-all",
+                        paymentOption === "PAY_AT_COUNTER"
+                          ? "border-brand bg-brand/5 ring-2 ring-brand/20"
+                          : "border-border bg-slate-50 hover:border-brand/40",
+                      )}
+                    >
+                      <p className="font-bold text-slate-900">Thu tại quầy</p>
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">
+                        Sau khám mới lập HĐ và thu
+                      </p>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentOption("DEPOSIT_30_PERCENT")}
+                      className={cn(
+                        "rounded-xl border px-4 py-3 text-left text-sm transition-all",
+                        paymentOption === "DEPOSIT_30_PERCENT"
+                          ? "border-brand bg-brand/5 ring-2 ring-brand/20"
+                          : "border-border bg-slate-50 hover:border-brand/40",
+                      )}
+                    >
+                      <p className="font-bold text-slate-900">Đặt cọc (~30%)</p>
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">
+                        Tạo HĐ cọc ngay → thu ở Thanh toán
+                      </p>
+                    </button>
                   </div>
                 </div>
 

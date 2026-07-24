@@ -8,7 +8,9 @@ import { Header } from "@/src/components/layout/header";
 import { AppointmentStatusBadge } from "@/src/components/shared/appointment-status-badge";
 import type { AppointmentStatus } from "@/src/components/shared/appointment-status-badge";
 import apiClient from "@/src/lib/api/client";
+import { formatDoctorName } from "@/src/lib/utils/format";
 import {
+  Wallet,
   ArrowLeft,
   Phone,
   EnvelopeSimple,
@@ -37,6 +39,13 @@ type PatientDetail = {
   allergies?: string[];
   emergencyContactName: string | null;
   emergencyContactPhone: string | null;
+  finance?: {
+    planTotal: number;
+    billedTotal: number;
+    paidTotal: number;
+    debtTotal: number;
+    invoiceCount: number;
+  };
   appointments: {
     id: string;
     appointmentCode: string;
@@ -73,7 +82,7 @@ function genderLabel(g?: string | null) {
 }
 
 function doctorLabel(name: string) {
-  return /^bs\.?\s/i.test(name) ? name : `BS. ${name}`;
+  return formatDoctorName(name);
 }
 
 function InfoRow({
@@ -527,7 +536,65 @@ function PatientDetailContent() {
             </div>
           </div>
 
-          <div className="xl:col-span-2">
+          <div className="xl:col-span-2 space-y-5">
+            {patient.finance && (
+              <div className="rounded-2xl border border-border bg-white shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between border-b border-border px-5 py-4">
+                  <div className="flex items-center gap-2">
+                    <Wallet size={16} className="text-brand" weight="fill" />
+                    <h2 className="text-sm font-bold text-brand-dark">
+                      Tài chính
+                    </h2>
+                  </div>
+                  <Link
+                    href="/receptionist/billing"
+                    className="text-xs font-semibold text-brand hover:underline"
+                  >
+                    Đến thanh toán
+                  </Link>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-border">
+                  <div className="px-5 py-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Tổng kế hoạch
+                    </p>
+                    <p className="mt-1 font-mono text-xl font-bold text-slate-900">
+                      {patient.finance.planTotal.toLocaleString("vi-VN")}đ
+                    </p>
+                  </div>
+                  <div className="px-5 py-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Đã trả
+                    </p>
+                    <p className="mt-1 font-mono text-xl font-bold text-emerald-600">
+                      {patient.finance.paidTotal.toLocaleString("vi-VN")}đ
+                    </p>
+                  </div>
+                  <div className="px-5 py-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Còn nợ
+                    </p>
+                    <p
+                      className={cn(
+                        "mt-1 font-mono text-xl font-bold",
+                        patient.finance.debtTotal > 0
+                          ? "text-red-600"
+                          : "text-slate-900",
+                      )}
+                    >
+                      {patient.finance.debtTotal.toLocaleString("vi-VN")}đ
+                    </p>
+                  </div>
+                </div>
+                {patient.finance.invoiceCount > 0 && (
+                  <p className="border-t border-border px-5 py-2.5 text-[11px] text-muted-foreground">
+                    {patient.finance.invoiceCount} hóa đơn · Đã lập{" "}
+                    {patient.finance.billedTotal.toLocaleString("vi-VN")}đ
+                  </p>
+                )}
+              </div>
+            )}
+
             <div className="rounded-2xl border border-border bg-white shadow-sm overflow-hidden">
               <div className="flex items-center justify-between border-b border-border px-5 py-4">
                 <h2 className="text-sm font-bold text-brand-dark">Lịch sử khám</h2>
