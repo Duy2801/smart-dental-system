@@ -367,15 +367,26 @@ export class AppointmentService {
   }
 
   async checkInAppointment(appointmentId: string, notes?: string) {
+    const current = await this.prisma.appointment.findUnique({
+      where: { id: appointmentId },
+      select: { notes: true },
+    });
+    if (!current) {
+      throw new BadRequestException('appointment.not_found');
+    }
+
+    const staffNote = notes?.trim();
+    const mergedNotes = staffNote
+      ? [current.notes, `[Check-in] ${staffNote}`].filter(Boolean).join('\n')
+      : undefined;
+
     return this.transitionAppointment(
       appointmentId,
       [AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED],
       {
         status: AppointmentStatus.CHECKED_IN,
         checkedInAt: new Date(),
-        ...(notes?.trim()
-          ? { notes: notes.trim() }
-          : {}),
+        ...(mergedNotes ? { notes: mergedNotes } : {}),
       },
       'appointment.must_be_confirmed_to_check_in',
     );
