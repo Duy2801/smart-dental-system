@@ -1,4 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  InvoiceStatus,
+  InvoiceType,
+  TreatmentStepPaymentStatus,
+} from '../../../prisma/generated/enums';
 import { PrismaService } from '../prisma/prisma.service';
 
 const stepSelect = {
@@ -9,6 +14,8 @@ const stepSelect = {
   targetTooth: true,
   status: true,
   estimatedCost: true,
+  paymentAmount: true,
+  paymentStatus: true,
   expectedDate: true,
   completedAt: true,
 } as const;
@@ -172,7 +179,7 @@ export class TreatmentPlanService {
     const isCompleting = dto.status === 'COMPLETED' && step.status !== 'COMPLETED';
     const isUncompleting = dto.status && dto.status !== 'COMPLETED' && step.status === 'COMPLETED';
 
-    return this.prisma.treatmentPlanStep.update({
+    const updated = await this.prisma.treatmentPlanStep.update({
       where: { id: stepId },
       data: {
         ...(dto.title !== undefined && { title: dto.title }),
@@ -186,8 +193,97 @@ export class TreatmentPlanService {
         ...(isCompleting && { completedAt: new Date() }),
         ...(isUncompleting && { completedAt: null }),
       },
+      select: {
+        ...stepSelect,
+        treatmentPlanId: true,
+        doctor: { select: { userId: true } },
+        treatmentPlan: { select: { patientId: true } },
+      },
+    });
+
+    // Hoàn thành bước → tạo HĐ đợt điều trị để lễ tân thu
+    if (isCompleting) {
+      await this.ensureStepInvoice({
+        stepId: updated.id,
+        patientId: updated.treatmentPlan.patientId,
+        treatmentPlanId: updated.treatmentPlanId,
+        createdBy: updated.doctor.userId,
+        title: updated.title,
+        stepOrder: updated.stepOrder,
+        amount: Number(
+          updated.paymentAmount ?? updated.estimatedCost ?? 0,
+        ),
+        paymentStatus: updated.paymentStatus,
+      });
+    }
+
+    return this.prisma.treatmentPlanStep.findUnique({
+      where: { id: stepId },
       select: stepSelect,
     });
+  }
+
+  private async ensureStepInvoice(input: {
+    stepId: string;
+    patientId: string;
+    treatmentPlanId: string;
+    createdBy: string;
+    title: string;
+    stepOrder: number;
+    amount: number;
+    paymentStatus: string;
+  }) {
+    if (input.amount <= 0) return;
+
+    const existing = await this.prisma.invoice.findFirst({
+      where: {
+        treatmentPlanStepId: input.stepId,
+        status: {
+          notIn: [InvoiceStatus.CANCELLED, InvoiceStatus.REFUNDED],
+        },
+      },
+      select: { id: true },
+    });
+    if (existing) return;
+
+    await this.prisma.invoice.create({
+      data: {
+        invoiceCode: await this.generateInvoiceCode(),
+        patientId: input.patientId,
+        treatmentPlanId: input.treatmentPlanId,
+        treatmentPlanStepId: input.stepId,
+        invoiceType: InvoiceType.STEP_PAYMENT,
+        items: [
+          {
+            description: `Dot ${input.stepOrder}: ${input.title}`,
+            qty: 1,
+            unit_price: input.amount,
+            amount: input.amount,
+            type: 'STEP',
+          },
+        ],
+        subtotal: input.amount,
+        finalAmount: input.amount,
+        status: InvoiceStatus.ISSUED,
+        issuedAt: new Date(),
+        createdBy: input.createdBy,
+      },
+    });
+
+    if (input.paymentStatus === TreatmentStepPaymentStatus.UNBILLED) {
+      await this.prisma.treatmentPlanStep.update({
+        where: { id: input.stepId },
+        data: { paymentStatus: TreatmentStepPaymentStatus.INVOICED },
+      });
+    }
+  }
+
+  private async generateInvoiceCode() {
+    const yyyyMMdd = new Date().toISOString().slice(0, 10).replaceAll('-', '');
+    const count = await this.prisma.invoice.count({
+      where: { invoiceCode: { startsWith: `INV-${yyyyMMdd}` } },
+    });
+    return `INV-${yyyyMMdd}-${String(count + 1).padStart(4, '0')}`;
   }
 
   private toSummary(p: any) {

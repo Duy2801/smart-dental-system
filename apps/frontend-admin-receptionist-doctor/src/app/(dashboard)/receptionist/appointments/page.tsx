@@ -7,6 +7,9 @@ import { Header } from "@/src/components/layout/header";
 import { AppointmentStatusBadge } from "@/src/components/shared/appointment-status-badge";
 import type { AppointmentStatus } from "@/src/components/shared/appointment-status-badge";
 import apiClient from "@/src/lib/api/client";
+import { mapAppointments, localDateStr } from "@/src/lib/receptionist/mappers";
+import type { ReceptionistAppointment } from "@/src/lib/receptionist/mappers";
+import { formatDoctorName } from "@/src/lib/utils/format";
 import {
   CalendarPlus,
   MagnifyingGlass,
@@ -27,21 +30,7 @@ import {
   UserMinus,
 } from "@phosphor-icons/react";
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-interface Appointment {
-  id: string;
-  startTime: string;
-  endTime?: string;
-  status: AppointmentStatus;
-  patient?: { id: string; fullName: string; phone: string } | null;
-  doctor?: { id: string; fullName: string } | null;
-  service?: { name: string } | null;
-  invoicePending?: boolean;
-  notes?: string | null;
-}
+type Appointment = ReceptionistAppointment;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -76,7 +65,7 @@ function formatTime(t?: string): string {
 }
 
 function toDateStr(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  return localDateStr(d);
 }
 
 function formatDateLabel(d: Date): string {
@@ -94,19 +83,6 @@ function formatDateLabel(d: Date): string {
   if (diff === 1) return `Ngày mai — ${label}`;
   return label;
 }
-
-// ---------------------------------------------------------------------------
-// Mock data
-// ---------------------------------------------------------------------------
-
-const MOCK_APPOINTMENTS: Appointment[] = [
-  { id: "AP-1001", startTime: "08:00:00", endTime: "08:30:00", status: "COMPLETED", patient: { id: "P1", fullName: "Nguyễn Văn An", phone: "0901234567" }, doctor: { id: "D1", fullName: "Trần Sơn" }, service: { name: "Nhổ răng khôn" } },
-  { id: "AP-1002", startTime: "09:00:00", endTime: "10:00:00", status: "CHECKED_IN", patient: { id: "P2", fullName: "Lê Hoàng Cường", phone: "0987654321" }, doctor: { id: "D2", fullName: "Phạm Hà" }, service: { name: "Tái khám niềng răng" } },
-  { id: "AP-1003", startTime: "10:30:00", endTime: "11:30:00", status: "PENDING", patient: { id: "P3", fullName: "Đỗ Thu Hương", phone: "0977889900" }, doctor: { id: "D3", fullName: "Lê Hoàng" }, service: { name: "Khám tổng quát" } },
-  { id: "AP-1004", startTime: "11:00:00", endTime: "12:00:00", status: "CONFIRMED", patient: { id: "P4", fullName: "Hoàng Minh Quân", phone: "0933445566" }, doctor: { id: "D1", fullName: "Trần Sơn" }, service: { name: "Cắm Implant" } },
-  { id: "AP-1005", startTime: "13:30:00", endTime: "14:30:00", status: "CANCELLED", patient: { id: "P5", fullName: "Trần Thị Bích", phone: "0911223344" }, doctor: { id: "D2", fullName: "Phạm Hà" }, service: { name: "Tẩy trắng răng" } },
-  { id: "AP-1006", startTime: "15:00:00", endTime: "16:00:00", status: "NO_SHOW", patient: { id: "P6", fullName: "Lý Quý Dương", phone: "0922334455" }, doctor: { id: "D3", fullName: "Lê Hoàng" }, service: { name: "Bọc răng sứ" } },
-];
 
 // ---------------------------------------------------------------------------
 // Skeletons
@@ -178,22 +154,29 @@ function ActionMenu({
               <Eye size={13} /> Hồ sơ bệnh nhân
             </Link>
           )}
-          <div className="my-1 mx-2 h-px bg-slate-100" />
-          {apt.status !== "CANCELLED" && apt.status !== "COMPLETED" && (
-            <button
-              onClick={() => { onStatusChange(apt.id, "CANCELLED"); setOpen(false); }}
-              className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
-            >
-              <X size={13} /> Khách báo hủy
-            </button>
-          )}
-          {apt.status !== "NO_SHOW" && apt.status !== "COMPLETED" && apt.status !== "CANCELLED" && (
-            <button
-              onClick={() => { onStatusChange(apt.id, "NO_SHOW"); setOpen(false); }}
-              className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
-            >
-              <UserMinus size={13} /> Đánh dấu vắng mặt
-            </button>
+          {(apt.status === "PENDING" || apt.status === "CONFIRMED") && (
+            <>
+              <div className="my-1 mx-2 h-px bg-slate-100" />
+              <button
+                onClick={() => { onStatusChange(apt.id, "CANCELLED"); setOpen(false); }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
+              >
+                <X size={13} /> Khách báo hủy
+              </button>
+              <button
+                onClick={() => { onStatusChange(apt.id, "NO_SHOW"); setOpen(false); }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
+              >
+                <UserMinus size={13} /> Đánh dấu vắng mặt
+              </button>
+              <Link
+                href={`/receptionist/appointments/${apt.id}`}
+                className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-muted hover:text-brand-dark"
+                onClick={() => setOpen(false)}
+              >
+                <CalendarDots size={13} /> Đổi lịch
+              </Link>
+            </>
           )}
         </div>
       )}
@@ -302,8 +285,24 @@ export default function ReceptionistAppointmentsPage() {
   const [page, setPage] = useState(1);
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [doctors, setDoctors] = useState<{ id: string; fullName: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    apiClient
+      .get("/doctors")
+      .then((res) => {
+        const list = Array.isArray(res.data) ? res.data : [];
+        setDoctors(
+          list.map((d: { id: string; user?: { fullName?: string }; fullName?: string }) => ({
+            id: d.id,
+            fullName: d.user?.fullName ?? d.fullName ?? "Bác sĩ",
+          })),
+        );
+      })
+      .catch(() => setDoctors([]));
+  }, []);
 
   // fetch
   useEffect(() => {
@@ -314,12 +313,11 @@ export default function ReceptionistAppointmentsPage() {
         const dateStr = toDateStr(selectedDate);
         const params = new URLSearchParams({ date: dateStr });
         if (doctorFilter) params.append("doctorId", doctorFilter);
-        const res = await apiClient.get<{ data: Appointment[] }>(
-          `/appointments?${params.toString()}`
-        );
-        setAppointments(res.data ?? []);
+        const res = await apiClient.get(`/appointments?${params.toString()}`);
+        setAppointments(mapAppointments(res.data));
       } catch {
-        setAppointments(MOCK_APPOINTMENTS);
+        setError("Không tải được lịch hẹn từ máy chủ.");
+        setAppointments([]);
       } finally {
         setLoading(false);
       }
@@ -336,6 +334,7 @@ export default function ReceptionistAppointmentsPage() {
     return (
       a.patient?.fullName.toLowerCase().includes(q) ||
       a.patient?.phone.includes(q) ||
+      a.appointmentCode.toLowerCase().includes(q) ||
       a.id.toLowerCase().includes(q) ||
       a.service?.name.toLowerCase().includes(q)
     );
@@ -360,19 +359,19 @@ export default function ReceptionistAppointmentsPage() {
     const endpoint =
       status === "CONFIRMED" ? "confirm" :
       status === "CHECKED_IN" ? "check-in" :
+      status === "IN_PROGRESS" ? "start" :
       status === "CANCELLED" ? "cancel" :
       status === "NO_SHOW" ? "no-show" : null;
 
-    setAppointments((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, status } : a))
-    );
+    if (!endpoint) return;
 
-    if (endpoint) {
-      try {
-        await apiClient.patch(`/appointments/${id}/${endpoint}`);
-      } catch {
-        // optimistic - keep UI updated
-      }
+    try {
+      await apiClient.patch(`/appointments/${id}/${endpoint}`);
+      setAppointments((prev) =>
+        prev.map((a) => (a.id === id ? { ...a, status } : a))
+      );
+    } catch {
+      setError("Cập nhật trạng thái thất bại.");
     }
   };
 
@@ -480,9 +479,11 @@ export default function ReceptionistAppointmentsPage() {
             className="rounded-lg border border-border bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand/20 cursor-pointer"
           >
             <option value="">Tất cả bác sĩ</option>
-            <option value="D1">BS. Trần Sơn</option>
-            <option value="D2">BS. Phạm Hà</option>
-            <option value="D3">BS. Lê Hoàng</option>
+            {doctors.map((d) => (
+              <option key={d.id} value={d.id}>
+                {formatDoctorName(d.fullName)}
+              </option>
+            ))}
           </select>
 
           {/* Advanced filter */}
@@ -582,7 +583,7 @@ export default function ReceptionistAppointmentsPage() {
                       >
                         {/* Time */}
                         <td className="px-5 py-3.5">
-                          <p className="font-mono text-[11px] text-muted-foreground">{apt.id}</p>
+                          <p className="font-mono text-[11px] text-muted-foreground">{apt.appointmentCode}</p>
                           <p className="font-mono text-xs font-bold text-slate-900 mt-0.5">
                             {formatTime(apt.startTime)}
                             {apt.endTime && (
@@ -627,7 +628,7 @@ export default function ReceptionistAppointmentsPage() {
                         <td className="px-5 py-3.5">
                           {apt.doctor ? (
                             <span className="inline-flex items-center rounded-md bg-brand-light px-2 py-1 text-xs font-semibold text-brand-dark ring-1 ring-inset ring-brand/20">
-                              BS. {apt.doctor.fullName}
+                              {formatDoctorName(apt.doctor.fullName)}
                             </span>
                           ) : (
                             <span className="text-xs text-muted-foreground">--</span>
@@ -652,15 +653,18 @@ export default function ReceptionistAppointmentsPage() {
                               </button>
                             )}
                             {apt.status === "CONFIRMED" && (
-                              <Link
-                                href="/receptionist/check-in"
+                              <button
+                                onClick={() => handleStatusChange(apt.id, "CHECKED_IN")}
                                 className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-brand px-3 text-xs font-bold text-white shadow-sm transition-all hover:bg-brand-dark active:scale-[0.98]"
                               >
                                 <UserCheck size={12} weight="fill" /> Check-in
-                              </Link>
+                              </button>
                             )}
                             {apt.status === "CHECKED_IN" && (
-                              <button className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-white px-3 text-xs font-semibold text-brand-dark shadow-sm transition-all hover:bg-muted active:scale-[0.98]">
+                              <button
+                                onClick={() => handleStatusChange(apt.id, "IN_PROGRESS")}
+                                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-white px-3 text-xs font-semibold text-brand-dark shadow-sm transition-all hover:bg-muted active:scale-[0.98]"
+                              >
                                 <BellSimpleRinging size={12} /> Nhắc BS
                               </button>
                             )}
@@ -701,7 +705,7 @@ export default function ReceptionistAppointmentsPage() {
                   disabled={page === 1}
                   className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white text-muted-foreground transition-colors hover:bg-muted hover:text-slate-900 disabled:opacity-40 active:scale-[0.98]"
                 >
-                  <ChevronLeft size={14} weight="bold" />
+                  <CaretLeft size={14} weight="bold" />
                 </button>
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
                   <button
@@ -722,7 +726,7 @@ export default function ReceptionistAppointmentsPage() {
                   disabled={page === totalPages}
                   className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white text-muted-foreground transition-colors hover:bg-muted hover:text-slate-900 disabled:opacity-40 active:scale-[0.98]"
                 >
-                  <ChevronRight size={14} weight="bold" />
+                  <CaretRight size={14} weight="bold" />
                 </button>
               </div>
             </div>

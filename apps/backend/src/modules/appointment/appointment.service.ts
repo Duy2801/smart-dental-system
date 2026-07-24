@@ -18,6 +18,7 @@ import type {
   ClinicSpecialDateDto,
 } from '../clinic-config/dto/update-clinic-config.dto';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
+import { CreateStaffAppointmentDto } from './dto/create-staff-appointment.dto';
 
 const activeAppointmentStatuses = [
   AppointmentStatus.PENDING,
@@ -88,6 +89,45 @@ export class AppointmentService {
     private clinicConfigService: ClinicConfigService,
     @InjectQueue('mail-queue') private readonly mailQueue: Queue,
   ) { }
+
+  async createAppointmentForReceptionist(
+    staffUserId: string,
+    dto: CreateStaffAppointmentDto,
+  ) {
+    const appointment = await this.createAppointment({
+      patientId: dto.patientId,
+      doctorId: dto.doctorId,
+      serviceId: dto.serviceId,
+      scheduledAt: dto.scheduledAt,
+      notes: dto.notes,
+      paymentOption:
+        dto.paymentOption ?? AppointmentPaymentOption.PAY_AT_COUNTER,
+      bookingSource: BookingSource.RECEPTIONIST,
+      createdBy: staffUserId,
+      skipOnlineBookingBlock: true,
+      allowPastSchedule: true,
+    });
+
+    if (dto.walkIn) {
+      return this.prisma.appointment.update({
+        where: { id: appointment.id },
+        data: {
+          status: AppointmentStatus.CHECKED_IN,
+          checkedInAt: new Date(),
+        },
+        include: appointmentInclude,
+      });
+    }
+
+    return this.prisma.appointment.update({
+      where: { id: appointment.id },
+      data: {
+        status: AppointmentStatus.CONFIRMED,
+        scheduleConfirmedAt: new Date(),
+      },
+      include: appointmentInclude,
+    });
+  }
 
   async createAppointmentForPatient(userId: string, dto: CreateAppointmentDto) {
     const patient = await this.findOrCreatePatientProfile(userId);
@@ -237,6 +277,243 @@ export class AppointmentService {
     });
   }
 
+  async findByDate(params: {
+    date?: string;
+    from?: string;
+    to?: string;
+    doctorId?: string;
+    search?: string;
+  }) {
+    const fromRaw = params.from ?? params.date;
+    const toRaw = params.to ?? params.date;
+    if (!fromRaw || !toRaw) {
+      throw new BadRequestException('appointment.date_required');
+    }
+
+    const parseBound = (raw: string, endOfDay: boolean) => {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+        const [y, m, d] = raw.split('-').map(Number);
+        return endOfDay
+          ? new Date(y, m - 1, d, 23, 59, 59, 999)
+          : new Date(y, m - 1, d, 0, 0, 0, 0);
+      }
+      const value = new Date(raw);
+      if (endOfDay) value.setHours(23, 59, 59, 999);
+      return value;
+    };
+
+    const fromDate = parseBound(fromRaw, false);
+    const toDate = parseBound(toRaw, true);
+    const search = params.search?.trim();
+
+    return this.prisma.appointment.findMany({
+      where: {
+        ...(params.doctorId ? { doctorId: params.doctorId } : {}),
+        scheduledAt: { gte: fromDate, lte: toDate },
+        ...(search
+          ? {
+              OR: [
+                {
+                  appointmentCode: {
+                    contains: search,
+                    mode: 'insensitive',
+                  },
+                },
+                {
+                  patient: {
+                    user: {
+                      OR: [
+                        {
+                          fullName: {
+                            contains: search,
+                            mode: 'insensitive',
+                          },
+                        },
+                        { phone: { contains: search } },
+                      ],
+                    },
+                  },
+                },
+              ],
+            }
+          : {}),
+      },
+      include: appointmentInclude,
+      orderBy: { scheduledAt: 'asc' },
+    });
+  }
+
+  async findOne(appointmentId: string) {
+    const appointment = await this.prisma.appointment.findUnique({
+      where: { id: appointmentId },
+      include: appointmentInclude,
+    });
+    if (!appointment) {
+      throw new BadRequestException('appointment.not_found');
+    }
+    return appointment;
+  }
+
+  async confirmAppointment(appointmentId: string) {
+    return this.transitionAppointment(
+      appointmentId,
+      [AppointmentStatus.PENDING],
+      {
+        status: AppointmentStatus.CONFIRMED,
+        scheduleConfirmedAt: new Date(),
+      },
+      'appointment.must_be_pending_to_confirm',
+    );
+  }
+
+  async checkInAppointment(appointmentId: string, notes?: string) {
+    const current = await this.prisma.appointment.findUnique({
+      where: { id: appointmentId },
+      select: { notes: true },
+    });
+    if (!current) {
+      throw new BadRequestException('appointment.not_found');
+    }
+
+    const staffNote = notes?.trim();
+    const mergedNotes = staffNote
+      ? [current.notes, `[Check-in] ${staffNote}`].filter(Boolean).join('\n')
+      : undefined;
+
+    return this.transitionAppointment(
+      appointmentId,
+      [AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED],
+      {
+        status: AppointmentStatus.CHECKED_IN,
+        checkedInAt: new Date(),
+        ...(mergedNotes ? { notes: mergedNotes } : {}),
+      },
+      'appointment.must_be_confirmed_to_check_in',
+    );
+  }
+
+  async markNoShow(appointmentId: string) {
+    return this.transitionAppointment(
+      appointmentId,
+      [AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED],
+      { status: AppointmentStatus.NO_SHOW },
+      'appointment.cannot_mark_no_show',
+    );
+  }
+
+  async cancelByStaff(appointmentId: string) {
+    return this.transitionAppointment(
+      appointmentId,
+      [AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED],
+      {
+        status: AppointmentStatus.CANCELLED,
+        cancelledAt: new Date(),
+      },
+      'appointment.cannot_cancel',
+    );
+  }
+
+  /** Lễ tân/admin đổi giờ — không áp hạn mức/notice của bệnh nhân. */
+  async rescheduleByStaff(
+    appointmentId: string,
+    dto: { scheduledAt: string },
+  ) {
+    const appointment = await this.prisma.appointment.findUnique({
+      where: { id: appointmentId },
+      include: {
+        doctor: true,
+        service: true,
+      },
+    });
+
+    if (!appointment) {
+      throw new BadRequestException('appointment.not_found');
+    }
+
+    const reschedulable: AppointmentStatus[] = [
+      AppointmentStatus.PENDING,
+      AppointmentStatus.CONFIRMED,
+    ];
+    if (!reschedulable.includes(appointment.status)) {
+      throw new ConflictException('appointment.reschedule_not_allowed');
+    }
+
+    const scheduledAt = new Date(dto.scheduledAt);
+    if (Number.isNaN(scheduledAt.getTime())) {
+      throw new BadRequestException('appointment.invalid_time');
+    }
+
+    const endAt = new Date(
+      scheduledAt.getTime() +
+        appointment.service.durationMinutes * 60 * 1000,
+    );
+
+    const previousSchedule = {
+      scheduledAt: appointment.scheduledAt,
+      endAt: appointment.endAt,
+      status: appointment.status,
+      changedAt: new Date(),
+    };
+    const rescheduleHistory = Array.isArray(appointment.rescheduleHistory)
+      ? appointment.rescheduleHistory
+      : [];
+
+    await this.ensureClinicOpen(scheduledAt, endAt);
+    await this.ensureDoctorAvailableForExistingAppointment(
+      appointment.doctorId,
+      appointment.id,
+      scheduledAt,
+      endAt,
+    );
+    if (appointment.patientId) {
+      await this.ensurePatientHasNoOverlappingAppointment(
+        appointment.patientId,
+        appointment.createdBy,
+        scheduledAt,
+        endAt,
+        appointment.id,
+      );
+    }
+    await this.ensureNoConflict(
+      appointment.doctorId,
+      scheduledAt,
+      endAt,
+      appointment.id,
+    );
+
+    return this.prisma.appointment.update({
+      where: { id: appointment.id },
+      data: {
+        scheduledAt,
+        endAt,
+        rescheduleHistory: [...rescheduleHistory, previousSchedule],
+      },
+      include: appointmentInclude,
+    });
+  }
+
+  private async transitionAppointment(
+    appointmentId: string,
+    allowed: AppointmentStatus[],
+    data: Record<string, unknown>,
+    errorCode: string,
+  ) {
+    const appointment = await this.prisma.appointment.findUnique({
+      where: { id: appointmentId },
+    });
+    if (!appointment) {
+      throw new BadRequestException('appointment.not_found');
+    }
+    if (!allowed.includes(appointment.status)) {
+      throw new BadRequestException(errorCode);
+    }
+    return this.prisma.appointment.update({
+      where: { id: appointmentId },
+      data,
+      include: appointmentInclude,
+    });
+  }
+
   async startAppointment(appointmentId: string) {
     const appointment = await this.prisma.appointment.findUnique({
       where: { id: appointmentId },
@@ -262,6 +539,7 @@ export class AppointmentService {
   async completeAppointment(appointmentId: string) {
     const appointment = await this.prisma.appointment.findUnique({
       where: { id: appointmentId },
+      include: { service: true },
     });
 
     if (!appointment) {
@@ -274,7 +552,7 @@ export class AppointmentService {
       );
     }
 
-    return this.prisma.appointment.update({
+    const updated = await this.prisma.appointment.update({
       where: { id: appointmentId },
       data: {
         status: AppointmentStatus.COMPLETED,
@@ -282,6 +560,181 @@ export class AppointmentService {
       },
       include: appointmentInclude,
     });
+
+    // Sau khám: tạo HĐ thu tiền phù hợp (ca ngắn / phần còn lại sau cọc)
+    if (appointment.patientId) {
+      await this.ensureInvoiceAfterComplete(appointment);
+    }
+
+    return updated;
+  }
+
+  /** Ca ngắn → SERVICE. Có cọc → FINAL. Lịch gắn bước KH → STEP. */
+  private async ensureInvoiceAfterComplete(appointment: {
+    id: string;
+    patientId: string | null;
+    serviceId: string;
+    createdBy: string;
+    treatmentPlanStepId?: string | null;
+    service: { name: string; basePrice: unknown };
+  }) {
+    if (!appointment.patientId) return;
+
+    if (appointment.treatmentPlanStepId) {
+      await this.ensureStepInvoice({
+        stepId: appointment.treatmentPlanStepId,
+        appointmentId: appointment.id,
+        patientId: appointment.patientId,
+        createdBy: appointment.createdBy,
+        fallbackServiceName: appointment.service.name,
+        fallbackAmount: Number(appointment.service.basePrice),
+      });
+      return;
+    }
+
+    const invoices = await this.prisma.invoice.findMany({
+      where: { appointmentId: appointment.id },
+      select: {
+        id: true,
+        invoiceType: true,
+        status: true,
+        finalAmount: true,
+      },
+    });
+
+    const openStatuses: InvoiceStatus[] = [
+      InvoiceStatus.DRAFT,
+      InvoiceStatus.ISSUED,
+      InvoiceStatus.PARTIALLY_PAID,
+    ];
+    const hasOpen = invoices.some((inv) => openStatuses.includes(inv.status));
+    if (hasOpen) return;
+
+    const paidDeposit = invoices.find(
+      (inv) =>
+        inv.invoiceType === InvoiceType.DEPOSIT &&
+        inv.status === InvoiceStatus.PAID,
+    );
+    const hasServiceOrFinal = invoices.some(
+      (inv) =>
+        inv.invoiceType === InvoiceType.SERVICE ||
+        inv.invoiceType === InvoiceType.FINAL_PAYMENT ||
+        inv.invoiceType === InvoiceType.STEP_PAYMENT,
+    );
+    if (hasServiceOrFinal) return;
+
+    const basePrice = Number(appointment.service.basePrice);
+    const depositPaid = paidDeposit ? Number(paidDeposit.finalAmount) : 0;
+    const remaining = Number((basePrice - depositPaid).toFixed(2));
+
+    if (remaining <= 0) return;
+
+    const isBalance = depositPaid > 0;
+    await this.prisma.invoice.create({
+      data: {
+        invoiceCode: await this.generateInvoiceCode(),
+        patientId: appointment.patientId,
+        appointmentId: appointment.id,
+        invoiceType: isBalance
+          ? InvoiceType.FINAL_PAYMENT
+          : InvoiceType.SERVICE,
+        items: [
+          {
+            service_id: appointment.serviceId,
+            description: isBalance
+              ? `Phan con lai sau coc — ${appointment.service.name}`
+              : appointment.service.name,
+            qty: 1,
+            unit_price: remaining,
+            amount: remaining,
+            type: isBalance ? 'BALANCE' : 'SERVICE',
+          },
+        ],
+        subtotal: remaining,
+        finalAmount: remaining,
+        status: InvoiceStatus.ISSUED,
+        issuedAt: new Date(),
+        createdBy: appointment.createdBy,
+      },
+    });
+  }
+
+  /** Tạo HĐ STEP_PAYMENT cho một bước kế hoạch (idempotent). */
+  async ensureStepInvoice(input: {
+    stepId: string;
+    appointmentId?: string | null;
+    patientId: string;
+    createdBy: string;
+    fallbackServiceName?: string;
+    fallbackAmount?: number;
+  }) {
+    const existing = await this.prisma.invoice.findFirst({
+      where: {
+        treatmentPlanStepId: input.stepId,
+        status: {
+          notIn: [InvoiceStatus.CANCELLED, InvoiceStatus.REFUNDED],
+        },
+      },
+      select: { id: true },
+    });
+    if (existing) return existing;
+
+    const step = await this.prisma.treatmentPlanStep.findUnique({
+      where: { id: input.stepId },
+      select: {
+        id: true,
+        title: true,
+        stepOrder: true,
+        estimatedCost: true,
+        paymentAmount: true,
+        treatmentPlanId: true,
+        paymentStatus: true,
+      },
+    });
+    if (!step) return null;
+
+    const amount = Number(
+      step.paymentAmount ??
+        step.estimatedCost ??
+        input.fallbackAmount ??
+        0,
+    );
+    if (amount <= 0) return null;
+
+    const invoice = await this.prisma.invoice.create({
+      data: {
+        invoiceCode: await this.generateInvoiceCode(),
+        patientId: input.patientId,
+        appointmentId: input.appointmentId ?? null,
+        treatmentPlanId: step.treatmentPlanId,
+        treatmentPlanStepId: step.id,
+        invoiceType: InvoiceType.STEP_PAYMENT,
+        items: [
+          {
+            description: `Dot ${step.stepOrder}: ${step.title}`,
+            qty: 1,
+            unit_price: amount,
+            amount,
+            type: 'STEP',
+          },
+        ],
+        subtotal: amount,
+        finalAmount: amount,
+        status: InvoiceStatus.ISSUED,
+        issuedAt: new Date(),
+        createdBy: input.createdBy,
+      },
+      select: { id: true },
+    });
+
+    if (step.paymentStatus === 'UNBILLED') {
+      await this.prisma.treatmentPlanStep.update({
+        where: { id: step.id },
+        data: { paymentStatus: 'INVOICED' },
+      });
+    }
+
+    return invoice;
   }
 
   async getBookingOptions(query: BookingOptionQuery) {
@@ -492,6 +945,8 @@ export class AppointmentService {
     paymentOption?: AppointmentPaymentOption;
     bookingSource: BookingSource;
     createdBy: string;
+    skipOnlineBookingBlock?: boolean;
+    allowPastSchedule?: boolean;
   }) {
     const scheduledAt = new Date(input.scheduledAt);
 
@@ -499,7 +954,7 @@ export class AppointmentService {
       throw new BadRequestException('appointment.invalid_time');
     }
 
-    if (scheduledAt <= new Date()) {
+    if (!input.allowPastSchedule && scheduledAt <= new Date()) {
       throw new BadRequestException('appointment.time_in_past');
     }
 
@@ -525,9 +980,23 @@ export class AppointmentService {
       input.patientId,
       input.createdBy,
     );
-    this.ensureOnlineBookingAllowed(bookingPolicy);
+    if (!input.skipOnlineBookingBlock) {
+      this.ensureOnlineBookingAllowed(bookingPolicy);
+    }
     const clinicConfig = await this.clinicConfigService.getClinicConfig();
-    const depositPolicy = this.resolveDepositPolicy(service, clinicConfig);
+    let depositPolicy = this.resolveDepositPolicy(service, clinicConfig);
+    // Lễ tân chọn cọc: luôn cho phép ~30% kể cả khi clinic tắt cọc online
+    if (
+      input.paymentOption === AppointmentPaymentOption.DEPOSIT_30_PERCENT &&
+      !depositPolicy.enabled &&
+      input.bookingSource === BookingSource.RECEPTIONIST
+    ) {
+      depositPolicy = {
+        enabled: true,
+        calculationMode: DepositCalculationMode.PERCENT,
+        value: 30,
+      };
+    }
     const depositAmount = depositPolicy.enabled
       ? this.calculateDepositAmount(Number(service.basePrice), depositPolicy)
       : 0;

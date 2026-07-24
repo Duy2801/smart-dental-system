@@ -15,6 +15,7 @@ import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import type { AuthenticatedUser } from 'src/common/interfaces/authenticated-user.interface';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
+import { CreateStaffAppointmentDto } from './dto/create-staff-appointment.dto';
 import { RescheduleAppointmentDto } from './dto/reschedule-appointment.dto';
 import { AppointmentService } from './appointment.service';
 
@@ -37,29 +38,76 @@ export class AppointmentController {
     );
   }
 
-  @Patch(':id/cancel')
-  @Roles('PATIENT')
+  @Post('staff')
+  @Roles('RECEPTIONIST', 'ADMIN')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  cancelForPatient(
+  createForStaff(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreateStaffAppointmentDto,
+  ) {
+    return this.appointmentService.createAppointmentForReceptionist(
+      user.userId,
+      dto,
+    );
+  }
+
+  @Patch(':id/cancel')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('PATIENT', 'RECEPTIONIST', 'ADMIN')
+  cancel(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
   ) {
-    return this.appointmentService.cancelAppointmentForPatient(user.userId, id);
+    if (user.roles.includes('PATIENT') && !user.roles.includes('RECEPTIONIST') && !user.roles.includes('ADMIN')) {
+      return this.appointmentService.cancelAppointmentForPatient(user.userId, id);
+    }
+    return this.appointmentService.cancelByStaff(id);
   }
 
   @Patch(':id/reschedule')
-  @Roles('PATIENT')
+  @Roles('PATIENT', 'RECEPTIONIST', 'ADMIN')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  rescheduleForPatient(
+  reschedule(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
     @Body() dto: RescheduleAppointmentDto,
   ) {
-    return this.appointmentService.rescheduleAppointmentForPatient(
-      user.userId,
-      id,
-      dto,
-    );
+    const isPatientOnly =
+      user.roles.includes('PATIENT') &&
+      !user.roles.includes('RECEPTIONIST') &&
+      !user.roles.includes('ADMIN');
+    if (isPatientOnly) {
+      return this.appointmentService.rescheduleAppointmentForPatient(
+        user.userId,
+        id,
+        dto,
+      );
+    }
+    return this.appointmentService.rescheduleByStaff(id, dto);
+  }
+
+  @Patch(':id/confirm')
+  @Roles('DOCTOR', 'ADMIN', 'RECEPTIONIST')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  confirmAppointment(@Param('id') id: string) {
+    return this.appointmentService.confirmAppointment(id);
+  }
+
+  @Patch(':id/check-in')
+  @Roles('DOCTOR', 'ADMIN', 'RECEPTIONIST')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  checkInAppointment(
+    @Param('id') id: string,
+    @Body() body?: { notes?: string },
+  ) {
+    return this.appointmentService.checkInAppointment(id, body?.notes);
+  }
+
+  @Patch(':id/no-show')
+  @Roles('DOCTOR', 'ADMIN', 'RECEPTIONIST')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  markNoShow(@Param('id') id: string) {
+    return this.appointmentService.markNoShow(id);
   }
 
   @Patch(':id/start')
@@ -79,12 +127,27 @@ export class AppointmentController {
   @Get()
   @Roles('DOCTOR', 'ADMIN', 'RECEPTIONIST')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  findByDoctorAndWeek(
-    @Query('doctorId') doctorId: string,
-    @Query('from') from: string,
-    @Query('to') to: string,
+  findMany(
+    @Query('doctorId') doctorId?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('date') date?: string,
+    @Query('search') search?: string,
   ) {
-    return this.appointmentService.findByDoctorAndWeek(doctorId, from, to);
+    if (date || search || (from && to && !doctorId)) {
+      return this.appointmentService.findByDate({
+        date,
+        from,
+        to,
+        doctorId,
+        search,
+      });
+    }
+    return this.appointmentService.findByDoctorAndWeek(
+      doctorId as string,
+      from as string,
+      to as string,
+    );
   }
 
   @Get('booking-options')
@@ -114,5 +177,12 @@ export class AppointmentController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   findHistoryForPatient(@CurrentUser() user: AuthenticatedUser) {
     return this.appointmentService.findHistoryForPatient(user.userId);
+  }
+
+  @Get(':id')
+  @Roles('DOCTOR', 'ADMIN', 'RECEPTIONIST')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  findOne(@Param('id') id: string) {
+    return this.appointmentService.findOne(id);
   }
 }

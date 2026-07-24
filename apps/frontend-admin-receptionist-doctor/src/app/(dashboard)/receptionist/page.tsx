@@ -5,8 +5,10 @@ import Link from "next/link";
 import { cn } from "@/src/lib/utils/cn";
 import { Header } from "@/src/components/layout/header";
 import { AppointmentStatusBadge } from "@/src/components/shared/appointment-status-badge";
-import type { AppointmentStatus } from "@/src/components/shared/appointment-status-badge";
 import apiClient from "@/src/lib/api/client";
+import { mapAppointments, localDateStr } from "@/src/lib/receptionist/mappers";
+import type { ReceptionistAppointment } from "@/src/lib/receptionist/mappers";
+import { formatDoctorName } from "@/src/lib/utils/format";
 import {
   CalendarBlank,
   Clock,
@@ -22,23 +24,13 @@ import {
   Stethoscope,
   ArrowRight,
   Warning,
-  SpinnerGap,
 } from "@phosphor-icons/react";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-interface Appointment {
-  id: string;
-  startTime: string;
-  status: AppointmentStatus;
-  patient?: { fullName: string; phone: string } | null;
-  doctor?: { fullName: string } | null;
-  service?: { name: string } | null;
-  invoicePending?: boolean;
-  notes?: string | null;
-}
+type Appointment = ReceptionistAppointment;
 
 interface PendingBill {
   id: string;
@@ -82,59 +74,6 @@ function formatTime(timeStr: string): string {
 function formatVND(amount: number): string {
   return amount.toLocaleString("vi-VN") + " ₫";
 }
-
-// ---------------------------------------------------------------------------
-// Mock data (dùng khi API chưa sẵn sàng)
-// ---------------------------------------------------------------------------
-
-const MOCK_APPOINTMENTS: Appointment[] = [
-  {
-    id: "AP01",
-    startTime: "08:30:00",
-    status: "PENDING",
-    patient: { fullName: "Nguyễn Văn An", phone: "0901234567" },
-    doctor: { fullName: "Trần Sơn" },
-    service: { name: "Nhổ răng khôn" },
-  },
-  {
-    id: "AP02",
-    startTime: "09:00:00",
-    status: "CONFIRMED",
-    patient: { fullName: "Lê Hoàng Cường", phone: "0987654321" },
-    doctor: { fullName: "Phạm Hà" },
-    service: { name: "Tái khám niềng răng" },
-  },
-  {
-    id: "AP03",
-    startTime: "10:30:00",
-    status: "CHECKED_IN",
-    patient: { fullName: "Đỗ Thu Hương", phone: "0977889900" },
-    doctor: { fullName: "Lê Hoàng" },
-    service: { name: "Khám tổng quát" },
-  },
-  {
-    id: "AP04",
-    startTime: "11:00:00",
-    status: "IN_PROGRESS",
-    patient: { fullName: "Hoàng Minh Quân", phone: "0933445566" },
-    doctor: { fullName: "Trần Sơn" },
-    service: { name: "Cắm Implant" },
-  },
-  {
-    id: "AP05",
-    startTime: "13:00:00",
-    status: "COMPLETED",
-    patient: { fullName: "Phạm Thị Bích", phone: "0912345678" },
-    doctor: { fullName: "Phạm Hà" },
-    service: { name: "Tẩy trắng răng" },
-    invoicePending: true,
-  },
-];
-
-const MOCK_BILLS: PendingBill[] = [
-  { id: "B01", patientName: "Hoàng Minh Quân", total: 15000000, invoiceId: "INV-001" },
-  { id: "B02", patientName: "Phạm Thị Bích", total: 1500000, invoiceId: "INV-002" },
-];
 
 // ---------------------------------------------------------------------------
 // Skeleton
@@ -193,19 +132,37 @@ export default function ReceptionistDashboard() {
   // --------------------------------------------------
 
   useEffect(() => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDateStr();
 
     const fetchAll = async () => {
       try {
         setLoading(true);
-        const [apptRes] = await Promise.all([
-          apiClient.get<{ data: Appointment[] }>(`/appointments?date=${today}`),
+        setError(null);
+        const [apptRes, invRes] = await Promise.all([
+          apiClient.get(`/appointments?date=${today}`),
+          apiClient.get(`/invoices?status=UNPAID`).catch(() => ({ data: [] })),
         ]);
-        setAppointments(apptRes.data ?? []);
+        setAppointments(mapAppointments(apptRes.data));
+        const invoices = Array.isArray(invRes.data) ? invRes.data : [];
+        setPendingBills(
+          invoices.map(
+            (inv: {
+              id: string;
+              patient_name?: string;
+              final_amount?: number;
+              invoice_code?: string;
+            }) => ({
+              id: inv.id,
+              patientName: inv.patient_name ?? "—",
+              total: Number(inv.final_amount ?? 0),
+              invoiceId: inv.invoice_code ?? inv.id,
+            }),
+          ),
+        );
       } catch {
-        // Dùng mock data khi API chưa sẵn sàng
-        setAppointments(MOCK_APPOINTMENTS);
-        setPendingBills(MOCK_BILLS);
+        setError("Không tải được dữ liệu từ máy chủ. Kiểm tra backend đang chạy.");
+        setAppointments([]);
+        setPendingBills([]);
       } finally {
         setLoading(false);
       }
@@ -249,10 +206,7 @@ export default function ReceptionistDashboard() {
         prev.map((a) => (a.id === id ? { ...a, status: "CONFIRMED" } : a))
       );
     } catch {
-      // mock
-      setAppointments((prev) =>
-        prev.map((a) => (a.id === id ? { ...a, status: "CONFIRMED" } : a))
-      );
+      setError("Xác nhận lịch hẹn thất bại.");
     }
   };
 
@@ -263,9 +217,18 @@ export default function ReceptionistDashboard() {
         prev.map((a) => (a.id === id ? { ...a, status: "CHECKED_IN" } : a))
       );
     } catch {
+      setError("Check-in thất bại.");
+    }
+  };
+
+  const handleNotifyDoctor = async (id: string) => {
+    try {
+      await apiClient.patch(`/appointments/${id}/start`);
       setAppointments((prev) =>
-        prev.map((a) => (a.id === id ? { ...a, status: "CHECKED_IN" } : a))
+        prev.map((a) => (a.id === id ? { ...a, status: "IN_PROGRESS" } : a))
       );
+    } catch {
+      setError("Không thể nhắc bác sĩ (cần đã check-in).");
     }
   };
 
@@ -480,7 +443,7 @@ export default function ReceptionistDashboard() {
                               </span>
                             )}
                             {apt.doctor?.fullName && (
-                              <span className="text-slate-500">BS. {apt.doctor.fullName}</span>
+                              <span className="text-slate-500">{formatDoctorName(apt.doctor.fullName)}</span>
                             )}
                           </div>
                         </div>
@@ -506,7 +469,10 @@ export default function ReceptionistDashboard() {
                             </button>
                           )}
                           {apt.status === "CHECKED_IN" && (
-                            <button className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-white px-3 text-xs font-semibold text-brand-dark shadow-sm transition-all hover:bg-muted active:scale-[0.98]">
+                            <button
+                              onClick={() => handleNotifyDoctor(apt.id)}
+                              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-white px-3 text-xs font-semibold text-brand-dark shadow-sm transition-all hover:bg-muted active:scale-[0.98]"
+                            >
                               <BellRinging size={13} />
                               Nhắc BS
                             </button>
