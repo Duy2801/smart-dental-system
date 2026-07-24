@@ -89,18 +89,6 @@ function formatLastVisit(v?: string | null): string {
 }
 
 // ---------------------------------------------------------------------------
-// Mock data
-// ---------------------------------------------------------------------------
-
-const MOCK_PATIENTS: Patient[] = [
-  { id: "BN-23001", fullName: "Nguyễn Văn An", phone: "0901234567", dateOfBirth: "1990-05-12", gender: "MALE", allergies: ["Penicillin"], medicalHistory: "Cao huyết áp", lastVisit: new Date().toISOString(), totalVisits: 5 },
-  { id: "BN-23002", fullName: "Trần Thị Bé", phone: "0911223344", dateOfBirth: "1995-11-08", gender: "FEMALE", allergies: [], lastVisit: new Date(Date.now() - 86400000 * 3).toISOString(), totalVisits: 2 },
-  { id: "BN-23003", fullName: "Lê Hoàng Công", phone: "0987654321", dateOfBirth: "1985-01-25", gender: "MALE", allergies: ["Aspirin"], medicalHistory: "Máu khó đông", lastVisit: null, totalVisits: 0 },
-  { id: "BN-23004", fullName: "Đỗ Thu Hà", phone: "0977889900", dateOfBirth: "2000-09-14", gender: "FEMALE", allergies: [], lastVisit: new Date(Date.now() - 86400000 * 10).toISOString(), totalVisits: 12 },
-  { id: "BN-23005", fullName: "Phạm Văn Dũng", phone: "0933445566", dateOfBirth: "1980-03-02", gender: "MALE", allergies: ["Latex", "Ibuprofen"], medicalHistory: "Tiểu đường Type 2", lastVisit: new Date(Date.now() - 86400000 * 60).toISOString(), totalVisits: 8 },
-];
-
-// ---------------------------------------------------------------------------
 // Skeleton
 // ---------------------------------------------------------------------------
 
@@ -302,18 +290,44 @@ export default function ReceptionistPatientsPage() {
         setError(null);
         const params = new URLSearchParams();
         if (search) params.set("search", search);
-        params.set("page", "1");
-        params.set("limit", "100");
-        const res = await apiClient.get<{ data: Patient[] }>(`/patients?${params}`);
-        setPatients(Array.isArray(res.data) ? res.data : []);
+        const res = await apiClient.get(`/patients?${params}`);
+        const list = Array.isArray(res.data) ? res.data : [];
+        setPatients(
+          list.map(
+            (p: {
+              id: string;
+              patientCode?: string;
+              fullName: string;
+              phone?: string | null;
+              dateOfBirth?: string | null;
+              gender?: "MALE" | "FEMALE" | null;
+              allergies?: string[];
+              medicalHistory?: string | null;
+              lastVisit?: string | null;
+              lastVisitDate?: string | null;
+              totalVisits?: number;
+            }) => ({
+              id: p.id,
+              fullName: p.fullName,
+              phone: p.phone ?? "",
+              dateOfBirth: p.dateOfBirth,
+              gender: p.gender,
+              allergies: p.allergies ?? [],
+              medicalHistory: p.medicalHistory,
+              lastVisit: p.lastVisit ?? p.lastVisitDate ?? null,
+              totalVisits: p.totalVisits ?? 0,
+            }),
+          ),
+        );
       } catch {
-        setPatients(MOCK_PATIENTS);
+        setError("Không tải được danh sách bệnh nhân từ máy chủ.");
+        setPatients([]);
       } finally {
         setLoading(false);
       }
     };
 
-    const timer = setTimeout(fetchData, 350); // debounce search
+    const timer = setTimeout(fetchData, 350);
     return () => clearTimeout(timer);
   }, [search]);
 

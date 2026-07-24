@@ -5,6 +5,7 @@ import Link from "next/link";
 import { cn } from "@/src/lib/utils/cn";
 import { Header } from "@/src/components/layout/header";
 import apiClient from "@/src/lib/api/client";
+import { mapAppointments } from "@/src/lib/receptionist/mappers";
 import {
   ArrowLeft,
   QrCode,
@@ -50,23 +51,6 @@ function getInitials(name: string): string {
     .join("")
     .toUpperCase();
 }
-
-// ---------------------------------------------------------------------------
-// Mock data (dùng khi API chưa sẵn sàng)
-// ---------------------------------------------------------------------------
-
-const MOCK_APPOINTMENT: AppointmentInfo = {
-  id: "AP-1003",
-  patientName: "Đỗ Thu Hương",
-  patientPhone: "0977 889 900",
-  patientInitials: "TH",
-  allergies: ["Penicillin"],
-  serviceName: "Khám tổng quát",
-  doctorName: "Lê Hoàng",
-  startTime: "10:30",
-  endTime: "11:30",
-  status: "CONFIRMED",
-};
 
 // ---------------------------------------------------------------------------
 // Toast component (tạm thời, không cần thư viện)
@@ -126,11 +110,16 @@ export default function CheckInPage() {
 
     try {
       const today = new Date().toISOString().slice(0, 10);
-      const res = await apiClient.get<{ data: { id: string; patient?: { fullName?: string; phone?: string; allergies?: string[] }; service?: { name: string }; doctor?: { fullName: string }; startTime: string; endTime?: string; status: string }[] }>(
-        `/appointments?date=${today}&search=${encodeURIComponent(searchValue.trim())}`
+      const res = await apiClient.get(
+        `/appointments?date=${today}&search=${encodeURIComponent(searchValue.trim())}`,
       );
-      const list = res.data ?? [];
-      if (list.length === 0) throw new Error("not_found");
+      const list = mapAppointments(res.data).filter(
+        (a) => a.status === "PENDING" || a.status === "CONFIRMED",
+      );
+      if (list.length === 0) {
+        setSearchError("Không tìm thấy lịch hẹn phù hợp hôm nay. Kiểm tra lại SĐT hoặc mã lịch.");
+        return;
+      }
 
       const apt = list[0];
       const name = apt.patient?.fullName ?? "Khách vãng lai";
@@ -139,7 +128,7 @@ export default function CheckInPage() {
         patientName: name,
         patientPhone: apt.patient?.phone ?? "--",
         patientInitials: getInitials(name),
-        allergies: apt.patient?.allergies ?? [],
+        allergies: [],
         serviceName: apt.service?.name ?? "--",
         doctorName: apt.doctor?.fullName ?? "--",
         startTime: apt.startTime?.slice(0, 5) ?? "--:--",
@@ -148,16 +137,7 @@ export default function CheckInPage() {
       });
       setMode("confirm");
     } catch {
-      // mock fallback
-      if (
-        searchValue.trim().toLowerCase().includes("ap-1003") ||
-        searchValue.includes("0977")
-      ) {
-        setAppointment(MOCK_APPOINTMENT);
-        setMode("confirm");
-      } else {
-        setSearchError("Không tìm thấy lịch hẹn phù hợp hôm nay. Kiểm tra lại SĐT hoặc mã lịch.");
-      }
+      setSearchError("Không tìm thấy lịch hẹn phù hợp hôm nay. Kiểm tra lại SĐT hoặc mã lịch.");
     } finally {
       setSearching(false);
     }
@@ -173,9 +153,7 @@ export default function CheckInPage() {
       setMode("done");
       showToast("Check-in thành công! Bệnh nhân đã vào phòng chờ.", "success");
     } catch {
-      // mock success
-      setMode("done");
-      showToast("Check-in thành công! Bệnh nhân đã vào phòng chờ.", "success");
+      showToast("Check-in thất bại.", "error");
     } finally {
       setSubmitting(false);
     }

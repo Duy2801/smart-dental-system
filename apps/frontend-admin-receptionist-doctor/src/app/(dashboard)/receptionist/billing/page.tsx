@@ -61,58 +61,6 @@ function formatVND(amount: number): string {
 }
 
 // ---------------------------------------------------------------------------
-// Mock data
-// ---------------------------------------------------------------------------
-
-const MOCK_INVOICES: Invoice[] = [
-  {
-    id: "HD-2606-001",
-    patient: "Trần Thị Bích",
-    patientInitials: "TB",
-    doctor: "BS. Phạm Hà",
-    total: 1500000,
-    date: "27/06/2026",
-    status: "UNPAID",
-    services: [{ name: "Tẩy trắng răng Laser", qty: 1, price: 1500000 }],
-    paymentOption: "PAY_AT_COUNTER",
-  },
-  {
-    id: "HD-2606-002",
-    patient: "Phạm Văn Dũng",
-    patientInitials: "VD",
-    doctor: "BS. Lê Hoàng",
-    total: 500000,
-    date: "27/06/2026",
-    status: "UNPAID",
-    services: [
-      { name: "Trám răng composite", qty: 2, price: 250000 },
-    ],
-    paymentOption: "PAY_AT_COUNTER",
-  },
-  {
-    id: "HD-2606-003",
-    patient: "Nguyễn Văn An",
-    patientInitials: "VA",
-    doctor: "BS. Trần Sơn",
-    total: 800000,
-    date: "27/06/2026",
-    status: "UNPAID",
-    services: [{ name: "Nhổ răng khôn", qty: 1, price: 800000 }],
-    paymentOption: "DEPOSIT_30_PERCENT",
-  },
-  {
-    id: "HD-2606-004",
-    patient: "Lê Hoàng Cường",
-    patientInitials: "HC",
-    doctor: "BS. Phạm Hà",
-    total: 20000000,
-    date: "26/06/2026",
-    status: "PAID",
-    services: [{ name: "Niềng răng mắc cài (Kỳ 1)", qty: 1, price: 20000000 }],
-  },
-];
-
-// ---------------------------------------------------------------------------
 // Toast
 // ---------------------------------------------------------------------------
 
@@ -203,11 +151,11 @@ function InvoiceItem({
 // ---------------------------------------------------------------------------
 
 export default function BillingPage() {
-  const [invoices, setInvoices] = useState<Invoice[]>(MOCK_INVOICES);
-  const [loading, setLoading] = useState(false);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"UNPAID" | "PAID">("UNPAID");
   const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<Invoice>(MOCK_INVOICES[0]);
+  const [selected, setSelected] = useState<Invoice | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("TRANSFER");
   const [discountCode, setDiscountCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -220,17 +168,57 @@ export default function BillingPage() {
 
   // fetch invoices
   useEffect(() => {
+    const mapInv = (
+      inv: {
+        id: string;
+        patient_name?: string;
+        final_amount?: number;
+        issued_at?: string;
+        status?: string;
+        items?: { description?: string; qty?: number; unit_price?: number }[];
+      },
+      forceStatus?: "UNPAID" | "PAID",
+    ): Invoice => {
+      const name = inv.patient_name ?? "—";
+      return {
+        id: inv.id,
+        patient: name,
+        patientInitials: getInitials(name),
+        doctor: "—",
+        total: Number(inv.final_amount ?? 0),
+        date: inv.issued_at
+          ? new Date(inv.issued_at).toLocaleDateString("vi-VN")
+          : "",
+        status:
+          forceStatus ??
+          (inv.status === "PAID" ? "PAID" : "UNPAID"),
+        services: (inv.items ?? []).map((it) => ({
+          name: it.description ?? "Dịch vụ",
+          qty: Number(it.qty ?? 1),
+          price: Number(it.unit_price ?? 0),
+        })),
+      };
+    };
+
     const fetchInvoices = async () => {
       try {
         setLoading(true);
-        const today = new Date().toISOString().slice(0, 10);
-        const res = await apiClient.get<{ data: Invoice[] }>(`/invoices?date=${today}&status=ISSUED`);
-        if (Array.isArray(res.data) && res.data.length > 0) {
-          setInvoices(res.data);
-          setSelected(res.data[0]);
-        }
+        const [unpaidRes, paidRes] = await Promise.all([
+          apiClient.get(`/invoices?status=UNPAID`),
+          apiClient.get(`/invoices?status=PAID`),
+        ]);
+        const unpaid = (Array.isArray(unpaidRes.data) ? unpaidRes.data : []).map(
+          (i: Parameters<typeof mapInv>[0]) => mapInv(i, "UNPAID"),
+        );
+        const paid = (Array.isArray(paidRes.data) ? paidRes.data : []).map(
+          (i: Parameters<typeof mapInv>[0]) => mapInv(i, "PAID"),
+        );
+        const all = [...unpaid, ...paid];
+        setInvoices(all);
+        setSelected(all.find((i) => i.status === "UNPAID") ?? all[0] ?? null);
       } catch {
-        // giữ mock data
+        setInvoices([]);
+        setSelected(null);
       } finally {
         setLoading(false);
       }
@@ -251,31 +239,25 @@ export default function BillingPage() {
 
   const unpaidCount = invoices.filter((i) => i.status === "UNPAID").length;
 
-  // confirm payment
+  // confirm payment — backend payments chưa có, cập nhật local khi API lỗi
   const handleConfirm = async () => {
+    if (!selected) return;
     setSubmitting(true);
     try {
-                      await apiClient.post("/payments", {
-                        invoiceId: selected.id,
-                        method: paymentMethod === "TRANSFER" ? "BANK_TRANSFER" : "CASH",
-                        amount: selected.total,
-                      });
+      await apiClient.post("/payments", {
+        invoiceId: selected.id,
+        method: paymentMethod === "TRANSFER" ? "BANK_TRANSFER" : "CASH",
+        amount: selected.total,
+      });
       setInvoices((prev) =>
         prev.map((inv) =>
           inv.id === selected.id ? { ...inv, status: "PAID" } : inv
         )
       );
-      setSelected((prev) => ({ ...prev, status: "PAID" }));
+      setSelected((prev) => (prev ? { ...prev, status: "PAID" } : prev));
       showToast("Đã thu tiền thành công!", "success");
     } catch {
-      // mock
-      setInvoices((prev) =>
-        prev.map((inv) =>
-          inv.id === selected.id ? { ...inv, status: "PAID" } : inv
-        )
-      );
-      setSelected((prev) => ({ ...prev, status: "PAID" }));
-      showToast("Đã thu tiền thành công!", "success");
+      showToast("API thanh toán chưa sẵn sàng trên backend.", "error");
     } finally {
       setSubmitting(false);
     }
@@ -364,7 +346,7 @@ export default function BillingPage() {
                     <InvoiceItem
                       key={inv.id}
                       inv={inv}
-                      selected={selected.id === inv.id}
+                      selected={selected?.id === inv.id}
                       onClick={() => setSelected(inv)}
                     />
                   ))
@@ -374,6 +356,12 @@ export default function BillingPage() {
 
             {/* ── CHI TIẾT HÓA ĐƠN (8/12) ──────────────────────── */}
             <div className="lg:col-span-8">
+              {!selected ? (
+                <div className="rounded-2xl border border-border bg-white shadow-sm flex flex-col items-center justify-center gap-2 py-24 text-muted-foreground">
+                  <ReceiptX size={36} className="text-slate-300" />
+                  <p className="text-sm font-medium">Chọn hóa đơn để xem chi tiết</p>
+                </div>
+              ) : (
               <div className="rounded-2xl border border-border bg-white shadow-sm overflow-hidden">
 
                 {/* Header chi tiết */}
@@ -563,6 +551,7 @@ export default function BillingPage() {
                   </div>
                 </div>
               </div>
+              )}
             </div>
 
           </div>

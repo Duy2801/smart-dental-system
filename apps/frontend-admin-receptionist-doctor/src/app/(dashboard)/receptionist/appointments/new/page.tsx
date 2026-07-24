@@ -1,222 +1,434 @@
 "use client";
 
-import React, { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/src/lib/utils/cn";
+import apiClient from "@/src/lib/api/client";
+import {
+  ArrowLeft,
+  UserPlus,
+  CalendarBlank,
+  Clock,
+  Check,
+  SpinnerGap,
+} from "@phosphor-icons/react";
 
-// --- INLINE SVGS ---
-const ArrowLeftIcon = ({ className }: { className?: string }) => (
-  <svg className={className} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
-);
+type PatientOpt = { id: string; name: string; phone: string };
+type ServiceOpt = { id: string; name: string };
+type DoctorOpt = {
+  id: string;
+  name: string;
+  spec: string;
+  status: "AVAILABLE" | "BUSY";
+};
 
-const UserPlusIcon = ({ className }: { className?: string }) => (
-  <svg className={className} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
-);
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
 
-const CalendarIcon = ({ className }: { className?: string }) => (
-  <svg className={className} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
-);
+function NewAppointmentForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
-const ClockIcon = ({ className }: { className?: string }) => (
-  <svg className={className} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-);
+  const prefillId = searchParams.get("patientId") ?? "";
+  const prefillName = searchParams.get("patientName") ?? "";
+  const prefillPhone = searchParams.get("patientPhone") ?? "";
 
-const CheckIcon = ({ className }: { className?: string }) => (
-  <svg className={className} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-);
+  const [patients, setPatients] = useState<PatientOpt[]>([]);
+  const [services, setServices] = useState<ServiceOpt[]>([]);
+  const [doctors, setDoctors] = useState<DoctorOpt[]>([]);
+  const [timeSlots, setTimeSlots] = useState<string[]>([]);
+  const [loadingOpts, setLoadingOpts] = useState(true);
 
-// --- MOCK DATA ---
-const DOCTORS = [
-  { id: "D1", name: "BS. Trần Sơn", spec: "Tiểu phẫu / Implant", status: "AVAILABLE" },
-  { id: "D2", name: "BS. Lê Hoàng", spec: "Tổng quát / Phục hình", status: "BUSY" },
-  { id: "D3", name: "BS. Phạm Hà", spec: "Chỉnh nha", status: "AVAILABLE" },
-];
+  const [patientId, setPatientId] = useState(prefillId);
+  const [serviceId, setServiceId] = useState("");
+  const [date, setDate] = useState(todayStr());
+  const [checkInMode, setCheckInMode] = useState<"PENDING" | "WAITING">("PENDING");
+  const [selectedDoctor, setSelectedDoctor] = useState("");
+  const [selectedTime, setSelectedTime] = useState("");
+  const [notes, setNotes] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-const TIME_SLOTS = [
-  "08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
-  "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00"
-];
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoadingOpts(true);
+        const [patientsRes, optionsRes] = await Promise.all([
+          apiClient.get("/patients"),
+          apiClient.get("/appointments/booking-options"),
+        ]);
 
-export default function NewAppointmentPage() {
-  const [selectedDoctor, setSelectedDoctor] = useState<string>("");
-  const [selectedTime, setSelectedTime] = useState<string>("");
+        const pList = Array.isArray(patientsRes.data) ? patientsRes.data : [];
+        const mappedPatients: PatientOpt[] = pList.map(
+          (p: { id: string; fullName?: string; phone?: string | null }) => ({
+            id: p.id,
+            name: p.fullName ?? "—",
+            phone: p.phone ?? "",
+          }),
+        );
+        if (
+          prefillId &&
+          !mappedPatients.some((p) => p.id === prefillId)
+        ) {
+          mappedPatients.unshift({
+            id: prefillId,
+            name: prefillName || `BN ${prefillId.slice(0, 8)}`,
+            phone: prefillPhone,
+          });
+        }
+        setPatients(mappedPatients);
+
+        const opts = optionsRes.data as {
+          services?: { id: string; name: string }[];
+          doctors?: {
+            id: string;
+            specialization?: string;
+            user?: { fullName?: string };
+          }[];
+          timeSlots?: string[];
+        };
+        setServices(
+          (opts.services ?? []).map((s) => ({ id: s.id, name: s.name })),
+        );
+        setDoctors(
+          (opts.doctors ?? []).map((d) => ({
+            id: d.id,
+            name: `BS. ${d.user?.fullName ?? "—"}`,
+            spec: d.specialization ?? "",
+            status: "AVAILABLE" as const,
+          })),
+        );
+        setTimeSlots(opts.timeSlots ?? []);
+      } catch {
+        setError("Không tải được dữ liệu đặt lịch từ máy chủ.");
+      } finally {
+        setLoadingOpts(false);
+      }
+    };
+    void load();
+  }, [prefillId, prefillName, prefillPhone]);
+
+  useEffect(() => {
+    if (!serviceId && !selectedDoctor && !date) return;
+    apiClient
+      .get("/appointments/booking-options", {
+        params: {
+          ...(serviceId ? { serviceId } : {}),
+          ...(selectedDoctor ? { doctorId: selectedDoctor } : {}),
+          ...(date ? { date } : {}),
+          ...(selectedTime ? { time: selectedTime } : {}),
+        },
+      })
+      .then((res) => {
+        const opts = res.data as {
+          timeSlots?: string[];
+          doctors?: {
+            id: string;
+            specialization?: string;
+            user?: { fullName?: string };
+          }[];
+        };
+        if (opts.timeSlots) setTimeSlots(opts.timeSlots);
+        if (opts.doctors) {
+          setDoctors(
+            opts.doctors.map((d) => ({
+              id: d.id,
+              name: `BS. ${d.user?.fullName ?? "—"}`,
+              spec: d.specialization ?? "",
+              status: "AVAILABLE" as const,
+            })),
+          );
+        }
+      })
+      .catch(() => undefined);
+  }, [serviceId, selectedDoctor, date, selectedTime]);
+
+  const handleSubmit = async () => {
+    setError(null);
+    if (!patientId || !serviceId || !date || !selectedTime || !selectedDoctor) {
+      setError("Vui lòng chọn đủ bệnh nhân, dịch vụ, ngày, giờ và bác sĩ.");
+      return;
+    }
+
+    setSubmitting(true);
+    const scheduledAt = new Date(`${date}T${selectedTime}:00`).toISOString();
+    try {
+      const res = await apiClient.post<{ id: string }>("/appointments/staff", {
+        patientId,
+        serviceId,
+        doctorId: selectedDoctor,
+        scheduledAt,
+        notes: notes.trim() || undefined,
+        walkIn: checkInMode === "WAITING",
+        paymentOption: "PAY_AT_COUNTER",
+      });
+      router.push(`/receptionist/appointments/${res.data?.id ?? ""}`);
+    } catch {
+      setError("Tạo lịch hẹn thất bại. Kiểm tra slot còn trống và thử lại.");
+      setSubmitting(false);
+    }
+  };
+
+  if (loadingOpts) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <SpinnerGap size={32} className="animate-spin text-brand" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50/50 px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-4xl">
-        
-        {/* Breadcrumb & Header */}
         <div className="mb-6 space-y-4">
-          <Link href="/receptionist/appointments" className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground transition-colors hover:text-brand-dark">
-            <ArrowLeftIcon /> Quay lại Lịch hẹn
+          <Link
+            href="/receptionist/appointments"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground transition-colors hover:text-brand-dark"
+          >
+            <ArrowLeft size={16} /> Quay lại Lịch hẹn
           </Link>
-          
+
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-brand-dark">Tạo Lịch Hẹn Mới / Walk-in</h1>
-              <p className="mt-1 text-sm text-muted-foreground">Sắp xếp ca khám cho bệnh nhân mới hoặc tái khám.</p>
+              <h1 className="text-2xl font-bold text-brand-dark">
+                Tạo Lịch Hẹn Mới / Walk-in
+              </h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Sắp xếp ca khám cho bệnh nhân mới hoặc tái khám.
+              </p>
             </div>
             <div className="flex gap-3">
-              <button className="rounded-xl border border-border bg-white px-5 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:shadow active:scale-[0.98]">
+              <Link
+                href="/receptionist/appointments"
+                className="rounded-xl border border-border bg-white px-5 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition-all hover:bg-slate-50 active:scale-[0.98]"
+              >
                 Hủy bỏ
-              </button>
-              <button className="inline-flex items-center gap-2 rounded-xl bg-brand px-6 py-2.5 text-sm font-bold text-white shadow-sm ring-1 ring-inset ring-white/20 transition-all hover:bg-brand-dark hover:shadow-md active:scale-[0.98]">
-                <CheckIcon className="h-4 w-4" /> Xác nhận Đặt lịch
+              </Link>
+              <button
+                onClick={() => void handleSubmit()}
+                disabled={submitting}
+                className="inline-flex items-center gap-2 rounded-xl bg-brand px-6 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-brand-dark disabled:opacity-60 active:scale-[0.98]"
+              >
+                {submitting ? (
+                  <SpinnerGap size={16} className="animate-spin" />
+                ) : (
+                  <Check size={16} weight="bold" />
+                )}
+                Xác nhận Đặt lịch
               </button>
             </div>
           </div>
         </div>
 
+        {error && (
+          <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+            {error}
+          </div>
+        )}
+
         <div className="grid gap-8 lg:grid-cols-12">
-          
-          {/* Main Form Area */}
           <div className="space-y-6 lg:col-span-8">
-            
-            {/* 1. Thông tin Bệnh nhân */}
             <div className="rounded-2xl border border-border bg-white p-6 md:p-8 shadow-sm">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-base font-bold text-slate-900">1. Thông tin Bệnh nhân</h2>
-                <button className="inline-flex items-center gap-1.5 text-sm font-bold text-brand hover:text-brand-dark transition-colors">
-                  <UserPlusIcon className="h-4 w-4" /> Thêm mới nhanh
-                </button>
+                <h2 className="text-base font-bold text-slate-900">
+                  1. Thông tin Bệnh nhân
+                </h2>
+                <Link
+                  href="/receptionist/patients/new"
+                  className="inline-flex items-center gap-1.5 text-sm font-bold text-brand hover:text-brand-dark transition-colors"
+                >
+                  <UserPlus size={16} /> Thêm mới nhanh
+                </Link>
               </div>
-              
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Tìm kiếm Khách hàng (Tên / SĐT) <span className="text-red-500">*</span></label>
-                  <select className="w-full rounded-xl border-transparent bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 outline-none transition-all focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand/20 shadow-none cursor-pointer">
-                    <option value="">-- Chọn hoặc gõ để tìm kiếm --</option>
-                    <option value="1">Nguyễn Văn A - 0901234567 (BN Cũ)</option>
-                    <option value="2">Trần Thị B - 0911223344 (BN Cũ)</option>
-                  </select>
-                </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Bệnh nhân <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={patientId}
+                  onChange={(e) => setPatientId(e.target.value)}
+                  className="w-full rounded-xl border-transparent bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 outline-none transition-all focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand/20 cursor-pointer"
+                >
+                  <option value="">-- Chọn bệnh nhân --</option>
+                  {patients.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} - {p.phone}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
-            {/* 2. Dịch vụ & Thời gian */}
             <div className="rounded-2xl border border-border bg-white p-6 md:p-8 shadow-sm">
-              <h2 className="mb-6 text-base font-bold text-slate-900">2. Dịch vụ & Thời gian</h2>
-              
+              <h2 className="mb-6 text-base font-bold text-slate-900">
+                2. Dịch vụ & Thời gian
+              </h2>
+
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Dịch vụ yêu cầu <span className="text-red-500">*</span></label>
-                  <select className="w-full rounded-xl border-transparent bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 outline-none transition-all focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand/20 shadow-none cursor-pointer">
-                    <option value="">-- Chọn nhóm dịch vụ --</option>
-                    <option value="1">Khám tổng quát / Tư vấn</option>
-                    <option value="2">Nhổ răng khôn / Tiểu phẫu</option>
-                    <option value="3">Tái khám Niềng răng</option>
-                    <option value="4">Cắm Implant</option>
+                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Dịch vụ yêu cầu <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={serviceId}
+                    onChange={(e) => setServiceId(e.target.value)}
+                    className="w-full rounded-xl border-transparent bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 outline-none transition-all focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand/20 cursor-pointer"
+                  >
+                    <option value="">-- Chọn dịch vụ --</option>
+                    {services.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
                 <div className="grid gap-6 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Ngày hẹn <span className="text-red-500">*</span></label>
+                    <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Ngày hẹn <span className="text-red-500">*</span>
+                    </label>
                     <div className="relative">
-                      <CalendarIcon className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <input 
-                        type="date" 
-                        defaultValue="2026-06-27"
-                        className="w-full rounded-xl border-transparent bg-slate-50 py-3 pl-11 pr-4 text-sm font-semibold text-slate-900 outline-none transition-all focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand/20 shadow-none" 
+                      <CalendarBlank
+                        size={16}
+                        className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
+                      />
+                      <input
+                        type="date"
+                        value={date}
+                        onChange={(e) => setDate(e.target.value)}
+                        className="w-full rounded-xl border-transparent bg-slate-50 py-3 pl-11 pr-4 text-sm font-semibold text-slate-900 outline-none transition-all focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand/20"
                       />
                     </div>
                   </div>
-                  
+
                   <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Trạng thái Check-in</label>
-                    <select className="w-full rounded-xl border-transparent bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 outline-none transition-all focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand/20 shadow-none cursor-pointer">
-                      <option value="PENDING">Chờ xác nhận (Đặt trước)</option>
-                      <option value="WAITING">Đã đến nơi (Walk-in)</option>
+                    <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Trạng thái Check-in
+                    </label>
+                    <select
+                      value={checkInMode}
+                      onChange={(e) =>
+                        setCheckInMode(e.target.value as "PENDING" | "WAITING")
+                      }
+                      className="w-full rounded-xl border-transparent bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 outline-none transition-all focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand/20 cursor-pointer"
+                    >
+                      <option value="PENDING">Đặt trước (xác nhận luôn)</option>
+                      <option value="WAITING">Walk-in (check-in ngay)</option>
                     </select>
                   </div>
                 </div>
 
-                {/* Khung chọn Giờ */}
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
-                    <ClockIcon className="h-4 w-4 text-muted-foreground" />
-                    <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Chọn Khung giờ (Dự kiến)</label>
+                    <Clock size={16} className="text-muted-foreground" />
+                    <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Chọn khung giờ
+                    </label>
                   </div>
-                  <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
-                    {TIME_SLOTS.map((time) => (
-                      <button
-                        key={time}
-                        onClick={() => setSelectedTime(time)}
-                        className={cn(
-                          "rounded-lg border py-2 text-xs font-bold font-mono transition-all active:scale-[0.95]",
-                          selectedTime === time 
-                            ? "border-brand bg-brand text-white shadow-md ring-1 ring-inset ring-brand-dark/20" 
-                            : "border-border bg-white text-slate-700 hover:border-brand/50 hover:bg-slate-50"
-                        )}
-                      >
-                        {time}
-                      </button>
-                    ))}
-                  </div>
+                  {timeSlots.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      Không có khung giờ trống cho ngày này.
+                    </p>
+                  ) : (
+                    <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
+                      {timeSlots.map((time) => (
+                        <button
+                          key={time}
+                          type="button"
+                          onClick={() => setSelectedTime(time)}
+                          className={cn(
+                            "rounded-lg border py-2 text-xs font-bold font-mono transition-all active:scale-[0.95]",
+                            selectedTime === time
+                              ? "border-brand bg-brand text-white shadow-md"
+                              : "border-border bg-white text-slate-700 hover:border-brand/50 hover:bg-slate-50",
+                          )}
+                        >
+                          {time}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
-
               </div>
             </div>
 
-            {/* 3. Ghi chú */}
             <div className="rounded-2xl border border-border bg-white p-6 md:p-8 shadow-sm">
-              <h2 className="mb-4 text-base font-bold text-slate-900">3. Ghi chú cho Bác sĩ</h2>
-              <textarea 
-                rows={3} 
-                placeholder="Ví dụ: Bệnh nhân sợ đau, yêu cầu bác sĩ làm nhẹ tay..." 
-                className="w-full rounded-xl border-transparent bg-slate-50 px-4 py-3 text-sm font-medium text-slate-900 outline-none transition-all focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand/20 shadow-none resize-y" 
+              <h2 className="mb-4 text-base font-bold text-slate-900">
+                3. Ghi chú cho Bác sĩ
+              </h2>
+              <textarea
+                rows={3}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Ví dụ: Bệnh nhân sợ đau..."
+                className="w-full rounded-xl border-transparent bg-slate-50 px-4 py-3 text-sm font-medium text-slate-900 outline-none transition-all focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand/20 resize-y"
               />
             </div>
-
           </div>
 
-          {/* Sidebar Area: Chọn Bác Sĩ */}
           <div className="space-y-6 lg:col-span-4">
             <div className="rounded-2xl border border-border bg-white p-5 shadow-sm sticky top-8">
-              <h2 className="mb-4 text-sm font-bold uppercase tracking-wider text-muted-foreground">Phân công Bác sĩ</h2>
-              
+              <h2 className="mb-4 text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                Phân công Bác sĩ
+              </h2>
+
               <div className="space-y-3">
-                {DOCTORS.map((doc) => (
-                  <button
-                    key={doc.id}
-                    onClick={() => setSelectedDoctor(doc.id)}
-                    className={cn(
-                      "w-full flex flex-col items-start gap-2 rounded-xl border p-4 transition-all text-left group active:scale-[0.99]",
-                      selectedDoctor === doc.id
-                        ? "border-brand bg-brand/5 shadow-sm ring-1 ring-inset ring-brand/20"
-                        : "border-border bg-white hover:border-brand/50 hover:bg-slate-50"
-                    )}
-                  >
-                    <div className="flex w-full items-center justify-between">
-                      <span className={cn("font-bold", selectedDoctor === doc.id ? "text-brand-dark" : "text-slate-900")}>
+                {doctors.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Không có bác sĩ khả dụng.
+                  </p>
+                ) : (
+                  doctors.map((doc) => (
+                    <button
+                      key={doc.id}
+                      type="button"
+                      onClick={() => setSelectedDoctor(doc.id)}
+                      className={cn(
+                        "w-full flex flex-col items-start gap-2 rounded-xl border p-4 transition-all text-left active:scale-[0.99]",
+                        selectedDoctor === doc.id
+                          ? "border-brand bg-brand/5 shadow-sm ring-1 ring-inset ring-brand/20"
+                          : "border-border bg-white hover:border-brand/50 hover:bg-slate-50",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "font-bold",
+                          selectedDoctor === doc.id
+                            ? "text-brand-dark"
+                            : "text-slate-900",
+                        )}
+                      >
                         {doc.name}
                       </span>
-                      <span className={cn(
-                        "h-2.5 w-2.5 rounded-full",
-                        doc.status === "AVAILABLE" ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-amber-500"
-                      )} />
-                    </div>
-                    <span className="text-xs font-medium text-muted-foreground">{doc.spec}</span>
-                    
-                    {doc.status === "AVAILABLE" ? (
-                      <span className="mt-1 rounded bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700">Đang rảnh</span>
-                    ) : (
-                      <span className="mt-1 rounded bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-700">Đang kẹt ca</span>
-                    )}
-                  </button>
-                ))}
-              </div>
-              
-              <div className="mt-6 rounded-xl bg-slate-50 p-4 border border-dashed border-border text-center">
-                <p className="text-xs font-medium text-muted-foreground">
-                  Lễ tân có thể xem xét trạng thái (Đang rảnh/Kẹt ca) để chèn khách Walk-in hợp lý.
-                </p>
+                      <span className="text-xs font-medium text-muted-foreground">
+                        {doc.spec}
+                      </span>
+                    </button>
+                  ))
+                )}
               </div>
             </div>
           </div>
-
         </div>
       </div>
     </div>
+  );
+}
+
+export default function NewAppointmentPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-64 items-center justify-center">
+          <SpinnerGap size={32} className="animate-spin text-brand" />
+        </div>
+      }
+    >
+      <NewAppointmentForm />
+    </Suspense>
   );
 }

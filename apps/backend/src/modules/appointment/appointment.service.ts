@@ -18,6 +18,7 @@ import type {
   ClinicSpecialDateDto,
 } from '../clinic-config/dto/update-clinic-config.dto';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
+import { CreateStaffAppointmentDto } from './dto/create-staff-appointment.dto';
 
 const activeAppointmentStatuses = [
   AppointmentStatus.PENDING,
@@ -88,6 +89,45 @@ export class AppointmentService {
     private clinicConfigService: ClinicConfigService,
     @InjectQueue('mail-queue') private readonly mailQueue: Queue,
   ) { }
+
+  async createAppointmentForReceptionist(
+    staffUserId: string,
+    dto: CreateStaffAppointmentDto,
+  ) {
+    const appointment = await this.createAppointment({
+      patientId: dto.patientId,
+      doctorId: dto.doctorId,
+      serviceId: dto.serviceId,
+      scheduledAt: dto.scheduledAt,
+      notes: dto.notes,
+      paymentOption:
+        dto.paymentOption ?? AppointmentPaymentOption.PAY_AT_COUNTER,
+      bookingSource: BookingSource.RECEPTIONIST,
+      createdBy: staffUserId,
+      skipOnlineBookingBlock: true,
+      allowPastSchedule: true,
+    });
+
+    if (dto.walkIn) {
+      return this.prisma.appointment.update({
+        where: { id: appointment.id },
+        data: {
+          status: AppointmentStatus.CHECKED_IN,
+          checkedInAt: new Date(),
+        },
+        include: appointmentInclude,
+      });
+    }
+
+    return this.prisma.appointment.update({
+      where: { id: appointment.id },
+      data: {
+        status: AppointmentStatus.CONFIRMED,
+        scheduleConfirmedAt: new Date(),
+      },
+      include: appointmentInclude,
+    });
+  }
 
   async createAppointmentForPatient(userId: string, dto: CreateAppointmentDto) {
     const patient = await this.findOrCreatePatientProfile(userId);
@@ -234,6 +274,150 @@ export class AppointmentService {
       },
       include: appointmentInclude,
       orderBy: { scheduledAt: 'asc' },
+    });
+  }
+
+  async findByDate(params: {
+    date?: string;
+    from?: string;
+    to?: string;
+    doctorId?: string;
+    search?: string;
+  }) {
+    const fromRaw = params.from ?? params.date;
+    const toRaw = params.to ?? params.date;
+    if (!fromRaw || !toRaw) {
+      throw new BadRequestException('appointment.date_required');
+    }
+
+    const fromDate = new Date(fromRaw);
+    const toDate = new Date(toRaw);
+    toDate.setHours(23, 59, 59, 999);
+    const search = params.search?.trim();
+
+    return this.prisma.appointment.findMany({
+      where: {
+        ...(params.doctorId ? { doctorId: params.doctorId } : {}),
+        scheduledAt: { gte: fromDate, lte: toDate },
+        ...(search
+          ? {
+              OR: [
+                {
+                  appointmentCode: {
+                    contains: search,
+                    mode: 'insensitive',
+                  },
+                },
+                {
+                  patient: {
+                    user: {
+                      OR: [
+                        {
+                          fullName: {
+                            contains: search,
+                            mode: 'insensitive',
+                          },
+                        },
+                        { phone: { contains: search } },
+                      ],
+                    },
+                  },
+                },
+              ],
+            }
+          : {}),
+      },
+      include: appointmentInclude,
+      orderBy: { scheduledAt: 'asc' },
+    });
+  }
+
+  async findOne(appointmentId: string) {
+    const appointment = await this.prisma.appointment.findUnique({
+      where: { id: appointmentId },
+      include: appointmentInclude,
+    });
+    if (!appointment) {
+      throw new BadRequestException('appointment.not_found');
+    }
+    return appointment;
+  }
+
+  async confirmAppointment(appointmentId: string) {
+    return this.transitionAppointment(
+      appointmentId,
+      [AppointmentStatus.PENDING],
+      {
+        status: AppointmentStatus.CONFIRMED,
+        scheduleConfirmedAt: new Date(),
+      },
+      'appointment.must_be_pending_to_confirm',
+    );
+  }
+
+  async checkInAppointment(appointmentId: string, notes?: string) {
+    return this.transitionAppointment(
+      appointmentId,
+      [AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED],
+      {
+        status: AppointmentStatus.CHECKED_IN,
+        checkedInAt: new Date(),
+        ...(notes?.trim()
+          ? { notes: notes.trim() }
+          : {}),
+      },
+      'appointment.must_be_confirmed_to_check_in',
+    );
+  }
+
+  async markNoShow(appointmentId: string) {
+    return this.transitionAppointment(
+      appointmentId,
+      [
+        AppointmentStatus.PENDING,
+        AppointmentStatus.CONFIRMED,
+        AppointmentStatus.CHECKED_IN,
+      ],
+      { status: AppointmentStatus.NO_SHOW },
+      'appointment.cannot_mark_no_show',
+    );
+  }
+
+  async cancelByStaff(appointmentId: string) {
+    return this.transitionAppointment(
+      appointmentId,
+      [
+        AppointmentStatus.PENDING,
+        AppointmentStatus.CONFIRMED,
+        AppointmentStatus.CHECKED_IN,
+      ],
+      {
+        status: AppointmentStatus.CANCELLED,
+        cancelledAt: new Date(),
+      },
+      'appointment.cannot_cancel',
+    );
+  }
+
+  private async transitionAppointment(
+    appointmentId: string,
+    allowed: AppointmentStatus[],
+    data: Record<string, unknown>,
+    errorCode: string,
+  ) {
+    const appointment = await this.prisma.appointment.findUnique({
+      where: { id: appointmentId },
+    });
+    if (!appointment) {
+      throw new BadRequestException('appointment.not_found');
+    }
+    if (!allowed.includes(appointment.status)) {
+      throw new BadRequestException(errorCode);
+    }
+    return this.prisma.appointment.update({
+      where: { id: appointmentId },
+      data,
+      include: appointmentInclude,
     });
   }
 
@@ -492,6 +676,8 @@ export class AppointmentService {
     paymentOption?: AppointmentPaymentOption;
     bookingSource: BookingSource;
     createdBy: string;
+    skipOnlineBookingBlock?: boolean;
+    allowPastSchedule?: boolean;
   }) {
     const scheduledAt = new Date(input.scheduledAt);
 
@@ -499,7 +685,7 @@ export class AppointmentService {
       throw new BadRequestException('appointment.invalid_time');
     }
 
-    if (scheduledAt <= new Date()) {
+    if (!input.allowPastSchedule && scheduledAt <= new Date()) {
       throw new BadRequestException('appointment.time_in_past');
     }
 
@@ -525,7 +711,9 @@ export class AppointmentService {
       input.patientId,
       input.createdBy,
     );
-    this.ensureOnlineBookingAllowed(bookingPolicy);
+    if (!input.skipOnlineBookingBlock) {
+      this.ensureOnlineBookingAllowed(bookingPolicy);
+    }
     const clinicConfig = await this.clinicConfigService.getClinicConfig();
     const depositPolicy = this.resolveDepositPolicy(service, clinicConfig);
     const depositAmount = depositPolicy.enabled

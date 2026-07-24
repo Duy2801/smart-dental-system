@@ -1,10 +1,15 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import {
   AppointmentPaymentOption,
   AppointmentPaymentStatus,
   AppointmentStatus,
   BookingSource,
+  Gender,
   InvoiceStatus,
   InvoiceType,
   PaymentMethod,
@@ -14,10 +19,201 @@ import {
   TreatmentStepStatus,
 } from '../../../prisma/generated/enums';
 import { PrismaService } from '../prisma/prisma.service';
+import { CreatePatientDto } from './dto/create-patient.dto';
+import { UpdatePatientDto } from './dto/update-patient.dto';
 
 @Injectable()
 export class PatientService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async findPatients(search?: string) {
+    const q = search?.trim();
+    const patients = await this.prisma.patient.findMany({
+      where: q
+        ? {
+            OR: [
+              { patientCode: { contains: q, mode: 'insensitive' } },
+              {
+                user: {
+                  OR: [
+                    { fullName: { contains: q, mode: 'insensitive' } },
+                    { phone: { contains: q } },
+                    { email: { contains: q, mode: 'insensitive' } },
+                  ],
+                },
+              },
+            ],
+          }
+        : undefined,
+      include: {
+        user: { select: { fullName: true, phone: true, email: true } },
+        appointments: {
+          orderBy: { scheduledAt: 'desc' },
+          take: 1,
+          select: { scheduledAt: true },
+        },
+        _count: { select: { appointments: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    });
+
+    return patients.map((p) => {
+      const age = p.dateOfBirth
+        ? new Date().getFullYear() - new Date(p.dateOfBirth).getFullYear()
+        : null;
+      return {
+        id: p.id,
+        patientCode: p.patientCode,
+        fullName: p.user.fullName,
+        phone: p.user.phone,
+        email: p.user.email,
+        gender: p.gender,
+        age,
+        dateOfBirth: p.dateOfBirth,
+        medicalHistory: p.medicalHistory,
+        allergies: this.parseAllergies(p.medicalHistory),
+        lastVisit: p.appointments[0]?.scheduledAt ?? null,
+        totalVisits: p._count.appointments,
+      };
+    });
+  }
+
+  async createPatient(dto: CreatePatientDto) {
+    const phone = dto.phone.trim();
+    const fullName = dto.fullName.trim();
+    const email =
+      dto.email?.trim().toLowerCase() ||
+      `walkin.${phone.replace(/\D/g, '')}@clinic.local`;
+
+    const [phoneExists, emailExists] = await Promise.all([
+      this.prisma.user.findUnique({ where: { phone }, select: { id: true } }),
+      this.prisma.user.findUnique({ where: { email }, select: { id: true } }),
+    ]);
+    if (phoneExists) throw new ConflictException('auth.phone_exists');
+    if (emailExists) throw new ConflictException('auth.email_exists');
+
+    const role = await this.prisma.role.upsert({
+      where: { code: 'PATIENT' },
+      update: {},
+      create: {
+        code: 'PATIENT',
+        name: 'Patient',
+        description: 'Bệnh nhân sử dụng hệ thống',
+      },
+    });
+
+    const medicalHistory = this.mergeMedicalHistory(
+      dto.medicalHistory,
+      dto.allergies,
+    );
+
+    const user = await this.prisma.user.create({
+      data: {
+        email,
+        fullName,
+        phone,
+        emailVerified: true,
+        roles: { create: { roleId: role.id } },
+        patientProfile: {
+          create: {
+            patientCode: await this.generatePatientCode(),
+            dateOfBirth: dto.dateOfBirth
+              ? new Date(dto.dateOfBirth)
+              : undefined,
+            gender: dto.gender ?? Gender.UNKNOWN,
+            address: dto.address?.trim() || undefined,
+            medicalHistory,
+            emergencyContactName: dto.emergencyContactName?.trim() || undefined,
+            emergencyContactPhone:
+              dto.emergencyContactPhone?.trim() || undefined,
+          },
+        },
+      },
+      include: { patientProfile: true },
+    });
+
+    const patient = user.patientProfile!;
+    return {
+      id: patient.id,
+      patientCode: patient.patientCode,
+      fullName: user.fullName,
+      phone: user.phone,
+      email: user.email,
+      gender: patient.gender,
+      dateOfBirth: patient.dateOfBirth,
+      address: patient.address,
+      medicalHistory: patient.medicalHistory,
+      allergies: dto.allergies ?? [],
+    };
+  }
+
+  async updatePatient(patientId: string, dto: UpdatePatientDto) {
+    const patient = await this.prisma.patient.findUnique({
+      where: { id: patientId },
+      select: { id: true, userId: true, medicalHistory: true },
+    });
+    if (!patient) throw new BadRequestException('patient.not_found');
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: patient.userId },
+        data: {
+          ...(dto.fullName ? { fullName: dto.fullName.trim() } : {}),
+          ...(dto.phone ? { phone: dto.phone.trim() } : {}),
+          ...(dto.email ? { email: dto.email.trim().toLowerCase() } : {}),
+        },
+      }),
+      this.prisma.patient.update({
+        where: { id: patientId },
+        data: {
+          ...(dto.address !== undefined
+            ? { address: dto.address.trim() || null }
+            : {}),
+          ...(dto.medicalHistory !== undefined
+            ? { medicalHistory: dto.medicalHistory.trim() || null }
+            : {}),
+          ...(dto.gender ? { gender: dto.gender } : {}),
+          ...(dto.emergencyContactName !== undefined
+            ? {
+                emergencyContactName:
+                  dto.emergencyContactName.trim() || null,
+              }
+            : {}),
+          ...(dto.emergencyContactPhone !== undefined
+            ? {
+                emergencyContactPhone:
+                  dto.emergencyContactPhone.trim() || null,
+              }
+            : {}),
+        },
+      }),
+    ]);
+
+    return this.findPatientDetail(patientId);
+  }
+
+  private parseAllergies(medicalHistory?: string | null): string[] {
+    if (!medicalHistory) return [];
+    const match = medicalHistory.match(/Dị ứng:\s*(.+?)(?:\n|$)/i);
+    if (!match?.[1]) return [];
+    return match[1]
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+
+  private mergeMedicalHistory(
+    history?: string,
+    allergies?: string[],
+  ): string | undefined {
+    const parts: string[] = [];
+    if (allergies?.length) {
+      parts.push(`Dị ứng: ${allergies.join(', ')}`);
+    }
+    if (history?.trim()) parts.push(history.trim());
+    return parts.length ? parts.join('\n') : undefined;
+  }
 
   async findPatientsByDoctor(doctorId: string) {
     const rows = await this.prisma.appointment.findMany({
@@ -148,6 +344,7 @@ export class PatientService {
       dateOfBirth: patient.dateOfBirth,
       address: patient.address,
       medicalHistory: patient.medicalHistory,
+      allergies: this.parseAllergies(patient.medicalHistory),
       emergencyContactName: patient.emergencyContactName,
       emergencyContactPhone: patient.emergencyContactPhone,
       activeTreatmentPlan: activePlan
