@@ -105,7 +105,7 @@ export function AppointmentHistoryList({
   return (
     <>
       <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_12px_32px_rgba(15,23,42,.05)]">
-        <div className="border-b border-slate-100 bg-slate-50/80 px-5 py-4 sm:px-6">
+        <div className="border-b border-slate-100 px-5 py-4 sm:px-6">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
@@ -140,7 +140,7 @@ export function AppointmentHistoryList({
                 key={appointment.id}
                 type="button"
                 onClick={() => setSelectedAppointment(appointment)}
-                className="grid w-full gap-4 px-5 py-4 text-left transition hover:bg-blue-50/40 lg:grid-cols-[120px_minmax(0,1.4fr)_150px_170px_140px] lg:items-center lg:px-6"
+                className="grid w-full gap-4 px-5 py-4 text-left transition hover:bg-slate-50 lg:grid-cols-[120px_minmax(0,1.4fr)_150px_170px_140px] lg:items-center lg:px-6"
               >
                 <div className="flex items-center gap-3">
                   <div className="overflow-hidden rounded-2xl border border-blue-100 bg-blue-50 text-center shadow-sm">
@@ -174,9 +174,7 @@ export function AppointmentHistoryList({
                       </div>
                     </div>
 
-                    <span
-                      className={`w-fit rounded-full border px-3 py-1 text-[11px] font-bold ${status.className}`}
-                    >
+                  <span className={`w-fit rounded-full border px-3 py-1 text-[11px] font-bold ${status.className}`}>
                       {status.label}
                     </span>
                   </div>
@@ -211,7 +209,7 @@ export function AppointmentHistoryList({
           })}
         </div>
 
-        <div className="border-t border-slate-100 bg-white px-5 py-4 sm:px-6">
+        <div className="border-t border-slate-100 px-5 py-4 sm:px-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-slate-500">
               Trang {currentPage} / {totalPages}
