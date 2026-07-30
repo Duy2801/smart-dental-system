@@ -21,10 +21,10 @@ export function PatientProfileEditor({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 text-xs font-bold text-slate-700 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-[#0863c5]"
+        className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-[#0863c5]"
       >
         <DashboardIcon name="document" className="h-4 w-4" />
-        Cap nhat ho so
+        Chinh sua ho so
       </button>
 
       <PatientProfileEditorModal

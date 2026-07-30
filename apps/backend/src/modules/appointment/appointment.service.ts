@@ -1,5 +1,10 @@
 import { InjectQueue } from '@nestjs/bull';
-import { BadRequestException, ConflictException, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import type { Queue } from 'bull';
 import { randomBytes } from 'crypto';
 import {
@@ -88,7 +93,7 @@ export class AppointmentService {
     private prisma: PrismaService,
     private clinicConfigService: ClinicConfigService,
     @InjectQueue('mail-queue') private readonly mailQueue: Queue,
-  ) { }
+  ) {}
 
   async createAppointmentForReceptionist(
     staffUserId: string,
@@ -166,10 +171,12 @@ export class AppointmentService {
     }
 
     this.ensurePatientRescheduleAllowed(appointment);
-    this.ensureOnlineBookingAllowed(await this.getPatientBookingPolicy(
-      appointment.patientId,
-      appointment.createdBy,
-    ));
+    this.ensureOnlineBookingAllowed(
+      await this.getPatientBookingPolicy(
+        appointment.patientId,
+        appointment.createdBy,
+      ),
+    );
 
     const previousSchedule = {
       scheduledAt: appointment.scheduledAt,
@@ -195,11 +202,15 @@ export class AppointmentService {
     }
 
     const endAt = new Date(
-      scheduledAt.getTime() +
-        appointment.service.durationMinutes * 60 * 1000,
+      scheduledAt.getTime() + appointment.service.durationMinutes * 60 * 1000,
     );
 
-    if (!this.hasRequiredNoticeBeforeAppointment(scheduledAt, patientRescheduleNoticeHours)) {
+    if (
+      !this.hasRequiredNoticeBeforeAppointment(
+        scheduledAt,
+        patientRescheduleNoticeHours,
+      )
+    ) {
       throw new ConflictException('appointment.reschedule_deadline_passed');
     }
 
@@ -257,6 +268,57 @@ export class AppointmentService {
         status: AppointmentStatus.CANCELLED,
         cancelledAt: new Date(),
         cancellationReason: 'Cancelled by patient',
+      },
+      include: appointmentInclude,
+    });
+  }
+
+  async restoreAppointmentForPatient(userId: string, appointmentId: string) {
+    const patient = await this.prisma.patient.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+    const appointment = await this.prisma.appointment.findFirst({
+      where: {
+        id: appointmentId,
+        OR: [
+          { createdBy: userId },
+          ...(patient ? [{ patientId: patient.id }] : []),
+          ...(patient
+            ? [
+                {
+                  treatmentPlanStep: {
+                    treatmentPlan: {
+                      patientId: patient.id,
+                    },
+                  },
+                },
+              ]
+            : []),
+        ],
+      },
+      include: appointmentInclude,
+    });
+
+    if (!appointment) {
+      throw new BadRequestException('appointment.not_found');
+    }
+
+    if (appointment.status !== AppointmentStatus.CANCELLED) {
+      throw new ConflictException('appointment.must_be_cancelled_to_restore');
+    }
+
+    if (appointment.scheduledAt <= new Date()) {
+      throw new ConflictException('appointment.restore_deadline_passed');
+    }
+
+    return this.prisma.appointment.update({
+      where: { id: appointment.id },
+      data: {
+        status: AppointmentStatus.PENDING,
+        cancelledAt: null,
+        cancellationReason: null,
+        scheduleConfirmedAt: null,
       },
       include: appointmentInclude,
     });
@@ -414,10 +476,7 @@ export class AppointmentService {
   }
 
   /** Lễ tân/admin đổi giờ — không áp hạn mức/notice của bệnh nhân. */
-  async rescheduleByStaff(
-    appointmentId: string,
-    dto: { scheduledAt: string },
-  ) {
+  async rescheduleByStaff(appointmentId: string, dto: { scheduledAt: string }) {
     const appointment = await this.prisma.appointment.findUnique({
       where: { id: appointmentId },
       include: {
@@ -444,8 +503,7 @@ export class AppointmentService {
     }
 
     const endAt = new Date(
-      scheduledAt.getTime() +
-        appointment.service.durationMinutes * 60 * 1000,
+      scheduledAt.getTime() + appointment.service.durationMinutes * 60 * 1000,
     );
 
     const previousSchedule = {
@@ -524,9 +582,7 @@ export class AppointmentService {
     }
 
     if (appointment.status !== AppointmentStatus.CHECKED_IN) {
-      throw new BadRequestException(
-        'appointment.must_be_checked_in_to_start',
-      );
+      throw new BadRequestException('appointment.must_be_checked_in_to_start');
     }
 
     return this.prisma.appointment.update({
@@ -694,10 +750,7 @@ export class AppointmentService {
     if (!step) return null;
 
     const amount = Number(
-      step.paymentAmount ??
-        step.estimatedCost ??
-        input.fallbackAmount ??
-        0,
+      step.paymentAmount ?? step.estimatedCost ?? input.fallbackAmount ?? 0,
     );
     if (amount <= 0) return null;
 
@@ -778,15 +831,15 @@ export class AppointmentService {
     const timeSlots =
       selectedDateId && selectedService
         ? await this.buildTimeSlots({
-          dateId: selectedDateId,
-          serviceDurationMinutes: selectedService.durationMinutes,
-          doctors,
-          businessHours: clinicConfig.businessHours,
-          specialDates: clinicConfig.specialDates,
-          slotIntervalMinutes: clinicConfig.slotIntervalMinutes,
-          availabilityRecords: bookingWindow.availabilityRecords,
-          activeAppointments: bookingWindow.activeAppointments,
-        })
+            dateId: selectedDateId,
+            serviceDurationMinutes: selectedService.durationMinutes,
+            doctors,
+            businessHours: clinicConfig.businessHours,
+            specialDates: clinicConfig.specialDates,
+            slotIntervalMinutes: clinicConfig.slotIntervalMinutes,
+            availabilityRecords: bookingWindow.availabilityRecords,
+            activeAppointments: bookingWindow.activeAppointments,
+          })
         : [];
     const startAt =
       query.date && query.time
@@ -795,28 +848,28 @@ export class AppointmentService {
     const endAt =
       startAt && selectedService
         ? new Date(
-          startAt.getTime() + selectedService.durationMinutes * 60 * 1000,
-        )
+            startAt.getTime() + selectedService.durationMinutes * 60 * 1000,
+          )
         : null;
 
     const availableDoctors =
       startAt && endAt
         ? (
-          await Promise.all(
-            doctors.map(async (doctor) => ({
-              doctor,
-              available: this.isDoctorBookableFromSnapshot(
-                doctor.id,
-                startAt,
-                endAt,
-                bookingWindow.availabilityRecords,
-                bookingWindow.activeAppointments,
-              ),
-            })),
+            await Promise.all(
+              doctors.map(async (doctor) => ({
+                doctor,
+                available: this.isDoctorBookableFromSnapshot(
+                  doctor.id,
+                  startAt,
+                  endAt,
+                  bookingWindow.availabilityRecords,
+                  bookingWindow.activeAppointments,
+                ),
+              })),
+            )
           )
-        )
-          .filter((item) => item.available)
-          .map((item) => item.doctor)
+            .filter((item) => item.available)
+            .map((item) => item.doctor)
         : doctors;
 
     return {
@@ -1142,9 +1195,7 @@ export class AppointmentService {
     patientId: string | null,
     createdBy: string,
   ) {
-    return patientId
-      ? { OR: [{ patientId }, { createdBy }] }
-      : { createdBy };
+    return patientId ? { OR: [{ patientId }, { createdBy }] } : { createdBy };
   }
 
   private async ensurePatientHasNoOverlappingAppointment(
@@ -1263,8 +1314,7 @@ export class AppointmentService {
     return {
       noShowCount,
       requiresDeposit: noShowCount >= noShowDepositThreshold,
-      onlineBookingBlocked:
-        noShowCount >= noShowOnlineBookingBlockedThreshold,
+      onlineBookingBlocked: noShowCount >= noShowOnlineBookingBlockedThreshold,
     };
   }
 
@@ -1310,7 +1360,8 @@ export class AppointmentService {
           {
             service_id: input.serviceId,
             description:
-              input.depositPolicy.calculationMode === DepositCalculationMode.PERCENT
+              input.depositPolicy.calculationMode ===
+              DepositCalculationMode.PERCENT
                 ? `Coc ${input.depositPolicy.value}% cho ${input.serviceName}`
                 : `Coc ${input.depositAmount} cho ${input.serviceName}`,
             qty: 1,
@@ -1321,7 +1372,8 @@ export class AppointmentService {
           {
             service_id: input.serviceId,
             description:
-              input.depositPolicy.calculationMode === DepositCalculationMode.PERCENT
+              input.depositPolicy.calculationMode ===
+              DepositCalculationMode.PERCENT
                 ? `Con lai ${100 - input.depositPolicy.value}% cho ${input.serviceName}`
                 : `Con lai ${Number((input.serviceBasePrice - input.depositAmount).toFixed(2))} cho ${input.serviceName}`,
             qty: 1,
@@ -1369,10 +1421,9 @@ export class AppointmentService {
         ? valueFromService
         : clinicConfig.bookingDepositValue;
 
-    const enabled =
-      service.depositOverrideEnabled
-        ? service.depositRequired
-        : clinicConfig.bookingDepositEnabled;
+    const enabled = service.depositOverrideEnabled
+      ? service.depositRequired
+      : clinicConfig.bookingDepositEnabled;
 
     return {
       enabled,
@@ -1384,7 +1435,9 @@ export class AppointmentService {
   private calculateDepositAmount(basePrice: number, policy: DepositPolicy) {
     if (policy.calculationMode === DepositCalculationMode.FIXED) {
       if (policy.value > basePrice) {
-        throw new BadRequestException('appointment.deposit_exceeds_service_price');
+        throw new BadRequestException(
+          'appointment.deposit_exceeds_service_price',
+        );
       }
       return Number(policy.value.toFixed(2));
     }
@@ -1403,7 +1456,12 @@ export class AppointmentService {
       throw new ConflictException('appointment.cancel_not_allowed');
     }
 
-    if (!this.hasRequiredNoticeBeforeAppointment(appointment.scheduledAt, patientCancelNoticeHours)) {
+    if (
+      !this.hasRequiredNoticeBeforeAppointment(
+        appointment.scheduledAt,
+        patientCancelNoticeHours,
+      )
+    ) {
       throw new ConflictException('appointment.cancel_deadline_passed');
     }
   }
@@ -1528,12 +1586,10 @@ export class AppointmentService {
     ]);
 
     return {
-      availabilityRecords:
-        availabilityRecords as AvailabilityRecordSnapshot[],
+      availabilityRecords: availabilityRecords as AvailabilityRecordSnapshot[],
       activeAppointments: activeAppointments as AppointmentSlotSnapshot[],
     };
   }
-
 
   private isDoctorWorkingFromSnapshot(
     doctorId: string,
@@ -1587,7 +1643,8 @@ export class AppointmentService {
       }
       return (
         Boolean(record.specificDate) &&
-        this.formatDateId(record.specificDate as Date) === this.formatDateId(date)
+        this.formatDateId(record.specificDate as Date) ===
+          this.formatDateId(date)
       );
     });
   }
@@ -1628,8 +1685,7 @@ export class AppointmentService {
 
     const dayEnd = new Date(date);
     dayEnd.setHours(23, 59, 59, 999);
-    const weeklyDayOfWeek =
-      date.getDay() === 0 ? [0, 7] : [date.getDay()];
+    const weeklyDayOfWeek = date.getDay() === 0 ? [0, 7] : [date.getDay()];
 
     return this.prisma.doctorAvailability.findMany({
       where: {
@@ -1741,8 +1797,8 @@ export class AppointmentService {
       const endAt = new Date(
         startAt.getTime() + serviceDurationMinutes * 60 * 1000,
       );
-      const hasDoctor = (
-        doctors.map((doctor) =>
+      const hasDoctor = doctors
+        .map((doctor) =>
           this.isDoctorBookableFromSnapshot(
             doctor.id,
             startAt,
@@ -1751,7 +1807,7 @@ export class AppointmentService {
             activeAppointments,
           ),
         )
-      ).some(Boolean);
+        .some(Boolean);
 
       if (hasDoctor) slots.push(this.minutesToTime(minutes));
     }
@@ -1791,8 +1847,8 @@ export class AppointmentService {
       const endAt = new Date(
         startAt.getTime() + serviceDurationMinutes * 60 * 1000,
       );
-      const hasDoctor = (
-        doctorIds.map((doctorId) =>
+      const hasDoctor = doctorIds
+        .map((doctorId) =>
           this.isDoctorBookableFromSnapshot(
             doctorId,
             startAt,
@@ -1801,7 +1857,7 @@ export class AppointmentService {
             activeAppointments,
           ),
         )
-      ).some(Boolean);
+        .some(Boolean);
 
       if (hasDoctor) return true;
     }

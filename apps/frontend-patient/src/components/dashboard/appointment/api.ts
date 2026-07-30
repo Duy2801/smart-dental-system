@@ -299,6 +299,20 @@ export async function cancelPatientAppointment(appointmentId: string) {
   return mapAppointment(response.data);
 }
 
+export async function confirmPatientAppointment(appointmentId: string) {
+  const response = await apiClient.patch<AppointmentDto>(
+    `/appointments/${appointmentId}/confirm`,
+  );
+  return mapAppointment(response.data);
+}
+
+export async function restorePatientAppointment(appointmentId: string) {
+  const response = await apiClient.patch<AppointmentDto>(
+    `/appointments/${appointmentId}/restore`,
+  );
+  return mapAppointment(response.data);
+}
+
 export async function reschedulePatientAppointment(
   appointmentId: string,
   payload: { scheduledAt: string },

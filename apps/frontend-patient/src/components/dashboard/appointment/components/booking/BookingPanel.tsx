@@ -157,7 +157,7 @@ export function BookingPanel(props: BookingPanelProps) {
             onClick={props.onCancelBooking}
             className="inline-flex h-12 w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-6 text-sm font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 sm:w-auto"
           >
-            Huy dat lich
+            Hủy đặt lịch
           </button>
           <button
             type="button"
@@ -170,7 +170,7 @@ export function BookingPanel(props: BookingPanelProps) {
             className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#0758b7] px-7 text-sm font-bold text-white shadow-lg shadow-blue-100 transition hover:bg-[#064b9c] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
           >
             <DashboardIcon name="appointment" className="h-4 w-4" />
-            Xac nhan dat lich
+            Xác nhận đặt lịch
             <DashboardIcon name="arrow" className="h-4 w-4" />
           </button>
         </div>
@@ -189,7 +189,7 @@ export function BookingPanel(props: BookingPanelProps) {
                   <DashboardIcon name="checkup" className="h-8 w-8" />
                 </div>
                 <h3 className="mt-5 text-2xl font-bold text-slate-900">
-                  Dat lich thanh cong
+                  Đặt lịch thành công
                 </h3>
                 <p className="mt-3 text-sm leading-6 text-slate-500">
                   {props.successMessage}
@@ -215,7 +215,7 @@ export function BookingPanel(props: BookingPanelProps) {
                         Xem lai truoc khi dat lich
                       </p>
                       <h3 className="mt-2 text-[30px] font-bold text-slate-900">
-                        Xac nhan thong tin da chon
+                        Xác nhận thông tin đã chọn
                       </h3>
                       <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
                         Vui long kiem tra lai lich hen, cach giu lich va xac nhan truoc khi gui yeu cau den phong kham.
@@ -241,7 +241,7 @@ export function BookingPanel(props: BookingPanelProps) {
                       <div className="flex items-start justify-between gap-4">
                         <div>
                           <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/75">
-                            Lich hen sap gui
+                            Lịch hẹn sắp gửi
                           </p>
                           <h4 className="mt-3 text-3xl font-bold">
                             {props.selectedTime || "--:--"}
@@ -249,7 +249,7 @@ export function BookingPanel(props: BookingPanelProps) {
                           <p className="mt-2 text-sm text-white/85">
                             {props.selectedDate
                               ? `${props.selectedDate.weekday} ${props.selectedDate.day} ${props.selectedDate.month}`
-                              : "Chua chon ngay kham"}
+                              : "Chưa chọn ngày khám"}
                           </p>
                         </div>
                         <span className="grid h-14 w-14 place-items-center rounded-2xl bg-white/14 text-white">
@@ -260,7 +260,7 @@ export function BookingPanel(props: BookingPanelProps) {
                         <SummaryLine
                           icon="appointment"
                           label="Dich vu"
-                          value={props.selectedService?.name ?? "Chua chon"}
+                          value={props.selectedService?.name ?? "Chưa chọn"}
                           detail={
                             props.selectedService
                               ? `${props.selectedService.price} d`
@@ -270,8 +270,8 @@ export function BookingPanel(props: BookingPanelProps) {
                         />
                         <SummaryLine
                           icon="user"
-                          label="Bac si"
-                          value={props.selectedDoctor?.name ?? "Chua chon"}
+                          label="Bác sĩ"
+                          value={props.selectedDoctor?.name ?? "Chưa chọn"}
                           detail={props.selectedDoctor?.specialty ?? ""}
                           inverse
                         />
@@ -287,7 +287,7 @@ export function BookingPanel(props: BookingPanelProps) {
                             ? `${props.selectedDate.weekday} ${props.selectedDate.day}`
                             : "--"
                         }
-                        detail={props.selectedDate?.month ?? "Chua chon"}
+                        detail={props.selectedDate?.month ?? "Chưa chọn"}
                       />
                       <ReviewCard
                         icon="clock"
@@ -356,7 +356,7 @@ export function BookingPanel(props: BookingPanelProps) {
                         </span>
                         <div>
                           <h4 className="text-base font-bold text-slate-900">
-                            Xac nhan truoc khi gui lich hen
+                            Xác nhận trước khi gửi lịch hẹn
                           </h4>
                           <p className="mt-1 text-sm leading-6 text-slate-500">
                             He thong se gui yeu cau dat lich den phong kham ngay sau khi ban xac nhan.
@@ -390,7 +390,7 @@ export function BookingPanel(props: BookingPanelProps) {
                         onClick={props.onCancelBooking}
                         className="inline-flex h-12 items-center justify-center rounded-2xl border border-slate-200 px-5 text-sm font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
                       >
-                        Huy dat lich
+                        Hủy đặt lịch
                       </button>
                       <button
                         type="button"
@@ -404,7 +404,7 @@ export function BookingPanel(props: BookingPanelProps) {
                         ) : (
                           <DashboardIcon name="appointment" className="h-4 w-4" />
                         )}
-                        {props.isSubmitting ? "Dang xu ly..." : "Dat lich ngay"}
+                        {props.isSubmitting ? "Đang xử lý..." : "Đặt lịch ngay"}
                       </button>
                     </div>
                   </div>

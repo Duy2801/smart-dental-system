@@ -34,44 +34,44 @@ export function pickFirstBookableDate(dates: BookingDate[]) {
 export function getCreateAppointmentErrorMessage(error: unknown) {
   if (axios.isAxiosError(error)) {
     if (error.response?.status === 401) {
-      return "Phien dang nhap da het han. Vui long dang nhap lai de dat lich.";
+      return "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại để đặt lịch.";
     }
 
     if (error.response?.status === 403) {
-      return "Chi tai khoan benh nhan moi co quyen dat lich hen.";
+      return "Chỉ tài khoản bệnh nhân mới có quyền đặt lịch hẹn.";
     }
 
     const rawMessage = error.response?.data?.message;
     const message = Array.isArray(rawMessage) ? rawMessage[0] : rawMessage;
     const messageMap: Record<string, string> = {
       "appointment.time_in_past":
-        "Khung gio da qua. Vui long chon thoi gian khac.",
+        "Khung giờ đã qua. Vui lòng chọn thời gian khác.",
       "appointment.patient_time_conflict":
-        "Ban da co mot lich kham trung khung gio nay.",
+        "Bạn đã có một lịch khám trùng khung giờ này.",
       "appointment.doctor_time_conflict":
-        "Bac si vua co lich o khung gio nay. Vui long chon bac si hoac gio khac.",
+        "Bác sĩ vừa có lịch ở khung giờ này. Vui lòng chọn bác sĩ hoặc giờ khác.",
       "appointment.cancel_not_allowed":
-        "Lich hen nay khong the tu huy tren he thong.",
+        "Lịch hẹn này không thể tự hủy trên hệ thống.",
       "appointment.cancel_deadline_passed":
-        "Chi duoc huy lich truoc it nhat 12 gio.",
+        "Chỉ được hủy lịch trước ít nhất 12 giờ.",
       "appointment.reschedule_not_allowed":
-        "Lich hen nay khong the doi lich online.",
+        "Lịch hẹn này không thể đổi lịch online.",
       "appointment.reschedule_deadline_passed":
-        "Chi duoc doi lich truoc it nhat 6 gio.",
+        "Chỉ được đổi lịch trước ít nhất 6 giờ.",
       "appointment.service_incomplete":
-        "Dich vu nay da co lich chua hoan tat. Vui long hoan thanh lich truoc.",
+        "Dịch vụ này đã có lịch chưa hoàn tất. Vui lòng hoàn thành lịch trước.",
       "appointment.pending_limit_reached":
-        "Ban da co toi da 3 lich dang cho xac nhan.",
+        "Bạn đã có tối đa 3 lịch đang chờ xác nhận.",
       "appointment.seven_day_limit_reached":
-        "Ban chi duoc co toi da 5 lich trong 7 ngay de tranh dat lich qua nhieu.",
+        "Bạn chỉ được có tối đa 5 lịch trong 7 ngày để tránh đặt lịch quá nhiều.",
       "appointment.online_booking_blocked":
-        "Ban da co tu 3 lan vang mat. Vui long lien he le tan de dat lich.",
+        "Bạn đã có từ 3 lần vắng mặt. Vui lòng liên hệ lễ tân để đặt lịch.",
       "doctor.not_available_at_selected_time":
-        "Bac si khong lam viec trong khung gio da chon.",
-      "doctor.unavailable": "Bac si hien khong kha dung.",
-      "service.unavailable": "Dich vu hien khong kha dung.",
+        "Bác sĩ không làm việc trong khung giờ đã chọn.",
+      "doctor.unavailable": "Bác sĩ hiện không khả dụng.",
+      "service.unavailable": "Dịch vụ hiện không khả dụng.",
       "clinic.closed_at_selected_time":
-        "Phong kham khong lam viec trong khung gio da chon.",
+        "Phòng khám không làm việc trong khung giờ đã chọn.",
     };
 
     if (typeof message === "string") {
@@ -79,15 +79,15 @@ export function getCreateAppointmentErrorMessage(error: unknown) {
     }
   }
 
-  return "Khong the dat lich hen. Vui long chon khung gio khac.";
+  return "Không thể đặt lịch hẹn. Vui lòng chọn khung giờ khác.";
 }
 
 export const appointmentStatusLabels: Record<AppointmentStatus, string> = {
-  confirmed: "Da xac nhan",
-  pending: "Cho xac nhan",
-  completed: "Hoan thanh",
-  cancelled: "Da huy",
-  missed: "Vang mat",
-  in_progress: "Dang kham",
-  rescheduled: "Da doi lich",
+  confirmed: "Đã xác nhận",
+  pending: "Chờ xác nhận",
+  completed: "Hoàn thành",
+  cancelled: "Đã hủy",
+  missed: "Vắng mặt",
+  in_progress: "Đang khám",
+  rescheduled: "Đã đổi lịch",
 };

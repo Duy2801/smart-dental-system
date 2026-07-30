@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/components/dashboard/common/toast";
 import {
@@ -39,44 +39,20 @@ export function useRescheduleAppointment({
     placeholderData: (previousData) => previousData,
   });
 
-  const dates = useMemo(
-    () => optionsQuery.data?.dates ?? [],
-    [optionsQuery.data?.dates],
-  );
+  const dates = useMemo(() => optionsQuery.data?.dates ?? [], [optionsQuery.data?.dates]);
   const timeSlots = useMemo(
     () => optionsQuery.data?.timeSlots ?? [],
     [optionsQuery.data?.timeSlots],
   );
 
+  const defaultDateId = pickFirstBookableDate(dates)?.id ?? "";
+  const resolvedDateId = selectedDateId || defaultDateId;
+  const resolvedTime = selectedTime || timeSlots[0] || "";
+
   const canReschedule =
     Boolean(appointment) &&
     (appointment?.rescheduleCount ?? 0) < 1 &&
     dates.some((date) => date.isOpen);
-
-  useEffect(() => {
-    if (!appointment) {
-      setSelectedDateId("");
-      setSelectedTime("");
-      return;
-    }
-
-    if (!selectedDateId && dates.length) {
-      const firstBookableDate = pickFirstBookableDate(dates);
-      setSelectedDateId(firstBookableDate?.id ?? "");
-      return;
-    }
-  }, [appointment, dates, selectedDateId]);
-
-  useEffect(() => {
-    if (!selectedDateId || !timeSlots.length) {
-      setSelectedTime("");
-      return;
-    }
-
-    if (!selectedTime || !timeSlots.includes(selectedTime)) {
-      setSelectedTime(timeSlots[0]);
-    }
-  }, [selectedDateId, selectedTime, timeSlots]);
 
   const mutation = useMutation({
     mutationFn: ({
@@ -106,7 +82,7 @@ export function useRescheduleAppointment({
       return;
     }
 
-    if (!selectedDateId || !selectedTime) {
+    if (!resolvedDateId || !resolvedTime) {
       toast.error(
         "Thiếu thông tin đổi lịch",
         "Vui lòng chọn ngày và giờ mới.",
@@ -117,7 +93,7 @@ export function useRescheduleAppointment({
     try {
       await mutation.mutateAsync({
         appointmentId: appointment.id,
-        scheduledAt: new Date(`${selectedDateId}T${selectedTime}:00`).toISOString(),
+        scheduledAt: new Date(`${resolvedDateId}T${resolvedTime}:00`).toISOString(),
       });
       toast.success(
         "Đổi lịch thành công",
@@ -133,8 +109,8 @@ export function useRescheduleAppointment({
     dates,
     timeSlots,
     slotIntervalMinutes: optionsQuery.data?.slotIntervalMinutes ?? 30,
-    selectedDateId,
-    selectedTime,
+    selectedDateId: resolvedDateId,
+    selectedTime: resolvedTime,
     setSelectedDateId,
     setSelectedTime,
     confirmReschedule,

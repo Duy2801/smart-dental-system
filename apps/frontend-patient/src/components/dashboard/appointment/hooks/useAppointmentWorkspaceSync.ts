@@ -43,7 +43,7 @@ export function useAppointmentWorkspaceSync({
   useEffect(() => {
     if (hasBookingOptionsError) {
       toast.error(
-        "Khong the tai du lieu lich hen",
+        "Không thể tải dữ liệu lịch hẹn",
         "Vui long kiem tra backend hoac thu tai lai trang.",
       );
     }

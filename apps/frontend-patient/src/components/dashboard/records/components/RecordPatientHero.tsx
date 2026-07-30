@@ -1,57 +1,113 @@
 import type { PatientRecordsResponse } from "../api";
-import { DashboardIcon } from "../../common/DashboardIcon";
+import Link from "next/link";
 import { PatientProfileEditor } from "../../profile/components/PatientProfileEditor";
 import {
   formatShortDate,
   getGenderLabel,
   getInitials,
 } from "./recordMappers";
-import { RecordInfoChip } from "./RecordInfoChip";
 
 type RecordPatientHeroProps = {
   patient: PatientRecordsResponse["patient"];
 };
 
+function MetaRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 border-b border-slate-100 py-2.5 last:border-b-0">
+      <span className="text-xs font-medium text-slate-500">{label}</span>
+      <span className="max-w-[60%] truncate text-sm font-semibold text-slate-900">
+        {value}
+      </span>
+    </div>
+  );
+}
+
 export function RecordPatientHero({ patient }: RecordPatientHeroProps) {
   return (
-    <section className="grid gap-5 lg:grid-cols-[]">
-      <div className="relative overflow-hidden rounded-[26px] border border-slate-200 bg-white p-6 shadow-[0_12px_40px_rgba(15,23,42,.06)] sm:p-8">
-        <div className="absolute -right-16 -top-20 h-60 w-60 rounded-full bg-blue-50" />
-        <div className="relative flex flex-col items-center gap-6 sm:flex-row sm:items-start">
-          <div className="relative grid h-32 w-32 shrink-0 place-items-center overflow-hidden rounded-2xl bg-gradient-to-br from-[#0058bc] to-cyan-400 text-3xl font-extrabold text-white shadow-xl shadow-blue-100">
-            <DashboardIcon
-              name="user"
-              className="absolute -bottom-3 h-28 w-28 text-white/15"
-            />
-            <span className="relative">{getInitials(patient.fullName)}</span>
-            <span className="absolute bottom-2 right-2 h-3 w-3 rounded-full border-2 border-white bg-emerald-400" />
-          </div>
-          <div className="flex-1 text-center sm:text-left">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">
-                {patient.fullName}
-              </h1>
-              <span className="mx-auto w-fit rounded-full bg-[#0058bc] px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white sm:mx-0">
-                Patient ID: #{patient.patientCode}
-              </span>
+    <section className="border border-slate-200 bg-white">
+      <div className="grid gap-0 lg:grid-cols-[minmax(0,1.5fr)_minmax(320px,.75fr)]">
+        <div className="p-5 sm:p-6 lg:p-7">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-start gap-4">
+              <div className="grid h-16 w-16 shrink-0 place-items-center border border-slate-200 bg-slate-50 text-xl font-extrabold text-slate-900">
+                {getInitials(patient.fullName)}
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0058bc]">
+                  Hồ sơ bệnh án
+                </p>
+                <h1 className="mt-1 text-3xl font-extrabold tracking-[-0.03em] text-slate-950">
+                  {patient.fullName}
+                </h1>
+                <p className="mt-2 text-sm text-slate-500">
+                  Patient ID: #{patient.patientCode}
+                </p>
+              </div>
             </div>
-            <p className="mt-2 text-sm text-slate-500">
-              {getGenderLabel(patient.gender)} · {patient.age ?? "--"} tuổi ·{" "}
-              {patient.address ?? "Chưa cập nhật địa chỉ"}
-            </p>
-            <div className="mt-5 flex flex-wrap justify-center gap-2 sm:justify-start">
-              <RecordInfoChip icon="clock">
-                Lần khám cuối:{" "}
+
+            <PatientProfileEditor />
+          </div>
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            <div className="border border-slate-200 bg-slate-50 p-4">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+                Giới tính
+              </p>
+              <p className="mt-2 text-sm font-semibold text-slate-900">
+                {getGenderLabel(patient.gender)}
+              </p>
+            </div>
+            <div className="border border-slate-200 bg-slate-50 p-4">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+                Tuổi
+              </p>
+              <p className="mt-2 text-sm font-semibold text-slate-900">
+                {patient.age ? `${patient.age} tuổi` : "Chưa cập nhật"}
+              </p>
+            </div>
+            <div className="border border-slate-200 bg-slate-50 p-4">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+                Lần khám cuối
+              </p>
+              <p className="mt-2 text-sm font-semibold text-slate-900">
                 {patient.lastVisitAt
                   ? formatShortDate(patient.lastVisitAt)
                   : "Chưa có"}
-              </RecordInfoChip>
-              <RecordInfoChip icon="chat">
-                {patient.phone ?? patient.email}
-              </RecordInfoChip>
+              </p>
             </div>
           </div>
-          <PatientProfileEditor />
+        </div>
+
+        <div className="border-t border-slate-200 bg-slate-50 p-5 sm:p-6 lg:border-t-0 lg:border-l">
+          <MetaRow label="Lien he" value={patient.phone ?? patient.email} />
+          <MetaRow
+            label="Địa chỉ"
+            value={patient.address ?? "Chưa cập nhật địa chỉ"}
+          />
+          <MetaRow
+            label="Tình trạng"
+            value={patient.medicalHistory ? "Đã có ghi chú lâm sàng" : "Đang trống"}
+          />
+          <div className="mt-4 grid gap-2">
+            <Link
+              href="/appointment"
+              className="inline-flex h-10 items-center justify-center border border-[#0058bc] bg-[#0058bc] text-sm font-semibold text-white transition hover:bg-[#054a9f]"
+            >
+              Đặt lịch hẹn
+            </Link>
+            <Link
+              href="/records"
+              className="inline-flex h-10 items-center justify-center border border-slate-200 bg-white text-sm font-semibold text-slate-700 transition hover:border-[#0058bc] hover:text-[#0058bc]"
+            >
+              Tải hồ sơ
+            </Link>
+          </div>
         </div>
       </div>
     </section>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useAppSelector } from "@/providers";
 import { type AppointmentStatus } from "../api";
 import { useAppointmentBookingData } from "../hooks/useAppointmentBookingData";
@@ -90,13 +90,16 @@ export function AppointmentWorkspace({
       availableTimes.filter((time) => !blockedBookingTimes.times.includes(time)),
     [availableTimes, blockedBookingTimes.times],
   );
+  const effectiveSelectedTime = blockedBookingTimes.times.includes(selectedTime)
+    ? ""
+    : selectedTime;
   const { createAppointment, isSubmitting: submitting } = useCreateAppointment({
     dates,
     availableTimes: selectableAvailableTimes,
     selectedDoctorId,
     selectedServiceId,
     selectedDateId,
-    selectedTime,
+    selectedTime: effectiveSelectedTime,
     selectedPaymentOption,
     ensureLoggedInBeforeBooking,
     onSelectedTimeChange: setSelectedTime,
@@ -121,7 +124,7 @@ export function AppointmentWorkspace({
     doctors,
     availableTimes: selectableAvailableTimes,
     selectedDateId,
-    selectedTime,
+    selectedTime: effectiveSelectedTime,
     selectedDoctorId,
     onOpenBookingMode: openBookingMode,
     setSelectedServiceId,
@@ -137,12 +140,6 @@ export function AppointmentWorkspace({
     statusFilter,
   });
 
-  useEffect(() => {
-    if (selectedTime && blockedBookingTimes.times.includes(selectedTime)) {
-      setSelectedTime("");
-    }
-  }, [blockedBookingTimes.times, selectedTime]);
-
   if (mode === "booking") {
     return (
       <BookingModeView
@@ -155,7 +152,7 @@ export function AppointmentWorkspace({
         selectedServiceId={selectedServiceId}
         selectedDoctorId={selectedDoctorId}
         selectedDateId={selectedDateId}
-        selectedTime={selectedTime}
+        selectedTime={effectiveSelectedTime}
         selectedService={selectedService}
         selectedDoctor={selectedDoctor}
         selectedDate={selectedDate}

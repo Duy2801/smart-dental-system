@@ -22,12 +22,12 @@ export function useCancelAppointment() {
     try {
       await cancelAppointmentMutation.mutateAsync(appointmentId);
       toast.success(
-        "Huy lich thanh cong",
-        "Lich hen da duoc huy som va khong bi danh dau vang mat.",
+        "Hủy lịch thành công",
+        "Lịch hẹn đã được hủy sớm và không bị đánh dấu vắng mặt.",
       );
     } catch (error) {
       toast.error(
-        "Khong the huy lich hen",
+        "Không thể hủy lịch hẹn",
         getCreateAppointmentErrorMessage(error),
       );
     }

@@ -44,14 +44,14 @@ export function ManageModeView({
           <div>
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[10px] font-bold uppercase text-blue-50 backdrop-blur">
               <DashboardIcon name="calendar" className="h-4 w-4" />
-              Trung tam lich hen
+              Trung tâm lịch hẹn
             </div>
             <h1 className="text-3xl font-extrabold sm:text-4xl">
-              Quan ly lich hen cua ban
+              Quản lý lịch hẹn của bạn
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-blue-100">
-              Theo doi lich trinh, chuan bi truoc kham va quan ly toan bo hanh
-              trinh cham soc nu cuoi tai mot noi.
+              Theo dõi lịch trình, chuẩn bị trước khám và quản lý toàn bộ hành
+              trình chăm sóc nụ cười tại một nơi.
             </p>
           </div>
           <button
@@ -59,7 +59,7 @@ export function ManageModeView({
             className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-xs font-bold text-[#0058bc] shadow-xl transition hover:-translate-y-0.5"
           >
             <span className="text-lg leading-none">+</span>
-            Dat lich moi
+            Đặt lịch mới
           </button>
         </div>
       </header>
@@ -68,8 +68,8 @@ export function ManageModeView({
         <StatCard
           icon="appointment"
           value={String(appointments.length)}
-          label="Tong so lich hen"
-          detail={`${upcoming.length} sap toi`}
+          label="Tổng số lịch hẹn"
+          detail={`${upcoming.length} sắp tới`}
           tone="bg-blue-50 text-blue-600"
         />
         <StatCard
@@ -77,8 +77,8 @@ export function ManageModeView({
           value={String(
             appointments.filter((item) => item.status === "completed").length,
           )}
-          label="Da hoan thanh"
-          detail="Thanh cong"
+          label="Đã hoàn thành"
+          detail="Thành công"
           tone="bg-emerald-50 text-emerald-600"
         />
         <article className="relative overflow-hidden rounded-[22px] border border-blue-100 bg-gradient-to-r from-[#f0f7ff] to-[#e8fbff] p-6 shadow-[0_10px_35px_rgba(15,23,42,.05)] md:col-span-2">
@@ -88,56 +88,100 @@ export function ManageModeView({
             </span>
             <div>
               <p className="text-xs font-bold uppercase text-[#0058bc]">
-                Nhac lich thong minh
+                Nhắc lịch thông minh
               </p>
               <p className="mt-2 text-sm leading-6 text-slate-600">
                 {upcoming[0]
-                  ? `Lich gan nhat cua ban la ${upcoming[0].date} luc ${upcoming[0].time}.`
-                  : "Ban chua co lich hen sap toi. Hay dat lich de phong kham ho tro som."}
+                  ? `Lịch gần nhất của bạn là ${upcoming[0].date} lúc ${upcoming[0].time}.`
+                  : "Bạn chưa có lịch hẹn sắp tới. Hãy đặt lịch để phòng khám hỗ trợ sớm."}
               </p>
             </div>
           </div>
         </article>
       </div>
 
-      <section className="mt-8 rounded-[22px] border border-slate-200/80 bg-white p-4 shadow-[0_8px_30px_rgba(15,23,42,.04)]">
-        <div className="mb-3 flex items-center justify-between px-1">
-          <p className="text-[10px] font-bold uppercase text-slate-400">
-            Tim kiem va loc lich hen
-          </p>
+      <section className="mt-8 rounded-[24px] border border-slate-200/80 bg-white p-5 shadow-[0_12px_36px_rgba(15,23,42,.05)]">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-400">
+              Tìm kiếm và lọc lịch hẹn
+            </p>
+            <p className="mt-1 text-sm text-slate-500">
+              Lọc nhanh theo trạng thái hoặc tra cứu theo bác sĩ, dịch vụ.
+            </p>
+          </div>
           <button
             onClick={onResetFilters}
-            className="text-[10px] font-bold text-[#0058bc]"
+            className="inline-flex items-center gap-2 self-start rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-xs font-semibold text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-[#0058bc]"
           >
-            Dat lai bo loc
+            <DashboardIcon name="arrow" className="h-4 w-4 rotate-180" />
+            Đặt lại bộ lọc
           </button>
         </div>
-        <div className="flex flex-col gap-3 lg:flex-row">
-          <div className="relative flex-1">
+        <div className="mt-5 grid gap-3 lg:grid-cols-[minmax(0,1fr)_260px]">
+          <label className="relative block">
+            <span className="sr-only">Tìm theo bác sĩ hoặc dịch vụ</span>
             <DashboardIcon
               name="search"
-              className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+              className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
             />
             <input
               value={query}
               onChange={(event) => onQueryChange(event.target.value)}
-              placeholder="Tim theo bac si hoac dich vu..."
-              className="w-full rounded-xl border border-slate-200 bg-slate-50/70 py-3 pl-10 pr-4 text-xs outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-50"
+              placeholder="Tìm theo bác sĩ hoặc dịch vụ..."
+              className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50/80 pl-11 pr-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-50"
             />
-          </div>
-          <select
-            value={statusFilter}
-            onChange={(event) =>
-              onStatusFilterChange(event.target.value as AppointmentStatus | "all")
-            }
-            className="rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3 text-xs text-slate-600 outline-none focus:border-blue-400"
-          >
-            <option value="all">Tat ca trang thai</option>
-            <option value="completed">Da hoan thanh</option>
-            <option value="cancelled">Da huy</option>
-            <option value="missed">Vang mat</option>
-            <option value="rescheduled">Da doi lich</option>
-          </select>
+          </label>
+          <label className="relative block">
+            <span className="sr-only">Lọc theo trạng thái</span>
+            <DashboardIcon
+              name="calendar"
+              className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+            />
+            <DashboardIcon
+              name="chevron"
+              className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 rotate-90 text-slate-400"
+            />
+            <select
+              value={statusFilter}
+              onChange={(event) =>
+                onStatusFilterChange(event.target.value as AppointmentStatus | "all")
+              }
+              className="h-12 w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50/80 pl-11 pr-10 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-50"
+            >
+              <option value="all">Tất cả trạng thái</option>
+              <option value="completed">Đã hoàn thành</option>
+              <option value="cancelled">Đã hủy</option>
+              <option value="missed">Vắng mặt</option>
+              <option value="rescheduled">Đã đổi lịch</option>
+            </select>
+          </label>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {[
+            { value: "all", label: "Tất cả" },
+            { value: "pending", label: "Chờ xác nhận" },
+            { value: "confirmed", label: "Đã xác nhận" },
+            { value: "completed", label: "Hoàn thành" },
+            { value: "cancelled", label: "Đã hủy" },
+          ].map((item) => {
+            const active = statusFilter === item.value;
+            return (
+              <button
+                key={item.value}
+                onClick={() =>
+                  onStatusFilterChange(item.value as AppointmentStatus | "all")
+                }
+                className={`rounded-full border px-4 py-2 text-xs font-semibold transition ${
+                  active
+                    ? "border-[#0058bc] bg-[#0058bc] text-white shadow-[0_8px_20px_rgba(0,88,188,.18)]"
+                    : "border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-[#0058bc]"
+                }`}
+              >
+                {item.label}
+              </button>
+            );
+          })}
         </div>
       </section>
 
@@ -156,11 +200,11 @@ export function ManageModeView({
             <div className="mb-5 flex items-end justify-between">
               <div>
                 <p className="text-[10px] font-bold uppercase text-[#0058bc]">
-                  Lich trinh cua ban
+                  Lịch trình của bạn
                 </p>
                 <div className="mt-1 flex items-center gap-3">
                   <h2 className="text-xl font-bold text-slate-900">
-                    Lich hen sap toi
+                    Lịch hẹn sắp tới
                   </h2>
                   <span className="rounded-full bg-[#0058bc] px-2.5 py-1 text-[10px] font-bold text-white">
                     {upcoming.length}
@@ -171,7 +215,7 @@ export function ManageModeView({
                 onClick={onOpenBooking}
                 className="text-xs font-bold text-[#0058bc] hover:underline"
               >
-                + Them lich hen
+                + Thêm lịch hẹn
               </button>
             </div>
             {upcoming.length ? (
@@ -190,7 +234,7 @@ export function ManageModeView({
                 ))}
               </div>
             ) : (
-              <AppointmentsEmptyState text="Ban chua co lich hen sap toi." />
+              <AppointmentsEmptyState text="Bạn chưa có lịch hẹn sắp tới." />
             )}
           </section>
 

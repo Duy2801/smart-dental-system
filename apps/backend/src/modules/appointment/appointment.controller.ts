@@ -54,12 +54,16 @@ export class AppointmentController {
   @Patch(':id/cancel')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('PATIENT', 'RECEPTIONIST', 'ADMIN')
-  cancel(
-    @CurrentUser() user: AuthenticatedUser,
-    @Param('id') id: string,
-  ) {
-    if (user.roles.includes('PATIENT') && !user.roles.includes('RECEPTIONIST') && !user.roles.includes('ADMIN')) {
-      return this.appointmentService.cancelAppointmentForPatient(user.userId, id);
+  cancel(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    if (
+      user.roles.includes('PATIENT') &&
+      !user.roles.includes('RECEPTIONIST') &&
+      !user.roles.includes('ADMIN')
+    ) {
+      return this.appointmentService.cancelAppointmentForPatient(
+        user.userId,
+        id,
+      );
     }
     return this.appointmentService.cancelByStaff(id);
   }
@@ -86,8 +90,21 @@ export class AppointmentController {
     return this.appointmentService.rescheduleByStaff(id, dto);
   }
 
+  @Patch(':id/restore')
+  @Roles('PATIENT')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  restoreAppointment(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ) {
+    return this.appointmentService.restoreAppointmentForPatient(
+      user.userId,
+      id,
+    );
+  }
+
   @Patch(':id/confirm')
-  @Roles('DOCTOR', 'ADMIN', 'RECEPTIONIST')
+  @Roles('PATIENT', 'DOCTOR', 'ADMIN', 'RECEPTIONIST')
   @UseGuards(JwtAuthGuard, RolesGuard)
   confirmAppointment(@Param('id') id: string) {
     return this.appointmentService.confirmAppointment(id);

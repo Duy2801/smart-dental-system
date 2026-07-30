@@ -98,7 +98,7 @@ export function useCreateAppointment({
       if (!selectedDoctorIsStillAvailable) {
         onSelectedDoctorChange(confirmedOptions.doctors[0]?.id ?? "");
         toast.error(
-          "Bac si vua chon khong con trong",
+          "Bác sĩ vừa chọn không còn trống",
           confirmedOptions.doctors.length
             ? "He thong da goi y bac si con trong, vui long xac nhan lai."
             : "Vui long chon khung gio khac.",
@@ -121,14 +121,14 @@ export function useCreateAppointment({
           : `${created.appointment.service} luc ${created.appointment.time}. Ban da chon thanh toan tai quay khi den kham.`;
       const policyDescription =
         selectedPaymentOption === "DEPOSIT_30_PERCENT"
-          ? `Lich hen nay se giu bang khoan coc ${created.bookingPolicy?.depositAmount.toLocaleString("vi-VN") ?? "theo cau hinh"}d.`
-          : "Lich hen nay duoc giu va thanh toan tai quay khi den kham.";
+          ? `Lịch hẹn này sẽ giữ bằng khoản cọc ${created.bookingPolicy?.depositAmount.toLocaleString("vi-VN") ?? "theo cấu hình"}đ.`
+          : "Lịch hẹn này được giữ và thanh toán tại quầy khi đến khám.";
 
-      toast.success("Dat lich thanh cong", policyDescription);
+      toast.success("Đặt lịch thành công", policyDescription);
       onSuccess(successMessage);
     } catch (appointmentError) {
       toast.error(
-        "Khong the dat lich hen",
+        "Không thể đặt lịch hẹn",
         getCreateAppointmentErrorMessage(appointmentError),
       );
     }

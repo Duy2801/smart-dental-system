@@ -6,31 +6,31 @@ const statusInfo: Record<
   { label: string; className: string }
 > = {
   confirmed: {
-    label: "Da xac nhan",
+    label: "Đã xác nhận",
     className: "border-emerald-200 bg-emerald-50 text-emerald-700",
   },
   pending: {
-    label: "Cho xac nhan",
+    label: "Chờ xác nhận",
     className: "border-amber-200 bg-amber-50 text-amber-700",
   },
   completed: {
-    label: "Hoan thanh",
+    label: "Hoàn thành",
     className: "border-blue-200 bg-blue-50 text-blue-700",
   },
   cancelled: {
-    label: "Da huy",
+    label: "Đã hủy",
     className: "border-rose-200 bg-rose-50 text-rose-700",
   },
   missed: {
-    label: "Vang mat",
+    label: "Vắng mặt",
     className: "border-slate-200 bg-slate-100 text-slate-600",
   },
   in_progress: {
-    label: "Dang kham",
+    label: "Đang khám",
     className: "border-cyan-200 bg-cyan-50 text-cyan-700",
   },
   rescheduled: {
-    label: "Da doi lich",
+    label: "Đã đổi lịch",
     className: "border-violet-200 bg-violet-50 text-violet-700",
   },
 };
@@ -73,7 +73,7 @@ export function AppointmentRecordCard({
         <span
           className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-bold ${status.className}`}
         >
-          <span className="mr-1">o</span>
+          <span className="mr-1">•</span>
           {status.label}
         </span>
       </header>
@@ -125,7 +125,7 @@ export function AppointmentRecordCard({
                   <span
                     className={index === 0 ? "text-emerald-500" : "text-slate-300"}
                   >
-                    {index === 0 ? "o" : "O"}
+                    {index === 0 ? "•" : "o"}
                   </span>{" "}
                   {item}
                 </p>
@@ -137,7 +137,7 @@ export function AppointmentRecordCard({
         <div className="mt-auto flex flex-wrap gap-2 border-t border-slate-100 pt-5">
           <button
             className="grid h-10 w-10 place-items-center rounded-xl bg-blue-50 text-[#0058bc]"
-            aria-label="Them vao lich"
+            aria-label="Thêm vào lịch"
           >
             <DashboardIcon name="calendar" className="h-4 w-4" />
           </button>

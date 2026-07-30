@@ -60,13 +60,6 @@ export function AppointmentHistoryList({
   const [page, setPage] = useState(1);
 
   useEffect(() => {
-    const totalPages = Math.max(1, Math.ceil(history.length / ITEMS_PER_PAGE));
-    if (page > totalPages) {
-      setPage(totalPages);
-    }
-  }, [history.length, page]);
-
-  useEffect(() => {
     if (!selectedAppointment) return;
 
     const previousOverflow = document.body.style.overflow;
@@ -99,9 +92,10 @@ export function AppointmentHistoryList({
   }, [history]);
 
   const totalPages = Math.max(1, Math.ceil(mappedHistory.length / ITEMS_PER_PAGE));
+  const currentPage = Math.min(page, totalPages);
   const pagedHistory = mappedHistory.slice(
-    (page - 1) * ITEMS_PER_PAGE,
-    page * ITEMS_PER_PAGE,
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE,
   );
 
   if (!history.length) {
@@ -122,9 +116,7 @@ export function AppointmentHistoryList({
               </h3>
             </div>
             <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
-              <span>
-                {mappedHistory.length} cuộc hẹn
-              </span>
+              <span>{mappedHistory.length} cuộc hẹn</span>
               <span className="h-1 w-1 rounded-full bg-slate-300" />
               <span>Nhấn vào từng dòng để xem chi tiết</span>
             </div>
@@ -222,13 +214,13 @@ export function AppointmentHistoryList({
         <div className="border-t border-slate-100 bg-white px-5 py-4 sm:px-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-slate-500">
-              Trang {page} / {totalPages}
+              Trang {currentPage} / {totalPages}
             </p>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => setPage((current) => Math.max(1, current - 1))}
-                disabled={page === 1}
+                disabled={currentPage === 1}
                 className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 px-4 text-sm font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Trước
@@ -242,7 +234,7 @@ export function AppointmentHistoryList({
                     type="button"
                     onClick={() => setPage(pageNumber)}
                     className={`inline-flex h-10 w-10 items-center justify-center rounded-xl text-sm font-bold transition ${
-                      pageNumber === page
+                      pageNumber === currentPage
                         ? "bg-[#0a5fbe] text-white shadow-lg shadow-blue-100"
                         : "border border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50"
                     }`}
@@ -256,7 +248,7 @@ export function AppointmentHistoryList({
                 onClick={() =>
                   setPage((current) => Math.min(totalPages, current + 1))
                 }
-                disabled={page === totalPages}
+                disabled={currentPage === totalPages}
                 className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 px-4 text-sm font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Sau
@@ -267,140 +259,37 @@ export function AppointmentHistoryList({
       </div>
 
       {selectedAppointment ? (
-        <AppointmentHistoryDetailModal
-          appointment={selectedAppointment}
-          onClose={() => setSelectedAppointment(null)}
-        />
-      ) : null}
-    </>
-  );
-}
-
-function AppointmentHistoryDetailModal({
-  appointment,
-  onClose,
-}: {
-  appointment: AppointmentItem;
-  onClose: () => void;
-}) {
-  const status = statusInfo[appointment.status];
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6 backdrop-blur-[3px] animate-[modal-fade-in_180ms_ease-out]">
-      <div
-        role="dialog"
-        aria-modal="true"
-        className="w-full max-w-3xl overflow-hidden rounded-[30px] bg-white shadow-[0_30px_90px_rgba(15,23,42,.28)] animate-[modal-panel-in_220ms_cubic-bezier(.22,1,.36,1)]"
-      >
-        <div className="border-b border-slate-100 bg-gradient-to-r from-[#f3f8ff] to-white px-6 py-5 sm:px-7">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#0a5fbe]">
-                Chi tiết cuộc hẹn
-              </p>
-              <h3 className="mt-2 text-2xl font-bold text-slate-900">
-                {appointment.service}
-              </h3>
-              <p className="mt-2 text-sm text-slate-500">{appointment.doctor}</p>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6 backdrop-blur-[4px]"
+          role="presentation"
+          onClick={() => setSelectedAppointment(null)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            onClick={(event) => event.stopPropagation()}
+            className="w-full max-w-2xl rounded-[28px] bg-white p-6 shadow-[0_24px_70px_rgba(15,23,42,.25)]"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#0a5fbe]">
+                  Chi tiết lịch hẹn
+                </p>
+                <h4 className="mt-2 text-2xl font-bold text-slate-900">
+                  {selectedAppointment.service}
+                </h4>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedAppointment(null)}
+                className="text-sm font-bold text-slate-500"
+              >
+                Đóng
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="grid h-11 w-11 place-items-center rounded-2xl border border-slate-200 text-slate-400 transition hover:border-slate-300 hover:text-slate-700"
-              aria-label="Đóng chi tiết cuộc hẹn"
-            >
-              <span className="text-lg leading-none">x</span>
-            </button>
           </div>
         </div>
-
-        <div className="grid gap-6 px-6 py-6 sm:px-7 lg:grid-cols-[minmax(0,1fr)_280px]">
-          <section className="space-y-5">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <DetailCard
-                icon="calendar"
-                label="Ngày khám"
-                value={appointment.date}
-              />
-              <DetailCard
-                icon="clock"
-                label="Giờ khám"
-                value={appointment.time}
-              />
-            </div>
-
-            <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,.04)]">
-              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                Chuẩn bị trước khám
-              </p>
-              <div className="mt-4 grid gap-3">
-                {(appointment.preparation?.length
-                  ? appointment.preparation
-                  : ["Không có hướng dẫn chuẩn bị bổ sung."]
-                ).map((item) => (
-                  <div
-                    key={item}
-                    className="flex items-start gap-3 rounded-2xl border border-slate-100 bg-slate-50/80 px-4 py-3"
-                  >
-                    <span className="mt-1 h-2.5 w-2.5 rounded-full bg-emerald-500" />
-                    <p className="text-sm leading-6 text-slate-600">{item}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          <aside className="space-y-5">
-            <div className="rounded-[24px] border border-slate-200 bg-slate-50/70 p-5">
-              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                Trạng thái
-              </p>
-              <span
-                className={`mt-4 inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-bold ${status.className}`}
-              >
-                <span className={`mr-2 h-2.5 w-2.5 rounded-full ${status.tone}`} />
-                {status.label}
-              </span>
-            </div>
-
-            <div className="rounded-[24px] border border-blue-100 bg-gradient-to-br from-blue-50 to-white p-5">
-              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#0a5fbe]">
-                Ghi chú cuộc hẹn
-              </p>
-              <p className="mt-3 text-sm leading-6 text-slate-600">
-                Thông tin này được lưu từ lịch sử đặt hẹn để bạn dễ tra cứu lại
-                quá trình khám, chuẩn bị và trạng thái xử lý trước đó.
-              </p>
-            </div>
-          </aside>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function DetailCard({
-  icon,
-  label,
-  value,
-}: {
-  icon: "calendar" | "clock";
-  label: string;
-  value: string;
-}) {
-  return (
-    <article className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,.04)]">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
-            {label}
-          </p>
-          <p className="mt-3 text-lg font-bold text-slate-900">{value}</p>
-        </div>
-        <span className="grid h-11 w-11 place-items-center rounded-2xl bg-blue-50 text-[#0a5fbe]">
-          <DashboardIcon name={icon} className="h-5 w-5" />
-        </span>
-      </div>
-    </article>
+      ) : null}
+    </>
   );
 }

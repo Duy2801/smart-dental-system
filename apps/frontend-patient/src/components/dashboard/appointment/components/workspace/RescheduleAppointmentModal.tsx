@@ -34,10 +34,8 @@ export function RescheduleAppointmentModal({
     onClose,
   });
 
-  if (!appointment) return null;
-
   const blockedTimeData = useMemo(() => {
-    if (!selectedDateId) {
+    if (!appointment || !selectedDateId) {
       return {
         times: [] as string[],
         ranges: [] as string[],
@@ -65,10 +63,10 @@ export function RescheduleAppointmentModal({
     );
 
     return { times, ranges };
-  }, [appointment.durationMinutes, bookedAppointments, selectedDateId, timeSlots]);
+  }, [appointment, bookedAppointments, selectedDateId, timeSlots]);
+
   const selectableTimeSlots = useMemo(
-    () =>
-      timeSlots.filter((time) => !blockedTimeData.times.includes(time)),
+    () => timeSlots.filter((time) => !blockedTimeData.times.includes(time)),
     [blockedTimeData.times, timeSlots],
   );
 
@@ -77,6 +75,8 @@ export function RescheduleAppointmentModal({
     if (!blockedTimeData.times.includes(selectedTime)) return;
     setSelectedTime(selectableTimeSlots[0] ?? "");
   }, [blockedTimeData.times, selectableTimeSlots, selectedTime, setSelectedTime]);
+
+  if (!appointment) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-[4px]">
@@ -259,22 +259,11 @@ function MiniInfo({ label, value }: { label: string; value: string }) {
   );
 }
 
-function RuleItem({
-  title,
-  text,
-}: {
-  title: string;
-  text: string;
-}) {
+function RuleItem({ title, text }: { title: string; text: string }) {
   return (
-    <div className="flex gap-3 rounded-2xl border border-slate-200 bg-white p-4">
-      <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-blue-50 text-[#0a5fbe]">
-        <DashboardIcon name="shield" className="h-4 w-4" />
-      </span>
-      <div>
-        <p className="text-sm font-bold text-slate-900">{title}</p>
-        <p className="mt-1 text-sm leading-6 text-slate-500">{text}</p>
-      </div>
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_8px_20px_rgba(15,23,42,.03)]">
+      <p className="text-sm font-bold text-slate-900">{title}</p>
+      <p className="mt-1 text-sm leading-6 text-slate-500">{text}</p>
     </div>
   );
 }

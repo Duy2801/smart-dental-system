@@ -21,11 +21,13 @@ export type TimelineStepView = {
   };
   medicalRecordId: string | null;
   appointment: {
+    id: string;
     dateLabel: string;
     time: string;
     doctor: string;
     description: string;
     completed: boolean;
+    status: "pending" | "confirmed" | "completed" | "cancelled" | "missed" | "in_progress" | "rescheduled";
   } | null;
 };
 
@@ -170,6 +172,7 @@ function buildTimelineSteps(
       medicalRecordId: firstRecord?.id ?? null,
       appointment: appointment
         ? {
+            id: appointment.id,
             dateLabel: formatLongDate(appointment.scheduledAt),
             time: formatTime(appointment.scheduledAt),
             doctor: appointment.doctor,
@@ -177,6 +180,7 @@ function buildTimelineSteps(
               step.description ??
               "Kiểm tra tình trạng điều trị và xác nhận bước tiếp theo.",
             completed: appointment.status === "COMPLETED",
+            status: normalizeAppointmentStatus(appointment.status),
           }
         : null,
     };
@@ -250,6 +254,19 @@ function getCurrentStepIndex(steps: TreatmentPlanStepRecord[]) {
   const scheduledIndex = steps.findIndex((step) => step.status !== "COMPLETED");
   if (scheduledIndex >= 0) return scheduledIndex;
   return Math.max(steps.length - 1, 0);
+}
+
+function normalizeAppointmentStatus(
+  status: string,
+): TimelineStepView["appointment"]["status"] {
+  const value = status.toUpperCase();
+  if (value === "CONFIRMED") return "confirmed";
+  if (value === "COMPLETED") return "completed";
+  if (value === "CANCELLED") return "cancelled";
+  if (value === "NO_SHOW") return "missed";
+  if (value === "IN_PROGRESS" || value === "CHECKED_IN") return "in_progress";
+  if (value === "RESCHEDULED") return "rescheduled";
+  return "pending";
 }
 
 function formatStepDate(step: TreatmentPlanStepRecord) {

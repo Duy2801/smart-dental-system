@@ -22,7 +22,7 @@ export function DoctorSelector({
       <legend className="sr-only">Chon bac si</legend>
       {doctors.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
-          Khong co bac si trong khung gio nay. Vui long chon ngay hoac gio khac.
+          Không có bác sĩ trong khung giờ này. Vui lòng chọn ngày hoặc giờ khác.
         </div>
       ) : null}
       <div className="grid gap-4 md:grid-cols-2">
