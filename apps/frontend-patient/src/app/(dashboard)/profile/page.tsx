@@ -2,10 +2,13 @@
 
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
-import { apiMe, apiRefresh, type AuthUser } from "@/components/auth/api";
+import { useMemo } from "react";
+import { apiRefresh, type AuthUser } from "@/components/auth/api";
 import { DashboardIcon } from "@/components/dashboard/common/DashboardIcon";
 import { DashboardLogoutButton } from "@/components/dashboard/common/DashboardLogoutButton";
+import { apiGetPatientProfile } from "@/components/dashboard/profile/api";
+import { PatientProfileEditor } from "@/components/dashboard/profile/components/PatientProfileEditor";
+import type { PatientProfileUser } from "@/components/dashboard/profile/types";
 import {
   login,
   logout,
@@ -82,11 +85,9 @@ export default function ProfilePage() {
   const { user: storedUser, accessToken } = useAppSelector(
     (state) => state.login,
   );
-  const [message, setMessage] = useState<string | null>(null);
-
   const profileQuery = useQuery({
     queryKey: ["patient", "profile"],
-    queryFn: async () => {
+  queryFn: async () => {
       try {
         let sessionAccessToken = accessToken;
 
@@ -96,7 +97,7 @@ export default function ProfilePage() {
           dispatch(updateAccessToken(sessionAccessToken));
         }
 
-        const meResponse = await apiMe();
+        const meResponse = await apiGetPatientProfile();
         dispatch(
           login({
             user: meResponse.data,
@@ -113,7 +114,7 @@ export default function ProfilePage() {
     retry: false,
   });
 
-  const profile = profileQuery.data ?? (storedUser as AuthUser | null);
+  const profile = profileQuery.data ?? (storedUser as PatientProfileUser | null);
   const loading = profileQuery.isLoading && !profile;
 
   const patient = profile?.patientProfile ?? null;
@@ -165,18 +166,7 @@ export default function ProfilePage() {
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <button
-                type="button"
-                onClick={() =>
-                  setMessage(
-                    "Chức năng cập nhật hồ sơ sẽ dùng dữ liệu thật ở bước tiếp theo.",
-                  )
-                }
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-white px-4 text-xs font-bold text-[#0863c5] shadow-sm transition hover:bg-blue-50"
-              >
-                <DashboardIcon name="document" className="h-4 w-4" />
-                Cập nhật hồ sơ
-              </button>
+              <PatientProfileEditor profile={profile} />
               <DashboardLogoutButton />
             </div>
           </div>
@@ -204,32 +194,6 @@ export default function ProfilePage() {
                 ))}
               </div>
             </div>
-
-            {patient ? (
-              <div className="rounded-xl border border-slate-200 bg-white px-4 py-4">
-                <h2 className="text-sm font-bold text-slate-900">
-                  Liên hệ khẩn cấp
-                </h2>
-                <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                  <p className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                    {patient.emergencyContactName || "Chưa cập nhật tên"}
-                  </p>
-                  <p className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                    {patient.emergencyContactPhone ||
-                      "Chưa cập nhật số điện thoại"}
-                  </p>
-                </div>
-              </div>
-            ) : null}
-
-            {message && (
-              <div
-                role="status"
-                className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-700"
-              >
-                {message}
-              </div>
-            )}
           </div>
 
           <aside className="rounded-2xl border border-slate-200 bg-slate-50 p-5">

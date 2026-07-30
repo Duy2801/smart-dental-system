@@ -8,7 +8,6 @@ const navigation = [
   { label: "Lịch hẹn", href: "/appointment" },
   { label: "Dịch vụ", href: "/service" },
   { label: "Hồ sơ", href: "/records" },
-  { label: "Thanh toán", href: "/payment" },
 ];
 
 export function DashboardNav() {
@@ -28,9 +27,8 @@ export function DashboardNav() {
             href={item.href}
             prefetch={false}
             aria-current={active ? "page" : undefined}
-            className={`relative flex h-full items-center justify-center whitespace-nowrap px-2 text-center text-[13px] font-semibold transition hover:text-[#0863c5] ${
-              active ? "text-[#0863c5]" : "text-slate-500"
-            }`}
+            className={`relative flex h-full items-center justify-center whitespace-nowrap px-2 text-center text-[13px] font-semibold transition hover:text-[#0863c5] ${active ? "text-[#0863c5]" : "text-slate-500"
+              }`}
           >
             {item.label}
             {active && <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-[#0863c5]" />}

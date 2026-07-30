@@ -1,6 +1,6 @@
 import type { PatientRecordsResponse } from "../api";
 import { DashboardIcon } from "../../common/DashboardIcon";
-import { PatientProfileEditor } from "./PatientProfileEditor";
+import { PatientProfileEditor } from "../../profile/components/PatientProfileEditor";
 import {
   formatShortDate,
   getGenderLabel,

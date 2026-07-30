@@ -5,7 +5,6 @@ import { getPatientRecords } from "../api";
 import { mapRecordTreatments } from "./recordMappers";
 import { RecordHistorySection } from "./RecordHistorySection";
 import { RecordPatientHero } from "./RecordPatientHero";
-import { RecordToolsSidebar } from "./RecordToolsSidebar";
 
 export function PatientRecordsPageClient() {
   const recordsQuery = useQuery({
@@ -17,10 +16,7 @@ export function PatientRecordsPageClient() {
     return (
       <main className="mx-auto w-full max-w-[1360px] space-y-7 px-4 py-7 sm:px-6 lg:px-8">
         <section className="h-56 animate-pulse rounded-[26px] bg-slate-100" />
-        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_290px]">
-          <section className="h-[540px] animate-pulse rounded-xl bg-slate-100" />
-          <aside className="h-60 animate-pulse rounded-[22px] bg-slate-100" />
-        </div>
+        <section className="h-[540px] animate-pulse rounded-xl bg-slate-100" />
       </main>
     );
   }
@@ -41,9 +37,8 @@ export function PatientRecordsPageClient() {
     <main className="mx-auto w-full max-w-[1360px] space-y-7 px-4 py-7 sm:px-6 lg:px-8">
       <RecordPatientHero patient={recordsQuery.data.patient} />
 
-      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_290px]">
+      <div className="grid items-start gap-5">
         <RecordHistorySection treatments={treatments} />
-        <RecordToolsSidebar />
       </div>
     </main>
   );

@@ -31,6 +31,16 @@ export class PatientController {
     return this.patientService.getMyRecords(user.userId);
   }
 
+  @Patch('me')
+  @Roles('PATIENT')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  updateMyProfile(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: UpdatePatientDto,
+  ) {
+    return this.patientService.updateMyProfile(user.userId, dto);
+  }
+
   @Get()
   @Roles('DOCTOR', 'ADMIN', 'RECEPTIONIST')
   @UseGuards(JwtAuthGuard, RolesGuard)

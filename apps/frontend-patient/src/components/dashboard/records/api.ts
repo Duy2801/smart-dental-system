@@ -26,6 +26,15 @@ export type PatientRecordsResponse = {
   }>;
 };
 
+export type ClinicalImageRecord = {
+  id?: string;
+  type?: string;
+  title?: string;
+  url?: string | null;
+  imageUrl?: string | null;
+  src?: string | null;
+};
+
 export type TreatmentPlanRecord = {
   id: string;
   title: string;
@@ -71,7 +80,7 @@ export type TreatmentPlanStepRecord = {
     treatmentNotes: string | null;
     followUpDate: string | null;
     dentalChart: unknown;
-    images: unknown;
+    images: ClinicalImageRecord[] | null;
     prescriptions: Array<{
       id: string;
       notes: string | null;

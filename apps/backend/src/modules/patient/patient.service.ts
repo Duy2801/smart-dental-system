@@ -211,6 +211,52 @@ export class PatientService {
     return this.findPatientDetail(patientId);
   }
 
+  async updateMyProfile(userId: string, dto: UpdatePatientDto) {
+    const patient = await this.findOrCreatePatientProfile(userId);
+    const allergies =
+      dto.allergies !== undefined
+        ? dto.allergies.map((s) => s.trim()).filter(Boolean)
+        : undefined;
+    const historyOnly =
+      dto.medicalHistory !== undefined
+        ? this.stripAllergyLine(dto.medicalHistory ?? undefined)
+        : undefined;
+    const medicalHistory =
+      this.mergeMedicalHistory(historyOnly || undefined, allergies) ?? null;
+    const fullName = this.cleanText(dto.fullName);
+    const phone = this.cleanText(dto.phone);
+    const email = this.cleanText(dto.email)?.toLowerCase();
+    const address = this.cleanText(dto.address);
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          ...(fullName ? { fullName } : {}),
+          ...(phone ? { phone } : {}),
+          ...(email ? { email } : {}),
+        },
+      }),
+      this.prisma.patient.update({
+        where: { id: patient.id },
+        data: {
+          ...(dto.address !== undefined ? { address: address || null } : {}),
+          ...(medicalHistory !== null ? { medicalHistory } : {}),
+          ...(dto.dateOfBirth !== undefined
+            ? {
+                dateOfBirth: dto.dateOfBirth
+                  ? new Date(dto.dateOfBirth)
+                  : null,
+            }
+            : {}),
+          ...(dto.gender ? { gender: dto.gender } : {}),
+        },
+      }),
+    ]);
+
+    return this.getProfileSummary(userId);
+  }
+
   private parseAllergies(medicalHistory?: string | null): string[] {
     if (!medicalHistory) return [];
     const match = medicalHistory.match(/Dị ứng:\s*(.+?)(?:\n|$)/i);
@@ -238,6 +284,10 @@ export class PatientService {
     }
     if (history?.trim()) parts.push(history.trim());
     return parts.length ? parts.join('\n') : undefined;
+  }
+
+  private cleanText(value?: string | null) {
+    return value?.trim() || undefined;
   }
 
   async findPatientsByDoctor(doctorId: string) {
@@ -491,6 +541,69 @@ export class PatientService {
       },
       select: { id: true },
     });
+  }
+
+  private async getProfileSummary(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        roles: { include: { role: true } },
+        patientProfile: {
+          include: {
+            appointments: {
+              orderBy: { scheduledAt: 'desc' },
+              take: 1,
+              select: {
+                id: true,
+                scheduledAt: true,
+                status: true,
+                service: { select: { name: true } },
+                doctor: { select: { user: { select: { fullName: true } } } },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new BadRequestException('user.not_found');
+    }
+
+    const lastAppointment = user.patientProfile?.appointments[0] ?? null;
+
+    return {
+      id: user.id,
+      email: user.email,
+      fullName: user.fullName,
+      phone: user.phone,
+      roles: user.roles.map(({ role }) => role.code),
+      status: user.status,
+      emailVerified: user.emailVerified,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+      patientProfile: user.patientProfile
+        ? {
+            id: user.patientProfile.id,
+            patientCode: user.patientProfile.patientCode,
+            dateOfBirth: user.patientProfile.dateOfBirth,
+            gender: user.patientProfile.gender,
+            address: user.patientProfile.address,
+            emergencyContactName: user.patientProfile.emergencyContactName,
+            emergencyContactPhone: user.patientProfile.emergencyContactPhone,
+            medicalHistory: user.patientProfile.medicalHistory,
+          }
+        : null,
+      lastAppointment: lastAppointment
+        ? {
+            id: lastAppointment.id,
+            scheduledAt: lastAppointment.scheduledAt,
+            status: lastAppointment.status,
+            serviceName: lastAppointment.service.name,
+            doctorName: lastAppointment.doctor.user.fullName,
+          }
+        : null,
+    };
   }
 
   private async createStarterTreatmentJourney(patientId: string, userId: string) {
