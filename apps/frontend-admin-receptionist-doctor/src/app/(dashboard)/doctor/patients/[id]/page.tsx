@@ -15,6 +15,7 @@ import {
   ArrowUpRight,
   SpinnerGap,
   User,
+  Plus,
 } from "@phosphor-icons/react";
 import apiClient from "@/src/lib/api/client";
 import {
@@ -288,7 +289,7 @@ export default function DoctorPatientDetailPage() {
             )}
           </div>
 
-          {plan && (
+          {plan ? (
             <div className="rounded-2xl border border-border bg-white p-5 shadow-sm">
               <div className="mb-4 flex items-center gap-2">
                 <Stethoscope
@@ -331,11 +332,41 @@ export default function DoctorPatientDetailPage() {
                   </div>
                 </div>
               )}
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <Link
+                  href={`/doctor/treatment-plans/${plan.id}`}
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-brand hover:underline"
+                >
+                  Xem kế hoạch chi tiết <ArrowUpRight size={12} />
+                </Link>
+                <Link
+                  href={`/doctor/treatment-plans/new?patientId=${patient.id}`}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-brand"
+                >
+                  <Plus size={12} /> Lập kế hoạch mới
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-border bg-white p-5 shadow-sm">
+              <div className="mb-3 flex items-center gap-2">
+                <Stethoscope
+                  size={16}
+                  className="text-muted-foreground"
+                  weight="duotone"
+                />
+                <h3 className="text-sm font-semibold text-brand-dark">
+                  Kế hoạch điều trị
+                </h3>
+              </div>
+              <p className="mb-4 text-sm text-muted-foreground">
+                Bệnh nhân chưa có kế hoạch đang active.
+              </p>
               <Link
-                href={`/doctor/treatment-plans/${plan.id}`}
-                className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-brand hover:underline"
+                href={`/doctor/treatment-plans/new?patientId=${patient.id}`}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-brand px-3 py-2 text-xs font-semibold text-white hover:bg-brand-dark"
               >
-                Xem kế hoạch chi tiết <ArrowUpRight size={12} />
+                <Plus size={12} weight="bold" /> Lập kế hoạch điều trị
               </Link>
             </div>
           )}

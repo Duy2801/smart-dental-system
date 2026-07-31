@@ -83,7 +83,7 @@ function NewPrescriptionContent() {
     apiClient
       .get<Patient[]>(`/patients?doctorId=${doctorId}`)
       .then((res) => setPatients(res.data))
-      .catch(() => {});
+      .catch(() => setError("Không thể tải danh sách bệnh nhân."));
   }, [doctorId]);
 
   // Load medical records when patient changes
@@ -100,9 +100,13 @@ function NewPrescriptionContent() {
           (r) => r.patientId === selectedPatientId,
         );
         setRecords(filtered);
-        setSelectedRecordId(filtered[0]?.id ?? "");
+        // Giữ recordId từ query (HSBA) nếu còn trong danh sách; không ghi đè
+        setSelectedRecordId((prev) => {
+          if (prev && filtered.some((r) => r.id === prev)) return prev;
+          return filtered[0]?.id ?? "";
+        });
       })
-      .catch(() => {});
+      .catch(() => setError("Không thể tải hồ sơ bệnh án."));
   }, [doctorId, selectedPatientId]);
 
   const addMedication = () => {
@@ -125,13 +129,26 @@ function NewPrescriptionContent() {
   };
 
   const handleSubmit = async () => {
+    if (!doctorId) {
+      setError("Không tìm thấy thông tin bác sĩ. Vui lòng đăng nhập lại.");
+      return;
+    }
     if (!selectedPatientId || !selectedRecordId) {
       setError("Vui lòng chọn bệnh nhân và hồ sơ bệnh án.");
       return;
     }
-    const validItems = medications.filter((m) => m.medicineName.trim());
-    if (validItems.length === 0) {
+    const filled = medications.filter(
+      (m) => m.medicineName.trim() || m.dosage.trim(),
+    );
+    if (filled.length === 0) {
       setError("Vui lòng thêm ít nhất một loại thuốc.");
+      return;
+    }
+    const incomplete = filled.find(
+      (m) => !m.medicineName.trim() || !m.dosage.trim(),
+    );
+    if (incomplete) {
+      setError("Mỗi thuốc cần có tên thuốc và liều dùng.");
       return;
     }
     setSubmitting(true);
@@ -141,7 +158,7 @@ function NewPrescriptionContent() {
         patientId: selectedPatientId,
         medicalRecordId: selectedRecordId,
         notes: notes.trim() || undefined,
-        items: validItems.map((m) => ({
+        items: filled.map((m) => ({
           medicineName: m.medicineName.trim(),
           dosage: m.dosage.trim(),
           frequency: m.frequency.trim() || undefined,
@@ -287,7 +304,9 @@ function NewPrescriptionContent() {
                     <th className="pb-3 pr-3">
                       Tên thuốc <span className="text-red-500">*</span>
                     </th>
-                    <th className="w-28 pb-3 pr-3">Liều dùng</th>
+                    <th className="w-28 pb-3 pr-3">
+                      Liều dùng <span className="text-red-500">*</span>
+                    </th>
                     <th className="w-32 pb-3 pr-3">Tần suất</th>
                     <th className="w-28 pb-3 pr-3">Thời gian</th>
                     <th className="pb-3 pr-3">Hướng dẫn</th>

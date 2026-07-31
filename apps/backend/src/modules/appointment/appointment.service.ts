@@ -587,6 +587,7 @@ export class AppointmentService {
     id: string;
     patientId: string | null;
     doctorId: string;
+    notes?: string | null;
     treatmentPlanStepId?: string | null;
   }) {
     if (!appointment.patientId) return null;
@@ -602,6 +603,7 @@ export class AppointmentService {
         appointmentId: appointment.id,
         doctorId: appointment.doctorId,
         treatmentPlanStepId: appointment.treatmentPlanStepId ?? null,
+        chiefComplaint: appointment.notes?.trim() || null,
       },
     });
   }

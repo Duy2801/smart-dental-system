@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/src/lib/utils/cn";
 import {
@@ -49,10 +49,13 @@ function getUserInfo(): { doctorId: string | null } {
   }
 }
 
-export default function NewTreatmentPlanPage() {
+function NewTreatmentPlanContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initPatientId = searchParams.get("patientId") ?? "";
+
   const [patients, setPatients] = useState<Patient[]>([]);
-  const [patientId, setPatientId] = useState("");
+  const [patientId, setPatientId] = useState(initPatientId);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -71,7 +74,7 @@ export default function NewTreatmentPlanPage() {
     apiClient
       .get<Patient[]>(`/patients?doctorId=${doctorId}`)
       .then((res) => setPatients(res.data))
-      .catch(() => {});
+      .catch(() => setError("Không thể tải danh sách bệnh nhân."));
   }, [doctorId]);
 
   const addStep = () => {
@@ -112,6 +115,10 @@ export default function NewTreatmentPlanPage() {
   };
 
   const handleSubmit = async () => {
+    if (!doctorId) {
+      setError("Không tìm thấy thông tin bác sĩ. Vui lòng đăng nhập lại.");
+      return;
+    }
     if (!patientId) {
       setError("Vui lòng chọn bệnh nhân.");
       return;
@@ -120,7 +127,22 @@ export default function NewTreatmentPlanPage() {
       setError("Vui lòng nhập tên kế hoạch.");
       return;
     }
+    if (startDate && expectedEndDate && startDate > expectedEndDate) {
+      setError("Ngày kết thúc dự kiến phải sau ngày bắt đầu.");
+      return;
+    }
     const validSteps = steps.filter((s) => s.title.trim());
+    if (validSteps.length === 0) {
+      setError("Vui lòng thêm ít nhất một bước điều trị.");
+      return;
+    }
+    const badCost = validSteps.find(
+      (s) => s.estimatedCost && Number(s.estimatedCost) < 0,
+    );
+    if (badCost) {
+      setError("Chi phí ước tính không được âm.");
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -130,15 +152,13 @@ export default function NewTreatmentPlanPage() {
         description: description.trim() || undefined,
         startDate: startDate || undefined,
         expectedEndDate: expectedEndDate || undefined,
-        steps: validSteps.length
-          ? validSteps.map((s) => ({
-              title: s.title.trim(),
-              description: s.description.trim() || undefined,
-              targetTooth: s.targetTooth.trim() || undefined,
-              estimatedCost: s.estimatedCost ? Number(s.estimatedCost) : undefined,
-              expectedDate: s.expectedDate || undefined,
-            }))
-          : undefined,
+        steps: validSteps.map((s) => ({
+          title: s.title.trim(),
+          description: s.description.trim() || undefined,
+          targetTooth: s.targetTooth.trim() || undefined,
+          estimatedCost: s.estimatedCost ? Number(s.estimatedCost) : undefined,
+          expectedDate: s.expectedDate || undefined,
+        })),
       });
       setSuccess(true);
       setTimeout(() => router.push("/doctor/treatment-plans"), 1500);
@@ -195,7 +215,6 @@ export default function NewTreatmentPlanPage() {
         )}
 
         <div className="space-y-8">
-          {/* 1. Thông tin tổng quát */}
           <div className="rounded-2xl border border-border bg-white p-6 shadow-sm md:p-8">
             <h2 className="mb-6 text-base font-semibold text-brand-dark">
               1. Thông tin tổng quát
@@ -271,7 +290,6 @@ export default function NewTreatmentPlanPage() {
             </div>
           </div>
 
-          {/* 2. Steps Builder */}
           <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
             <div className="border-b border-border bg-slate-50/50 p-6">
               <h2 className="text-base font-semibold text-brand-dark">
@@ -385,6 +403,7 @@ export default function NewTreatmentPlanPage() {
                           </label>
                           <input
                             type="number"
+                            min={0}
                             value={step.estimatedCost}
                             onChange={(e) => updateStep(step.key, "estimatedCost", e.target.value)}
                             placeholder="5000000"
@@ -411,5 +430,19 @@ export default function NewTreatmentPlanPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function NewTreatmentPlanPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-64 items-center justify-center">
+          <SpinnerGap size={32} className="animate-spin text-brand" />
+        </div>
+      }
+    >
+      <NewTreatmentPlanContent />
+    </Suspense>
   );
 }

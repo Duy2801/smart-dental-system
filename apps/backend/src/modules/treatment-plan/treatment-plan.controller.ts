@@ -1,8 +1,23 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { CurrentUser } from 'src/common/decorators/curent-user.decorator';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
+import type { AuthenticatedUser } from 'src/common/interfaces/authenticated-user.interface';
+import { CreateTreatmentPlanDto } from './dto/create-treatment-plan.dto';
+import { UpdateTreatmentPlanDto } from './dto/update-treatment-plan.dto';
+import { UpdateTreatmentPlanStepDto } from './dto/update-treatment-plan-step.dto';
 import { TreatmentPlanService } from './treatment-plan.service';
 
 @ApiTags('Treatment Plan')
@@ -14,88 +29,66 @@ export class TreatmentPlanController {
   @Get()
   @Roles('DOCTOR', 'ADMIN')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  findByDoctor(@Query('doctorId') doctorId: string) {
-    return this.service.findByDoctor(doctorId);
+  async findByDoctor(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('doctorId') doctorId?: string,
+  ) {
+    const resolved = await this.service.resolveListDoctorId(user, doctorId);
+    return this.service.findByDoctor(resolved);
   }
 
   @Get(':id')
   @Roles('DOCTOR', 'ADMIN')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  findOne(@Param('id') id: string) {
-    return this.service.findOne(id);
+  findOne(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ) {
+    return this.service.findOne(id, user);
   }
 
   @Post()
   @Roles('DOCTOR', 'ADMIN')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  create(
-    @Query('doctorId') doctorId: string,
-    @Body()
-    dto: {
-      patientId: string;
-      title: string;
-      description?: string;
-      startDate?: string;
-      expectedEndDate?: string;
-      steps?: Array<{
-        title: string;
-        description?: string;
-        targetTooth?: string;
-        estimatedCost?: number;
-        expectedDate?: string;
-      }>;
-    },
+  async create(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('doctorId') doctorId: string | undefined,
+    @Body() dto: CreateTreatmentPlanDto,
   ) {
-    return this.service.create(doctorId, dto);
+    const resolved = await this.service.resolveListDoctorId(user, doctorId);
+    return this.service.create(resolved, dto, user);
   }
 
   @Patch(':id')
   @Roles('DOCTOR', 'ADMIN')
   @UseGuards(JwtAuthGuard, RolesGuard)
   update(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
-    @Body()
-    dto: {
-      title?: string;
-      description?: string;
-      status?: string;
-      startDate?: string | null;
-      expectedEndDate?: string | null;
-      steps?: Array<{
-        title: string;
-        description?: string;
-        targetTooth?: string;
-        estimatedCost?: number;
-        expectedDate?: string;
-      }>;
-    },
+    @Body() dto: UpdateTreatmentPlanDto,
   ) {
-    return this.service.update(id, dto);
+    return this.service.update(id, dto, user);
   }
 
   @Delete(':id')
   @Roles('DOCTOR', 'ADMIN')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  remove(@Param('id') id: string) {
-    return this.service.remove(id);
+  remove(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ) {
+    return this.service.remove(id, user);
   }
 
   @Patch(':id/steps/:stepId')
   @Roles('DOCTOR', 'ADMIN')
   @UseGuards(JwtAuthGuard, RolesGuard)
   updateStep(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
     @Param('stepId') stepId: string,
-    @Body()
-    dto: {
-      status?: string;
-      title?: string;
-      description?: string;
-      targetTooth?: string;
-      estimatedCost?: number;
-      expectedDate?: string | null;
-    },
+    @Body() dto: UpdateTreatmentPlanStepDto,
   ) {
-    return this.service.updateStep(id, stepId, dto);
+    return this.service.updateStep(id, stepId, dto, user);
   }
 }
