@@ -30,5 +30,6 @@ export const ROUTES = {
     MEDICAL_RECORDS: "/doctor/medical-records",
     PRESCRIPTIONS: "/doctor/prescriptions",
     TREATMENT_PLANS: "/doctor/treatment-plans",
+    CONSULTATIONS: "/doctor/consultations",
   },
 } as const;

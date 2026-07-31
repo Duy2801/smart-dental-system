@@ -44,6 +44,7 @@ const appointmentInclude = {
   patient: { include: { user: true } },
   doctor: { include: { user: true } },
   service: true,
+  medicalRecords: { select: { id: true }, take: 1 },
 };
 
 type BookingOptionQuery = {
@@ -564,9 +565,34 @@ export class AppointmentService {
     // Sau khám: tạo HĐ thu tiền phù hợp (ca ngắn / phần còn lại sau cọc)
     if (appointment.patientId) {
       await this.ensureInvoiceAfterComplete(appointment);
+      await this.ensureMedicalRecord(appointment);
     }
 
     return updated;
+  }
+
+  /** Tạo hồ sơ bệnh án trống nếu ca khám chưa có — để bác sĩ cập nhật sau khi khám. */
+  private async ensureMedicalRecord(appointment: {
+    id: string;
+    patientId: string | null;
+    doctorId: string;
+    treatmentPlanStepId?: string | null;
+  }) {
+    if (!appointment.patientId) return null;
+
+    const existing = await this.prisma.medicalRecord.findFirst({
+      where: { appointmentId: appointment.id },
+    });
+    if (existing) return existing;
+
+    return this.prisma.medicalRecord.create({
+      data: {
+        patientId: appointment.patientId,
+        appointmentId: appointment.id,
+        doctorId: appointment.doctorId,
+        treatmentPlanStepId: appointment.treatmentPlanStepId ?? null,
+      },
+    });
   }
 
   /** Ca ngắn → SERVICE. Có cọc → FINAL. Lịch gắn bước KH → STEP. */
