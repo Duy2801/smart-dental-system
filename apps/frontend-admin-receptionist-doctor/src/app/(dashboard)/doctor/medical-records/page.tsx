@@ -158,6 +158,24 @@ function MedicalRecordsContent() {
             : "",
         });
         setActiveTab("OVERVIEW");
+        // Nếu deep-link record chưa có trong list (lệch doctorId) → thêm vào để hiện sidebar
+        setRecords((prev) => {
+          if (prev.some((r) => r.id === res.data.id)) return prev;
+          const summary: RecordSummary = {
+            id: res.data.id,
+            patientId: res.data.patientId,
+            patientName: res.data.patientName,
+            patientCode: res.data.patientCode,
+            diagnosis: res.data.diagnosis,
+            chiefComplaint: res.data.chiefComplaint,
+            serviceName: res.data.serviceName,
+            scheduledAt: res.data.scheduledAt,
+            followUpDate: res.data.followUpDate,
+            prescriptionCount: res.data.prescriptionCount,
+            createdAt: res.data.createdAt,
+          };
+          return [summary, ...prev];
+        });
       })
       .catch(() => {
         if (!cancelled) {
@@ -181,9 +199,9 @@ function MedicalRecordsContent() {
         internalNotes: form.internalNotes || undefined,
         followUpDate: form.followUpDate || null,
       });
-      // update local list summary
-      setRecords((prev) =>
-        prev.map((r) =>
+      // update local list summary (thêm mới nếu chưa có)
+      setRecords((prev) => {
+        const next = prev.map((r) =>
           r.id === selectedId
             ? {
                 ...r,
@@ -194,8 +212,28 @@ function MedicalRecordsContent() {
                   : null,
               }
             : r,
-        ),
-      );
+        );
+        if (next.some((r) => r.id === selectedId)) return next;
+        if (!detail) return prev;
+        return [
+          {
+            id: detail.id,
+            patientId: detail.patientId,
+            patientName: detail.patientName,
+            patientCode: detail.patientCode,
+            diagnosis: form.diagnosis || null,
+            chiefComplaint: form.chiefComplaint || null,
+            serviceName: detail.serviceName,
+            scheduledAt: detail.scheduledAt,
+            followUpDate: form.followUpDate
+              ? new Date(form.followUpDate).toISOString()
+              : null,
+            prescriptionCount: detail.prescriptionCount,
+            createdAt: detail.createdAt,
+          },
+          ...prev,
+        ];
+      });
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch {

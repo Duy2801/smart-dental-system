@@ -387,8 +387,30 @@ export class ReportService {
         creator: true,
         doctor: { include: { user: true } },
         service: true,
+        medicalRecords: { select: { id: true }, take: 1 },
       },
     });
+
+    // Backfill hồ sơ cho ca COMPLETED cũ (trước khi auto-create khi kết thúc khám)
+    for (const appointment of appointments) {
+      if (
+        appointment.status !== AppointmentStatus.COMPLETED ||
+        !appointment.patientId ||
+        appointment.medicalRecords.length > 0
+      ) {
+        continue;
+      }
+      const created = await this.prisma.medicalRecord.create({
+        data: {
+          patientId: appointment.patientId,
+          appointmentId: appointment.id,
+          doctorId: appointment.doctorId,
+          treatmentPlanStepId: appointment.treatmentPlanStepId,
+        },
+        select: { id: true },
+      });
+      appointment.medicalRecords = [created];
+    }
 
     return appointments.map((appointment) => ({
       id: appointment.id,
@@ -398,6 +420,7 @@ export class ReportService {
       service_name: appointment.service.name,
       doctor_name: appointment.doctor.user.fullName,
       status: appointment.status,
+      recordId: appointment.medicalRecords[0]?.id ?? null,
     }));
   }
 

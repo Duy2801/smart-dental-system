@@ -19,6 +19,15 @@ const dayMs = 24 * 60 * 60 * 1000;
 const addDays = (days: number) => new Date(now.getTime() + days * dayMs);
 const dateOnly = (value: string) => new Date(`${value}T00:00:00.000Z`);
 
+/** Ngày local + giờ cố định — dùng cho lịch lễ tân (tránh lệch timezone). */
+const atLocalDay = (dayOffset: number, hour: number, minute = 0) => {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + dayOffset);
+  d.setHours(hour, minute, 0, 0);
+  return d;
+};
+
 const roles = [
   ['ADMIN', 'Administrator', 'Full system access'],
   ['DOCTOR', 'Doctor', 'Dental doctor account'],
@@ -116,25 +125,138 @@ const adminUsers = [
   },
 ];
 
-const patientSeeds = Array.from({ length: 10 }, (_, index) => ({
-  email: `patient${String(index + 1).padStart(2, '0')}@smartdental.test`,
-  fullName: `Patient Seed ${String(index + 1).padStart(2, '0')}`,
-  phone: `09100000${String(index + 1).padStart(2, '0')}`,
-  patientCode: `PAT-SEED-${String(index + 1).padStart(3, '0')}`,
-  dateOfBirth: dateOnly(`199${index % 10}-0${(index % 9) + 1}-15`),
-  gender: (['MALE', 'FEMALE', 'OTHER', 'UNKNOWN'] as const)[index % 4],
-  status: (index === 8 ? 'INACTIVE' : index === 9 ? 'SUSPENDED' : 'ACTIVE') as
-    | 'ACTIVE'
-    | 'INACTIVE'
-    | 'SUSPENDED',
-  address: `${index + 1} Nguyen Trai, District ${index + 1}, Ho Chi Minh City`,
-  emergencyContactName: `Emergency Contact ${index + 1}`,
-  emergencyContactPhone: `09810000${String(index + 1).padStart(2, '0')}`,
-  medicalHistory:
-    index % 3 === 0
-      ? 'Sensitive teeth and mild gum bleeding.'
-      : 'No significant medical history.',
-}));
+const patientSeeds = [
+  {
+    email: 'patient01@smartdental.test',
+    fullName: 'Nguyễn Văn An',
+    phone: '0901234567',
+    patientCode: 'PAT-SEED-001',
+    dateOfBirth: dateOnly('1990-05-12'),
+    gender: 'MALE' as const,
+    status: 'ACTIVE' as const,
+    address: '12 Nguyễn Huệ, Q.1, TP.HCM',
+    emergencyContactName: 'Nguyễn Thị Lan',
+    emergencyContactPhone: '0912345678',
+    medicalHistory: 'Dị ứng: Penicillin\nCao huyết áp',
+  },
+  {
+    email: 'patient02@smartdental.test',
+    fullName: 'Trần Thị Bình',
+    phone: '0911223344',
+    patientCode: 'PAT-SEED-002',
+    dateOfBirth: dateOnly('1995-11-08'),
+    gender: 'FEMALE' as const,
+    status: 'ACTIVE' as const,
+    address: '45 Lê Lợi, Q.3, TP.HCM',
+    emergencyContactName: 'Trần Văn Bình',
+    emergencyContactPhone: '0911223355',
+    medicalHistory: 'No significant medical history.',
+  },
+  {
+    email: 'patient03@smartdental.test',
+    fullName: 'Lê Hoàng Cường',
+    phone: '0987654321',
+    patientCode: 'PAT-SEED-003',
+    dateOfBirth: dateOnly('1985-01-25'),
+    gender: 'MALE' as const,
+    status: 'ACTIVE' as const,
+    address: '8 Võ Văn Tần, Q.3, TP.HCM',
+    emergencyContactName: 'Lê Thị Hoa',
+    emergencyContactPhone: '0987654333',
+    medicalHistory: 'Dị ứng: Aspirin\nMáu khó đông',
+  },
+  {
+    email: 'patient04@smartdental.test',
+    fullName: 'Phạm Thu Hà',
+    phone: '0977889900',
+    patientCode: 'PAT-SEED-004',
+    dateOfBirth: dateOnly('2000-09-14'),
+    gender: 'FEMALE' as const,
+    status: 'ACTIVE' as const,
+    address: '22 Pasteur, Q.1, TP.HCM',
+    emergencyContactName: 'Phạm Văn Khoa',
+    emergencyContactPhone: '0977889911',
+    medicalHistory: 'No significant medical history.',
+  },
+  {
+    email: 'patient05@smartdental.test',
+    fullName: 'Hoàng Minh Quân',
+    phone: '0933445566',
+    patientCode: 'PAT-SEED-005',
+    dateOfBirth: dateOnly('1988-03-02'),
+    gender: 'MALE' as const,
+    status: 'ACTIVE' as const,
+    address: '101 Lý Thường Kiệt, Q.10, TP.HCM',
+    emergencyContactName: 'Hoàng Thị Nga',
+    emergencyContactPhone: '0933445577',
+    medicalHistory: 'Dị ứng: Latex, Ibuprofen\nTiểu đường Type 2',
+  },
+  {
+    email: 'patient06@smartdental.test',
+    fullName: 'Đỗ Thị Lan',
+    phone: '0944556677',
+    patientCode: 'PAT-SEED-006',
+    dateOfBirth: dateOnly('1992-07-19'),
+    gender: 'FEMALE' as const,
+    status: 'ACTIVE' as const,
+    address: '56 Cách Mạng Tháng 8, Q.3, TP.HCM',
+    emergencyContactName: 'Đỗ Văn Nam',
+    emergencyContactPhone: '0944556688',
+    medicalHistory: 'Sensitive teeth and mild gum bleeding.',
+  },
+  {
+    email: 'patient07@smartdental.test',
+    fullName: 'Võ Quang Dũng',
+    phone: '0955667788',
+    patientCode: 'PAT-SEED-007',
+    dateOfBirth: dateOnly('1982-12-01'),
+    gender: 'MALE' as const,
+    status: 'ACTIVE' as const,
+    address: '9 Nguyễn Đình Chiểu, Q.1, TP.HCM',
+    emergencyContactName: 'Võ Thị Mai',
+    emergencyContactPhone: '0955667799',
+    medicalHistory: 'No significant medical history.',
+  },
+  {
+    email: 'patient08@smartdental.test',
+    fullName: 'Bùi Ngọc Mai',
+    phone: '0966778899',
+    patientCode: 'PAT-SEED-008',
+    dateOfBirth: dateOnly('1998-04-22'),
+    gender: 'FEMALE' as const,
+    status: 'ACTIVE' as const,
+    address: '77 Điện Biên Phủ, Bình Thạnh, TP.HCM',
+    emergencyContactName: 'Bùi Văn Sơn',
+    emergencyContactPhone: '0966778800',
+    medicalHistory: 'Dị ứng: Penicillin',
+  },
+  {
+    email: 'patient09@smartdental.test',
+    fullName: 'Phan Văn Đức',
+    phone: '0977001122',
+    patientCode: 'PAT-SEED-009',
+    dateOfBirth: dateOnly('1979-08-30'),
+    gender: 'MALE' as const,
+    status: 'INACTIVE' as const,
+    address: '15 Hoàng Sa, Q.1, TP.HCM',
+    emergencyContactName: 'Phan Thị Yến',
+    emergencyContactPhone: '0977001133',
+    medicalHistory: 'No significant medical history.',
+  },
+  {
+    email: 'patient10@smartdental.test',
+    fullName: 'Lý Thị Hương',
+    phone: '0988112233',
+    patientCode: 'PAT-SEED-010',
+    dateOfBirth: dateOnly('1993-06-05'),
+    gender: 'FEMALE' as const,
+    status: 'SUSPENDED' as const,
+    address: '3 Trường Sa, Phú Nhuận, TP.HCM',
+    emergencyContactName: 'Lý Văn Tài',
+    emergencyContactPhone: '0988112244',
+    medicalHistory: 'Sensitive teeth and mild gum bleeding.',
+  },
+];
 
 const doctorAvatarUrls = [
   'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=900&q=80',
@@ -1366,19 +1488,21 @@ async function seedRelatedData(
     serviceId: string;
     scheduledAt: Date;
   }> = [];
-  const appointmentDayOffsets = [-6, -5, -4, -3, -2, -1, 0, 0, 1, 2];
-  const appointmentStatuses = [
-    'COMPLETED',
-    'COMPLETED',
-    'COMPLETED',
-    'IN_PROGRESS',
-    'CANCELLED',
-    'NO_SHOW',
-    'PENDING',
-    'CHECKED_IN',
-    'COMPLETED',
-    'CONFIRMED',
-  ] as const;
+
+  // Hàng đợi lễ tân: ưu tiên hôm nay với đủ trạng thái thao tác
+  const receptionistAppointments = [
+    { day: 0, hour: 8, minute: 0, status: 'PENDING' as const, patient: 0, doctor: 0, service: 0 },
+    { day: 0, hour: 8, minute: 30, status: 'CONFIRMED' as const, patient: 1, doctor: 1, service: 1 },
+    { day: 0, hour: 9, minute: 0, status: 'CHECKED_IN' as const, patient: 2, doctor: 0, service: 2 },
+    { day: 0, hour: 10, minute: 0, status: 'IN_PROGRESS' as const, patient: 3, doctor: 1, service: 3 },
+    { day: 0, hour: 11, minute: 0, status: 'COMPLETED' as const, patient: 4, doctor: 0, service: 4 },
+    { day: 0, hour: 14, minute: 0, status: 'CONFIRMED' as const, patient: 5, doctor: 1, service: 5 },
+    { day: 0, hour: 15, minute: 0, status: 'PENDING' as const, patient: 6, doctor: 0, service: 6 },
+    { day: -1, hour: 9, minute: 0, status: 'COMPLETED' as const, patient: 7, doctor: 1, service: 7 },
+    { day: 1, hour: 9, minute: 30, status: 'CONFIRMED' as const, patient: 8, doctor: 0, service: 8 },
+    { day: 2, hour: 10, minute: 0, status: 'PENDING' as const, patient: 9, doctor: 1, service: 9 },
+  ];
+
   const bookingSources = [
     'PATIENT_APP',
     'WEBSITE',
@@ -1386,45 +1510,30 @@ async function seedRelatedData(
     'AI',
     'OTHER',
   ] as const;
-  for (let index = 0; index < 10; index += 1) {
-    const scheduledAt = addDays(appointmentDayOffsets[index]);
-    scheduledAt.setHours(8 + (index % 6), index % 2 === 0 ? 0 : 30, 0, 0);
-    const service = context.services[index];
-    const appointmentStatus = appointmentStatuses[index];
+
+  for (let index = 0; index < receptionistAppointments.length; index += 1) {
+    const row = receptionistAppointments[index];
+    const scheduledAt = atLocalDay(row.day, row.hour, row.minute);
+    const service = context.services[row.service % context.services.length];
+    const appointmentStatus = row.status;
 
     appointments.push(
       await prisma.appointment.create({
         data: {
           appointmentCode: `APT-SEED-${String(index + 1).padStart(3, '0')}`,
-          patientId: context.patients[index].id,
-          doctorId: context.doctors[index % 2].id,
+          patientId: context.patients[row.patient].id,
+          doctorId: context.doctors[row.doctor % context.doctors.length].id,
           serviceId: service.id,
           scheduledAt,
-          endAt: new Date(scheduledAt.getTime() + (30 + index * 5) * 60 * 1000),
+          endAt: new Date(scheduledAt.getTime() + 45 * 60 * 1000),
           status: appointmentStatus,
           bookingSource: bookingSources[index % bookingSources.length],
-          aiSuggestedTime:
-            index % 3 === 0 ? addDays(appointmentDayOffsets[index] + 1) : null,
-          notes: `Seed appointment note ${index + 1}`,
-          rescheduleHistory:
-            index === 8
-              ? [
-                  {
-                    from: addDays(
-                      appointmentDayOffsets[index] - 1,
-                    ).toISOString(),
-                    to: scheduledAt.toISOString(),
-                  },
-                ]
-              : undefined,
-          cancellationReason:
-            appointmentStatus === 'CANCELLED'
-              ? 'Patient requested cancellation.'
-              : appointmentStatus === 'NO_SHOW'
-                ? 'Patient did not arrive.'
-                : null,
-          cancelledAt:
-            index === 4 ? addDays(appointmentDayOffsets[index]) : null,
+          notes:
+            index === 2
+              ? 'Bệnh nhân sợ đau, làm nhẹ tay.'
+              : `Lịch seed lễ tân #${index + 1}`,
+          cancellationReason: null,
+          cancelledAt: null,
           checkedInAt:
             appointmentStatus === 'CHECKED_IN' ||
             appointmentStatus === 'IN_PROGRESS' ||
@@ -1432,6 +1541,13 @@ async function seedRelatedData(
               ? scheduledAt
               : null,
           completedAt: appointmentStatus === 'COMPLETED' ? scheduledAt : null,
+          scheduleConfirmedAt:
+            appointmentStatus === 'CONFIRMED' ||
+            appointmentStatus === 'CHECKED_IN' ||
+            appointmentStatus === 'IN_PROGRESS' ||
+            appointmentStatus === 'COMPLETED'
+              ? scheduledAt
+              : null,
           createdBy: context.receptionistUser.id,
         },
         select: {
@@ -1602,12 +1718,13 @@ async function seedRelatedData(
   }
 
   const invoices: Array<{ id: string; finalAmount: any }> = [];
+  // Nhiều ISSUED để tab Thu ngân / Phiếu chờ thu có dữ liệu
   const invoiceStatuses = [
-    'PAID',
-    'PAID',
+    'ISSUED',
+    'ISSUED',
     'ISSUED',
     'PAID',
-    'REFUNDED',
+    'ISSUED',
     'PAID',
     'DRAFT',
     'PAID',
@@ -1617,6 +1734,7 @@ async function seedRelatedData(
   for (let index = 0; index < 10; index += 1) {
     const subtotal = Number(context.services[index].basePrice.toString());
     const discountAmount = index % 2 === 0 ? Math.round(subtotal * 0.05) : 0;
+    const status = invoiceStatuses[index];
     invoices.push(
       await prisma.invoice.create({
         data: {
@@ -1628,16 +1746,23 @@ async function seedRelatedData(
             {
               serviceId: context.services[index].id,
               name: context.services[index].name,
+              description: context.services[index].name,
               quantity: 1,
+              qty: 1,
               unitPrice: subtotal,
+              unit_price: subtotal,
+              amount: subtotal,
             },
           ],
           subtotal: String(subtotal),
           discountAmount: String(discountAmount),
           finalAmount: String(subtotal - discountAmount),
-          status: invoiceStatuses[index],
+          status,
           exportFileUrl: `https://files.smartdental.test/invoices/INV-SEED-${index + 1}.pdf`,
-          issuedAt: appointments[index].scheduledAt,
+          issuedAt:
+            status === 'ISSUED' || status === 'PARTIALLY_PAID'
+              ? atLocalDay(0, 12, 0)
+              : appointments[index].scheduledAt,
           createdBy: context.receptionistUser.id,
         },
         select: { id: true, finalAmount: true },

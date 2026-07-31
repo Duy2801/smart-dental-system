@@ -1,4 +1,483 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import {
+  AppointmentPaymentStatus,
+  DiscountType,
+  InvoiceStatus,
+  InvoiceType,
+  PaymentMethod,
+  PaymentStatus,
+} from 'prisma/generated/enums';
+import { PrismaService } from '../prisma/prisma.service';
+import { CreatePaymentDto } from './dto/create-payment.dto';
+import { SepayWebhookDto } from './dto/sepay-webhook.dto';
 
 @Injectable()
-export class PaymentService {}
+export class PaymentService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
+  ) {}
+
+  async createPayment(userId: string, dto: CreatePaymentDto) {
+    const invoice = await this.prisma.invoice.findUnique({
+      where: { id: dto.invoiceId },
+    });
+
+    if (!invoice) {
+      throw new NotFoundException('invoice.not_found');
+    }
+
+    if (
+      invoice.status === InvoiceStatus.PAID ||
+      invoice.status === InvoiceStatus.CANCELLED ||
+      invoice.status === InvoiceStatus.REFUNDED
+    ) {
+      throw new BadRequestException('invoice.not_payable');
+    }
+
+    let discountAmount = Number(invoice.discountAmount);
+    let promotionId = invoice.promotionId;
+    let finalAmount = Number(invoice.finalAmount);
+
+    if (dto.promotionCode?.trim()) {
+      const promo = await this.applyPromotion(
+        dto.promotionCode.trim(),
+        Number(invoice.subtotal),
+      );
+      discountAmount = promo.discountAmount;
+      promotionId = promo.promotionId;
+      finalAmount = Math.max(
+        0,
+        Number((Number(invoice.subtotal) - discountAmount).toFixed(2)),
+      );
+
+      await this.prisma.invoice.update({
+        where: { id: invoice.id },
+        data: {
+          discountAmount,
+          finalAmount,
+          promotionId,
+        },
+      });
+    }
+
+    const paidSoFar = await this.sumSuccessfulPayments(invoice.id);
+    const remaining = Number((finalAmount - paidSoFar).toFixed(2));
+    if (remaining <= 0) {
+      throw new BadRequestException('invoice.already_paid');
+    }
+
+    const requested =
+      dto.amount != null ? Number(dto.amount) : remaining;
+    if (requested <= 0) {
+      throw new BadRequestException('payment.invalid_amount');
+    }
+    const amount = Number(Math.min(requested, remaining).toFixed(2));
+
+    if (dto.method === 'CASH') {
+      return this.markPaid({
+        invoiceId: invoice.id,
+        amount,
+        method: PaymentMethod.CASH,
+        receivedBy: userId,
+        transactionRef: `CASH-${Date.now()}`,
+        invoiceType: invoice.invoiceType,
+        appointmentId: invoice.appointmentId,
+      });
+    }
+
+    // BANK_TRANSFER — tạo / tái sử dụng payment PENDING + QR VietQR (SePay)
+    const existing = await this.prisma.payment.findFirst({
+      where: {
+        invoiceId: invoice.id,
+        paymentMethod: PaymentMethod.BANK_TRANSFER,
+        status: PaymentStatus.PENDING,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const transferCode = this.buildTransferCode(invoice.invoiceCode);
+
+    let payment = existing;
+    if (existing) {
+      if (
+        !existing.transactionRef?.toUpperCase().includes('SEVQR') ||
+        Number(existing.amount) !== amount
+      ) {
+        payment = await this.prisma.payment.update({
+          where: { id: existing.id },
+          data: {
+            transactionRef: transferCode,
+            amount,
+            receivedBy: userId,
+          },
+        });
+      }
+    } else {
+      payment = await this.prisma.payment.create({
+        data: {
+          invoiceId: invoice.id,
+          amount,
+          paymentMethod: PaymentMethod.BANK_TRANSFER,
+          transactionRef: transferCode,
+          status: PaymentStatus.PENDING,
+          receivedBy: userId,
+        },
+      });
+    }
+
+    if (!payment) {
+      throw new BadRequestException('payment.create_failed');
+    }
+
+    const bank = this.getBankConfig();
+    const content = payment.transactionRef ?? transferCode;
+    const qrImageUrl = this.buildVietQrUrl({
+      amount: Number(payment.amount),
+      addInfo: content,
+      accountNo: bank.accountNo,
+      accountName: bank.accountName,
+      bankBin: bank.bankBin,
+      template: bank.template,
+    });
+
+    return {
+      id: payment.id,
+      invoiceId: invoice.id,
+      invoiceCode: invoice.invoiceCode,
+      amount: Number(payment.amount),
+      remainingAfter: Number((remaining - Number(payment.amount)).toFixed(2)),
+      invoiceRemaining: remaining,
+      method: PaymentMethod.BANK_TRANSFER,
+      status: payment.status,
+      transferContent: content,
+      bankAccountNo: bank.accountNo,
+      bankAccountName: bank.accountName,
+      bankBin: bank.bankBin,
+      bankName: bank.bankName,
+      qrImageUrl,
+      provider: 'SEPAY',
+    };
+  }
+
+  async getPayment(paymentId: string) {
+    const payment = await this.prisma.payment.findUnique({
+      where: { id: paymentId },
+      include: {
+        invoice: { select: { id: true, invoiceCode: true, status: true } },
+      },
+    });
+    if (!payment) throw new NotFoundException('payment.not_found');
+
+    return {
+      id: payment.id,
+      invoiceId: payment.invoiceId,
+      invoiceCode: payment.invoice.invoiceCode,
+      amount: Number(payment.amount),
+      method: payment.paymentMethod,
+      status: payment.status,
+      transferContent: payment.transactionRef,
+      paidAt: payment.paidAt,
+    };
+  }
+
+  /** Lễ tân xác nhận tay khi đã thấy tiền vào (fallback nếu webhook chậm). */
+  async confirmByStaff(userId: string, paymentId: string) {
+    const payment = await this.prisma.payment.findUnique({
+      where: { id: paymentId },
+      include: { invoice: true },
+    });
+    if (!payment) throw new NotFoundException('payment.not_found');
+    if (payment.status === PaymentStatus.SUCCESS) {
+      return this.getPayment(paymentId);
+    }
+    if (payment.status !== PaymentStatus.PENDING) {
+      throw new BadRequestException('payment.cannot_confirm');
+    }
+
+    await this.markPaid({
+      invoiceId: payment.invoiceId,
+      amount: Number(payment.amount),
+      method: payment.paymentMethod,
+      receivedBy: userId,
+      transactionRef: payment.transactionRef ?? `MANUAL-${payment.id.slice(0, 8)}`,
+      invoiceType: payment.invoice.invoiceType,
+      appointmentId: payment.invoice.appointmentId,
+      existingPaymentId: payment.id,
+    });
+
+    return this.getPayment(paymentId);
+  }
+
+  async handleSepayWebhook(dto: SepayWebhookDto) {
+    if (dto.transferType && dto.transferType !== 'in') {
+      return { success: true, ignored: true, reason: 'not_in' };
+    }
+
+    const amount = Number(dto.transferAmount ?? 0);
+    const haystack = `${dto.content ?? ''} ${dto.code ?? ''}`.toUpperCase();
+
+    const pending = await this.prisma.payment.findMany({
+      where: {
+        paymentMethod: PaymentMethod.BANK_TRANSFER,
+        status: PaymentStatus.PENDING,
+      },
+      include: { invoice: true },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+
+    const matched = pending.find((p) => {
+      const ref = (p.transactionRef ?? '').toUpperCase();
+      if (!ref) return false;
+      const amountOk =
+        amount <= 0 || Math.abs(Number(p.amount) - amount) < 1;
+      return haystack.includes(ref) && amountOk;
+    });
+
+    if (!matched) {
+      return { success: true, matched: false };
+    }
+
+    const sepayRef =
+      dto.referenceCode ||
+      (dto.id != null ? `SEPAY-${dto.id}` : matched.transactionRef);
+
+    // Dedup nếu đã có payment SUCCESS với cùng reference
+    if (sepayRef) {
+      const dup = await this.prisma.payment.findFirst({
+        where: {
+          transactionRef: sepayRef,
+          status: PaymentStatus.SUCCESS,
+        },
+      });
+      if (dup) {
+        return { success: true, matched: true, duplicate: true };
+      }
+    }
+
+    await this.markPaid({
+      invoiceId: matched.invoiceId,
+      amount: Number(matched.amount),
+      method: PaymentMethod.BANK_TRANSFER,
+      receivedBy: matched.receivedBy,
+      transactionRef: matched.transactionRef ?? String(sepayRef),
+      invoiceType: matched.invoice.invoiceType,
+      appointmentId: matched.invoice.appointmentId,
+      existingPaymentId: matched.id,
+      externalRef: sepayRef ? String(sepayRef) : undefined,
+    });
+
+    return {
+      success: true,
+      matched: true,
+      paymentId: matched.id,
+      invoiceId: matched.invoiceId,
+    };
+  }
+
+  private async markPaid(input: {
+    invoiceId: string;
+    amount: number;
+    method: PaymentMethod;
+    receivedBy: string;
+    transactionRef: string;
+    invoiceType: InvoiceType;
+    appointmentId: string | null;
+    existingPaymentId?: string;
+    externalRef?: string;
+  }) {
+    const result = await this.prisma.$transaction(async (tx) => {
+      const invoice = await tx.invoice.findUnique({
+        where: { id: input.invoiceId },
+      });
+      if (!invoice) {
+        throw new NotFoundException('invoice.not_found');
+      }
+
+      const prior = await tx.payment.aggregate({
+        where: {
+          invoiceId: input.invoiceId,
+          status: PaymentStatus.SUCCESS,
+          ...(input.existingPaymentId
+            ? { id: { not: input.existingPaymentId } }
+            : {}),
+        },
+        _sum: { amount: true },
+      });
+      const paidBefore = Number(prior._sum.amount ?? 0);
+      const finalAmount = Number(invoice.finalAmount);
+      const payAmount = Number(
+        Math.min(input.amount, Math.max(0, finalAmount - paidBefore)).toFixed(
+          2,
+        ),
+      );
+      if (payAmount <= 0) {
+        throw new BadRequestException('invoice.already_paid');
+      }
+
+      if (input.existingPaymentId) {
+        await tx.payment.update({
+          where: { id: input.existingPaymentId },
+          data: {
+            status: PaymentStatus.SUCCESS,
+            paidAt: new Date(),
+            receivedBy: input.receivedBy,
+            amount: payAmount,
+          },
+        });
+      } else {
+        await tx.payment.create({
+          data: {
+            invoiceId: input.invoiceId,
+            amount: payAmount,
+            paymentMethod: input.method,
+            transactionRef: input.transactionRef,
+            status: PaymentStatus.SUCCESS,
+            paidAt: new Date(),
+            receivedBy: input.receivedBy,
+          },
+        });
+      }
+
+      const paidTotal = Number((paidBefore + payAmount).toFixed(2));
+      const fullyPaid = paidTotal >= finalAmount - 0.01;
+      const nextStatus = fullyPaid
+        ? InvoiceStatus.PAID
+        : InvoiceStatus.PARTIALLY_PAID;
+
+      await tx.invoice.update({
+        where: { id: input.invoiceId },
+        data: {
+          status: nextStatus,
+          issuedAt: invoice.issuedAt ?? new Date(),
+        },
+      });
+
+      if (input.appointmentId && fullyPaid) {
+        const paymentStatus =
+          input.invoiceType === InvoiceType.DEPOSIT
+            ? AppointmentPaymentStatus.DEPOSIT_PAID
+            : AppointmentPaymentStatus.COUNTER_PAID;
+
+        await tx.appointment.update({
+          where: { id: input.appointmentId },
+          data: { paymentStatus },
+        });
+      }
+
+      if (invoice.treatmentPlanStepId) {
+        await tx.treatmentPlanStep.update({
+          where: { id: invoice.treatmentPlanStepId },
+          data: {
+            paymentStatus: fullyPaid
+              ? 'PAID'
+              : 'PARTIALLY_PAID',
+            ...(fullyPaid ? { paidAt: new Date() } : {}),
+          },
+        });
+      }
+
+      return {
+        paymentId: input.existingPaymentId,
+        payAmount,
+        paidTotal,
+        remaining: Number(Math.max(0, finalAmount - paidTotal).toFixed(2)),
+        invoiceStatus: nextStatus,
+      };
+    });
+
+    return {
+      id: result.paymentId,
+      invoiceId: input.invoiceId,
+      amount: result.payAmount,
+      paidTotal: result.paidTotal,
+      remaining: result.remaining,
+      method: input.method,
+      status: PaymentStatus.SUCCESS,
+      invoiceStatus: result.invoiceStatus,
+    };
+  }
+
+  private async sumSuccessfulPayments(invoiceId: string) {
+    const agg = await this.prisma.payment.aggregate({
+      where: { invoiceId, status: PaymentStatus.SUCCESS },
+      _sum: { amount: true },
+    });
+    return Number(agg._sum.amount ?? 0);
+  }
+
+  private async applyPromotion(code: string, subtotal: number) {
+    const now = new Date();
+    const promo = await this.prisma.promotion.findFirst({
+      where: {
+        code: { equals: code, mode: 'insensitive' },
+        isActive: true,
+        startDate: { lte: now },
+        endDate: { gte: now },
+      },
+    });
+    if (!promo) {
+      throw new BadRequestException('promotion.not_found');
+    }
+    if (Number(promo.minOrderAmount) > subtotal) {
+      throw new BadRequestException('promotion.min_order_not_met');
+    }
+    if (promo.maxUses != null && promo.usedCount >= promo.maxUses) {
+      throw new BadRequestException('promotion.exhausted');
+    }
+
+    const value = Number(promo.discountValue);
+    const discountAmount =
+      promo.discountType === DiscountType.PERCENTAGE
+        ? Number(((subtotal * value) / 100).toFixed(2))
+        : Math.min(value, subtotal);
+
+    await this.prisma.promotion.update({
+      where: { id: promo.id },
+      data: { usedCount: { increment: 1 } },
+    });
+
+    return { promotionId: promo.id, discountAmount };
+  }
+
+  private buildTransferCode(invoiceCode: string) {
+    // SePay yêu cầu nội dung CK có SEVQR để nhận diện giao dịch
+    const compact = invoiceCode.replace(/[^A-Za-z0-9]/g, '').slice(-10);
+    return `SEVQR${compact}`.toUpperCase();
+  }
+
+  private getBankConfig() {
+    return {
+      bankBin: this.config.get<string>('SEPAY_BANK_BIN') || 'ICB',
+      bankName: this.config.get<string>('SEPAY_BANK_NAME') || 'VietinBank',
+      accountNo:
+        this.config.get<string>('SEPAY_BANK_ACCOUNT_NO') || '109876820087',
+      accountName:
+        this.config.get<string>('SEPAY_ACCOUNT_NAME') || 'NGUYEN DUC HAU',
+      template: this.config.get<string>('SEPAY_QR_TEMPLATE') || 'compact',
+    };
+  }
+
+  private buildVietQrUrl(input: {
+    bankBin: string;
+    accountNo: string;
+    accountName: string;
+    amount: number;
+    addInfo: string;
+    template?: string;
+  }) {
+    const template = input.template || 'compact';
+    const params = new URLSearchParams({
+      amount: String(Math.round(input.amount)),
+      addInfo: input.addInfo,
+      accountName: input.accountName,
+    });
+    return `https://img.vietqr.io/image/${input.bankBin}-${input.accountNo}-${template}.png?${params.toString()}`;
+  }
+}

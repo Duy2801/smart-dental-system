@@ -1,3 +1,6 @@
+# Prompt files
+prompt-*.md
+
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # Dependencies
@@ -49,3 +52,4 @@ prompt-reception-redesign.md
 skills-lock.json
 .cursor/skills/design-taste-frontend/
 .cursor/skills/design-taste-frontend-v1/
+huongdanbacsi.md

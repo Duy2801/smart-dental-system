@@ -24,7 +24,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi" className={`${beVietnamPro.variable} h-full antialiased`} style={{ fontFamily: "var(--font-be-vietnam), system-ui, sans-serif" }}>
+    <html lang="vi" className={`${beVietnamPro.variable} h-full antialiased`} style={{ fontFamily: "var(--font-be-vietnam), system-ui, sans-serif" }} suppressHydrationWarning>
       <body className="flex min-h-full flex-col">
         <ReactQueryProvider>{children}</ReactQueryProvider>
       </body>

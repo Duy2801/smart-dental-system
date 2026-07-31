@@ -28,4 +28,5 @@ export const doctorNavItems = [
   { label: "Hồ sơ bệnh án", href: ROUTES.DOCTOR.MEDICAL_RECORDS },
   { label: "Đơn thuốc", href: ROUTES.DOCTOR.PRESCRIPTIONS },
   { label: "Kế hoạch điều trị", href: ROUTES.DOCTOR.TREATMENT_PLANS },
+  { label: "Tư vấn trực tuyến", href: ROUTES.DOCTOR.CONSULTATIONS },
 ];
