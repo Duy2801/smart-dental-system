@@ -121,9 +121,18 @@ export default function EditPrescriptionPage() {
   };
 
   const handleSubmit = async () => {
-    const validItems = medications.filter((m) => m.medicineName.trim());
-    if (validItems.length === 0) {
+    const filled = medications.filter(
+      (m) => m.medicineName.trim() || m.dosage.trim(),
+    );
+    if (filled.length === 0) {
       setSaveError("Vui lòng thêm ít nhất một loại thuốc.");
+      return;
+    }
+    const incomplete = filled.find(
+      (m) => !m.medicineName.trim() || !m.dosage.trim(),
+    );
+    if (incomplete) {
+      setSaveError("Mỗi thuốc cần có tên thuốc và liều dùng.");
       return;
     }
     setSubmitting(true);
@@ -131,7 +140,7 @@ export default function EditPrescriptionPage() {
     try {
       await apiClient.patch(`/prescriptions/${id}`, {
         notes: notes.trim() || undefined,
-        items: validItems.map((m) => ({
+        items: filled.map((m) => ({
           medicineName: m.medicineName.trim(),
           dosage: m.dosage.trim(),
           frequency: m.frequency.trim() || undefined,
@@ -299,7 +308,9 @@ export default function EditPrescriptionPage() {
                     <th className="pb-3 pr-3">
                       Tên thuốc <span className="text-red-500">*</span>
                     </th>
-                    <th className="w-28 pb-3 pr-3">Liều dùng</th>
+                    <th className="w-28 pb-3 pr-3">
+                      Liều dùng <span className="text-red-500">*</span>
+                    </th>
                     <th className="w-32 pb-3 pr-3">Tần suất</th>
                     <th className="w-28 pb-3 pr-3">Thời gian</th>
                     <th className="pb-3 pr-3">Hướng dẫn</th>

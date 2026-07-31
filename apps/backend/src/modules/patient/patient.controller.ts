@@ -34,12 +34,23 @@ export class PatientController {
   @Get()
   @Roles('DOCTOR', 'ADMIN', 'RECEPTIONIST')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  findAll(
+  async findAll(
+    @CurrentUser() user: AuthenticatedUser,
     @Query('doctorId') doctorId?: string,
     @Query('search') search?: string,
   ) {
+    const isDoctorOnly =
+      user.roles.includes('DOCTOR') && !user.roles.includes('ADMIN');
+
+    if (isDoctorOnly) {
+      const ownDoctorId = await this.patientService.resolveDoctorIdByUserId(
+        user.userId,
+      );
+      return this.patientService.findPatientsByDoctor(ownDoctorId, search);
+    }
+
     if (doctorId) {
-      return this.patientService.findPatientsByDoctor(doctorId);
+      return this.patientService.findPatientsByDoctor(doctorId, search);
     }
     return this.patientService.findPatients(search);
   }
@@ -61,10 +72,21 @@ export class PatientController {
   @Get(':id')
   @Roles('DOCTOR', 'ADMIN', 'RECEPTIONIST')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  findOne(
+  async findOne(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
     @Query('doctorId') doctorId?: string,
   ) {
+    const isDoctorOnly =
+      user.roles.includes('DOCTOR') && !user.roles.includes('ADMIN');
+
+    if (isDoctorOnly) {
+      const ownDoctorId = await this.patientService.resolveDoctorIdByUserId(
+        user.userId,
+      );
+      return this.patientService.findPatientDetail(id, ownDoctorId);
+    }
+
     return this.patientService.findPatientDetail(id, doctorId);
   }
 }

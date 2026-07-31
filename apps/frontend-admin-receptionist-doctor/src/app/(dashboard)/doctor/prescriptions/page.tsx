@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, Fragment } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Header } from "@/src/components/layout/header";
@@ -194,9 +194,9 @@ function PrintModal({
   const handlePrint = () => window.print();
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm print:hidden">
-      <div className="mx-4 flex w-full max-w-2xl flex-col rounded-2xl border border-border bg-white shadow-xl">
-        {/* Header modal */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm print:static print:bg-transparent print:p-0">
+      <div className="mx-4 flex w-full max-w-2xl flex-col rounded-2xl border border-border bg-white shadow-xl print:mx-0 print:max-w-none print:rounded-none print:border-0 print:shadow-none">
+        {/* Header modal — ẩn khi in */}
         <div className="flex items-center justify-between border-b border-border px-6 py-4 print:hidden">
           <h3 className="font-semibold text-brand-dark">Xem trước đơn thuốc</h3>
           <div className="flex items-center gap-2">
@@ -499,9 +499,8 @@ export default function PrescriptionsPage() {
                   </thead>
                   <tbody>
                     {filtered.map((rx) => (
-                      <>
+                      <Fragment key={rx.id}>
                         <tr
-                          key={rx.id}
                           className="cursor-pointer border-b border-border/50 transition-colors hover:bg-slate-50/50"
                           onClick={() =>
                             setExpandedId((prev) =>
@@ -580,10 +579,7 @@ export default function PrescriptionsPage() {
                         </tr>
 
                         {expandedId === rx.id && (
-                          <tr
-                            key={`${rx.id}-detail`}
-                            className="border-b border-border/50 bg-slate-50/80"
-                          >
+                          <tr className="border-b border-border/50 bg-slate-50/80">
                             <td />
                             <td colSpan={6} className="px-5 py-4">
                               <div className="overflow-hidden rounded-xl border border-border bg-white">
@@ -627,7 +623,7 @@ export default function PrescriptionsPage() {
                             </td>
                           </tr>
                         )}
-                      </>
+                      </Fragment>
                     ))}
                   </tbody>
                 </table>

@@ -1,7 +1,9 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import {
@@ -240,7 +242,19 @@ export class PatientService {
     return parts.length ? parts.join('\n') : undefined;
   }
 
-  async findPatientsByDoctor(doctorId: string) {
+  async resolveDoctorIdByUserId(userId: string) {
+    const doctor = await this.prisma.doctor.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+    if (!doctor) {
+      throw new ForbiddenException('Không tìm thấy hồ sơ bác sĩ');
+    }
+    return doctor.id;
+  }
+
+  async findPatientsByDoctor(doctorId: string, search?: string) {
+    const q = search?.trim().toLowerCase();
     const rows = await this.prisma.appointment.findMany({
       where: { doctorId, patient: { isNot: null } },
       select: {
@@ -279,29 +293,51 @@ export class PatientService {
       }
     }
 
-    return Array.from(seen.values()).map((row) => {
-      const p = row.patient!;
-      const age = p.dateOfBirth
-        ? new Date().getFullYear() - new Date(p.dateOfBirth).getFullYear()
-        : null;
-      return {
-        id: p.id,
-        patientCode: p.patientCode,
-        fullName: p.user.fullName,
-        phone: p.user.phone,
-        email: p.user.email,
-        gender: p.gender,
-        age,
-        lastVisitDate: row.scheduledAt,
-        lastService: row.service.name,
-        lastStatus: row.status,
-        totalVisits: totalVisitMap.get(p.id) ?? 1,
-        medicalHistory: p.medicalHistory,
-      };
-    });
+    return Array.from(seen.values())
+      .map((row) => {
+        const p = row.patient!;
+        const age = p.dateOfBirth
+          ? new Date().getFullYear() - new Date(p.dateOfBirth).getFullYear()
+          : null;
+        return {
+          id: p.id,
+          patientCode: p.patientCode,
+          fullName: p.user.fullName,
+          phone: p.user.phone,
+          email: p.user.email,
+          gender: p.gender,
+          age,
+          lastVisitDate: row.scheduledAt,
+          lastService: row.service.name,
+          lastStatus: row.status,
+          totalVisits: totalVisitMap.get(p.id) ?? 1,
+          medicalHistory: p.medicalHistory,
+        };
+      })
+      .filter((p) => {
+        if (!q) return true;
+        return (
+          p.fullName.toLowerCase().includes(q) ||
+          p.patientCode.toLowerCase().includes(q) ||
+          (p.phone ?? '').includes(q) ||
+          (p.email ?? '').toLowerCase().includes(q)
+        );
+      });
   }
 
   async findPatientDetail(patientId: string, doctorId?: string) {
+    if (doctorId) {
+      const related = await this.prisma.appointment.findFirst({
+        where: { patientId, doctorId },
+        select: { id: true },
+      });
+      if (!related) {
+        throw new ForbiddenException(
+          'Bạn không có quyền xem bệnh nhân này',
+        );
+      }
+    }
+
     const patient = await this.prisma.patient.findUnique({
       where: { id: patientId },
       select: {
@@ -315,7 +351,10 @@ export class PatientService {
         emergencyContactPhone: true,
         user: { select: { fullName: true, phone: true, email: true } },
         treatmentPlans: {
-          where: { status: { in: ['PLANNED', 'IN_PROGRESS'] } },
+          where: {
+            status: { in: ['PLANNED', 'IN_PROGRESS'] },
+            ...(doctorId ? { doctorId } : {}),
+          },
           orderBy: { createdAt: 'desc' },
           take: 1,
           select: {
@@ -325,12 +364,15 @@ export class PatientService {
             startDate: true,
             expectedEndDate: true,
             items: true,
+            steps: { select: { status: true } },
           },
         },
       },
     });
 
-    if (!patient) return null;
+    if (!patient) {
+      throw new NotFoundException('Không tìm thấy bệnh nhân');
+    }
 
     const appointments = await this.prisma.appointment.findMany({
       where: {
@@ -354,9 +396,21 @@ export class PatientService {
       : null;
 
     const activePlan = patient.treatmentPlans[0] ?? null;
-    const planItems = Array.isArray(activePlan?.items) ? activePlan.items as { service?: string; tooth?: string; estimatedCost?: string }[] : [];
-    const totalSteps = planItems.length;
-    const completedSteps = Math.round(totalSteps * 0.4);
+    const planItems = Array.isArray(activePlan?.items)
+      ? (activePlan.items as {
+          service?: string;
+          tooth?: string;
+          estimatedCost?: string;
+        }[])
+      : [];
+    const steps = activePlan?.steps ?? [];
+    const totalSteps =
+      steps.length > 0 ? steps.length : planItems.length;
+    const completedSteps =
+      steps.length > 0
+        ? steps.filter((s) => s.status === TreatmentStepStatus.COMPLETED)
+            .length
+        : 0;
 
     const finance = await this.getPatientFinance(patientId, activePlan?.id);
 

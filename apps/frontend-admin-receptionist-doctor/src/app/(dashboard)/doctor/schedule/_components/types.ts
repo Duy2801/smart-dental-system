@@ -19,6 +19,15 @@ export type ScheduleAppointment = {
   patientPhone: string;
   serviceName: string;
   notes?: string | null;
+  medicalRecordId?: string | null;
+};
+
+export type TimeOffRecord = {
+  id: string;
+  dayIso: string;
+  startTime: string;
+  endTime: string;
+  reason: string | null;
 };
 
 export const statusConfig: Record<

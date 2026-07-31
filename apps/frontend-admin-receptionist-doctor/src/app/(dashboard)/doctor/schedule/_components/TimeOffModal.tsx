@@ -2,20 +2,58 @@
 
 import { useState } from "react";
 import { X, SpinnerGap } from "@phosphor-icons/react";
+import axios from "axios";
 import apiClient from "@/src/lib/api/client";
+import { localDateStr } from "@/src/lib/receptionist/mappers";
 
 type Props = {
   doctorId: string;
   onClose: () => void;
+  onSuccess: () => void;
 };
 
-export function TimeOffModal({ doctorId, onClose }: Props) {
+const ERROR_MAP: Record<string, string> = {
+  "availability.shift_overlap": "Khung giờ trùng với ca/nghỉ đã đăng ký.",
+  "availability.invalid_time_range": "Giờ bắt đầu phải trước giờ kết thúc.",
+  "availability.specific_date_required": "Vui lòng chọn ngày nghỉ.",
+  "availability.day_or_specific_date_required": "Vui lòng chọn ngày nghỉ.",
+};
+
+function eachDate(from: string, to: string): string[] {
+  const dates: string[] = [];
+  const cur = new Date(`${from}T00:00:00`);
+  const end = new Date(`${to}T00:00:00`);
+  while (cur <= end) {
+    dates.push(localDateStr(cur));
+    cur.setDate(cur.getDate() + 1);
+  }
+  return dates;
+}
+
+function normalizeTime(t: string) {
+  return t.slice(0, 5);
+}
+
+function apiErrorMessage(err: unknown): string {
+  if (!axios.isAxiosError(err)) return "Không thể gửi yêu cầu. Vui lòng thử lại.";
+  const raw = err.response?.data?.message;
+  const key = Array.isArray(raw) ? raw[0] : raw;
+  if (typeof key === "string" && ERROR_MAP[key]) return ERROR_MAP[key];
+  if (typeof key === "string" && key.startsWith("availability.")) {
+    return "Dữ liệu nghỉ không hợp lệ. Vui lòng kiểm tra lại.";
+  }
+  return "Không thể gửi yêu cầu. Vui lòng thử lại.";
+}
+
+export function TimeOffModal({ doctorId, onClose, onSuccess }: Props) {
+  const today = localDateStr();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({
-    date: "",
-    startTime: "",
-    endTime: "",
+    fromDate: today,
+    toDate: today,
+    startTime: "08:00",
+    endTime: "17:00",
     reason: "",
   });
 
@@ -23,25 +61,53 @@ export function TimeOffModal({ doctorId, onClose }: Props) {
     e.preventDefault();
     setError(null);
 
-    if (form.startTime >= form.endTime) {
+    const startTime = normalizeTime(form.startTime);
+    const endTime = normalizeTime(form.endTime);
+
+    if (!form.fromDate || !form.toDate) {
+      setError("Vui lòng chọn ngày bắt đầu và ngày kết thúc.");
+      return;
+    }
+    if (form.fromDate < today) {
+      setError("Không thể đăng ký nghỉ cho ngày đã qua.");
+      return;
+    }
+    if (form.toDate < form.fromDate) {
+      setError("Ngày kết thúc phải từ ngày bắt đầu trở đi.");
+      return;
+    }
+    if (startTime >= endTime) {
       setError("Giờ bắt đầu phải trước giờ kết thúc.");
+      return;
+    }
+    if (!form.reason.trim()) {
+      setError("Vui lòng nhập lý do nghỉ.");
+      return;
+    }
+
+    const dates = eachDate(form.fromDate, form.toDate);
+    if (dates.length > 31) {
+      setError("Khoảng nghỉ tối đa 31 ngày mỗi lần đăng ký.");
       return;
     }
 
     setLoading(true);
     try {
-      await apiClient.post("/doctor-availability", {
-        doctorId,
-        recordType: "TIME_OFF",
-        specificDate: form.date,
-        startTime: form.startTime,
-        endTime: form.endTime,
-        reason: form.reason,
-        isActive: true,
-      });
+      for (const date of dates) {
+        await apiClient.post("/doctor-availability", {
+          doctorId,
+          recordType: "TIME_OFF",
+          specificDate: date,
+          startTime,
+          endTime,
+          reason: form.reason.trim(),
+          isActive: true,
+        });
+      }
+      onSuccess();
       onClose();
-    } catch {
-      setError("Không thể gửi yêu cầu. Vui lòng thử lại.");
+    } catch (err) {
+      setError(apiErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -59,6 +125,7 @@ export function TimeOffModal({ doctorId, onClose }: Props) {
             Đăng ký ngày nghỉ
           </h3>
           <button
+            type="button"
             onClick={onClose}
             className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-brand-dark"
           >
@@ -67,17 +134,41 @@ export function TimeOffModal({ doctorId, onClose }: Props) {
         </div>
 
         <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-brand-dark">
-              Ngày xin nghỉ
-            </label>
-            <input
-              type="date"
-              required
-              value={form.date}
-              onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
-              className="rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-brand-dark">
+                Từ ngày
+              </label>
+              <input
+                type="date"
+                required
+                min={today}
+                value={form.fromDate}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    fromDate: e.target.value,
+                    toDate: f.toDate < e.target.value ? e.target.value : f.toDate,
+                  }))
+                }
+                className="rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-brand-dark">
+                Đến ngày
+              </label>
+              <input
+                type="date"
+                required
+                min={form.fromDate || today}
+                value={form.toDate}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, toDate: e.target.value }))
+                }
+                className="rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -90,7 +181,10 @@ export function TimeOffModal({ doctorId, onClose }: Props) {
                 required
                 value={form.startTime}
                 onChange={(e) =>
-                  setForm((f) => ({ ...f, startTime: e.target.value }))
+                  setForm((f) => ({
+                    ...f,
+                    startTime: normalizeTime(e.target.value),
+                  }))
                 }
                 className="rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand"
               />
@@ -104,7 +198,10 @@ export function TimeOffModal({ doctorId, onClose }: Props) {
                 required
                 value={form.endTime}
                 onChange={(e) =>
-                  setForm((f) => ({ ...f, endTime: e.target.value }))
+                  setForm((f) => ({
+                    ...f,
+                    endTime: normalizeTime(e.target.value),
+                  }))
                 }
                 className="rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand"
               />
