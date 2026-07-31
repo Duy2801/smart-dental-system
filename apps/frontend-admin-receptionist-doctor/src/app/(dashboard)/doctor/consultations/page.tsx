@@ -25,7 +25,6 @@ type Consultation = {
   scheduledAt: string;
   durationMinutes: number;
   status: ConsultStatus;
-  meetingUrl: string | null;
   fee: number;
   isPaid: boolean;
   notes: string | null;

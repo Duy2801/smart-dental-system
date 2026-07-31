@@ -44,6 +44,7 @@ type ConsultationDetail = {
   durationMinutes: number;
   status: ConsultStatus;
   meetingUrl: string | null;
+  roomPin: string | null;
   fee: number;
   isPaid: boolean;
   notes: string | null;
@@ -161,15 +162,16 @@ export default function ConsultationRoomPage() {
   const handleStart = async () => {
     setActionLoading(true);
     try {
-      const res = await apiClient.patch<ConsultationDetail>(
-        `/video-consultations/${id}/start`,
-      );
+      const res = await apiClient.patch<
+        Pick<ConsultationDetail, "status" | "meetingUrl" | "roomPin">
+      >(`/video-consultations/${id}/start`);
       setDetail((prev) =>
         prev
           ? {
               ...prev,
               status: res.data.status,
               meetingUrl: res.data.meetingUrl,
+              roomPin: res.data.roomPin,
             }
           : prev,
       );
@@ -277,10 +279,21 @@ export default function ConsultationRoomPage() {
               {showCall ? ` · ${elapsedLabel(callStartedAt)}` : null}
               <span className="sr-only">{tick}</span>
             </p>
+            {showCall && detail.roomPin ? (
+              <p className="text-sm text-brand-dark">
+                Mã PIN phòng:{" "}
+                <span className="font-mono text-base font-bold tracking-widest">
+                  {detail.roomPin}
+                </span>
+                <span className="ml-2 text-xs font-normal text-muted-foreground">
+                  (gửi cho bệnh nhân · chỉ hiện khi đang gọi)
+                </span>
+              </p>
+            ) : null}
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {canStart && !showCall && (
+            {canStart && !showCall && detail.status !== "COMPLETED" && (
               <button
                 type="button"
                 onClick={handleStart}
@@ -327,8 +340,9 @@ export default function ConsultationRoomPage() {
                     Chuẩn bị phòng tư vấn
                   </p>
                   <p className="max-w-sm text-sm text-white/65">
-                    Xem lịch sử Chatbot bên phải trước khi gọi. Khi sẵn sàng, bấm
-                    &quot;Bắt đầu tư vấn&quot; để mở phòng video.
+                    {detail.status === "COMPLETED"
+                      ? "Buổi tư vấn đã kết thúc. Link phòng đã hết hạn và không thể vào lại."
+                      : "Xem lịch sử Chatbot bên phải trước khi gọi. Khi sẵn sàng, bấm \"Bắt đầu tư vấn\" — hệ thống tạo phòng ngẫu nhiên + mã PIN."}
                   </p>
                 </div>
               </div>
