@@ -14,8 +14,11 @@ export class MedicalRecordController {
   @Get()
   @Roles('DOCTOR', 'ADMIN')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  findByDoctor(@Query('doctorId') doctorId: string) {
-    return this.service.findByDoctor(doctorId);
+  findByDoctor(
+    @Query('doctorId') doctorId: string,
+    @Query('patientId') patientId?: string,
+  ) {
+    return this.service.findByDoctor(doctorId, patientId);
   }
 
   @Get(':id')

@@ -26,9 +26,12 @@ const recordInclude = {
 export class MedicalRecordService {
   constructor(private prisma: PrismaService) {}
 
-  async findByDoctor(doctorId: string) {
+  async findByDoctor(doctorId: string, patientId?: string) {
     const records = await this.prisma.medicalRecord.findMany({
-      where: { doctorId },
+      where: {
+        doctorId,
+        ...(patientId ? { patientId } : {}),
+      },
       include: recordInclude,
       orderBy: { createdAt: 'desc' },
     });
