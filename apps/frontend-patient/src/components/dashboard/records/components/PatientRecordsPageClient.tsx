@@ -6,7 +6,7 @@ import { getPatientRecords } from "../api";
 import { mapRecordTreatments } from "./recordMappers";
 import { RecordHistorySection } from "./RecordHistorySection";
 import { RecordPatientHero } from "./RecordPatientHero";
-import { DashboardIcon } from "../../common/DashboardIcon";
+import { PatientPageSkeleton } from "../../common/PatientSkeleton";
 
 export function PatientRecordsPageClient() {
   const recordsQuery = useQuery({
@@ -15,17 +15,7 @@ export function PatientRecordsPageClient() {
   });
 
   if (recordsQuery.isLoading) {
-    return (
-      <main className="mx-auto w-full max-w-[1360px] px-4 py-7 sm:px-6 lg:px-8">
-        <div className="space-y-5">
-          <section className="h-56 animate-pulse border border-slate-200 bg-slate-100" />
-          <section className="grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,.85fr)]">
-            <div className="h-[720px] animate-pulse border border-slate-200 bg-slate-100" />
-            <div className="h-[720px] animate-pulse border border-slate-200 bg-slate-100" />
-          </section>
-        </div>
-      </main>
-    );
+    return <PatientPageSkeleton />;
   }
 
   if (recordsQuery.isError || !recordsQuery.data) {
@@ -39,7 +29,6 @@ export function PatientRecordsPageClient() {
   }
 
   const treatments = mapRecordTreatments(recordsQuery.data.treatmentPlans);
-  const activeTreatment = treatments[0];
 
   return (
     <main className="mx-auto w-full max-w-[1520px] space-y-5 px-4 py-7 sm:px-6 lg:px-8">
@@ -56,22 +45,5 @@ export function PatientRecordsPageClient() {
         <RecordHistorySection treatments={treatments} />
       </section>
     </main>
-  );
-}
-
-function MiniMetric({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="border border-slate-200 bg-slate-50 px-4 py-3">
-      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
-        {label}
-      </p>
-      <p className="mt-1 text-sm font-semibold text-slate-900">{value}</p>
-    </div>
   );
 }

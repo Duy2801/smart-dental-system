@@ -259,16 +259,16 @@ const patientSeeds = [
 ];
 
 const doctorAvatarUrls = [
-  'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=900&q=80',
-  'https://images.unsplash.com/photo-1594824476967-48c8b964273f?auto=format&fit=crop&w=900&q=80',
-  'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&w=900&q=80',
-  'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=900&q=80',
-  'https://images.unsplash.com/photo-1582750433449-648ed127bb54?auto=format&fit=crop&w=900&q=80',
-  'https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&w=900&q=80',
-  'https://images.unsplash.com/photo-1527613426441-4da17471b66d?auto=format&fit=crop&w=900&q=80',
-  'https://images.unsplash.com/photo-1622902046580-2b47f47f5471?auto=format&fit=crop&w=900&q=80',
-  'https://images.unsplash.com/photo-1607990281513-2c110a25bd8c?auto=format&fit=crop&w=900&q=80',
-  'https://images.unsplash.com/photo-1629909615184-74f495363b67?auto=format&fit=crop&w=900&q=80',
+  'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1785496476/smart-dental/doctors/le-hoang-nam.png',
+  'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1785496479/smart-dental/doctors/nguyen-minh-anh.png',
+  'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1785496480/smart-dental/doctors/tran-thu-ha.png',
+  'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1785496481/smart-dental/doctors/pham-bao-long.png',
+  'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1785496483/smart-dental/doctors/do-khanh-linh.png',
+  'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1785496484/smart-dental/doctors/vo-quang-huy.png',
+  'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1785496485/smart-dental/doctors/huynh-mai-chi.png',
+  'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1785496486/smart-dental/doctors/bui-duc-tam.png',
+  'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1785496487/smart-dental/doctors/phan-ngoc-anh.png',
+  'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1785496488/smart-dental/doctors/dang-minh-khoa.png',
 ];
 
 const doctorNames = [
@@ -1536,16 +1536,16 @@ async function seedRelatedData(
           cancelledAt: null,
           checkedInAt:
             appointmentStatus === 'CHECKED_IN' ||
-            appointmentStatus === 'IN_PROGRESS' ||
-            appointmentStatus === 'COMPLETED'
+              appointmentStatus === 'IN_PROGRESS' ||
+              appointmentStatus === 'COMPLETED'
               ? scheduledAt
               : null,
           completedAt: appointmentStatus === 'COMPLETED' ? scheduledAt : null,
           scheduleConfirmedAt:
             appointmentStatus === 'CONFIRMED' ||
-            appointmentStatus === 'CHECKED_IN' ||
-            appointmentStatus === 'IN_PROGRESS' ||
-            appointmentStatus === 'COMPLETED'
+              appointmentStatus === 'CHECKED_IN' ||
+              appointmentStatus === 'IN_PROGRESS' ||
+              appointmentStatus === 'COMPLETED'
               ? scheduledAt
               : null,
           createdBy: context.receptionistUser.id,

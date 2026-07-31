@@ -3,31 +3,10 @@
 import { useMemo, useState } from "react";
 import { usePatientServicesQuery } from "../hooks";
 import type { ServiceCategory, ServiceFilter } from "../types";
+import { PatientGridSkeleton } from "../../common/PatientSkeleton";
 import { ServiceCard } from "./ServiceCard";
 import { ServiceFilters } from "./ServiceFilters";
 import { ServiceHero } from "./ServiceHero";
-
-function ServiceGridSkeleton() {
-  return (
-    <section className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-      {Array.from({ length: 6 }).map((_, index) => (
-        <div
-          key={index}
-          className="h-[430px] animate-pulse rounded-2xl border border-slate-200 bg-white shadow-sm"
-        >
-          <div className="h-52 rounded-t-2xl bg-slate-100" />
-          <div className="space-y-4 p-5">
-            <div className="h-5 w-3/4 rounded bg-slate-100" />
-            <div className="h-4 w-full rounded bg-slate-100" />
-            <div className="h-4 w-2/3 rounded bg-slate-100" />
-            <div className="h-12 rounded bg-slate-100" />
-            <div className="h-11 rounded bg-slate-100" />
-          </div>
-        </div>
-      ))}
-    </section>
-  );
-}
 
 function getCategoryLabel(category: string) {
   const labels: Record<string, string> = {
@@ -91,7 +70,7 @@ export function ServiceCatalogExperience() {
       </div>
 
       {isLoading ? (
-        <ServiceGridSkeleton />
+        <PatientGridSkeleton />
       ) : isError ? (
         <section className="mt-8 rounded-2xl border border-red-100 bg-red-50 p-10 text-center">
           <h2 className="text-lg font-bold text-red-700">

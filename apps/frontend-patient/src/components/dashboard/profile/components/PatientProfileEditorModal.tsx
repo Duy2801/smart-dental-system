@@ -91,10 +91,10 @@ export function PatientProfileEditorModal({
       queryClient.setQueryData(["patient", "profile"], response.data);
       queryClient.invalidateQueries({ queryKey: ["patient", "profile"] });
       onSaved?.(response.data);
-      setMessage("Da cap nhat ho so.");
+      setMessage("Đã cập nhật hồ sơ.");
       onClose();
     } catch {
-      setMessage("Cap nhat that bai. Vui long thu lai.");
+      setMessage("Cập nhật thất bại. Vui lòng thử lại.");
     } finally {
       setSaving(false);
     }
@@ -123,13 +123,13 @@ export function PatientProfileEditorModal({
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-blue-100">
-                Thong tin benh nhan
+                Thông tin bệnh nhân
               </p>
               <h2 className="mt-1 text-2xl font-extrabold tracking-[-0.03em]">
-                Cap nhat ho so
+                Cập nhật hồ sơ
               </h2>
               <p className="mt-2 max-w-lg text-xs leading-5 text-blue-50/90">
-                Dieu chinh nhanh thong tin co ban, lien he va tien su y khoa.
+                Điều chỉnh nhanh thông tin cơ bản, liên hệ và tiền sử y khoa.
               </p>
             </div>
             <button
@@ -147,7 +147,7 @@ export function PatientProfileEditorModal({
 
           <div className="mt-6 flex items-center justify-between gap-3 border-t border-slate-100 pt-4">
             <p className="text-[10px] font-medium text-slate-500">
-              Du lieu se duoc cap nhat ngay khi bam luu.
+              Dữ liệu sẽ được cập nhật ngay khi bấm lưu.
             </p>
             <div className="flex gap-3">
               <button
@@ -155,13 +155,13 @@ export function PatientProfileEditorModal({
                 onClick={onClose}
                 className="rounded-full border border-slate-200 px-5 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-50"
               >
-                Huy
+                Hủy
               </button>
               <button
                 disabled={saving}
                 className="rounded-full bg-[#0058bc] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-blue-200 transition hover:bg-[#0450a7] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {saving ? "Dang luu..." : "Luu thay doi"}
+                {saving ? "Đang lưu..." : "Lưu thay đổi"}
               </button>
             </div>
           </div>

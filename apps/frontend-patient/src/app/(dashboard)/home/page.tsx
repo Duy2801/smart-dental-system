@@ -4,6 +4,7 @@ import {
   DashboardIcon,
   type DashboardIconName,
 } from "@/components/dashboard/common/DashboardIcon";
+import { CountUp } from "@/components/dashboard/common/CountUp";
 import {
   ClinicalCasesSection,
   DoctorDirectory,
@@ -20,54 +21,62 @@ export const metadata: Metadata = {
 export default function PatientHomePage() {
   return (
     <main className="mx-auto w-full max-w-[1360px] space-y-10 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-      <HomeHeroSlideshow />
+      <div className="relative left-1/2 w-screen -translate-x-1/2 space-y-6 px-4 sm:px-6 lg:px-12 max-w-[1600px]">
+        <HomeHeroSlideshow />
 
-      <section className="grid gap-4 rounded-2xl border border-slate-200/80 bg-white/80 px-6 py-6 shadow-sm backdrop-blur sm:grid-cols-2 lg:grid-cols-[repeat(3,1fr)_1px_1.2fr] lg:items-center lg:px-10">
-        {[
-          ["shield", "ISO 9001:2015", "Chứng nhận quốc tế"],
-          ["heart", "Bộ Y Tế", "Giấy phép 0123/BYT"],
-          ["sparkles", "Top 10 Nha Khoa", "Giải thưởng 2026"],
-        ].map(([icon, title, text]) => (
-          <div key={title} className="flex items-center gap-3">
-            <DashboardIcon
-              name={icon as DashboardIconName}
-              className="h-8 w-8 text-[#0058bc]"
-            />
-            <div>
-              <p className="text-xs font-bold text-slate-800">{title}</p>
-              <p className="mt-1 text-[10px] uppercase text-slate-400">
-                {text}
-              </p>
+        <section className="grid gap-4 rounded-2xl border border-slate-200/80 bg-white/90 px-6 py-6 shadow-md backdrop-blur sm:grid-cols-2 lg:grid-cols-[repeat(3,1fr)_1px_1.2fr] lg:items-center lg:px-10">
+          {[
+            ["shield", "ISO 9001:2015", "Chứng nhận quốc tế"],
+            ["heart", "Bộ Y Tế", "Giấy phép 0123/BYT"],
+            ["sparkles", "Top 10 Nha Khoa", "Giải thưởng 2026"],
+          ].map(([icon, title, text]) => (
+            <div key={title} className="flex items-center gap-3">
+              <DashboardIcon
+                name={icon as DashboardIconName}
+                className="h-8 w-8 text-[#0058bc]"
+              />
+              <div>
+                <p className="text-xs font-bold text-slate-800">{title}</p>
+                <p className="mt-1 text-[10px] uppercase text-slate-400">
+                  {text}
+                </p>
+              </div>
+            </div>
+          ))}
+          <div className="hidden h-10 bg-slate-200 lg:block" />
+          <div className="col-span-2 flex justify-between gap-4 sm:col-span-1">
+            <div className="text-center">
+              <strong className="text-xl text-[#0058bc]">
+                <CountUp value={10} suffix="K+" />
+              </strong>
+              <p className="text-[10px] text-slate-500">Khách hàng</p>
+            </div>
+            <div className="text-center">
+              <strong className="text-xl text-[#0058bc]">
+                <CountUp value={15} suffix="+" />
+              </strong>
+              <p className="text-[10px] text-slate-500">Năm kinh nghiệm</p>
+            </div>
+            <div className="text-center">
+              <strong className="text-xl text-[#0058bc]">
+                <CountUp value={20} suffix="+" />
+              </strong>
+              <p className="text-[10px] text-slate-500">Chuyên gia</p>
             </div>
           </div>
-        ))}
-        <div className="hidden h-10 bg-slate-200 lg:block" />
-        <div className="col-span-2 flex justify-between gap-4 sm:col-span-1">
-          <div className="text-center">
-            <strong className="text-xl text-[#0058bc]">10K+</strong>
-            <p className="text-[10px] text-slate-500">Khách hàng</p>
-          </div>
-          <div className="text-center">
-            <strong className="text-xl text-[#0058bc]">15+</strong>
-            <p className="text-[10px] text-slate-500">Năm kinh nghiệm</p>
-          </div>
-          <div className="text-center">
-            <strong className="text-xl text-[#0058bc]">20+</strong>
-            <p className="text-[10px] text-slate-500">Chuyên gia</p>
-          </div>
-        </div>
-      </section>
+        </section>
+      </div>
 
       <Reveal>
         <HomeServicesSection />
       </Reveal>
 
       <Reveal>
-        <ClinicalCasesSection />
+        <DoctorDirectory />
       </Reveal>
 
       <Reveal>
-        <DoctorDirectory />
+        <ClinicalCasesSection />
       </Reveal>
 
       <section className="relative overflow-hidden rounded-3xl bg-[#0058bc] p-7 text-white sm:p-10">
@@ -116,157 +125,86 @@ export default function PatientHomePage() {
         </div>
       </section>
 
-      <div id="blog" className="grid gap-8 lg:grid-cols-12">
-        <section className="space-y-8 lg:col-span-8">
-          <div>
-            <div className="flex items-end justify-between">
-              <h2 className="text-2xl font-bold text-slate-900">
-                Kiến thức Nha khoa
-              </h2>
-              <Link
-                href="/records"
-                className="text-xs font-bold text-[#0058bc]"
-              >
-                Tất cả bài viết
-              </Link>
-            </div>
-            <div className="mt-5 grid gap-5 sm:grid-cols-2">
-              {[
-                {
-                  tag: "Chỉnh nha",
-                  title: "7 điều cần lưu ý khi bắt đầu niềng răng trong suốt",
-                  icon: "braces",
-                },
-                {
-                  tag: "Sức khỏe tổng quát",
-                  title: "Công nghệ AI thay đổi chẩn đoán nha khoa thế nào?",
-                  icon: "sparkles",
-                },
-              ].map((post) => (
-                <article key={post.title} className="group">
-                  <div className="grid h-44 place-items-center overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-blue-50 to-cyan-100">
-                    <DashboardIcon
-                      name={post.icon as DashboardIconName}
-                      className="h-20 w-20 text-[#0058bc]/25 transition group-hover:scale-110"
-                    />
-                  </div>
-                  <span className="mt-4 inline-block rounded bg-blue-50 px-2 py-1 text-[10px] font-bold uppercase text-[#0058bc]">
-                    {post.tag}
-                  </span>
-                  <h3 className="mt-2 text-lg font-bold leading-6 text-slate-900 transition group-hover:text-[#0058bc]">
-                    {post.title}
-                  </h3>
-                  <p className="mt-2 text-xs leading-5 text-slate-500">
-                    Các kiến thức khoa học giúp bạn chủ động chăm sóc và bảo vệ
-                    nụ cười mỗi ngày...
-                  </p>
-                </article>
-              ))}
-            </div>
-          </div>
-          <div>
+      <div id="blog" className="grid gap-8 lg:grid-cols-12 lg:items-start">
+        <section className="space-y-5 lg:col-span-8">
+          <div className="flex items-end justify-between">
             <h2 className="text-2xl font-bold text-slate-900">
-              Câu hỏi thường gặp
+              Kiến thức Nha khoa
             </h2>
-            <div className="mt-5 space-y-3">
-              <details
-                open
-                className="group rounded-xl border border-slate-200 bg-white"
-              >
-                <summary className="flex cursor-pointer list-none items-center justify-between p-5 text-sm font-bold">
-                  Khám AI có mất phí không?
-                  <span className="text-[#0058bc] group-open:rotate-45">
-                    ＋
-                  </span>
-                </summary>
-                <p className="border-t border-slate-100 px-5 py-4 text-xs leading-6 text-slate-500">
-                  Hoàn toàn miễn phí. Chúng tôi cung cấp chụp X-quang và phân
-                  tích AI cho lần khám đầu tiên.
-                </p>
-              </details>
-              <details className="group rounded-xl border border-slate-200 bg-white">
-                <summary className="flex cursor-pointer list-none items-center justify-between p-5 text-sm font-bold">
-                  Chế độ bảo hành Implant tại DentalCare AI?
-                  <span className="text-[#0058bc] group-open:rotate-45">
-                    ＋
-                  </span>
-                </summary>
-                <p className="border-t border-slate-100 px-5 py-4 text-xs leading-6 text-slate-500">
-                  Trụ Implant chính hãng được bảo hành từ 10 năm đến trọn đời
-                  tùy dòng sản phẩm.
-                </p>
-              </details>
-            </div>
-          </div>
-        </section>
-        <aside id="locations" className="space-y-5 lg:col-span-4">
-          <h2 className="text-2xl font-bold text-slate-900">
-            Thông tin phòng khám
-          </h2>
-          <div className="relative overflow-hidden rounded-2xl border border-[#0058bc] bg-white p-5 shadow-md">
-            <h3 className="font-bold text-[#0058bc]">Smart Dental</h3>
-            <p className="mt-2 text-xs leading-5 text-slate-500">
-              123 Lê Lợi, P. Bến Thành, Quận 1, TP.HCM
-            </p>
-            <p className="mt-3 text-xs font-semibold text-emerald-600">
-              ● Đang mở cửa: 08:00 - 20:00
-            </p>
             <Link
-              href="/appointment?intent=booking"
-              className="mt-4 block rounded-lg bg-[#0058bc] py-2.5 text-center text-xs font-bold text-white"
+              href="/records"
+              className="text-xs font-bold text-[#0058bc] hover:underline"
             >
-              Đặt lịch khám
+              Tất cả bài viết &rarr;
             </Link>
           </div>
-          <div className="relative grid h-60 place-items-center overflow-hidden rounded-2xl border border-slate-200 bg-[radial-gradient(circle_at_35%_30%,#bfdbfe,transparent_22%),linear-gradient(135deg,#e2e8f0,#f8fafc)] text-center">
-            <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(#64748b_1px,transparent_1px),linear-gradient(90deg,#64748b_1px,transparent_1px)] [background-size:32px_32px]" />
-            <div className="relative">
-              <DashboardIcon
-                name="home"
-                className="mx-auto h-12 w-12 text-[#0058bc]"
-              />
-              <p className="mt-2 font-bold">Xem bản đồ</p>
-              <p className="mt-1 text-xs text-slate-500">
-                Vị trí phòng khám Smart Dental
-              </p>
+          <div className="grid gap-5 sm:grid-cols-2">
+            {[
+              {
+                tag: "Chỉnh nha",
+                title: "7 điều cần lưu ý khi bắt đầu niềng răng trong suốt",
+                icon: "braces",
+                desc: "Cập nhật các kiến thức phòng ngừa & điều trị nha khoa chính xác từ đội ngũ bác sĩ chuyên khoa.",
+              },
+              {
+                tag: "Sức khỏe tổng quát",
+                title: "Công nghệ AI thay đổi chẩn đoán nha khoa thế nào?",
+                icon: "sparkles",
+                desc: "Ứng dụng trí tuệ nhân tạo trong việc phát hiện sớm tổn thương và lập phác đồ điều trị tối ưu.",
+              },
+            ].map((article) => (
+              <article
+                key={article.title}
+                className="flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+              >
+                <div>
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-[11px] font-bold text-[#0058bc]">
+                    <DashboardIcon
+                      name={article.icon as DashboardIconName}
+                      className="h-3.5 w-3.5"
+                    />
+                    {article.tag}
+                  </span>
+                  <h3 className="mt-3.5 text-sm font-bold text-slate-900">
+                    {article.title}
+                  </h3>
+                  <p className="mt-2 text-xs leading-5 text-slate-500">
+                    {article.desc}
+                  </p>
+                </div>
+                <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-[11px] font-bold text-[#0058bc]">
+                  <span>Đọc bài viết</span>
+                  <span>&rarr;</span>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <aside className="lg:col-span-4 lg:pt-9">
+          <div className="flex h-full flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
+            <div>
+              <h3 className="flex items-center gap-2 text-sm font-bold text-slate-900">
+                <DashboardIcon name="clock" className="h-4 w-4 text-[#0058bc]" />
+                Giờ làm việc phòng khám
+              </h3>
+              <div className="mt-4 space-y-3 text-xs text-slate-600">
+                <div className="flex justify-between border-b border-slate-100 pb-2.5">
+                  <span className="font-medium">Thứ 2 - Thứ 6:</span>
+                  <span className="font-bold text-slate-800">08:00 - 20:00</span>
+                </div>
+                <div className="flex justify-between border-b border-slate-100 pb-2.5">
+                  <span className="font-medium">Thứ 7 - Chủ nhật:</span>
+                  <span className="font-bold text-slate-800">08:00 - 17:30</span>
+                </div>
+              </div>
+            </div>
+            <div className="mt-4 rounded-xl bg-blue-50/70 p-3 text-[11px] font-semibold text-[#0058bc]">
+              * Hỗ trợ cấp cứu & tư vấn AI 24/7 trực tuyến.
             </div>
           </div>
         </aside>
       </div>
-
-      <section className="flex flex-col items-center rounded-3xl border border-slate-200 bg-slate-100/80 p-8 text-center sm:p-10">
-        <span className="grid h-20 w-20 place-items-center rounded-full bg-blue-100 text-[#0058bc]">
-          <DashboardIcon name="chat" className="h-10 w-10" />
-        </span>
-        <h2 className="mt-6 text-2xl font-bold text-slate-900 sm:text-[28px]">
-          Trải nghiệm đặt lịch 4.0 với AI Chat
-        </h2>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
-          Không cần gọi điện hay chờ đợi. AI giúp bạn tìm bác sĩ phù hợp, ước
-          tính chi phí và xác nhận lịch hẹn ngay qua tin nhắn.
-        </p>
-        <div className="mt-7 flex flex-wrap justify-center gap-3">
-          {[
-            "Tư vấn 24/7 không nghỉ",
-            "Đồng bộ hồ sơ bệnh án AI",
-            "Ước tính chi phí chính xác",
-          ].map((text) => (
-            <span
-              key={text}
-              className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-xs font-semibold shadow-sm"
-            >
-              <span className="mr-2 text-emerald-500">●</span>
-              {text}
-            </span>
-          ))}
-        </div>
-        <Link
-          href="/appointment?intent=booking"
-          className="mt-8 rounded-xl bg-[#0058bc] px-8 py-4 text-sm font-bold text-white shadow-lg shadow-blue-200 transition hover:-translate-y-1"
-        >
-          Mở Chat & Đặt lịch ngay
-        </Link>
-      </section>
     </main>
   );
 }

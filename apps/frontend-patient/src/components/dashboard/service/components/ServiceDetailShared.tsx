@@ -1,21 +1,11 @@
 import Link from "next/link";
 import { DashboardIcon } from "../../common/DashboardIcon";
+import { PatientPageSkeleton } from "../../common/PatientSkeleton";
 import { hasItems, minutesLabel } from "../service-detail-utils";
 import type { DentalService } from "../types";
 
 export function ServiceDetailLoadingState() {
-  return (
-    <main className="mx-auto w-full max-w-[1360px] px-4 py-7 sm:px-6 lg:px-8">
-      <div className="h-[520px] animate-pulse rounded-[28px] bg-slate-100" />
-      <div className="mt-7 grid gap-7 lg:grid-cols-[1fr_380px]">
-        <div className="space-y-5">
-          <div className="h-56 animate-pulse rounded-2xl bg-slate-100" />
-          <div className="h-72 animate-pulse rounded-2xl bg-slate-100" />
-        </div>
-        <div className="h-96 animate-pulse rounded-2xl bg-slate-100" />
-      </div>
-    </main>
-  );
+  return <PatientPageSkeleton />;
 }
 
 export function ServiceDetailNotFound() {

@@ -127,6 +127,13 @@ export type HomeDoctorCard = {
   doctorCode: string;
   licenseNumber: string;
   avatarUrl: string | null;
+  bio: string;
+  position: string;
+  workplace: string;
+  yearsExperience: number;
+  bullets?: string[];
+  educations?: DoctorEducationDto[];
+  certificates?: DoctorCertificateDto[];
 };
 
 export type DoctorDetail = HomeDoctorCard & {
@@ -180,6 +187,10 @@ function mapDoctor(doctor: DoctorDto): HomeDoctorCard {
     doctorCode: doctor.doctorCode,
     licenseNumber: doctor.licenseNumber,
     avatarUrl: doctor.avatarUrl ?? null,
+    bio: doctor.bio || "",
+    position: doctor.position || "Bác sĩ điều trị",
+    workplace: doctor.workplace || "Smart Dental",
+    yearsExperience: doctor.yearsExperience || 0,
   };
 }
 
@@ -236,13 +247,85 @@ export async function getHomeServices() {
   return response.data.data.map(mapService);
 }
 
-export async function getHomeDoctors() {
-  const response = await apiClient.get<DoctorDto[]>("/doctors");
+export function getDoctorBullets(doctor: HomeDoctorCard): string[] {
+  if (doctor.bullets && doctor.bullets.length > 0) {
+    return doctor.bullets;
+  }
 
-  return response.data
-    .filter((doctor) => doctor.isActive && doctor.user.status !== "INACTIVE")
-    .slice(0, 4)
-    .map(mapDoctor);
+  const items: string[] = [];
+
+  if (doctor.position) {
+    items.push(doctor.position);
+  } else if (doctor.specialization) {
+    items.push(`Bác sĩ điều trị ${doctor.specialization}`);
+  }
+
+  if (doctor.workplace) {
+    items.push(`Bác sĩ chuyên khoa tại ${doctor.workplace}`);
+  }
+
+  if (doctor.yearsExperience > 0) {
+    items.push(`${doctor.yearsExperience}+ năm kinh nghiệm lâm sàng Răng Hàm Mặt`);
+  }
+
+  if (doctor.educations && doctor.educations.length > 0) {
+    doctor.educations.forEach((edu) => {
+      items.push(`${edu.degree} – ${edu.school}`);
+    });
+  }
+
+  if (doctor.certificates && doctor.certificates.length > 0) {
+    doctor.certificates.forEach((cert) => {
+      items.push(`Chứng chỉ: ${cert.title}${cert.issuer ? ` (${cert.issuer})` : ""}`);
+    });
+  }
+
+  if (items.length < 3 && doctor.bio) {
+    items.push(doctor.bio);
+  }
+
+  if (items.length === 0) {
+    items.push(
+      "Bác sĩ điều trị Răng Hàm Mặt",
+      "Kinh nghiệm lâm sàng chuyên sâu",
+    );
+  }
+
+  return items;
+}
+
+export async function getHomeDoctors(): Promise<HomeDoctorCard[]> {
+  try {
+    const response = await apiClient.get<DoctorDto[]>("/doctors");
+    const active = response.data
+      .filter((doctor) => doctor.isActive && doctor.user.status !== "INACTIVE")
+      .map(mapDoctor);
+
+    return active.slice(0, 6).map((doc) => ({
+      ...doc,
+      bullets: getDoctorBullets(doc),
+    }));
+  } catch (error) {
+    console.error("Error fetching doctors from DB:", error);
+    return [];
+  }
+}
+
+export async function getDoctors(): Promise<HomeDoctorCard[]> {
+  try {
+    const response = await apiClient.get<DoctorDto[]>("/doctors");
+    const active = response.data
+      .filter((doctor) => doctor.isActive && doctor.user.status !== "INACTIVE")
+      .map(mapDoctor);
+
+    return active.map((doc) => ({
+      ...doc,
+      bullets: getDoctorBullets(doc),
+    }));
+  } catch (error) {
+    console.error("Error fetching doctors from DB:", error);
+    return [];
+  }
 }
 
 export async function getDoctorDetail(id: string) {

@@ -42,25 +42,16 @@ export function HomeServicesSection() {
 
   return (
     <section id="services" className="scroll-mt-24">
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[.18em] text-[#0058bc]">
-            Chăm sóc toàn diện
-          </p>
-          <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-[28px]">
-            Danh sách dịch vụ nha khoa
-          </h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-            Các dịch vụ điều trị nổi bật với chi phí rõ ràng và quy trình chăm
-            sóc chuyên nghiệp.
-          </p>
-        </div>
-        <Link
-          href="/service"
-          className="hidden shrink-0 text-xs font-bold text-[#0058bc] hover:underline sm:block"
-        >
-          Xem tất cả dịch vụ
-        </Link>
+      <div className="relative mx-auto max-w-3xl text-center mb-10">
+        <p className="text-[11px] font-bold uppercase tracking-[0.32em] text-[#0058bc]">
+          Chăm sóc toàn diện
+        </p>
+        <h2 className="mx-auto mt-3 text-3xl font-semibold tracking-[-0.04em] text-[#173761] sm:text-4xl">
+          Danh sách dịch vụ nha khoa
+        </h2>
+        <p className="mx-auto mt-3 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
+          Các dịch vụ điều trị nổi bật với chi phí rõ ràng và quy trình chăm sóc chuyên nghiệp.
+        </p>
       </div>
 
       {loading ? (
@@ -70,42 +61,53 @@ export function HomeServicesSection() {
           ))}
         </div>
       ) : services.length ? (
-        <div className="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-          {services.map((service) => (
-            <Link
-              key={service.id}
-              href={service.href}
-              className="group flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
-              aria-label={`Xem chi tiết ${service.title}`}
-            >
-              <ServiceImage service={service} />
-              <h3 className="mt-4 text-lg font-bold text-slate-900">
-                {service.title}
-              </h3>
-              <p className="mt-2 min-h-14 text-xs leading-5 text-slate-500">
-                {service.description}
-              </p>
-              <div className="mt-auto pt-5">
-                <div className="flex items-end justify-between gap-3">
-                  <div>
-                    <p className="text-[10px] font-bold uppercase text-slate-400">
-                      Chỉ từ
-                    </p>
-                    <p className="mt-1 text-2xl font-bold text-[#0058bc]">
-                      {service.price} <span className="text-sm">đ</span>
-                    </p>
+        <>
+          <div className="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+            {services.map((service) => (
+              <Link
+                key={service.id}
+                href={service.href}
+                className="group flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+                aria-label={`Xem chi tiết ${service.title}`}
+              >
+                <ServiceImage service={service} />
+                <h3 className="mt-4 text-lg font-bold text-slate-900">
+                  {service.title}
+                </h3>
+                <p className="mt-2 min-h-14 text-xs leading-5 text-slate-500">
+                  {service.description}
+                </p>
+                <div className="mt-auto pt-5">
+                  <div className="flex items-end justify-between gap-3">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase text-slate-400">
+                        Chỉ từ
+                      </p>
+                      <p className="mt-1 text-2xl font-bold text-[#0058bc]">
+                        {service.price} <span className="text-sm">đ</span>
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-bold text-[#0058bc]">
+                      {service.durationMinutes} phút
+                    </span>
                   </div>
-                  <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-bold text-[#0058bc]">
-                    {service.durationMinutes} phút
+                  <span className="mt-4 block rounded-lg border border-[#0058bc] py-2.5 text-center text-xs font-bold text-[#0058bc] transition group-hover:bg-[#0058bc] group-hover:text-white">
+                    Chi tiết
                   </span>
                 </div>
-                <span className="mt-4 block rounded-lg border border-[#0058bc] py-2.5 text-center text-xs font-bold text-[#0058bc] transition group-hover:bg-[#0058bc] group-hover:text-white">
-                  Chi tiết
-                </span>
-              </div>
+              </Link>
+            ))}
+          </div>
+
+          <div className="mt-8 flex justify-center">
+            <Link
+              href="/service"
+              className="inline-flex items-center gap-2 rounded-xl border border-[#0058bc] bg-white px-6 py-3 text-xs font-bold text-[#0058bc] shadow-sm transition hover:bg-[#0058bc] hover:text-white"
+            >
+              Xem tất cả dịch vụ
             </Link>
-          ))}
-        </div>
+          </div>
+        </>
       ) : (
         <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
           Chưa có dịch vụ đang hoạt động để hiển thị.
