@@ -8,9 +8,6 @@ import {
   CalendarCheck,
   Clock,
   CheckCircle,
-  FileText,
-  Pill,
-  CalendarDots,
   ArrowClockwise,
 } from "@phosphor-icons/react";
 import apiClient from "@/src/lib/api/client";
@@ -30,12 +27,18 @@ type TodayAppointment = {
   end_time: string;
   patient_name: string;
   service_name: string;
-  doctor_name: string;
   status: AppointmentStatus;
+  recordId: string | null;
 };
 
-type DashboardData = {
-  todayAppointments: TodayAppointment[];
+type RawAppointment = {
+  id: string;
+  scheduledAt: string;
+  endAt: string | null;
+  status: AppointmentStatus;
+  patient?: { user?: { fullName?: string } | null } | null;
+  service?: { name?: string } | null;
+  medicalRecords?: { id: string }[];
 };
 
 const statusConfig: Record<AppointmentStatus, { label: string; color: string }> = {
@@ -49,6 +52,38 @@ const statusConfig: Record<AppointmentStatus, { label: string; color: string }> 
 };
 
 const WAITING_STATUSES: AppointmentStatus[] = ["PENDING", "CONFIRMED", "CHECKED_IN"];
+
+function getUserInfo(): { doctorId: string | null; fullName: string | null } {
+  if (typeof document === "undefined") return { doctorId: null, fullName: null };
+  const raw = document.cookie
+    .split("; ")
+    .find((c) => c.startsWith("user_info="))
+    ?.split("=")
+    .slice(1)
+    .join("=");
+  if (!raw) return { doctorId: null, fullName: null };
+  try {
+    return JSON.parse(decodeURIComponent(raw));
+  } catch {
+    return { doctorId: null, fullName: null };
+  }
+}
+
+function formatTime(iso: string) {
+  return new Date(iso).toLocaleTimeString("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
+function todayDateStr() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
 
 function StatCardSkeleton() {
   return (
@@ -76,9 +111,11 @@ function AppointmentSkeleton() {
 }
 
 export default function DoctorDashboardPage() {
-  const [data, setData] = useState<DashboardData | null>(null);
+  const [appointments, setAppointments] = useState<TodayAppointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [doctorName, setDoctorName] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const currentDate = new Date().toLocaleDateString("vi-VN", {
     weekday: "long",
@@ -87,14 +124,33 @@ export default function DoctorDashboardPage() {
     year: "numeric",
   });
 
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
-
   const fetchDashboard = async () => {
+    const { doctorId, fullName } = getUserInfo();
+    setDoctorName(fullName);
+    if (!doctorId) {
+      setError("Không tìm thấy thông tin bác sĩ. Vui lòng đăng nhập lại.");
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
-      const res = await apiClient.get<DashboardData>("/reports/dashboard");
-      setData(res.data);
+      const date = todayDateStr();
+      const res = await apiClient.get<RawAppointment[]>(
+        `/appointments?doctorId=${doctorId}&from=${date}&to=${date}`,
+      );
+      setAppointments(
+        (res.data ?? []).map((a) => ({
+          id: a.id,
+          start_time: formatTime(a.scheduledAt),
+          end_time: a.endAt ? formatTime(a.endAt) : "—",
+          patient_name: a.patient?.user?.fullName ?? "—",
+          service_name: a.service?.name ?? "—",
+          status: a.status,
+          recordId: a.medicalRecords?.[0]?.id ?? null,
+        })),
+      );
     } catch {
       setError("Không thể tải dữ liệu. Vui lòng thử lại.");
     } finally {
@@ -130,7 +186,6 @@ export default function DoctorDashboardPage() {
     fetchDashboard();
   }, []);
 
-  const appointments = data?.todayAppointments ?? [];
   const totalCount = appointments.length;
   const waitingCount = appointments.filter((a) => WAITING_STATUSES.includes(a.status)).length;
   const completedCount = appointments.filter((a) => a.status === "COMPLETED").length;
@@ -162,45 +217,13 @@ export default function DoctorDashboardPage() {
     },
   ];
 
-  const actionItems = [
-    {
-      id: "c1",
-      type: "medical_record" as const,
-      title: "Hồ sơ chưa hoàn thiện",
-      desc: "Kiểm tra và cập nhật bệnh án sau mỗi ca khám.",
-      action: "Viết bệnh án",
-      link: "/doctor/medical-records",
-    },
-    {
-      id: "c2",
-      type: "prescription" as const,
-      title: "Đơn thuốc chưa kê",
-      desc: "Kê đơn thuốc cho bệnh nhân sau điều trị.",
-      action: "Kê đơn",
-      link: "/doctor/prescriptions/new",
-    },
-    {
-      id: "c3",
-      type: "treatment_plan" as const,
-      title: "Kế hoạch điều trị",
-      desc: "Cập nhật tiến độ kế hoạch điều trị đang thực hiện.",
-      action: "Cập nhật",
-      link: "/doctor/treatment-plans",
-    },
-  ];
-
-  const actionIconMap = {
-    medical_record: FileText,
-    prescription: Pill,
-    treatment_plan: CalendarDots,
-  };
+  const greeting = doctorName ? `Chào ${doctorName}` : "Chào bác sĩ";
 
   return (
     <>
-      <Header title="Chào BS. Trần Minh," description={currentDate} />
+      <Header title={greeting} description={currentDate} />
 
       <div className="space-y-6 p-6 md:p-8">
-        {/* Error */}
         {error && (
           <div className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             <span>{error}</span>
@@ -214,7 +237,6 @@ export default function DoctorDashboardPage() {
           </div>
         )}
 
-        {/* Stat Cards */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           {loading
             ? Array.from({ length: 3 }).map((_, i) => <StatCardSkeleton key={i} />)
@@ -240,116 +262,82 @@ export default function DoctorDashboardPage() {
               })}
         </div>
 
-        {/* Main Grid */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {/* Timeline lịch hẹn hôm nay */}
-          <div className="flex flex-col rounded-2xl border border-border bg-white shadow-sm lg:col-span-2">
-            <div className="flex items-center justify-between border-b border-border p-5">
-              <h3 className="text-base font-semibold text-brand-dark">Lịch làm việc hôm nay</h3>
-              <Link href="/doctor/schedule" className="text-sm font-medium text-brand hover:underline">
-                Xem lịch tuần →
-              </Link>
-            </div>
-
-            <div className="flex-1 p-5">
-              {loading ? (
-                <div className="relative ml-3 space-y-5 border-l-2 border-muted/50 pb-2 md:ml-4">
-                  {Array.from({ length: 4 }).map((_, i) => <AppointmentSkeleton key={i} />)}
-                </div>
-              ) : appointments.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <CalendarCheck size={40} className="mb-3 text-slate-300" weight="duotone" />
-                  <p className="font-medium text-slate-500">Hôm nay chưa có lịch hẹn nào.</p>
-                </div>
-              ) : (
-                <div className="relative ml-3 space-y-5 border-l-2 border-muted/50 pb-2 md:ml-4">
-                  {appointments.map((item) => {
-                    const cfg = statusConfig[item.status];
-                    return (
-                      <div key={item.id} className="group relative pl-6 sm:pl-8">
-                        <span className="absolute -left-1.25 top-1.5 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-brand ring-4 ring-white" />
-                        <div className="flex flex-col gap-3 rounded-xl border border-border/50 bg-slate-50/50 p-4 transition-all hover:border-brand/30 hover:bg-white hover:shadow-sm sm:flex-row sm:items-center sm:justify-between">
-                          <div className="flex flex-col gap-1.5">
-                            <span className="font-mono text-sm font-bold text-brand">
-                              {item.start_time} – {item.end_time}
-                            </span>
-                            <span className="text-base font-semibold text-brand-dark">
-                              {item.patient_name}
-                            </span>
-                            <span className="text-sm text-muted-foreground">{item.service_name}</span>
-                          </div>
-                          <div className="flex shrink-0 flex-col gap-3 sm:items-end">
-                            <span className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium", cfg.color)}>
-                              {cfg.label}
-                            </span>
-                            {item.status === "CHECKED_IN" && (
-                              <button
-                                onClick={() => handleStartAppointment(item.id)}
-                                disabled={actionLoading === item.id}
-                                className="inline-flex items-center justify-center rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-dark active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
-                              >
-                                {actionLoading === item.id ? "Đang xử lý..." : "Bắt đầu khám"}
-                              </button>
-                            )}
-                            {item.status === "IN_PROGRESS" && (
-                              <button
-                                onClick={() => handleCompleteAppointment(item.id)}
-                                disabled={actionLoading === item.id}
-                                className="inline-flex items-center justify-center rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-600 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
-                              >
-                                {actionLoading === item.id ? "Đang xử lý..." : "Kết thúc khám"}
-                              </button>
-                            )}
-                            {item.status === "COMPLETED" && (
-                              <Link href="/doctor/medical-records" className="inline-flex items-center justify-center rounded-lg border border-border bg-white px-4 py-2 text-sm font-medium text-brand-dark transition-colors hover:bg-muted active:scale-[0.98]">
-                                Cập nhật hồ sơ
-                              </Link>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+        <div className="flex flex-col rounded-2xl border border-border bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-border p-5">
+            <h3 className="text-base font-semibold text-brand-dark">Lịch làm việc hôm nay</h3>
+            <Link href="/doctor/schedule" className="text-sm font-medium text-brand hover:underline">
+              Xem lịch tuần →
+            </Link>
           </div>
 
-          {/* Hồ sơ cần xử lý */}
-          <div className="flex h-fit flex-col rounded-2xl border border-border bg-white shadow-sm">
-            <div className="border-b border-border p-5">
-              <h3 className="flex items-center gap-2 text-base font-semibold text-brand-dark">
-                Hồ sơ cần xử lý
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[10px] font-bold text-red-600">
-                  {actionItems.length}
-                </span>
-              </h3>
-            </div>
-            <div className="flex-1 p-2">
-              <div className="divide-y divide-border">
-                {actionItems.map((item) => {
-                  const Icon = actionIconMap[item.type];
+          <div className="flex-1 p-5">
+            {loading ? (
+              <div className="relative ml-3 space-y-5 border-l-2 border-muted/50 pb-2 md:ml-4">
+                {Array.from({ length: 4 }).map((_, i) => <AppointmentSkeleton key={i} />)}
+              </div>
+            ) : appointments.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <CalendarCheck size={40} className="mb-3 text-slate-300" weight="duotone" />
+                <p className="font-medium text-slate-500">Hôm nay chưa có lịch hẹn nào.</p>
+              </div>
+            ) : (
+              <div className="relative ml-3 space-y-5 border-l-2 border-muted/50 pb-2 md:ml-4">
+                {appointments.map((item) => {
+                  const cfg = statusConfig[item.status];
                   return (
-                    <div key={item.id} className="flex flex-col gap-2 rounded-xl p-4 transition-colors hover:bg-muted/30">
-                      <div className="flex items-start gap-2">
-                        <div className="mt-0.5 rounded-lg bg-brand/10 p-1.5 text-brand">
-                          <Icon size={16} weight="duotone" />
+                    <div key={item.id} className="group relative pl-6 sm:pl-8">
+                      <span className="absolute -left-1.25 top-1.5 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-brand ring-4 ring-white" />
+                      <div className="flex flex-col gap-3 rounded-xl border border-border/50 bg-slate-50/50 p-4 transition-all hover:border-brand/30 hover:bg-white hover:shadow-sm sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex flex-col gap-1.5">
+                          <span className="font-mono text-sm font-bold text-brand">
+                            {item.start_time} – {item.end_time}
+                          </span>
+                          <span className="text-base font-semibold text-brand-dark">
+                            {item.patient_name}
+                          </span>
+                          <span className="text-sm text-muted-foreground">{item.service_name}</span>
                         </div>
-                        <div>
-                          <h4 className="text-sm font-semibold text-brand-dark">{item.title}</h4>
-                          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{item.desc}</p>
+                        <div className="flex shrink-0 flex-col gap-3 sm:items-end">
+                          <span className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium", cfg.color)}>
+                            {cfg.label}
+                          </span>
+                          {item.status === "CHECKED_IN" && (
+                            <button
+                              onClick={() => handleStartAppointment(item.id)}
+                              disabled={actionLoading === item.id}
+                              className="inline-flex items-center justify-center rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-dark active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+                            >
+                              {actionLoading === item.id ? "Đang xử lý..." : "Bắt đầu khám"}
+                            </button>
+                          )}
+                          {item.status === "IN_PROGRESS" && (
+                            <button
+                              onClick={() => handleCompleteAppointment(item.id)}
+                              disabled={actionLoading === item.id}
+                              className="inline-flex items-center justify-center rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-600 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+                            >
+                              {actionLoading === item.id ? "Đang xử lý..." : "Kết thúc khám"}
+                            </button>
+                          )}
+                          {item.status === "COMPLETED" && (
+                            <Link
+                              href={
+                                item.recordId
+                                  ? `/doctor/medical-records?recordId=${item.recordId}`
+                                  : "/doctor/medical-records"
+                              }
+                              className="inline-flex items-center justify-center rounded-lg border border-border bg-white px-4 py-2 text-sm font-medium text-brand-dark transition-colors hover:bg-muted active:scale-[0.98]"
+                            >
+                              Cập nhật hồ sơ
+                            </Link>
+                          )}
                         </div>
-                      </div>
-                      <div className="mt-1 flex justify-end">
-                        <Link href={item.link} className="rounded-lg bg-brand/10 px-3 py-1.5 text-xs font-medium text-brand transition-colors hover:bg-brand hover:text-white">
-                          {item.action}
-                        </Link>
                       </div>
                     </div>
                   );
                 })}
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
