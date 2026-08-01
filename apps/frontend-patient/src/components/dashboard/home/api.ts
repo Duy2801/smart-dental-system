@@ -159,6 +159,34 @@ export type HomeClinicalCase = {
   serviceName: string;
 };
 
+export type ClinicConfigInfo = {
+  name: string;
+  phone: string;
+  email: string;
+  address: string;
+  logoUrl?: string;
+  businessHours?: {
+    id: number;
+    label: string;
+    isOpen: boolean;
+    start: string;
+    end: string;
+  }[];
+};
+
+export async function getLiveClinicConfigInfo(): Promise<ClinicConfigInfo> {
+  const response = await apiClient.get<ClinicConfigInfo>("/clinic-config");
+
+  if (!response.data) {
+    throw new Error("Clinic config response is empty");
+  }
+
+  return {
+    ...response.data,
+    businessHours: response.data.businessHours ?? [],
+  };
+}
+
 function formatVnd(value: string | number) {
   return new Intl.NumberFormat("vi-VN").format(Number(value || 0));
 }

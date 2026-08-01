@@ -6,7 +6,7 @@ import { UpdateClinicConfigDto } from './dto/update-clinic-config.dto';
 @ApiTags('Clinic Config')
 @Controller(['clinic-config', 'admin/clinic-config'])
 export class ClinicConfigController {
-  constructor(private readonly clinicConfigService: ClinicConfigService) {}
+  constructor(private readonly clinicConfigService: ClinicConfigService) { }
 
   @Get()
   findOne() {

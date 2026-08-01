@@ -7,7 +7,9 @@ import {
 import { CountUp } from "@/components/dashboard/common/CountUp";
 import {
   ClinicalCasesSection,
+  ClinicLocationSection,
   DoctorDirectory,
+  HomeKnowledgeSection,
   HomeHeroSlideshow,
   HomeServicesSection,
   Reveal,
@@ -125,86 +127,13 @@ export default function PatientHomePage() {
         </div>
       </section>
 
-      <div id="blog" className="grid gap-8 lg:grid-cols-12 lg:items-start">
-        <section className="space-y-5 lg:col-span-8">
-          <div className="flex items-end justify-between">
-            <h2 className="text-2xl font-bold text-slate-900">
-              Kiến thức Nha khoa
-            </h2>
-            <Link
-              href="/records"
-              className="text-xs font-bold text-[#0058bc] hover:underline"
-            >
-              Tất cả bài viết &rarr;
-            </Link>
-          </div>
-          <div className="grid gap-5 sm:grid-cols-2">
-            {[
-              {
-                tag: "Chỉnh nha",
-                title: "7 điều cần lưu ý khi bắt đầu niềng răng trong suốt",
-                icon: "braces",
-                desc: "Cập nhật các kiến thức phòng ngừa & điều trị nha khoa chính xác từ đội ngũ bác sĩ chuyên khoa.",
-              },
-              {
-                tag: "Sức khỏe tổng quát",
-                title: "Công nghệ AI thay đổi chẩn đoán nha khoa thế nào?",
-                icon: "sparkles",
-                desc: "Ứng dụng trí tuệ nhân tạo trong việc phát hiện sớm tổn thương và lập phác đồ điều trị tối ưu.",
-              },
-            ].map((article) => (
-              <article
-                key={article.title}
-                className="flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-              >
-                <div>
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-[11px] font-bold text-[#0058bc]">
-                    <DashboardIcon
-                      name={article.icon as DashboardIconName}
-                      className="h-3.5 w-3.5"
-                    />
-                    {article.tag}
-                  </span>
-                  <h3 className="mt-3.5 text-sm font-bold text-slate-900">
-                    {article.title}
-                  </h3>
-                  <p className="mt-2 text-xs leading-5 text-slate-500">
-                    {article.desc}
-                  </p>
-                </div>
-                <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-[11px] font-bold text-[#0058bc]">
-                  <span>Đọc bài viết</span>
-                  <span>&rarr;</span>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
+      <Reveal>
+        <HomeKnowledgeSection />
+      </Reveal>
 
-        <aside className="lg:col-span-4 lg:pt-9">
-          <div className="flex h-full flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
-            <div>
-              <h3 className="flex items-center gap-2 text-sm font-bold text-slate-900">
-                <DashboardIcon name="clock" className="h-4 w-4 text-[#0058bc]" />
-                Giờ làm việc phòng khám
-              </h3>
-              <div className="mt-4 space-y-3 text-xs text-slate-600">
-                <div className="flex justify-between border-b border-slate-100 pb-2.5">
-                  <span className="font-medium">Thứ 2 - Thứ 6:</span>
-                  <span className="font-bold text-slate-800">08:00 - 20:00</span>
-                </div>
-                <div className="flex justify-between border-b border-slate-100 pb-2.5">
-                  <span className="font-medium">Thứ 7 - Chủ nhật:</span>
-                  <span className="font-bold text-slate-800">08:00 - 17:30</span>
-                </div>
-              </div>
-            </div>
-            <div className="mt-4 rounded-xl bg-blue-50/70 p-3 text-[11px] font-semibold text-[#0058bc]">
-              * Hỗ trợ cấp cứu & tư vấn AI 24/7 trực tuyến.
-            </div>
-          </div>
-        </aside>
-      </div>
+      <Reveal>
+        <ClinicLocationSection />
+      </Reveal>
     </main>
   );
 }

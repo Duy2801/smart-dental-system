@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { DashboardIcon } from "@/components/dashboard/common/DashboardIcon";
+import { DashboardFooterClinicInfo } from "@/components/dashboard/common/DashboardFooterClinicInfo";
 import { DashboardNav } from "@/components/dashboard/common/DashboardNav";
 import { ScrollRevealProvider } from "@/components/dashboard/common/ScrollReveal";
 import { ChatbotWidget } from "@/components/dashboard/chatbot/ChatbotWidget";
@@ -50,16 +51,25 @@ function DashboardHeader() {
 
 function DashboardFooter() {
   return (
-    <footer className="mt-10 border-t border-slate-200 bg-white">
-      <div className="mx-auto flex w-full max-w-[1360px] flex-col gap-3 px-4 py-6 text-xs text-slate-500 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
-        <div>
-          <p className="font-bold text-slate-700">Smart Dental System</p>
-          <p className="mt-0.5">© 2026 Smart Dental System. Chăm sóc nụ cười bằng công nghệ AI.</p>
+    <footer className="mt-12 border-t border-slate-200 bg-white">
+      <div className="mx-auto w-full max-w-[1360px] px-4 py-8 text-xs text-slate-600 sm:px-6 lg:px-8">
+        <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-4 pb-6 border-b border-slate-100">
+          <div className="space-y-2">
+            <p className="font-extrabold text-[#0058bc] text-sm">Smart Dental System</p>
+            <p className="text-slate-500 text-[11px] leading-relaxed">
+              Hệ thống nha khoa kỹ thuật số chuẩn quốc tế, ứng dụng AI chẩn đoán và điều trị chuyên sâu.
+            </p>
+          </div>
+          <DashboardFooterClinicInfo />
         </div>
-        <div className="flex gap-5">
-          <Link href="/contact" className="hover:text-[#0863c5]">Hỗ trợ</Link>
-          <Link href="/privacy" className="hover:text-[#0863c5]">Bảo mật</Link>
-          <Link href="/terms" className="hover:text-[#0863c5]">Điều khoản</Link>
+
+        <div className="flex flex-col gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between text-[11px] text-slate-500">
+          <p>© 2026 Smart Dental System. Chăm sóc nụ cười bằng công nghệ AI.</p>
+          <div className="flex gap-5">
+            <Link href="/contact" className="hover:text-[#0863c5]">Hỗ trợ</Link>
+            <Link href="/privacy" className="hover:text-[#0863c5]">Bảo mật</Link>
+            <Link href="/terms" className="hover:text-[#0863c5]">Điều khoản</Link>
+          </div>
         </div>
       </div>
     </footer>
