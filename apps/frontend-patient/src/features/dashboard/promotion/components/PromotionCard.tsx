@@ -120,3 +120,43 @@ export function PromotionCard({
     </div>
   );
 }
+
+export function PromotionCardSkeleton() {
+  return (
+    <div className="flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-sm animate-pulse">
+      <div className="space-y-3">
+        {/* Square Image Container Skeleton */}
+        <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-slate-100" />
+
+        {/* Card Content Skeleton */}
+        <div className="space-y-2 px-0.5">
+          <div className="h-4 w-3/4 rounded-md bg-slate-100" />
+          <div className="space-y-1">
+            <div className="h-3 w-full rounded bg-slate-100" />
+            <div className="h-3 w-4/5 rounded bg-slate-100" />
+          </div>
+
+          {/* Usage Progress Bar Skeleton */}
+          <div className="pt-2 space-y-1">
+            <div className="flex justify-between">
+              <div className="h-2.5 w-16 rounded bg-slate-100" />
+              <div className="h-2.5 w-10 rounded bg-slate-100" />
+            </div>
+            <div className="h-1.5 w-full rounded-full bg-slate-100" />
+          </div>
+
+          {/* Expiry Date Skeleton */}
+          <div className="flex items-center justify-between border-t border-slate-100 pt-2.5">
+            <div className="h-3 w-24 rounded bg-slate-100" />
+            <div className="h-3 w-14 rounded bg-slate-100" />
+          </div>
+        </div>
+      </div>
+
+      {/* Button Skeleton */}
+      <div className="pt-3">
+        <div className="h-8 w-full rounded-lg bg-slate-100" />
+      </div>
+    </div>
+  );
+}

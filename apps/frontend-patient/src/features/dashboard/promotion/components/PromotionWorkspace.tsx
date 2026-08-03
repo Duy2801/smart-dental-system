@@ -6,7 +6,7 @@ import { AuthRequireModal } from "@/features/dashboard/common/AuthRequireModal";
 import { toast } from "@/features/dashboard/common/toast";
 import { useAppSelector } from "@/providers";
 import { usePromotions } from "../hooks/usePromotions";
-import { PromotionCard } from "./PromotionCard";
+import { PromotionCard, PromotionCardSkeleton } from "./PromotionCard";
 import { PromotionDetailModal } from "./PromotionDetailModal";
 import type { PromotionDto } from "../types";
 
@@ -141,11 +141,8 @@ export function PromotionWorkspace() {
       {/* Grid of Promotions (Compact 4-column layout) */}
       {isLoading ? (
         <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div
-              key={i}
-              className="h-64 animate-pulse rounded-2xl border border-slate-200 bg-slate-100"
-            />
+          {Array.from({ length: 8 }).map((_, i) => (
+            <PromotionCardSkeleton key={i} />
           ))}
         </div>
       ) : filteredPromotions.length > 0 ? (

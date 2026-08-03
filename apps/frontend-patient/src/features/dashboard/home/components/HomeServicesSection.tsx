@@ -6,16 +6,33 @@ import { T } from "../../common/typography";
 
 function ServiceSkeleton() {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {Array.from({ length: 8 }).map((_, index) => (
-        <div
-          key={index}
-          className="min-h-[184px] animate-pulse rounded-[22px] border-4 border-slate-200 bg-white p-4 sm:min-h-[210px]"
-        >
-          <div className="mx-auto h-24 w-24 rounded-2xl bg-slate-100" />
-          <div className="mt-8 h-9 rounded-xl bg-slate-100" />
+    <div className="space-y-9">
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-8">
+        {Array.from({ length: 8 }).map((_, index) => (
+          <div
+            key={index}
+            className="flex min-h-[150px] animate-pulse flex-col items-center justify-center rounded-2xl border border-slate-100 bg-slate-50 p-4 text-center"
+          >
+            <div className="h-20 w-20 rounded-full bg-slate-200/80" />
+            <div className="mt-3 h-4 w-3/4 rounded-md bg-slate-200/80" />
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm sm:p-7 space-y-4">
+        <div className="mx-auto space-y-2 text-center max-w-md">
+          <div className="mx-auto h-3 w-28 animate-pulse rounded-full bg-slate-200" />
+          <div className="mx-auto h-7 w-64 animate-pulse rounded-xl bg-slate-200" />
         </div>
-      ))}
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4 pt-2">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div
+              key={index}
+              className="h-72 animate-pulse rounded-2xl border border-slate-100 bg-slate-100"
+            />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
