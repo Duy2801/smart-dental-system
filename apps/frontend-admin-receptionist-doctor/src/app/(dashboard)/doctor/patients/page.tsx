@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Header } from "@/src/components/layout/header";
 import {
@@ -11,6 +11,10 @@ import {
   Warning,
 } from "@phosphor-icons/react";
 import apiClient from "@/src/lib/api/client";
+import {
+  genderLabel,
+  getDoctorIdFromCookie,
+} from "@/src/lib/doctor/session";
 
 type Patient = {
   id: string;
@@ -27,29 +31,13 @@ type Patient = {
   medicalHistory: string | null;
 };
 
-function getUserInfo(): { doctorId: string | null } {
-  if (typeof document === "undefined") return { doctorId: null };
-  const raw = document.cookie
-    .split("; ")
-    .find((c) => c.startsWith("user_info="))
-    ?.split("=")
-    .slice(1)
-    .join("=");
-  if (!raw) return { doctorId: null };
-  try {
-    return JSON.parse(decodeURIComponent(raw));
-  } catch {
-    return { doctorId: null };
-  }
-}
-
 export default function DoctorPatientsPage() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
 
-  const doctorId = getUserInfo().doctorId;
+  const doctorId = getDoctorIdFromCookie();
 
   useEffect(() => {
     if (!doctorId) {
@@ -59,17 +47,22 @@ export default function DoctorPatientsPage() {
     }
     apiClient
       .get<Patient[]>(`/patients?doctorId=${doctorId}`)
-      .then((res) => setPatients(res.data))
+      .then((res) => setPatients(Array.isArray(res.data) ? res.data : []))
       .catch(() => setError("Không thể tải danh sách bệnh nhân."))
       .finally(() => setLoading(false));
   }, [doctorId]);
 
-  const filtered = patients.filter(
-    (p) =>
-      p.fullName.toLowerCase().includes(search.toLowerCase()) ||
-      p.patientCode.toLowerCase().includes(search.toLowerCase()) ||
-      (p.phone ?? "").includes(search),
-  );
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return patients;
+    return patients.filter(
+      (p) =>
+        p.fullName.toLowerCase().includes(q) ||
+        p.patientCode.toLowerCase().includes(q) ||
+        (p.phone ?? "").includes(q) ||
+        (p.email ?? "").toLowerCase().includes(q),
+    );
+  }, [patients, search]);
 
   return (
     <>
@@ -79,7 +72,6 @@ export default function DoctorPatientsPage() {
       />
 
       <div className="p-6 md:p-8">
-        {/* Search */}
         <div className="mb-6 flex items-center gap-4">
           <div className="relative w-full max-w-sm">
             <MagnifyingGlass
@@ -87,8 +79,8 @@ export default function DoctorPatientsPage() {
               className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
             />
             <input
-              type="text"
-              placeholder="Tìm theo tên, mã BN, SĐT..."
+              type="search"
+              placeholder="Tìm theo tên, mã BN, SĐT, email..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full rounded-xl border border-border py-2 pl-9 pr-3 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand"
@@ -101,7 +93,6 @@ export default function DoctorPatientsPage() {
           )}
         </div>
 
-        {/* Error */}
         {error && (
           <div className="flex items-center gap-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-inset ring-red-200">
             <Warning size={18} className="shrink-0" />
@@ -109,7 +100,6 @@ export default function DoctorPatientsPage() {
           </div>
         )}
 
-        {/* Table */}
         {!error && (
           <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
             <div className="overflow-x-auto">
@@ -119,6 +109,7 @@ export default function DoctorPatientsPage() {
                     <th className="px-5 py-3.5">Mã BN</th>
                     <th className="px-5 py-3.5">Họ tên</th>
                     <th className="px-5 py-3.5">Giới / Tuổi</th>
+                    <th className="px-5 py-3.5">Liên hệ</th>
                     <th className="px-5 py-3.5">Lần khám gần nhất</th>
                     <th className="px-5 py-3.5">Dịch vụ gần nhất</th>
                     <th className="px-5 py-3.5 text-center">Số lần khám</th>
@@ -128,7 +119,7 @@ export default function DoctorPatientsPage() {
                 <tbody className="divide-y divide-border/50">
                   {loading ? (
                     <tr>
-                      <td colSpan={7} className="py-16 text-center">
+                      <td colSpan={8} className="py-16 text-center">
                         <SpinnerGap
                           size={28}
                           className="mx-auto animate-spin text-brand"
@@ -138,7 +129,7 @@ export default function DoctorPatientsPage() {
                   ) : filtered.length === 0 ? (
                     <tr>
                       <td
-                        colSpan={7}
+                        colSpan={8}
                         className="py-16 text-center text-muted-foreground"
                       >
                         <div className="flex flex-col items-center gap-3">
@@ -147,7 +138,11 @@ export default function DoctorPatientsPage() {
                             className="text-slate-300"
                             weight="duotone"
                           />
-                          <p className="text-sm">Không tìm thấy bệnh nhân nào</p>
+                          <p className="text-sm">
+                            {search.trim()
+                              ? "Không tìm thấy bệnh nhân phù hợp"
+                              : "Chưa có bệnh nhân nào"}
+                          </p>
                         </div>
                       </td>
                     </tr>
@@ -166,15 +161,21 @@ export default function DoctorPatientsPage() {
                           <p className="font-semibold text-slate-900">
                             {pt.fullName}
                           </p>
+                        </td>
+                        <td className="whitespace-nowrap px-5 py-4 text-muted-foreground">
+                          {genderLabel(pt.gender)}
+                          {pt.age != null && pt.age > 0 ? `, ${pt.age}T` : ""}
+                        </td>
+                        <td className="px-5 py-4">
+                          <p className="text-slate-700">{pt.phone ?? "—"}</p>
                           <p className="text-xs text-muted-foreground">
-                            {pt.phone ?? "—"}
+                            {pt.email ?? "—"}
                           </p>
                         </td>
                         <td className="px-5 py-4 text-muted-foreground">
-                          {pt.gender ?? "—"}{pt.age ? `, ${pt.age}T` : ""}
-                        </td>
-                        <td className="px-5 py-4 text-muted-foreground">
-                          {new Date(pt.lastVisitDate).toLocaleDateString("vi-VN")}
+                          {new Date(pt.lastVisitDate).toLocaleDateString(
+                            "vi-VN",
+                          )}
                         </td>
                         <td className="px-5 py-4 text-slate-700">
                           {pt.lastService}
@@ -184,13 +185,13 @@ export default function DoctorPatientsPage() {
                             {pt.totalVisits}
                           </span>
                         </td>
-                        <td className="px-5 py-4 text-right">
+                        <td className="whitespace-nowrap px-5 py-4 text-right">
                           <Link
                             href={`/doctor/patients/${pt.id}`}
-                            className="inline-flex items-center gap-1 rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-medium text-brand-dark transition-colors hover:border-brand/40 hover:bg-brand/5 hover:text-brand"
+                            className="inline-flex items-center gap-1 whitespace-nowrap rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-medium text-brand-dark transition-colors hover:border-brand/40 hover:bg-brand/5 hover:text-brand"
                           >
                             Xem hồ sơ
-                            <ArrowRight size={12} />
+                            <ArrowRight size={12} className="shrink-0" />
                           </Link>
                         </td>
                       </tr>

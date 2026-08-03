@@ -45,6 +45,7 @@ type PlanDetail = {
 
 type StepForm = {
   key: number;
+  id?: string; // ID bước hiện có — giữ khi upsert
   title: string;
   description: string;
   targetTooth: string;
@@ -92,6 +93,7 @@ export default function EditTreatmentPlanPage() {
         setSteps(
           p.steps.map((s, i) => ({
             key: i + 1,
+            id: s.id,
             title: s.title,
             description: s.description ?? "",
             targetTooth: s.targetTooth ?? "",
@@ -139,8 +141,19 @@ export default function EditTreatmentPlanPage() {
 
   const handleSubmit = async () => {
     if (!title.trim()) { setSaveError("Vui lòng nhập tên kế hoạch."); return; }
+    if (startDate && expectedEndDate && startDate > expectedEndDate) {
+      setSaveError("Ngày kết thúc dự kiến phải sau ngày bắt đầu.");
+      return;
+    }
     const validSteps = steps.filter((s) => s.title.trim());
     if (validSteps.length === 0) { setSaveError("Vui lòng thêm ít nhất một bước điều trị."); return; }
+    const badCost = validSteps.find(
+      (s) => s.estimatedCost && Number(s.estimatedCost) < 0,
+    );
+    if (badCost) {
+      setSaveError("Chi phí ước tính không được âm.");
+      return;
+    }
     setSubmitting(true);
     setSaveError(null);
     try {
@@ -150,6 +163,7 @@ export default function EditTreatmentPlanPage() {
         startDate: startDate || undefined,
         expectedEndDate: expectedEndDate || undefined,
         steps: validSteps.map((s) => ({
+          ...(s.id ? { id: s.id } : {}),
           title: s.title.trim(),
           description: s.description.trim() || undefined,
           targetTooth: s.targetTooth.trim() || undefined,
@@ -297,7 +311,7 @@ export default function EditTreatmentPlanPage() {
               <div>
                 <h2 className="text-base font-semibold text-brand-dark">2. Các bước điều trị</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Lưu thay đổi sẽ tạo lại tất cả các bước (trạng thái bước sẽ được đặt về PLANNED).
+                  Bước hiện có được giữ nguyên trạng thái/thanh toán; chỉ cập nhật nội dung và thứ tự.
                 </p>
               </div>
               <span className="rounded-full bg-brand/10 px-2.5 py-0.5 text-xs font-bold text-brand">
@@ -401,6 +415,7 @@ export default function EditTreatmentPlanPage() {
                           <label className="text-xs font-semibold text-slate-900">Chi phí ước tính (VNĐ)</label>
                           <input
                             type="number"
+                            min={0}
                             value={step.estimatedCost}
                             onChange={(e) => updateStep(step.key, "estimatedCost", e.target.value)}
                             placeholder="5000000"

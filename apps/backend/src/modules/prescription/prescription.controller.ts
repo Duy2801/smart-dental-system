@@ -1,8 +1,22 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { CurrentUser } from 'src/common/decorators/curent-user.decorator';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
+import type { AuthenticatedUser } from 'src/common/interfaces/authenticated-user.interface';
+import { CreatePrescriptionDto } from './dto/create-prescription.dto';
+import { UpdatePrescriptionDto } from './dto/update-prescription.dto';
 import { PrescriptionService } from './prescription.service';
 
 @ApiTags('Prescription')
@@ -14,63 +28,54 @@ export class PrescriptionController {
   @Get()
   @Roles('DOCTOR', 'ADMIN')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  findByDoctor(@Query('doctorId') doctorId: string) {
-    return this.service.findByDoctor(doctorId);
+  async findByDoctor(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('doctorId') doctorId?: string,
+  ) {
+    const resolved = await this.service.resolveListDoctorId(user, doctorId);
+    return this.service.findByDoctor(resolved);
   }
 
   @Get(':id')
   @Roles('DOCTOR', 'ADMIN')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  findOne(@Param('id') id: string) {
-    return this.service.findOne(id);
+  findOne(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ) {
+    return this.service.findOne(id, user);
   }
 
   @Post()
   @Roles('DOCTOR', 'ADMIN')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  create(
-    @Query('doctorId') doctorId: string,
-    @Body()
-    dto: {
-      patientId: string;
-      medicalRecordId: string;
-      notes?: string;
-      items: Array<{
-        medicineName: string;
-        dosage: string;
-        frequency?: string;
-        duration?: string;
-        instruction?: string;
-      }>;
-    },
+  async create(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('doctorId') doctorId: string | undefined,
+    @Body() dto: CreatePrescriptionDto,
   ) {
-    return this.service.create(doctorId, dto);
+    const resolved = await this.service.resolveListDoctorId(user, doctorId);
+    return this.service.create(resolved, dto, user);
   }
 
   @Patch(':id')
   @Roles('DOCTOR', 'ADMIN')
   @UseGuards(JwtAuthGuard, RolesGuard)
   update(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
-    @Body()
-    dto: {
-      notes?: string;
-      items?: Array<{
-        medicineName: string;
-        dosage: string;
-        frequency?: string;
-        duration?: string;
-        instruction?: string;
-      }>;
-    },
+    @Body() dto: UpdatePrescriptionDto,
   ) {
-    return this.service.update(id, dto);
+    return this.service.update(id, dto, user);
   }
 
   @Delete(':id')
   @Roles('DOCTOR', 'ADMIN')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  remove(@Param('id') id: string) {
-    return this.service.remove(id);
+  remove(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ) {
+    return this.service.remove(id, user);
   }
 }

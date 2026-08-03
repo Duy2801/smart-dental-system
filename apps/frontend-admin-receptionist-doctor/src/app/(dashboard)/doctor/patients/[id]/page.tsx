@@ -15,14 +15,28 @@ import {
   ArrowUpRight,
   SpinnerGap,
   User,
+  Plus,
 } from "@phosphor-icons/react";
 import apiClient from "@/src/lib/api/client";
+import {
+  genderLabel,
+  getDoctorIdFromCookie,
+} from "@/src/lib/doctor/session";
+import axios from "axios";
 
 type AppointmentStatus =
-  | "PENDING" | "CONFIRMED" | "CHECKED_IN"
-  | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
+  | "PENDING"
+  | "CONFIRMED"
+  | "CHECKED_IN"
+  | "IN_PROGRESS"
+  | "COMPLETED"
+  | "CANCELLED"
+  | "NO_SHOW";
 
-const statusConfig: Record<AppointmentStatus, { label: string; color: string }> = {
+const statusConfig: Record<
+  AppointmentStatus,
+  { label: string; color: string }
+> = {
   PENDING: { label: "Chờ xác nhận", color: "bg-amber-100 text-amber-700" },
   CONFIRMED: { label: "Đã xác nhận", color: "bg-blue-100 text-blue-700" },
   CHECKED_IN: { label: "Đã check-in", color: "bg-violet-100 text-violet-700" },
@@ -65,18 +79,15 @@ type PatientDetail = {
   }[];
 };
 
-function getUserInfo(): { doctorId: string | null } {
-  if (typeof document === "undefined") return { doctorId: null };
-  const raw = document.cookie
-    .split("; ")
-    .find((c) => c.startsWith("user_info="))
-    ?.split("=").slice(1).join("=");
-  if (!raw) return { doctorId: null };
-  try { return JSON.parse(decodeURIComponent(raw)); }
-  catch { return { doctorId: null }; }
-}
-
-function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function InfoRow({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
   return (
     <div className="flex items-start gap-3 text-sm">
       <span className="mt-0.5 shrink-0 text-brand">{icon}</span>
@@ -88,22 +99,51 @@ function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string;
   );
 }
 
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value,
+  );
+}
+
 export default function DoctorPatientDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [patient, setPatient] = useState<PatientDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const doctorId = getUserInfo().doctorId;
+  const doctorId = getDoctorIdFromCookie();
 
   useEffect(() => {
-    const url = doctorId
-      ? `/patients/${id}?doctorId=${doctorId}`
-      : `/patients/${id}`;
+    if (!id || !isUuid(id)) {
+      setError("Mã bệnh nhân không hợp lệ.");
+      setLoading(false);
+      return;
+    }
+    if (!doctorId) {
+      setError("Không tìm thấy thông tin bác sĩ. Vui lòng đăng nhập lại.");
+      setLoading(false);
+      return;
+    }
+
     apiClient
-      .get<PatientDetail>(url)
-      .then((res) => setPatient(res.data))
-      .catch(() => setError("Không thể tải thông tin bệnh nhân."))
+      .get<PatientDetail>(`/patients/${id}?doctorId=${doctorId}`)
+      .then((res) => {
+        if (!res.data) {
+          setError("Không tìm thấy bệnh nhân.");
+          return;
+        }
+        setPatient(res.data);
+      })
+      .catch((err) => {
+        const status = axios.isAxiosError(err) ? err.response?.status : null;
+        if (status === 403) {
+          setError("Bạn không có quyền xem bệnh nhân này.");
+        } else if (status === 404) {
+          setError("Không tìm thấy bệnh nhân.");
+        } else {
+          setError("Không thể tải thông tin bệnh nhân.");
+        }
+      })
       .finally(() => setLoading(false));
   }, [id, doctorId]);
 
@@ -118,7 +158,10 @@ export default function DoctorPatientDetailPage() {
   if (error || !patient) {
     return (
       <div className="p-8">
-        <Link href="/doctor/patients" className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-brand-dark">
+        <Link
+          href="/doctor/patients"
+          className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-brand-dark"
+        >
           <ArrowLeft size={16} /> Quay lại
         </Link>
         <div className="flex items-center gap-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-inset ring-red-200">
@@ -129,11 +172,16 @@ export default function DoctorPatientDetailPage() {
     );
   }
 
-  const initials = patient.fullName.split(" ").slice(-2).map((n) => n[0]).join("");
+  const initials = patient.fullName
+    .split(" ")
+    .slice(-2)
+    .map((n) => n[0])
+    .join("");
   const plan = patient.activeTreatmentPlan;
-  const progressPercent = plan && plan.totalSteps > 0
-    ? Math.round((plan.completedSteps / plan.totalSteps) * 100)
-    : 0;
+  const progressPercent =
+    plan && plan.totalSteps > 0
+      ? Math.round((plan.completedSteps / plan.totalSteps) * 100)
+      : 0;
 
   return (
     <div className="p-6 md:p-8">
@@ -146,16 +194,16 @@ export default function DoctorPatientDetailPage() {
       </Link>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        {/* Left: Patient info */}
         <div className="flex flex-col gap-4 xl:col-span-1">
-          {/* Info card */}
           <div className="rounded-2xl border border-border bg-white p-6 shadow-sm">
             <div className="mb-5 flex items-center gap-4">
               <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-brand/10 text-xl font-bold text-brand">
                 {initials || <User size={24} />}
               </div>
               <div>
-                <h1 className="text-lg font-bold text-slate-900">{patient.fullName}</h1>
+                <h1 className="text-lg font-bold text-slate-900">
+                  {patient.fullName}
+                </h1>
                 <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
                   {patient.patientCode}
                 </span>
@@ -164,55 +212,91 @@ export default function DoctorPatientDetailPage() {
 
             <div className="flex flex-col gap-3.5">
               {patient.phone && (
-                <InfoRow icon={<Phone size={15} />} label="Số điện thoại" value={patient.phone} />
+                <InfoRow
+                  icon={<Phone size={15} />}
+                  label="Số điện thoại"
+                  value={patient.phone}
+                />
               )}
               {patient.email && (
-                <InfoRow icon={<EnvelopeSimple size={15} />} label="Email" value={patient.email} />
+                <InfoRow
+                  icon={<EnvelopeSimple size={15} />}
+                  label="Email"
+                  value={patient.email}
+                />
               )}
-              {patient.dateOfBirth && (
+              {(patient.dateOfBirth || patient.gender || patient.age != null) && (
                 <InfoRow
                   icon={<CalendarBlank size={15} />}
-                  label="Ngày sinh"
-                  value={`${new Date(patient.dateOfBirth).toLocaleDateString("vi-VN")}${patient.gender ? ` • ${patient.gender}` : ""}${patient.age ? ` (${patient.age} tuổi)` : ""}`}
+                  label="Ngày sinh / Giới tính"
+                  value={[
+                    patient.dateOfBirth
+                      ? new Date(patient.dateOfBirth).toLocaleDateString(
+                          "vi-VN",
+                        )
+                      : null,
+                    genderLabel(patient.gender),
+                    patient.age != null ? `${patient.age} tuổi` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" • ")}
                 />
               )}
               {patient.address && (
-                <InfoRow icon={<MapPin size={15} />} label="Địa chỉ" value={patient.address} />
+                <InfoRow
+                  icon={<MapPin size={15} />}
+                  label="Địa chỉ"
+                  value={patient.address}
+                />
               )}
             </div>
 
             {patient.medicalHistory && (
               <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4">
                 <div className="mb-2 flex items-center gap-2">
-                  <Warning size={15} className="text-amber-600" weight="fill" />
+                  <Warning
+                    size={15}
+                    className="text-amber-600"
+                    weight="fill"
+                  />
                   <span className="text-xs font-bold uppercase tracking-wider text-amber-700">
                     Tiền sử bệnh
                   </span>
                 </div>
-                <p className="text-sm text-amber-900">{patient.medicalHistory}</p>
+                <p className="text-sm text-amber-900">
+                  {patient.medicalHistory}
+                </p>
               </div>
             )}
 
-            {(patient.emergencyContactName || patient.emergencyContactPhone) && (
+            {(patient.emergencyContactName ||
+              patient.emergencyContactPhone) && (
               <div className="mt-5 border-t border-border pt-4">
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   Liên hệ khẩn cấp
                 </p>
                 {patient.emergencyContactName && (
-                  <p className="text-sm font-medium text-slate-900">{patient.emergencyContactName}</p>
+                  <p className="text-sm font-medium text-slate-900">
+                    {patient.emergencyContactName}
+                  </p>
                 )}
                 {patient.emergencyContactPhone && (
-                  <p className="text-sm text-muted-foreground">{patient.emergencyContactPhone}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {patient.emergencyContactPhone}
+                  </p>
                 )}
               </div>
             )}
           </div>
 
-          {/* Active treatment plan */}
-          {plan && (
+          {plan ? (
             <div className="rounded-2xl border border-border bg-white p-5 shadow-sm">
               <div className="mb-4 flex items-center gap-2">
-                <Stethoscope size={16} className="text-brand" weight="duotone" />
+                <Stethoscope
+                  size={16}
+                  className="text-brand"
+                  weight="duotone"
+                />
                 <h3 className="text-sm font-semibold text-brand-dark">
                   Kế hoạch điều trị đang active
                 </h3>
@@ -220,9 +304,15 @@ export default function DoctorPatientDetailPage() {
               <p className="mb-1 font-semibold text-slate-900">{plan.title}</p>
               {(plan.startDate || plan.expectedEndDate) && (
                 <p className="mb-4 text-xs text-muted-foreground">
-                  {plan.startDate ? new Date(plan.startDate).toLocaleDateString("vi-VN") : "?"}
+                  {plan.startDate
+                    ? new Date(plan.startDate).toLocaleDateString("vi-VN")
+                    : "?"}
                   {" → "}
-                  {plan.expectedEndDate ? new Date(plan.expectedEndDate).toLocaleDateString("vi-VN") : "?"}
+                  {plan.expectedEndDate
+                    ? new Date(plan.expectedEndDate).toLocaleDateString(
+                        "vi-VN",
+                      )
+                    : "?"}
                 </p>
               )}
               {plan.totalSteps > 0 && (
@@ -230,7 +320,8 @@ export default function DoctorPatientDetailPage() {
                   <div className="mb-1.5 flex justify-between text-xs">
                     <span className="text-muted-foreground">Tiến độ</span>
                     <span className="font-semibold text-brand-dark">
-                      {plan.completedSteps}/{plan.totalSteps} bước ({progressPercent}%)
+                      {plan.completedSteps}/{plan.totalSteps} bước (
+                      {progressPercent}%)
                     </span>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-slate-100">
@@ -241,23 +332,56 @@ export default function DoctorPatientDetailPage() {
                   </div>
                 </div>
               )}
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <Link
+                  href={`/doctor/treatment-plans/${plan.id}`}
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-brand hover:underline"
+                >
+                  Xem kế hoạch chi tiết <ArrowUpRight size={12} />
+                </Link>
+                <Link
+                  href={`/doctor/treatment-plans/new?patientId=${patient.id}`}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-brand"
+                >
+                  <Plus size={12} /> Lập kế hoạch mới
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-border bg-white p-5 shadow-sm">
+              <div className="mb-3 flex items-center gap-2">
+                <Stethoscope
+                  size={16}
+                  className="text-muted-foreground"
+                  weight="duotone"
+                />
+                <h3 className="text-sm font-semibold text-brand-dark">
+                  Kế hoạch điều trị
+                </h3>
+              </div>
+              <p className="mb-4 text-sm text-muted-foreground">
+                Bệnh nhân chưa có kế hoạch đang active.
+              </p>
               <Link
-                href={`/doctor/treatment-plans/${plan.id}`}
-                className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-brand hover:underline"
+                href={`/doctor/treatment-plans/new?patientId=${patient.id}`}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-brand px-3 py-2 text-xs font-semibold text-white hover:bg-brand-dark"
               >
-                Xem kế hoạch chi tiết <ArrowUpRight size={12} />
+                <Plus size={12} weight="bold" /> Lập kế hoạch điều trị
               </Link>
             </div>
           )}
         </div>
 
-        {/* Right: Appointment history */}
-          <div className="xl:col-span-2">
+        <div className="xl:col-span-2">
           <div className="rounded-2xl border border-border bg-white shadow-sm">
             <div className="flex items-center justify-between border-b border-border p-5">
-              <h2 className="text-base font-semibold text-brand-dark">Lịch sử khám bệnh</h2>
+              <h2 className="text-base font-semibold text-brand-dark">
+                Lịch sử khám bệnh
+              </h2>
               <div className="flex items-center gap-3">
-                <span className="text-xs text-muted-foreground">{patient.appointments.length} lượt</span>
+                <span className="text-xs text-muted-foreground">
+                  {patient.appointments.length} lượt
+                </span>
                 <Link
                   href={`/doctor/patients/${patient.id}/records`}
                   className="inline-flex items-center gap-1 rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-medium text-brand-dark transition-colors hover:border-brand/40 hover:text-brand"
@@ -269,7 +393,11 @@ export default function DoctorPatientDetailPage() {
 
             {patient.appointments.length === 0 ? (
               <div className="flex flex-col items-center gap-2 py-16 text-center text-muted-foreground">
-                <CalendarBlank size={36} className="text-slate-300" weight="duotone" />
+                <CalendarBlank
+                  size={36}
+                  className="text-slate-300"
+                  weight="duotone"
+                />
                 <p className="text-sm">Chưa có lịch sử khám nào</p>
               </div>
             ) : (
@@ -283,17 +411,34 @@ export default function DoctorPatientDetailPage() {
                     >
                       <div className="flex flex-col gap-1.5">
                         <div className="flex items-center gap-2">
-                          <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium", cfg.color)}>
+                          <span
+                            className={cn(
+                              "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+                              cfg.color,
+                            )}
+                          >
                             {cfg.label}
                           </span>
                         </div>
-                        <p className="font-medium text-slate-900">{apt.serviceName}</p>
+                        <p className="font-medium text-slate-900">
+                          {apt.serviceName}
+                        </p>
                         <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                          <span>{new Date(apt.scheduledAt).toLocaleString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+                          <span>
+                            {new Date(apt.scheduledAt).toLocaleString("vi-VN", {
+                              day: "2-digit",
+                              month: "2-digit",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
                           <span>•</span>
                           <span>BS. {apt.doctorName}</span>
                           <span>•</span>
-                          <span className="font-mono">{apt.appointmentCode}</span>
+                          <span className="font-mono">
+                            {apt.appointmentCode}
+                          </span>
                         </div>
                       </div>
 

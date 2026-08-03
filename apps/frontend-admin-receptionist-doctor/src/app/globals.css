@@ -41,3 +41,22 @@ body {
 .animate-scan {
   animation: scan 2s ease-in-out infinite;
 }
+
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  #print-area,
+  #print-area * {
+    visibility: visible !important;
+  }
+  #print-area {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 1.5rem !important;
+    background: white !important;
+  }
+}

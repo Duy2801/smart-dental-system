@@ -49,6 +49,7 @@ const appointmentInclude = {
   patient: { include: { user: true } },
   doctor: { include: { user: true } },
   service: true,
+  medicalRecords: { select: { id: true }, take: 1 },
 };
 
 type BookingOptionQuery = {
@@ -325,9 +326,20 @@ export class AppointmentService {
   }
 
   async findByDoctorAndWeek(doctorId: string, from: string, to: string) {
-    const fromDate = new Date(from);
-    const toDate = new Date(to);
-    toDate.setHours(23, 59, 59, 999);
+    const parseBound = (raw: string, endOfDay: boolean) => {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+        const [y, m, d] = raw.split('-').map(Number);
+        return endOfDay
+          ? new Date(y, m - 1, d, 23, 59, 59, 999)
+          : new Date(y, m - 1, d, 0, 0, 0, 0);
+      }
+      const value = new Date(raw);
+      if (endOfDay) value.setHours(23, 59, 59, 999);
+      return value;
+    };
+
+    const fromDate = parseBound(from, false);
+    const toDate = parseBound(to, true);
 
     return this.prisma.appointment.findMany({
       where: {
@@ -620,9 +632,36 @@ export class AppointmentService {
     // Sau khám: tạo HĐ thu tiền phù hợp (ca ngắn / phần còn lại sau cọc)
     if (appointment.patientId) {
       await this.ensureInvoiceAfterComplete(appointment);
+      await this.ensureMedicalRecord(appointment);
     }
 
     return updated;
+  }
+
+  /** Tạo hồ sơ bệnh án trống nếu ca khám chưa có — để bác sĩ cập nhật sau khi khám. */
+  private async ensureMedicalRecord(appointment: {
+    id: string;
+    patientId: string | null;
+    doctorId: string;
+    notes?: string | null;
+    treatmentPlanStepId?: string | null;
+  }) {
+    if (!appointment.patientId) return null;
+
+    const existing = await this.prisma.medicalRecord.findFirst({
+      where: { appointmentId: appointment.id },
+    });
+    if (existing) return existing;
+
+    return this.prisma.medicalRecord.create({
+      data: {
+        patientId: appointment.patientId,
+        appointmentId: appointment.id,
+        doctorId: appointment.doctorId,
+        treatmentPlanStepId: appointment.treatmentPlanStepId ?? null,
+        chiefComplaint: appointment.notes?.trim() || null,
+      },
+    });
   }
 
   /** Ca ngắn → SERVICE. Có cọc → FINAL. Lịch gắn bước KH → STEP. */

@@ -5,10 +5,11 @@ import { cn } from "@/src/lib/utils/cn";
 import { Header } from "@/src/components/layout/header";
 import { Plus, CaretLeft, CaretRight, Warning } from "@phosphor-icons/react";
 import apiClient from "@/src/lib/api/client";
+import { localDateStr } from "@/src/lib/receptionist/mappers";
 import { WeekCalendar } from "./_components/WeekCalendar";
 import { AppointmentList } from "./_components/AppointmentList";
 import { TimeOffModal } from "./_components/TimeOffModal";
-import type { ScheduleAppointment } from "./_components/types";
+import type { ScheduleAppointment, TimeOffRecord } from "./_components/types";
 
 type ViewMode = "week" | "list";
 
@@ -16,8 +17,7 @@ const DAY_LABELS = ["Chủ Nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", 
 
 function getWeekBounds(refDate: Date) {
   const d = new Date(refDate);
-  // Monday = 1, shift so week starts Monday
-  const day = d.getDay(); // 0=Sun
+  const day = d.getDay();
   const diffToMon = day === 0 ? -6 : 1 - day;
   d.setDate(d.getDate() + diffToMon);
   d.setHours(0, 0, 0, 0);
@@ -34,18 +34,13 @@ function buildWeekDays(from: Date) {
     const d = new Date(from);
     d.setDate(d.getDate() + i);
     const isToday = d.getTime() === today.getTime();
-    const iso = d.toISOString().slice(0, 10);
     return {
-      iso,
+      iso: localDateStr(d),
       date: d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" }),
       day: DAY_LABELS[d.getDay()],
       isToday,
     };
   });
-}
-
-function isoDateOf(isoString: string) {
-  return isoString.slice(0, 10);
 }
 
 function getUserInfo(): { doctorId: string | null } {
@@ -73,19 +68,34 @@ function toScheduleAppointment(raw: Record<string, unknown>): ScheduleAppointmen
   const patient = raw.patient as Record<string, unknown> | null;
   const patientUser = patient?.user as Record<string, unknown> | null;
   const service = raw.service as Record<string, unknown> | null;
+  const medicalRecords = raw.medicalRecords as { id: string }[] | undefined;
 
   return {
     id: raw.id as string,
     appointmentCode: raw.appointmentCode as string,
     scheduledAt,
     durationMinutes,
-    dayIso: isoDateOf(scheduledAt),
+    dayIso: localDateStr(new Date(scheduledAt)),
     status: raw.status as ScheduleAppointment["status"],
     patientName: (patientUser?.fullName as string) ?? "—",
     patientCode: (patient?.patientCode as string) ?? "—",
     patientPhone: (patientUser?.phone as string) ?? "",
     serviceName: (service?.name as string) ?? "—",
     notes: raw.notes as string | null,
+    medicalRecordId: medicalRecords?.[0]?.id ?? null,
+  };
+}
+
+function toTimeOff(raw: Record<string, unknown>): TimeOffRecord | null {
+  if (raw.recordType !== "TIME_OFF" || !raw.isActive) return null;
+  const specificDate = raw.specificDate as string | null;
+  if (!specificDate) return null;
+  return {
+    id: raw.id as string,
+    dayIso: localDateStr(new Date(specificDate)),
+    startTime: String(raw.startTime).slice(0, 5),
+    endTime: String(raw.endTime).slice(0, 5),
+    reason: (raw.reason as string) ?? null,
   };
 }
 
@@ -94,16 +104,20 @@ export default function DoctorSchedulePage() {
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [refDate, setRefDate] = useState(() => new Date());
   const [appointments, setAppointments] = useState<ScheduleAppointment[]>([]);
+  const [timeOffs, setTimeOffs] = useState<TimeOffRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const { from, to } = getWeekBounds(refDate);
   const weekDays = buildWeekDays(from);
   const weekLabel = `${from.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" })} – ${to.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" })}, ${to.getFullYear()}`;
 
   const doctorId = getUserInfo().doctorId;
+  const fromStr = localDateStr(from);
+  const toStr = localDateStr(to);
 
-  const fetchAppointments = useCallback(async () => {
+  const fetchSchedule = useCallback(async () => {
     if (!doctorId) {
       setError("Không tìm thấy thông tin bác sĩ. Vui lòng đăng nhập lại.");
       setLoading(false);
@@ -112,35 +126,60 @@ export default function DoctorSchedulePage() {
     setLoading(true);
     setError(null);
     try {
-      const fromStr = from.toISOString().slice(0, 10);
-      const toStr = to.toISOString().slice(0, 10);
-      const res = await apiClient.get<Record<string, unknown>[]>(
-        `/appointments?doctorId=${doctorId}&from=${fromStr}&to=${toStr}`,
-      );
-      setAppointments(res.data.map(toScheduleAppointment));
+      const [apptRes, availRes] = await Promise.all([
+        apiClient.get<Record<string, unknown>[]>(
+          `/appointments?doctorId=${doctorId}&from=${fromStr}&to=${toStr}`,
+        ),
+        apiClient.get<{ records?: Record<string, unknown>[] }>(
+          `/doctor-availability?doctorId=${doctorId}`,
+        ),
+      ]);
+      setAppointments(apptRes.data.map(toScheduleAppointment));
+      const offs = (availRes.data.records ?? [])
+        .map(toTimeOff)
+        .filter((r): r is TimeOffRecord => r !== null)
+        .filter((r) => r.dayIso >= fromStr && r.dayIso <= toStr);
+      setTimeOffs(offs);
     } catch {
       setError("Không thể tải lịch hẹn. Vui lòng thử lại.");
     } finally {
       setLoading(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [doctorId, from.getTime(), to.getTime()]);
+  }, [doctorId, fromStr, toStr]);
 
   useEffect(() => {
-    fetchAppointments();
-  }, [fetchAppointments]);
+    fetchSchedule();
+  }, [fetchSchedule]);
 
   async function handleStatusChange(id: string, action: "start" | "complete") {
+    setActionError(null);
     const endpoint = action === "start" ? `/appointments/${id}/start` : `/appointments/${id}/complete`;
-    await apiClient.patch(endpoint);
-    await fetchAppointments();
+    try {
+      await apiClient.patch(endpoint);
+      await fetchSchedule();
+    } catch {
+      const msg =
+        action === "start"
+          ? "Không thể bắt đầu ca khám. Kiểm tra bệnh nhân đã check-in chưa."
+          : "Không thể kết thúc ca khám. Vui lòng thử lại.";
+      setActionError(msg);
+      throw new Error(msg);
+    }
   }
 
   function prevWeek() {
-    setRefDate((d) => { const n = new Date(d); n.setDate(n.getDate() - 7); return n; });
+    setRefDate((d) => {
+      const n = new Date(d);
+      n.setDate(n.getDate() - 7);
+      return n;
+    });
   }
   function nextWeek() {
-    setRefDate((d) => { const n = new Date(d); n.setDate(n.getDate() + 7); return n; });
+    setRefDate((d) => {
+      const n = new Date(d);
+      n.setDate(n.getDate() + 7);
+      return n;
+    });
   }
   function goToday() {
     setRefDate(new Date());
@@ -162,7 +201,6 @@ export default function DoctorSchedulePage() {
       </Header>
 
       <div className="space-y-6 p-6 md:p-8">
-        {/* Toolbar */}
         <div className="flex flex-wrap items-center gap-3 justify-between">
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1 rounded-lg bg-muted/50 p-1">
@@ -214,17 +252,26 @@ export default function DoctorSchedulePage() {
           </div>
         </div>
 
-        {/* Error state */}
-        {error && (
+        {(error || actionError) && (
           <div className="flex items-center gap-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-inset ring-red-200">
             <Warning size={18} className="shrink-0" />
-            <span>{error}</span>
-            <button
-              onClick={fetchAppointments}
-              className="ml-auto text-xs font-semibold underline underline-offset-2 hover:no-underline"
-            >
-              Thử lại
-            </button>
+            <span>{error || actionError}</span>
+            {error && (
+              <button
+                onClick={fetchSchedule}
+                className="ml-auto text-xs font-semibold underline underline-offset-2 hover:no-underline"
+              >
+                Thử lại
+              </button>
+            )}
+            {actionError && !error && (
+              <button
+                onClick={() => setActionError(null)}
+                className="ml-auto text-xs font-semibold underline underline-offset-2 hover:no-underline"
+              >
+                Đóng
+              </button>
+            )}
           </div>
         )}
 
@@ -232,8 +279,13 @@ export default function DoctorSchedulePage() {
           <WeekCalendar
             weekDays={weekDays}
             appointments={appointments}
+            timeOffs={timeOffs}
             loading={loading}
             onStatusChange={handleStatusChange}
+            onDeleteTimeOff={async (id) => {
+              await apiClient.delete(`/doctor-availability/${id}`);
+              await fetchSchedule();
+            }}
           />
         ) : (
           <AppointmentList
@@ -248,6 +300,7 @@ export default function DoctorSchedulePage() {
         <TimeOffModal
           doctorId={doctorId}
           onClose={() => setShowLeaveModal(false)}
+          onSuccess={fetchSchedule}
         />
       )}
     </>

@@ -115,6 +115,7 @@ export default function TreatmentPlanDetailPage() {
 
   // inline status select for plan
   const [planStatusChanging, setPlanStatusChanging] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // per-step status loading
   const [stepLoading, setStepLoading] = useState<Record<string, boolean>>({});
@@ -133,13 +134,14 @@ export default function TreatmentPlanDetailPage() {
   const handlePlanStatusChange = async (newStatus: PlanStatus) => {
     if (!plan || newStatus === plan.status) return;
     setPlanStatusChanging(true);
+    setActionError(null);
     try {
       const res = await apiClient.patch<PlanDetail>(`/treatment-plans/${id}`, {
         status: newStatus,
       });
       setPlan(res.data);
     } catch {
-      // silent
+      setActionError("Không thể cập nhật trạng thái kế hoạch.");
     } finally {
       setPlanStatusChanging(false);
     }
@@ -148,6 +150,7 @@ export default function TreatmentPlanDetailPage() {
   const handleStepStatus = async (step: PlanStep, newStatus: StepStatus) => {
     if (!plan || newStatus === step.status) return;
     setStepLoading((prev) => ({ ...prev, [step.id]: true }));
+    setActionError(null);
     try {
       const res = await apiClient.patch<PlanStep>(
         `/treatment-plans/${id}/steps/${step.id}`,
@@ -169,7 +172,7 @@ export default function TreatmentPlanDetailPage() {
         };
       });
     } catch {
-      // silent
+      setActionError("Không thể cập nhật trạng thái bước điều trị.");
     } finally {
       setStepLoading((prev) => ({ ...prev, [step.id]: false }));
     }
@@ -217,6 +220,13 @@ export default function TreatmentPlanDetailPage() {
             Kế hoạch điều trị
           </Link>
         </div>
+
+        {actionError && (
+          <div className="mb-4 flex items-center gap-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-inset ring-red-200">
+            <Warning size={18} className="shrink-0" />
+            {actionError}
+          </div>
+        )}
 
         {/* Header card */}
         <div className="mb-6 rounded-2xl border border-border bg-white p-6 shadow-sm">
