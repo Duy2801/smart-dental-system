@@ -194,3 +194,8 @@ export type VideoConsultation = Prisma.VideoConsultationModel
  * 
  */
 export type Notification = Prisma.NotificationModel
+/**
+ * Model Banner
+ * 
+ */
+export type Banner = Prisma.BannerModel

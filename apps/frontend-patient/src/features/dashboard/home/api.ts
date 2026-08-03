@@ -371,3 +371,26 @@ export async function getHomeClinicalCases() {
 
   return response.data.map(mapClinicalCase);
 }
+
+export type BannerDto = {
+  id: string;
+  title: string;
+  description?: string | null;
+  imageUrl: string;
+  linkUrl?: string | null;
+  targetType?: string | null;
+  targetId?: string | null;
+  displayOrder: number;
+  isActive: boolean;
+};
+
+export async function getBanners(): Promise<BannerDto[]> {
+  try {
+    const response = await apiClient.get<BannerDto[]>("/banners");
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching banners from API:", error);
+    return [];
+  }
+}
+

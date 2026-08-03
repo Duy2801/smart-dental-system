@@ -26,6 +26,7 @@ import { ServiceModule } from './modules/service/service.module';
 import { TreatmentPlanModule } from './modules/treatment-plan/treatment-plan.module';
 import { VideoConsultationModule } from './modules/video-consultation/video-consultation.module';
 import { PrescriptionModule } from './modules/prescription/prescription.module';
+import { BannerModule } from './modules/banner/banner.module';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { PrescriptionModule } from './modules/prescription/prescription.module';
     VideoConsultationModule,
     NotificationModule,
     PrescriptionModule,
+    BannerModule,
   ],
   controllers: [AppController],
   providers: [AppService],
