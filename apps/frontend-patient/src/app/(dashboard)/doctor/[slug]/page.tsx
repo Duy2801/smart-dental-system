@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { DoctorDetailExperience } from "@/components/dashboard/doctor/DoctorDetailExperience";
+import { DoctorDetailExperience } from "@/features/dashboard/doctor/DoctorDetailExperience";
 
 type DoctorPageProps = { params: Promise<{ slug: string }> };
 

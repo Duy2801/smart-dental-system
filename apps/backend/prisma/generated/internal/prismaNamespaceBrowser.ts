@@ -58,6 +58,7 @@ export const ModelName = {
   UserRole: 'UserRole',
   RolePermission: 'RolePermission',
   Service: 'Service',
+  TreatmentMethod: 'TreatmentMethod',
   ServiceMedia: 'ServiceMedia',
   ServiceProcedureStep: 'ServiceProcedureStep',
   ServiceFaq: 'ServiceFaq',
@@ -178,6 +179,7 @@ export const ServiceScalarFieldEnum = {
   category: 'category',
   name: 'name',
   slug: 'slug',
+  icon: 'icon',
   shortDescription: 'shortDescription',
   description: 'description',
   detailSummary: 'detailSummary',
@@ -205,9 +207,26 @@ export const ServiceScalarFieldEnum = {
 export type ServiceScalarFieldEnum = (typeof ServiceScalarFieldEnum)[keyof typeof ServiceScalarFieldEnum]
 
 
-export const ServiceMediaScalarFieldEnum = {
+export const TreatmentMethodScalarFieldEnum = {
   id: 'id',
   serviceId: 'serviceId',
+  name: 'name',
+  slug: 'slug',
+  description: 'description',
+  basePrice: 'basePrice',
+  durationMinutes: 'durationMinutes',
+  displayOrder: 'displayOrder',
+  isActive: 'isActive',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TreatmentMethodScalarFieldEnum = (typeof TreatmentMethodScalarFieldEnum)[keyof typeof TreatmentMethodScalarFieldEnum]
+
+
+export const ServiceMediaScalarFieldEnum = {
+  id: 'id',
+  treatmentMethodId: 'treatmentMethodId',
   url: 'url',
   alt: 'alt',
   type: 'type',
@@ -220,7 +239,7 @@ export type ServiceMediaScalarFieldEnum = (typeof ServiceMediaScalarFieldEnum)[k
 
 export const ServiceProcedureStepScalarFieldEnum = {
   id: 'id',
-  serviceId: 'serviceId',
+  treatmentMethodId: 'treatmentMethodId',
   stepOrder: 'stepOrder',
   title: 'title',
   description: 'description',
@@ -232,7 +251,7 @@ export type ServiceProcedureStepScalarFieldEnum = (typeof ServiceProcedureStepSc
 
 export const ServiceFaqScalarFieldEnum = {
   id: 'id',
-  serviceId: 'serviceId',
+  treatmentMethodId: 'treatmentMethodId',
   question: 'question',
   answer: 'answer',
   sortOrder: 'sortOrder'
@@ -246,6 +265,8 @@ export const PromotionScalarFieldEnum = {
   code: 'code',
   name: 'name',
   description: 'description',
+  imageUrl: 'imageUrl',
+  applicableServiceSlug: 'applicableServiceSlug',
   discountType: 'discountType',
   discountValue: 'discountValue',
   minOrderAmount: 'minOrderAmount',
@@ -359,6 +380,7 @@ export const AppointmentScalarFieldEnum = {
   patientId: 'patientId',
   doctorId: 'doctorId',
   serviceId: 'serviceId',
+  treatmentMethodId: 'treatmentMethodId',
   treatmentPlanStepId: 'treatmentPlanStepId',
   scheduledAt: 'scheduledAt',
   endAt: 'endAt',

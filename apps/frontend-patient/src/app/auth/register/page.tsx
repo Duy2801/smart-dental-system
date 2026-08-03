@@ -5,10 +5,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
 import { useState } from "react";
-import { RegisterForm } from "@/components/auth";
-import { apiRegister, apiResendOtp, apiVerifyOtp } from "@/components/auth/api";
-import { FormField } from "@/components/auth/common/FormField";
-import { PrimaryButton } from "@/components/auth/common/PrimaryButton";
+import { RegisterForm } from "@/features/auth";
+import { apiRegister, apiResendOtp, apiVerifyOtp } from "@/features/auth/api";
+import { FormField } from "@/features/auth/common/FormField";
+import { PrimaryButton } from "@/features/auth/common/PrimaryButton";
 import { login, useAppDispatch } from "@/providers";
 
 const errorMessages: Record<string, string> = {

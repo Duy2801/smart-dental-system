@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { DashboardIcon } from "@/components/dashboard/common/DashboardIcon";
+import { DashboardIcon } from "@/features/dashboard/common/DashboardIcon";
 
 const notifications = [
   {

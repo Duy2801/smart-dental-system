@@ -425,565 +425,693 @@ const serviceImageUrls = {
 
 const services = [
   {
-    category: 'Tổng quát',
-    name: 'Khám răng tổng quát',
-    slug: 'dental-checkup',
-    shortDescription:
-      'Thăm khám toàn diện tình trạng răng miệng và tư vấn điều trị.',
-    description:
-      'Kiểm tra răng, nướu, khớp cắn và tư vấn kế hoạch chăm sóc phù hợp.',
-    thumbnailUrl: serviceImageUrls.dentalCheckup,
-    durationMinutes: 30,
-    basePrice: '200000',
+    category: 'Implant',
+    name: 'Trồng răng Implant',
+    slug: 'trong-rang-implant',
+    icon: '/service/trông răng implant.png',
+    shortDescription: 'Cấy ghép răng giả cố định, khôi phục thẩm mỹ và chức năng ăn nhai hoàn hảo như răng thật.',
+    description: 'Giải pháp cấy ghép trụ Implant sinh học vào xương hàm thay thế chân răng đã mất, nâng đỡ mão răng sứ bền chắc lâu dài.',
+    thumbnailUrl: serviceImageUrls.implant,
+    durationMinutes: 60,
+    basePrice: '13000000',
     isFeatured: true,
     displayOrder: 1,
   },
   {
-    category: 'Tổng quát',
-    name: 'Cạo vôi và đánh bóng răng',
-    slug: 'teeth-cleaning',
-    shortDescription: 'Làm sạch mảng bám, cao răng và đánh bóng bề mặt răng.',
-    description: 'Cạo vôi, làm sạch mảng bám và đánh bóng giúp nướu khỏe hơn.',
-    thumbnailUrl: serviceImageUrls.teethCleaning,
-    durationMinutes: 45,
-    basePrice: '350000',
+    category: 'Phục hình',
+    name: 'Bọc răng sứ',
+    slug: 'boc-rang-su',
+    icon: '/service/bọc sứ.png',
+    shortDescription: 'Khôi phục hình dáng và chức năng của răng tổn thương bằng mão sứ.',
+    description: 'Bọc mão sứ giúp bảo vệ răng đã chữa tủy, răng vỡ mẻ lớn hoặc cải thiện thẩm mỹ nụ cười.',
+    thumbnailUrl: serviceImageUrls.dentalCrown,
+    durationMinutes: 90,
+    basePrice: '3500000',
     isFeatured: true,
     displayOrder: 2,
   },
   {
-    category: 'Phục hồi',
-    name: 'Trám răng thẩm mỹ',
-    slug: 'dental-filling',
-    shortDescription:
-      'Phục hồi răng sâu, mẻ hoặc mất mô bằng vật liệu composite.',
-    description:
-      'Trám răng bằng vật liệu cùng màu răng cho các lỗ sâu nhỏ và vừa.',
-    thumbnailUrl: serviceImageUrls.dentalFilling,
+    category: 'Thẩm mỹ',
+    name: 'Dán sứ Veneer',
+    slug: 'dan-su-veneer',
+    icon: '/service/Dán sứ.png',
+    shortDescription: 'Mặt dán sứ siêu mỏng bảo tồn răng thật tối đa, mang lại nụ cười rạng rỡ.',
+    description: 'Dán sứ Veneer sử dụng mặt sứ siêu mỏng (0.3 - 0.5mm) dán lên mặt trước răng để cải thiện màu sắc, hình dáng mà ít mài răng.',
+    thumbnailUrl: serviceImageUrls.dentalCrown,
     durationMinutes: 60,
-    basePrice: '600000',
-    isFeatured: false,
+    basePrice: '8000000',
+    isFeatured: true,
     displayOrder: 3,
   },
   {
-    category: 'Nội nha',
-    name: 'Điều trị tủy',
-    slug: 'root-canal-treatment',
-    shortDescription: 'Xử lý tủy viêm, nhiễm trùng và đau nhức kéo dài.',
-    description:
-      'Làm sạch, sát khuẩn và trám bít ống tủy để bảo tồn răng thật.',
-    thumbnailUrl: serviceImageUrls.rootCanal,
-    durationMinutes: 90,
-    basePrice: '1800000',
+    category: 'Chỉnh nha',
+    name: 'Niềng răng',
+    slug: 'nieng-rang',
+    icon: '/service/niềng răng.png',
+    shortDescription: 'Chỉnh nha bằng khay niềng trong suốt Invisalign, thẩm mỹ và tiện lợi.',
+    description: 'Sử dụng các khay nhựa y tế trong suốt thiết kế riêng để dịch chuyển răng, có thể tháo lắp dễ dàng khi ăn uống.',
+    thumbnailUrl: serviceImageUrls.braces,
+    durationMinutes: 45,
+    basePrice: '45000000',
     isFeatured: true,
     displayOrder: 4,
   },
   {
-    category: 'Thẩm mỹ',
-    name: 'Tẩy trắng răng',
-    slug: 'teeth-whitening',
-    shortDescription:
-      'Cải thiện màu răng, giúp nụ cười sáng hơn sau một buổi điều trị.',
-    description:
-      'Tẩy trắng tại phòng khám với gel chuyên dụng và quy trình kiểm soát an toàn.',
-    thumbnailUrl: serviceImageUrls.teethWhitening,
-    durationMinutes: 60,
-    basePrice: '1500000',
-    isFeatured: true,
+    category: 'Chỉnh nha',
+    name: 'Niềng răng mắc cài',
+    slug: 'nieng-rang-mac-cai',
+    icon: '/service/niềng răng mắc cài.png',
+    shortDescription: 'Nắn chỉnh răng lệch lạc, khớp cắn sai lệch bằng hệ thống mắc cài.',
+    description: 'Phương pháp chỉnh nha truyền thống và hiện đại sử dụng mắc cài kim loại hoặc sứ để kéo răng về đúng vị trí.',
+    thumbnailUrl: serviceImageUrls.braces,
+    durationMinutes: 45,
+    basePrice: '25000000',
+    isFeatured: false,
     displayOrder: 5,
   },
   {
     category: 'Tiểu phẫu',
-    name: 'Nhổ răng',
-    slug: 'tooth-extraction',
-    shortDescription: 'Loại bỏ răng hư hỏng, lung lay hoặc không thể bảo tồn.',
-    description:
-      'Nhổ răng an toàn với gây tê tại chỗ và hướng dẫn chăm sóc sau điều trị.',
+    name: 'Nhổ răng khôn',
+    slug: 'nho-rang-khon',
+    icon: '/service/nho rang khon.png',
+    shortDescription: 'Nhổ răng khôn mọc lệch, mọc ngầm an toàn bằng công nghệ sóng siêu âm.',
+    description: 'Tiểu phẫu nhổ răng khôn mọc lệch, mọc kẹt tránh biến chứng sưng viêm nguy hiểm với công nghệ Piezotome.',
     thumbnailUrl: serviceImageUrls.toothExtraction,
     durationMinutes: 45,
-    basePrice: '500000',
-    isFeatured: false,
-    displayOrder: 6,
-  },
-  {
-    category: 'Chỉnh nha',
-    name: 'Tư vấn niềng răng',
-    slug: 'braces-consultation',
-    shortDescription:
-      'Đánh giá khớp cắn, tình trạng lệch lạc và lựa chọn phương án chỉnh nha.',
-    description:
-      'Tư vấn loại mắc cài, thời gian điều trị, chi phí dự kiến và kế hoạch theo dõi.',
-    thumbnailUrl: serviceImageUrls.braces,
-    durationMinutes: 45,
-    basePrice: '300000',
+    basePrice: '2000000',
     isFeatured: true,
     displayOrder: 7,
   },
   {
-    category: 'Phục hình',
-    name: 'Bọc răng sứ',
-    slug: 'dental-crown',
-    shortDescription:
-      'Phục hồi răng yếu, mẻ lớn hoặc đã điều trị tủy bằng mão sứ.',
-    description: 'Bọc mão sứ giúp cải thiện chức năng ăn nhai và thẩm mỹ răng.',
-    thumbnailUrl: serviceImageUrls.dentalCrown,
-    durationMinutes: 90,
-    basePrice: '3500000',
+    category: 'Tổng quát',
+    name: 'Nha khoa tổng quát',
+    slug: 'nha-khoa-tong-quat',
+    icon: '/service/nha khoa tong quat.png',
+    shortDescription: 'Chăm sóc răng miệng định kỳ, cạo vôi răng và điều trị tổng quát.',
+    description: 'Các dịch vụ cơ bản chăm sóc và bảo vệ sức khỏe răng miệng bao gồm khám định kỳ, cạo vôi răng, trám răng sâu và chữa tủy.',
+    thumbnailUrl: serviceImageUrls.dentalCheckup,
+    durationMinutes: 30,
+    basePrice: '150000',
     isFeatured: false,
-    displayOrder: 8,
-  },
-  {
-    category: 'Implant',
-    name: 'Tư vấn cấy ghép Implant',
-    slug: 'implant-consultation',
-    shortDescription:
-      'Đánh giá mất răng, xương hàm và khả năng cấy ghép Implant.',
-    description:
-      'Tư vấn điều kiện cấy ghép, loại trụ, thời gian điều trị và chi phí dự kiến.',
-    thumbnailUrl: serviceImageUrls.implant,
-    durationMinutes: 60,
-    basePrice: '500000',
-    isFeatured: true,
-    displayOrder: 9,
+    displayOrder: 6,
   },
   {
     category: 'Nha khoa trẻ em',
-    name: 'Chăm sóc răng trẻ em',
-    slug: 'kids-dental-care',
-    shortDescription:
-      'Thăm khám nhẹ nhàng, phòng ngừa sâu răng và hướng dẫn chăm sóc cho trẻ.',
-    description: 'Dịch vụ nha khoa cơ bản và dự phòng dành cho trẻ em.',
+    name: 'Nha khoa trẻ em',
+    slug: 'nha-khoa-tre-em',
+    icon: '/service/Nha khoa tre em.png',
+    shortDescription: 'Khám răng nhẹ nhàng và điều trị dự phòng sâu răng cho bé.',
+    description: 'Dịch vụ nha khoa thân thiện giúp bé thoải mái khám răng, nhổ răng sữa và bôi vecni flour bảo vệ men răng.',
     thumbnailUrl: serviceImageUrls.kidsDental,
     durationMinutes: 30,
-    basePrice: '250000',
+    basePrice: '150000',
     isFeatured: false,
-    displayOrder: 10,
+    displayOrder: 8,
   },
-] as const;
+];
 
-const serviceContentBySlug = {
-  'dental-checkup': {
-    media: [
-      {
-        url: serviceImageUrls.dentalCheckup,
-        alt: 'Phòng khám răng tổng quát',
-        type: 'BANNER',
-      },
-      {
-        url: serviceImageUrls.dentalCheckup,
-        alt: 'Bác sĩ kiểm tra răng cho bệnh nhân',
-        type: 'PROCESS',
-      },
-    ],
-    steps: [
-      [
-        'Trao đổi triệu chứng',
-        'Bác sĩ hỏi về đau nhức, ê buốt, chảy máu nướu và thói quen chăm sóc răng miệng.',
-        5,
-      ],
-      [
-        'Khám răng miệng',
-        'Kiểm tra răng, nướu, khớp cắn và mô mềm trong khoang miệng.',
-        15,
-      ],
-      [
-        'Tư vấn kết quả',
-        'Bác sĩ giải thích tình trạng hiện tại và đề xuất hướng điều trị nếu cần.',
-        10,
-      ],
-    ],
-    faqs: [
-      [
-        'Bao lâu nên khám răng tổng quát một lần?',
-        'Thông thường nên khám định kỳ mỗi 6 tháng để phát hiện sớm các vấn đề răng miệng.',
-      ],
-      [
-        'Lần nào đi khám cũng cần chụp X-quang không?',
-        'Không bắt buộc. Bác sĩ chỉ chỉ định chụp X-quang khi cần thêm thông tin chẩn đoán.',
-      ],
-    ],
-  },
-  'teeth-cleaning': {
-    media: [
-      {
-        url: serviceImageUrls.teethCleaning,
-        alt: 'Quy trình cạo vôi và đánh bóng răng',
-        type: 'PROCESS',
-      },
-    ],
-    steps: [
-      [
-        'Đánh giá mảng bám',
-        'Bác sĩ kiểm tra lượng cao răng, mảng bám và tình trạng nướu.',
-        5,
-      ],
-      [
-        'Cạo vôi răng',
-        'Mảng bám và cao răng được làm sạch bằng dụng cụ nha khoa chuyên dụng.',
-        25,
-      ],
-      [
-        'Đánh bóng',
-        'Bề mặt răng được đánh bóng để giảm bám màu và tạo cảm giác sạch hơn.',
-        10,
-      ],
-      [
-        'Hướng dẫn chăm sóc',
-        'Bệnh nhân được hướng dẫn chải răng, dùng chỉ nha khoa và tái khám định kỳ.',
-        5,
-      ],
-    ],
-    faqs: [
-      [
-        'Cạo vôi răng có đau không?',
-        'Phần lớn bệnh nhân chỉ cảm thấy rung nhẹ hoặc ê buốt nhẹ trong lúc làm sạch.',
-      ],
-      [
-        'Cạo vôi có làm trắng răng không?',
-        'Cạo vôi giúp loại bỏ mảng bám và vết ố bề mặt, nhưng không thay thế tẩy trắng răng.',
-      ],
-    ],
-  },
-  'dental-filling': {
-    media: [
-      {
-        url: serviceImageUrls.dentalFilling,
-        alt: 'Trám răng bằng vật liệu composite',
-        type: 'PROCESS',
-      },
-    ],
-    steps: [
-      [
-        'Kiểm tra răng sâu',
-        'Bác sĩ xác định vị trí sâu răng, mẻ răng hoặc vùng cần phục hồi.',
-        10,
-      ],
-      [
-        'Làm sạch xoang trám',
-        'Vùng răng tổn thương được làm sạch và cách ly trước khi trám.',
-        15,
-      ],
-      [
-        'Đặt vật liệu trám',
-        'Composite được đưa vào, tạo hình và chiếu đèn để đông cứng.',
-        25,
-      ],
-      [
-        'Chỉnh khớp cắn',
-        'Miếng trám được đánh bóng và kiểm tra cảm giác khi cắn.',
-        10,
-      ],
-    ],
-    faqs: [
-      [
-        'Miếng trám dùng được bao lâu?',
-        'Trám composite có thể sử dụng nhiều năm nếu vệ sinh tốt và tái khám định kỳ.',
-      ],
-      [
-        'Trám răng xong có ăn ngay được không?',
-        'Thông thường nên ăn sau khi hết tê và tránh nhai mạnh ở vùng vừa trám trong thời gian đầu.',
-      ],
-    ],
-  },
-  'root-canal-treatment': {
-    media: [
-      {
-        url: serviceImageUrls.rootCanal,
-        alt: 'Minh họa điều trị tủy răng',
-        type: 'PROCESS',
-      },
-    ],
-    steps: [
-      [
-        'Chẩn đoán',
-        'Bác sĩ đánh giá triệu chứng đau nhức và có thể chỉ định chụp X-quang.',
-        15,
-      ],
-      [
-        'Làm sạch ống tủy',
-        'Mô tủy viêm hoặc nhiễm trùng được loại bỏ, ống tủy được sát khuẩn.',
-        40,
-      ],
-      [
-        'Trám bít ống tủy',
-        'Ống tủy đã làm sạch được trám bít bằng vật liệu chuyên dụng.',
-        25,
-      ],
-      [
-        'Tư vấn phục hồi',
-        'Bác sĩ có thể khuyến nghị trám hoặc bọc sứ để bảo vệ răng sau điều trị tủy.',
-        10,
-      ],
-    ],
-    faqs: [
-      [
-        'Điều trị tủy có đau không?',
-        'Bác sĩ sẽ gây tê tại chỗ để kiểm soát đau trong quá trình điều trị.',
-      ],
-      [
-        'Điều trị tủy cần mấy lần hẹn?',
-        'Nhiều trường hợp cần 1-2 lần hẹn, tùy mức độ viêm nhiễm và số ống tủy.',
-      ],
-    ],
-  },
-  'teeth-whitening': {
-    media: [
-      {
-        url: serviceImageUrls.teethWhitening,
-        alt: 'Hình ảnh trước và sau khi tẩy trắng răng',
-        type: 'BEFORE_AFTER',
-      },
-      {
-        url: serviceImageUrls.teethWhitening,
-        alt: 'Chiếu đèn tẩy trắng răng',
-        type: 'PROCESS',
-      },
-    ],
-    steps: [
-      [
-        'Đánh giá màu răng',
-        'Bác sĩ xác định màu răng hiện tại và nguy cơ ê buốt.',
-        10,
-      ],
-      [
-        'Bảo vệ nướu',
-        'Nướu được che chắn để hạn chế kích ứng trong quá trình tẩy trắng.',
-        10,
-      ],
-      [
-        'Tẩy trắng',
-        'Gel tẩy trắng được bôi lên răng và hoạt hóa theo từng chu kỳ kiểm soát.',
-        30,
-      ],
-      [
-        'Hướng dẫn sau điều trị',
-        'Bệnh nhân được dặn cách ăn uống và chăm sóc khi có ê buốt nhẹ.',
-        10,
-      ],
-    ],
-    faqs: [
-      [
-        'Tẩy trắng răng có bị ê buốt không?',
-        'Có thể ê buốt tạm thời, nhưng thường giảm nhanh sau điều trị.',
-      ],
-      [
-        'Kết quả tẩy trắng giữ được bao lâu?',
-        'Thời gian duy trì tùy thói quen ăn uống và chăm sóc, thường có thể giữ sáng trong nhiều tháng.',
-      ],
-    ],
-  },
-  'tooth-extraction': {
-    media: [
-      {
-        url: serviceImageUrls.toothExtraction,
-        alt: 'Hướng dẫn chăm sóc sau nhổ răng',
-        type: 'PROCESS',
-      },
-    ],
-    steps: [
-      [
-        'Khám chỉ định',
-        'Bác sĩ xác nhận lý do cần nhổ răng và đánh giá mức độ khó.',
-        10,
-      ],
-      ['Gây tê', 'Gây tê tại chỗ giúp giảm đau trong quá trình nhổ răng.', 10],
-      [
-        'Nhổ răng',
-        'Răng được lấy ra nhẹ nhàng bằng dụng cụ nha khoa phù hợp.',
-        15,
-      ],
-      [
-        'Cầm máu',
-        'Bệnh nhân được đặt gạc cầm máu và hướng dẫn chăm sóc tại nhà.',
-        10,
-      ],
-    ],
-    faqs: [
-      [
-        'Nhổ răng bao lâu thì lành?',
-        'Vết thương thường ổn định sau vài ngày đầu, tùy cơ địa và độ khó của ca nhổ.',
-      ],
-      [
-        'Sau nhổ răng nên kiêng gì?',
-        'Nên tránh hút thuốc, thức ăn cứng, súc miệng mạnh và dùng ống hút trong ngày đầu.',
-      ],
-    ],
-  },
-  'braces-consultation': {
-    media: [
-      {
-        url: serviceImageUrls.braces,
-        alt: 'Lập kế hoạch niềng răng',
-        type: 'PROCESS',
-      },
-    ],
-    steps: [
-      [
-        'Đánh giá khớp cắn',
-        'Bác sĩ kiểm tra răng chen chúc, lệch lạc và tương quan khớp cắn.',
-        15,
-      ],
-      [
-        'Thu thập dữ liệu',
-        'Hình ảnh, phim X-quang hoặc scan răng có thể được dùng để lập kế hoạch.',
-        10,
-      ],
-      [
-        'Tư vấn lựa chọn',
-        'Bác sĩ giải thích các loại niềng răng, thời gian điều trị và chi phí dự kiến.',
-        15,
-      ],
-      [
-        'Hẹn bước tiếp theo',
-        'Bệnh nhân nhận kế hoạch chỉnh nha sơ bộ và lịch hẹn tiếp theo nếu đồng ý điều trị.',
-        5,
-      ],
-    ],
-    faqs: [
-      [
-        'Niềng răng mất bao lâu?',
-        'Nhiều trường hợp kéo dài khoảng 18-24 tháng, tùy mức độ lệch lạc.',
-      ],
-      [
-        'Người lớn có niềng răng được không?',
-        'Có. Người lớn vẫn có thể chỉnh nha nếu tình trạng răng và nướu phù hợp.',
-      ],
-    ],
-  },
-  'dental-crown': {
-    media: [
-      {
-        url: serviceImageUrls.dentalCrown,
-        alt: 'Phục hồi răng bằng mão sứ',
-        type: 'PROCESS',
-      },
-    ],
-    steps: [
-      [
-        'Đánh giá răng',
-        'Bác sĩ kiểm tra răng có đủ điều kiện nâng đỡ mão sứ hay không.',
-        10,
-      ],
-      ['Mài chỉnh răng', 'Răng được tạo hình phù hợp để lắp mão sứ.', 30],
-      ['Lấy dấu', 'Bác sĩ lấy dấu hoặc scan răng để thiết kế mão sứ.', 15],
-      ['Gắn mão sứ', 'Mão sứ được thử, chỉnh khớp cắn và gắn cố định.', 35],
-    ],
-    faqs: [
-      [
-        'Khi nào cần bọc răng sứ?',
-        'Bọc sứ thường dùng cho răng yếu, nứt, mẻ lớn hoặc đã điều trị tủy.',
-      ],
-      [
-        'Răng sứ dùng được bao lâu?',
-        'Mão sứ có thể sử dụng nhiều năm nếu vệ sinh tốt và tái khám định kỳ.',
-      ],
-    ],
-  },
-  'implant-consultation': {
-    media: [
-      {
-        url: serviceImageUrls.implant,
-        alt: 'Lập kế hoạch cấy ghép Implant',
-        type: 'BANNER',
-      },
-    ],
-    steps: [
-      [
-        'Khai thác bệnh sử',
-        'Bác sĩ trao đổi về sức khỏe tổng quát, thuốc đang dùng và mong muốn phục hồi răng.',
-        10,
-      ],
-      [
-        'Đánh giá xương hàm',
-        'Vùng mất răng và điều kiện xương được kiểm tra để xem khả năng cấy ghép.',
-        20,
-      ],
-      [
-        'Lập kế hoạch điều trị',
-        'Bác sĩ tư vấn loại trụ, thời gian thực hiện và chi phí dự kiến.',
-        20,
-      ],
-      [
-        'Hướng dẫn chuẩn bị',
-        'Bệnh nhân được hướng dẫn bước chẩn đoán hoặc xét nghiệm tiếp theo nếu cần.',
-        10,
-      ],
-    ],
-    faqs: [
-      [
-        'Ai phù hợp để cấy ghép Implant?',
-        'Bệnh nhân cần có sức khỏe tổng quát ổn định và đủ điều kiện xương hàm để lập kế hoạch cấy ghép.',
-      ],
-      [
-        'Cấy Implant có xong trong một lần không?',
-        'Phần lớn ca Implant cần nhiều giai đoạn trong vài tháng để trụ tích hợp với xương.',
-      ],
-    ],
-  },
-  'kids-dental-care': {
-    media: [
-      {
-        url: serviceImageUrls.kidsDental,
-        alt: 'Chăm sóc răng miệng cho trẻ em',
-        type: 'BANNER',
-      },
-    ],
-    steps: [
-      [
-        'Làm quen nhẹ nhàng',
-        'Trẻ được làm quen với ghế nha khoa và dụng cụ theo cách thân thiện.',
-        5,
-      ],
-      [
-        'Khám răng miệng',
-        'Bác sĩ kiểm tra răng, nướu và quá trình mọc răng của trẻ.',
-        10,
-      ],
-      [
-        'Chăm sóc dự phòng',
-        'Có thể thực hiện làm sạch, bôi fluoride hoặc trám bít hố rãnh nếu phù hợp.',
-        10,
-      ],
-      [
-        'Hướng dẫn phụ huynh',
-        'Phụ huynh được tư vấn cách vệ sinh răng và chế độ ăn cho trẻ.',
-        5,
-      ],
-    ],
-    faqs: [
-      [
-        'Trẻ em nên đi nha sĩ khi nào?',
-        'Trẻ nên được thăm khám sớm và duy trì kiểm tra định kỳ để phòng ngừa sâu răng.',
-      ],
-      [
-        'Làm sao để trẻ bớt sợ nha sĩ?',
-        'Những lần khám ngắn, nhẹ nhàng và tích cực sẽ giúp trẻ quen dần với việc chăm sóc răng miệng.',
-      ],
-    ],
-  },
-} as const;
+const obsoleteServiceSlugFallbacks: Record<string, string> = {
+  'dental-checkup': 'nha-khoa-tong-quat',
+  'teeth-cleaning': 'nha-khoa-tong-quat',
+  'dental-filling': 'nha-khoa-tong-quat',
+  'root-canal-treatment': 'nha-khoa-tong-quat',
+  'tooth-extraction': 'nho-rang-khon',
+  'braces-consultation': 'nieng-rang',
+  'nieng-rang-trong-suot': 'nieng-rang',
+  'teeth-whitening': 'dan-su-veneer',
+  'dental-crown': 'boc-rang-su',
+  'boc-su-tham-my': 'boc-rang-su',
+  'implant-consultation': 'trong-rang-implant',
+  'kids-dental-care': 'nha-khoa-tre-em',
+};
 
-const promotions = Array.from({ length: 10 }, (_, index) => ({
-  code: `SEEDPROMO${String(index + 1).padStart(2, '0')}`,
-  name: `Seed Promotion ${index + 1}`,
-  description: `Sample promotion ${index + 1}`,
-  discountType: (index % 2 === 0 ? 'PERCENTAGE' : 'FIXED_AMOUNT') as
-    | 'PERCENTAGE'
-    | 'FIXED_AMOUNT',
-  discountValue:
-    index % 2 === 0 ? String(5 + index) : String(50000 * (index + 1)),
-  minOrderAmount: String(200000 * (index + 1)),
-  maxUses: 100 + index,
-  usedCount: index,
-  startDate:
-    index === 8
-      ? addDays(20)
-      : index === 9
-        ? addDays(-90)
-        : addDays(-30 + index),
-  endDate:
-    index === 8 ? addDays(90) : index === 9 ? addDays(-5) : addDays(60 + index),
-  isActive: index !== 7,
-}));
+const treatmentMethodsBySlug = {
+  'trong-rang-implant': [
+    {
+      name: 'Trụ Implant Hàn Quốc (Osstem / Dentium)',
+      slug: 'implant-korea-osstem',
+      description: 'Trụ Implant phổ biến nhất Châu Á, tích hợp xương ổn định, chi phí tối ưu.',
+      basePrice: '13000000',
+      durationMinutes: 60,
+      media: [{ url: serviceImageUrls.implant, alt: 'Implant Hàn Quốc Osstem', type: 'BANNER' }],
+      steps: [
+        ['Thăm khám & Chụp CT 3D', 'Đánh giá thể tích xương hàm và vị trí cấy ghép lý tưởng.', 15],
+        ['Đặt trụ Implant', 'Tiểu phẫu nhẹ nhàng đặt trụ Implant Hàn Quốc vào xương hàm.', 30],
+        ['Phục hình răng sứ', 'Gắn mão sứ lên trụ Implant sau khi tích hợp xương hoàn tất.', 15],
+      ],
+      faqs: [['Trụ Implant Hàn Quốc sử dụng được bao lâu?', 'Tuổi thọ lên đến 20 năm hoặc trọn đời nếu được chăm sóc vệ sinh đúng cách.']],
+    },
+    {
+      name: 'Trụ Implant Mỹ (Hiossen / Dentium USA)',
+      slug: 'implant-usa-hiossen',
+      description: 'Thiết kế hoàn hảo đạt tiêu chuẩn FDA Mỹ, khả năng tích hợp xương vượt trội.',
+      basePrice: '17000000',
+      durationMinutes: 60,
+      media: [{ url: serviceImageUrls.implant, alt: 'Implant Mỹ Hiossen', type: 'BANNER' }],
+      steps: [
+        ['Lập kế hoạch 3D', 'Định vị trụ Implant bằng phần mềm mô phỏng hiện đại.', 15],
+        ['Cấy ghép trụ Hiossen', 'Đặt trụ Implant Mỹ vào vùng xương hàm.', 30],
+        ['Phục hình răng sứ', 'Gắn mão sứ hoàn thiện nụ cười.', 15],
+      ],
+      faqs: [['Implant Mỹ có ưu điểm gì so với các loại khác?', 'Xử lý bề mặt tiên tiến giúp thời gian tích hợp xương nhanh hơn 2-3 tuần.']],
+    },
+    {
+      name: 'Trụ Implant Thụy Sĩ (Straumann SLActive)',
+      slug: 'implant-switzerland-straumann',
+      description: 'Dòng trụ Implant cao cấp nhất thế giới, tích hợp xương chỉ trong 3-4 tuần.',
+      basePrice: '24000000',
+      durationMinutes: 45,
+      media: [{ url: serviceImageUrls.implant, alt: 'Implant Thụy Sĩ Straumann SLActive', type: 'BANNER' }],
+      steps: [
+        ['Khám chuyên sâu', 'Phân tích mật độ xương và sức khỏe tổng quát.', 10],
+        ['Cấy ghép công nghệ cao', 'Đặt trụ Straumann với độ chính xác tuyệt đối.', 25],
+        ['Lắp răng sứ tức thì', 'Có thể phục hình răng tạm/thật trong thời gian ngắn.', 10],
+      ],
+      faqs: [['Vì sao Straumann được gọi là Implant tốt nhất?', 'Bề mặt SLActive kháng viêm và kích thích tế bào xương phát triển kỷ lục.']],
+    },
+    {
+      name: 'Trồng răng Implant Toàn hàm (All-on-4 / All-on-6)',
+      slug: 'implant-all-on-4-6',
+      description: 'Giải pháp tối ưu cho người mất toàn bộ răng, chỉ dùng 4-6 trụ nâng đỡ cả hàm răng.',
+      basePrice: '110000000',
+      durationMinutes: 120,
+      media: [{ url: serviceImageUrls.implant, alt: 'Implant All-on-4 / All-on-6', type: 'BANNER' }],
+      steps: [
+        ['Khảo sát & Thiết kế hàm', 'Lập bản đồ cấy ghép 4 hoặc 6 trụ nâng đỡ toàn bộ cầu răng.', 30],
+        ['Phẫu thuật đặt trụ', 'Cấy ghép 4-6 trụ Implant trong một lần.', 60],
+        ['Gắn cầu răng cố định', 'Gắn cầu răng thẩm mỹ cho phép ăn nhai ngay sau điều trị.', 30],
+      ],
+      faqs: [['All-on-4 có đau nhiều không?', 'Bệnh nhân được tiêm tê tại chỗ hoặc tiền mê nên hoàn toàn nhẹ nhàng không đau.']],
+    },
+  ],
+  'boc-rang-su': [
+    {
+      name: 'Răng sứ Titan',
+      slug: 'crown-titan',
+      description: 'Hợp kim Titan bền chắc kết hợp lớp sứ ngoài phủ thẩm mỹ, thích hợp cho răng hàm.',
+      basePrice: '2500000',
+      durationMinutes: 60,
+      media: [{ url: serviceImageUrls.dentalCrown, alt: 'Răng sứ Titan', type: 'PROCESS' }],
+      steps: [
+        ['Mài cùi răng', 'Mài nhẹ lớp men ngoài tạo khoảng trống cho mão sứ.', 30],
+        ['Lấy dấu & Lắp răng tạm', 'Bảo vệ răng thật trong khi chờ chế tác răng sứ.', 30],
+      ],
+      faqs: [['Răng sứ Titan có bị đen viền nướu không?', 'Sau nhiều năm sử dụng, kim loại bên trong có thể bị oxy hóa nhẹ gây bóng nướu.']],
+    },
+    {
+      name: 'Răng sứ Zirconia',
+      slug: 'crown-zirconia',
+      description: 'Răng toàn sứ chất lượng cao, bền màu, không đen viền nướu.',
+      basePrice: '4500000',
+      durationMinutes: 60,
+      media: [{ url: serviceImageUrls.dentalCrown, alt: 'Răng sứ Zirconia', type: 'PROCESS' }],
+      steps: [
+        ['Mài cùi răng', 'Chuẩn bị cùi răng sinh lý tối thiểu.', 30],
+        ['Quét dấu răng kỹ thuật số', 'Lấy dấu bằng máy quét CAD/CAM cực kỳ chính xác.', 30],
+      ],
+      faqs: [['Bảo hành răng sứ Zirconia trong bao lâu?', 'Bảo hành chính hãng từ 5 đến 7 năm.']],
+    },
+    {
+      name: 'Răng sứ Cercon HT',
+      slug: 'crown-cercon',
+      description: 'Dòng răng sứ cao cấp xuất xứ Đức, độ cứng cao và thẩm mỹ tối ưu.',
+      basePrice: '6500000',
+      durationMinutes: 60,
+      media: [{ url: serviceImageUrls.dentalCrown, alt: 'Răng sứ Cercon HT', type: 'PROCESS' }],
+      steps: [
+        ['Mài cùi răng', 'Mài chuẩn xác theo tỷ lệ tối thiểu.', 30],
+        ['Lấy dấu răng', 'Chế tác bằng công nghệ CAD/CAM chính xác 100%.', 30],
+      ],
+      faqs: [['Cercon HT có bảo hành không?', 'Bảo hành chính hãng 10 năm.']],
+    },
+    {
+      name: 'Mão sứ thủy tinh IPS E.Max',
+      slug: 'crown-emax',
+      description: 'Sứ thủy tinh cao cấp, độ trong suốt tự nhiên như răng thật.',
+      basePrice: '8000000',
+      durationMinutes: 60,
+      media: [{ url: serviceImageUrls.dentalCrown, alt: 'Mão sứ thủy tinh IPS E.Max', type: 'PROCESS' }],
+      steps: [
+        ['Chuẩn bị răng', 'Mài chỉnh răng tối thiểu.', 30],
+        ['Gắn mão sứ', 'Gắn keo nha khoa chuyên dụng và chiếu đèn.', 30],
+      ],
+      faqs: [['Răng E.Max có bền không?', 'IPS E.Max chịu lực ăn nhai tốt và cực bền nếu chăm sóc đúng cách.']],
+    },
+  ],
+  'dan-su-veneer': [
+    {
+      name: 'Dán sứ Veneer E.Max Press',
+      slug: 'veneer-emax-press',
+      description: 'Mặt dán sứ siêu mỏng 0.3mm chế tác từ phôi sứ E.Max Press chịu lực cao.',
+      basePrice: '8000000',
+      durationMinutes: 60,
+      media: [{ url: serviceImageUrls.dentalCrown, alt: 'Dán sứ Veneer EMax Press', type: 'PROCESS' }],
+      steps: [
+        ['Chuẩn bị bề mặt', 'Chỉnh nhẹ lớp men ngoài răng 0.3mm.', 30],
+        ['Dán mặt sứ', 'Sử dụng xi măng dán nha khoa cường lực cố định mặt sứ.', 30],
+      ],
+      faqs: [['Dán sứ Veneer có đau không?', 'Hạn chế mài tối đa nên hoàn toàn không ê buốt hay đau đớn.']],
+    },
+    {
+      name: 'Dán sứ Veneer Lisi Ultra thin',
+      slug: 'veneer-lisi-ultra',
+      description: 'Dòng mặt dán sứ siêu mỏng cao cấp từ Nhật Bản, độ trong suốt và tương thích sinh học hoàn hảo.',
+      basePrice: '10000000',
+      durationMinutes: 60,
+      media: [{ url: serviceImageUrls.dentalCrown, alt: 'Dán sứ Veneer Lisi', type: 'PROCESS' }],
+      steps: [
+        ['Vệ sinh & So màu', 'Lựa chọn tông màu trắng trong tự nhiên thích hợp.', 20],
+        ['Tạo hình & Dán sứ', 'Sửa soạn bề mặt siêu mỏng và cố định mặt dán sứ.', 40],
+      ],
+      faqs: [['Veneer Lisi mỏng bao nhiêu?', 'Veneer Lisi có độ mỏng đáng kinh ngạc chỉ từ 0.2mm.']],
+    },
+  ],
+  'nieng-rang': [
+    {
+      name: 'Niềng răng Trong suốt Invisalign Lite',
+      slug: 'braces-invisalign-lite',
+      description: 'Gói chỉnh nha Invisalign dành cho các ca lệch lạc nhẹ, thời gian điều trị ngắn.',
+      basePrice: '45000000',
+      durationMinutes: 45,
+      media: [{ url: serviceImageUrls.braces, alt: 'Invisalign Lite', type: 'PROCESS' }],
+      steps: [
+        ['Scan răng 3D iTero', 'Mô phỏng nụ cười tương lai bằng công nghệ scan hiện đại.', 20],
+        ['Giao khay & Hướng dẫn', 'Bác sĩ bàn giao khay niềng đầu tiên và hướng dẫn tháo lắp.', 25],
+      ],
+      faqs: [['Một ngày cần đeo khay bao nhiêu tiếng?', 'Nên đeo tối thiểu 20-22 tiếng mỗi ngày để đạt hiệu quả tối ưu.']],
+    },
+    {
+      name: 'Niềng răng Trong suốt Invisalign Full',
+      slug: 'braces-invisalign-full',
+      description: 'Chỉnh nha trong suốt toàn diện cho mọi mức độ phức tạp của răng và khớp cắn.',
+      basePrice: '90000000',
+      durationMinutes: 45,
+      media: [{ url: serviceImageUrls.braces, alt: 'Invisalign Full', type: 'PROCESS' }],
+      steps: [
+        ['Scan răng & Lập phác đồ', 'Sử dụng phần mềm ClinCheck lên lộ trình dịch chuyển răng chính xác.', 20],
+        ['Điều trị & Theo dõi', 'Tái khám định kỳ mỗi 6-8 tuần để kiểm tra tiến trình.', 25],
+      ],
+      faqs: [['Invisalign Full có giới hạn số lượng khay không?', 'Không giới hạn số lượng khay cho đến khi đạt kết quả mong muốn.']],
+    },
+  ],
+  'nieng-rang-mac-cai': [
+    {
+      name: 'Niềng răng Mắc cài Kim loại Truyền thống',
+      slug: 'braces-metal-traditional',
+      description: 'Phương pháp chỉnh nha hiệu quả cao, tiết kiệm chi phí phù hợp cho học sinh, sinh viên.',
+      basePrice: '25000000',
+      durationMinutes: 45,
+      media: [{ url: serviceImageUrls.braces, alt: 'Mắc cài kim loại truyền thống', type: 'PROCESS' }],
+      steps: [
+        ['Lập phác đồ chỉnh nha', 'Lấy dấu, chụp phim X-quang và lên kế hoạch dịch chuyển.', 15],
+        ['Gắn mắc cài', 'Dán mắc cài lên bề mặt răng và đi dây cung.', 30],
+      ],
+      faqs: [['Thời gian niềng răng mắc cài thường là bao lâu?', 'Kéo dài từ 18 đến 24 tháng tùy độ phức tạp của răng.']],
+    },
+    {
+      name: 'Niềng răng Mắc cài Sứ Thẩm mỹ',
+      slug: 'braces-ceramic',
+      description: 'Sử dụng mắc cài bằng sứ màu sắc tương đồng răng thật, tăng tính thẩm mỹ khi giao tiếp.',
+      basePrice: '35000000',
+      durationMinutes: 45,
+      media: [{ url: serviceImageUrls.braces, alt: 'Mắc cài sứ thẩm mỹ', type: 'PROCESS' }],
+      steps: [
+        ['Kiểm tra răng miệng', 'Làm sạch cao răng, điều trị sâu răng trước khi niềng.', 15],
+        ['Gắn mắc cài sứ', 'Gắn cố định các mắc cài sứ thẩm mỹ.', 30],
+      ],
+      faqs: [['Mắc cài sứ có dễ vỡ không?', 'Mắc cài sứ hiện đại làm từ sứ nguyên khối cường lực rất chắc chắn và ít nứt vỡ.']],
+    },
+  ],
+  'nho-rang-khon': [
+    {
+      name: 'Nhổ răng khôn mọc lệch hàm trên',
+      slug: 'wisdom-tooth-upper',
+      description: 'Nhổ bỏ răng khôn hàm trên mọc lệch, tránh xô lệch cung răng và sâu răng kế cận.',
+      basePrice: '1500000',
+      durationMinutes: 30,
+      media: [{ url: serviceImageUrls.toothExtraction, alt: 'Nhổ răng khôn hàm trên', type: 'PROCESS' }],
+      steps: [
+        ['Khám & Chụp phim', 'Xác định vị trí chân răng và dây thần kinh.', 10],
+        ['Tiểu phẫu nhổ răng', 'Gây tê và tiến hành lấy răng khôn nhanh chóng.', 20],
+      ],
+      faqs: [['Nhổ răng khôn hàm trên có nguy hiểm không?', 'Nhổ răng khôn hàm trên thường nhanh và đơn giản hơn hàm dưới, ít sưng đau.']],
+    },
+    {
+      name: 'Nhổ răng khôn mọc ngầm/lệch hàm dưới',
+      slug: 'wisdom-tooth-lower',
+      description: 'Tiểu phẫu loại bỏ răng khôn mọc ngầm, mọc đâm ngang gây đau nhức.',
+      basePrice: '2500000',
+      durationMinutes: 45,
+      media: [{ url: serviceImageUrls.toothExtraction, alt: 'Nhổ răng khôn hàm dưới', type: 'PROCESS' }],
+      steps: [
+        ['Gây tê & Tạo vạt', 'Bộc lộ vùng răng khôn mọc ngầm.', 15],
+        ['Chia cắt chân răng', 'Lấy răng khôn ra từng phần để hạn chế tổn thương xương.', 30],
+      ],
+      faqs: [['Nhổ răng khôn hàm dưới có sưng không?', 'Thường sưng nhẹ từ 2-3 ngày, bác sĩ sẽ kê đơn thuốc kháng viêm giảm sưng.']],
+    },
+    {
+      name: 'Nhổ răng khôn siêu âm Piezotome',
+      slug: 'wisdom-tooth-piezotome',
+      description: 'Nhổ răng khôn bằng sóng siêu âm không đau, giảm sưng tối đa và phục hồi cực nhanh.',
+      basePrice: '3500000',
+      durationMinutes: 45,
+      media: [{ url: serviceImageUrls.toothExtraction, alt: 'Nhổ răng khôn Piezotome', type: 'PROCESS' }],
+      steps: [
+        ['Chuẩn bị & Gây tê', 'Gây tê và chuẩn bị máy siêu âm Piezotome.', 15],
+        ['Bóc tách siêu âm', 'Dùng sóng siêu âm tách mô mềm và chân răng nhẹ nhàng.', 30],
+      ],
+      faqs: [['Tại sao nên chọn nhổ răng Piezotome?', 'Máy chỉ tác động lên mô cứng (răng, xương), bảo vệ hoàn hảo mô mềm và mạch máu.']],
+    },
+  ],
+  'nha-khoa-tong-quat': [
+    {
+      name: 'Khám răng tổng quát tiêu chuẩn',
+      slug: 'checkup-standard',
+      description: 'Thăm khám trực tiếp với bác sĩ chuyên khoa, phát hiện sớm các vấn đề răng miệng.',
+      basePrice: '150000',
+      durationMinutes: 30,
+      media: [{ url: serviceImageUrls.dentalCheckup, alt: 'Khám tổng quát', type: 'PROCESS' }],
+      steps: [
+        ['Khám trực quan', 'Soi đèn & kiểm tra toàn bộ răng nướu.', 20],
+        ['Tư vấn chăm sóc', 'Tư vấn vệ sinh răng miệng và thói quen sinh hoạt.', 10],
+      ],
+      faqs: [['Bao lâu nên đi khám răng định kỳ?', 'Nên duy trì khám răng định kỳ mỗi 6 tháng một lần.']],
+    },
+    {
+      name: 'Cạo vôi răng Siêu âm Tiêu chuẩn',
+      slug: 'cleaning-ultrasonic-standard',
+      description: 'Sử dụng máy siêu âm nhẹ nhàng loại bỏ mảng bám và cao răng cứng đầu.',
+      basePrice: '250000',
+      durationMinutes: 30,
+      media: [{ url: serviceImageUrls.teethCleaning, alt: 'Cạo vôi siêu âm', type: 'PROCESS' }],
+      steps: [
+        ['Cạo vôi siêu âm', 'Làm sạch cao răng trên và dưới nướu.', 20],
+        ['Đánh bóng răng', 'Làm mịn bề mặt răng giúp hạn chế mảng bám tích tụ.', 10],
+      ],
+      faqs: [['Cạo vôi răng có làm mòn men răng không?', 'Không, sóng siêu âm chỉ làm rung và bong mảng bám cao răng.']],
+    },
+    {
+      name: 'Trám răng Composite Thẩm mỹ',
+      slug: 'filling-composite',
+      description: 'Trám phục hồi răng sâu, răng sứt mẻ bằng vật liệu composite thẩm mỹ cùng màu răng thật.',
+      basePrice: '400000',
+      durationMinutes: 30,
+      media: [{ url: serviceImageUrls.dentalFilling, alt: 'Trám răng thẩm mỹ', type: 'PROCESS' }],
+      steps: [
+        ['Làm sạch xoang sâu', 'Loại bỏ phần mô răng bị sâu hỏng.', 15],
+        ['Trám phục hình', 'Đắp vật liệu composite và chiếu đèn đông cứng.', 15],
+      ],
+      faqs: [['Miếng trám composite sử dụng được bao lâu?', 'Có thể duy trì từ 3-5 năm nếu vệ sinh răng miệng tốt.']],
+    },
+    {
+      name: 'Điều trị tủy răng',
+      slug: 'root-canal-general',
+      description: 'Lấy sạch tủy viêm, sát khuẩn và trám bít ống tủy để giữ lại răng thật.',
+      basePrice: '1800000',
+      durationMinutes: 60,
+      media: [{ url: serviceImageUrls.rootCanal, alt: 'Điều trị tủy', type: 'PROCESS' }],
+      steps: [
+        ['Mở tủy & Lấy tủy viêm', 'Hút sạch mô tủy bị nhiễm trùng gây đau nhức.', 30],
+        ['Trám bít ống tủy', 'Sử dụng nhựa côn nha khoa trám bít kín khít ống tủy.', 30],
+      ],
+      faqs: [['Tại sao phải chữa tủy răng?', 'Giúp loại bỏ cơn đau răng dữ dội và bảo tồn tối đa răng thật không phải nhổ bỏ.']],
+    },
+  ],
+  'nha-khoa-tre-em': [
+    {
+      name: 'Nhổ răng sữa không đau cho bé',
+      slug: 'kids-extraction-milk-tooth',
+      description: 'Nhổ răng sữa lung lay đến tuổi thay thế cực kỳ nhẹ nhàng, bôi tê vị hoa quả ngọt ngào.',
+      basePrice: '150000',
+      durationMinutes: 20,
+      media: [{ url: serviceImageUrls.kidsDental, alt: 'Nhổ răng sữa cho bé', type: 'PROCESS' }],
+      steps: [
+        ['Bôi tê vị trái cây', 'Giúp bé không có cảm giác đau khi nhổ.', 10],
+        ['Nhổ răng sữa', 'Thực hiện nhanh gọn tránh tạo tâm lý sợ hãi cho trẻ.', 10],
+      ],
+      faqs: [['Khi nào nên nhổ răng sữa cho trẻ?', 'Nên nhổ khi răng đã lung lay nhiều hoặc răng vĩnh viễn bắt đầu mọc nhú lên.']],
+    },
+    {
+      name: 'Bôi Vecni Fluoride phòng ngừa sâu răng',
+      slug: 'kids-fluoride-varnish',
+      description: 'Phủ một lớp gel Vecni Fluoride chuyên dụng giúp tái khoáng hóa và củng cố men răng cho bé.',
+      basePrice: '300000',
+      durationMinutes: 20,
+      media: [{ url: serviceImageUrls.kidsDental, alt: 'Bôi Vecni Fluoride', type: 'PROCESS' }],
+      steps: [
+        ['Làm sạch răng', 'Dùng gạc làm sạch bề mặt răng của trẻ.', 10],
+        ['Quét vecni Fluoride', 'Phủ lớp vecni bảo vệ lên các mặt răng.', 10],
+      ],
+      faqs: [['Bôi Vecni Fluoride mấy tháng một lần?', 'Nên bôi định kỳ mỗi 3-6 tháng một lần để phòng ngừa sâu răng hiệu quả nhất.']],
+    },
+  ],
+};
+
+const treatmentMethodSeedOverrides: Record<
+  string,
+  {
+    name: string;
+    slug: string;
+    description: string;
+    basePrice?: string;
+    durationMinutes?: number;
+  }
+> = {
+  'implant-korea-osstem': {
+    name: 'Cấy ghép Implant đơn lẻ',
+    slug: 'implant-single',
+    description:
+      'Phục hồi một răng mất bằng một trụ Implant và mão sứ riêng lẻ, bảo tồn răng kế cận và khôi phục ăn nhai chắc chắn.',
+    basePrice: '13000000',
+    durationMinutes: 60,
+  },
+  'implant-usa-hiossen': {
+    name: 'Cấy ghép Implant nhiều răng',
+    slug: 'implant-multiple',
+    description:
+      'Phục hồi nhiều răng mất bằng các trụ Implant nâng đỡ cầu răng sứ, phù hợp khi mất răng liền kề hoặc rải rác.',
+    basePrice: '32000000',
+    durationMinutes: 90,
+  },
+  'implant-switzerland-straumann': {
+    name: 'Implant toàn hàm All-on-4 / All-on-6',
+    slug: 'implant-full-arch',
+    description:
+      'Giải pháp phục hồi toàn hàm cố định trên 4 đến 6 trụ Implant, dành cho người mất nhiều răng hoặc mất răng toàn hàm.',
+    basePrice: '110000000',
+    durationMinutes: 120,
+  },
+  'implant-all-on-4-6': {
+    name: 'Nâng xoang, ghép xương trước Implant',
+    slug: 'implant-bone-graft',
+    description:
+      'Bổ sung thể tích xương hàm khi xương thiếu hoặc tiêu xương, tạo nền ổn định trước khi cấy ghép Implant.',
+    basePrice: '8000000',
+    durationMinutes: 75,
+  },
+  'crown-titan': {
+    name: 'Bọc răng sứ kim loại Titan',
+    slug: 'crown-titan',
+    description:
+      'Mão sứ lõi Titan bền chắc, chi phí hợp lý, thường dùng cho răng hàm cần phục hồi chức năng ăn nhai.',
+  },
+  'crown-zirconia': {
+    name: 'Bọc răng toàn sứ Zirconia',
+    slug: 'crown-zirconia',
+    description:
+      'Mão toàn sứ thẩm mỹ, không ánh kim, phù hợp phục hồi răng trước và răng hàm với độ bền cao.',
+  },
+  'crown-cercon': {
+    name: 'Bọc răng sứ Cercon',
+    slug: 'crown-cercon',
+    description:
+      'Dòng răng sứ cao cấp có độ chính xác và độ trong tốt, cân bằng giữa thẩm mỹ và khả năng chịu lực.',
+  },
+  'crown-emax': {
+    name: 'Bọc răng sứ E.Max',
+    slug: 'crown-emax',
+    description:
+      'Mão sứ thủy tinh có độ trong tự nhiên, phù hợp các răng vùng thẩm mỹ cần màu sắc hài hòa.',
+  },
+  'veneer-emax-press': {
+    name: 'Dán sứ Veneer E.Max',
+    slug: 'veneer-emax',
+    description:
+      'Mặt dán sứ mỏng giúp cải thiện màu sắc, hình thể răng và khe thưa nhẹ với mức mài răng tối thiểu.',
+  },
+  'veneer-lisi-ultra': {
+    name: 'Dán sứ Veneer siêu mỏng',
+    slug: 'veneer-ultra-thin',
+    description:
+      'Mặt dán sứ siêu mỏng cho các trường hợp men răng còn tốt, ưu tiên bảo tồn răng thật và thẩm mỹ tự nhiên.',
+  },
+  'braces-invisalign-lite': {
+    name: 'Niềng răng trong suốt mức độ nhẹ',
+    slug: 'clear-aligner-lite',
+    description:
+      'Khay niềng trong suốt cho răng chen chúc, thưa hoặc lệch nhẹ, dễ tháo lắp khi ăn uống và vệ sinh.',
+  },
+  'braces-invisalign-full': {
+    name: 'Niềng răng trong suốt toàn diện',
+    slug: 'clear-aligner-full',
+    description:
+      'Chỉnh nha bằng khay trong suốt cho kế hoạch điều trị toàn diện, theo dõi tiến trình bằng mô phỏng kỹ thuật số.',
+  },
+  'braces-metal-traditional': {
+    name: 'Niềng răng mắc cài kim loại',
+    slug: 'braces-metal',
+    description:
+      'Mắc cài kim loại cho hiệu quả kéo chỉnh ổn định, phù hợp nhiều mức độ lệch lạc và tối ưu chi phí.',
+  },
+  'braces-ceramic': {
+    name: 'Niềng răng mắc cài sứ',
+    slug: 'braces-ceramic',
+    description:
+      'Mắc cài sứ có màu gần giống răng thật, phù hợp người cần chỉnh nha cố định nhưng vẫn ưu tiên thẩm mỹ.',
+  },
+  'wisdom-tooth-upper': {
+    name: 'Nhổ răng khôn hàm trên',
+    slug: 'wisdom-tooth-upper',
+    description:
+      'Loại bỏ răng khôn hàm trên mọc lệch hoặc gây nhồi nhét thức ăn, quy trình thường nhanh và ít sưng hơn.',
+  },
+  'wisdom-tooth-lower': {
+    name: 'Nhổ răng khôn hàm dưới mọc lệch/ngầm',
+    slug: 'wisdom-tooth-lower',
+    description:
+      'Tiểu phẫu răng khôn hàm dưới mọc lệch, mọc ngầm hoặc đâm ngang, kiểm soát đau và hạn chế biến chứng.',
+  },
+  'wisdom-tooth-piezotome': {
+    name: 'Nhổ răng khôn bằng Piezotome',
+    slug: 'wisdom-tooth-piezotome',
+    description:
+      'Ứng dụng sóng siêu âm hỗ trợ tách mô cứng chính xác, giảm sang chấn mô mềm và rút ngắn thời gian hồi phục.',
+  },
+  'checkup-standard': {
+    name: 'Khám răng tổng quát',
+    slug: 'checkup-standard',
+    description:
+      'Kiểm tra răng, nướu, khớp cắn và tư vấn kế hoạch chăm sóc hoặc điều trị phù hợp.',
+  },
+  'cleaning-ultrasonic-standard': {
+    name: 'Cạo vôi và đánh bóng răng',
+    slug: 'cleaning-ultrasonic-standard',
+    description:
+      'Làm sạch cao răng, mảng bám và đánh bóng bề mặt răng giúp nướu khỏe và hơi thở dễ chịu hơn.',
+  },
+  'filling-composite': {
+    name: 'Trám răng Composite thẩm mỹ',
+    slug: 'filling-composite',
+    description:
+      'Phục hồi răng sâu, mẻ nhỏ hoặc hở kẽ bằng vật liệu composite cùng màu răng.',
+  },
+  'root-canal-general': {
+    name: 'Điều trị tủy răng',
+    slug: 'root-canal-general',
+    description:
+      'Làm sạch mô tủy viêm, sát khuẩn ống tủy và trám bít để bảo tồn răng thật.',
+  },
+  'kids-extraction-milk-tooth': {
+    name: 'Nhổ răng sữa cho bé',
+    slug: 'kids-extraction-milk-tooth',
+    description:
+      'Nhổ răng sữa lung lay hoặc đến tuổi thay răng bằng quy trình nhẹ nhàng, giúp trẻ bớt lo lắng.',
+  },
+  'kids-fluoride-varnish': {
+    name: 'Bôi Fluoride phòng sâu răng',
+    slug: 'kids-fluoride-varnish',
+    description:
+      'Phủ Fluoride giúp tái khoáng men răng, hỗ trợ phòng ngừa sâu răng cho trẻ em.',
+  },
+};
+
+const promotions = [
+  {
+    code: 'NIENGRANG30',
+    name: 'Ưu Đãi Niềng Răng Thẩm Mỹ 30%',
+    description:
+      'Giảm ngay 30% gói Niềng Răng Thẩm Mỹ (Mắc cài & Trong suốt). Mô phỏng nụ cười 3D ClinCheck miễn phí và tặng bộ kit vệ sinh nha khoa.',
+    imageUrl:
+      'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1785763841/smart-dental/promotions/banner-nieng-rang.png',
+    applicableServiceSlug: 'nieng-rang',
+    discountType: 'PERCENTAGE' as const,
+    discountValue: '30',
+    minOrderAmount: '15000000',
+    maxUses: 100,
+    usedCount: 24,
+    startDate: addDays(-10),
+    endDate: addDays(60),
+    isActive: true,
+  },
+  {
+    code: 'IMPLANT5M',
+    name: 'Trồng Răng Implant Giảm Ngay 5 Triệu',
+    description:
+      'Trồng răng Implant chuyên nghiệp giảm trực tiếp 5.000.000đ cho mỗi trụ Implant. Miễn phí chụp phim CT Cone Beam 3D kiểm tra mật độ xương.',
+    imageUrl:
+      'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1785763842/smart-dental/promotions/banner-implant.png',
+    applicableServiceSlug: 'trong-rang-implant',
+    discountType: 'FIXED_AMOUNT' as const,
+    discountValue: '5000000',
+    minOrderAmount: '12000000',
+    maxUses: 50,
+    usedCount: 15,
+    startDate: addDays(-15),
+    endDate: addDays(45),
+    isActive: true,
+  },
+  {
+    code: 'NHORANG500K',
+    name: 'Nhổ Răng Không Đau Giảm 500K',
+    description:
+      'Tiểu phẫu nhổ răng khôn mọc lệch, mọc ngầm công nghệ siêu âm không đau, an toàn, hiệu quả. Giảm ngay 500.000đ khi đặt lịch khám trước.',
+    imageUrl:
+      'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1785763843/smart-dental/promotions/banner-nho-rang.png',
+    applicableServiceSlug: 'nho-rang-khon',
+    discountType: 'FIXED_AMOUNT' as const,
+    discountValue: '500000',
+    minOrderAmount: '2000000',
+    maxUses: 200,
+    usedCount: 88,
+    startDate: addDays(-20),
+    endDate: addDays(30),
+    isActive: true,
+  },
+  {
+    code: 'CAORANG99K',
+    name: 'Lấy Cao Răng Siêu Âm Chỉ Từ 99K',
+    description:
+      'Dịch vụ lấy cao răng (cạo vôi răng) công nghệ sóng siêu âm nhẹ nhàng không buốt giá, làm sạch mảng bám mang lại hàm răng sáng bóng.',
+    imageUrl:
+      'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1785763844/smart-dental/promotions/banner-cao-rang.png',
+    applicableServiceSlug: 'nha-khoa-tong-quat',
+    discountType: 'FIXED_AMOUNT' as const,
+    discountValue: '150000',
+    minOrderAmount: '200000',
+    maxUses: 300,
+    usedCount: 142,
+    startDate: addDays(-30),
+    endDate: addDays(30),
+    isActive: true,
+  },
+  {
+    code: 'DIEUTRITUY20',
+    name: 'Điều Trị Tủy Không Đau Giảm 20%',
+    description:
+      'Điều trị tủy răng không đau công nghệ hiện đại bảo tồn tối đa răng thật. Ưu đãi giảm 20% toàn bộ chi phí điều trị tủy áp dụng trong tháng.',
+    imageUrl:
+      'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1785763846/smart-dental/promotions/banner-dieu-tri-tuy.png',
+    applicableServiceSlug: 'nha-khoa-tong-quat',
+    discountType: 'PERCENTAGE' as const,
+    discountValue: '20',
+    minOrderAmount: '1000000',
+    maxUses: 150,
+    usedCount: 35,
+    startDate: addDays(-10),
+    endDate: addDays(40),
+    isActive: true,
+  },
+];
 
 async function cleanObsoleteAccountsAndRoles() {
   const obsoleteUsers = await prisma.user.findMany({
@@ -1290,9 +1418,53 @@ async function seedBaseData() {
     doctors.push(doctor);
   }
 
+  await cleanGeneratedSampleData();
+
+  const activeServiceSlugs = services.map((service) => service.slug);
+  const serviceIdsBySlug = new Map(
+    (
+      await prisma.service.findMany({
+        where: { slug: { in: activeServiceSlugs } },
+        select: { id: true, slug: true },
+      })
+    ).map((service) => [service.slug, service.id]),
+  );
+
+  for (const [obsoleteSlug, fallbackSlug] of Object.entries(
+    obsoleteServiceSlugFallbacks,
+  )) {
+    const fallbackId = serviceIdsBySlug.get(fallbackSlug);
+    if (!fallbackId) continue;
+
+    const obsoleteService = await prisma.service.findUnique({
+      where: { slug: obsoleteSlug },
+      select: { id: true },
+    });
+
+    if (!obsoleteService) continue;
+
+    await prisma.appointment.updateMany({
+      where: { serviceId: obsoleteService.id },
+      data: { serviceId: fallbackId, treatmentMethodId: null },
+    });
+    await prisma.clinicalCase.updateMany({
+      where: { serviceId: obsoleteService.id },
+      data: { serviceId: fallbackId },
+    });
+  }
+
+  await prisma.service.deleteMany({
+    where: {
+      OR: [{ slug: { notIn: activeServiceSlugs } }, { slug: null }],
+    },
+  });
+
+  await prisma.treatmentMethod.deleteMany({});
+
   const createdServices: Array<{
     id: string;
     name: string;
+    slug: string | null;
     basePrice: { toString(): string };
   }> = [];
   for (const serviceSeed of services) {
@@ -1307,6 +1479,7 @@ async function seedBaseData() {
       category: serviceSeed.category,
       name: serviceSeed.name,
       slug: serviceSeed.slug,
+      icon: serviceSeed.icon,
       shortDescription: serviceSeed.shortDescription,
       description: serviceSeed.description,
       thumbnailUrl: serviceSeed.thumbnailUrl,
@@ -1320,6 +1493,7 @@ async function seedBaseData() {
     let service: {
       id: string;
       name: string;
+      slug: string | null;
       basePrice: { toString(): string };
     };
 
@@ -1327,58 +1501,67 @@ async function seedBaseData() {
       service = await prisma.service.update({
         where: { id: existingService.id },
         data: serviceData,
-        select: { id: true, name: true, basePrice: true },
+        select: { id: true, name: true, slug: true, basePrice: true },
       });
     } else {
       service = await prisma.service.create({
         data: serviceData,
-        select: { id: true, name: true, basePrice: true },
+        select: { id: true, name: true, slug: true, basePrice: true },
       });
     }
 
-    await prisma.serviceMedia.deleteMany({
-      where: { serviceId: service.id },
-    });
-    await prisma.serviceProcedureStep.deleteMany({
-      where: { serviceId: service.id },
-    });
-    await prisma.serviceFaq.deleteMany({
+    await prisma.treatmentMethod.deleteMany({
       where: { serviceId: service.id },
     });
 
-    const serviceContent = serviceContentBySlug[serviceSeed.slug];
-    await prisma.serviceMedia.createMany({
-      data: serviceContent.media.map((media, mediaIndex) => ({
-        serviceId: service.id,
-        url: media.url,
-        alt: media.alt,
-        type: media.type,
-        sortOrder: mediaIndex + 1,
-      })),
-    });
-    await prisma.serviceProcedureStep.createMany({
-      data: serviceContent.steps.map(
-        ([title, description, durationMinutes], stepIndex) => ({
+    const methodsData = treatmentMethodsBySlug[serviceSeed.slug] || [];
+    for (let index = 0; index < methodsData.length; index++) {
+      const tm = methodsData[index];
+      const methodSeed = {
+        ...tm,
+        ...(treatmentMethodSeedOverrides[tm.slug] ?? {}),
+      };
+      await prisma.treatmentMethod.create({
+        data: {
           serviceId: service.id,
-          stepOrder: stepIndex + 1,
-          title,
-          description,
-          durationMinutes,
-        }),
-      ),
-    });
-    await prisma.serviceFaq.createMany({
-      data: serviceContent.faqs.map(([question, answer], faqIndex) => ({
-        serviceId: service.id,
-        question,
-        answer,
-        sortOrder: faqIndex + 1,
-      })),
-    });
+          name: methodSeed.name,
+          slug: methodSeed.slug,
+          description: methodSeed.description,
+          basePrice: methodSeed.basePrice,
+          durationMinutes: methodSeed.durationMinutes,
+          displayOrder: index + 1,
+          isActive: true,
+          media: {
+            create: tm.media.map((m, mIndex) => ({
+              url: m.url,
+              alt: m.alt,
+              type: m.type,
+              sortOrder: mIndex + 1,
+            })),
+          },
+          procedureSteps: {
+            create: tm.steps.map(([title, description, durationMinutes], stepIndex) => ({
+              stepOrder: stepIndex + 1,
+              title,
+              description,
+              durationMinutes,
+            })),
+          },
+          faqs: {
+            create: tm.faqs.map(([question, answer], faqIndex) => ({
+              question,
+              answer,
+              sortOrder: faqIndex + 1,
+            })),
+          },
+        },
+      });
+    }
 
     createdServices.push(service);
   }
 
+  await prisma.promotion.deleteMany({});
   const createdPromotions: Array<{ id: string }> = [];
   for (const promotion of promotions) {
     createdPromotions.push(
@@ -1445,6 +1628,20 @@ async function seedRelatedData(
 ) {
   await cleanGeneratedSampleData();
 
+  const servicesBySlug = Object.fromEntries(
+    context.services.map((s) => [s.slug, s]),
+  );
+  const servicesById = Object.fromEntries(
+    context.services.map((s) => [s.id, s]),
+  );
+  const seededTreatmentMethods = await prisma.treatmentMethod.findMany({
+    where: { serviceId: { in: context.services.map((service) => service.id) } },
+    select: { id: true, slug: true, serviceId: true },
+  });
+  const treatmentMethodsBySlug = Object.fromEntries(
+    seededTreatmentMethods.map((method) => [method.slug, method]),
+  );
+
   for (let index = 0; index < 10; index += 1) {
     await prisma.doctorAvailability.create({
       data: {
@@ -1491,16 +1688,16 @@ async function seedRelatedData(
 
   // Hàng đợi lễ tân: ưu tiên hôm nay với đủ trạng thái thao tác
   const receptionistAppointments = [
-    { day: 0, hour: 8, minute: 0, status: 'PENDING' as const, patient: 0, doctor: 0, service: 0 },
-    { day: 0, hour: 8, minute: 30, status: 'CONFIRMED' as const, patient: 1, doctor: 1, service: 1 },
-    { day: 0, hour: 9, minute: 0, status: 'CHECKED_IN' as const, patient: 2, doctor: 0, service: 2 },
-    { day: 0, hour: 10, minute: 0, status: 'IN_PROGRESS' as const, patient: 3, doctor: 1, service: 3 },
-    { day: 0, hour: 11, minute: 0, status: 'COMPLETED' as const, patient: 4, doctor: 0, service: 4 },
-    { day: 0, hour: 14, minute: 0, status: 'CONFIRMED' as const, patient: 5, doctor: 1, service: 5 },
-    { day: 0, hour: 15, minute: 0, status: 'PENDING' as const, patient: 6, doctor: 0, service: 6 },
-    { day: -1, hour: 9, minute: 0, status: 'COMPLETED' as const, patient: 7, doctor: 1, service: 7 },
-    { day: 1, hour: 9, minute: 30, status: 'CONFIRMED' as const, patient: 8, doctor: 0, service: 8 },
-    { day: 2, hour: 10, minute: 0, status: 'PENDING' as const, patient: 9, doctor: 1, service: 9 },
+    { day: 0, hour: 8, minute: 0, status: 'PENDING' as const, patient: 0, doctor: 0, serviceSlug: 'trong-rang-implant', methodSlug: 'implant-single' },
+    { day: 0, hour: 8, minute: 30, status: 'CONFIRMED' as const, patient: 1, doctor: 1, serviceSlug: 'boc-rang-su', methodSlug: 'crown-zirconia' },
+    { day: 0, hour: 9, minute: 0, status: 'CHECKED_IN' as const, patient: 2, doctor: 0, serviceSlug: 'dan-su-veneer', methodSlug: 'veneer-emax' },
+    { day: 0, hour: 10, minute: 0, status: 'IN_PROGRESS' as const, patient: 3, doctor: 1, serviceSlug: 'nieng-rang', methodSlug: 'clear-aligner-full' },
+    { day: 0, hour: 11, minute: 0, status: 'COMPLETED' as const, patient: 4, doctor: 0, serviceSlug: 'nieng-rang-mac-cai', methodSlug: 'braces-metal' },
+    { day: 0, hour: 14, minute: 0, status: 'CONFIRMED' as const, patient: 5, doctor: 1, serviceSlug: 'nho-rang-khon', methodSlug: 'wisdom-tooth-lower' },
+    { day: 0, hour: 15, minute: 0, status: 'PENDING' as const, patient: 6, doctor: 0, serviceSlug: 'nha-khoa-tong-quat', methodSlug: 'cleaning-ultrasonic-standard' },
+    { day: -1, hour: 9, minute: 0, status: 'COMPLETED' as const, patient: 7, doctor: 1, serviceSlug: 'nha-khoa-tre-em', methodSlug: 'kids-fluoride-varnish' },
+    { day: 1, hour: 9, minute: 30, status: 'CONFIRMED' as const, patient: 8, doctor: 0, serviceSlug: 'trong-rang-implant', methodSlug: 'implant-multiple' },
+    { day: 2, hour: 10, minute: 0, status: 'PENDING' as const, patient: 9, doctor: 1, serviceSlug: 'boc-rang-su', methodSlug: 'crown-emax' },
   ];
 
   const bookingSources = [
@@ -1514,7 +1711,8 @@ async function seedRelatedData(
   for (let index = 0; index < receptionistAppointments.length; index += 1) {
     const row = receptionistAppointments[index];
     const scheduledAt = atLocalDay(row.day, row.hour, row.minute);
-    const service = context.services[row.service % context.services.length];
+    const service = servicesBySlug[row.serviceSlug];
+    const treatmentMethod = treatmentMethodsBySlug[row.methodSlug];
     const appointmentStatus = row.status;
 
     appointments.push(
@@ -1524,6 +1722,7 @@ async function seedRelatedData(
           patientId: context.patients[row.patient].id,
           doctorId: context.doctors[row.doctor % context.doctors.length].id,
           serviceId: service.id,
+          treatmentMethodId: treatmentMethod?.id ?? null,
           scheduledAt,
           endAt: new Date(scheduledAt.getTime() + 45 * 60 * 1000),
           status: appointmentStatus,
@@ -1561,8 +1760,22 @@ async function seedRelatedData(
     );
   }
 
+  const treatmentPlanSlugs = [
+    'trong-rang-implant',
+    'boc-rang-su',
+    'dan-su-veneer',
+    'nieng-rang',
+    'nieng-rang-mac-cai',
+    'nho-rang-khon',
+    'nha-khoa-tong-quat',
+    'nha-khoa-tre-em',
+    'trong-rang-implant',
+    'boc-rang-su',
+  ];
   const treatmentPlans: Array<{ id: string }> = [];
   for (let index = 0; index < 10; index += 1) {
+    const serviceSlug = treatmentPlanSlugs[index];
+    const service = servicesBySlug[serviceSlug];
     treatmentPlans.push(
       await prisma.treatmentPlan.create({
         data: {
@@ -1582,9 +1795,9 @@ async function seedRelatedData(
           expectedEndDate: addDays(index + 30),
           items: [
             {
-              service: context.services[index].name,
+              service: service.name,
               tooth: `${11 + index}`,
-              estimatedCost: context.services[index].basePrice.toString(),
+              estimatedCost: service.basePrice.toString(),
             },
           ],
         },
@@ -1732,7 +1945,9 @@ async function seedRelatedData(
     'CANCELLED',
   ] as const;
   for (let index = 0; index < 10; index += 1) {
-    const subtotal = Number(context.services[index].basePrice.toString());
+    const appointment = appointments[index];
+    const service = servicesById[appointment.serviceId];
+    const subtotal = Number(service.basePrice.toString());
     const discountAmount = index % 2 === 0 ? Math.round(subtotal * 0.05) : 0;
     const status = invoiceStatuses[index];
     invoices.push(
@@ -1740,13 +1955,16 @@ async function seedRelatedData(
         data: {
           invoiceCode: `INV-SEED-${String(index + 1).padStart(3, '0')}`,
           patientId: context.patients[index].id,
-          appointmentId: appointments[index].id,
-          promotionId: index % 2 === 0 ? context.promotions[index].id : null,
+          appointmentId: appointment.id,
+          promotionId:
+            index % 2 === 0
+              ? context.promotions[index % context.promotions.length].id
+              : null,
           items: [
             {
-              serviceId: context.services[index].id,
-              name: context.services[index].name,
-              description: context.services[index].name,
+              serviceId: service.id,
+              name: service.name,
+              description: service.name,
               quantity: 1,
               qty: 1,
               unitPrice: subtotal,
@@ -1762,7 +1980,7 @@ async function seedRelatedData(
           issuedAt:
             status === 'ISSUED' || status === 'PARTIALLY_PAID'
               ? atLocalDay(0, 12, 0)
-              : appointments[index].scheduledAt,
+              : appointment.scheduledAt,
           createdBy: context.receptionistUser.id,
         },
         select: { id: true, finalAmount: true },

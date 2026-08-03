@@ -4,9 +4,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { PatientPageSkeleton } from "@/components/dashboard/common/PatientSkeleton";
-import { getDoctors, getDoctorBullets, type HomeDoctorCard } from "@/components/dashboard/home/api";
-import { getPatientServices } from "@/components/dashboard/service/api";
+import { PatientPageSkeleton } from "@/features/dashboard/common/PatientSkeleton";
+import { getDoctors, getDoctorBullets, type HomeDoctorCard } from "@/features/dashboard/home/api";
+import { getPatientServices } from "@/features/dashboard/service/api";
 
 function getInitials(name: string) {
   return name

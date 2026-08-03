@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, type ReactNode } from "react";
-import { apiRefresh } from "@/components/auth/api";
-import { DashboardIcon } from "@/components/dashboard/common/DashboardIcon";
-import { DashboardLogoutButton } from "@/components/dashboard/common/DashboardLogoutButton";
-import { PatientPageSkeleton } from "@/components/dashboard/common/PatientSkeleton";
-import { apiGetPatientProfile } from "@/components/dashboard/profile/api";
-import { PatientProfileEditor } from "@/components/dashboard/profile/components/PatientProfileEditor";
-import type { PatientProfileUser } from "@/components/dashboard/profile/types";
+import { apiRefresh } from "@/features/auth/api";
+import { DashboardIcon } from "@/features/dashboard/common/DashboardIcon";
+import { DashboardLogoutButton } from "@/features/dashboard/common/DashboardLogoutButton";
+import { PatientPageSkeleton } from "@/features/dashboard/common/PatientSkeleton";
+import { apiGetPatientProfile } from "@/features/dashboard/profile/api";
+import { PatientProfileEditor } from "@/features/dashboard/profile/components/PatientProfileEditor";
+import type { PatientProfileUser } from "@/features/dashboard/profile/types";
 import {
   login,
   logout,
@@ -90,9 +90,8 @@ function Field({ label, value }: { label: string; value?: ReactNode }) {
 function StatusBadge({ active }: { active: boolean }) {
   return (
     <span
-      className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${
-        active ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"
-      }`}
+      className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${active ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"
+        }`}
     >
       {active ? "Đang hoạt động" : "Tạm khóa"}
     </span>

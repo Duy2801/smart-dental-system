@@ -1,17 +1,20 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { DashboardIcon } from "@/components/dashboard/common/DashboardIcon";
-import { DashboardFooterClinicInfo } from "@/components/dashboard/common/DashboardFooterClinicInfo";
-import { DashboardNav } from "@/components/dashboard/common/DashboardNav";
-import { ScrollRevealProvider } from "@/components/dashboard/common/ScrollReveal";
-import { ChatbotWidget } from "@/components/dashboard/chatbot/ChatbotWidget";
+import { DashboardIcon } from "@/features/dashboard/common/DashboardIcon";
+import { DashboardFooterClinicInfo } from "@/features/dashboard/common/DashboardFooterClinicInfo";
+import { DashboardNav } from "@/features/dashboard/common/DashboardNav";
+import { ScrollRevealProvider } from "@/features/dashboard/common/ScrollReveal";
+import { PatientBottomNav } from "@/features/dashboard/common/PatientBottomNav";
+import { ChatbotWidget } from "@/features/dashboard/chatbot/ChatbotWidget";
+import { ROUTES, FOOTER_LINKS } from "@/features/dashboard/common/routes";
+import { T } from "@/features/dashboard/common/typography";
 
 function DashboardHeader() {
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur">
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-slate-200/80 bg-white/95 shadow-sm backdrop-blur">
       <div className="mx-auto grid h-[76px] w-full max-w-[1360px] grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center px-4 sm:px-6 lg:px-8">
-        <Link href="/home" className="flex min-w-0 items-center gap-3 text-[#0863c5]">
+        <Link href={ROUTES.home} className="flex min-w-0 items-center gap-3 text-[#0863c5]">
           <span className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-full bg-white shadow-sm ring-1 ring-slate-200">
             <Image
               src="/clinic-logo.png"
@@ -22,14 +25,14 @@ function DashboardHeader() {
               priority
             />
           </span>
-          <span className="truncate text-[17px] font-extrabold leading-none">Smart Dental System</span>
+          <span className={T.brandName}>Smart Dental System</span>
         </Link>
 
         <DashboardNav />
 
         <div className="flex items-center justify-end gap-2 sm:gap-3">
           <Link
-            href="/notification"
+            href={ROUTES.notification}
             aria-label="Thông báo"
             className="relative grid h-11 w-11 place-items-center rounded-full text-slate-500 transition hover:bg-blue-50 hover:text-[#0863c5]"
           >
@@ -37,7 +40,7 @@ function DashboardHeader() {
             <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full border-2 border-white bg-rose-500" />
           </Link>
           <Link
-            href="/profile"
+            href={ROUTES.profile}
             aria-label="Hồ sơ cá nhân"
             className="grid h-11 w-11 place-items-center rounded-full bg-gradient-to-br from-blue-100 to-cyan-100 text-sm font-bold text-[#0863c5] ring-2 ring-white shadow-sm"
           >
@@ -55,8 +58,8 @@ function DashboardFooter() {
       <div className="mx-auto w-full max-w-[1360px] px-4 py-8 text-xs text-slate-600 sm:px-6 lg:px-8">
         <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-4 pb-6 border-b border-slate-100">
           <div className="space-y-2">
-            <p className="font-extrabold text-[#0058bc] text-sm">Smart Dental System</p>
-            <p className="text-slate-500 text-[11px] leading-relaxed">
+            <p className={T.brandNameFooter}>Smart Dental System</p>
+            <p className={T.caption}>
               Hệ thống nha khoa kỹ thuật số chuẩn quốc tế, ứng dụng AI chẩn đoán và điều trị chuyên sâu.
             </p>
           </div>
@@ -66,9 +69,11 @@ function DashboardFooter() {
         <div className="flex flex-col gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between text-[11px] text-slate-500">
           <p>© 2026 Smart Dental System. Chăm sóc nụ cười bằng công nghệ AI.</p>
           <div className="flex gap-5">
-            <Link href="/contact" className="hover:text-[#0863c5]">Hỗ trợ</Link>
-            <Link href="/privacy" className="hover:text-[#0863c5]">Bảo mật</Link>
-            <Link href="/terms" className="hover:text-[#0863c5]">Điều khoản</Link>
+            {FOOTER_LINKS.map((link) => (
+              <Link key={link.href} href={link.href} className="hover:text-[#0863c5]">
+                {link.label}
+              </Link>
+            ))}
           </div>
         </div>
       </div>
@@ -80,8 +85,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-dvh bg-[#f6f8fc] text-slate-900">
       <DashboardHeader />
-      <ScrollRevealProvider>{children}</ScrollRevealProvider>
+      <div className="pt-[76px] pb-[62px] md:pb-0">
+        <ScrollRevealProvider>{children}</ScrollRevealProvider>
+      </div>
       <DashboardFooter />
+      <PatientBottomNav />
       <ChatbotWidget />
     </div>
   );

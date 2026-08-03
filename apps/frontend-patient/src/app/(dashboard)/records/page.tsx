@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { PatientRecordsPageClient } from "@/components/dashboard/records";
+import { PatientRecordsPageClient } from "@/features/dashboard/records";
 
 export const metadata: Metadata = {
   title: "Hồ sơ bệnh án điện tử | Smart Dental",

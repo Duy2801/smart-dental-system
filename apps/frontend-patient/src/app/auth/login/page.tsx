@@ -4,8 +4,8 @@ import { AxiosError } from "axios";
 import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
 import { useState } from "react";
-import { apiLogin } from "@/components/auth/api";
-import { LoginForm } from "@/components/auth";
+import { apiLogin } from "@/features/auth/api";
+import { LoginForm } from "@/features/auth";
 import { login, useAppDispatch } from "@/providers";
 
 const authErrorMessages: Record<string, string> = {

@@ -36,7 +36,7 @@ export type ServiceFaqSumAggregateOutputType = {
 
 export type ServiceFaqMinAggregateOutputType = {
   id: string | null
-  serviceId: string | null
+  treatmentMethodId: string | null
   question: string | null
   answer: string | null
   sortOrder: number | null
@@ -44,7 +44,7 @@ export type ServiceFaqMinAggregateOutputType = {
 
 export type ServiceFaqMaxAggregateOutputType = {
   id: string | null
-  serviceId: string | null
+  treatmentMethodId: string | null
   question: string | null
   answer: string | null
   sortOrder: number | null
@@ -52,7 +52,7 @@ export type ServiceFaqMaxAggregateOutputType = {
 
 export type ServiceFaqCountAggregateOutputType = {
   id: number
-  serviceId: number
+  treatmentMethodId: number
   question: number
   answer: number
   sortOrder: number
@@ -70,7 +70,7 @@ export type ServiceFaqSumAggregateInputType = {
 
 export type ServiceFaqMinAggregateInputType = {
   id?: true
-  serviceId?: true
+  treatmentMethodId?: true
   question?: true
   answer?: true
   sortOrder?: true
@@ -78,7 +78,7 @@ export type ServiceFaqMinAggregateInputType = {
 
 export type ServiceFaqMaxAggregateInputType = {
   id?: true
-  serviceId?: true
+  treatmentMethodId?: true
   question?: true
   answer?: true
   sortOrder?: true
@@ -86,7 +86,7 @@ export type ServiceFaqMaxAggregateInputType = {
 
 export type ServiceFaqCountAggregateInputType = {
   id?: true
-  serviceId?: true
+  treatmentMethodId?: true
   question?: true
   answer?: true
   sortOrder?: true
@@ -181,7 +181,7 @@ export type ServiceFaqGroupByArgs<ExtArgs extends runtime.Types.Extensions.Inter
 
 export type ServiceFaqGroupByOutputType = {
   id: string
-  serviceId: string
+  treatmentMethodId: string
   question: string
   answer: string
   sortOrder: number
@@ -212,20 +212,20 @@ export type ServiceFaqWhereInput = {
   OR?: Prisma.ServiceFaqWhereInput[]
   NOT?: Prisma.ServiceFaqWhereInput | Prisma.ServiceFaqWhereInput[]
   id?: Prisma.UuidFilter<"ServiceFaq"> | string
-  serviceId?: Prisma.UuidFilter<"ServiceFaq"> | string
+  treatmentMethodId?: Prisma.UuidFilter<"ServiceFaq"> | string
   question?: Prisma.StringFilter<"ServiceFaq"> | string
   answer?: Prisma.StringFilter<"ServiceFaq"> | string
   sortOrder?: Prisma.IntFilter<"ServiceFaq"> | number
-  service?: Prisma.XOR<Prisma.ServiceScalarRelationFilter, Prisma.ServiceWhereInput>
+  treatmentMethod?: Prisma.XOR<Prisma.TreatmentMethodScalarRelationFilter, Prisma.TreatmentMethodWhereInput>
 }
 
 export type ServiceFaqOrderByWithRelationInput = {
   id?: Prisma.SortOrder
-  serviceId?: Prisma.SortOrder
+  treatmentMethodId?: Prisma.SortOrder
   question?: Prisma.SortOrder
   answer?: Prisma.SortOrder
   sortOrder?: Prisma.SortOrder
-  service?: Prisma.ServiceOrderByWithRelationInput
+  treatmentMethod?: Prisma.TreatmentMethodOrderByWithRelationInput
 }
 
 export type ServiceFaqWhereUniqueInput = Prisma.AtLeast<{
@@ -233,16 +233,16 @@ export type ServiceFaqWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.ServiceFaqWhereInput | Prisma.ServiceFaqWhereInput[]
   OR?: Prisma.ServiceFaqWhereInput[]
   NOT?: Prisma.ServiceFaqWhereInput | Prisma.ServiceFaqWhereInput[]
-  serviceId?: Prisma.UuidFilter<"ServiceFaq"> | string
+  treatmentMethodId?: Prisma.UuidFilter<"ServiceFaq"> | string
   question?: Prisma.StringFilter<"ServiceFaq"> | string
   answer?: Prisma.StringFilter<"ServiceFaq"> | string
   sortOrder?: Prisma.IntFilter<"ServiceFaq"> | number
-  service?: Prisma.XOR<Prisma.ServiceScalarRelationFilter, Prisma.ServiceWhereInput>
+  treatmentMethod?: Prisma.XOR<Prisma.TreatmentMethodScalarRelationFilter, Prisma.TreatmentMethodWhereInput>
 }, "id">
 
 export type ServiceFaqOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
-  serviceId?: Prisma.SortOrder
+  treatmentMethodId?: Prisma.SortOrder
   question?: Prisma.SortOrder
   answer?: Prisma.SortOrder
   sortOrder?: Prisma.SortOrder
@@ -258,7 +258,7 @@ export type ServiceFaqScalarWhereWithAggregatesInput = {
   OR?: Prisma.ServiceFaqScalarWhereWithAggregatesInput[]
   NOT?: Prisma.ServiceFaqScalarWhereWithAggregatesInput | Prisma.ServiceFaqScalarWhereWithAggregatesInput[]
   id?: Prisma.UuidWithAggregatesFilter<"ServiceFaq"> | string
-  serviceId?: Prisma.UuidWithAggregatesFilter<"ServiceFaq"> | string
+  treatmentMethodId?: Prisma.UuidWithAggregatesFilter<"ServiceFaq"> | string
   question?: Prisma.StringWithAggregatesFilter<"ServiceFaq"> | string
   answer?: Prisma.StringWithAggregatesFilter<"ServiceFaq"> | string
   sortOrder?: Prisma.IntWithAggregatesFilter<"ServiceFaq"> | number
@@ -269,12 +269,12 @@ export type ServiceFaqCreateInput = {
   question: string
   answer: string
   sortOrder?: number
-  service: Prisma.ServiceCreateNestedOneWithoutFaqsInput
+  treatmentMethod: Prisma.TreatmentMethodCreateNestedOneWithoutFaqsInput
 }
 
 export type ServiceFaqUncheckedCreateInput = {
   id?: string
-  serviceId: string
+  treatmentMethodId: string
   question: string
   answer: string
   sortOrder?: number
@@ -285,12 +285,12 @@ export type ServiceFaqUpdateInput = {
   question?: Prisma.StringFieldUpdateOperationsInput | string
   answer?: Prisma.StringFieldUpdateOperationsInput | string
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
-  service?: Prisma.ServiceUpdateOneRequiredWithoutFaqsNestedInput
+  treatmentMethod?: Prisma.TreatmentMethodUpdateOneRequiredWithoutFaqsNestedInput
 }
 
 export type ServiceFaqUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  serviceId?: Prisma.StringFieldUpdateOperationsInput | string
+  treatmentMethodId?: Prisma.StringFieldUpdateOperationsInput | string
   question?: Prisma.StringFieldUpdateOperationsInput | string
   answer?: Prisma.StringFieldUpdateOperationsInput | string
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
@@ -298,7 +298,7 @@ export type ServiceFaqUncheckedUpdateInput = {
 
 export type ServiceFaqCreateManyInput = {
   id?: string
-  serviceId: string
+  treatmentMethodId: string
   question: string
   answer: string
   sortOrder?: number
@@ -313,7 +313,7 @@ export type ServiceFaqUpdateManyMutationInput = {
 
 export type ServiceFaqUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  serviceId?: Prisma.StringFieldUpdateOperationsInput | string
+  treatmentMethodId?: Prisma.StringFieldUpdateOperationsInput | string
   question?: Prisma.StringFieldUpdateOperationsInput | string
   answer?: Prisma.StringFieldUpdateOperationsInput | string
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
@@ -331,7 +331,7 @@ export type ServiceFaqOrderByRelationAggregateInput = {
 
 export type ServiceFaqCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
-  serviceId?: Prisma.SortOrder
+  treatmentMethodId?: Prisma.SortOrder
   question?: Prisma.SortOrder
   answer?: Prisma.SortOrder
   sortOrder?: Prisma.SortOrder
@@ -343,7 +343,7 @@ export type ServiceFaqAvgOrderByAggregateInput = {
 
 export type ServiceFaqMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
-  serviceId?: Prisma.SortOrder
+  treatmentMethodId?: Prisma.SortOrder
   question?: Prisma.SortOrder
   answer?: Prisma.SortOrder
   sortOrder?: Prisma.SortOrder
@@ -351,7 +351,7 @@ export type ServiceFaqMaxOrderByAggregateInput = {
 
 export type ServiceFaqMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
-  serviceId?: Prisma.SortOrder
+  treatmentMethodId?: Prisma.SortOrder
   question?: Prisma.SortOrder
   answer?: Prisma.SortOrder
   sortOrder?: Prisma.SortOrder
@@ -361,86 +361,86 @@ export type ServiceFaqSumOrderByAggregateInput = {
   sortOrder?: Prisma.SortOrder
 }
 
-export type ServiceFaqCreateNestedManyWithoutServiceInput = {
-  create?: Prisma.XOR<Prisma.ServiceFaqCreateWithoutServiceInput, Prisma.ServiceFaqUncheckedCreateWithoutServiceInput> | Prisma.ServiceFaqCreateWithoutServiceInput[] | Prisma.ServiceFaqUncheckedCreateWithoutServiceInput[]
-  connectOrCreate?: Prisma.ServiceFaqCreateOrConnectWithoutServiceInput | Prisma.ServiceFaqCreateOrConnectWithoutServiceInput[]
-  createMany?: Prisma.ServiceFaqCreateManyServiceInputEnvelope
+export type ServiceFaqCreateNestedManyWithoutTreatmentMethodInput = {
+  create?: Prisma.XOR<Prisma.ServiceFaqCreateWithoutTreatmentMethodInput, Prisma.ServiceFaqUncheckedCreateWithoutTreatmentMethodInput> | Prisma.ServiceFaqCreateWithoutTreatmentMethodInput[] | Prisma.ServiceFaqUncheckedCreateWithoutTreatmentMethodInput[]
+  connectOrCreate?: Prisma.ServiceFaqCreateOrConnectWithoutTreatmentMethodInput | Prisma.ServiceFaqCreateOrConnectWithoutTreatmentMethodInput[]
+  createMany?: Prisma.ServiceFaqCreateManyTreatmentMethodInputEnvelope
   connect?: Prisma.ServiceFaqWhereUniqueInput | Prisma.ServiceFaqWhereUniqueInput[]
 }
 
-export type ServiceFaqUncheckedCreateNestedManyWithoutServiceInput = {
-  create?: Prisma.XOR<Prisma.ServiceFaqCreateWithoutServiceInput, Prisma.ServiceFaqUncheckedCreateWithoutServiceInput> | Prisma.ServiceFaqCreateWithoutServiceInput[] | Prisma.ServiceFaqUncheckedCreateWithoutServiceInput[]
-  connectOrCreate?: Prisma.ServiceFaqCreateOrConnectWithoutServiceInput | Prisma.ServiceFaqCreateOrConnectWithoutServiceInput[]
-  createMany?: Prisma.ServiceFaqCreateManyServiceInputEnvelope
+export type ServiceFaqUncheckedCreateNestedManyWithoutTreatmentMethodInput = {
+  create?: Prisma.XOR<Prisma.ServiceFaqCreateWithoutTreatmentMethodInput, Prisma.ServiceFaqUncheckedCreateWithoutTreatmentMethodInput> | Prisma.ServiceFaqCreateWithoutTreatmentMethodInput[] | Prisma.ServiceFaqUncheckedCreateWithoutTreatmentMethodInput[]
+  connectOrCreate?: Prisma.ServiceFaqCreateOrConnectWithoutTreatmentMethodInput | Prisma.ServiceFaqCreateOrConnectWithoutTreatmentMethodInput[]
+  createMany?: Prisma.ServiceFaqCreateManyTreatmentMethodInputEnvelope
   connect?: Prisma.ServiceFaqWhereUniqueInput | Prisma.ServiceFaqWhereUniqueInput[]
 }
 
-export type ServiceFaqUpdateManyWithoutServiceNestedInput = {
-  create?: Prisma.XOR<Prisma.ServiceFaqCreateWithoutServiceInput, Prisma.ServiceFaqUncheckedCreateWithoutServiceInput> | Prisma.ServiceFaqCreateWithoutServiceInput[] | Prisma.ServiceFaqUncheckedCreateWithoutServiceInput[]
-  connectOrCreate?: Prisma.ServiceFaqCreateOrConnectWithoutServiceInput | Prisma.ServiceFaqCreateOrConnectWithoutServiceInput[]
-  upsert?: Prisma.ServiceFaqUpsertWithWhereUniqueWithoutServiceInput | Prisma.ServiceFaqUpsertWithWhereUniqueWithoutServiceInput[]
-  createMany?: Prisma.ServiceFaqCreateManyServiceInputEnvelope
+export type ServiceFaqUpdateManyWithoutTreatmentMethodNestedInput = {
+  create?: Prisma.XOR<Prisma.ServiceFaqCreateWithoutTreatmentMethodInput, Prisma.ServiceFaqUncheckedCreateWithoutTreatmentMethodInput> | Prisma.ServiceFaqCreateWithoutTreatmentMethodInput[] | Prisma.ServiceFaqUncheckedCreateWithoutTreatmentMethodInput[]
+  connectOrCreate?: Prisma.ServiceFaqCreateOrConnectWithoutTreatmentMethodInput | Prisma.ServiceFaqCreateOrConnectWithoutTreatmentMethodInput[]
+  upsert?: Prisma.ServiceFaqUpsertWithWhereUniqueWithoutTreatmentMethodInput | Prisma.ServiceFaqUpsertWithWhereUniqueWithoutTreatmentMethodInput[]
+  createMany?: Prisma.ServiceFaqCreateManyTreatmentMethodInputEnvelope
   set?: Prisma.ServiceFaqWhereUniqueInput | Prisma.ServiceFaqWhereUniqueInput[]
   disconnect?: Prisma.ServiceFaqWhereUniqueInput | Prisma.ServiceFaqWhereUniqueInput[]
   delete?: Prisma.ServiceFaqWhereUniqueInput | Prisma.ServiceFaqWhereUniqueInput[]
   connect?: Prisma.ServiceFaqWhereUniqueInput | Prisma.ServiceFaqWhereUniqueInput[]
-  update?: Prisma.ServiceFaqUpdateWithWhereUniqueWithoutServiceInput | Prisma.ServiceFaqUpdateWithWhereUniqueWithoutServiceInput[]
-  updateMany?: Prisma.ServiceFaqUpdateManyWithWhereWithoutServiceInput | Prisma.ServiceFaqUpdateManyWithWhereWithoutServiceInput[]
+  update?: Prisma.ServiceFaqUpdateWithWhereUniqueWithoutTreatmentMethodInput | Prisma.ServiceFaqUpdateWithWhereUniqueWithoutTreatmentMethodInput[]
+  updateMany?: Prisma.ServiceFaqUpdateManyWithWhereWithoutTreatmentMethodInput | Prisma.ServiceFaqUpdateManyWithWhereWithoutTreatmentMethodInput[]
   deleteMany?: Prisma.ServiceFaqScalarWhereInput | Prisma.ServiceFaqScalarWhereInput[]
 }
 
-export type ServiceFaqUncheckedUpdateManyWithoutServiceNestedInput = {
-  create?: Prisma.XOR<Prisma.ServiceFaqCreateWithoutServiceInput, Prisma.ServiceFaqUncheckedCreateWithoutServiceInput> | Prisma.ServiceFaqCreateWithoutServiceInput[] | Prisma.ServiceFaqUncheckedCreateWithoutServiceInput[]
-  connectOrCreate?: Prisma.ServiceFaqCreateOrConnectWithoutServiceInput | Prisma.ServiceFaqCreateOrConnectWithoutServiceInput[]
-  upsert?: Prisma.ServiceFaqUpsertWithWhereUniqueWithoutServiceInput | Prisma.ServiceFaqUpsertWithWhereUniqueWithoutServiceInput[]
-  createMany?: Prisma.ServiceFaqCreateManyServiceInputEnvelope
+export type ServiceFaqUncheckedUpdateManyWithoutTreatmentMethodNestedInput = {
+  create?: Prisma.XOR<Prisma.ServiceFaqCreateWithoutTreatmentMethodInput, Prisma.ServiceFaqUncheckedCreateWithoutTreatmentMethodInput> | Prisma.ServiceFaqCreateWithoutTreatmentMethodInput[] | Prisma.ServiceFaqUncheckedCreateWithoutTreatmentMethodInput[]
+  connectOrCreate?: Prisma.ServiceFaqCreateOrConnectWithoutTreatmentMethodInput | Prisma.ServiceFaqCreateOrConnectWithoutTreatmentMethodInput[]
+  upsert?: Prisma.ServiceFaqUpsertWithWhereUniqueWithoutTreatmentMethodInput | Prisma.ServiceFaqUpsertWithWhereUniqueWithoutTreatmentMethodInput[]
+  createMany?: Prisma.ServiceFaqCreateManyTreatmentMethodInputEnvelope
   set?: Prisma.ServiceFaqWhereUniqueInput | Prisma.ServiceFaqWhereUniqueInput[]
   disconnect?: Prisma.ServiceFaqWhereUniqueInput | Prisma.ServiceFaqWhereUniqueInput[]
   delete?: Prisma.ServiceFaqWhereUniqueInput | Prisma.ServiceFaqWhereUniqueInput[]
   connect?: Prisma.ServiceFaqWhereUniqueInput | Prisma.ServiceFaqWhereUniqueInput[]
-  update?: Prisma.ServiceFaqUpdateWithWhereUniqueWithoutServiceInput | Prisma.ServiceFaqUpdateWithWhereUniqueWithoutServiceInput[]
-  updateMany?: Prisma.ServiceFaqUpdateManyWithWhereWithoutServiceInput | Prisma.ServiceFaqUpdateManyWithWhereWithoutServiceInput[]
+  update?: Prisma.ServiceFaqUpdateWithWhereUniqueWithoutTreatmentMethodInput | Prisma.ServiceFaqUpdateWithWhereUniqueWithoutTreatmentMethodInput[]
+  updateMany?: Prisma.ServiceFaqUpdateManyWithWhereWithoutTreatmentMethodInput | Prisma.ServiceFaqUpdateManyWithWhereWithoutTreatmentMethodInput[]
   deleteMany?: Prisma.ServiceFaqScalarWhereInput | Prisma.ServiceFaqScalarWhereInput[]
 }
 
-export type ServiceFaqCreateWithoutServiceInput = {
+export type ServiceFaqCreateWithoutTreatmentMethodInput = {
   id?: string
   question: string
   answer: string
   sortOrder?: number
 }
 
-export type ServiceFaqUncheckedCreateWithoutServiceInput = {
+export type ServiceFaqUncheckedCreateWithoutTreatmentMethodInput = {
   id?: string
   question: string
   answer: string
   sortOrder?: number
 }
 
-export type ServiceFaqCreateOrConnectWithoutServiceInput = {
+export type ServiceFaqCreateOrConnectWithoutTreatmentMethodInput = {
   where: Prisma.ServiceFaqWhereUniqueInput
-  create: Prisma.XOR<Prisma.ServiceFaqCreateWithoutServiceInput, Prisma.ServiceFaqUncheckedCreateWithoutServiceInput>
+  create: Prisma.XOR<Prisma.ServiceFaqCreateWithoutTreatmentMethodInput, Prisma.ServiceFaqUncheckedCreateWithoutTreatmentMethodInput>
 }
 
-export type ServiceFaqCreateManyServiceInputEnvelope = {
-  data: Prisma.ServiceFaqCreateManyServiceInput | Prisma.ServiceFaqCreateManyServiceInput[]
+export type ServiceFaqCreateManyTreatmentMethodInputEnvelope = {
+  data: Prisma.ServiceFaqCreateManyTreatmentMethodInput | Prisma.ServiceFaqCreateManyTreatmentMethodInput[]
   skipDuplicates?: boolean
 }
 
-export type ServiceFaqUpsertWithWhereUniqueWithoutServiceInput = {
+export type ServiceFaqUpsertWithWhereUniqueWithoutTreatmentMethodInput = {
   where: Prisma.ServiceFaqWhereUniqueInput
-  update: Prisma.XOR<Prisma.ServiceFaqUpdateWithoutServiceInput, Prisma.ServiceFaqUncheckedUpdateWithoutServiceInput>
-  create: Prisma.XOR<Prisma.ServiceFaqCreateWithoutServiceInput, Prisma.ServiceFaqUncheckedCreateWithoutServiceInput>
+  update: Prisma.XOR<Prisma.ServiceFaqUpdateWithoutTreatmentMethodInput, Prisma.ServiceFaqUncheckedUpdateWithoutTreatmentMethodInput>
+  create: Prisma.XOR<Prisma.ServiceFaqCreateWithoutTreatmentMethodInput, Prisma.ServiceFaqUncheckedCreateWithoutTreatmentMethodInput>
 }
 
-export type ServiceFaqUpdateWithWhereUniqueWithoutServiceInput = {
+export type ServiceFaqUpdateWithWhereUniqueWithoutTreatmentMethodInput = {
   where: Prisma.ServiceFaqWhereUniqueInput
-  data: Prisma.XOR<Prisma.ServiceFaqUpdateWithoutServiceInput, Prisma.ServiceFaqUncheckedUpdateWithoutServiceInput>
+  data: Prisma.XOR<Prisma.ServiceFaqUpdateWithoutTreatmentMethodInput, Prisma.ServiceFaqUncheckedUpdateWithoutTreatmentMethodInput>
 }
 
-export type ServiceFaqUpdateManyWithWhereWithoutServiceInput = {
+export type ServiceFaqUpdateManyWithWhereWithoutTreatmentMethodInput = {
   where: Prisma.ServiceFaqScalarWhereInput
-  data: Prisma.XOR<Prisma.ServiceFaqUpdateManyMutationInput, Prisma.ServiceFaqUncheckedUpdateManyWithoutServiceInput>
+  data: Prisma.XOR<Prisma.ServiceFaqUpdateManyMutationInput, Prisma.ServiceFaqUncheckedUpdateManyWithoutTreatmentMethodInput>
 }
 
 export type ServiceFaqScalarWhereInput = {
@@ -448,34 +448,34 @@ export type ServiceFaqScalarWhereInput = {
   OR?: Prisma.ServiceFaqScalarWhereInput[]
   NOT?: Prisma.ServiceFaqScalarWhereInput | Prisma.ServiceFaqScalarWhereInput[]
   id?: Prisma.UuidFilter<"ServiceFaq"> | string
-  serviceId?: Prisma.UuidFilter<"ServiceFaq"> | string
+  treatmentMethodId?: Prisma.UuidFilter<"ServiceFaq"> | string
   question?: Prisma.StringFilter<"ServiceFaq"> | string
   answer?: Prisma.StringFilter<"ServiceFaq"> | string
   sortOrder?: Prisma.IntFilter<"ServiceFaq"> | number
 }
 
-export type ServiceFaqCreateManyServiceInput = {
+export type ServiceFaqCreateManyTreatmentMethodInput = {
   id?: string
   question: string
   answer: string
   sortOrder?: number
 }
 
-export type ServiceFaqUpdateWithoutServiceInput = {
+export type ServiceFaqUpdateWithoutTreatmentMethodInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   question?: Prisma.StringFieldUpdateOperationsInput | string
   answer?: Prisma.StringFieldUpdateOperationsInput | string
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
-export type ServiceFaqUncheckedUpdateWithoutServiceInput = {
+export type ServiceFaqUncheckedUpdateWithoutTreatmentMethodInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   question?: Prisma.StringFieldUpdateOperationsInput | string
   answer?: Prisma.StringFieldUpdateOperationsInput | string
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
-export type ServiceFaqUncheckedUpdateManyWithoutServiceInput = {
+export type ServiceFaqUncheckedUpdateManyWithoutTreatmentMethodInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   question?: Prisma.StringFieldUpdateOperationsInput | string
   answer?: Prisma.StringFieldUpdateOperationsInput | string
@@ -486,58 +486,58 @@ export type ServiceFaqUncheckedUpdateManyWithoutServiceInput = {
 
 export type ServiceFaqSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
-  serviceId?: boolean
+  treatmentMethodId?: boolean
   question?: boolean
   answer?: boolean
   sortOrder?: boolean
-  service?: boolean | Prisma.ServiceDefaultArgs<ExtArgs>
+  treatmentMethod?: boolean | Prisma.TreatmentMethodDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["serviceFaq"]>
 
 export type ServiceFaqSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
-  serviceId?: boolean
+  treatmentMethodId?: boolean
   question?: boolean
   answer?: boolean
   sortOrder?: boolean
-  service?: boolean | Prisma.ServiceDefaultArgs<ExtArgs>
+  treatmentMethod?: boolean | Prisma.TreatmentMethodDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["serviceFaq"]>
 
 export type ServiceFaqSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
-  serviceId?: boolean
+  treatmentMethodId?: boolean
   question?: boolean
   answer?: boolean
   sortOrder?: boolean
-  service?: boolean | Prisma.ServiceDefaultArgs<ExtArgs>
+  treatmentMethod?: boolean | Prisma.TreatmentMethodDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["serviceFaq"]>
 
 export type ServiceFaqSelectScalar = {
   id?: boolean
-  serviceId?: boolean
+  treatmentMethodId?: boolean
   question?: boolean
   answer?: boolean
   sortOrder?: boolean
 }
 
-export type ServiceFaqOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "serviceId" | "question" | "answer" | "sortOrder", ExtArgs["result"]["serviceFaq"]>
+export type ServiceFaqOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "treatmentMethodId" | "question" | "answer" | "sortOrder", ExtArgs["result"]["serviceFaq"]>
 export type ServiceFaqInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  service?: boolean | Prisma.ServiceDefaultArgs<ExtArgs>
+  treatmentMethod?: boolean | Prisma.TreatmentMethodDefaultArgs<ExtArgs>
 }
 export type ServiceFaqIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  service?: boolean | Prisma.ServiceDefaultArgs<ExtArgs>
+  treatmentMethod?: boolean | Prisma.TreatmentMethodDefaultArgs<ExtArgs>
 }
 export type ServiceFaqIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  service?: boolean | Prisma.ServiceDefaultArgs<ExtArgs>
+  treatmentMethod?: boolean | Prisma.TreatmentMethodDefaultArgs<ExtArgs>
 }
 
 export type $ServiceFaqPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "ServiceFaq"
   objects: {
-    service: Prisma.$ServicePayload<ExtArgs>
+    treatmentMethod: Prisma.$TreatmentMethodPayload<ExtArgs>
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
-    serviceId: string
+    treatmentMethodId: string
     question: string
     answer: string
     sortOrder: number
@@ -935,7 +935,7 @@ readonly fields: ServiceFaqFieldRefs;
  */
 export interface Prisma__ServiceFaqClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  service<T extends Prisma.ServiceDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ServiceDefaultArgs<ExtArgs>>): Prisma.Prisma__ServiceClient<runtime.Types.Result.GetResult<Prisma.$ServicePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  treatmentMethod<T extends Prisma.TreatmentMethodDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.TreatmentMethodDefaultArgs<ExtArgs>>): Prisma.Prisma__TreatmentMethodClient<runtime.Types.Result.GetResult<Prisma.$TreatmentMethodPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -966,7 +966,7 @@ export interface Prisma__ServiceFaqClient<T, Null = never, ExtArgs extends runti
  */
 export interface ServiceFaqFieldRefs {
   readonly id: Prisma.FieldRef<"ServiceFaq", 'String'>
-  readonly serviceId: Prisma.FieldRef<"ServiceFaq", 'String'>
+  readonly treatmentMethodId: Prisma.FieldRef<"ServiceFaq", 'String'>
   readonly question: Prisma.FieldRef<"ServiceFaq", 'String'>
   readonly answer: Prisma.FieldRef<"ServiceFaq", 'String'>
   readonly sortOrder: Prisma.FieldRef<"ServiceFaq", 'Int'>

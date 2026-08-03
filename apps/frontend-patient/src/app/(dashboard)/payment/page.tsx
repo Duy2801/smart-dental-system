@@ -6,13 +6,13 @@ import {
   PaymentMethods,
   PaymentSummary,
   TransactionHistory,
-} from "@/components/dashboard/payment";
+} from "@/features/dashboard/payment";
 import type {
   PaymentMethod,
   PaymentStatusFilter,
   Transaction,
-} from "@/components/dashboard/payment";
-import { DashboardIcon } from "@/components/dashboard/common/DashboardIcon";
+} from "@/features/dashboard/payment";
+import { DashboardIcon } from "@/features/dashboard/common/DashboardIcon";
 
 const SUBTOTAL = 2_450_000;
 const PROMO_DISCOUNT = 100_000;

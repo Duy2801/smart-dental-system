@@ -53,6 +53,11 @@ export type RolePermission = Prisma.RolePermissionModel
  */
 export type Service = Prisma.ServiceModel
 /**
+ * Model TreatmentMethod
+ * 
+ */
+export type TreatmentMethod = Prisma.TreatmentMethodModel
+/**
  * Model ServiceMedia
  * 
  */

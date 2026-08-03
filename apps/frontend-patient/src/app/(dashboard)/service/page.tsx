@@ -1,4 +1,4 @@
-import { ServiceCatalogExperience } from "@/components/dashboard/service";
+import { ServiceCatalogExperience } from "@/features/dashboard/service";
 
 export default function ServicePage() {
   return <ServiceCatalogExperience />;

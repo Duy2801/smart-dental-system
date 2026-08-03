@@ -3,8 +3,8 @@ import Link from "next/link";
 import {
   DashboardIcon,
   type DashboardIconName,
-} from "@/components/dashboard/common/DashboardIcon";
-import { CountUp } from "@/components/dashboard/common/CountUp";
+} from "@/features/dashboard/common/DashboardIcon";
+import { CountUp } from "@/features/dashboard/common/CountUp";
 import {
   ClinicalCasesSection,
   ClinicLocationSection,
@@ -13,7 +13,7 @@ import {
   HomeHeroSlideshow,
   HomeServicesSection,
   Reveal,
-} from "@/components/dashboard/home";
+} from "@/features/dashboard/home";
 
 export const metadata: Metadata = {
   title: "Nha khoa AI | Clinical Precision & Trust",
@@ -22,45 +22,45 @@ export const metadata: Metadata = {
 
 export default function PatientHomePage() {
   return (
-    <main className="mx-auto w-full max-w-[1360px] space-y-10 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-      <div className="relative left-1/2 w-screen -translate-x-1/2 space-y-6 px-4 sm:px-6 lg:px-12 max-w-[1600px]">
+    <main className="mx-auto w-full max-w-[1360px] space-y-10 px-4 pb-6 pt-0 sm:px-6 sm:pb-8 lg:px-8">
+      <div className="relative left-1/2 w-screen -translate-x-1/2 space-y-8 px-0">
         <HomeHeroSlideshow />
 
-        <section className="grid gap-4 rounded-2xl border border-slate-200/80 bg-white/90 px-6 py-6 shadow-md backdrop-blur sm:grid-cols-2 lg:grid-cols-[repeat(3,1fr)_1px_1.2fr] lg:items-center lg:px-10">
+        <section className="mx-4 grid gap-6 rounded-3xl border border-slate-200/80 bg-white/90 px-7 py-8 shadow-xl shadow-slate-900/10 backdrop-blur sm:mx-6 sm:grid-cols-2 sm:px-10 lg:mx-12 lg:grid-cols-[repeat(3,1fr)_1px_1.2fr] lg:items-center lg:px-14 xl:px-16">
           {[
             ["shield", "ISO 9001:2015", "Chứng nhận quốc tế"],
             ["heart", "Bộ Y Tế", "Giấy phép 0123/BYT"],
             ["sparkles", "Top 10 Nha Khoa", "Giải thưởng 2026"],
           ].map(([icon, title, text]) => (
-            <div key={title} className="flex items-center gap-3">
+            <div key={title} className="flex items-center gap-5">
               <DashboardIcon
                 name={icon as DashboardIconName}
-                className="h-8 w-8 text-[#0058bc]"
+                className="h-11 w-11 text-[#0058bc]"
               />
               <div>
-                <p className="text-xs font-bold text-slate-800">{title}</p>
-                <p className="mt-1 text-[10px] uppercase text-slate-400">
+                <p className="text-base font-extrabold text-slate-800">{title}</p>
+                <p className="mt-2 text-xs font-bold uppercase text-slate-400">
                   {text}
                 </p>
               </div>
             </div>
           ))}
-          <div className="hidden h-10 bg-slate-200 lg:block" />
+          <div className="hidden h-16 bg-slate-200 lg:block" />
           <div className="col-span-2 flex justify-between gap-4 sm:col-span-1">
             <div className="text-center">
-              <strong className="text-xl text-[#0058bc]">
+              <strong className="text-3xl text-[#0058bc]">
                 <CountUp value={10} suffix="K+" />
               </strong>
               <p className="text-[10px] text-slate-500">Khách hàng</p>
             </div>
             <div className="text-center">
-              <strong className="text-xl text-[#0058bc]">
+              <strong className="text-3xl text-[#0058bc]">
                 <CountUp value={15} suffix="+" />
               </strong>
               <p className="text-[10px] text-slate-500">Năm kinh nghiệm</p>
             </div>
             <div className="text-center">
-              <strong className="text-xl text-[#0058bc]">
+              <strong className="text-3xl text-[#0058bc]">
                 <CountUp value={20} suffix="+" />
               </strong>
               <p className="text-[10px] text-slate-500">Chuyên gia</p>

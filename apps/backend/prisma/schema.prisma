@@ -268,6 +268,7 @@ model Service {
   category         String
   name             String
   slug             String?  @unique
+  icon             String?  @map("icon")
   shortDescription String?  @map("short_description") @db.Text
   description      String?  @db.Text
   detailSummary    String?  @map("detail_summary") @db.Text
@@ -291,74 +292,97 @@ model Service {
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
-  appointments   Appointment[]
-  clinicalCases  ClinicalCase[]
-  media          ServiceMedia[]
-  procedureSteps ServiceProcedureStep[]
-  faqs           ServiceFaq[]
+  treatmentMethods TreatmentMethod[]
+  appointments     Appointment[]
+  clinicalCases    ClinicalCase[]
 
   @@index([category, isActive])
   @@index([isFeatured, displayOrder])
   @@map("services")
 }
 
+model TreatmentMethod {
+  id              String   @id @default(uuid()) @db.Uuid
+  serviceId       String   @map("service_id") @db.Uuid
+  name            String
+  slug            String?  @unique
+  description     String?  @db.Text
+  basePrice       Decimal  @map("base_price") @db.Decimal(12, 2)
+  durationMinutes Int?     @map("duration_minutes")
+  displayOrder    Int      @default(0) @map("display_order")
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  service        Service                @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  media          ServiceMedia[]
+  procedureSteps ServiceProcedureStep[]
+  faqs           ServiceFaq[]
+  appointments   Appointment[]
+
+  @@index([serviceId, isActive])
+  @@map("treatment_methods")
+}
+
 model ServiceMedia {
-  id        String   @id @default(uuid()) @db.Uuid
-  serviceId String   @map("service_id") @db.Uuid
-  url       String
-  alt       String?
-  type      String
-  sortOrder Int      @default(0) @map("sort_order")
-  createdAt DateTime @default(now()) @map("created_at")
+  id                String   @id @default(uuid()) @db.Uuid
+  treatmentMethodId String   @map("treatment_method_id") @db.Uuid
+  url               String
+  alt               String?
+  type              String
+  sortOrder         Int      @default(0) @map("sort_order")
+  createdAt         DateTime @default(now()) @map("created_at")
 
-  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  treatmentMethod TreatmentMethod @relation(fields: [treatmentMethodId], references: [id], onDelete: Cascade)
 
-  @@index([serviceId, sortOrder])
+  @@index([treatmentMethodId, sortOrder])
   @@map("service_media")
 }
 
 model ServiceProcedureStep {
-  id              String @id @default(uuid()) @db.Uuid
-  serviceId       String @map("service_id") @db.Uuid
-  stepOrder       Int    @map("step_order")
-  title           String
-  description     String @db.Text
-  durationMinutes Int?   @map("duration_minutes")
+  id                String @id @default(uuid()) @db.Uuid
+  treatmentMethodId String @map("treatment_method_id") @db.Uuid
+  stepOrder         Int    @map("step_order")
+  title             String
+  description       String @db.Text
+  durationMinutes   Int?   @map("duration_minutes")
 
-  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  treatmentMethod TreatmentMethod @relation(fields: [treatmentMethodId], references: [id], onDelete: Cascade)
 
-  @@unique([serviceId, stepOrder])
-  @@index([serviceId])
+  @@unique([treatmentMethodId, stepOrder])
+  @@index([treatmentMethodId])
   @@map("service_procedure_steps")
 }
 
 model ServiceFaq {
-  id        String @id @default(uuid()) @db.Uuid
-  serviceId String @map("service_id") @db.Uuid
-  question  String
-  answer    String @db.Text
-  sortOrder Int    @default(0) @map("sort_order")
+  id                String @id @default(uuid()) @db.Uuid
+  treatmentMethodId String @map("treatment_method_id") @db.Uuid
+  question          String
+  answer            String @db.Text
+  sortOrder         Int    @default(0) @map("sort_order")
 
-  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  treatmentMethod TreatmentMethod @relation(fields: [treatmentMethodId], references: [id], onDelete: Cascade)
 
-  @@index([serviceId, sortOrder])
+  @@index([treatmentMethodId, sortOrder])
   @@map("service_faqs")
 }
 
 model Promotion {
-  id             String       @id @default(uuid()) @db.Uuid
-  code           String       @unique
-  name           String
-  description    String?      @db.Text
-  discountType   DiscountType @map("discount_type")
-  discountValue  Decimal      @map("discount_value") @db.Decimal(12, 2)
-  minOrderAmount Decimal      @default(0) @map("min_order_amount") @db.Decimal(12, 2)
-  maxUses        Int?         @map("max_uses")
-  usedCount      Int          @default(0) @map("used_count")
-  startDate      DateTime     @map("start_date")
-  endDate        DateTime     @map("end_date")
-  isActive       Boolean      @default(true) @map("is_active")
-  createdAt      DateTime     @default(now()) @map("created_at")
+  id                    String       @id @default(uuid()) @db.Uuid
+  code                  String       @unique
+  name                  String
+  description           String?      @db.Text
+  imageUrl              String?      @map("image_url") @db.Text
+  applicableServiceSlug String?      @map("applicable_service_slug")
+  discountType          DiscountType @map("discount_type")
+  discountValue         Decimal      @map("discount_value") @db.Decimal(12, 2)
+  minOrderAmount        Decimal      @default(0) @map("min_order_amount") @db.Decimal(12, 2)
+  maxUses               Int?         @map("max_uses")
+  usedCount             Int          @default(0) @map("used_count")
+  startDate             DateTime     @map("start_date")
+  endDate               DateTime     @map("end_date")
+  isActive              Boolean      @default(true) @map("is_active")
+  createdAt             DateTime     @default(now()) @map("created_at")
 
   invoices Invoice[]
 
@@ -500,6 +524,7 @@ model Appointment {
   patientId           String?                   @map("patient_id") @db.Uuid
   doctorId            String                    @map("doctor_id") @db.Uuid
   serviceId           String                    @map("service_id") @db.Uuid
+  treatmentMethodId   String?                   @map("treatment_method_id") @db.Uuid
   treatmentPlanStepId String?                   @map("treatment_plan_step_id") @db.Uuid
   scheduledAt         DateTime                  @map("scheduled_at")
   endAt               DateTime                  @map("end_at")
@@ -524,6 +549,7 @@ model Appointment {
   patient           Patient?           @relation(fields: [patientId], references: [id], onDelete: Restrict)
   doctor            Doctor             @relation(fields: [doctorId], references: [id], onDelete: Restrict)
   service           Service            @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  treatmentMethod   TreatmentMethod?   @relation(fields: [treatmentMethodId], references: [id], onDelete: SetNull)
   treatmentPlanStep TreatmentPlanStep? @relation(fields: [treatmentPlanStepId], references: [id], onDelete: SetNull)
   creator           User               @relation("AppointmentCreator", fields: [createdBy], references: [id], onDelete: Restrict)
   clinicalCases     ClinicalCase[]
@@ -537,6 +563,7 @@ model Appointment {
   @@index([status, scheduledAt])
   @@index([paymentStatus])
   @@index([serviceId])
+  @@index([treatmentMethodId])
   @@index([treatmentPlanStepId])
   @@index([createdBy])
   @@map("appointments")

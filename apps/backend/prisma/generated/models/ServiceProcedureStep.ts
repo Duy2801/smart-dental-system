@@ -38,7 +38,7 @@ export type ServiceProcedureStepSumAggregateOutputType = {
 
 export type ServiceProcedureStepMinAggregateOutputType = {
   id: string | null
-  serviceId: string | null
+  treatmentMethodId: string | null
   stepOrder: number | null
   title: string | null
   description: string | null
@@ -47,7 +47,7 @@ export type ServiceProcedureStepMinAggregateOutputType = {
 
 export type ServiceProcedureStepMaxAggregateOutputType = {
   id: string | null
-  serviceId: string | null
+  treatmentMethodId: string | null
   stepOrder: number | null
   title: string | null
   description: string | null
@@ -56,7 +56,7 @@ export type ServiceProcedureStepMaxAggregateOutputType = {
 
 export type ServiceProcedureStepCountAggregateOutputType = {
   id: number
-  serviceId: number
+  treatmentMethodId: number
   stepOrder: number
   title: number
   description: number
@@ -77,7 +77,7 @@ export type ServiceProcedureStepSumAggregateInputType = {
 
 export type ServiceProcedureStepMinAggregateInputType = {
   id?: true
-  serviceId?: true
+  treatmentMethodId?: true
   stepOrder?: true
   title?: true
   description?: true
@@ -86,7 +86,7 @@ export type ServiceProcedureStepMinAggregateInputType = {
 
 export type ServiceProcedureStepMaxAggregateInputType = {
   id?: true
-  serviceId?: true
+  treatmentMethodId?: true
   stepOrder?: true
   title?: true
   description?: true
@@ -95,7 +95,7 @@ export type ServiceProcedureStepMaxAggregateInputType = {
 
 export type ServiceProcedureStepCountAggregateInputType = {
   id?: true
-  serviceId?: true
+  treatmentMethodId?: true
   stepOrder?: true
   title?: true
   description?: true
@@ -191,7 +191,7 @@ export type ServiceProcedureStepGroupByArgs<ExtArgs extends runtime.Types.Extens
 
 export type ServiceProcedureStepGroupByOutputType = {
   id: string
-  serviceId: string
+  treatmentMethodId: string
   stepOrder: number
   title: string
   description: string
@@ -223,41 +223,41 @@ export type ServiceProcedureStepWhereInput = {
   OR?: Prisma.ServiceProcedureStepWhereInput[]
   NOT?: Prisma.ServiceProcedureStepWhereInput | Prisma.ServiceProcedureStepWhereInput[]
   id?: Prisma.UuidFilter<"ServiceProcedureStep"> | string
-  serviceId?: Prisma.UuidFilter<"ServiceProcedureStep"> | string
+  treatmentMethodId?: Prisma.UuidFilter<"ServiceProcedureStep"> | string
   stepOrder?: Prisma.IntFilter<"ServiceProcedureStep"> | number
   title?: Prisma.StringFilter<"ServiceProcedureStep"> | string
   description?: Prisma.StringFilter<"ServiceProcedureStep"> | string
   durationMinutes?: Prisma.IntNullableFilter<"ServiceProcedureStep"> | number | null
-  service?: Prisma.XOR<Prisma.ServiceScalarRelationFilter, Prisma.ServiceWhereInput>
+  treatmentMethod?: Prisma.XOR<Prisma.TreatmentMethodScalarRelationFilter, Prisma.TreatmentMethodWhereInput>
 }
 
 export type ServiceProcedureStepOrderByWithRelationInput = {
   id?: Prisma.SortOrder
-  serviceId?: Prisma.SortOrder
+  treatmentMethodId?: Prisma.SortOrder
   stepOrder?: Prisma.SortOrder
   title?: Prisma.SortOrder
   description?: Prisma.SortOrder
   durationMinutes?: Prisma.SortOrderInput | Prisma.SortOrder
-  service?: Prisma.ServiceOrderByWithRelationInput
+  treatmentMethod?: Prisma.TreatmentMethodOrderByWithRelationInput
 }
 
 export type ServiceProcedureStepWhereUniqueInput = Prisma.AtLeast<{
   id?: string
-  serviceId_stepOrder?: Prisma.ServiceProcedureStepServiceIdStepOrderCompoundUniqueInput
+  treatmentMethodId_stepOrder?: Prisma.ServiceProcedureStepTreatmentMethodIdStepOrderCompoundUniqueInput
   AND?: Prisma.ServiceProcedureStepWhereInput | Prisma.ServiceProcedureStepWhereInput[]
   OR?: Prisma.ServiceProcedureStepWhereInput[]
   NOT?: Prisma.ServiceProcedureStepWhereInput | Prisma.ServiceProcedureStepWhereInput[]
-  serviceId?: Prisma.UuidFilter<"ServiceProcedureStep"> | string
+  treatmentMethodId?: Prisma.UuidFilter<"ServiceProcedureStep"> | string
   stepOrder?: Prisma.IntFilter<"ServiceProcedureStep"> | number
   title?: Prisma.StringFilter<"ServiceProcedureStep"> | string
   description?: Prisma.StringFilter<"ServiceProcedureStep"> | string
   durationMinutes?: Prisma.IntNullableFilter<"ServiceProcedureStep"> | number | null
-  service?: Prisma.XOR<Prisma.ServiceScalarRelationFilter, Prisma.ServiceWhereInput>
-}, "id" | "serviceId_stepOrder">
+  treatmentMethod?: Prisma.XOR<Prisma.TreatmentMethodScalarRelationFilter, Prisma.TreatmentMethodWhereInput>
+}, "id" | "treatmentMethodId_stepOrder">
 
 export type ServiceProcedureStepOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
-  serviceId?: Prisma.SortOrder
+  treatmentMethodId?: Prisma.SortOrder
   stepOrder?: Prisma.SortOrder
   title?: Prisma.SortOrder
   description?: Prisma.SortOrder
@@ -274,7 +274,7 @@ export type ServiceProcedureStepScalarWhereWithAggregatesInput = {
   OR?: Prisma.ServiceProcedureStepScalarWhereWithAggregatesInput[]
   NOT?: Prisma.ServiceProcedureStepScalarWhereWithAggregatesInput | Prisma.ServiceProcedureStepScalarWhereWithAggregatesInput[]
   id?: Prisma.UuidWithAggregatesFilter<"ServiceProcedureStep"> | string
-  serviceId?: Prisma.UuidWithAggregatesFilter<"ServiceProcedureStep"> | string
+  treatmentMethodId?: Prisma.UuidWithAggregatesFilter<"ServiceProcedureStep"> | string
   stepOrder?: Prisma.IntWithAggregatesFilter<"ServiceProcedureStep"> | number
   title?: Prisma.StringWithAggregatesFilter<"ServiceProcedureStep"> | string
   description?: Prisma.StringWithAggregatesFilter<"ServiceProcedureStep"> | string
@@ -287,12 +287,12 @@ export type ServiceProcedureStepCreateInput = {
   title: string
   description: string
   durationMinutes?: number | null
-  service: Prisma.ServiceCreateNestedOneWithoutProcedureStepsInput
+  treatmentMethod: Prisma.TreatmentMethodCreateNestedOneWithoutProcedureStepsInput
 }
 
 export type ServiceProcedureStepUncheckedCreateInput = {
   id?: string
-  serviceId: string
+  treatmentMethodId: string
   stepOrder: number
   title: string
   description: string
@@ -305,12 +305,12 @@ export type ServiceProcedureStepUpdateInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.StringFieldUpdateOperationsInput | string
   durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  service?: Prisma.ServiceUpdateOneRequiredWithoutProcedureStepsNestedInput
+  treatmentMethod?: Prisma.TreatmentMethodUpdateOneRequiredWithoutProcedureStepsNestedInput
 }
 
 export type ServiceProcedureStepUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  serviceId?: Prisma.StringFieldUpdateOperationsInput | string
+  treatmentMethodId?: Prisma.StringFieldUpdateOperationsInput | string
   stepOrder?: Prisma.IntFieldUpdateOperationsInput | number
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.StringFieldUpdateOperationsInput | string
@@ -319,7 +319,7 @@ export type ServiceProcedureStepUncheckedUpdateInput = {
 
 export type ServiceProcedureStepCreateManyInput = {
   id?: string
-  serviceId: string
+  treatmentMethodId: string
   stepOrder: number
   title: string
   description: string
@@ -336,7 +336,7 @@ export type ServiceProcedureStepUpdateManyMutationInput = {
 
 export type ServiceProcedureStepUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  serviceId?: Prisma.StringFieldUpdateOperationsInput | string
+  treatmentMethodId?: Prisma.StringFieldUpdateOperationsInput | string
   stepOrder?: Prisma.IntFieldUpdateOperationsInput | number
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.StringFieldUpdateOperationsInput | string
@@ -353,14 +353,14 @@ export type ServiceProcedureStepOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
 }
 
-export type ServiceProcedureStepServiceIdStepOrderCompoundUniqueInput = {
-  serviceId: string
+export type ServiceProcedureStepTreatmentMethodIdStepOrderCompoundUniqueInput = {
+  treatmentMethodId: string
   stepOrder: number
 }
 
 export type ServiceProcedureStepCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
-  serviceId?: Prisma.SortOrder
+  treatmentMethodId?: Prisma.SortOrder
   stepOrder?: Prisma.SortOrder
   title?: Prisma.SortOrder
   description?: Prisma.SortOrder
@@ -374,7 +374,7 @@ export type ServiceProcedureStepAvgOrderByAggregateInput = {
 
 export type ServiceProcedureStepMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
-  serviceId?: Prisma.SortOrder
+  treatmentMethodId?: Prisma.SortOrder
   stepOrder?: Prisma.SortOrder
   title?: Prisma.SortOrder
   description?: Prisma.SortOrder
@@ -383,7 +383,7 @@ export type ServiceProcedureStepMaxOrderByAggregateInput = {
 
 export type ServiceProcedureStepMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
-  serviceId?: Prisma.SortOrder
+  treatmentMethodId?: Prisma.SortOrder
   stepOrder?: Prisma.SortOrder
   title?: Prisma.SortOrder
   description?: Prisma.SortOrder
@@ -395,57 +395,49 @@ export type ServiceProcedureStepSumOrderByAggregateInput = {
   durationMinutes?: Prisma.SortOrder
 }
 
-export type ServiceProcedureStepCreateNestedManyWithoutServiceInput = {
-  create?: Prisma.XOR<Prisma.ServiceProcedureStepCreateWithoutServiceInput, Prisma.ServiceProcedureStepUncheckedCreateWithoutServiceInput> | Prisma.ServiceProcedureStepCreateWithoutServiceInput[] | Prisma.ServiceProcedureStepUncheckedCreateWithoutServiceInput[]
-  connectOrCreate?: Prisma.ServiceProcedureStepCreateOrConnectWithoutServiceInput | Prisma.ServiceProcedureStepCreateOrConnectWithoutServiceInput[]
-  createMany?: Prisma.ServiceProcedureStepCreateManyServiceInputEnvelope
+export type ServiceProcedureStepCreateNestedManyWithoutTreatmentMethodInput = {
+  create?: Prisma.XOR<Prisma.ServiceProcedureStepCreateWithoutTreatmentMethodInput, Prisma.ServiceProcedureStepUncheckedCreateWithoutTreatmentMethodInput> | Prisma.ServiceProcedureStepCreateWithoutTreatmentMethodInput[] | Prisma.ServiceProcedureStepUncheckedCreateWithoutTreatmentMethodInput[]
+  connectOrCreate?: Prisma.ServiceProcedureStepCreateOrConnectWithoutTreatmentMethodInput | Prisma.ServiceProcedureStepCreateOrConnectWithoutTreatmentMethodInput[]
+  createMany?: Prisma.ServiceProcedureStepCreateManyTreatmentMethodInputEnvelope
   connect?: Prisma.ServiceProcedureStepWhereUniqueInput | Prisma.ServiceProcedureStepWhereUniqueInput[]
 }
 
-export type ServiceProcedureStepUncheckedCreateNestedManyWithoutServiceInput = {
-  create?: Prisma.XOR<Prisma.ServiceProcedureStepCreateWithoutServiceInput, Prisma.ServiceProcedureStepUncheckedCreateWithoutServiceInput> | Prisma.ServiceProcedureStepCreateWithoutServiceInput[] | Prisma.ServiceProcedureStepUncheckedCreateWithoutServiceInput[]
-  connectOrCreate?: Prisma.ServiceProcedureStepCreateOrConnectWithoutServiceInput | Prisma.ServiceProcedureStepCreateOrConnectWithoutServiceInput[]
-  createMany?: Prisma.ServiceProcedureStepCreateManyServiceInputEnvelope
+export type ServiceProcedureStepUncheckedCreateNestedManyWithoutTreatmentMethodInput = {
+  create?: Prisma.XOR<Prisma.ServiceProcedureStepCreateWithoutTreatmentMethodInput, Prisma.ServiceProcedureStepUncheckedCreateWithoutTreatmentMethodInput> | Prisma.ServiceProcedureStepCreateWithoutTreatmentMethodInput[] | Prisma.ServiceProcedureStepUncheckedCreateWithoutTreatmentMethodInput[]
+  connectOrCreate?: Prisma.ServiceProcedureStepCreateOrConnectWithoutTreatmentMethodInput | Prisma.ServiceProcedureStepCreateOrConnectWithoutTreatmentMethodInput[]
+  createMany?: Prisma.ServiceProcedureStepCreateManyTreatmentMethodInputEnvelope
   connect?: Prisma.ServiceProcedureStepWhereUniqueInput | Prisma.ServiceProcedureStepWhereUniqueInput[]
 }
 
-export type ServiceProcedureStepUpdateManyWithoutServiceNestedInput = {
-  create?: Prisma.XOR<Prisma.ServiceProcedureStepCreateWithoutServiceInput, Prisma.ServiceProcedureStepUncheckedCreateWithoutServiceInput> | Prisma.ServiceProcedureStepCreateWithoutServiceInput[] | Prisma.ServiceProcedureStepUncheckedCreateWithoutServiceInput[]
-  connectOrCreate?: Prisma.ServiceProcedureStepCreateOrConnectWithoutServiceInput | Prisma.ServiceProcedureStepCreateOrConnectWithoutServiceInput[]
-  upsert?: Prisma.ServiceProcedureStepUpsertWithWhereUniqueWithoutServiceInput | Prisma.ServiceProcedureStepUpsertWithWhereUniqueWithoutServiceInput[]
-  createMany?: Prisma.ServiceProcedureStepCreateManyServiceInputEnvelope
+export type ServiceProcedureStepUpdateManyWithoutTreatmentMethodNestedInput = {
+  create?: Prisma.XOR<Prisma.ServiceProcedureStepCreateWithoutTreatmentMethodInput, Prisma.ServiceProcedureStepUncheckedCreateWithoutTreatmentMethodInput> | Prisma.ServiceProcedureStepCreateWithoutTreatmentMethodInput[] | Prisma.ServiceProcedureStepUncheckedCreateWithoutTreatmentMethodInput[]
+  connectOrCreate?: Prisma.ServiceProcedureStepCreateOrConnectWithoutTreatmentMethodInput | Prisma.ServiceProcedureStepCreateOrConnectWithoutTreatmentMethodInput[]
+  upsert?: Prisma.ServiceProcedureStepUpsertWithWhereUniqueWithoutTreatmentMethodInput | Prisma.ServiceProcedureStepUpsertWithWhereUniqueWithoutTreatmentMethodInput[]
+  createMany?: Prisma.ServiceProcedureStepCreateManyTreatmentMethodInputEnvelope
   set?: Prisma.ServiceProcedureStepWhereUniqueInput | Prisma.ServiceProcedureStepWhereUniqueInput[]
   disconnect?: Prisma.ServiceProcedureStepWhereUniqueInput | Prisma.ServiceProcedureStepWhereUniqueInput[]
   delete?: Prisma.ServiceProcedureStepWhereUniqueInput | Prisma.ServiceProcedureStepWhereUniqueInput[]
   connect?: Prisma.ServiceProcedureStepWhereUniqueInput | Prisma.ServiceProcedureStepWhereUniqueInput[]
-  update?: Prisma.ServiceProcedureStepUpdateWithWhereUniqueWithoutServiceInput | Prisma.ServiceProcedureStepUpdateWithWhereUniqueWithoutServiceInput[]
-  updateMany?: Prisma.ServiceProcedureStepUpdateManyWithWhereWithoutServiceInput | Prisma.ServiceProcedureStepUpdateManyWithWhereWithoutServiceInput[]
+  update?: Prisma.ServiceProcedureStepUpdateWithWhereUniqueWithoutTreatmentMethodInput | Prisma.ServiceProcedureStepUpdateWithWhereUniqueWithoutTreatmentMethodInput[]
+  updateMany?: Prisma.ServiceProcedureStepUpdateManyWithWhereWithoutTreatmentMethodInput | Prisma.ServiceProcedureStepUpdateManyWithWhereWithoutTreatmentMethodInput[]
   deleteMany?: Prisma.ServiceProcedureStepScalarWhereInput | Prisma.ServiceProcedureStepScalarWhereInput[]
 }
 
-export type ServiceProcedureStepUncheckedUpdateManyWithoutServiceNestedInput = {
-  create?: Prisma.XOR<Prisma.ServiceProcedureStepCreateWithoutServiceInput, Prisma.ServiceProcedureStepUncheckedCreateWithoutServiceInput> | Prisma.ServiceProcedureStepCreateWithoutServiceInput[] | Prisma.ServiceProcedureStepUncheckedCreateWithoutServiceInput[]
-  connectOrCreate?: Prisma.ServiceProcedureStepCreateOrConnectWithoutServiceInput | Prisma.ServiceProcedureStepCreateOrConnectWithoutServiceInput[]
-  upsert?: Prisma.ServiceProcedureStepUpsertWithWhereUniqueWithoutServiceInput | Prisma.ServiceProcedureStepUpsertWithWhereUniqueWithoutServiceInput[]
-  createMany?: Prisma.ServiceProcedureStepCreateManyServiceInputEnvelope
+export type ServiceProcedureStepUncheckedUpdateManyWithoutTreatmentMethodNestedInput = {
+  create?: Prisma.XOR<Prisma.ServiceProcedureStepCreateWithoutTreatmentMethodInput, Prisma.ServiceProcedureStepUncheckedCreateWithoutTreatmentMethodInput> | Prisma.ServiceProcedureStepCreateWithoutTreatmentMethodInput[] | Prisma.ServiceProcedureStepUncheckedCreateWithoutTreatmentMethodInput[]
+  connectOrCreate?: Prisma.ServiceProcedureStepCreateOrConnectWithoutTreatmentMethodInput | Prisma.ServiceProcedureStepCreateOrConnectWithoutTreatmentMethodInput[]
+  upsert?: Prisma.ServiceProcedureStepUpsertWithWhereUniqueWithoutTreatmentMethodInput | Prisma.ServiceProcedureStepUpsertWithWhereUniqueWithoutTreatmentMethodInput[]
+  createMany?: Prisma.ServiceProcedureStepCreateManyTreatmentMethodInputEnvelope
   set?: Prisma.ServiceProcedureStepWhereUniqueInput | Prisma.ServiceProcedureStepWhereUniqueInput[]
   disconnect?: Prisma.ServiceProcedureStepWhereUniqueInput | Prisma.ServiceProcedureStepWhereUniqueInput[]
   delete?: Prisma.ServiceProcedureStepWhereUniqueInput | Prisma.ServiceProcedureStepWhereUniqueInput[]
   connect?: Prisma.ServiceProcedureStepWhereUniqueInput | Prisma.ServiceProcedureStepWhereUniqueInput[]
-  update?: Prisma.ServiceProcedureStepUpdateWithWhereUniqueWithoutServiceInput | Prisma.ServiceProcedureStepUpdateWithWhereUniqueWithoutServiceInput[]
-  updateMany?: Prisma.ServiceProcedureStepUpdateManyWithWhereWithoutServiceInput | Prisma.ServiceProcedureStepUpdateManyWithWhereWithoutServiceInput[]
+  update?: Prisma.ServiceProcedureStepUpdateWithWhereUniqueWithoutTreatmentMethodInput | Prisma.ServiceProcedureStepUpdateWithWhereUniqueWithoutTreatmentMethodInput[]
+  updateMany?: Prisma.ServiceProcedureStepUpdateManyWithWhereWithoutTreatmentMethodInput | Prisma.ServiceProcedureStepUpdateManyWithWhereWithoutTreatmentMethodInput[]
   deleteMany?: Prisma.ServiceProcedureStepScalarWhereInput | Prisma.ServiceProcedureStepScalarWhereInput[]
 }
 
-export type NullableIntFieldUpdateOperationsInput = {
-  set?: number | null
-  increment?: number
-  decrement?: number
-  multiply?: number
-  divide?: number
-}
-
-export type ServiceProcedureStepCreateWithoutServiceInput = {
+export type ServiceProcedureStepCreateWithoutTreatmentMethodInput = {
   id?: string
   stepOrder: number
   title: string
@@ -453,7 +445,7 @@ export type ServiceProcedureStepCreateWithoutServiceInput = {
   durationMinutes?: number | null
 }
 
-export type ServiceProcedureStepUncheckedCreateWithoutServiceInput = {
+export type ServiceProcedureStepUncheckedCreateWithoutTreatmentMethodInput = {
   id?: string
   stepOrder: number
   title: string
@@ -461,30 +453,30 @@ export type ServiceProcedureStepUncheckedCreateWithoutServiceInput = {
   durationMinutes?: number | null
 }
 
-export type ServiceProcedureStepCreateOrConnectWithoutServiceInput = {
+export type ServiceProcedureStepCreateOrConnectWithoutTreatmentMethodInput = {
   where: Prisma.ServiceProcedureStepWhereUniqueInput
-  create: Prisma.XOR<Prisma.ServiceProcedureStepCreateWithoutServiceInput, Prisma.ServiceProcedureStepUncheckedCreateWithoutServiceInput>
+  create: Prisma.XOR<Prisma.ServiceProcedureStepCreateWithoutTreatmentMethodInput, Prisma.ServiceProcedureStepUncheckedCreateWithoutTreatmentMethodInput>
 }
 
-export type ServiceProcedureStepCreateManyServiceInputEnvelope = {
-  data: Prisma.ServiceProcedureStepCreateManyServiceInput | Prisma.ServiceProcedureStepCreateManyServiceInput[]
+export type ServiceProcedureStepCreateManyTreatmentMethodInputEnvelope = {
+  data: Prisma.ServiceProcedureStepCreateManyTreatmentMethodInput | Prisma.ServiceProcedureStepCreateManyTreatmentMethodInput[]
   skipDuplicates?: boolean
 }
 
-export type ServiceProcedureStepUpsertWithWhereUniqueWithoutServiceInput = {
+export type ServiceProcedureStepUpsertWithWhereUniqueWithoutTreatmentMethodInput = {
   where: Prisma.ServiceProcedureStepWhereUniqueInput
-  update: Prisma.XOR<Prisma.ServiceProcedureStepUpdateWithoutServiceInput, Prisma.ServiceProcedureStepUncheckedUpdateWithoutServiceInput>
-  create: Prisma.XOR<Prisma.ServiceProcedureStepCreateWithoutServiceInput, Prisma.ServiceProcedureStepUncheckedCreateWithoutServiceInput>
+  update: Prisma.XOR<Prisma.ServiceProcedureStepUpdateWithoutTreatmentMethodInput, Prisma.ServiceProcedureStepUncheckedUpdateWithoutTreatmentMethodInput>
+  create: Prisma.XOR<Prisma.ServiceProcedureStepCreateWithoutTreatmentMethodInput, Prisma.ServiceProcedureStepUncheckedCreateWithoutTreatmentMethodInput>
 }
 
-export type ServiceProcedureStepUpdateWithWhereUniqueWithoutServiceInput = {
+export type ServiceProcedureStepUpdateWithWhereUniqueWithoutTreatmentMethodInput = {
   where: Prisma.ServiceProcedureStepWhereUniqueInput
-  data: Prisma.XOR<Prisma.ServiceProcedureStepUpdateWithoutServiceInput, Prisma.ServiceProcedureStepUncheckedUpdateWithoutServiceInput>
+  data: Prisma.XOR<Prisma.ServiceProcedureStepUpdateWithoutTreatmentMethodInput, Prisma.ServiceProcedureStepUncheckedUpdateWithoutTreatmentMethodInput>
 }
 
-export type ServiceProcedureStepUpdateManyWithWhereWithoutServiceInput = {
+export type ServiceProcedureStepUpdateManyWithWhereWithoutTreatmentMethodInput = {
   where: Prisma.ServiceProcedureStepScalarWhereInput
-  data: Prisma.XOR<Prisma.ServiceProcedureStepUpdateManyMutationInput, Prisma.ServiceProcedureStepUncheckedUpdateManyWithoutServiceInput>
+  data: Prisma.XOR<Prisma.ServiceProcedureStepUpdateManyMutationInput, Prisma.ServiceProcedureStepUncheckedUpdateManyWithoutTreatmentMethodInput>
 }
 
 export type ServiceProcedureStepScalarWhereInput = {
@@ -492,14 +484,14 @@ export type ServiceProcedureStepScalarWhereInput = {
   OR?: Prisma.ServiceProcedureStepScalarWhereInput[]
   NOT?: Prisma.ServiceProcedureStepScalarWhereInput | Prisma.ServiceProcedureStepScalarWhereInput[]
   id?: Prisma.UuidFilter<"ServiceProcedureStep"> | string
-  serviceId?: Prisma.UuidFilter<"ServiceProcedureStep"> | string
+  treatmentMethodId?: Prisma.UuidFilter<"ServiceProcedureStep"> | string
   stepOrder?: Prisma.IntFilter<"ServiceProcedureStep"> | number
   title?: Prisma.StringFilter<"ServiceProcedureStep"> | string
   description?: Prisma.StringFilter<"ServiceProcedureStep"> | string
   durationMinutes?: Prisma.IntNullableFilter<"ServiceProcedureStep"> | number | null
 }
 
-export type ServiceProcedureStepCreateManyServiceInput = {
+export type ServiceProcedureStepCreateManyTreatmentMethodInput = {
   id?: string
   stepOrder: number
   title: string
@@ -507,7 +499,7 @@ export type ServiceProcedureStepCreateManyServiceInput = {
   durationMinutes?: number | null
 }
 
-export type ServiceProcedureStepUpdateWithoutServiceInput = {
+export type ServiceProcedureStepUpdateWithoutTreatmentMethodInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   stepOrder?: Prisma.IntFieldUpdateOperationsInput | number
   title?: Prisma.StringFieldUpdateOperationsInput | string
@@ -515,7 +507,7 @@ export type ServiceProcedureStepUpdateWithoutServiceInput = {
   durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
-export type ServiceProcedureStepUncheckedUpdateWithoutServiceInput = {
+export type ServiceProcedureStepUncheckedUpdateWithoutTreatmentMethodInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   stepOrder?: Prisma.IntFieldUpdateOperationsInput | number
   title?: Prisma.StringFieldUpdateOperationsInput | string
@@ -523,7 +515,7 @@ export type ServiceProcedureStepUncheckedUpdateWithoutServiceInput = {
   durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
-export type ServiceProcedureStepUncheckedUpdateManyWithoutServiceInput = {
+export type ServiceProcedureStepUncheckedUpdateManyWithoutTreatmentMethodInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   stepOrder?: Prisma.IntFieldUpdateOperationsInput | number
   title?: Prisma.StringFieldUpdateOperationsInput | string
@@ -535,62 +527,62 @@ export type ServiceProcedureStepUncheckedUpdateManyWithoutServiceInput = {
 
 export type ServiceProcedureStepSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
-  serviceId?: boolean
+  treatmentMethodId?: boolean
   stepOrder?: boolean
   title?: boolean
   description?: boolean
   durationMinutes?: boolean
-  service?: boolean | Prisma.ServiceDefaultArgs<ExtArgs>
+  treatmentMethod?: boolean | Prisma.TreatmentMethodDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["serviceProcedureStep"]>
 
 export type ServiceProcedureStepSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
-  serviceId?: boolean
+  treatmentMethodId?: boolean
   stepOrder?: boolean
   title?: boolean
   description?: boolean
   durationMinutes?: boolean
-  service?: boolean | Prisma.ServiceDefaultArgs<ExtArgs>
+  treatmentMethod?: boolean | Prisma.TreatmentMethodDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["serviceProcedureStep"]>
 
 export type ServiceProcedureStepSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
-  serviceId?: boolean
+  treatmentMethodId?: boolean
   stepOrder?: boolean
   title?: boolean
   description?: boolean
   durationMinutes?: boolean
-  service?: boolean | Prisma.ServiceDefaultArgs<ExtArgs>
+  treatmentMethod?: boolean | Prisma.TreatmentMethodDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["serviceProcedureStep"]>
 
 export type ServiceProcedureStepSelectScalar = {
   id?: boolean
-  serviceId?: boolean
+  treatmentMethodId?: boolean
   stepOrder?: boolean
   title?: boolean
   description?: boolean
   durationMinutes?: boolean
 }
 
-export type ServiceProcedureStepOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "serviceId" | "stepOrder" | "title" | "description" | "durationMinutes", ExtArgs["result"]["serviceProcedureStep"]>
+export type ServiceProcedureStepOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "treatmentMethodId" | "stepOrder" | "title" | "description" | "durationMinutes", ExtArgs["result"]["serviceProcedureStep"]>
 export type ServiceProcedureStepInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  service?: boolean | Prisma.ServiceDefaultArgs<ExtArgs>
+  treatmentMethod?: boolean | Prisma.TreatmentMethodDefaultArgs<ExtArgs>
 }
 export type ServiceProcedureStepIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  service?: boolean | Prisma.ServiceDefaultArgs<ExtArgs>
+  treatmentMethod?: boolean | Prisma.TreatmentMethodDefaultArgs<ExtArgs>
 }
 export type ServiceProcedureStepIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  service?: boolean | Prisma.ServiceDefaultArgs<ExtArgs>
+  treatmentMethod?: boolean | Prisma.TreatmentMethodDefaultArgs<ExtArgs>
 }
 
 export type $ServiceProcedureStepPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "ServiceProcedureStep"
   objects: {
-    service: Prisma.$ServicePayload<ExtArgs>
+    treatmentMethod: Prisma.$TreatmentMethodPayload<ExtArgs>
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
-    serviceId: string
+    treatmentMethodId: string
     stepOrder: number
     title: string
     description: string
@@ -989,7 +981,7 @@ readonly fields: ServiceProcedureStepFieldRefs;
  */
 export interface Prisma__ServiceProcedureStepClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  service<T extends Prisma.ServiceDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ServiceDefaultArgs<ExtArgs>>): Prisma.Prisma__ServiceClient<runtime.Types.Result.GetResult<Prisma.$ServicePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  treatmentMethod<T extends Prisma.TreatmentMethodDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.TreatmentMethodDefaultArgs<ExtArgs>>): Prisma.Prisma__TreatmentMethodClient<runtime.Types.Result.GetResult<Prisma.$TreatmentMethodPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1020,7 +1012,7 @@ export interface Prisma__ServiceProcedureStepClient<T, Null = never, ExtArgs ext
  */
 export interface ServiceProcedureStepFieldRefs {
   readonly id: Prisma.FieldRef<"ServiceProcedureStep", 'String'>
-  readonly serviceId: Prisma.FieldRef<"ServiceProcedureStep", 'String'>
+  readonly treatmentMethodId: Prisma.FieldRef<"ServiceProcedureStep", 'String'>
   readonly stepOrder: Prisma.FieldRef<"ServiceProcedureStep", 'Int'>
   readonly title: Prisma.FieldRef<"ServiceProcedureStep", 'String'>
   readonly description: Prisma.FieldRef<"ServiceProcedureStep", 'String'>

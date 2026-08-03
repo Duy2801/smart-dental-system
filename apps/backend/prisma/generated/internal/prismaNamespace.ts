@@ -391,6 +391,7 @@ export const ModelName = {
   UserRole: 'UserRole',
   RolePermission: 'RolePermission',
   Service: 'Service',
+  TreatmentMethod: 'TreatmentMethod',
   ServiceMedia: 'ServiceMedia',
   ServiceProcedureStep: 'ServiceProcedureStep',
   ServiceFaq: 'ServiceFaq',
@@ -429,7 +430,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "clinicConfig" | "user" | "role" | "permission" | "userRole" | "rolePermission" | "service" | "serviceMedia" | "serviceProcedureStep" | "serviceFaq" | "promotion" | "patient" | "doctor" | "doctorEducation" | "doctorCertificate" | "doctorMedia" | "doctorAvailability" | "appointment" | "medicalRecord" | "treatmentPlan" | "treatmentPlanStep" | "clinicalCase" | "invoice" | "prescription" | "prescriptionItem" | "payment" | "review" | "chatbotConversation" | "videoConsultation" | "notification"
+    modelProps: "clinicConfig" | "user" | "role" | "permission" | "userRole" | "rolePermission" | "service" | "treatmentMethod" | "serviceMedia" | "serviceProcedureStep" | "serviceFaq" | "promotion" | "patient" | "doctor" | "doctorEducation" | "doctorCertificate" | "doctorMedia" | "doctorAvailability" | "appointment" | "medicalRecord" | "treatmentPlan" | "treatmentPlanStep" | "clinicalCase" | "invoice" | "prescription" | "prescriptionItem" | "payment" | "review" | "chatbotConversation" | "videoConsultation" | "notification"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -948,6 +949,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.ServiceCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.ServiceCountAggregateOutputType> | number
+        }
+      }
+    }
+    TreatmentMethod: {
+      payload: Prisma.$TreatmentMethodPayload<ExtArgs>
+      fields: Prisma.TreatmentMethodFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.TreatmentMethodFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TreatmentMethodPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.TreatmentMethodFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TreatmentMethodPayload>
+        }
+        findFirst: {
+          args: Prisma.TreatmentMethodFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TreatmentMethodPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.TreatmentMethodFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TreatmentMethodPayload>
+        }
+        findMany: {
+          args: Prisma.TreatmentMethodFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TreatmentMethodPayload>[]
+        }
+        create: {
+          args: Prisma.TreatmentMethodCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TreatmentMethodPayload>
+        }
+        createMany: {
+          args: Prisma.TreatmentMethodCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.TreatmentMethodCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TreatmentMethodPayload>[]
+        }
+        delete: {
+          args: Prisma.TreatmentMethodDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TreatmentMethodPayload>
+        }
+        update: {
+          args: Prisma.TreatmentMethodUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TreatmentMethodPayload>
+        }
+        deleteMany: {
+          args: Prisma.TreatmentMethodDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.TreatmentMethodUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.TreatmentMethodUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TreatmentMethodPayload>[]
+        }
+        upsert: {
+          args: Prisma.TreatmentMethodUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TreatmentMethodPayload>
+        }
+        aggregate: {
+          args: Prisma.TreatmentMethodAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateTreatmentMethod>
+        }
+        groupBy: {
+          args: Prisma.TreatmentMethodGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TreatmentMethodGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.TreatmentMethodCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TreatmentMethodCountAggregateOutputType> | number
         }
       }
     }
@@ -2771,6 +2846,7 @@ export const ServiceScalarFieldEnum = {
   category: 'category',
   name: 'name',
   slug: 'slug',
+  icon: 'icon',
   shortDescription: 'shortDescription',
   description: 'description',
   detailSummary: 'detailSummary',
@@ -2798,9 +2874,26 @@ export const ServiceScalarFieldEnum = {
 export type ServiceScalarFieldEnum = (typeof ServiceScalarFieldEnum)[keyof typeof ServiceScalarFieldEnum]
 
 
-export const ServiceMediaScalarFieldEnum = {
+export const TreatmentMethodScalarFieldEnum = {
   id: 'id',
   serviceId: 'serviceId',
+  name: 'name',
+  slug: 'slug',
+  description: 'description',
+  basePrice: 'basePrice',
+  durationMinutes: 'durationMinutes',
+  displayOrder: 'displayOrder',
+  isActive: 'isActive',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TreatmentMethodScalarFieldEnum = (typeof TreatmentMethodScalarFieldEnum)[keyof typeof TreatmentMethodScalarFieldEnum]
+
+
+export const ServiceMediaScalarFieldEnum = {
+  id: 'id',
+  treatmentMethodId: 'treatmentMethodId',
   url: 'url',
   alt: 'alt',
   type: 'type',
@@ -2813,7 +2906,7 @@ export type ServiceMediaScalarFieldEnum = (typeof ServiceMediaScalarFieldEnum)[k
 
 export const ServiceProcedureStepScalarFieldEnum = {
   id: 'id',
-  serviceId: 'serviceId',
+  treatmentMethodId: 'treatmentMethodId',
   stepOrder: 'stepOrder',
   title: 'title',
   description: 'description',
@@ -2825,7 +2918,7 @@ export type ServiceProcedureStepScalarFieldEnum = (typeof ServiceProcedureStepSc
 
 export const ServiceFaqScalarFieldEnum = {
   id: 'id',
-  serviceId: 'serviceId',
+  treatmentMethodId: 'treatmentMethodId',
   question: 'question',
   answer: 'answer',
   sortOrder: 'sortOrder'
@@ -2839,6 +2932,8 @@ export const PromotionScalarFieldEnum = {
   code: 'code',
   name: 'name',
   description: 'description',
+  imageUrl: 'imageUrl',
+  applicableServiceSlug: 'applicableServiceSlug',
   discountType: 'discountType',
   discountValue: 'discountValue',
   minOrderAmount: 'minOrderAmount',
@@ -2952,6 +3047,7 @@ export const AppointmentScalarFieldEnum = {
   patientId: 'patientId',
   doctorId: 'doctorId',
   serviceId: 'serviceId',
+  treatmentMethodId: 'treatmentMethodId',
   treatmentPlanStepId: 'treatmentPlanStepId',
   scheduledAt: 'scheduledAt',
   endAt: 'endAt',
@@ -3764,6 +3860,7 @@ export type GlobalOmitConfig = {
   userRole?: Prisma.UserRoleOmit
   rolePermission?: Prisma.RolePermissionOmit
   service?: Prisma.ServiceOmit
+  treatmentMethod?: Prisma.TreatmentMethodOmit
   serviceMedia?: Prisma.ServiceMediaOmit
   serviceProcedureStep?: Prisma.ServiceProcedureStepOmit
   serviceFaq?: Prisma.ServiceFaqOmit

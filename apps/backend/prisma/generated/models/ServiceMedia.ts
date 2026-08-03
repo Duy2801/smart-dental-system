@@ -36,7 +36,7 @@ export type ServiceMediaSumAggregateOutputType = {
 
 export type ServiceMediaMinAggregateOutputType = {
   id: string | null
-  serviceId: string | null
+  treatmentMethodId: string | null
   url: string | null
   alt: string | null
   type: string | null
@@ -46,7 +46,7 @@ export type ServiceMediaMinAggregateOutputType = {
 
 export type ServiceMediaMaxAggregateOutputType = {
   id: string | null
-  serviceId: string | null
+  treatmentMethodId: string | null
   url: string | null
   alt: string | null
   type: string | null
@@ -56,7 +56,7 @@ export type ServiceMediaMaxAggregateOutputType = {
 
 export type ServiceMediaCountAggregateOutputType = {
   id: number
-  serviceId: number
+  treatmentMethodId: number
   url: number
   alt: number
   type: number
@@ -76,7 +76,7 @@ export type ServiceMediaSumAggregateInputType = {
 
 export type ServiceMediaMinAggregateInputType = {
   id?: true
-  serviceId?: true
+  treatmentMethodId?: true
   url?: true
   alt?: true
   type?: true
@@ -86,7 +86,7 @@ export type ServiceMediaMinAggregateInputType = {
 
 export type ServiceMediaMaxAggregateInputType = {
   id?: true
-  serviceId?: true
+  treatmentMethodId?: true
   url?: true
   alt?: true
   type?: true
@@ -96,7 +96,7 @@ export type ServiceMediaMaxAggregateInputType = {
 
 export type ServiceMediaCountAggregateInputType = {
   id?: true
-  serviceId?: true
+  treatmentMethodId?: true
   url?: true
   alt?: true
   type?: true
@@ -193,7 +193,7 @@ export type ServiceMediaGroupByArgs<ExtArgs extends runtime.Types.Extensions.Int
 
 export type ServiceMediaGroupByOutputType = {
   id: string
-  serviceId: string
+  treatmentMethodId: string
   url: string
   alt: string | null
   type: string
@@ -226,24 +226,24 @@ export type ServiceMediaWhereInput = {
   OR?: Prisma.ServiceMediaWhereInput[]
   NOT?: Prisma.ServiceMediaWhereInput | Prisma.ServiceMediaWhereInput[]
   id?: Prisma.UuidFilter<"ServiceMedia"> | string
-  serviceId?: Prisma.UuidFilter<"ServiceMedia"> | string
+  treatmentMethodId?: Prisma.UuidFilter<"ServiceMedia"> | string
   url?: Prisma.StringFilter<"ServiceMedia"> | string
   alt?: Prisma.StringNullableFilter<"ServiceMedia"> | string | null
   type?: Prisma.StringFilter<"ServiceMedia"> | string
   sortOrder?: Prisma.IntFilter<"ServiceMedia"> | number
   createdAt?: Prisma.DateTimeFilter<"ServiceMedia"> | Date | string
-  service?: Prisma.XOR<Prisma.ServiceScalarRelationFilter, Prisma.ServiceWhereInput>
+  treatmentMethod?: Prisma.XOR<Prisma.TreatmentMethodScalarRelationFilter, Prisma.TreatmentMethodWhereInput>
 }
 
 export type ServiceMediaOrderByWithRelationInput = {
   id?: Prisma.SortOrder
-  serviceId?: Prisma.SortOrder
+  treatmentMethodId?: Prisma.SortOrder
   url?: Prisma.SortOrder
   alt?: Prisma.SortOrderInput | Prisma.SortOrder
   type?: Prisma.SortOrder
   sortOrder?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
-  service?: Prisma.ServiceOrderByWithRelationInput
+  treatmentMethod?: Prisma.TreatmentMethodOrderByWithRelationInput
 }
 
 export type ServiceMediaWhereUniqueInput = Prisma.AtLeast<{
@@ -251,18 +251,18 @@ export type ServiceMediaWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.ServiceMediaWhereInput | Prisma.ServiceMediaWhereInput[]
   OR?: Prisma.ServiceMediaWhereInput[]
   NOT?: Prisma.ServiceMediaWhereInput | Prisma.ServiceMediaWhereInput[]
-  serviceId?: Prisma.UuidFilter<"ServiceMedia"> | string
+  treatmentMethodId?: Prisma.UuidFilter<"ServiceMedia"> | string
   url?: Prisma.StringFilter<"ServiceMedia"> | string
   alt?: Prisma.StringNullableFilter<"ServiceMedia"> | string | null
   type?: Prisma.StringFilter<"ServiceMedia"> | string
   sortOrder?: Prisma.IntFilter<"ServiceMedia"> | number
   createdAt?: Prisma.DateTimeFilter<"ServiceMedia"> | Date | string
-  service?: Prisma.XOR<Prisma.ServiceScalarRelationFilter, Prisma.ServiceWhereInput>
+  treatmentMethod?: Prisma.XOR<Prisma.TreatmentMethodScalarRelationFilter, Prisma.TreatmentMethodWhereInput>
 }, "id">
 
 export type ServiceMediaOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
-  serviceId?: Prisma.SortOrder
+  treatmentMethodId?: Prisma.SortOrder
   url?: Prisma.SortOrder
   alt?: Prisma.SortOrderInput | Prisma.SortOrder
   type?: Prisma.SortOrder
@@ -280,7 +280,7 @@ export type ServiceMediaScalarWhereWithAggregatesInput = {
   OR?: Prisma.ServiceMediaScalarWhereWithAggregatesInput[]
   NOT?: Prisma.ServiceMediaScalarWhereWithAggregatesInput | Prisma.ServiceMediaScalarWhereWithAggregatesInput[]
   id?: Prisma.UuidWithAggregatesFilter<"ServiceMedia"> | string
-  serviceId?: Prisma.UuidWithAggregatesFilter<"ServiceMedia"> | string
+  treatmentMethodId?: Prisma.UuidWithAggregatesFilter<"ServiceMedia"> | string
   url?: Prisma.StringWithAggregatesFilter<"ServiceMedia"> | string
   alt?: Prisma.StringNullableWithAggregatesFilter<"ServiceMedia"> | string | null
   type?: Prisma.StringWithAggregatesFilter<"ServiceMedia"> | string
@@ -295,12 +295,12 @@ export type ServiceMediaCreateInput = {
   type: string
   sortOrder?: number
   createdAt?: Date | string
-  service: Prisma.ServiceCreateNestedOneWithoutMediaInput
+  treatmentMethod: Prisma.TreatmentMethodCreateNestedOneWithoutMediaInput
 }
 
 export type ServiceMediaUncheckedCreateInput = {
   id?: string
-  serviceId: string
+  treatmentMethodId: string
   url: string
   alt?: string | null
   type: string
@@ -315,12 +315,12 @@ export type ServiceMediaUpdateInput = {
   type?: Prisma.StringFieldUpdateOperationsInput | string
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  service?: Prisma.ServiceUpdateOneRequiredWithoutMediaNestedInput
+  treatmentMethod?: Prisma.TreatmentMethodUpdateOneRequiredWithoutMediaNestedInput
 }
 
 export type ServiceMediaUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  serviceId?: Prisma.StringFieldUpdateOperationsInput | string
+  treatmentMethodId?: Prisma.StringFieldUpdateOperationsInput | string
   url?: Prisma.StringFieldUpdateOperationsInput | string
   alt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.StringFieldUpdateOperationsInput | string
@@ -330,7 +330,7 @@ export type ServiceMediaUncheckedUpdateInput = {
 
 export type ServiceMediaCreateManyInput = {
   id?: string
-  serviceId: string
+  treatmentMethodId: string
   url: string
   alt?: string | null
   type: string
@@ -349,7 +349,7 @@ export type ServiceMediaUpdateManyMutationInput = {
 
 export type ServiceMediaUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  serviceId?: Prisma.StringFieldUpdateOperationsInput | string
+  treatmentMethodId?: Prisma.StringFieldUpdateOperationsInput | string
   url?: Prisma.StringFieldUpdateOperationsInput | string
   alt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.StringFieldUpdateOperationsInput | string
@@ -369,7 +369,7 @@ export type ServiceMediaOrderByRelationAggregateInput = {
 
 export type ServiceMediaCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
-  serviceId?: Prisma.SortOrder
+  treatmentMethodId?: Prisma.SortOrder
   url?: Prisma.SortOrder
   alt?: Prisma.SortOrder
   type?: Prisma.SortOrder
@@ -383,7 +383,7 @@ export type ServiceMediaAvgOrderByAggregateInput = {
 
 export type ServiceMediaMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
-  serviceId?: Prisma.SortOrder
+  treatmentMethodId?: Prisma.SortOrder
   url?: Prisma.SortOrder
   alt?: Prisma.SortOrder
   type?: Prisma.SortOrder
@@ -393,7 +393,7 @@ export type ServiceMediaMaxOrderByAggregateInput = {
 
 export type ServiceMediaMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
-  serviceId?: Prisma.SortOrder
+  treatmentMethodId?: Prisma.SortOrder
   url?: Prisma.SortOrder
   alt?: Prisma.SortOrder
   type?: Prisma.SortOrder
@@ -405,49 +405,49 @@ export type ServiceMediaSumOrderByAggregateInput = {
   sortOrder?: Prisma.SortOrder
 }
 
-export type ServiceMediaCreateNestedManyWithoutServiceInput = {
-  create?: Prisma.XOR<Prisma.ServiceMediaCreateWithoutServiceInput, Prisma.ServiceMediaUncheckedCreateWithoutServiceInput> | Prisma.ServiceMediaCreateWithoutServiceInput[] | Prisma.ServiceMediaUncheckedCreateWithoutServiceInput[]
-  connectOrCreate?: Prisma.ServiceMediaCreateOrConnectWithoutServiceInput | Prisma.ServiceMediaCreateOrConnectWithoutServiceInput[]
-  createMany?: Prisma.ServiceMediaCreateManyServiceInputEnvelope
+export type ServiceMediaCreateNestedManyWithoutTreatmentMethodInput = {
+  create?: Prisma.XOR<Prisma.ServiceMediaCreateWithoutTreatmentMethodInput, Prisma.ServiceMediaUncheckedCreateWithoutTreatmentMethodInput> | Prisma.ServiceMediaCreateWithoutTreatmentMethodInput[] | Prisma.ServiceMediaUncheckedCreateWithoutTreatmentMethodInput[]
+  connectOrCreate?: Prisma.ServiceMediaCreateOrConnectWithoutTreatmentMethodInput | Prisma.ServiceMediaCreateOrConnectWithoutTreatmentMethodInput[]
+  createMany?: Prisma.ServiceMediaCreateManyTreatmentMethodInputEnvelope
   connect?: Prisma.ServiceMediaWhereUniqueInput | Prisma.ServiceMediaWhereUniqueInput[]
 }
 
-export type ServiceMediaUncheckedCreateNestedManyWithoutServiceInput = {
-  create?: Prisma.XOR<Prisma.ServiceMediaCreateWithoutServiceInput, Prisma.ServiceMediaUncheckedCreateWithoutServiceInput> | Prisma.ServiceMediaCreateWithoutServiceInput[] | Prisma.ServiceMediaUncheckedCreateWithoutServiceInput[]
-  connectOrCreate?: Prisma.ServiceMediaCreateOrConnectWithoutServiceInput | Prisma.ServiceMediaCreateOrConnectWithoutServiceInput[]
-  createMany?: Prisma.ServiceMediaCreateManyServiceInputEnvelope
+export type ServiceMediaUncheckedCreateNestedManyWithoutTreatmentMethodInput = {
+  create?: Prisma.XOR<Prisma.ServiceMediaCreateWithoutTreatmentMethodInput, Prisma.ServiceMediaUncheckedCreateWithoutTreatmentMethodInput> | Prisma.ServiceMediaCreateWithoutTreatmentMethodInput[] | Prisma.ServiceMediaUncheckedCreateWithoutTreatmentMethodInput[]
+  connectOrCreate?: Prisma.ServiceMediaCreateOrConnectWithoutTreatmentMethodInput | Prisma.ServiceMediaCreateOrConnectWithoutTreatmentMethodInput[]
+  createMany?: Prisma.ServiceMediaCreateManyTreatmentMethodInputEnvelope
   connect?: Prisma.ServiceMediaWhereUniqueInput | Prisma.ServiceMediaWhereUniqueInput[]
 }
 
-export type ServiceMediaUpdateManyWithoutServiceNestedInput = {
-  create?: Prisma.XOR<Prisma.ServiceMediaCreateWithoutServiceInput, Prisma.ServiceMediaUncheckedCreateWithoutServiceInput> | Prisma.ServiceMediaCreateWithoutServiceInput[] | Prisma.ServiceMediaUncheckedCreateWithoutServiceInput[]
-  connectOrCreate?: Prisma.ServiceMediaCreateOrConnectWithoutServiceInput | Prisma.ServiceMediaCreateOrConnectWithoutServiceInput[]
-  upsert?: Prisma.ServiceMediaUpsertWithWhereUniqueWithoutServiceInput | Prisma.ServiceMediaUpsertWithWhereUniqueWithoutServiceInput[]
-  createMany?: Prisma.ServiceMediaCreateManyServiceInputEnvelope
+export type ServiceMediaUpdateManyWithoutTreatmentMethodNestedInput = {
+  create?: Prisma.XOR<Prisma.ServiceMediaCreateWithoutTreatmentMethodInput, Prisma.ServiceMediaUncheckedCreateWithoutTreatmentMethodInput> | Prisma.ServiceMediaCreateWithoutTreatmentMethodInput[] | Prisma.ServiceMediaUncheckedCreateWithoutTreatmentMethodInput[]
+  connectOrCreate?: Prisma.ServiceMediaCreateOrConnectWithoutTreatmentMethodInput | Prisma.ServiceMediaCreateOrConnectWithoutTreatmentMethodInput[]
+  upsert?: Prisma.ServiceMediaUpsertWithWhereUniqueWithoutTreatmentMethodInput | Prisma.ServiceMediaUpsertWithWhereUniqueWithoutTreatmentMethodInput[]
+  createMany?: Prisma.ServiceMediaCreateManyTreatmentMethodInputEnvelope
   set?: Prisma.ServiceMediaWhereUniqueInput | Prisma.ServiceMediaWhereUniqueInput[]
   disconnect?: Prisma.ServiceMediaWhereUniqueInput | Prisma.ServiceMediaWhereUniqueInput[]
   delete?: Prisma.ServiceMediaWhereUniqueInput | Prisma.ServiceMediaWhereUniqueInput[]
   connect?: Prisma.ServiceMediaWhereUniqueInput | Prisma.ServiceMediaWhereUniqueInput[]
-  update?: Prisma.ServiceMediaUpdateWithWhereUniqueWithoutServiceInput | Prisma.ServiceMediaUpdateWithWhereUniqueWithoutServiceInput[]
-  updateMany?: Prisma.ServiceMediaUpdateManyWithWhereWithoutServiceInput | Prisma.ServiceMediaUpdateManyWithWhereWithoutServiceInput[]
+  update?: Prisma.ServiceMediaUpdateWithWhereUniqueWithoutTreatmentMethodInput | Prisma.ServiceMediaUpdateWithWhereUniqueWithoutTreatmentMethodInput[]
+  updateMany?: Prisma.ServiceMediaUpdateManyWithWhereWithoutTreatmentMethodInput | Prisma.ServiceMediaUpdateManyWithWhereWithoutTreatmentMethodInput[]
   deleteMany?: Prisma.ServiceMediaScalarWhereInput | Prisma.ServiceMediaScalarWhereInput[]
 }
 
-export type ServiceMediaUncheckedUpdateManyWithoutServiceNestedInput = {
-  create?: Prisma.XOR<Prisma.ServiceMediaCreateWithoutServiceInput, Prisma.ServiceMediaUncheckedCreateWithoutServiceInput> | Prisma.ServiceMediaCreateWithoutServiceInput[] | Prisma.ServiceMediaUncheckedCreateWithoutServiceInput[]
-  connectOrCreate?: Prisma.ServiceMediaCreateOrConnectWithoutServiceInput | Prisma.ServiceMediaCreateOrConnectWithoutServiceInput[]
-  upsert?: Prisma.ServiceMediaUpsertWithWhereUniqueWithoutServiceInput | Prisma.ServiceMediaUpsertWithWhereUniqueWithoutServiceInput[]
-  createMany?: Prisma.ServiceMediaCreateManyServiceInputEnvelope
+export type ServiceMediaUncheckedUpdateManyWithoutTreatmentMethodNestedInput = {
+  create?: Prisma.XOR<Prisma.ServiceMediaCreateWithoutTreatmentMethodInput, Prisma.ServiceMediaUncheckedCreateWithoutTreatmentMethodInput> | Prisma.ServiceMediaCreateWithoutTreatmentMethodInput[] | Prisma.ServiceMediaUncheckedCreateWithoutTreatmentMethodInput[]
+  connectOrCreate?: Prisma.ServiceMediaCreateOrConnectWithoutTreatmentMethodInput | Prisma.ServiceMediaCreateOrConnectWithoutTreatmentMethodInput[]
+  upsert?: Prisma.ServiceMediaUpsertWithWhereUniqueWithoutTreatmentMethodInput | Prisma.ServiceMediaUpsertWithWhereUniqueWithoutTreatmentMethodInput[]
+  createMany?: Prisma.ServiceMediaCreateManyTreatmentMethodInputEnvelope
   set?: Prisma.ServiceMediaWhereUniqueInput | Prisma.ServiceMediaWhereUniqueInput[]
   disconnect?: Prisma.ServiceMediaWhereUniqueInput | Prisma.ServiceMediaWhereUniqueInput[]
   delete?: Prisma.ServiceMediaWhereUniqueInput | Prisma.ServiceMediaWhereUniqueInput[]
   connect?: Prisma.ServiceMediaWhereUniqueInput | Prisma.ServiceMediaWhereUniqueInput[]
-  update?: Prisma.ServiceMediaUpdateWithWhereUniqueWithoutServiceInput | Prisma.ServiceMediaUpdateWithWhereUniqueWithoutServiceInput[]
-  updateMany?: Prisma.ServiceMediaUpdateManyWithWhereWithoutServiceInput | Prisma.ServiceMediaUpdateManyWithWhereWithoutServiceInput[]
+  update?: Prisma.ServiceMediaUpdateWithWhereUniqueWithoutTreatmentMethodInput | Prisma.ServiceMediaUpdateWithWhereUniqueWithoutTreatmentMethodInput[]
+  updateMany?: Prisma.ServiceMediaUpdateManyWithWhereWithoutTreatmentMethodInput | Prisma.ServiceMediaUpdateManyWithWhereWithoutTreatmentMethodInput[]
   deleteMany?: Prisma.ServiceMediaScalarWhereInput | Prisma.ServiceMediaScalarWhereInput[]
 }
 
-export type ServiceMediaCreateWithoutServiceInput = {
+export type ServiceMediaCreateWithoutTreatmentMethodInput = {
   id?: string
   url: string
   alt?: string | null
@@ -456,7 +456,7 @@ export type ServiceMediaCreateWithoutServiceInput = {
   createdAt?: Date | string
 }
 
-export type ServiceMediaUncheckedCreateWithoutServiceInput = {
+export type ServiceMediaUncheckedCreateWithoutTreatmentMethodInput = {
   id?: string
   url: string
   alt?: string | null
@@ -465,30 +465,30 @@ export type ServiceMediaUncheckedCreateWithoutServiceInput = {
   createdAt?: Date | string
 }
 
-export type ServiceMediaCreateOrConnectWithoutServiceInput = {
+export type ServiceMediaCreateOrConnectWithoutTreatmentMethodInput = {
   where: Prisma.ServiceMediaWhereUniqueInput
-  create: Prisma.XOR<Prisma.ServiceMediaCreateWithoutServiceInput, Prisma.ServiceMediaUncheckedCreateWithoutServiceInput>
+  create: Prisma.XOR<Prisma.ServiceMediaCreateWithoutTreatmentMethodInput, Prisma.ServiceMediaUncheckedCreateWithoutTreatmentMethodInput>
 }
 
-export type ServiceMediaCreateManyServiceInputEnvelope = {
-  data: Prisma.ServiceMediaCreateManyServiceInput | Prisma.ServiceMediaCreateManyServiceInput[]
+export type ServiceMediaCreateManyTreatmentMethodInputEnvelope = {
+  data: Prisma.ServiceMediaCreateManyTreatmentMethodInput | Prisma.ServiceMediaCreateManyTreatmentMethodInput[]
   skipDuplicates?: boolean
 }
 
-export type ServiceMediaUpsertWithWhereUniqueWithoutServiceInput = {
+export type ServiceMediaUpsertWithWhereUniqueWithoutTreatmentMethodInput = {
   where: Prisma.ServiceMediaWhereUniqueInput
-  update: Prisma.XOR<Prisma.ServiceMediaUpdateWithoutServiceInput, Prisma.ServiceMediaUncheckedUpdateWithoutServiceInput>
-  create: Prisma.XOR<Prisma.ServiceMediaCreateWithoutServiceInput, Prisma.ServiceMediaUncheckedCreateWithoutServiceInput>
+  update: Prisma.XOR<Prisma.ServiceMediaUpdateWithoutTreatmentMethodInput, Prisma.ServiceMediaUncheckedUpdateWithoutTreatmentMethodInput>
+  create: Prisma.XOR<Prisma.ServiceMediaCreateWithoutTreatmentMethodInput, Prisma.ServiceMediaUncheckedCreateWithoutTreatmentMethodInput>
 }
 
-export type ServiceMediaUpdateWithWhereUniqueWithoutServiceInput = {
+export type ServiceMediaUpdateWithWhereUniqueWithoutTreatmentMethodInput = {
   where: Prisma.ServiceMediaWhereUniqueInput
-  data: Prisma.XOR<Prisma.ServiceMediaUpdateWithoutServiceInput, Prisma.ServiceMediaUncheckedUpdateWithoutServiceInput>
+  data: Prisma.XOR<Prisma.ServiceMediaUpdateWithoutTreatmentMethodInput, Prisma.ServiceMediaUncheckedUpdateWithoutTreatmentMethodInput>
 }
 
-export type ServiceMediaUpdateManyWithWhereWithoutServiceInput = {
+export type ServiceMediaUpdateManyWithWhereWithoutTreatmentMethodInput = {
   where: Prisma.ServiceMediaScalarWhereInput
-  data: Prisma.XOR<Prisma.ServiceMediaUpdateManyMutationInput, Prisma.ServiceMediaUncheckedUpdateManyWithoutServiceInput>
+  data: Prisma.XOR<Prisma.ServiceMediaUpdateManyMutationInput, Prisma.ServiceMediaUncheckedUpdateManyWithoutTreatmentMethodInput>
 }
 
 export type ServiceMediaScalarWhereInput = {
@@ -496,7 +496,7 @@ export type ServiceMediaScalarWhereInput = {
   OR?: Prisma.ServiceMediaScalarWhereInput[]
   NOT?: Prisma.ServiceMediaScalarWhereInput | Prisma.ServiceMediaScalarWhereInput[]
   id?: Prisma.UuidFilter<"ServiceMedia"> | string
-  serviceId?: Prisma.UuidFilter<"ServiceMedia"> | string
+  treatmentMethodId?: Prisma.UuidFilter<"ServiceMedia"> | string
   url?: Prisma.StringFilter<"ServiceMedia"> | string
   alt?: Prisma.StringNullableFilter<"ServiceMedia"> | string | null
   type?: Prisma.StringFilter<"ServiceMedia"> | string
@@ -504,7 +504,7 @@ export type ServiceMediaScalarWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"ServiceMedia"> | Date | string
 }
 
-export type ServiceMediaCreateManyServiceInput = {
+export type ServiceMediaCreateManyTreatmentMethodInput = {
   id?: string
   url: string
   alt?: string | null
@@ -513,7 +513,7 @@ export type ServiceMediaCreateManyServiceInput = {
   createdAt?: Date | string
 }
 
-export type ServiceMediaUpdateWithoutServiceInput = {
+export type ServiceMediaUpdateWithoutTreatmentMethodInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   url?: Prisma.StringFieldUpdateOperationsInput | string
   alt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -522,7 +522,7 @@ export type ServiceMediaUpdateWithoutServiceInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
-export type ServiceMediaUncheckedUpdateWithoutServiceInput = {
+export type ServiceMediaUncheckedUpdateWithoutTreatmentMethodInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   url?: Prisma.StringFieldUpdateOperationsInput | string
   alt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -531,7 +531,7 @@ export type ServiceMediaUncheckedUpdateWithoutServiceInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
-export type ServiceMediaUncheckedUpdateManyWithoutServiceInput = {
+export type ServiceMediaUncheckedUpdateManyWithoutTreatmentMethodInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   url?: Prisma.StringFieldUpdateOperationsInput | string
   alt?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -544,40 +544,40 @@ export type ServiceMediaUncheckedUpdateManyWithoutServiceInput = {
 
 export type ServiceMediaSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
-  serviceId?: boolean
+  treatmentMethodId?: boolean
   url?: boolean
   alt?: boolean
   type?: boolean
   sortOrder?: boolean
   createdAt?: boolean
-  service?: boolean | Prisma.ServiceDefaultArgs<ExtArgs>
+  treatmentMethod?: boolean | Prisma.TreatmentMethodDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["serviceMedia"]>
 
 export type ServiceMediaSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
-  serviceId?: boolean
+  treatmentMethodId?: boolean
   url?: boolean
   alt?: boolean
   type?: boolean
   sortOrder?: boolean
   createdAt?: boolean
-  service?: boolean | Prisma.ServiceDefaultArgs<ExtArgs>
+  treatmentMethod?: boolean | Prisma.TreatmentMethodDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["serviceMedia"]>
 
 export type ServiceMediaSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
-  serviceId?: boolean
+  treatmentMethodId?: boolean
   url?: boolean
   alt?: boolean
   type?: boolean
   sortOrder?: boolean
   createdAt?: boolean
-  service?: boolean | Prisma.ServiceDefaultArgs<ExtArgs>
+  treatmentMethod?: boolean | Prisma.TreatmentMethodDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["serviceMedia"]>
 
 export type ServiceMediaSelectScalar = {
   id?: boolean
-  serviceId?: boolean
+  treatmentMethodId?: boolean
   url?: boolean
   alt?: boolean
   type?: boolean
@@ -585,25 +585,25 @@ export type ServiceMediaSelectScalar = {
   createdAt?: boolean
 }
 
-export type ServiceMediaOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "serviceId" | "url" | "alt" | "type" | "sortOrder" | "createdAt", ExtArgs["result"]["serviceMedia"]>
+export type ServiceMediaOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "treatmentMethodId" | "url" | "alt" | "type" | "sortOrder" | "createdAt", ExtArgs["result"]["serviceMedia"]>
 export type ServiceMediaInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  service?: boolean | Prisma.ServiceDefaultArgs<ExtArgs>
+  treatmentMethod?: boolean | Prisma.TreatmentMethodDefaultArgs<ExtArgs>
 }
 export type ServiceMediaIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  service?: boolean | Prisma.ServiceDefaultArgs<ExtArgs>
+  treatmentMethod?: boolean | Prisma.TreatmentMethodDefaultArgs<ExtArgs>
 }
 export type ServiceMediaIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  service?: boolean | Prisma.ServiceDefaultArgs<ExtArgs>
+  treatmentMethod?: boolean | Prisma.TreatmentMethodDefaultArgs<ExtArgs>
 }
 
 export type $ServiceMediaPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "ServiceMedia"
   objects: {
-    service: Prisma.$ServicePayload<ExtArgs>
+    treatmentMethod: Prisma.$TreatmentMethodPayload<ExtArgs>
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
-    serviceId: string
+    treatmentMethodId: string
     url: string
     alt: string | null
     type: string
@@ -1003,7 +1003,7 @@ readonly fields: ServiceMediaFieldRefs;
  */
 export interface Prisma__ServiceMediaClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  service<T extends Prisma.ServiceDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ServiceDefaultArgs<ExtArgs>>): Prisma.Prisma__ServiceClient<runtime.Types.Result.GetResult<Prisma.$ServicePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  treatmentMethod<T extends Prisma.TreatmentMethodDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.TreatmentMethodDefaultArgs<ExtArgs>>): Prisma.Prisma__TreatmentMethodClient<runtime.Types.Result.GetResult<Prisma.$TreatmentMethodPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1034,7 +1034,7 @@ export interface Prisma__ServiceMediaClient<T, Null = never, ExtArgs extends run
  */
 export interface ServiceMediaFieldRefs {
   readonly id: Prisma.FieldRef<"ServiceMedia", 'String'>
-  readonly serviceId: Prisma.FieldRef<"ServiceMedia", 'String'>
+  readonly treatmentMethodId: Prisma.FieldRef<"ServiceMedia", 'String'>
   readonly url: Prisma.FieldRef<"ServiceMedia", 'String'>
   readonly alt: Prisma.FieldRef<"ServiceMedia", 'String'>
   readonly type: Prisma.FieldRef<"ServiceMedia", 'String'>

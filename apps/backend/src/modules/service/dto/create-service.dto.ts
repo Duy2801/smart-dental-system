@@ -71,6 +71,55 @@ export class ServiceHighlightDto {
   icon: string;
 }
 
+export class CreateTreatmentMethodDto {
+  @IsString()
+  name: string;
+
+  @IsOptional()
+  @IsString()
+  slug?: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsNumber()
+  @Min(0)
+  basePrice: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  durationMinutes?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  displayOrder?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ServiceMediaDto)
+  media?: ServiceMediaDto[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ServiceProcedureStepDto)
+  procedureSteps?: ServiceProcedureStepDto[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ServiceFaqDto)
+  faqs?: ServiceFaqDto[];
+}
+
 export class CreateServiceDto {
   @IsString()
   category: string;
@@ -81,6 +130,10 @@ export class CreateServiceDto {
   @IsOptional()
   @IsString()
   slug?: string;
+
+  @IsOptional()
+  @IsString()
+  icon?: string;
 
   @IsOptional()
   @IsString()
@@ -170,6 +223,12 @@ export class CreateServiceDto {
   @IsOptional()
   @IsString()
   pricingNote?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateTreatmentMethodDto)
+  treatmentMethods?: CreateTreatmentMethodDto[];
 
   @IsOptional()
   @IsArray()

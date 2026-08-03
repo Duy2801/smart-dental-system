@@ -1,4 +1,4 @@
-import { AppointmentWorkspace } from "@/components/dashboard/appointment";
+import { AppointmentWorkspace } from "@/features/dashboard/appointment";
 
 export default function AppointmentPage() {
   return <AppointmentWorkspace />;

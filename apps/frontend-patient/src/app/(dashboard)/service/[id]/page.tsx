@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ServiceDetailExperience } from "@/components/dashboard/service";
+import { ServiceDetailExperience } from "@/features/dashboard/service";
 
 type ServiceDetailPageProps = { params: Promise<{ id: string }> };
 

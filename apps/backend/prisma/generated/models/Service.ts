@@ -45,6 +45,7 @@ export type ServiceMinAggregateOutputType = {
   category: string | null
   name: string | null
   slug: string | null
+  icon: string | null
   shortDescription: string | null
   description: string | null
   detailSummary: string | null
@@ -68,6 +69,7 @@ export type ServiceMaxAggregateOutputType = {
   category: string | null
   name: string | null
   slug: string | null
+  icon: string | null
   shortDescription: string | null
   description: string | null
   detailSummary: string | null
@@ -91,6 +93,7 @@ export type ServiceCountAggregateOutputType = {
   category: number
   name: number
   slug: number
+  icon: number
   shortDescription: number
   description: number
   detailSummary: number
@@ -136,6 +139,7 @@ export type ServiceMinAggregateInputType = {
   category?: true
   name?: true
   slug?: true
+  icon?: true
   shortDescription?: true
   description?: true
   detailSummary?: true
@@ -159,6 +163,7 @@ export type ServiceMaxAggregateInputType = {
   category?: true
   name?: true
   slug?: true
+  icon?: true
   shortDescription?: true
   description?: true
   detailSummary?: true
@@ -182,6 +187,7 @@ export type ServiceCountAggregateInputType = {
   category?: true
   name?: true
   slug?: true
+  icon?: true
   shortDescription?: true
   description?: true
   detailSummary?: true
@@ -298,6 +304,7 @@ export type ServiceGroupByOutputType = {
   category: string
   name: string
   slug: string | null
+  icon: string | null
   shortDescription: string | null
   description: string | null
   detailSummary: string | null
@@ -350,6 +357,7 @@ export type ServiceWhereInput = {
   category?: Prisma.StringFilter<"Service"> | string
   name?: Prisma.StringFilter<"Service"> | string
   slug?: Prisma.StringNullableFilter<"Service"> | string | null
+  icon?: Prisma.StringNullableFilter<"Service"> | string | null
   shortDescription?: Prisma.StringNullableFilter<"Service"> | string | null
   description?: Prisma.StringNullableFilter<"Service"> | string | null
   detailSummary?: Prisma.StringNullableFilter<"Service"> | string | null
@@ -372,11 +380,9 @@ export type ServiceWhereInput = {
   depositValue?: Prisma.DecimalNullableFilter<"Service"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFilter<"Service"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Service"> | Date | string
+  treatmentMethods?: Prisma.TreatmentMethodListRelationFilter
   appointments?: Prisma.AppointmentListRelationFilter
   clinicalCases?: Prisma.ClinicalCaseListRelationFilter
-  media?: Prisma.ServiceMediaListRelationFilter
-  procedureSteps?: Prisma.ServiceProcedureStepListRelationFilter
-  faqs?: Prisma.ServiceFaqListRelationFilter
 }
 
 export type ServiceOrderByWithRelationInput = {
@@ -384,6 +390,7 @@ export type ServiceOrderByWithRelationInput = {
   category?: Prisma.SortOrder
   name?: Prisma.SortOrder
   slug?: Prisma.SortOrderInput | Prisma.SortOrder
+  icon?: Prisma.SortOrderInput | Prisma.SortOrder
   shortDescription?: Prisma.SortOrderInput | Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   detailSummary?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -406,11 +413,9 @@ export type ServiceOrderByWithRelationInput = {
   depositValue?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  treatmentMethods?: Prisma.TreatmentMethodOrderByRelationAggregateInput
   appointments?: Prisma.AppointmentOrderByRelationAggregateInput
   clinicalCases?: Prisma.ClinicalCaseOrderByRelationAggregateInput
-  media?: Prisma.ServiceMediaOrderByRelationAggregateInput
-  procedureSteps?: Prisma.ServiceProcedureStepOrderByRelationAggregateInput
-  faqs?: Prisma.ServiceFaqOrderByRelationAggregateInput
 }
 
 export type ServiceWhereUniqueInput = Prisma.AtLeast<{
@@ -421,6 +426,7 @@ export type ServiceWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.ServiceWhereInput | Prisma.ServiceWhereInput[]
   category?: Prisma.StringFilter<"Service"> | string
   name?: Prisma.StringFilter<"Service"> | string
+  icon?: Prisma.StringNullableFilter<"Service"> | string | null
   shortDescription?: Prisma.StringNullableFilter<"Service"> | string | null
   description?: Prisma.StringNullableFilter<"Service"> | string | null
   detailSummary?: Prisma.StringNullableFilter<"Service"> | string | null
@@ -443,11 +449,9 @@ export type ServiceWhereUniqueInput = Prisma.AtLeast<{
   depositValue?: Prisma.DecimalNullableFilter<"Service"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFilter<"Service"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Service"> | Date | string
+  treatmentMethods?: Prisma.TreatmentMethodListRelationFilter
   appointments?: Prisma.AppointmentListRelationFilter
   clinicalCases?: Prisma.ClinicalCaseListRelationFilter
-  media?: Prisma.ServiceMediaListRelationFilter
-  procedureSteps?: Prisma.ServiceProcedureStepListRelationFilter
-  faqs?: Prisma.ServiceFaqListRelationFilter
 }, "id" | "slug">
 
 export type ServiceOrderByWithAggregationInput = {
@@ -455,6 +459,7 @@ export type ServiceOrderByWithAggregationInput = {
   category?: Prisma.SortOrder
   name?: Prisma.SortOrder
   slug?: Prisma.SortOrderInput | Prisma.SortOrder
+  icon?: Prisma.SortOrderInput | Prisma.SortOrder
   shortDescription?: Prisma.SortOrderInput | Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   detailSummary?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -492,6 +497,7 @@ export type ServiceScalarWhereWithAggregatesInput = {
   category?: Prisma.StringWithAggregatesFilter<"Service"> | string
   name?: Prisma.StringWithAggregatesFilter<"Service"> | string
   slug?: Prisma.StringNullableWithAggregatesFilter<"Service"> | string | null
+  icon?: Prisma.StringNullableWithAggregatesFilter<"Service"> | string | null
   shortDescription?: Prisma.StringNullableWithAggregatesFilter<"Service"> | string | null
   description?: Prisma.StringNullableWithAggregatesFilter<"Service"> | string | null
   detailSummary?: Prisma.StringNullableWithAggregatesFilter<"Service"> | string | null
@@ -521,6 +527,7 @@ export type ServiceCreateInput = {
   category: string
   name: string
   slug?: string | null
+  icon?: string | null
   shortDescription?: string | null
   description?: string | null
   detailSummary?: string | null
@@ -543,11 +550,9 @@ export type ServiceCreateInput = {
   depositValue?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  treatmentMethods?: Prisma.TreatmentMethodCreateNestedManyWithoutServiceInput
   appointments?: Prisma.AppointmentCreateNestedManyWithoutServiceInput
   clinicalCases?: Prisma.ClinicalCaseCreateNestedManyWithoutServiceInput
-  media?: Prisma.ServiceMediaCreateNestedManyWithoutServiceInput
-  procedureSteps?: Prisma.ServiceProcedureStepCreateNestedManyWithoutServiceInput
-  faqs?: Prisma.ServiceFaqCreateNestedManyWithoutServiceInput
 }
 
 export type ServiceUncheckedCreateInput = {
@@ -555,6 +560,7 @@ export type ServiceUncheckedCreateInput = {
   category: string
   name: string
   slug?: string | null
+  icon?: string | null
   shortDescription?: string | null
   description?: string | null
   detailSummary?: string | null
@@ -577,11 +583,9 @@ export type ServiceUncheckedCreateInput = {
   depositValue?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  treatmentMethods?: Prisma.TreatmentMethodUncheckedCreateNestedManyWithoutServiceInput
   appointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutServiceInput
   clinicalCases?: Prisma.ClinicalCaseUncheckedCreateNestedManyWithoutServiceInput
-  media?: Prisma.ServiceMediaUncheckedCreateNestedManyWithoutServiceInput
-  procedureSteps?: Prisma.ServiceProcedureStepUncheckedCreateNestedManyWithoutServiceInput
-  faqs?: Prisma.ServiceFaqUncheckedCreateNestedManyWithoutServiceInput
 }
 
 export type ServiceUpdateInput = {
@@ -589,6 +593,7 @@ export type ServiceUpdateInput = {
   category?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   detailSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -611,11 +616,9 @@ export type ServiceUpdateInput = {
   depositValue?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  treatmentMethods?: Prisma.TreatmentMethodUpdateManyWithoutServiceNestedInput
   appointments?: Prisma.AppointmentUpdateManyWithoutServiceNestedInput
   clinicalCases?: Prisma.ClinicalCaseUpdateManyWithoutServiceNestedInput
-  media?: Prisma.ServiceMediaUpdateManyWithoutServiceNestedInput
-  procedureSteps?: Prisma.ServiceProcedureStepUpdateManyWithoutServiceNestedInput
-  faqs?: Prisma.ServiceFaqUpdateManyWithoutServiceNestedInput
 }
 
 export type ServiceUncheckedUpdateInput = {
@@ -623,6 +626,7 @@ export type ServiceUncheckedUpdateInput = {
   category?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   detailSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -645,11 +649,9 @@ export type ServiceUncheckedUpdateInput = {
   depositValue?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  treatmentMethods?: Prisma.TreatmentMethodUncheckedUpdateManyWithoutServiceNestedInput
   appointments?: Prisma.AppointmentUncheckedUpdateManyWithoutServiceNestedInput
   clinicalCases?: Prisma.ClinicalCaseUncheckedUpdateManyWithoutServiceNestedInput
-  media?: Prisma.ServiceMediaUncheckedUpdateManyWithoutServiceNestedInput
-  procedureSteps?: Prisma.ServiceProcedureStepUncheckedUpdateManyWithoutServiceNestedInput
-  faqs?: Prisma.ServiceFaqUncheckedUpdateManyWithoutServiceNestedInput
 }
 
 export type ServiceCreateManyInput = {
@@ -657,6 +659,7 @@ export type ServiceCreateManyInput = {
   category: string
   name: string
   slug?: string | null
+  icon?: string | null
   shortDescription?: string | null
   description?: string | null
   detailSummary?: string | null
@@ -686,6 +689,7 @@ export type ServiceUpdateManyMutationInput = {
   category?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   detailSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -715,6 +719,7 @@ export type ServiceUncheckedUpdateManyInput = {
   category?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   detailSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -744,6 +749,7 @@ export type ServiceCountOrderByAggregateInput = {
   category?: Prisma.SortOrder
   name?: Prisma.SortOrder
   slug?: Prisma.SortOrder
+  icon?: Prisma.SortOrder
   shortDescription?: Prisma.SortOrder
   description?: Prisma.SortOrder
   detailSummary?: Prisma.SortOrder
@@ -780,6 +786,7 @@ export type ServiceMaxOrderByAggregateInput = {
   category?: Prisma.SortOrder
   name?: Prisma.SortOrder
   slug?: Prisma.SortOrder
+  icon?: Prisma.SortOrder
   shortDescription?: Prisma.SortOrder
   description?: Prisma.SortOrder
   detailSummary?: Prisma.SortOrder
@@ -803,6 +810,7 @@ export type ServiceMinOrderByAggregateInput = {
   category?: Prisma.SortOrder
   name?: Prisma.SortOrder
   slug?: Prisma.SortOrder
+  icon?: Prisma.SortOrder
   shortDescription?: Prisma.SortOrder
   description?: Prisma.SortOrder
   detailSummary?: Prisma.SortOrder
@@ -861,46 +869,18 @@ export type NullableDecimalFieldUpdateOperationsInput = {
   divide?: runtime.Decimal | runtime.DecimalJsLike | number | string
 }
 
-export type ServiceCreateNestedOneWithoutMediaInput = {
-  create?: Prisma.XOR<Prisma.ServiceCreateWithoutMediaInput, Prisma.ServiceUncheckedCreateWithoutMediaInput>
-  connectOrCreate?: Prisma.ServiceCreateOrConnectWithoutMediaInput
+export type ServiceCreateNestedOneWithoutTreatmentMethodsInput = {
+  create?: Prisma.XOR<Prisma.ServiceCreateWithoutTreatmentMethodsInput, Prisma.ServiceUncheckedCreateWithoutTreatmentMethodsInput>
+  connectOrCreate?: Prisma.ServiceCreateOrConnectWithoutTreatmentMethodsInput
   connect?: Prisma.ServiceWhereUniqueInput
 }
 
-export type ServiceUpdateOneRequiredWithoutMediaNestedInput = {
-  create?: Prisma.XOR<Prisma.ServiceCreateWithoutMediaInput, Prisma.ServiceUncheckedCreateWithoutMediaInput>
-  connectOrCreate?: Prisma.ServiceCreateOrConnectWithoutMediaInput
-  upsert?: Prisma.ServiceUpsertWithoutMediaInput
+export type ServiceUpdateOneRequiredWithoutTreatmentMethodsNestedInput = {
+  create?: Prisma.XOR<Prisma.ServiceCreateWithoutTreatmentMethodsInput, Prisma.ServiceUncheckedCreateWithoutTreatmentMethodsInput>
+  connectOrCreate?: Prisma.ServiceCreateOrConnectWithoutTreatmentMethodsInput
+  upsert?: Prisma.ServiceUpsertWithoutTreatmentMethodsInput
   connect?: Prisma.ServiceWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.ServiceUpdateToOneWithWhereWithoutMediaInput, Prisma.ServiceUpdateWithoutMediaInput>, Prisma.ServiceUncheckedUpdateWithoutMediaInput>
-}
-
-export type ServiceCreateNestedOneWithoutProcedureStepsInput = {
-  create?: Prisma.XOR<Prisma.ServiceCreateWithoutProcedureStepsInput, Prisma.ServiceUncheckedCreateWithoutProcedureStepsInput>
-  connectOrCreate?: Prisma.ServiceCreateOrConnectWithoutProcedureStepsInput
-  connect?: Prisma.ServiceWhereUniqueInput
-}
-
-export type ServiceUpdateOneRequiredWithoutProcedureStepsNestedInput = {
-  create?: Prisma.XOR<Prisma.ServiceCreateWithoutProcedureStepsInput, Prisma.ServiceUncheckedCreateWithoutProcedureStepsInput>
-  connectOrCreate?: Prisma.ServiceCreateOrConnectWithoutProcedureStepsInput
-  upsert?: Prisma.ServiceUpsertWithoutProcedureStepsInput
-  connect?: Prisma.ServiceWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.ServiceUpdateToOneWithWhereWithoutProcedureStepsInput, Prisma.ServiceUpdateWithoutProcedureStepsInput>, Prisma.ServiceUncheckedUpdateWithoutProcedureStepsInput>
-}
-
-export type ServiceCreateNestedOneWithoutFaqsInput = {
-  create?: Prisma.XOR<Prisma.ServiceCreateWithoutFaqsInput, Prisma.ServiceUncheckedCreateWithoutFaqsInput>
-  connectOrCreate?: Prisma.ServiceCreateOrConnectWithoutFaqsInput
-  connect?: Prisma.ServiceWhereUniqueInput
-}
-
-export type ServiceUpdateOneRequiredWithoutFaqsNestedInput = {
-  create?: Prisma.XOR<Prisma.ServiceCreateWithoutFaqsInput, Prisma.ServiceUncheckedCreateWithoutFaqsInput>
-  connectOrCreate?: Prisma.ServiceCreateOrConnectWithoutFaqsInput
-  upsert?: Prisma.ServiceUpsertWithoutFaqsInput
-  connect?: Prisma.ServiceWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.ServiceUpdateToOneWithWhereWithoutFaqsInput, Prisma.ServiceUpdateWithoutFaqsInput>, Prisma.ServiceUncheckedUpdateWithoutFaqsInput>
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ServiceUpdateToOneWithWhereWithoutTreatmentMethodsInput, Prisma.ServiceUpdateWithoutTreatmentMethodsInput>, Prisma.ServiceUncheckedUpdateWithoutTreatmentMethodsInput>
 }
 
 export type ServiceCreateNestedOneWithoutAppointmentsInput = {
@@ -931,11 +911,12 @@ export type ServiceUpdateOneRequiredWithoutClinicalCasesNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.ServiceUpdateToOneWithWhereWithoutClinicalCasesInput, Prisma.ServiceUpdateWithoutClinicalCasesInput>, Prisma.ServiceUncheckedUpdateWithoutClinicalCasesInput>
 }
 
-export type ServiceCreateWithoutMediaInput = {
+export type ServiceCreateWithoutTreatmentMethodsInput = {
   id?: string
   category: string
   name: string
   slug?: string | null
+  icon?: string | null
   shortDescription?: string | null
   description?: string | null
   detailSummary?: string | null
@@ -960,15 +941,14 @@ export type ServiceCreateWithoutMediaInput = {
   updatedAt?: Date | string
   appointments?: Prisma.AppointmentCreateNestedManyWithoutServiceInput
   clinicalCases?: Prisma.ClinicalCaseCreateNestedManyWithoutServiceInput
-  procedureSteps?: Prisma.ServiceProcedureStepCreateNestedManyWithoutServiceInput
-  faqs?: Prisma.ServiceFaqCreateNestedManyWithoutServiceInput
 }
 
-export type ServiceUncheckedCreateWithoutMediaInput = {
+export type ServiceUncheckedCreateWithoutTreatmentMethodsInput = {
   id?: string
   category: string
   name: string
   slug?: string | null
+  icon?: string | null
   shortDescription?: string | null
   description?: string | null
   detailSummary?: string | null
@@ -993,31 +973,30 @@ export type ServiceUncheckedCreateWithoutMediaInput = {
   updatedAt?: Date | string
   appointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutServiceInput
   clinicalCases?: Prisma.ClinicalCaseUncheckedCreateNestedManyWithoutServiceInput
-  procedureSteps?: Prisma.ServiceProcedureStepUncheckedCreateNestedManyWithoutServiceInput
-  faqs?: Prisma.ServiceFaqUncheckedCreateNestedManyWithoutServiceInput
 }
 
-export type ServiceCreateOrConnectWithoutMediaInput = {
+export type ServiceCreateOrConnectWithoutTreatmentMethodsInput = {
   where: Prisma.ServiceWhereUniqueInput
-  create: Prisma.XOR<Prisma.ServiceCreateWithoutMediaInput, Prisma.ServiceUncheckedCreateWithoutMediaInput>
+  create: Prisma.XOR<Prisma.ServiceCreateWithoutTreatmentMethodsInput, Prisma.ServiceUncheckedCreateWithoutTreatmentMethodsInput>
 }
 
-export type ServiceUpsertWithoutMediaInput = {
-  update: Prisma.XOR<Prisma.ServiceUpdateWithoutMediaInput, Prisma.ServiceUncheckedUpdateWithoutMediaInput>
-  create: Prisma.XOR<Prisma.ServiceCreateWithoutMediaInput, Prisma.ServiceUncheckedCreateWithoutMediaInput>
+export type ServiceUpsertWithoutTreatmentMethodsInput = {
+  update: Prisma.XOR<Prisma.ServiceUpdateWithoutTreatmentMethodsInput, Prisma.ServiceUncheckedUpdateWithoutTreatmentMethodsInput>
+  create: Prisma.XOR<Prisma.ServiceCreateWithoutTreatmentMethodsInput, Prisma.ServiceUncheckedCreateWithoutTreatmentMethodsInput>
   where?: Prisma.ServiceWhereInput
 }
 
-export type ServiceUpdateToOneWithWhereWithoutMediaInput = {
+export type ServiceUpdateToOneWithWhereWithoutTreatmentMethodsInput = {
   where?: Prisma.ServiceWhereInput
-  data: Prisma.XOR<Prisma.ServiceUpdateWithoutMediaInput, Prisma.ServiceUncheckedUpdateWithoutMediaInput>
+  data: Prisma.XOR<Prisma.ServiceUpdateWithoutTreatmentMethodsInput, Prisma.ServiceUncheckedUpdateWithoutTreatmentMethodsInput>
 }
 
-export type ServiceUpdateWithoutMediaInput = {
+export type ServiceUpdateWithoutTreatmentMethodsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   detailSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1042,15 +1021,14 @@ export type ServiceUpdateWithoutMediaInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   appointments?: Prisma.AppointmentUpdateManyWithoutServiceNestedInput
   clinicalCases?: Prisma.ClinicalCaseUpdateManyWithoutServiceNestedInput
-  procedureSteps?: Prisma.ServiceProcedureStepUpdateManyWithoutServiceNestedInput
-  faqs?: Prisma.ServiceFaqUpdateManyWithoutServiceNestedInput
 }
 
-export type ServiceUncheckedUpdateWithoutMediaInput = {
+export type ServiceUncheckedUpdateWithoutTreatmentMethodsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   detailSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1075,304 +1053,6 @@ export type ServiceUncheckedUpdateWithoutMediaInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   appointments?: Prisma.AppointmentUncheckedUpdateManyWithoutServiceNestedInput
   clinicalCases?: Prisma.ClinicalCaseUncheckedUpdateManyWithoutServiceNestedInput
-  procedureSteps?: Prisma.ServiceProcedureStepUncheckedUpdateManyWithoutServiceNestedInput
-  faqs?: Prisma.ServiceFaqUncheckedUpdateManyWithoutServiceNestedInput
-}
-
-export type ServiceCreateWithoutProcedureStepsInput = {
-  id?: string
-  category: string
-  name: string
-  slug?: string | null
-  shortDescription?: string | null
-  description?: string | null
-  detailSummary?: string | null
-  thumbnailUrl?: string | null
-  durationMinutes: number
-  basePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
-  highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  suitableFor?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  includedItems?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  preparationNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  aftercareNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  importantNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  pricingNote?: string | null
-  isFeatured?: boolean
-  displayOrder?: number
-  isActive?: boolean
-  depositOverrideEnabled?: boolean
-  depositRequired?: boolean
-  depositCalculationMode?: $Enums.DepositCalculationMode | null
-  depositValue?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  appointments?: Prisma.AppointmentCreateNestedManyWithoutServiceInput
-  clinicalCases?: Prisma.ClinicalCaseCreateNestedManyWithoutServiceInput
-  media?: Prisma.ServiceMediaCreateNestedManyWithoutServiceInput
-  faqs?: Prisma.ServiceFaqCreateNestedManyWithoutServiceInput
-}
-
-export type ServiceUncheckedCreateWithoutProcedureStepsInput = {
-  id?: string
-  category: string
-  name: string
-  slug?: string | null
-  shortDescription?: string | null
-  description?: string | null
-  detailSummary?: string | null
-  thumbnailUrl?: string | null
-  durationMinutes: number
-  basePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
-  highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  suitableFor?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  includedItems?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  preparationNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  aftercareNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  importantNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  pricingNote?: string | null
-  isFeatured?: boolean
-  displayOrder?: number
-  isActive?: boolean
-  depositOverrideEnabled?: boolean
-  depositRequired?: boolean
-  depositCalculationMode?: $Enums.DepositCalculationMode | null
-  depositValue?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  appointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutServiceInput
-  clinicalCases?: Prisma.ClinicalCaseUncheckedCreateNestedManyWithoutServiceInput
-  media?: Prisma.ServiceMediaUncheckedCreateNestedManyWithoutServiceInput
-  faqs?: Prisma.ServiceFaqUncheckedCreateNestedManyWithoutServiceInput
-}
-
-export type ServiceCreateOrConnectWithoutProcedureStepsInput = {
-  where: Prisma.ServiceWhereUniqueInput
-  create: Prisma.XOR<Prisma.ServiceCreateWithoutProcedureStepsInput, Prisma.ServiceUncheckedCreateWithoutProcedureStepsInput>
-}
-
-export type ServiceUpsertWithoutProcedureStepsInput = {
-  update: Prisma.XOR<Prisma.ServiceUpdateWithoutProcedureStepsInput, Prisma.ServiceUncheckedUpdateWithoutProcedureStepsInput>
-  create: Prisma.XOR<Prisma.ServiceCreateWithoutProcedureStepsInput, Prisma.ServiceUncheckedCreateWithoutProcedureStepsInput>
-  where?: Prisma.ServiceWhereInput
-}
-
-export type ServiceUpdateToOneWithWhereWithoutProcedureStepsInput = {
-  where?: Prisma.ServiceWhereInput
-  data: Prisma.XOR<Prisma.ServiceUpdateWithoutProcedureStepsInput, Prisma.ServiceUncheckedUpdateWithoutProcedureStepsInput>
-}
-
-export type ServiceUpdateWithoutProcedureStepsInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  category?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  detailSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  durationMinutes?: Prisma.IntFieldUpdateOperationsInput | number
-  basePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
-  highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  suitableFor?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  includedItems?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  preparationNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  aftercareNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  importantNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  pricingNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  isFeatured?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
-  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  depositOverrideEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  depositRequired?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  depositCalculationMode?: Prisma.NullableEnumDepositCalculationModeFieldUpdateOperationsInput | $Enums.DepositCalculationMode | null
-  depositValue?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  appointments?: Prisma.AppointmentUpdateManyWithoutServiceNestedInput
-  clinicalCases?: Prisma.ClinicalCaseUpdateManyWithoutServiceNestedInput
-  media?: Prisma.ServiceMediaUpdateManyWithoutServiceNestedInput
-  faqs?: Prisma.ServiceFaqUpdateManyWithoutServiceNestedInput
-}
-
-export type ServiceUncheckedUpdateWithoutProcedureStepsInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  category?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  detailSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  durationMinutes?: Prisma.IntFieldUpdateOperationsInput | number
-  basePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
-  highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  suitableFor?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  includedItems?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  preparationNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  aftercareNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  importantNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  pricingNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  isFeatured?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
-  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  depositOverrideEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  depositRequired?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  depositCalculationMode?: Prisma.NullableEnumDepositCalculationModeFieldUpdateOperationsInput | $Enums.DepositCalculationMode | null
-  depositValue?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  appointments?: Prisma.AppointmentUncheckedUpdateManyWithoutServiceNestedInput
-  clinicalCases?: Prisma.ClinicalCaseUncheckedUpdateManyWithoutServiceNestedInput
-  media?: Prisma.ServiceMediaUncheckedUpdateManyWithoutServiceNestedInput
-  faqs?: Prisma.ServiceFaqUncheckedUpdateManyWithoutServiceNestedInput
-}
-
-export type ServiceCreateWithoutFaqsInput = {
-  id?: string
-  category: string
-  name: string
-  slug?: string | null
-  shortDescription?: string | null
-  description?: string | null
-  detailSummary?: string | null
-  thumbnailUrl?: string | null
-  durationMinutes: number
-  basePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
-  highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  suitableFor?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  includedItems?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  preparationNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  aftercareNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  importantNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  pricingNote?: string | null
-  isFeatured?: boolean
-  displayOrder?: number
-  isActive?: boolean
-  depositOverrideEnabled?: boolean
-  depositRequired?: boolean
-  depositCalculationMode?: $Enums.DepositCalculationMode | null
-  depositValue?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  appointments?: Prisma.AppointmentCreateNestedManyWithoutServiceInput
-  clinicalCases?: Prisma.ClinicalCaseCreateNestedManyWithoutServiceInput
-  media?: Prisma.ServiceMediaCreateNestedManyWithoutServiceInput
-  procedureSteps?: Prisma.ServiceProcedureStepCreateNestedManyWithoutServiceInput
-}
-
-export type ServiceUncheckedCreateWithoutFaqsInput = {
-  id?: string
-  category: string
-  name: string
-  slug?: string | null
-  shortDescription?: string | null
-  description?: string | null
-  detailSummary?: string | null
-  thumbnailUrl?: string | null
-  durationMinutes: number
-  basePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
-  highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  suitableFor?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  includedItems?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  preparationNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  aftercareNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  importantNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  pricingNote?: string | null
-  isFeatured?: boolean
-  displayOrder?: number
-  isActive?: boolean
-  depositOverrideEnabled?: boolean
-  depositRequired?: boolean
-  depositCalculationMode?: $Enums.DepositCalculationMode | null
-  depositValue?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  appointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutServiceInput
-  clinicalCases?: Prisma.ClinicalCaseUncheckedCreateNestedManyWithoutServiceInput
-  media?: Prisma.ServiceMediaUncheckedCreateNestedManyWithoutServiceInput
-  procedureSteps?: Prisma.ServiceProcedureStepUncheckedCreateNestedManyWithoutServiceInput
-}
-
-export type ServiceCreateOrConnectWithoutFaqsInput = {
-  where: Prisma.ServiceWhereUniqueInput
-  create: Prisma.XOR<Prisma.ServiceCreateWithoutFaqsInput, Prisma.ServiceUncheckedCreateWithoutFaqsInput>
-}
-
-export type ServiceUpsertWithoutFaqsInput = {
-  update: Prisma.XOR<Prisma.ServiceUpdateWithoutFaqsInput, Prisma.ServiceUncheckedUpdateWithoutFaqsInput>
-  create: Prisma.XOR<Prisma.ServiceCreateWithoutFaqsInput, Prisma.ServiceUncheckedCreateWithoutFaqsInput>
-  where?: Prisma.ServiceWhereInput
-}
-
-export type ServiceUpdateToOneWithWhereWithoutFaqsInput = {
-  where?: Prisma.ServiceWhereInput
-  data: Prisma.XOR<Prisma.ServiceUpdateWithoutFaqsInput, Prisma.ServiceUncheckedUpdateWithoutFaqsInput>
-}
-
-export type ServiceUpdateWithoutFaqsInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  category?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  detailSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  durationMinutes?: Prisma.IntFieldUpdateOperationsInput | number
-  basePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
-  highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  suitableFor?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  includedItems?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  preparationNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  aftercareNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  importantNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  pricingNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  isFeatured?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
-  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  depositOverrideEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  depositRequired?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  depositCalculationMode?: Prisma.NullableEnumDepositCalculationModeFieldUpdateOperationsInput | $Enums.DepositCalculationMode | null
-  depositValue?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  appointments?: Prisma.AppointmentUpdateManyWithoutServiceNestedInput
-  clinicalCases?: Prisma.ClinicalCaseUpdateManyWithoutServiceNestedInput
-  media?: Prisma.ServiceMediaUpdateManyWithoutServiceNestedInput
-  procedureSteps?: Prisma.ServiceProcedureStepUpdateManyWithoutServiceNestedInput
-}
-
-export type ServiceUncheckedUpdateWithoutFaqsInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  category?: Prisma.StringFieldUpdateOperationsInput | string
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  detailSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  durationMinutes?: Prisma.IntFieldUpdateOperationsInput | number
-  basePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
-  highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  suitableFor?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  includedItems?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  preparationNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  aftercareNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  importantNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  pricingNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  isFeatured?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
-  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  depositOverrideEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  depositRequired?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  depositCalculationMode?: Prisma.NullableEnumDepositCalculationModeFieldUpdateOperationsInput | $Enums.DepositCalculationMode | null
-  depositValue?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  appointments?: Prisma.AppointmentUncheckedUpdateManyWithoutServiceNestedInput
-  clinicalCases?: Prisma.ClinicalCaseUncheckedUpdateManyWithoutServiceNestedInput
-  media?: Prisma.ServiceMediaUncheckedUpdateManyWithoutServiceNestedInput
-  procedureSteps?: Prisma.ServiceProcedureStepUncheckedUpdateManyWithoutServiceNestedInput
 }
 
 export type ServiceCreateWithoutAppointmentsInput = {
@@ -1380,6 +1060,7 @@ export type ServiceCreateWithoutAppointmentsInput = {
   category: string
   name: string
   slug?: string | null
+  icon?: string | null
   shortDescription?: string | null
   description?: string | null
   detailSummary?: string | null
@@ -1402,10 +1083,8 @@ export type ServiceCreateWithoutAppointmentsInput = {
   depositValue?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  treatmentMethods?: Prisma.TreatmentMethodCreateNestedManyWithoutServiceInput
   clinicalCases?: Prisma.ClinicalCaseCreateNestedManyWithoutServiceInput
-  media?: Prisma.ServiceMediaCreateNestedManyWithoutServiceInput
-  procedureSteps?: Prisma.ServiceProcedureStepCreateNestedManyWithoutServiceInput
-  faqs?: Prisma.ServiceFaqCreateNestedManyWithoutServiceInput
 }
 
 export type ServiceUncheckedCreateWithoutAppointmentsInput = {
@@ -1413,6 +1092,7 @@ export type ServiceUncheckedCreateWithoutAppointmentsInput = {
   category: string
   name: string
   slug?: string | null
+  icon?: string | null
   shortDescription?: string | null
   description?: string | null
   detailSummary?: string | null
@@ -1435,10 +1115,8 @@ export type ServiceUncheckedCreateWithoutAppointmentsInput = {
   depositValue?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  treatmentMethods?: Prisma.TreatmentMethodUncheckedCreateNestedManyWithoutServiceInput
   clinicalCases?: Prisma.ClinicalCaseUncheckedCreateNestedManyWithoutServiceInput
-  media?: Prisma.ServiceMediaUncheckedCreateNestedManyWithoutServiceInput
-  procedureSteps?: Prisma.ServiceProcedureStepUncheckedCreateNestedManyWithoutServiceInput
-  faqs?: Prisma.ServiceFaqUncheckedCreateNestedManyWithoutServiceInput
 }
 
 export type ServiceCreateOrConnectWithoutAppointmentsInput = {
@@ -1462,6 +1140,7 @@ export type ServiceUpdateWithoutAppointmentsInput = {
   category?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   detailSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1484,10 +1163,8 @@ export type ServiceUpdateWithoutAppointmentsInput = {
   depositValue?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  treatmentMethods?: Prisma.TreatmentMethodUpdateManyWithoutServiceNestedInput
   clinicalCases?: Prisma.ClinicalCaseUpdateManyWithoutServiceNestedInput
-  media?: Prisma.ServiceMediaUpdateManyWithoutServiceNestedInput
-  procedureSteps?: Prisma.ServiceProcedureStepUpdateManyWithoutServiceNestedInput
-  faqs?: Prisma.ServiceFaqUpdateManyWithoutServiceNestedInput
 }
 
 export type ServiceUncheckedUpdateWithoutAppointmentsInput = {
@@ -1495,6 +1172,7 @@ export type ServiceUncheckedUpdateWithoutAppointmentsInput = {
   category?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   detailSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1517,10 +1195,8 @@ export type ServiceUncheckedUpdateWithoutAppointmentsInput = {
   depositValue?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  treatmentMethods?: Prisma.TreatmentMethodUncheckedUpdateManyWithoutServiceNestedInput
   clinicalCases?: Prisma.ClinicalCaseUncheckedUpdateManyWithoutServiceNestedInput
-  media?: Prisma.ServiceMediaUncheckedUpdateManyWithoutServiceNestedInput
-  procedureSteps?: Prisma.ServiceProcedureStepUncheckedUpdateManyWithoutServiceNestedInput
-  faqs?: Prisma.ServiceFaqUncheckedUpdateManyWithoutServiceNestedInput
 }
 
 export type ServiceCreateWithoutClinicalCasesInput = {
@@ -1528,6 +1204,7 @@ export type ServiceCreateWithoutClinicalCasesInput = {
   category: string
   name: string
   slug?: string | null
+  icon?: string | null
   shortDescription?: string | null
   description?: string | null
   detailSummary?: string | null
@@ -1550,10 +1227,8 @@ export type ServiceCreateWithoutClinicalCasesInput = {
   depositValue?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  treatmentMethods?: Prisma.TreatmentMethodCreateNestedManyWithoutServiceInput
   appointments?: Prisma.AppointmentCreateNestedManyWithoutServiceInput
-  media?: Prisma.ServiceMediaCreateNestedManyWithoutServiceInput
-  procedureSteps?: Prisma.ServiceProcedureStepCreateNestedManyWithoutServiceInput
-  faqs?: Prisma.ServiceFaqCreateNestedManyWithoutServiceInput
 }
 
 export type ServiceUncheckedCreateWithoutClinicalCasesInput = {
@@ -1561,6 +1236,7 @@ export type ServiceUncheckedCreateWithoutClinicalCasesInput = {
   category: string
   name: string
   slug?: string | null
+  icon?: string | null
   shortDescription?: string | null
   description?: string | null
   detailSummary?: string | null
@@ -1583,10 +1259,8 @@ export type ServiceUncheckedCreateWithoutClinicalCasesInput = {
   depositValue?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  treatmentMethods?: Prisma.TreatmentMethodUncheckedCreateNestedManyWithoutServiceInput
   appointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutServiceInput
-  media?: Prisma.ServiceMediaUncheckedCreateNestedManyWithoutServiceInput
-  procedureSteps?: Prisma.ServiceProcedureStepUncheckedCreateNestedManyWithoutServiceInput
-  faqs?: Prisma.ServiceFaqUncheckedCreateNestedManyWithoutServiceInput
 }
 
 export type ServiceCreateOrConnectWithoutClinicalCasesInput = {
@@ -1610,6 +1284,7 @@ export type ServiceUpdateWithoutClinicalCasesInput = {
   category?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   detailSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1632,10 +1307,8 @@ export type ServiceUpdateWithoutClinicalCasesInput = {
   depositValue?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  treatmentMethods?: Prisma.TreatmentMethodUpdateManyWithoutServiceNestedInput
   appointments?: Prisma.AppointmentUpdateManyWithoutServiceNestedInput
-  media?: Prisma.ServiceMediaUpdateManyWithoutServiceNestedInput
-  procedureSteps?: Prisma.ServiceProcedureStepUpdateManyWithoutServiceNestedInput
-  faqs?: Prisma.ServiceFaqUpdateManyWithoutServiceNestedInput
 }
 
 export type ServiceUncheckedUpdateWithoutClinicalCasesInput = {
@@ -1643,6 +1316,7 @@ export type ServiceUncheckedUpdateWithoutClinicalCasesInput = {
   category?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   detailSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1665,10 +1339,8 @@ export type ServiceUncheckedUpdateWithoutClinicalCasesInput = {
   depositValue?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  treatmentMethods?: Prisma.TreatmentMethodUncheckedUpdateManyWithoutServiceNestedInput
   appointments?: Prisma.AppointmentUncheckedUpdateManyWithoutServiceNestedInput
-  media?: Prisma.ServiceMediaUncheckedUpdateManyWithoutServiceNestedInput
-  procedureSteps?: Prisma.ServiceProcedureStepUncheckedUpdateManyWithoutServiceNestedInput
-  faqs?: Prisma.ServiceFaqUncheckedUpdateManyWithoutServiceNestedInput
 }
 
 
@@ -1677,19 +1349,15 @@ export type ServiceUncheckedUpdateWithoutClinicalCasesInput = {
  */
 
 export type ServiceCountOutputType = {
+  treatmentMethods: number
   appointments: number
   clinicalCases: number
-  media: number
-  procedureSteps: number
-  faqs: number
 }
 
 export type ServiceCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  treatmentMethods?: boolean | ServiceCountOutputTypeCountTreatmentMethodsArgs
   appointments?: boolean | ServiceCountOutputTypeCountAppointmentsArgs
   clinicalCases?: boolean | ServiceCountOutputTypeCountClinicalCasesArgs
-  media?: boolean | ServiceCountOutputTypeCountMediaArgs
-  procedureSteps?: boolean | ServiceCountOutputTypeCountProcedureStepsArgs
-  faqs?: boolean | ServiceCountOutputTypeCountFaqsArgs
 }
 
 /**
@@ -1700,6 +1368,13 @@ export type ServiceCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Exte
    * Select specific fields to fetch from the ServiceCountOutputType
    */
   select?: Prisma.ServiceCountOutputTypeSelect<ExtArgs> | null
+}
+
+/**
+ * ServiceCountOutputType without action
+ */
+export type ServiceCountOutputTypeCountTreatmentMethodsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.TreatmentMethodWhereInput
 }
 
 /**
@@ -1716,33 +1391,13 @@ export type ServiceCountOutputTypeCountClinicalCasesArgs<ExtArgs extends runtime
   where?: Prisma.ClinicalCaseWhereInput
 }
 
-/**
- * ServiceCountOutputType without action
- */
-export type ServiceCountOutputTypeCountMediaArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.ServiceMediaWhereInput
-}
-
-/**
- * ServiceCountOutputType without action
- */
-export type ServiceCountOutputTypeCountProcedureStepsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.ServiceProcedureStepWhereInput
-}
-
-/**
- * ServiceCountOutputType without action
- */
-export type ServiceCountOutputTypeCountFaqsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.ServiceFaqWhereInput
-}
-
 
 export type ServiceSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   category?: boolean
   name?: boolean
   slug?: boolean
+  icon?: boolean
   shortDescription?: boolean
   description?: boolean
   detailSummary?: boolean
@@ -1765,11 +1420,9 @@ export type ServiceSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   depositValue?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  treatmentMethods?: boolean | Prisma.Service$treatmentMethodsArgs<ExtArgs>
   appointments?: boolean | Prisma.Service$appointmentsArgs<ExtArgs>
   clinicalCases?: boolean | Prisma.Service$clinicalCasesArgs<ExtArgs>
-  media?: boolean | Prisma.Service$mediaArgs<ExtArgs>
-  procedureSteps?: boolean | Prisma.Service$procedureStepsArgs<ExtArgs>
-  faqs?: boolean | Prisma.Service$faqsArgs<ExtArgs>
   _count?: boolean | Prisma.ServiceCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["service"]>
 
@@ -1778,6 +1431,7 @@ export type ServiceSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   category?: boolean
   name?: boolean
   slug?: boolean
+  icon?: boolean
   shortDescription?: boolean
   description?: boolean
   detailSummary?: boolean
@@ -1807,6 +1461,7 @@ export type ServiceSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   category?: boolean
   name?: boolean
   slug?: boolean
+  icon?: boolean
   shortDescription?: boolean
   description?: boolean
   detailSummary?: boolean
@@ -1836,6 +1491,7 @@ export type ServiceSelectScalar = {
   category?: boolean
   name?: boolean
   slug?: boolean
+  icon?: boolean
   shortDescription?: boolean
   description?: boolean
   detailSummary?: boolean
@@ -1860,13 +1516,11 @@ export type ServiceSelectScalar = {
   updatedAt?: boolean
 }
 
-export type ServiceOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "category" | "name" | "slug" | "shortDescription" | "description" | "detailSummary" | "thumbnailUrl" | "durationMinutes" | "basePrice" | "highlights" | "suitableFor" | "includedItems" | "preparationNotes" | "aftercareNotes" | "importantNotes" | "pricingNote" | "isFeatured" | "displayOrder" | "isActive" | "depositOverrideEnabled" | "depositRequired" | "depositCalculationMode" | "depositValue" | "createdAt" | "updatedAt", ExtArgs["result"]["service"]>
+export type ServiceOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "category" | "name" | "slug" | "icon" | "shortDescription" | "description" | "detailSummary" | "thumbnailUrl" | "durationMinutes" | "basePrice" | "highlights" | "suitableFor" | "includedItems" | "preparationNotes" | "aftercareNotes" | "importantNotes" | "pricingNote" | "isFeatured" | "displayOrder" | "isActive" | "depositOverrideEnabled" | "depositRequired" | "depositCalculationMode" | "depositValue" | "createdAt" | "updatedAt", ExtArgs["result"]["service"]>
 export type ServiceInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  treatmentMethods?: boolean | Prisma.Service$treatmentMethodsArgs<ExtArgs>
   appointments?: boolean | Prisma.Service$appointmentsArgs<ExtArgs>
   clinicalCases?: boolean | Prisma.Service$clinicalCasesArgs<ExtArgs>
-  media?: boolean | Prisma.Service$mediaArgs<ExtArgs>
-  procedureSteps?: boolean | Prisma.Service$procedureStepsArgs<ExtArgs>
-  faqs?: boolean | Prisma.Service$faqsArgs<ExtArgs>
   _count?: boolean | Prisma.ServiceCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type ServiceIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -1875,17 +1529,16 @@ export type ServiceIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Exte
 export type $ServicePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Service"
   objects: {
+    treatmentMethods: Prisma.$TreatmentMethodPayload<ExtArgs>[]
     appointments: Prisma.$AppointmentPayload<ExtArgs>[]
     clinicalCases: Prisma.$ClinicalCasePayload<ExtArgs>[]
-    media: Prisma.$ServiceMediaPayload<ExtArgs>[]
-    procedureSteps: Prisma.$ServiceProcedureStepPayload<ExtArgs>[]
-    faqs: Prisma.$ServiceFaqPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     category: string
     name: string
     slug: string | null
+    icon: string | null
     shortDescription: string | null
     description: string | null
     detailSummary: string | null
@@ -2302,11 +1955,9 @@ readonly fields: ServiceFieldRefs;
  */
 export interface Prisma__ServiceClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
+  treatmentMethods<T extends Prisma.Service$treatmentMethodsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Service$treatmentMethodsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TreatmentMethodPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   appointments<T extends Prisma.Service$appointmentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Service$appointmentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AppointmentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   clinicalCases<T extends Prisma.Service$clinicalCasesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Service$clinicalCasesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ClinicalCasePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-  media<T extends Prisma.Service$mediaArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Service$mediaArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ServiceMediaPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-  procedureSteps<T extends Prisma.Service$procedureStepsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Service$procedureStepsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ServiceProcedureStepPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-  faqs<T extends Prisma.Service$faqsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Service$faqsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ServiceFaqPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2340,6 +1991,7 @@ export interface ServiceFieldRefs {
   readonly category: Prisma.FieldRef<"Service", 'String'>
   readonly name: Prisma.FieldRef<"Service", 'String'>
   readonly slug: Prisma.FieldRef<"Service", 'String'>
+  readonly icon: Prisma.FieldRef<"Service", 'String'>
   readonly shortDescription: Prisma.FieldRef<"Service", 'String'>
   readonly description: Prisma.FieldRef<"Service", 'String'>
   readonly detailSummary: Prisma.FieldRef<"Service", 'String'>
@@ -2755,6 +2407,30 @@ export type ServiceDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Inter
 }
 
 /**
+ * Service.treatmentMethods
+ */
+export type Service$treatmentMethodsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the TreatmentMethod
+   */
+  select?: Prisma.TreatmentMethodSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the TreatmentMethod
+   */
+  omit?: Prisma.TreatmentMethodOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.TreatmentMethodInclude<ExtArgs> | null
+  where?: Prisma.TreatmentMethodWhereInput
+  orderBy?: Prisma.TreatmentMethodOrderByWithRelationInput | Prisma.TreatmentMethodOrderByWithRelationInput[]
+  cursor?: Prisma.TreatmentMethodWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.TreatmentMethodScalarFieldEnum | Prisma.TreatmentMethodScalarFieldEnum[]
+}
+
+/**
  * Service.appointments
  */
 export type Service$appointmentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2800,78 +2476,6 @@ export type Service$clinicalCasesArgs<ExtArgs extends runtime.Types.Extensions.I
   take?: number
   skip?: number
   distinct?: Prisma.ClinicalCaseScalarFieldEnum | Prisma.ClinicalCaseScalarFieldEnum[]
-}
-
-/**
- * Service.media
- */
-export type Service$mediaArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the ServiceMedia
-   */
-  select?: Prisma.ServiceMediaSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the ServiceMedia
-   */
-  omit?: Prisma.ServiceMediaOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.ServiceMediaInclude<ExtArgs> | null
-  where?: Prisma.ServiceMediaWhereInput
-  orderBy?: Prisma.ServiceMediaOrderByWithRelationInput | Prisma.ServiceMediaOrderByWithRelationInput[]
-  cursor?: Prisma.ServiceMediaWhereUniqueInput
-  take?: number
-  skip?: number
-  distinct?: Prisma.ServiceMediaScalarFieldEnum | Prisma.ServiceMediaScalarFieldEnum[]
-}
-
-/**
- * Service.procedureSteps
- */
-export type Service$procedureStepsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the ServiceProcedureStep
-   */
-  select?: Prisma.ServiceProcedureStepSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the ServiceProcedureStep
-   */
-  omit?: Prisma.ServiceProcedureStepOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.ServiceProcedureStepInclude<ExtArgs> | null
-  where?: Prisma.ServiceProcedureStepWhereInput
-  orderBy?: Prisma.ServiceProcedureStepOrderByWithRelationInput | Prisma.ServiceProcedureStepOrderByWithRelationInput[]
-  cursor?: Prisma.ServiceProcedureStepWhereUniqueInput
-  take?: number
-  skip?: number
-  distinct?: Prisma.ServiceProcedureStepScalarFieldEnum | Prisma.ServiceProcedureStepScalarFieldEnum[]
-}
-
-/**
- * Service.faqs
- */
-export type Service$faqsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the ServiceFaq
-   */
-  select?: Prisma.ServiceFaqSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the ServiceFaq
-   */
-  omit?: Prisma.ServiceFaqOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.ServiceFaqInclude<ExtArgs> | null
-  where?: Prisma.ServiceFaqWhereInput
-  orderBy?: Prisma.ServiceFaqOrderByWithRelationInput | Prisma.ServiceFaqOrderByWithRelationInput[]
-  cursor?: Prisma.ServiceFaqWhereUniqueInput
-  take?: number
-  skip?: number
-  distinct?: Prisma.ServiceFaqScalarFieldEnum | Prisma.ServiceFaqScalarFieldEnum[]
 }
 
 /**

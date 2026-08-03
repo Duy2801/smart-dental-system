@@ -4,8 +4,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Provider } from "react-redux";
 import { useEffect } from "react";
 import type { ReactNode } from "react";
-import { apiMe, apiRefresh } from "@/components/auth/api";
-import { ToastProvider } from "@/components/dashboard/common/toast";
+import { apiMe, apiRefresh } from "@/features/auth/api";
+import { ToastProvider } from "@/features/dashboard/common/toast";
 import { login, logout, updateAccessToken } from "./loginSlice";
 import store from "./store";
 
