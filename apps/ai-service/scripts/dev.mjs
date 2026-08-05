@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { copyFileSync, existsSync } from "node:fs";
+import { copyFileSync, existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -10,6 +10,21 @@ const python = path.join(
   ".venv",
   isWin ? "Scripts/python.exe" : "bin/python",
 );
+
+function loadEnvFile(filePath) {
+  const env = { ...process.env };
+  if (!existsSync(filePath)) return env;
+  for (const line of readFileSync(filePath, "utf8").split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const eq = trimmed.indexOf("=");
+    if (eq <= 0) continue;
+    const key = trimmed.slice(0, eq).trim();
+    const val = trimmed.slice(eq + 1).trim();
+    env[key] = val;
+  }
+  return env;
+}
 
 if (!existsSync(python)) {
   console.error(
@@ -25,6 +40,8 @@ if (!existsSync(envFile) && existsSync(envExample)) {
   console.log("[ai-service] Đã tạo .env từ .env.example");
 }
 
+const childEnv = loadEnvFile(envFile);
+
 const child = spawn(
   python,
   [
@@ -35,9 +52,9 @@ const child = spawn(
     "--host",
     "127.0.0.1",
     "--port",
-    "8000",
+    process.env.AI_SERVICE_PORT || "8001",
   ],
-  { cwd: root, stdio: "inherit", env: process.env },
+  { cwd: root, stdio: "inherit", env: childEnv },
 );
 
 child.on("exit", (code, signal) => {

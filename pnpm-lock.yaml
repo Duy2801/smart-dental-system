@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      media-typer:
+        specifier: 1.1.1
+        version: 1.1.1
     devDependencies:
       babel-plugin-module-resolver:
         specifier: ^5.0.3
@@ -5390,6 +5394,10 @@ packages:
 
   media-typer@1.1.0:
     resolution: {integrity: sha512-aisnrDP4GNe06UcKFnV5bfMNPBUw4jsLGaWwWfnH3v02GnBuXX2MCVn5RbrWo0j3pczUilYblq7fQ7Nw2t5XKw==}
+    engines: {node: '>= 0.8'}
+
+  media-typer@1.1.1:
+    resolution: {integrity: sha512-yz3xRaG20c6/BOzvYoDaGtPmGscs7YivItZEEqe6GbwNfHuxu9YNmvnEkMzKldAGY4/80pRcQRZSEnhquk9XuQ==}
     engines: {node: '>= 0.8'}
 
   memfs@3.5.3:
@@ -13177,6 +13185,8 @@ snapshots:
   media-typer@0.3.0: {}
 
   media-typer@1.1.0: {}
+
+  media-typer@1.1.1: {}
 
   memfs@3.5.3:
     dependencies:

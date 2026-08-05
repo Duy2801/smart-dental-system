@@ -16,9 +16,9 @@ pnpm --filter ai-service setup
 pnpm dev
 ```
 
-Turbo sẽ chạy luôn AI service tại http://127.0.0.1:8000 (cùng backend/frontend).
+Turbo sẽ chạy luôn AI service tại http://127.0.0.1:8001 (cùng backend/frontend).
 
-Docs: http://127.0.0.1:8000/docs
+Docs: http://127.0.0.1:8001/docs
 
 ### API key LLM (mỗi người dùng key của mình)
 
@@ -55,5 +55,5 @@ Backend gọi AI qua:
 Env Nest (`apps/backend/.env`):
 
 ```
-AI_SERVICE_URL=http://127.0.0.1:8000
+AI_SERVICE_URL=http://127.0.0.1:8001
 ```

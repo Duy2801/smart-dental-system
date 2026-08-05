@@ -12,7 +12,7 @@ export class AiClientService {
   private baseUrl() {
     return (
       this.config.get<string>('AI_SERVICE_URL')?.replace(/\/$/, '') ||
-      'http://127.0.0.1:8000'
+      'http://127.0.0.1:8001'
     );
   }
 
@@ -38,7 +38,7 @@ export class AiClientService {
       });
     } catch {
       throw new ServiceUnavailableException(
-        'Không kết nối được AI service. Kiểm tra apps/ai-service đang chạy (cổng 8000).',
+        'Không kết nối được AI service. Kiểm tra apps/ai-service đang chạy (cổng 8001).',
       );
     }
 

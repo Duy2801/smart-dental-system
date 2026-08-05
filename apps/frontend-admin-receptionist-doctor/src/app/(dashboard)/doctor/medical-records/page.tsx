@@ -23,6 +23,15 @@ import axios from "axios";
 import apiClient from "@/src/lib/api/client";
 import { getDoctorIdFromCookie } from "@/src/lib/doctor/session";
 import { localDateStr } from "@/src/lib/receptionist/mappers";
+import {
+  DentalChartEditor,
+  type DentalChartData,
+  type ToothStatus,
+} from "./_components/DentalChartEditor";
+import {
+  MedicalRecordImages,
+  type RecordImage,
+} from "./_components/MedicalRecordImages";
 
 type RecordSummary = {
   id: string;
@@ -60,9 +69,11 @@ type RecordDetail = RecordSummary & {
   patientPhone: string | null;
   appointmentStatus: string | null;
   prescriptions: Prescription[];
+  images: RecordImage[];
+  dentalChart: DentalChartData;
 };
 
-type TabKey = "OVERVIEW" | "PRESCRIPTIONS";
+type TabKey = "OVERVIEW" | "CHART" | "IMAGES" | "PRESCRIPTIONS";
 
 function formatDate(iso: string | null) {
   if (!iso) return "—";
@@ -107,14 +118,15 @@ function MedicalRecordsContent() {
     treatmentNotes: "",
     internalNotes: "",
     followUpDate: "",
+    images: [] as RecordImage[],
+    dentalChart: { teeth: [] } as DentalChartData,
   });
 
   const doctorId = getDoctorIdFromCookie();
   const today = localDateStr();
-  const [listLoading, setListLoading] = useState(!!doctorId);
-  const [listError, setListError] = useState<string | null>(
-    !doctorId ? "Không tìm thấy thông tin bác sĩ. Vui lòng đăng nhập lại." : null,
-  );
+  // Khởi tạo trung tính để tránh hydration mismatch (cookie chỉ có trên client)
+  const [listLoading, setListLoading] = useState(true);
+  const [listError, setListError] = useState<string | null>(null);
 
   const applyDetail = useCallback((data: RecordDetail, id: string) => {
     setDetail(data);
@@ -129,6 +141,15 @@ function MedicalRecordsContent() {
       followUpDate: data.followUpDate
         ? localDateStr(new Date(data.followUpDate))
         : "",
+      images: Array.isArray(data.images) ? data.images : [],
+      dentalChart: {
+        teeth: Array.isArray(data.dentalChart?.teeth)
+          ? data.dentalChart.teeth.map((t) => ({
+              number: t.number,
+              status: t.status as ToothStatus,
+            }))
+          : [],
+      },
     });
     setRecords((prev) => {
       if (prev.some((r) => r.id === data.id)) return prev;
@@ -174,7 +195,11 @@ function MedicalRecordsContent() {
   );
 
   useEffect(() => {
-    if (!doctorId) return;
+    if (!doctorId) {
+      setListError("Không tìm thấy thông tin bác sĩ. Vui lòng đăng nhập lại.");
+      setListLoading(false);
+      return;
+    }
     if (preSelectId && !isUuid(preSelectId)) {
       setListError("Mã hồ sơ không hợp lệ.");
       setListLoading(false);
@@ -222,6 +247,8 @@ function MedicalRecordsContent() {
           treatmentNotes: form.treatmentNotes.trim() || null,
           internalNotes: form.internalNotes.trim() || null,
           followUpDate: form.followUpDate || null,
+          images: form.images,
+          dentalChart: form.dentalChart,
         },
       );
       applyDetail(res.data, selectedId);
@@ -245,7 +272,9 @@ function MedicalRecordsContent() {
       setSaveError(
         status === 403
           ? "Bạn không có quyền sửa hồ sơ này."
-          : "Lưu thất bại. Vui lòng thử lại.",
+          : status === 404
+            ? "Không tìm thấy hồ sơ. F5 tải lại danh sách rồi chọn lại."
+            : "Lưu thất bại. Vui lòng thử lại.",
       );
     } finally {
       setSaving(false);
@@ -458,10 +487,15 @@ function MedicalRecordsContent() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1 border-b border-border px-1">
+                <div className="flex flex-wrap items-center gap-1 border-b border-border px-1">
                   {(
                     [
                       { key: "OVERVIEW" as TabKey, label: "Tổng quan" },
+                      { key: "CHART" as TabKey, label: "Sơ đồ răng" },
+                      {
+                        key: "IMAGES" as TabKey,
+                        label: `Ảnh (${form.images.length})`,
+                      },
                       {
                         key: "PRESCRIPTIONS" as TabKey,
                         label: `Đơn thuốc (${detail.prescriptions.length})`,
@@ -609,6 +643,89 @@ function MedicalRecordsContent() {
                             <FloppyDisk size={14} />
                           )}
                           {saving ? "Đang lưu..." : "Lưu hồ sơ"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {activeTab === "CHART" && (
+                    <div className="space-y-5">
+                      <div className="flex items-center justify-between border-b border-border pb-3">
+                        <h3 className="text-base font-bold text-slate-900">
+                          Sơ đồ răng (FDI)
+                        </h3>
+                        {saved && (
+                          <span className="flex items-center gap-1.5 text-xs font-medium text-green-600">
+                            <Check size={14} weight="bold" /> Đã lưu
+                          </span>
+                        )}
+                        {saveError && (
+                          <span className="flex items-center gap-1.5 text-xs font-medium text-red-600">
+                            <Warning size={14} /> {saveError}
+                          </span>
+                        )}
+                      </div>
+                      <DentalChartEditor
+                        value={form.dentalChart}
+                        onChange={(dentalChart) =>
+                          setForm((f) => ({ ...f, dentalChart }))
+                        }
+                      />
+                      <div className="flex justify-end border-t border-border pt-4">
+                        <button
+                          type="button"
+                          onClick={handleSave}
+                          disabled={saving}
+                          className="inline-flex items-center gap-2 rounded-xl bg-brand px-6 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-brand-dark disabled:opacity-60"
+                        >
+                          {saving ? (
+                            <SpinnerGap size={14} className="animate-spin" />
+                          ) : (
+                            <FloppyDisk size={14} />
+                          )}
+                          {saving ? "Đang lưu..." : "Lưu sơ đồ răng"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {activeTab === "IMAGES" && (
+                    <div className="space-y-5">
+                      <div className="flex items-center justify-between border-b border-border pb-3">
+                        <h3 className="text-base font-bold text-slate-900">
+                          Ảnh X-quang / nội khoa
+                        </h3>
+                        {saved && (
+                          <span className="flex items-center gap-1.5 text-xs font-medium text-green-600">
+                            <Check size={14} weight="bold" /> Đã lưu
+                          </span>
+                        )}
+                        {saveError && (
+                          <span className="flex items-center gap-1.5 text-xs font-medium text-red-600">
+                            <Warning size={14} /> {saveError}
+                          </span>
+                        )}
+                      </div>
+                      <MedicalRecordImages
+                        recordId={selectedId}
+                        value={form.images}
+                        onChange={(images) =>
+                          setForm((f) => ({ ...f, images }))
+                        }
+                      />
+                      <div className="flex justify-end border-t border-border pt-4">
+                        <button
+                          type="button"
+                          onClick={handleSave}
+                          disabled={saving}
+                          className="inline-flex items-center gap-2 rounded-xl bg-brand px-6 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-brand-dark disabled:opacity-60"
+                        >
+                          {saving ? (
+                            <SpinnerGap size={14} className="animate-spin" />
+                          ) : (
+                            <FloppyDisk size={14} />
+                          )}
+                          {saving ? "Đang lưu..." : "Lưu ảnh"}
                         </button>
                       </div>
                     </div>

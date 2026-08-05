@@ -1827,7 +1827,16 @@ async function seedRelatedData(
               },
             ],
           },
-          images: [],
+          images:
+            index === 0
+              ? [
+                  {
+                    url: 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1785763846/smart-dental/promotions/banner-dieu-tri-tuy.png',
+                    caption: 'Seed X-quang mẫu',
+                    type: 'xray',
+                  },
+                ]
+              : [],
           prescriptions: [
             {
               name: 'Paracetamol',

@@ -1,11 +1,23 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { randomUUID } from 'crypto';
+import { mkdir, writeFile } from 'fs/promises';
+import { extname, join } from 'path';
+import type { Prisma } from '../../../prisma/generated/client';
 import type { AuthenticatedUser } from 'src/common/interfaces/authenticated-user.interface';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateMedicalRecordDto } from './dto/update-medical-record.dto';
+
+type RecordImage = {
+  url: string;
+  caption?: string | null;
+  type?: 'xray' | 'intraoral' | 'other';
+};
 
 const recordInclude = {
   patient: {
@@ -30,7 +42,10 @@ const recordInclude = {
 
 @Injectable()
 export class MedicalRecordService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private config: ConfigService,
+  ) {}
 
   async resolveDoctorIdByUserId(userId: string) {
     const doctor = await this.prisma.doctor.findUnique({
@@ -43,7 +58,6 @@ export class MedicalRecordService {
     return doctor.id;
   }
 
-  /** DOCTOR: luôn dùng doctorId từ JWT. ADMIN: cho phép query. */
   async resolveListDoctorId(user: AuthenticatedUser, doctorIdQuery?: string) {
     if (user.roles.includes('ADMIN') && doctorIdQuery) {
       return doctorIdQuery;
@@ -104,30 +118,110 @@ export class MedicalRecordService {
     if (!exists) throw new NotFoundException('Không tìm thấy hồ sơ bệnh án');
     await this.ensureCanAccess(exists.doctorId, user);
 
+    const data: Prisma.MedicalRecordUpdateInput = {};
+    if (dto.diagnosis !== undefined) {
+      data.diagnosis = dto.diagnosis?.trim() || null;
+    }
+    if (dto.treatmentNotes !== undefined) {
+      data.treatmentNotes = dto.treatmentNotes?.trim() || null;
+    }
+    if (dto.internalNotes !== undefined) {
+      data.internalNotes = dto.internalNotes?.trim() || null;
+    }
+    if (dto.followUpDate !== undefined) {
+      data.followUpDate = dto.followUpDate
+        ? new Date(dto.followUpDate)
+        : null;
+    }
+    if (dto.images !== undefined) {
+      data.images = JSON.parse(
+        JSON.stringify(dto.images === null ? [] : dto.images),
+      ) as Prisma.InputJsonValue;
+    }
+    if (dto.dentalChart !== undefined) {
+      data.dentalChart = JSON.parse(
+        JSON.stringify(
+          dto.dentalChart === null
+            ? { teeth: [] }
+            : { teeth: dto.dentalChart.teeth },
+        ),
+      ) as Prisma.InputJsonValue;
+    }
+
+    const updated = await this.prisma.medicalRecord.update({
+      where: { id },
+      data,
+      include: recordInclude,
+    });
+    return this.toDetail(updated);
+  }
+
+  async uploadImage(
+    id: string,
+    user: AuthenticatedUser,
+    file:
+      | { buffer: Buffer; mimetype: string; originalname: string }
+      | undefined,
+    meta: { caption?: string; type?: 'xray' | 'intraoral' | 'other' },
+  ) {
+    if (!file?.buffer?.length) {
+      throw new BadRequestException('Chưa chọn file ảnh');
+    }
+    if (!file.mimetype.startsWith('image/')) {
+      throw new BadRequestException('Chỉ chấp nhận file ảnh');
+    }
+
+    const row = await this.prisma.medicalRecord.findUnique({
+      where: { id },
+      select: { id: true, doctorId: true, images: true },
+    });
+    if (!row) throw new NotFoundException('Không tìm thấy hồ sơ bệnh án');
+    await this.ensureCanAccess(row.doctorId, user);
+
+    const current = Array.isArray(row.images)
+      ? (row.images as RecordImage[])
+      : [];
+    if (current.length >= 20) {
+      throw new BadRequestException('Tối đa 20 ảnh mỗi hồ sơ');
+    }
+
+    const ext = extname(file.originalname || '').toLowerCase() || '.jpg';
+    const safeExt = ['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(ext)
+      ? ext
+      : '.jpg';
+    const filename = `${id.slice(0, 8)}-${randomUUID()}${safeExt}`;
+    const dir = join(process.cwd(), 'uploads', 'medical-records');
+    await mkdir(dir, { recursive: true });
+    await writeFile(join(dir, filename), file.buffer);
+
+    const publicBase =
+      this.config.get<string>('PUBLIC_API_URL')?.replace(/\/$/, '') ||
+      `http://127.0.0.1:${this.config.get<number>('PORT', 3000)}`;
+    const url = `${publicBase}/uploads/medical-records/${filename}`;
+
+    const nextImages = [
+      ...current,
+      {
+        url,
+        caption: meta.caption?.trim() || file.originalname || null,
+        type: meta.type ?? 'xray',
+      },
+    ];
+
     const updated = await this.prisma.medicalRecord.update({
       where: { id },
       data: {
-        ...(dto.diagnosis !== undefined && {
-          diagnosis: dto.diagnosis?.trim() || null,
-        }),
-        ...(dto.treatmentNotes !== undefined && {
-          treatmentNotes: dto.treatmentNotes?.trim() || null,
-        }),
-        ...(dto.internalNotes !== undefined && {
-          internalNotes: dto.internalNotes?.trim() || null,
-        }),
-        ...(dto.followUpDate !== undefined && {
-          followUpDate: dto.followUpDate
-            ? new Date(dto.followUpDate)
-            : null,
-        }),
+        images: nextImages as unknown as Prisma.InputJsonValue,
       },
       include: recordInclude,
     });
     return this.toDetail(updated);
   }
 
-  private async ensureCanAccess(recordDoctorId: string, user: AuthenticatedUser) {
+  private async ensureCanAccess(
+    recordDoctorId: string,
+    user: AuthenticatedUser,
+  ) {
     if (user.roles.includes('ADMIN')) return;
     const ownId = await this.resolveDoctorIdByUserId(user.userId);
     if (ownId !== recordDoctorId) {
@@ -160,6 +254,11 @@ export class MedicalRecordService {
       internalNotes: r.internalNotes ?? null,
       patientPhone: r.patient?.user?.phone ?? null,
       appointmentStatus: r.appointment?.status ?? null,
+      images: Array.isArray(r.images) ? r.images : [],
+      dentalChart:
+        r.dentalChart && typeof r.dentalChart === 'object'
+          ? r.dentalChart
+          : { teeth: [] },
       prescriptions: (r.prescriptionRecords ?? []).map((p: any) => ({
         id: p.id,
         notes: p.notes,

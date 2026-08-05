@@ -1,10 +1,12 @@
 """LLM client — stub khi chưa có API key."""
 
-from app.config import settings
+from app.config import get_settings
 
 
 async def complete(system: str, user: str) -> str:
+    settings = get_settings()
     provider = settings.llm_provider.lower()
+
     if provider == "groq" and settings.groq_api_key:
         return await _openai_compatible(
             "https://api.groq.com/openai/v1/chat/completions",
@@ -22,11 +24,12 @@ async def complete(system: str, user: str) -> str:
             user,
         )
     if provider == "gemini" and settings.gemini_api_key:
-        return await _gemini_complete(system, user)
+        return await _gemini_complete(system, user, settings)
 
     return (
         "[STUB AI] Chưa cấu hình API key. "
-        f"System={system[:80]!r}… User={user[:120]!r}…"
+        f"Kiểm tra apps/ai-service/.env (LLM_PROVIDER={provider!r}, "
+        f"key đã điền chưa). Sau đó thử lại."
     )
 
 
@@ -53,7 +56,7 @@ async def _openai_compatible(
         return data["choices"][0]["message"]["content"]
 
 
-async def _gemini_complete(system: str, user: str) -> str:
+async def _gemini_complete(system: str, user: str, settings) -> str:
     import httpx
 
     url = (

@@ -14,6 +14,7 @@ import {
 } from "@phosphor-icons/react";
 import { Header } from "@/src/components/layout/header";
 import { ROUTES } from "@/src/constants/routes";
+import { getDoctorIdFromCookie } from "@/src/lib/doctor/session";
 import apiClient from "@/src/lib/api/client";
 import { cn } from "@/src/lib/utils/cn";
 
@@ -64,19 +65,7 @@ const FILTERS: { key: FilterKey; label: string }[] = [
 ];
 
 function getUserInfo(): { doctorId: string | null } {
-  if (typeof document === "undefined") return { doctorId: null };
-  const raw = document.cookie
-    .split("; ")
-    .find((c) => c.startsWith("user_info="))
-    ?.split("=")
-    .slice(1)
-    .join("=");
-  if (!raw) return { doctorId: null };
-  try {
-    return JSON.parse(decodeURIComponent(raw));
-  } catch {
-    return { doctorId: null };
-  }
+  return { doctorId: getDoctorIdFromCookie() };
 }
 
 function startOfDay(d = new Date()) {
@@ -142,15 +131,24 @@ function apiErrorMessage(err: unknown, fallback: string) {
 }
 
 export default function DoctorConsultationsPage() {
-  const doctorId = getUserInfo().doctorId;
+  const [doctorId, setDoctorId] = useState<string | null>(null);
+  const [ready, setReady] = useState(false);
   const [items, setItems] = useState<Consultation[]>([]);
-  const [loading, setLoading] = useState(!!doctorId);
-  const [error, setError] = useState<string | null>(
-    !doctorId ? "Không tìm thấy thông tin bác sĩ. Vui lòng đăng nhập lại." : null,
-  );
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterKey>("all");
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const id = getUserInfo().doctorId;
+    setDoctorId(id);
+    if (!id) {
+      setError("Không tìm thấy thông tin bác sĩ. Vui lòng đăng nhập lại.");
+      setLoading(false);
+    }
+    setReady(true);
+  }, []);
 
   const load = () => {
     if (!doctorId) return;
@@ -168,7 +166,7 @@ export default function DoctorConsultationsPage() {
   };
 
   useEffect(() => {
-    load();
+    if (doctorId) load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [doctorId]);
 
@@ -208,6 +206,11 @@ export default function DoctorConsultationsPage() {
         description="Gọi video với bệnh nhân và xem trước hội thoại Chatbot AI."
       />
 
+      {!ready ? (
+        <div className="flex justify-center py-20">
+          <SpinnerGap size={28} className="animate-spin text-brand" />
+        </div>
+      ) : (
       <div className="space-y-6 p-6 md:p-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="relative w-full max-w-sm">
@@ -337,6 +340,7 @@ export default function DoctorConsultationsPage() {
           )}
         </div>
       </div>
+      )}
     </>
   );
 }
