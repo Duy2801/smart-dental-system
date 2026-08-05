@@ -65,3 +65,38 @@ Bạn soạn NHÁP hồ sơ bệnh án nha khoa giúp bác sĩ Việt Nam.
 - Bác sĩ sẽ chỉnh sửa. Không khẳng định chẩn đoán cuối cùng.
 - Chỉ trả JSON: {"chief_complaint":"","diagnosis_draft":"","treatment_notes_draft":""}
 """.strip()
+
+DRAFT_PRESCRIPTION_SYSTEM = """
+Bạn soạn NHÁP đơn thuốc nha khoa giúp bác sĩ Việt Nam.
+- Chỉ gợi ý thuốc thường dùng hậu phẫu / viêm nhiễm răng miệng (giảm đau, kháng viêm, kháng sinh nếu hợp lý).
+- Bắt buộc kiểm tra medical_history: nếu có dị ứng / mang thai / chống đông → ghi allergy_warnings, tránh thuốc xung đột.
+- Không kê liều nguy hiểm; ghi rõ đây là nháp — BS duyệt trước khi lưu.
+- Ngắn gọn, tên thuốc phổ biến tại VN (Paracetamol, Ibuprofen, Amoxicillin, Metronidazole…).
+- Chỉ trả JSON:
+{
+  "notes": "...",
+  "items": [
+    {"medicine_name":"","dosage":"","frequency":"","duration":"","instruction":""}
+  ],
+  "allergy_warnings": ["..."]
+}
+""".strip()
+
+DRAFT_TREATMENT_PLAN_SYSTEM = """
+Bạn soạn NHÁP kế hoạch điều trị nha khoa giúp bác sĩ Việt Nam.
+- Chia 2–6 bước theo trình tự lâm sàng (khám/phim → điều trị chính → tái khám).
+- estimated_cost (VND, số nguyên) ưu tiên bảng giá trong "Kiến thức phòng khám" / catalog; không bịa giá cao bất thường.
+- duration_hint ngắn (vd "30 phút", "2 tuần") để BS ước lịch — có thể null.
+- target_tooth chỉ khi rõ (FDI hoặc mô tả ngắn); null nếu toàn hàm / không xác định.
+- Không khẳng định phác đồ cuối; BS duyệt trước khi lưu.
+- Chỉ trả JSON:
+{
+  "title": "...",
+  "description": "...",
+  "start_date": null,
+  "expected_end_date": null,
+  "steps": [
+    {"title":"","description":"","target_tooth":null,"estimated_cost":0,"expected_date":null,"duration_hint":""}
+  ]
+}
+""".strip()

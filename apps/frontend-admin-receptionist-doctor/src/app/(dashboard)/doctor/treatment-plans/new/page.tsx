@@ -15,7 +15,9 @@ import {
   Warning,
   CheckCircle,
   Lightning,
+  Sparkle,
 } from "@phosphor-icons/react";
+import axios from "axios";
 import apiClient from "@/src/lib/api/client";
 
 type Patient = {
@@ -64,6 +66,8 @@ function NewTreatmentPlanContent() {
     { key: 1, title: "", targetTooth: "", estimatedCost: "", expectedDate: "", description: "" },
   ]);
   const [submitting, setSubmitting] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiNote, setAiNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
@@ -112,6 +116,83 @@ function NewTreatmentPlanContent() {
       [next[index], next[index + 1]] = [next[index + 1], next[index]];
       return next;
     });
+  };
+
+  const handleAiDraft = async () => {
+    if (!patientId) {
+      setError("Chọn bệnh nhân trước khi dùng Nháp AI.");
+      return;
+    }
+    setAiLoading(true);
+    setError(null);
+    setAiNote(null);
+    try {
+      const res = await apiClient.post<{
+        title: string | null;
+        description: string | null;
+        startDate: string | null;
+        expectedEndDate: string | null;
+        steps: Array<{
+          title: string;
+          description: string | null;
+          targetTooth: string | null;
+          estimatedCost: number | null;
+          expectedDate: string | null;
+          durationHint: string | null;
+        }>;
+        disclaimer: string;
+      }>("/ai/doctor/draft-treatment-plan", {
+        patientId,
+        doctorNotesHint: title.trim() || description.trim() || undefined,
+      });
+      const draftSteps = res.data.steps ?? [];
+      if (draftSteps.length === 0) {
+        setError("AI chưa gợi ý được bước điều trị. Thử lại hoặc nhập tay.");
+        return;
+      }
+      if (res.data.title?.trim()) setTitle(res.data.title.trim());
+      if (res.data.description?.trim()) setDescription(res.data.description.trim());
+      if (res.data.startDate) setStartDate(res.data.startDate.slice(0, 10));
+      if (res.data.expectedEndDate) {
+        setExpectedEndDate(res.data.expectedEndDate.slice(0, 10));
+      }
+      setSteps(
+        draftSteps.map((s, i) => {
+          const hint = s.durationHint?.trim();
+          const desc = [s.description?.trim(), hint ? `Thời lượng: ${hint}` : ""]
+            .filter(Boolean)
+            .join("\n");
+          return {
+            key: Date.now() + i,
+            title: s.title ?? "",
+            targetTooth: s.targetTooth ?? "",
+            estimatedCost:
+              s.estimatedCost != null && !Number.isNaN(Number(s.estimatedCost))
+                ? String(s.estimatedCost)
+                : "",
+            expectedDate: s.expectedDate
+              ? String(s.expectedDate).slice(0, 10)
+              : "",
+            description: desc,
+          };
+        }),
+      );
+      setAiNote(
+        res.data.disclaimer ||
+          "Bản nháp AI — chỉnh sửa rồi bấm Lưu kế hoạch.",
+      );
+    } catch (err) {
+      const msg = axios.isAxiosError(err)
+        ? err.response?.data?.message
+        : null;
+      setError(
+        typeof msg === "string" && msg.trim()
+          ? msg
+          : "Không tạo được nháp kế hoạch. Kiểm tra AI service.",
+      );
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -190,11 +271,25 @@ function NewTreatmentPlanContent() {
                 Xây dựng lộ trình các bước điều trị theo trình tự.
               </p>
             </div>
-            <button
-              onClick={handleSubmit}
-              disabled={submitting || success}
-              className="inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-brand-dark hover:shadow active:scale-[0.98] disabled:opacity-60"
-            >
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={handleAiDraft}
+                disabled={aiLoading || submitting || success || !patientId}
+                className="inline-flex items-center gap-2 rounded-xl border border-brand/30 bg-brand-light/50 px-4 py-2.5 text-sm font-medium text-brand-dark transition-all hover:bg-brand-light disabled:opacity-60"
+              >
+                {aiLoading ? (
+                  <SpinnerGap size={15} className="animate-spin" />
+                ) : (
+                  <Sparkle size={15} weight="fill" />
+                )}
+                {aiLoading ? "Đang soạn…" : "Nháp AI"}
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={submitting || success}
+                className="inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-brand-dark hover:shadow active:scale-[0.98] disabled:opacity-60"
+              >
               {submitting ? (
                 <SpinnerGap size={15} className="animate-spin" />
               ) : success ? (
@@ -203,7 +298,8 @@ function NewTreatmentPlanContent() {
                 <Lightning size={15} weight="fill" />
               )}
               {success ? "Đã tạo!" : submitting ? "Đang lưu..." : "Lưu kế hoạch"}
-            </button>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -211,6 +307,12 @@ function NewTreatmentPlanContent() {
           <div className="mb-4 flex items-center gap-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-inset ring-red-200">
             <Warning size={18} className="shrink-0" />
             {error}
+          </div>
+        )}
+
+        {aiNote && (
+          <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            {aiNote}
           </div>
         )}
 

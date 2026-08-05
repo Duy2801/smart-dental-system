@@ -6,9 +6,8 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
-import { mkdir, writeFile } from 'fs/promises';
-import { extname, join } from 'path';
 import type { Prisma } from '../../../prisma/generated/client';
+import { uploadImageBuffer } from 'src/common/cloudinary';
 import type { AuthenticatedUser } from 'src/common/interfaces/authenticated-user.interface';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateMedicalRecordDto } from './dto/update-medical-record.dto';
@@ -188,19 +187,10 @@ export class MedicalRecordService {
       throw new BadRequestException('Tối đa 20 ảnh mỗi hồ sơ');
     }
 
-    const ext = extname(file.originalname || '').toLowerCase() || '.jpg';
-    const safeExt = ['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(ext)
-      ? ext
-      : '.jpg';
-    const filename = `${id.slice(0, 8)}-${randomUUID()}${safeExt}`;
-    const dir = join(process.cwd(), 'uploads', 'medical-records');
-    await mkdir(dir, { recursive: true });
-    await writeFile(join(dir, filename), file.buffer);
-
-    const publicBase =
-      this.config.get<string>('PUBLIC_API_URL')?.replace(/\/$/, '') ||
-      `http://127.0.0.1:${this.config.get<number>('PORT', 3000)}`;
-    const url = `${publicBase}/uploads/medical-records/${filename}`;
+    const url = await uploadImageBuffer(this.config, file.buffer, {
+      folder: 'smart-dental/medical-records',
+      publicId: `${id.slice(0, 8)}-${randomUUID()}`,
+    });
 
     const nextImages = [
       ...current,

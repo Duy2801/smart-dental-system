@@ -171,7 +171,7 @@ export function MedicalRecordImages({
       </div>
       {err ? <p className="text-xs font-medium text-red-600">{err}</p> : null}
       <p className="text-[11px] text-muted-foreground">
-        Chọn file sẽ upload ngay lên server. URL cần bấm &quot;Lưu ảnh&quot;.
+        Chọn file sẽ upload ngay lên Cloudinary. URL dán tay cần bấm &quot;Lưu ảnh&quot;.
       </p>
 
       {value.length === 0 ? (

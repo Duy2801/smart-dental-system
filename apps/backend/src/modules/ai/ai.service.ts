@@ -8,6 +8,8 @@ import type { AuthenticatedUser } from 'src/common/interfaces/authenticated-user
 import { PrismaService } from '../prisma/prisma.service';
 import { AiClientService } from './ai-client.service';
 import { DraftMedicalRecordDto } from './dto/draft-medical-record.dto';
+import { DraftPrescriptionDto } from './dto/draft-prescription.dto';
+import { DraftTreatmentPlanDto } from './dto/draft-treatment-plan.dto';
 import { SummarizePatientDto } from './dto/summarize-patient.dto';
 
 type AiSummarizeResponse = {
@@ -21,6 +23,35 @@ type AiDraftResponse = {
   chief_complaint: string | null;
   diagnosis_draft: string | null;
   treatment_notes_draft: string | null;
+  disclaimer: string;
+};
+
+type AiPrescriptionDraftResponse = {
+  notes: string | null;
+  items: Array<{
+    medicine_name: string;
+    dosage: string;
+    frequency?: string | null;
+    duration?: string | null;
+    instruction?: string | null;
+  }>;
+  allergy_warnings: string[];
+  disclaimer: string;
+};
+
+type AiTreatmentPlanDraftResponse = {
+  title: string | null;
+  description: string | null;
+  start_date: string | null;
+  expected_end_date: string | null;
+  steps: Array<{
+    title: string;
+    description?: string | null;
+    target_tooth?: string | null;
+    estimated_cost?: number | null;
+    expected_date?: string | null;
+    duration_hint?: string | null;
+  }>;
   disclaimer: string;
 };
 
@@ -91,6 +122,215 @@ export class AiService {
         raw.disclaimer ||
         'Bản nháp AI — bác sĩ chỉnh sửa và xác nhận trước khi lưu.',
     };
+  }
+
+  async draftPrescription(user: AuthenticatedUser, dto: DraftPrescriptionDto) {
+    const ctx = await this.resolvePrescriptionContext(user, dto);
+    const raw = await this.aiClient.post<AiPrescriptionDraftResponse>(
+      '/api/v1/doctor/draft-prescription',
+      {
+        diagnosis: ctx.diagnosis,
+        chief_complaint: ctx.chiefComplaint,
+        treatment_notes: ctx.treatmentNotes,
+        medical_history: ctx.medicalHistory,
+        service_name: ctx.serviceName,
+        doctor_notes_hint: dto.doctorNotesHint ?? null,
+      },
+    );
+
+    return {
+      patientId: ctx.patientId,
+      medicalRecordId: ctx.medicalRecordId,
+      notes: raw.notes,
+      items: (raw.items ?? []).map((it) => ({
+        medicineName: it.medicine_name ?? '',
+        dosage: it.dosage ?? '',
+        frequency: it.frequency ?? null,
+        duration: it.duration ?? null,
+        instruction: it.instruction ?? null,
+      })),
+      allergyWarnings: raw.allergy_warnings ?? [],
+      disclaimer:
+        raw.disclaimer ||
+        'Bản nháp đơn thuốc AI — bác sĩ kiểm tra dị ứng và xác nhận trước khi lưu.',
+    };
+  }
+
+  async draftTreatmentPlan(user: AuthenticatedUser, dto: DraftTreatmentPlanDto) {
+    let diagnosis = dto.diagnosis;
+    let chiefComplaint = dto.chiefComplaint;
+    let treatmentNotes = dto.treatmentNotes;
+    if (dto.patientId && !dto.medicalRecordId && !diagnosis) {
+      await this.assertDoctorCanAccessPatient(user, dto.patientId);
+      const latest = await this.prisma.medicalRecord.findFirst({
+        where: { patientId: dto.patientId },
+        orderBy: { createdAt: 'desc' },
+        select: {
+          diagnosis: true,
+          chiefComplaint: true,
+          treatmentNotes: true,
+        },
+      });
+      diagnosis = diagnosis || latest?.diagnosis || undefined;
+      chiefComplaint = chiefComplaint || latest?.chiefComplaint || undefined;
+      treatmentNotes = treatmentNotes || latest?.treatmentNotes || undefined;
+    }
+    const ctx = await this.resolvePrescriptionContext(user, {
+      patientId: dto.patientId,
+      medicalRecordId: dto.medicalRecordId,
+      diagnosis,
+      chiefComplaint,
+      treatmentNotes,
+      medicalHistory: dto.medicalHistory,
+      serviceName: dto.serviceName,
+      doctorNotesHint: dto.doctorNotesHint,
+    });
+    const catalog = await this.buildServiceCatalog(dto.serviceName || ctx.serviceName);
+    const raw = await this.aiClient.post<AiTreatmentPlanDraftResponse>(
+      '/api/v1/doctor/draft-treatment-plan',
+      {
+        diagnosis: ctx.diagnosis,
+        chief_complaint: ctx.chiefComplaint,
+        treatment_notes: ctx.treatmentNotes,
+        medical_history: ctx.medicalHistory,
+        service_name: ctx.serviceName,
+        doctor_notes_hint: dto.doctorNotesHint ?? null,
+        catalog,
+      },
+    );
+
+    return {
+      patientId: ctx.patientId,
+      medicalRecordId: ctx.medicalRecordId,
+      title: raw.title,
+      description: raw.description,
+      startDate: raw.start_date,
+      expectedEndDate: raw.expected_end_date,
+      steps: (raw.steps ?? []).map((s) => ({
+        title: s.title ?? '',
+        description: s.description ?? null,
+        targetTooth: s.target_tooth ?? null,
+        estimatedCost:
+          s.estimated_cost === null || s.estimated_cost === undefined
+            ? null
+            : Number(s.estimated_cost),
+        expectedDate: s.expected_date ?? null,
+        durationHint: s.duration_hint ?? null,
+      })),
+      disclaimer:
+        raw.disclaimer ||
+        'Bản nháp kế hoạch AI — bác sĩ chỉnh sửa trước khi lưu.',
+    };
+  }
+
+  /** Catalog ngắn từ DB — AI bám giá/thời lượng thật phòng khám. */
+  private async buildServiceCatalog(serviceHint?: string | null) {
+    const methods = await this.prisma.treatmentMethod.findMany({
+      where: { isActive: true },
+      take: 25,
+      orderBy: { createdAt: 'desc' },
+      select: {
+        name: true,
+        basePrice: true,
+        durationMinutes: true,
+        service: { select: { name: true } },
+      },
+    });
+    if (!methods.length) return null;
+    const hint = serviceHint?.toLowerCase() ?? '';
+    const ranked = hint
+      ? [
+          ...methods.filter(
+            (m) =>
+              m.name.toLowerCase().includes(hint) ||
+              m.service.name.toLowerCase().includes(hint),
+          ),
+          ...methods.filter(
+            (m) =>
+              !m.name.toLowerCase().includes(hint) &&
+              !m.service.name.toLowerCase().includes(hint),
+          ),
+        ]
+      : methods;
+    return ranked
+      .slice(0, 15)
+      .map(
+        (m) =>
+          `- ${m.service.name} / ${m.name}: ${m.basePrice.toString()} VND` +
+          (m.durationMinutes ? `, ~${m.durationMinutes} phút` : ''),
+      )
+      .join('\n');
+  }
+
+  private async resolvePrescriptionContext(
+    user: AuthenticatedUser,
+    dto: DraftPrescriptionDto,
+  ) {
+    if (dto.medicalRecordId) {
+      const record = await this.prisma.medicalRecord.findUnique({
+        where: { id: dto.medicalRecordId },
+        select: {
+          id: true,
+          doctorId: true,
+          patientId: true,
+          diagnosis: true,
+          chiefComplaint: true,
+          treatmentNotes: true,
+          appointment: { select: { service: { select: { name: true } } } },
+          patient: { select: { medicalHistory: true } },
+        },
+      });
+      if (!record) throw new NotFoundException('Không tìm thấy hồ sơ bệnh án');
+      await this.assertDoctorOwnsRecord(user, record.doctorId);
+
+      return {
+        patientId: record.patientId,
+        medicalRecordId: record.id,
+        diagnosis: dto.diagnosis?.trim() || record.diagnosis,
+        chiefComplaint: dto.chiefComplaint?.trim() || record.chiefComplaint,
+        treatmentNotes: dto.treatmentNotes?.trim() || record.treatmentNotes,
+        medicalHistory:
+          dto.medicalHistory?.trim() || record.patient.medicalHistory,
+        serviceName:
+          dto.serviceName?.trim() ||
+          record.appointment?.service?.name ||
+          null,
+      };
+    }
+
+    if (!dto.patientId) {
+      throw new BadRequestException('Cần medicalRecordId hoặc patientId');
+    }
+    await this.assertDoctorCanAccessPatient(user, dto.patientId);
+    const patient = await this.prisma.patient.findUnique({
+      where: { id: dto.patientId },
+      select: { id: true, medicalHistory: true },
+    });
+    if (!patient) throw new NotFoundException('Không tìm thấy bệnh nhân');
+
+    return {
+      patientId: patient.id,
+      medicalRecordId: null as string | null,
+      diagnosis: dto.diagnosis?.trim() || null,
+      chiefComplaint: dto.chiefComplaint?.trim() || null,
+      treatmentNotes: dto.treatmentNotes?.trim() || null,
+      medicalHistory: dto.medicalHistory?.trim() || patient.medicalHistory,
+      serviceName: dto.serviceName?.trim() || null,
+    };
+  }
+
+  private async assertDoctorOwnsRecord(
+    user: AuthenticatedUser,
+    doctorId: string,
+  ) {
+    if (user.roles.includes('ADMIN')) return;
+    const doctor = await this.prisma.doctor.findUnique({
+      where: { userId: user.userId },
+      select: { id: true },
+    });
+    if (!doctor || doctor.id !== doctorId) {
+      throw new ForbiddenException('Không có quyền với hồ sơ bệnh án này');
+    }
   }
 
   private async resolvePatientContext(

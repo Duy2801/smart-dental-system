@@ -7,6 +7,8 @@ import { RolesGuard } from 'src/common/guards/roles.guard';
 import type { AuthenticatedUser } from 'src/common/interfaces/authenticated-user.interface';
 import { AiService } from './ai.service';
 import { DraftMedicalRecordDto } from './dto/draft-medical-record.dto';
+import { DraftPrescriptionDto } from './dto/draft-prescription.dto';
+import { DraftTreatmentPlanDto } from './dto/draft-treatment-plan.dto';
 import { SummarizePatientDto } from './dto/summarize-patient.dto';
 
 @ApiTags('AI Doctor Assist')
@@ -31,5 +33,21 @@ export class AiController {
     @Body() dto: DraftMedicalRecordDto,
   ) {
     return this.aiService.draftMedicalRecord(user, dto);
+  }
+
+  @Post('draft-prescription')
+  draftPrescription(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: DraftPrescriptionDto,
+  ) {
+    return this.aiService.draftPrescription(user, dto);
+  }
+
+  @Post('draft-treatment-plan')
+  draftTreatmentPlan(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: DraftTreatmentPlanDto,
+  ) {
+    return this.aiService.draftTreatmentPlan(user, dto);
   }
 }
