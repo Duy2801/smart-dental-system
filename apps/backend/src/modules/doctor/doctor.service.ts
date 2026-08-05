@@ -24,6 +24,11 @@ export class DoctorService {
           },
         },
       },
+      specializations: {
+        include: {
+          specialization: true,
+        },
+      },
       educations: {
         orderBy: { sortOrder: 'asc' as const },
       },
@@ -37,7 +42,7 @@ export class DoctorService {
         where: { isVisible: true },
         include: {
           patient: { include: { user: true } },
-          appointment: { include: { service: true } },
+          appointment: { include: { treatmentMethod: { include: { service: true } } } },
         },
         orderBy: { createdAt: 'desc' as const },
         take: 8,
@@ -117,8 +122,30 @@ export class DoctorService {
     });
   }
 
-  async getAllDoctors() {
+  async getAllDoctors(serviceId?: string, specializationId?: string) {
+    let targetSpecializationId = specializationId;
+
+    if (!targetSpecializationId && serviceId) {
+      const service = await this.prisma.service.findUnique({
+        where: { id: serviceId },
+        select: { specializationId: true },
+      });
+      targetSpecializationId = service?.specializationId ?? undefined;
+    }
+
     return this.prisma.doctor.findMany({
+      where: {
+        isActive: true,
+        ...(targetSpecializationId
+          ? {
+              specializations: {
+                some: {
+                  specializationId: targetSpecializationId,
+                },
+              },
+            }
+          : {}),
+      },
       include: this.includeDoctorRelations(),
       orderBy: { createdAt: 'desc' },
     });

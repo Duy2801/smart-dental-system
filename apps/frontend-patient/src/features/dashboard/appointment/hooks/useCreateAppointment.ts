@@ -12,6 +12,7 @@ type UseCreateAppointmentParams = {
   availableTimes: string[];
   selectedDoctorId: string;
   selectedServiceId: string;
+  selectedTreatmentMethodId: string;
   selectedDateId: string;
   selectedTime: string;
   selectedPaymentOption: AppointmentPaymentOption;
@@ -26,6 +27,7 @@ export function useCreateAppointment({
   availableTimes,
   selectedDoctorId,
   selectedServiceId,
+  selectedTreatmentMethodId,
   selectedDateId,
   selectedTime,
   selectedPaymentOption,
@@ -55,23 +57,28 @@ export function useCreateAppointment({
 
     const chosenDate = dates.find((date) => date.id === selectedDateId);
 
-    if (!selectedDoctorId || !selectedServiceId || !selectedDateId || !selectedTime) {
+    if (
+      !selectedDoctorId ||
+      !selectedTreatmentMethodId ||
+      !selectedDateId ||
+      !selectedTime
+    ) {
       toast.error(
-        "Thieu thong tin dat lich",
-        "Vui long chon day du dich vu, ngay gio va bac si.",
+        "Thiếu thông tin đặt lịch",
+        "Vui lòng chọn đầy đủ dịch vụ, phương pháp điều trị, ngày giờ và bác sĩ.",
       );
       return;
     }
 
     if (!chosenDate?.isOpen) {
-      toast.error("Ngay khong lam viec", "Vui long chon ngay kham khac.");
+      toast.error("Ngày không làm việc", "Vui lòng chọn ngày khám khác.");
       return;
     }
 
     if (!availableTimes.includes(selectedTime)) {
       toast.error(
-        "Khung gio khong hop le",
-        "Vui long chon khung gio khac.",
+        "Khung giờ không hợp lệ",
+        "Vui lòng chọn khung giờ khác.",
       );
       return;
     }
@@ -79,6 +86,7 @@ export function useCreateAppointment({
     try {
       const confirmedOptions = await getAppointmentOptions({
         serviceId: selectedServiceId,
+        treatmentMethodId: selectedTreatmentMethodId,
         date: selectedDateId,
         time: selectedTime,
       });
@@ -89,8 +97,8 @@ export function useCreateAppointment({
       if (!confirmedOptions.timeSlots.includes(selectedTime)) {
         onSelectedTimeChange(confirmedOptions.timeSlots[0] ?? "");
         toast.error(
-          "Khung gio vua chon khong con hop le",
-          "Vui long chon lai khung gio.",
+          "Khung giờ vừa chọn không còn hợp lệ",
+          "Vui lòng chọn lại khung giờ.",
         );
         return;
       }
@@ -100,15 +108,15 @@ export function useCreateAppointment({
         toast.error(
           "Bác sĩ vừa chọn không còn trống",
           confirmedOptions.doctors.length
-            ? "He thong da goi y bac si con trong, vui long xac nhan lai."
-            : "Vui long chon khung gio khac.",
+            ? "Hệ thống đã gợi ý bác sĩ còn trống, vui lòng xác nhận lại."
+            : "Vui lòng chọn khung giờ khác.",
         );
         return;
       }
 
       const created = await createAppointmentMutation.mutateAsync({
         doctorId: selectedDoctorId,
-        serviceId: selectedServiceId,
+        treatmentMethodId: selectedTreatmentMethodId,
         scheduledAt: new Date(
           `${selectedDateId}T${selectedTime}:00`,
         ).toISOString(),

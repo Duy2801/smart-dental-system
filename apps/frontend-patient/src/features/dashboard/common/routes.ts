@@ -54,11 +54,13 @@ export const FOOTER_LINKS = [
  * Các route có tham số động – dùng hàm để build URL
  */
 export const buildRoute = {
-  /** Trang đặt lịch với service được chọn sẵn */
-  appointmentBooking: (serviceId?: string | number) =>
-    serviceId
-      ? `${ROUTES.appointment}?service=${serviceId}&intent=booking`
-      : `${ROUTES.appointment}?intent=booking`,
+  /** Trang đặt lịch với service & treatmentMethod được chọn sẵn */
+  appointmentBooking: (serviceId?: string | number, methodId?: string | number) => {
+    const params = new URLSearchParams({ intent: "booking" });
+    if (serviceId) params.set("service", String(serviceId));
+    if (methodId) params.set("treatmentMethod", String(methodId));
+    return `${ROUTES.appointment}?${params.toString()}`;
+  },
 
   /** Trang đặt lịch với từ khoá tìm kiếm */
   appointmentWithKeyword: (keyword: string) =>
@@ -76,9 +78,13 @@ export const buildRoute = {
   /** Chi tiết dịch vụ */
   serviceDetail: (serviceId: string | number) => `${ROUTES.service}/${serviceId}`,
 
-  /** Đặt lịch kết hợp service + từ khoá */
-  appointmentWithService: (serviceId: string | number) =>
-    `${ROUTES.appointment}?service=${serviceId}&intent=booking`,
+  /** Đặt lịch kết hợp service + method */
+  appointmentWithService: (serviceId: string | number, methodId?: string | number) => {
+    const params = new URLSearchParams({ intent: "booking" });
+    if (serviceId) params.set("service", String(serviceId));
+    if (methodId) params.set("treatmentMethod", String(methodId));
+    return `${ROUTES.appointment}?${params.toString()}`;
+  },
 
   /** Áp dụng mã ưu đãi khi đặt lịch khám */
   applyPromotion: (code: string, serviceId?: string | number) =>

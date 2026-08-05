@@ -53,6 +53,16 @@ export type RolePermission = Prisma.RolePermissionModel
  */
 export type Service = Prisma.ServiceModel
 /**
+ * Model Specialization
+ * 
+ */
+export type Specialization = Prisma.SpecializationModel
+/**
+ * Model DoctorSpecialization
+ * 
+ */
+export type DoctorSpecialization = Prisma.DoctorSpecializationModel
+/**
  * Model TreatmentMethod
  * 
  */

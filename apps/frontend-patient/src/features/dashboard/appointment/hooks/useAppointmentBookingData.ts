@@ -8,6 +8,7 @@ import { getAvailableTimes } from "../utils";
 
 type UseAppointmentBookingDataParams = {
   selectedServiceId: string;
+  selectedTreatmentMethodId?: string;
   selectedDoctorId: string;
   selectedDateId: string;
   selectedTime: string;
@@ -15,6 +16,7 @@ type UseAppointmentBookingDataParams = {
 
 export function useAppointmentBookingData({
   selectedServiceId,
+  selectedTreatmentMethodId,
   selectedDoctorId,
   selectedDateId,
   selectedTime,
@@ -26,6 +28,7 @@ export function useAppointmentBookingData({
 
   const scheduleQueryParams: BookingOptionsQuery = {
     serviceId: selectedServiceId,
+    treatmentMethodId: selectedTreatmentMethodId,
     date: selectedDateId,
   };
 
@@ -37,12 +40,13 @@ export function useAppointmentBookingData({
       scheduleQueryParams,
     ],
     queryFn: () => getAppointmentOptions(scheduleQueryParams),
-    enabled: Boolean(selectedServiceId && selectedDateId),
+    enabled: Boolean(selectedServiceId),
     placeholderData: (previousData) => previousData,
   });
 
   const availabilityQueryParams: BookingOptionsQuery = {
     serviceId: selectedServiceId,
+    treatmentMethodId: selectedTreatmentMethodId,
     date: selectedDateId,
     time: selectedTime,
   };
@@ -93,6 +97,13 @@ export function useAppointmentBookingData({
     () => services.find((service) => service.id === selectedServiceId),
     [services, selectedServiceId],
   );
+  const selectedTreatmentMethod = useMemo(
+    () =>
+      selectedService?.treatmentMethods.find(
+        (m) => m.id === selectedTreatmentMethodId,
+      ) ?? selectedService?.treatmentMethods[0],
+    [selectedService?.treatmentMethods, selectedTreatmentMethodId],
+  );
   const selectedDoctor = useMemo(
     () => doctors.find((doctor) => doctor.id === selectedDoctorId),
     [doctors, selectedDoctorId],
@@ -110,6 +121,7 @@ export function useAppointmentBookingData({
     timeSlots,
     availableTimes,
     selectedService,
+    selectedTreatmentMethod,
     selectedDoctor,
     selectedDate,
     slotIntervalMinutes:

@@ -284,7 +284,7 @@ export class ReportService {
         include: {
           patient: { include: { user: true } },
           creator: true,
-          service: true,
+          treatmentMethod: { include: { service: true } },
         },
       }),
       this.prisma.patient.findMany({
@@ -304,7 +304,7 @@ export class ReportService {
         id: appointment.id,
         type: 'appointment',
         title: 'Dat lich moi',
-        description: `${appointment.patient?.user.fullName ?? appointment.creator.fullName} - ${appointment.service.name}`,
+        description: `${appointment.patient?.user.fullName ?? appointment.creator.fullName} - ${appointment.treatmentMethod?.name ?? 'Dịch vụ'}`,
         time: appointment.createdAt.toISOString(),
       })),
       ...patients.map((patient) => ({
@@ -386,7 +386,7 @@ export class ReportService {
         patient: { include: { user: true } },
         creator: true,
         doctor: { include: { user: true } },
-        service: true,
+        treatmentMethod: { include: { service: true } },
         medicalRecords: { select: { id: true }, take: 1 },
       },
     });
@@ -417,7 +417,7 @@ export class ReportService {
       start_time: this.formatTime(appointment.scheduledAt),
       end_time: this.formatTime(appointment.endAt),
       patient_name: appointment.patient?.user.fullName ?? appointment.creator.fullName,
-      service_name: appointment.service.name,
+      service_name: appointment.treatmentMethod?.name ?? 'Dịch vụ',
       doctor_name: appointment.doctor.user.fullName,
       status: appointment.status,
       recordId: appointment.medicalRecords[0]?.id ?? null,
@@ -426,28 +426,43 @@ export class ReportService {
 
   private async getPopularServices(range: DateRange) {
     const grouped = await this.prisma.appointment.groupBy({
-      by: ['serviceId'],
+      by: ['treatmentMethodId'],
       where: {
         scheduledAt: {
           gte: range.start,
           lt: range.end,
         },
       },
-      _count: { serviceId: true },
+      _count: { treatmentMethodId: true },
     });
 
-    const total = grouped.reduce((sum, item) => sum + item._count.serviceId, 0);
-    const services = await this.prisma.service.findMany({
-      where: { id: { in: grouped.map((item) => item.serviceId) } },
-      select: { id: true, name: true },
+    const total = grouped.reduce(
+      (sum, item) => sum + item._count.treatmentMethodId,
+      0,
+    );
+    const treatmentMethodIds = grouped
+      .map((item) => item.treatmentMethodId)
+      .filter((id): id is string => Boolean(id));
+    const treatmentMethods = await this.prisma.treatmentMethod.findMany({
+      where: { id: { in: treatmentMethodIds } },
+      select: { id: true, name: true, service: { select: { name: true } } },
     });
-    const serviceNameById = new Map(services.map((service) => [service.id, service.name]));
+    const methodNameById = new Map(
+      treatmentMethods.map((method) => [
+        method.id,
+        `${method.service.name} - ${method.name}`,
+      ]),
+    );
 
     return grouped
       .map((item) => ({
-        name: serviceNameById.get(item.serviceId) ?? 'Dich vu',
-        count: item._count.serviceId,
-        percent: total ? Math.round((item._count.serviceId / total) * 100) : 0,
+        name: item.treatmentMethodId
+          ? (methodNameById.get(item.treatmentMethodId) ?? 'Dịch vụ')
+          : 'Dịch vụ',
+        count: item._count.treatmentMethodId,
+        percent: total
+          ? Math.round((item._count.treatmentMethodId / total) * 100)
+          : 0,
       }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 3);
@@ -530,10 +545,14 @@ export class ReportService {
         finalAmount: true,
         appointment: {
           select: {
-            service: {
+            treatmentMethod: {
               select: {
-                id: true,
-                name: true,
+                service: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
               },
             },
           },
@@ -544,7 +563,7 @@ export class ReportService {
     const serviceRevenue = new Map<string, { name: string; revenue: number }>();
 
     invoices.forEach((invoice) => {
-      const service = invoice.appointment?.service;
+      const service = invoice.appointment?.treatmentMethod?.service;
       if (!service) return;
 
       const current = serviceRevenue.get(service.id) ?? {

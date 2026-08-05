@@ -151,14 +151,6 @@ export class CreateServiceDto {
   @IsString()
   thumbnailUrl?: string;
 
-  @IsInt()
-  @Min(1)
-  durationMinutes: number;
-
-  @IsNumber()
-  @Min(0)
-  basePrice: number;
-
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;

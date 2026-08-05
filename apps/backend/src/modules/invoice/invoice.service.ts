@@ -55,7 +55,7 @@ export class InvoiceService {
         appointment: {
           include: {
             doctor: { include: { user: true } },
-            service: true,
+            treatmentMethod: { include: { service: true } },
           },
         },
         payments: {

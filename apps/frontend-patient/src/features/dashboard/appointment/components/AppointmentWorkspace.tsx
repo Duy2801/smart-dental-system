@@ -32,6 +32,7 @@ export function AppointmentWorkspace({
     "all",
   );
   const [selectedServiceId, setSelectedServiceId] = useState("");
+  const [selectedMethodId, setSelectedMethodId] = useState("");
   const [selectedDoctorId, setSelectedDoctorId] = useState("");
   const [selectedDateId, setSelectedDateId] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
@@ -56,6 +57,7 @@ export function AppointmentWorkspace({
     doctors,
     availableTimes,
     selectedService,
+    selectedTreatmentMethod,
     selectedDoctor,
     selectedDate,
     slotIntervalMinutes,
@@ -63,6 +65,7 @@ export function AppointmentWorkspace({
     checkingAvailability,
   } = useAppointmentBookingData({
     selectedServiceId,
+    selectedTreatmentMethodId: selectedMethodId,
     selectedDoctorId,
     selectedDateId,
     selectedTime,
@@ -82,9 +85,9 @@ export function AppointmentWorkspace({
       upcoming,
       selectedDateId,
       availableTimes,
-      selectedService?.durationMinutes ?? 30,
+      selectedTreatmentMethod?.durationMinutes ?? 30,
     );
-  }, [availableTimes, selectedDateId, selectedService?.durationMinutes, upcoming]);
+  }, [availableTimes, selectedDateId, selectedTreatmentMethod?.durationMinutes, upcoming]);
   const selectableAvailableTimes = useMemo(
     () =>
       availableTimes.filter((time) => !blockedBookingTimes.times.includes(time)),
@@ -98,6 +101,7 @@ export function AppointmentWorkspace({
     availableTimes: selectableAvailableTimes,
     selectedDoctorId,
     selectedServiceId,
+    selectedTreatmentMethodId: selectedMethodId,
     selectedDateId,
     selectedTime: effectiveSelectedTime,
     selectedPaymentOption,
@@ -128,12 +132,13 @@ export function AppointmentWorkspace({
     selectedDoctorId,
     onOpenBookingMode: openBookingMode,
     setSelectedServiceId,
+    setSelectedMethodId,
     setSelectedDoctorId,
     setSelectedDateId,
     setSelectedTime,
   });
 
-  const { history, current } = useAppointmentWorkspaceView({
+  const { filteredUpcoming, history, current } = useAppointmentWorkspaceView({
     upcoming,
     historyItems,
     query,
@@ -150,10 +155,12 @@ export function AppointmentWorkspace({
         blockedTimes={blockedBookingTimes.times}
         blockedRanges={blockedBookingTimes.ranges}
         selectedServiceId={selectedServiceId}
+        selectedMethodId={selectedMethodId}
         selectedDoctorId={selectedDoctorId}
         selectedDateId={selectedDateId}
         selectedTime={effectiveSelectedTime}
         selectedService={selectedService}
+        selectedTreatmentMethod={selectedTreatmentMethod}
         selectedDoctor={selectedDoctor}
         selectedDate={selectedDate}
         selectedPaymentOption={selectedPaymentOption}
@@ -163,7 +170,16 @@ export function AppointmentWorkspace({
         successMessage={bookingSuccessMessage}
         isSubmitting={submitting}
         isCheckingAvailability={checkingAvailability}
-        onSelectService={setSelectedServiceId}
+        onSelectService={(serviceId) => {
+          setSelectedServiceId(serviceId);
+          const targetService = services.find((s) => s.id === serviceId);
+          if (targetService && targetService.treatmentMethods.length > 0) {
+            setSelectedMethodId(targetService.treatmentMethods[0].id);
+          } else {
+            setSelectedMethodId("");
+          }
+        }}
+        onSelectMethod={setSelectedMethodId}
         onSelectDoctor={setSelectedDoctorId}
         onSelectDate={setSelectedDateId}
         onSelectTime={setSelectedTime}
@@ -176,6 +192,7 @@ export function AppointmentWorkspace({
         onCancelBooking={() => {
           setBookingSuccessMessage(null);
           setSelectedServiceId("");
+          setSelectedMethodId("");
           setSelectedDoctorId("");
           setSelectedDateId("");
           setSelectedTime("");
@@ -195,7 +212,7 @@ export function AppointmentWorkspace({
     <>
       <ManageModeView
         appointments={appointments}
-        upcoming={upcoming}
+        upcoming={filteredUpcoming}
         history={history}
         query={query}
         statusFilter={statusFilter}

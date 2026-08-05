@@ -285,6 +285,7 @@ export type DoctorWhereInput = {
   prescriptions?: Prisma.PrescriptionListRelationFilter
   reviews?: Prisma.ReviewListRelationFilter
   videoConsultations?: Prisma.VideoConsultationListRelationFilter
+  specializations?: Prisma.DoctorSpecializationListRelationFilter
 }
 
 export type DoctorOrderByWithRelationInput = {
@@ -313,6 +314,7 @@ export type DoctorOrderByWithRelationInput = {
   prescriptions?: Prisma.PrescriptionOrderByRelationAggregateInput
   reviews?: Prisma.ReviewOrderByRelationAggregateInput
   videoConsultations?: Prisma.VideoConsultationOrderByRelationAggregateInput
+  specializations?: Prisma.DoctorSpecializationOrderByRelationAggregateInput
 }
 
 export type DoctorWhereUniqueInput = Prisma.AtLeast<{
@@ -344,6 +346,7 @@ export type DoctorWhereUniqueInput = Prisma.AtLeast<{
   prescriptions?: Prisma.PrescriptionListRelationFilter
   reviews?: Prisma.ReviewListRelationFilter
   videoConsultations?: Prisma.VideoConsultationListRelationFilter
+  specializations?: Prisma.DoctorSpecializationListRelationFilter
 }, "id" | "userId" | "doctorCode" | "licenseNumber">
 
 export type DoctorOrderByWithAggregationInput = {
@@ -409,6 +412,7 @@ export type DoctorCreateInput = {
   prescriptions?: Prisma.PrescriptionCreateNestedManyWithoutDoctorInput
   reviews?: Prisma.ReviewCreateNestedManyWithoutDoctorInput
   videoConsultations?: Prisma.VideoConsultationCreateNestedManyWithoutDoctorInput
+  specializations?: Prisma.DoctorSpecializationCreateNestedManyWithoutDoctorInput
 }
 
 export type DoctorUncheckedCreateInput = {
@@ -436,6 +440,7 @@ export type DoctorUncheckedCreateInput = {
   prescriptions?: Prisma.PrescriptionUncheckedCreateNestedManyWithoutDoctorInput
   reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutDoctorInput
   videoConsultations?: Prisma.VideoConsultationUncheckedCreateNestedManyWithoutDoctorInput
+  specializations?: Prisma.DoctorSpecializationUncheckedCreateNestedManyWithoutDoctorInput
 }
 
 export type DoctorUpdateInput = {
@@ -463,6 +468,7 @@ export type DoctorUpdateInput = {
   prescriptions?: Prisma.PrescriptionUpdateManyWithoutDoctorNestedInput
   reviews?: Prisma.ReviewUpdateManyWithoutDoctorNestedInput
   videoConsultations?: Prisma.VideoConsultationUpdateManyWithoutDoctorNestedInput
+  specializations?: Prisma.DoctorSpecializationUpdateManyWithoutDoctorNestedInput
 }
 
 export type DoctorUncheckedUpdateInput = {
@@ -490,6 +496,7 @@ export type DoctorUncheckedUpdateInput = {
   prescriptions?: Prisma.PrescriptionUncheckedUpdateManyWithoutDoctorNestedInput
   reviews?: Prisma.ReviewUncheckedUpdateManyWithoutDoctorNestedInput
   videoConsultations?: Prisma.VideoConsultationUncheckedUpdateManyWithoutDoctorNestedInput
+  specializations?: Prisma.DoctorSpecializationUncheckedUpdateManyWithoutDoctorNestedInput
 }
 
 export type DoctorCreateManyInput = {
@@ -539,6 +546,11 @@ export type DoctorUncheckedUpdateManyInput = {
 export type DoctorNullableScalarRelationFilter = {
   is?: Prisma.DoctorWhereInput | null
   isNot?: Prisma.DoctorWhereInput | null
+}
+
+export type DoctorScalarRelationFilter = {
+  is?: Prisma.DoctorWhereInput
+  isNot?: Prisma.DoctorWhereInput
 }
 
 export type DoctorCountOrderByAggregateInput = {
@@ -594,11 +606,6 @@ export type DoctorSumOrderByAggregateInput = {
   yearsExperience?: Prisma.SortOrder
 }
 
-export type DoctorScalarRelationFilter = {
-  is?: Prisma.DoctorWhereInput
-  isNot?: Prisma.DoctorWhereInput
-}
-
 export type DoctorCreateNestedOneWithoutUserInput = {
   create?: Prisma.XOR<Prisma.DoctorCreateWithoutUserInput, Prisma.DoctorUncheckedCreateWithoutUserInput>
   connectOrCreate?: Prisma.DoctorCreateOrConnectWithoutUserInput
@@ -629,6 +636,20 @@ export type DoctorUncheckedUpdateOneWithoutUserNestedInput = {
   delete?: Prisma.DoctorWhereInput | boolean
   connect?: Prisma.DoctorWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.DoctorUpdateToOneWithWhereWithoutUserInput, Prisma.DoctorUpdateWithoutUserInput>, Prisma.DoctorUncheckedUpdateWithoutUserInput>
+}
+
+export type DoctorCreateNestedOneWithoutSpecializationsInput = {
+  create?: Prisma.XOR<Prisma.DoctorCreateWithoutSpecializationsInput, Prisma.DoctorUncheckedCreateWithoutSpecializationsInput>
+  connectOrCreate?: Prisma.DoctorCreateOrConnectWithoutSpecializationsInput
+  connect?: Prisma.DoctorWhereUniqueInput
+}
+
+export type DoctorUpdateOneRequiredWithoutSpecializationsNestedInput = {
+  create?: Prisma.XOR<Prisma.DoctorCreateWithoutSpecializationsInput, Prisma.DoctorUncheckedCreateWithoutSpecializationsInput>
+  connectOrCreate?: Prisma.DoctorCreateOrConnectWithoutSpecializationsInput
+  upsert?: Prisma.DoctorUpsertWithoutSpecializationsInput
+  connect?: Prisma.DoctorWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.DoctorUpdateToOneWithWhereWithoutSpecializationsInput, Prisma.DoctorUpdateWithoutSpecializationsInput>, Prisma.DoctorUncheckedUpdateWithoutSpecializationsInput>
 }
 
 export type DoctorCreateNestedOneWithoutEducationsInput = {
@@ -823,6 +844,7 @@ export type DoctorCreateWithoutUserInput = {
   prescriptions?: Prisma.PrescriptionCreateNestedManyWithoutDoctorInput
   reviews?: Prisma.ReviewCreateNestedManyWithoutDoctorInput
   videoConsultations?: Prisma.VideoConsultationCreateNestedManyWithoutDoctorInput
+  specializations?: Prisma.DoctorSpecializationCreateNestedManyWithoutDoctorInput
 }
 
 export type DoctorUncheckedCreateWithoutUserInput = {
@@ -849,6 +871,7 @@ export type DoctorUncheckedCreateWithoutUserInput = {
   prescriptions?: Prisma.PrescriptionUncheckedCreateNestedManyWithoutDoctorInput
   reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutDoctorInput
   videoConsultations?: Prisma.VideoConsultationUncheckedCreateNestedManyWithoutDoctorInput
+  specializations?: Prisma.DoctorSpecializationUncheckedCreateNestedManyWithoutDoctorInput
 }
 
 export type DoctorCreateOrConnectWithoutUserInput = {
@@ -891,10 +914,136 @@ export type DoctorUpdateWithoutUserInput = {
   prescriptions?: Prisma.PrescriptionUpdateManyWithoutDoctorNestedInput
   reviews?: Prisma.ReviewUpdateManyWithoutDoctorNestedInput
   videoConsultations?: Prisma.VideoConsultationUpdateManyWithoutDoctorNestedInput
+  specializations?: Prisma.DoctorSpecializationUpdateManyWithoutDoctorNestedInput
 }
 
 export type DoctorUncheckedUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  doctorCode?: Prisma.StringFieldUpdateOperationsInput | string
+  specialization?: Prisma.StringFieldUpdateOperationsInput | string
+  licenseNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workplace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  yearsExperience?: Prisma.IntFieldUpdateOperationsInput | number
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  availability?: Prisma.DoctorAvailabilityUncheckedUpdateManyWithoutDoctorNestedInput
+  appointments?: Prisma.AppointmentUncheckedUpdateManyWithoutDoctorNestedInput
+  certificates?: Prisma.DoctorCertificateUncheckedUpdateManyWithoutDoctorNestedInput
+  clinicalCases?: Prisma.ClinicalCaseUncheckedUpdateManyWithoutDoctorNestedInput
+  educations?: Prisma.DoctorEducationUncheckedUpdateManyWithoutDoctorNestedInput
+  media?: Prisma.DoctorMediaUncheckedUpdateManyWithoutDoctorNestedInput
+  medicalRecords?: Prisma.MedicalRecordUncheckedUpdateManyWithoutDoctorNestedInput
+  treatmentPlans?: Prisma.TreatmentPlanUncheckedUpdateManyWithoutDoctorNestedInput
+  treatmentPlanSteps?: Prisma.TreatmentPlanStepUncheckedUpdateManyWithoutDoctorNestedInput
+  prescriptions?: Prisma.PrescriptionUncheckedUpdateManyWithoutDoctorNestedInput
+  reviews?: Prisma.ReviewUncheckedUpdateManyWithoutDoctorNestedInput
+  videoConsultations?: Prisma.VideoConsultationUncheckedUpdateManyWithoutDoctorNestedInput
+  specializations?: Prisma.DoctorSpecializationUncheckedUpdateManyWithoutDoctorNestedInput
+}
+
+export type DoctorCreateWithoutSpecializationsInput = {
+  id?: string
+  doctorCode: string
+  specialization: string
+  licenseNumber: string
+  avatarUrl?: string | null
+  bio?: string | null
+  position?: string | null
+  workplace?: string | null
+  yearsExperience?: number
+  isActive?: boolean
+  createdAt?: Date | string
+  user: Prisma.UserCreateNestedOneWithoutDoctorProfileInput
+  availability?: Prisma.DoctorAvailabilityCreateNestedManyWithoutDoctorInput
+  appointments?: Prisma.AppointmentCreateNestedManyWithoutDoctorInput
+  certificates?: Prisma.DoctorCertificateCreateNestedManyWithoutDoctorInput
+  clinicalCases?: Prisma.ClinicalCaseCreateNestedManyWithoutDoctorInput
+  educations?: Prisma.DoctorEducationCreateNestedManyWithoutDoctorInput
+  media?: Prisma.DoctorMediaCreateNestedManyWithoutDoctorInput
+  medicalRecords?: Prisma.MedicalRecordCreateNestedManyWithoutDoctorInput
+  treatmentPlans?: Prisma.TreatmentPlanCreateNestedManyWithoutDoctorInput
+  treatmentPlanSteps?: Prisma.TreatmentPlanStepCreateNestedManyWithoutDoctorInput
+  prescriptions?: Prisma.PrescriptionCreateNestedManyWithoutDoctorInput
+  reviews?: Prisma.ReviewCreateNestedManyWithoutDoctorInput
+  videoConsultations?: Prisma.VideoConsultationCreateNestedManyWithoutDoctorInput
+}
+
+export type DoctorUncheckedCreateWithoutSpecializationsInput = {
+  id?: string
+  userId: string
+  doctorCode: string
+  specialization: string
+  licenseNumber: string
+  avatarUrl?: string | null
+  bio?: string | null
+  position?: string | null
+  workplace?: string | null
+  yearsExperience?: number
+  isActive?: boolean
+  createdAt?: Date | string
+  availability?: Prisma.DoctorAvailabilityUncheckedCreateNestedManyWithoutDoctorInput
+  appointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutDoctorInput
+  certificates?: Prisma.DoctorCertificateUncheckedCreateNestedManyWithoutDoctorInput
+  clinicalCases?: Prisma.ClinicalCaseUncheckedCreateNestedManyWithoutDoctorInput
+  educations?: Prisma.DoctorEducationUncheckedCreateNestedManyWithoutDoctorInput
+  media?: Prisma.DoctorMediaUncheckedCreateNestedManyWithoutDoctorInput
+  medicalRecords?: Prisma.MedicalRecordUncheckedCreateNestedManyWithoutDoctorInput
+  treatmentPlans?: Prisma.TreatmentPlanUncheckedCreateNestedManyWithoutDoctorInput
+  treatmentPlanSteps?: Prisma.TreatmentPlanStepUncheckedCreateNestedManyWithoutDoctorInput
+  prescriptions?: Prisma.PrescriptionUncheckedCreateNestedManyWithoutDoctorInput
+  reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutDoctorInput
+  videoConsultations?: Prisma.VideoConsultationUncheckedCreateNestedManyWithoutDoctorInput
+}
+
+export type DoctorCreateOrConnectWithoutSpecializationsInput = {
+  where: Prisma.DoctorWhereUniqueInput
+  create: Prisma.XOR<Prisma.DoctorCreateWithoutSpecializationsInput, Prisma.DoctorUncheckedCreateWithoutSpecializationsInput>
+}
+
+export type DoctorUpsertWithoutSpecializationsInput = {
+  update: Prisma.XOR<Prisma.DoctorUpdateWithoutSpecializationsInput, Prisma.DoctorUncheckedUpdateWithoutSpecializationsInput>
+  create: Prisma.XOR<Prisma.DoctorCreateWithoutSpecializationsInput, Prisma.DoctorUncheckedCreateWithoutSpecializationsInput>
+  where?: Prisma.DoctorWhereInput
+}
+
+export type DoctorUpdateToOneWithWhereWithoutSpecializationsInput = {
+  where?: Prisma.DoctorWhereInput
+  data: Prisma.XOR<Prisma.DoctorUpdateWithoutSpecializationsInput, Prisma.DoctorUncheckedUpdateWithoutSpecializationsInput>
+}
+
+export type DoctorUpdateWithoutSpecializationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  doctorCode?: Prisma.StringFieldUpdateOperationsInput | string
+  specialization?: Prisma.StringFieldUpdateOperationsInput | string
+  licenseNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  workplace?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  yearsExperience?: Prisma.IntFieldUpdateOperationsInput | number
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  user?: Prisma.UserUpdateOneRequiredWithoutDoctorProfileNestedInput
+  availability?: Prisma.DoctorAvailabilityUpdateManyWithoutDoctorNestedInput
+  appointments?: Prisma.AppointmentUpdateManyWithoutDoctorNestedInput
+  certificates?: Prisma.DoctorCertificateUpdateManyWithoutDoctorNestedInput
+  clinicalCases?: Prisma.ClinicalCaseUpdateManyWithoutDoctorNestedInput
+  educations?: Prisma.DoctorEducationUpdateManyWithoutDoctorNestedInput
+  media?: Prisma.DoctorMediaUpdateManyWithoutDoctorNestedInput
+  medicalRecords?: Prisma.MedicalRecordUpdateManyWithoutDoctorNestedInput
+  treatmentPlans?: Prisma.TreatmentPlanUpdateManyWithoutDoctorNestedInput
+  treatmentPlanSteps?: Prisma.TreatmentPlanStepUpdateManyWithoutDoctorNestedInput
+  prescriptions?: Prisma.PrescriptionUpdateManyWithoutDoctorNestedInput
+  reviews?: Prisma.ReviewUpdateManyWithoutDoctorNestedInput
+  videoConsultations?: Prisma.VideoConsultationUpdateManyWithoutDoctorNestedInput
+}
+
+export type DoctorUncheckedUpdateWithoutSpecializationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
   doctorCode?: Prisma.StringFieldUpdateOperationsInput | string
   specialization?: Prisma.StringFieldUpdateOperationsInput | string
   licenseNumber?: Prisma.StringFieldUpdateOperationsInput | string
@@ -943,6 +1092,7 @@ export type DoctorCreateWithoutEducationsInput = {
   prescriptions?: Prisma.PrescriptionCreateNestedManyWithoutDoctorInput
   reviews?: Prisma.ReviewCreateNestedManyWithoutDoctorInput
   videoConsultations?: Prisma.VideoConsultationCreateNestedManyWithoutDoctorInput
+  specializations?: Prisma.DoctorSpecializationCreateNestedManyWithoutDoctorInput
 }
 
 export type DoctorUncheckedCreateWithoutEducationsInput = {
@@ -969,6 +1119,7 @@ export type DoctorUncheckedCreateWithoutEducationsInput = {
   prescriptions?: Prisma.PrescriptionUncheckedCreateNestedManyWithoutDoctorInput
   reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutDoctorInput
   videoConsultations?: Prisma.VideoConsultationUncheckedCreateNestedManyWithoutDoctorInput
+  specializations?: Prisma.DoctorSpecializationUncheckedCreateNestedManyWithoutDoctorInput
 }
 
 export type DoctorCreateOrConnectWithoutEducationsInput = {
@@ -1011,6 +1162,7 @@ export type DoctorUpdateWithoutEducationsInput = {
   prescriptions?: Prisma.PrescriptionUpdateManyWithoutDoctorNestedInput
   reviews?: Prisma.ReviewUpdateManyWithoutDoctorNestedInput
   videoConsultations?: Prisma.VideoConsultationUpdateManyWithoutDoctorNestedInput
+  specializations?: Prisma.DoctorSpecializationUpdateManyWithoutDoctorNestedInput
 }
 
 export type DoctorUncheckedUpdateWithoutEducationsInput = {
@@ -1037,6 +1189,7 @@ export type DoctorUncheckedUpdateWithoutEducationsInput = {
   prescriptions?: Prisma.PrescriptionUncheckedUpdateManyWithoutDoctorNestedInput
   reviews?: Prisma.ReviewUncheckedUpdateManyWithoutDoctorNestedInput
   videoConsultations?: Prisma.VideoConsultationUncheckedUpdateManyWithoutDoctorNestedInput
+  specializations?: Prisma.DoctorSpecializationUncheckedUpdateManyWithoutDoctorNestedInput
 }
 
 export type DoctorCreateWithoutCertificatesInput = {
@@ -1063,6 +1216,7 @@ export type DoctorCreateWithoutCertificatesInput = {
   prescriptions?: Prisma.PrescriptionCreateNestedManyWithoutDoctorInput
   reviews?: Prisma.ReviewCreateNestedManyWithoutDoctorInput
   videoConsultations?: Prisma.VideoConsultationCreateNestedManyWithoutDoctorInput
+  specializations?: Prisma.DoctorSpecializationCreateNestedManyWithoutDoctorInput
 }
 
 export type DoctorUncheckedCreateWithoutCertificatesInput = {
@@ -1089,6 +1243,7 @@ export type DoctorUncheckedCreateWithoutCertificatesInput = {
   prescriptions?: Prisma.PrescriptionUncheckedCreateNestedManyWithoutDoctorInput
   reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutDoctorInput
   videoConsultations?: Prisma.VideoConsultationUncheckedCreateNestedManyWithoutDoctorInput
+  specializations?: Prisma.DoctorSpecializationUncheckedCreateNestedManyWithoutDoctorInput
 }
 
 export type DoctorCreateOrConnectWithoutCertificatesInput = {
@@ -1131,6 +1286,7 @@ export type DoctorUpdateWithoutCertificatesInput = {
   prescriptions?: Prisma.PrescriptionUpdateManyWithoutDoctorNestedInput
   reviews?: Prisma.ReviewUpdateManyWithoutDoctorNestedInput
   videoConsultations?: Prisma.VideoConsultationUpdateManyWithoutDoctorNestedInput
+  specializations?: Prisma.DoctorSpecializationUpdateManyWithoutDoctorNestedInput
 }
 
 export type DoctorUncheckedUpdateWithoutCertificatesInput = {
@@ -1157,6 +1313,7 @@ export type DoctorUncheckedUpdateWithoutCertificatesInput = {
   prescriptions?: Prisma.PrescriptionUncheckedUpdateManyWithoutDoctorNestedInput
   reviews?: Prisma.ReviewUncheckedUpdateManyWithoutDoctorNestedInput
   videoConsultations?: Prisma.VideoConsultationUncheckedUpdateManyWithoutDoctorNestedInput
+  specializations?: Prisma.DoctorSpecializationUncheckedUpdateManyWithoutDoctorNestedInput
 }
 
 export type DoctorCreateWithoutMediaInput = {
@@ -1183,6 +1340,7 @@ export type DoctorCreateWithoutMediaInput = {
   prescriptions?: Prisma.PrescriptionCreateNestedManyWithoutDoctorInput
   reviews?: Prisma.ReviewCreateNestedManyWithoutDoctorInput
   videoConsultations?: Prisma.VideoConsultationCreateNestedManyWithoutDoctorInput
+  specializations?: Prisma.DoctorSpecializationCreateNestedManyWithoutDoctorInput
 }
 
 export type DoctorUncheckedCreateWithoutMediaInput = {
@@ -1209,6 +1367,7 @@ export type DoctorUncheckedCreateWithoutMediaInput = {
   prescriptions?: Prisma.PrescriptionUncheckedCreateNestedManyWithoutDoctorInput
   reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutDoctorInput
   videoConsultations?: Prisma.VideoConsultationUncheckedCreateNestedManyWithoutDoctorInput
+  specializations?: Prisma.DoctorSpecializationUncheckedCreateNestedManyWithoutDoctorInput
 }
 
 export type DoctorCreateOrConnectWithoutMediaInput = {
@@ -1251,6 +1410,7 @@ export type DoctorUpdateWithoutMediaInput = {
   prescriptions?: Prisma.PrescriptionUpdateManyWithoutDoctorNestedInput
   reviews?: Prisma.ReviewUpdateManyWithoutDoctorNestedInput
   videoConsultations?: Prisma.VideoConsultationUpdateManyWithoutDoctorNestedInput
+  specializations?: Prisma.DoctorSpecializationUpdateManyWithoutDoctorNestedInput
 }
 
 export type DoctorUncheckedUpdateWithoutMediaInput = {
@@ -1277,6 +1437,7 @@ export type DoctorUncheckedUpdateWithoutMediaInput = {
   prescriptions?: Prisma.PrescriptionUncheckedUpdateManyWithoutDoctorNestedInput
   reviews?: Prisma.ReviewUncheckedUpdateManyWithoutDoctorNestedInput
   videoConsultations?: Prisma.VideoConsultationUncheckedUpdateManyWithoutDoctorNestedInput
+  specializations?: Prisma.DoctorSpecializationUncheckedUpdateManyWithoutDoctorNestedInput
 }
 
 export type DoctorCreateWithoutAvailabilityInput = {
@@ -1303,6 +1464,7 @@ export type DoctorCreateWithoutAvailabilityInput = {
   prescriptions?: Prisma.PrescriptionCreateNestedManyWithoutDoctorInput
   reviews?: Prisma.ReviewCreateNestedManyWithoutDoctorInput
   videoConsultations?: Prisma.VideoConsultationCreateNestedManyWithoutDoctorInput
+  specializations?: Prisma.DoctorSpecializationCreateNestedManyWithoutDoctorInput
 }
 
 export type DoctorUncheckedCreateWithoutAvailabilityInput = {
@@ -1329,6 +1491,7 @@ export type DoctorUncheckedCreateWithoutAvailabilityInput = {
   prescriptions?: Prisma.PrescriptionUncheckedCreateNestedManyWithoutDoctorInput
   reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutDoctorInput
   videoConsultations?: Prisma.VideoConsultationUncheckedCreateNestedManyWithoutDoctorInput
+  specializations?: Prisma.DoctorSpecializationUncheckedCreateNestedManyWithoutDoctorInput
 }
 
 export type DoctorCreateOrConnectWithoutAvailabilityInput = {
@@ -1371,6 +1534,7 @@ export type DoctorUpdateWithoutAvailabilityInput = {
   prescriptions?: Prisma.PrescriptionUpdateManyWithoutDoctorNestedInput
   reviews?: Prisma.ReviewUpdateManyWithoutDoctorNestedInput
   videoConsultations?: Prisma.VideoConsultationUpdateManyWithoutDoctorNestedInput
+  specializations?: Prisma.DoctorSpecializationUpdateManyWithoutDoctorNestedInput
 }
 
 export type DoctorUncheckedUpdateWithoutAvailabilityInput = {
@@ -1397,6 +1561,7 @@ export type DoctorUncheckedUpdateWithoutAvailabilityInput = {
   prescriptions?: Prisma.PrescriptionUncheckedUpdateManyWithoutDoctorNestedInput
   reviews?: Prisma.ReviewUncheckedUpdateManyWithoutDoctorNestedInput
   videoConsultations?: Prisma.VideoConsultationUncheckedUpdateManyWithoutDoctorNestedInput
+  specializations?: Prisma.DoctorSpecializationUncheckedUpdateManyWithoutDoctorNestedInput
 }
 
 export type DoctorCreateWithoutAppointmentsInput = {
@@ -1423,6 +1588,7 @@ export type DoctorCreateWithoutAppointmentsInput = {
   prescriptions?: Prisma.PrescriptionCreateNestedManyWithoutDoctorInput
   reviews?: Prisma.ReviewCreateNestedManyWithoutDoctorInput
   videoConsultations?: Prisma.VideoConsultationCreateNestedManyWithoutDoctorInput
+  specializations?: Prisma.DoctorSpecializationCreateNestedManyWithoutDoctorInput
 }
 
 export type DoctorUncheckedCreateWithoutAppointmentsInput = {
@@ -1449,6 +1615,7 @@ export type DoctorUncheckedCreateWithoutAppointmentsInput = {
   prescriptions?: Prisma.PrescriptionUncheckedCreateNestedManyWithoutDoctorInput
   reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutDoctorInput
   videoConsultations?: Prisma.VideoConsultationUncheckedCreateNestedManyWithoutDoctorInput
+  specializations?: Prisma.DoctorSpecializationUncheckedCreateNestedManyWithoutDoctorInput
 }
 
 export type DoctorCreateOrConnectWithoutAppointmentsInput = {
@@ -1491,6 +1658,7 @@ export type DoctorUpdateWithoutAppointmentsInput = {
   prescriptions?: Prisma.PrescriptionUpdateManyWithoutDoctorNestedInput
   reviews?: Prisma.ReviewUpdateManyWithoutDoctorNestedInput
   videoConsultations?: Prisma.VideoConsultationUpdateManyWithoutDoctorNestedInput
+  specializations?: Prisma.DoctorSpecializationUpdateManyWithoutDoctorNestedInput
 }
 
 export type DoctorUncheckedUpdateWithoutAppointmentsInput = {
@@ -1517,6 +1685,7 @@ export type DoctorUncheckedUpdateWithoutAppointmentsInput = {
   prescriptions?: Prisma.PrescriptionUncheckedUpdateManyWithoutDoctorNestedInput
   reviews?: Prisma.ReviewUncheckedUpdateManyWithoutDoctorNestedInput
   videoConsultations?: Prisma.VideoConsultationUncheckedUpdateManyWithoutDoctorNestedInput
+  specializations?: Prisma.DoctorSpecializationUncheckedUpdateManyWithoutDoctorNestedInput
 }
 
 export type DoctorCreateWithoutMedicalRecordsInput = {
@@ -1543,6 +1712,7 @@ export type DoctorCreateWithoutMedicalRecordsInput = {
   prescriptions?: Prisma.PrescriptionCreateNestedManyWithoutDoctorInput
   reviews?: Prisma.ReviewCreateNestedManyWithoutDoctorInput
   videoConsultations?: Prisma.VideoConsultationCreateNestedManyWithoutDoctorInput
+  specializations?: Prisma.DoctorSpecializationCreateNestedManyWithoutDoctorInput
 }
 
 export type DoctorUncheckedCreateWithoutMedicalRecordsInput = {
@@ -1569,6 +1739,7 @@ export type DoctorUncheckedCreateWithoutMedicalRecordsInput = {
   prescriptions?: Prisma.PrescriptionUncheckedCreateNestedManyWithoutDoctorInput
   reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutDoctorInput
   videoConsultations?: Prisma.VideoConsultationUncheckedCreateNestedManyWithoutDoctorInput
+  specializations?: Prisma.DoctorSpecializationUncheckedCreateNestedManyWithoutDoctorInput
 }
 
 export type DoctorCreateOrConnectWithoutMedicalRecordsInput = {
@@ -1611,6 +1782,7 @@ export type DoctorUpdateWithoutMedicalRecordsInput = {
   prescriptions?: Prisma.PrescriptionUpdateManyWithoutDoctorNestedInput
   reviews?: Prisma.ReviewUpdateManyWithoutDoctorNestedInput
   videoConsultations?: Prisma.VideoConsultationUpdateManyWithoutDoctorNestedInput
+  specializations?: Prisma.DoctorSpecializationUpdateManyWithoutDoctorNestedInput
 }
 
 export type DoctorUncheckedUpdateWithoutMedicalRecordsInput = {
@@ -1637,6 +1809,7 @@ export type DoctorUncheckedUpdateWithoutMedicalRecordsInput = {
   prescriptions?: Prisma.PrescriptionUncheckedUpdateManyWithoutDoctorNestedInput
   reviews?: Prisma.ReviewUncheckedUpdateManyWithoutDoctorNestedInput
   videoConsultations?: Prisma.VideoConsultationUncheckedUpdateManyWithoutDoctorNestedInput
+  specializations?: Prisma.DoctorSpecializationUncheckedUpdateManyWithoutDoctorNestedInput
 }
 
 export type DoctorCreateWithoutTreatmentPlansInput = {
@@ -1663,6 +1836,7 @@ export type DoctorCreateWithoutTreatmentPlansInput = {
   prescriptions?: Prisma.PrescriptionCreateNestedManyWithoutDoctorInput
   reviews?: Prisma.ReviewCreateNestedManyWithoutDoctorInput
   videoConsultations?: Prisma.VideoConsultationCreateNestedManyWithoutDoctorInput
+  specializations?: Prisma.DoctorSpecializationCreateNestedManyWithoutDoctorInput
 }
 
 export type DoctorUncheckedCreateWithoutTreatmentPlansInput = {
@@ -1689,6 +1863,7 @@ export type DoctorUncheckedCreateWithoutTreatmentPlansInput = {
   prescriptions?: Prisma.PrescriptionUncheckedCreateNestedManyWithoutDoctorInput
   reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutDoctorInput
   videoConsultations?: Prisma.VideoConsultationUncheckedCreateNestedManyWithoutDoctorInput
+  specializations?: Prisma.DoctorSpecializationUncheckedCreateNestedManyWithoutDoctorInput
 }
 
 export type DoctorCreateOrConnectWithoutTreatmentPlansInput = {
@@ -1731,6 +1906,7 @@ export type DoctorUpdateWithoutTreatmentPlansInput = {
   prescriptions?: Prisma.PrescriptionUpdateManyWithoutDoctorNestedInput
   reviews?: Prisma.ReviewUpdateManyWithoutDoctorNestedInput
   videoConsultations?: Prisma.VideoConsultationUpdateManyWithoutDoctorNestedInput
+  specializations?: Prisma.DoctorSpecializationUpdateManyWithoutDoctorNestedInput
 }
 
 export type DoctorUncheckedUpdateWithoutTreatmentPlansInput = {
@@ -1757,6 +1933,7 @@ export type DoctorUncheckedUpdateWithoutTreatmentPlansInput = {
   prescriptions?: Prisma.PrescriptionUncheckedUpdateManyWithoutDoctorNestedInput
   reviews?: Prisma.ReviewUncheckedUpdateManyWithoutDoctorNestedInput
   videoConsultations?: Prisma.VideoConsultationUncheckedUpdateManyWithoutDoctorNestedInput
+  specializations?: Prisma.DoctorSpecializationUncheckedUpdateManyWithoutDoctorNestedInput
 }
 
 export type DoctorCreateWithoutTreatmentPlanStepsInput = {
@@ -1783,6 +1960,7 @@ export type DoctorCreateWithoutTreatmentPlanStepsInput = {
   prescriptions?: Prisma.PrescriptionCreateNestedManyWithoutDoctorInput
   reviews?: Prisma.ReviewCreateNestedManyWithoutDoctorInput
   videoConsultations?: Prisma.VideoConsultationCreateNestedManyWithoutDoctorInput
+  specializations?: Prisma.DoctorSpecializationCreateNestedManyWithoutDoctorInput
 }
 
 export type DoctorUncheckedCreateWithoutTreatmentPlanStepsInput = {
@@ -1809,6 +1987,7 @@ export type DoctorUncheckedCreateWithoutTreatmentPlanStepsInput = {
   prescriptions?: Prisma.PrescriptionUncheckedCreateNestedManyWithoutDoctorInput
   reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutDoctorInput
   videoConsultations?: Prisma.VideoConsultationUncheckedCreateNestedManyWithoutDoctorInput
+  specializations?: Prisma.DoctorSpecializationUncheckedCreateNestedManyWithoutDoctorInput
 }
 
 export type DoctorCreateOrConnectWithoutTreatmentPlanStepsInput = {
@@ -1851,6 +2030,7 @@ export type DoctorUpdateWithoutTreatmentPlanStepsInput = {
   prescriptions?: Prisma.PrescriptionUpdateManyWithoutDoctorNestedInput
   reviews?: Prisma.ReviewUpdateManyWithoutDoctorNestedInput
   videoConsultations?: Prisma.VideoConsultationUpdateManyWithoutDoctorNestedInput
+  specializations?: Prisma.DoctorSpecializationUpdateManyWithoutDoctorNestedInput
 }
 
 export type DoctorUncheckedUpdateWithoutTreatmentPlanStepsInput = {
@@ -1877,6 +2057,7 @@ export type DoctorUncheckedUpdateWithoutTreatmentPlanStepsInput = {
   prescriptions?: Prisma.PrescriptionUncheckedUpdateManyWithoutDoctorNestedInput
   reviews?: Prisma.ReviewUncheckedUpdateManyWithoutDoctorNestedInput
   videoConsultations?: Prisma.VideoConsultationUncheckedUpdateManyWithoutDoctorNestedInput
+  specializations?: Prisma.DoctorSpecializationUncheckedUpdateManyWithoutDoctorNestedInput
 }
 
 export type DoctorCreateWithoutClinicalCasesInput = {
@@ -1903,6 +2084,7 @@ export type DoctorCreateWithoutClinicalCasesInput = {
   prescriptions?: Prisma.PrescriptionCreateNestedManyWithoutDoctorInput
   reviews?: Prisma.ReviewCreateNestedManyWithoutDoctorInput
   videoConsultations?: Prisma.VideoConsultationCreateNestedManyWithoutDoctorInput
+  specializations?: Prisma.DoctorSpecializationCreateNestedManyWithoutDoctorInput
 }
 
 export type DoctorUncheckedCreateWithoutClinicalCasesInput = {
@@ -1929,6 +2111,7 @@ export type DoctorUncheckedCreateWithoutClinicalCasesInput = {
   prescriptions?: Prisma.PrescriptionUncheckedCreateNestedManyWithoutDoctorInput
   reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutDoctorInput
   videoConsultations?: Prisma.VideoConsultationUncheckedCreateNestedManyWithoutDoctorInput
+  specializations?: Prisma.DoctorSpecializationUncheckedCreateNestedManyWithoutDoctorInput
 }
 
 export type DoctorCreateOrConnectWithoutClinicalCasesInput = {
@@ -1971,6 +2154,7 @@ export type DoctorUpdateWithoutClinicalCasesInput = {
   prescriptions?: Prisma.PrescriptionUpdateManyWithoutDoctorNestedInput
   reviews?: Prisma.ReviewUpdateManyWithoutDoctorNestedInput
   videoConsultations?: Prisma.VideoConsultationUpdateManyWithoutDoctorNestedInput
+  specializations?: Prisma.DoctorSpecializationUpdateManyWithoutDoctorNestedInput
 }
 
 export type DoctorUncheckedUpdateWithoutClinicalCasesInput = {
@@ -1997,6 +2181,7 @@ export type DoctorUncheckedUpdateWithoutClinicalCasesInput = {
   prescriptions?: Prisma.PrescriptionUncheckedUpdateManyWithoutDoctorNestedInput
   reviews?: Prisma.ReviewUncheckedUpdateManyWithoutDoctorNestedInput
   videoConsultations?: Prisma.VideoConsultationUncheckedUpdateManyWithoutDoctorNestedInput
+  specializations?: Prisma.DoctorSpecializationUncheckedUpdateManyWithoutDoctorNestedInput
 }
 
 export type DoctorCreateWithoutPrescriptionsInput = {
@@ -2023,6 +2208,7 @@ export type DoctorCreateWithoutPrescriptionsInput = {
   treatmentPlanSteps?: Prisma.TreatmentPlanStepCreateNestedManyWithoutDoctorInput
   reviews?: Prisma.ReviewCreateNestedManyWithoutDoctorInput
   videoConsultations?: Prisma.VideoConsultationCreateNestedManyWithoutDoctorInput
+  specializations?: Prisma.DoctorSpecializationCreateNestedManyWithoutDoctorInput
 }
 
 export type DoctorUncheckedCreateWithoutPrescriptionsInput = {
@@ -2049,6 +2235,7 @@ export type DoctorUncheckedCreateWithoutPrescriptionsInput = {
   treatmentPlanSteps?: Prisma.TreatmentPlanStepUncheckedCreateNestedManyWithoutDoctorInput
   reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutDoctorInput
   videoConsultations?: Prisma.VideoConsultationUncheckedCreateNestedManyWithoutDoctorInput
+  specializations?: Prisma.DoctorSpecializationUncheckedCreateNestedManyWithoutDoctorInput
 }
 
 export type DoctorCreateOrConnectWithoutPrescriptionsInput = {
@@ -2091,6 +2278,7 @@ export type DoctorUpdateWithoutPrescriptionsInput = {
   treatmentPlanSteps?: Prisma.TreatmentPlanStepUpdateManyWithoutDoctorNestedInput
   reviews?: Prisma.ReviewUpdateManyWithoutDoctorNestedInput
   videoConsultations?: Prisma.VideoConsultationUpdateManyWithoutDoctorNestedInput
+  specializations?: Prisma.DoctorSpecializationUpdateManyWithoutDoctorNestedInput
 }
 
 export type DoctorUncheckedUpdateWithoutPrescriptionsInput = {
@@ -2117,6 +2305,7 @@ export type DoctorUncheckedUpdateWithoutPrescriptionsInput = {
   treatmentPlanSteps?: Prisma.TreatmentPlanStepUncheckedUpdateManyWithoutDoctorNestedInput
   reviews?: Prisma.ReviewUncheckedUpdateManyWithoutDoctorNestedInput
   videoConsultations?: Prisma.VideoConsultationUncheckedUpdateManyWithoutDoctorNestedInput
+  specializations?: Prisma.DoctorSpecializationUncheckedUpdateManyWithoutDoctorNestedInput
 }
 
 export type DoctorCreateWithoutReviewsInput = {
@@ -2143,6 +2332,7 @@ export type DoctorCreateWithoutReviewsInput = {
   treatmentPlanSteps?: Prisma.TreatmentPlanStepCreateNestedManyWithoutDoctorInput
   prescriptions?: Prisma.PrescriptionCreateNestedManyWithoutDoctorInput
   videoConsultations?: Prisma.VideoConsultationCreateNestedManyWithoutDoctorInput
+  specializations?: Prisma.DoctorSpecializationCreateNestedManyWithoutDoctorInput
 }
 
 export type DoctorUncheckedCreateWithoutReviewsInput = {
@@ -2169,6 +2359,7 @@ export type DoctorUncheckedCreateWithoutReviewsInput = {
   treatmentPlanSteps?: Prisma.TreatmentPlanStepUncheckedCreateNestedManyWithoutDoctorInput
   prescriptions?: Prisma.PrescriptionUncheckedCreateNestedManyWithoutDoctorInput
   videoConsultations?: Prisma.VideoConsultationUncheckedCreateNestedManyWithoutDoctorInput
+  specializations?: Prisma.DoctorSpecializationUncheckedCreateNestedManyWithoutDoctorInput
 }
 
 export type DoctorCreateOrConnectWithoutReviewsInput = {
@@ -2211,6 +2402,7 @@ export type DoctorUpdateWithoutReviewsInput = {
   treatmentPlanSteps?: Prisma.TreatmentPlanStepUpdateManyWithoutDoctorNestedInput
   prescriptions?: Prisma.PrescriptionUpdateManyWithoutDoctorNestedInput
   videoConsultations?: Prisma.VideoConsultationUpdateManyWithoutDoctorNestedInput
+  specializations?: Prisma.DoctorSpecializationUpdateManyWithoutDoctorNestedInput
 }
 
 export type DoctorUncheckedUpdateWithoutReviewsInput = {
@@ -2237,6 +2429,7 @@ export type DoctorUncheckedUpdateWithoutReviewsInput = {
   treatmentPlanSteps?: Prisma.TreatmentPlanStepUncheckedUpdateManyWithoutDoctorNestedInput
   prescriptions?: Prisma.PrescriptionUncheckedUpdateManyWithoutDoctorNestedInput
   videoConsultations?: Prisma.VideoConsultationUncheckedUpdateManyWithoutDoctorNestedInput
+  specializations?: Prisma.DoctorSpecializationUncheckedUpdateManyWithoutDoctorNestedInput
 }
 
 export type DoctorCreateWithoutVideoConsultationsInput = {
@@ -2263,6 +2456,7 @@ export type DoctorCreateWithoutVideoConsultationsInput = {
   treatmentPlanSteps?: Prisma.TreatmentPlanStepCreateNestedManyWithoutDoctorInput
   prescriptions?: Prisma.PrescriptionCreateNestedManyWithoutDoctorInput
   reviews?: Prisma.ReviewCreateNestedManyWithoutDoctorInput
+  specializations?: Prisma.DoctorSpecializationCreateNestedManyWithoutDoctorInput
 }
 
 export type DoctorUncheckedCreateWithoutVideoConsultationsInput = {
@@ -2289,6 +2483,7 @@ export type DoctorUncheckedCreateWithoutVideoConsultationsInput = {
   treatmentPlanSteps?: Prisma.TreatmentPlanStepUncheckedCreateNestedManyWithoutDoctorInput
   prescriptions?: Prisma.PrescriptionUncheckedCreateNestedManyWithoutDoctorInput
   reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutDoctorInput
+  specializations?: Prisma.DoctorSpecializationUncheckedCreateNestedManyWithoutDoctorInput
 }
 
 export type DoctorCreateOrConnectWithoutVideoConsultationsInput = {
@@ -2331,6 +2526,7 @@ export type DoctorUpdateWithoutVideoConsultationsInput = {
   treatmentPlanSteps?: Prisma.TreatmentPlanStepUpdateManyWithoutDoctorNestedInput
   prescriptions?: Prisma.PrescriptionUpdateManyWithoutDoctorNestedInput
   reviews?: Prisma.ReviewUpdateManyWithoutDoctorNestedInput
+  specializations?: Prisma.DoctorSpecializationUpdateManyWithoutDoctorNestedInput
 }
 
 export type DoctorUncheckedUpdateWithoutVideoConsultationsInput = {
@@ -2357,6 +2553,7 @@ export type DoctorUncheckedUpdateWithoutVideoConsultationsInput = {
   treatmentPlanSteps?: Prisma.TreatmentPlanStepUncheckedUpdateManyWithoutDoctorNestedInput
   prescriptions?: Prisma.PrescriptionUncheckedUpdateManyWithoutDoctorNestedInput
   reviews?: Prisma.ReviewUncheckedUpdateManyWithoutDoctorNestedInput
+  specializations?: Prisma.DoctorSpecializationUncheckedUpdateManyWithoutDoctorNestedInput
 }
 
 
@@ -2377,6 +2574,7 @@ export type DoctorCountOutputType = {
   prescriptions: number
   reviews: number
   videoConsultations: number
+  specializations: number
 }
 
 export type DoctorCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2392,6 +2590,7 @@ export type DoctorCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions
   prescriptions?: boolean | DoctorCountOutputTypeCountPrescriptionsArgs
   reviews?: boolean | DoctorCountOutputTypeCountReviewsArgs
   videoConsultations?: boolean | DoctorCountOutputTypeCountVideoConsultationsArgs
+  specializations?: boolean | DoctorCountOutputTypeCountSpecializationsArgs
 }
 
 /**
@@ -2488,6 +2687,13 @@ export type DoctorCountOutputTypeCountVideoConsultationsArgs<ExtArgs extends run
   where?: Prisma.VideoConsultationWhereInput
 }
 
+/**
+ * DoctorCountOutputType without action
+ */
+export type DoctorCountOutputTypeCountSpecializationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.DoctorSpecializationWhereInput
+}
+
 
 export type DoctorSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -2515,6 +2721,7 @@ export type DoctorSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   prescriptions?: boolean | Prisma.Doctor$prescriptionsArgs<ExtArgs>
   reviews?: boolean | Prisma.Doctor$reviewsArgs<ExtArgs>
   videoConsultations?: boolean | Prisma.Doctor$videoConsultationsArgs<ExtArgs>
+  specializations?: boolean | Prisma.Doctor$specializationsArgs<ExtArgs>
   _count?: boolean | Prisma.DoctorCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["doctor"]>
 
@@ -2580,6 +2787,7 @@ export type DoctorInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   prescriptions?: boolean | Prisma.Doctor$prescriptionsArgs<ExtArgs>
   reviews?: boolean | Prisma.Doctor$reviewsArgs<ExtArgs>
   videoConsultations?: boolean | Prisma.Doctor$videoConsultationsArgs<ExtArgs>
+  specializations?: boolean | Prisma.Doctor$specializationsArgs<ExtArgs>
   _count?: boolean | Prisma.DoctorCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type DoctorIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2605,6 +2813,7 @@ export type $DoctorPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     prescriptions: Prisma.$PrescriptionPayload<ExtArgs>[]
     reviews: Prisma.$ReviewPayload<ExtArgs>[]
     videoConsultations: Prisma.$VideoConsultationPayload<ExtArgs>[]
+    specializations: Prisma.$DoctorSpecializationPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -3026,6 +3235,7 @@ export interface Prisma__DoctorClient<T, Null = never, ExtArgs extends runtime.T
   prescriptions<T extends Prisma.Doctor$prescriptionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Doctor$prescriptionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PrescriptionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   reviews<T extends Prisma.Doctor$reviewsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Doctor$reviewsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ReviewPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   videoConsultations<T extends Prisma.Doctor$videoConsultationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Doctor$videoConsultationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$VideoConsultationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  specializations<T extends Prisma.Doctor$specializationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Doctor$specializationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DoctorSpecializationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -3753,6 +3963,30 @@ export type Doctor$videoConsultationsArgs<ExtArgs extends runtime.Types.Extensio
   take?: number
   skip?: number
   distinct?: Prisma.VideoConsultationScalarFieldEnum | Prisma.VideoConsultationScalarFieldEnum[]
+}
+
+/**
+ * Doctor.specializations
+ */
+export type Doctor$specializationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the DoctorSpecialization
+   */
+  select?: Prisma.DoctorSpecializationSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the DoctorSpecialization
+   */
+  omit?: Prisma.DoctorSpecializationOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DoctorSpecializationInclude<ExtArgs> | null
+  where?: Prisma.DoctorSpecializationWhereInput
+  orderBy?: Prisma.DoctorSpecializationOrderByWithRelationInput | Prisma.DoctorSpecializationOrderByWithRelationInput[]
+  cursor?: Prisma.DoctorSpecializationWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.DoctorSpecializationScalarFieldEnum | Prisma.DoctorSpecializationScalarFieldEnum[]
 }
 
 /**

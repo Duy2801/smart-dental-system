@@ -20,6 +20,7 @@ type UseAppointmentWorkspaceSyncParams = {
   selectedDoctorId: string;
   onOpenBookingMode: () => Promise<void>;
   setSelectedServiceId: React.Dispatch<React.SetStateAction<string>>;
+  setSelectedMethodId: React.Dispatch<React.SetStateAction<string>>;
   setSelectedDoctorId: React.Dispatch<React.SetStateAction<string>>;
   setSelectedDateId: React.Dispatch<React.SetStateAction<string>>;
   setSelectedTime: React.Dispatch<React.SetStateAction<string>>;
@@ -36,6 +37,7 @@ export function useAppointmentWorkspaceSync({
   selectedDoctorId,
   onOpenBookingMode,
   setSelectedServiceId,
+  setSelectedMethodId,
   setSelectedDoctorId,
   setSelectedDateId,
   setSelectedTime,
@@ -44,7 +46,7 @@ export function useAppointmentWorkspaceSync({
     if (hasBookingOptionsError) {
       toast.error(
         "Không thể tải dữ liệu lịch hẹn",
-        "Vui long kiem tra backend hoac thu tai lai trang.",
+        "Vui lòng kiểm tra backend hoặc thử tải lại trang.",
       );
     }
   }, [hasBookingOptionsError]);
@@ -54,19 +56,44 @@ export function useAppointmentWorkspaceSync({
 
     const params = getSearchParams();
     const requestedServiceId = params.get("service");
+    const requestedMethodId =
+      params.get("treatmentMethod") ||
+      params.get("method") ||
+      params.get("treatmentMethodId");
     const requestedDoctorId = params.get("doctorId");
 
     const firstBookableDate = pickFirstBookableDate(bookingOptionsData.dates);
 
-    setSelectedServiceId(
-      (current) =>
-        current ||
-        bookingOptionsData.services.find(
-          (service) => service.id === requestedServiceId,
-        )?.id ||
-        bookingOptionsData.services[0]?.id ||
-        "",
+    let initialService = bookingOptionsData.services.find(
+      (service) => service.id === requestedServiceId,
     );
+
+    if (!initialService && requestedMethodId) {
+      initialService = bookingOptionsData.services.find((service) =>
+        service.treatmentMethods.some((m) => m.id === requestedMethodId),
+      );
+    }
+
+    if (!initialService) {
+      initialService = bookingOptionsData.services[0];
+    }
+
+    const initialMethodId =
+      (requestedMethodId &&
+      initialService?.treatmentMethods.some((m) => m.id === requestedMethodId)
+        ? requestedMethodId
+        : initialService?.treatmentMethods[0]?.id) || "";
+
+    if (requestedServiceId || requestedMethodId) {
+      if (initialService) {
+        setSelectedServiceId(initialService.id);
+        setSelectedMethodId(initialMethodId);
+      }
+    } else {
+      setSelectedServiceId((current) => current || initialService?.id || "");
+      setSelectedMethodId((current) => current || initialMethodId);
+    }
+
     setSelectedDoctorId(
       (current) =>
         current ||
@@ -77,7 +104,13 @@ export function useAppointmentWorkspaceSync({
         "",
     );
     setSelectedDateId((current) => current || firstBookableDate?.id || "");
-  }, [bookingOptionsData, setSelectedDateId, setSelectedDoctorId, setSelectedServiceId]);
+  }, [
+    bookingOptionsData,
+    setSelectedDateId,
+    setSelectedDoctorId,
+    setSelectedMethodId,
+    setSelectedServiceId,
+  ]);
 
   useEffect(() => {
     if (!selectedDateId || dates.length === 0) return;

@@ -1,38 +1,44 @@
 import type { AppointmentItem, AppointmentStatus } from "../../api";
 import { DashboardIcon } from "../../../common/DashboardIcon";
-import { T } from "../../../common/typography";
 
 const statusInfo: Record<
   AppointmentStatus,
-  { label: string; className: string }
+  { label: string; dotColor: string; className: string }
 > = {
   confirmed: {
     label: "Đã xác nhận",
-    className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    dotColor: "bg-emerald-500",
+    className: "border-emerald-200/80 bg-emerald-50/90 text-emerald-700 shadow-sm shadow-emerald-500/5",
   },
   pending: {
     label: "Chờ xác nhận",
-    className: "border-amber-200 bg-amber-50 text-amber-700",
+    dotColor: "bg-amber-500",
+    className: "border-amber-200/80 bg-amber-50/90 text-amber-700 shadow-sm shadow-amber-500/5",
   },
   completed: {
     label: "Hoàn thành",
-    className: "border-blue-200 bg-blue-50 text-blue-700",
+    dotColor: "bg-blue-500",
+    className: "border-blue-200/80 bg-blue-50/90 text-blue-700 shadow-sm shadow-blue-500/5",
   },
   cancelled: {
     label: "Đã hủy",
-    className: "border-rose-200 bg-rose-50 text-rose-700",
+    dotColor: "bg-rose-500",
+    className: "border-rose-200/80 bg-rose-50/90 text-rose-700 shadow-sm shadow-rose-500/5",
   },
   missed: {
     label: "Vắng mặt",
-    className: "border-slate-200 bg-slate-100 text-slate-600",
+    dotColor: "bg-slate-400",
+    className: "border-slate-200 bg-slate-100/90 text-slate-600 shadow-sm",
   },
   in_progress: {
     label: "Đang khám",
-    className: "border-cyan-200 bg-cyan-50 text-cyan-700",
+    dotColor: "bg-cyan-500",
+    className: "border-cyan-200/80 bg-cyan-50/90 text-cyan-700 shadow-sm shadow-cyan-500/5",
   },
   rescheduled: {
     label: "Đã đổi lịch",
-    className: "border-violet-200 bg-violet-50 text-violet-700",
+    dotColor: "bg-violet-500",
+    className: "border-violet-200/80 bg-violet-50/90 text-violet-700 shadow-sm shadow-violet-500/5",
   },
 };
 
@@ -51,72 +57,88 @@ export function AppointmentRecordCard({
   canCancel = false,
   isCancelling = false,
 }: AppointmentRecordCardProps) {
-  const status = statusInfo[appointment.status];
+  const status = statusInfo[appointment.status] ?? statusInfo.pending;
   const dateParts = appointment.date.match(/(\d{2})\/(\d{2})\/(\d{4})/);
   const notes = appointment.preparation ?? [];
 
   return (
-    <article className="rounded-[18px] border border-slate-200 bg-white shadow-[0_8px_22px_rgba(15,23,42,.04)] transition hover:border-blue-200 hover:shadow-[0_12px_28px_rgba(15,23,42,.06)]">
-      <div className="grid gap-4 p-4 lg:grid-cols-[96px_minmax(0,1fr)_220px] lg:items-start lg:p-5">
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 text-center">
-          <p className="border-b border-slate-200 px-3 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-slate-400">
-            {dateParts?.[2] ?? "--"}
-          </p>
-          <strong className="block px-3 pt-2 text-[28px] font-extrabold leading-none text-slate-900">
-            {dateParts?.[1] ?? "--"}
-          </strong>
-          <p className="px-3 pb-2 pt-1 text-[11px] text-slate-500">
-            {dateParts?.[3] ?? "----"}
-          </p>
+    <article className="group relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-5 shadow-[0_4px_20px_-4px_rgba(15,23,42,0.05)] transition-all duration-300 hover:border-blue-300 hover:shadow-[0_12px_32px_-6px_rgba(8,99,197,0.12)]">
+      {/* Top subtle blue accent gradient bar */}
+      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#0863c5] via-sky-400 to-[#0863c5] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+
+      <div className="grid gap-5 lg:grid-cols-[100px_minmax(0,1fr)_auto] lg:items-start">
+        {/* 1. Date Widget Box */}
+        <div className="flex shrink-0 flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white text-center shadow-sm">
+          <div className="bg-[#0863c5] py-1 text-[10px] font-black uppercase tracking-wider text-white">
+            Tháng {dateParts?.[2] ?? "--"}
+          </div>
+          <div className="bg-gradient-to-b from-white to-slate-50/80 px-3 py-2">
+            <strong className="block text-3xl font-black leading-tight tracking-tight text-slate-900">
+              {dateParts?.[1] ?? "--"}
+            </strong>
+            <span className="block text-[11px] font-semibold text-slate-400">
+              {dateParts?.[3] ?? "----"}
+            </span>
+          </div>
         </div>
 
-        <div className="min-w-0 space-y-3">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-            <div className="flex min-w-0 gap-3">
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-blue-50 text-xs font-bold text-[#0058bc]">
+        {/* 2. Main Content & Details */}
+        <div className="min-w-0 space-y-4">
+          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3.5 min-w-0">
+              {/* Doctor Avatar */}
+              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-[#0863c5] to-sky-600 text-sm font-black text-white shadow-md shadow-blue-500/20">
                 {appointment.initials}
-              </span>
+              </div>
               <div className="min-w-0">
-                <h3 className="truncate text-[15px] font-bold text-slate-900">
+                <h3 className="truncate text-base font-extrabold text-slate-900 group-hover:text-[#0863c5] transition-colors">
                   {appointment.doctor}
                 </h3>
-                <p className={`mt-1 line-clamp-2 ${T.body}`}>
-                  {appointment.service}
-                </p>
+                <div className="mt-0.5 flex items-center gap-2">
+                  <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-xs font-semibold text-[#0863c5] border border-blue-100/80">
+                    {appointment.service}
+                  </span>
+                </div>
               </div>
             </div>
 
+            {/* Status Pill */}
             <span
-              className={`w-fit rounded-full border px-2.5 py-1 text-[10px] font-bold ${status.className}`}
+              className={`inline-flex w-fit items-center rounded-full border px-3 py-1 text-xs font-bold ${status.className}`}
             >
+              <span className={`mr-1.5 h-2 w-2 rounded-full ${status.dotColor} ${appointment.status === 'pending' ? 'animate-pulse' : ''}`} />
               {status.label}
             </span>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <div className="inline-flex items-center gap-2 rounded-xl bg-blue-50 px-3 py-2 text-sm font-semibold text-slate-700">
-              <DashboardIcon name="clock" className="h-4 w-4 text-[#0058bc]" />
-              {appointment.time}
+          {/* Time & Note Pills */}
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <div className="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-3 py-1.5 text-xs font-bold text-white shadow-sm">
+              <DashboardIcon name="clock" className="h-3.5 w-3.5 text-sky-400" />
+              <span>{appointment.time}</span>
             </div>
-            <div className="inline-flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
-              <DashboardIcon name="document" className="h-4 w-4 text-slate-400" />
-              {notes.length ? `${notes.length} ghi chú` : "Không có ghi chú"}
+            <div className="inline-flex items-center gap-1.5 rounded-xl bg-slate-100/90 border border-slate-200/60 px-3 py-1.5 text-xs font-semibold text-slate-600">
+              <DashboardIcon name="document" className="h-3.5 w-3.5 text-slate-400" />
+              <span>{notes.length ? `${notes.length} ghi chú` : "Không có ghi chú"}</span>
             </div>
           </div>
 
+          {/* Pre-appointment Checklist Box */}
           {notes.length ? (
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <p className={`flex items-center gap-2 ${T.overline} text-[#0058bc]`}>
-                <DashboardIcon name="document" className="h-4 w-4" />
+            <div className="rounded-xl border border-blue-100 bg-gradient-to-r from-blue-50/70 via-sky-50/40 to-blue-50/20 p-3.5 shadow-2xs">
+              <p className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-[#0863c5]">
+                <svg className="h-3.5 w-3.5 text-[#0863c5]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
                 Chuẩn bị trước khám
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {notes.map((item) => (
                   <span
                     key={item}
-                    className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] text-slate-600"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-blue-200/60 bg-white px-3 py-1 text-xs font-medium text-slate-700 shadow-2xs"
                   >
-                    <span className="text-slate-300">•</span>
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#0863c5]" />
                     {item}
                   </span>
                 ))}
@@ -125,16 +147,20 @@ export function AppointmentRecordCard({
           ) : null}
         </div>
 
-        <div className="flex flex-wrap gap-2 lg:justify-end">
+        {/* 3. Action Buttons */}
+        <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap lg:justify-end">
           <button
-            className="grid h-10 w-10 place-items-center rounded-xl bg-blue-50 text-[#0058bc]"
+            type="button"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-blue-50 text-[#0863c5] border border-blue-100 transition-all duration-200 hover:bg-[#0863c5] hover:text-white hover:shadow-md hover:shadow-blue-500/20"
             aria-label="Thêm vào lịch"
+            title="Thêm vào lịch cá nhân"
           >
             <DashboardIcon name="calendar" className="h-4 w-4" />
           </button>
           <button
+            type="button"
             onClick={onReschedule}
-            className="rounded-xl border border-[#0058bc]/20 bg-white px-4 py-2.5 text-xs font-bold text-[#0058bc] transition hover:border-[#0058bc] hover:bg-blue-50"
+            className="inline-flex h-10 items-center justify-center rounded-xl border border-blue-200 bg-white px-4 text-xs font-extrabold text-[#0863c5] transition-all duration-200 hover:border-[#0863c5] hover:bg-blue-50 hover:shadow-xs"
           >
             Đổi lịch
           </button>
@@ -143,7 +169,7 @@ export function AppointmentRecordCard({
               type="button"
               onClick={onCancel}
               disabled={isCancelling}
-              className="rounded-xl bg-rose-50 px-4 py-2.5 text-xs font-bold text-rose-600 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-10 items-center justify-center rounded-xl border border-rose-100 bg-rose-50 px-4 text-xs font-extrabold text-rose-600 transition-all duration-200 hover:border-rose-200 hover:bg-rose-600 hover:text-white hover:shadow-xs disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isCancelling ? "Đang hủy..." : "Hủy"}
             </button>

@@ -170,12 +170,14 @@ export class AppointmentController {
   @Get('booking-options')
   getBookingOptions(
     @Query('serviceId') serviceId?: string,
+    @Query('treatmentMethodId') treatmentMethodId?: string,
     @Query('doctorId') doctorId?: string,
     @Query('date') date?: string,
     @Query('time') time?: string,
   ) {
     return this.appointmentService.getBookingOptions({
       serviceId,
+      treatmentMethodId,
       doctorId,
       date,
       time,

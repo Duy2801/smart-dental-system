@@ -129,8 +129,6 @@ export class ServiceService {
         description: cleanOptionalText(dto.description),
         detailSummary: cleanOptionalText(dto.detailSummary),
         thumbnailUrl: cleanOptionalText(dto.thumbnailUrl),
-        durationMinutes: dto.durationMinutes,
-        basePrice: dto.basePrice,
         highlights: cleanHighlights(dto.highlights),
         suitableFor: cleanTextList(dto.suitableFor),
         includedItems: cleanTextList(dto.includedItems),
@@ -222,8 +220,6 @@ export class ServiceService {
             dto.thumbnailUrl === undefined
               ? undefined
               : cleanOptionalText(dto.thumbnailUrl),
-          durationMinutes: dto.durationMinutes,
-          basePrice: dto.basePrice,
           highlights:
             dto.highlights === undefined
               ? undefined

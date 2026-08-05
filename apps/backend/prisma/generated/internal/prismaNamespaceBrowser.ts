@@ -58,6 +58,8 @@ export const ModelName = {
   UserRole: 'UserRole',
   RolePermission: 'RolePermission',
   Service: 'Service',
+  Specialization: 'Specialization',
+  DoctorSpecialization: 'DoctorSpecialization',
   TreatmentMethod: 'TreatmentMethod',
   ServiceMedia: 'ServiceMedia',
   ServiceProcedureStep: 'ServiceProcedureStep',
@@ -201,11 +203,34 @@ export const ServiceScalarFieldEnum = {
   depositRequired: 'depositRequired',
   depositCalculationMode: 'depositCalculationMode',
   depositValue: 'depositValue',
+  specializationId: 'specializationId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
 export type ServiceScalarFieldEnum = (typeof ServiceScalarFieldEnum)[keyof typeof ServiceScalarFieldEnum]
+
+
+export const SpecializationScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  code: 'code',
+  description: 'description',
+  isActive: 'isActive',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SpecializationScalarFieldEnum = (typeof SpecializationScalarFieldEnum)[keyof typeof SpecializationScalarFieldEnum]
+
+
+export const DoctorSpecializationScalarFieldEnum = {
+  doctorId: 'doctorId',
+  specializationId: 'specializationId',
+  createdAt: 'createdAt'
+} as const
+
+export type DoctorSpecializationScalarFieldEnum = (typeof DoctorSpecializationScalarFieldEnum)[keyof typeof DoctorSpecializationScalarFieldEnum]
 
 
 export const TreatmentMethodScalarFieldEnum = {

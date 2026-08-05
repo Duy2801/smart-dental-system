@@ -16,6 +16,20 @@ export function useAppointmentWorkspaceView({
   query,
   statusFilter,
 }: UseAppointmentWorkspaceViewParams) {
+  const filteredUpcoming = useMemo(
+    () =>
+      upcoming
+        .filter(
+          (item) => statusFilter === "all" || item.status === statusFilter,
+        )
+        .filter((item) =>
+          `${item.doctor} ${item.service}`
+            .toLowerCase()
+            .includes(query.toLowerCase()),
+        ),
+    [upcoming, query, statusFilter],
+  );
+
   const history = useMemo(
     () =>
       historyItems
@@ -45,6 +59,7 @@ export function useAppointmentWorkspaceView({
   );
 
   return {
+    filteredUpcoming,
     history,
     current,
   };

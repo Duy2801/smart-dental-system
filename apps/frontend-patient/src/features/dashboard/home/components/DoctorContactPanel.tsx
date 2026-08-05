@@ -3,9 +3,14 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { DashboardIcon } from "../../common/DashboardIcon";
-import type { DoctorProfile } from "../doctorProfiles";
 import { ROUTES } from "../../common/routes";
 import { T } from "../../common/typography";
+
+export type DoctorProfile = {
+  name: string;
+  initials: string;
+  slots: string[];
+};
 
 export function DoctorContactPanel({ doctor }: { doctor: DoctorProfile }) {
   const [slot, setSlot] = useState(doctor.slots[0]);

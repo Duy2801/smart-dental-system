@@ -43,7 +43,7 @@ export class ReviewService {
       include: {
         patient: { include: { user: true } },
         doctor: { include: { user: true } },
-        appointment: { include: { service: true } },
+        appointment: { include: { treatmentMethod: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -51,7 +51,7 @@ export class ReviewService {
     return reviews.map((review) => ({
       id: review.id,
       patient_name: review.patient.user.fullName,
-      doctor_name: `${review.doctor.user.fullName} (${review.appointment.service.name})`,
+      doctor_name: `${review.doctor.user.fullName} (${review.appointment?.treatmentMethod?.name ?? 'Dich vu'})`,
       rating: review.rating,
       comment: review.comment ?? '',
       is_visible: review.isVisible,

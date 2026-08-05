@@ -128,8 +128,7 @@ function PopularMethodCard({
   const methodImage = method.media?.[0];
 
   return (
-    <Link
-      href={methodHref(service, method)}
+    <div
       className="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-lg"
     >
       <div className="relative aspect-[16/10] overflow-hidden bg-slate-100">
@@ -157,16 +156,24 @@ function PopularMethodCard({
           {method.description || service.shortDescription}
         </p>
 
-        <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-4">
-          <span className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-bold text-[#0863c5]">
-            {formatServicePrice(method.basePrice)}
-          </span>
-          <span className="ml-auto rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700">
-            {method.bookingCount ?? 0} lượt đặt
-          </span>
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-4">
+          <div>
+            <p className="text-xs font-bold text-[#0863c5]">
+              {formatServicePrice(method.basePrice)}
+            </p>
+            <span className="text-[10px] text-slate-400">
+              {method.bookingCount ?? 0} lượt đặt
+            </span>
+          </div>
+          <Link
+            href={buildRoute.appointmentBooking(service.id, method.id)}
+            className="rounded-xl bg-[#0863c5] px-3.5 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#0756aa]"
+          >
+            Đặt lịch
+          </Link>
         </div>
       </div>
-    </Link>
+    </div>
   );
 }
 
@@ -180,10 +187,7 @@ function MethodCard({
   const methodImage = method.media?.[0];
 
   return (
-    <Link
-      href={methodHref(service, method)}
-      className="group grid h-full overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-lg sm:grid-cols-[180px_1fr]"
-    >
+    <div className="group grid h-full overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-lg sm:grid-cols-[180px_1fr]">
       <div className="relative min-h-[180px] overflow-hidden bg-slate-100">
         {methodImage?.url ? (
           <img
@@ -209,22 +213,34 @@ function MethodCard({
           {method.description || service.shortDescription}
         </p>
 
-        <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-4">
-          <span className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-bold text-[#0863c5]">
-            {formatServicePrice(method.basePrice)}
-          </span>
-          {method.durationMinutes ? (
-            <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600">
-              {method.durationMinutes} phút
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-4">
+          <div className="flex items-center gap-2">
+            <span className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-bold text-[#0863c5]">
+              {formatServicePrice(method.basePrice)}
             </span>
-          ) : null}
-          <span className="ml-auto inline-flex items-center gap-1.5 text-xs font-bold text-[#0863c5]">
-            Chi tiết
-            <DashboardIcon name="arrow" className="h-3.5 w-3.5" />
-          </span>
+            {method.durationMinutes ? (
+              <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600">
+                {method.durationMinutes} phút
+              </span>
+            ) : null}
+          </div>
+          <div className="flex items-center gap-2">
+            <Link
+              href={methodHref(service, method)}
+              className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:bg-slate-50"
+            >
+              Chi tiết
+            </Link>
+            <Link
+              href={buildRoute.appointmentBooking(service.id, method.id)}
+              className="rounded-lg bg-[#0863c5] px-3.5 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#0756aa]"
+            >
+              Đặt lịch
+            </Link>
+          </div>
         </div>
       </div>
-    </Link>
+    </div>
   );
 }
 

@@ -167,7 +167,7 @@ function PatientDetailContent() {
       email: draft.email.trim() || null,
       address: draft.address.trim() || null,
       dateOfBirth: draft.dateOfBirth || null,
-      gender: draft.gender || undefined,
+      gender: draft.gender || null,
       medicalHistory: draft.medicalHistory.trim() || null,
       allergies,
       emergencyContactName: draft.emergencyContactName.trim() || null,

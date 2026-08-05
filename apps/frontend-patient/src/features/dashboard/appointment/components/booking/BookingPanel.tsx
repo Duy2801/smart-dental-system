@@ -21,10 +21,12 @@ type BookingPanelProps = {
   blockedRanges?: string[];
   slotIntervalMinutes: number;
   selectedServiceId: string;
+  selectedMethodId: string;
   selectedDoctorId: string;
   selectedDateId: string;
   selectedTime: string;
   selectedService?: AppointmentService;
+  selectedTreatmentMethod?: import("../../types").TreatmentMethodItem;
   selectedDoctor?: Dentist;
   selectedDate?: BookingDate;
   selectedPaymentOption: AppointmentPaymentOption;
@@ -32,6 +34,7 @@ type BookingPanelProps = {
   isSubmitting?: boolean;
   isCheckingAvailability?: boolean;
   onSelectService: (id: string) => void;
+  onSelectMethod: (id: string) => void;
   onSelectDoctor: (id: string) => void;
   onSelectDate: (id: string) => void;
   onSelectTime: (time: string) => void;
@@ -64,6 +67,7 @@ export function BookingPanel(props: BookingPanelProps) {
     Boolean(props.isCheckingAvailability);
   const canReview =
     Boolean(props.selectedService) &&
+    Boolean(props.selectedTreatmentMethod) &&
     Boolean(props.selectedDoctor) &&
     Boolean(props.selectedDate) &&
     Boolean(props.selectedTime) &&
@@ -92,16 +96,18 @@ export function BookingPanel(props: BookingPanelProps) {
     <>
       <div className="space-y-8">
         <section>
-          <StepTitle number={1}>Chon dich vu</StepTitle>
+          <StepTitle number={1}>Chọn dịch vụ & phương pháp điều trị</StepTitle>
           <ServiceSelector
             services={props.services}
-            selectedId={props.selectedServiceId}
-            onSelect={props.onSelectService}
+            selectedServiceId={props.selectedServiceId}
+            selectedMethodId={props.selectedMethodId}
+            onSelectService={props.onSelectService}
+            onSelectMethod={props.onSelectMethod}
           />
         </section>
 
         <section>
-          <StepTitle number={2}>Chon ngay va gio kham</StepTitle>
+          <StepTitle number={2}>Chọn ngày và giờ khám</StepTitle>
           <SchedulePicker
             dates={props.dates}
             times={props.times}
@@ -116,39 +122,12 @@ export function BookingPanel(props: BookingPanelProps) {
         </section>
 
         <section>
-          <StepTitle number={3}>Chon bac si</StepTitle>
+          <StepTitle number={3}>Chọn bác sĩ</StepTitle>
           <DoctorSelector
             doctors={props.doctors}
             selectedId={props.selectedDoctorId}
             onSelect={props.onSelectDoctor}
           />
-        </section>
-
-        <section>
-          <StepTitle number={4}>Chon cach giu lich</StepTitle>
-          <div className="grid gap-3 md:grid-cols-2">
-            <PaymentOptionCard
-              title="Coc truoc"
-              description="Giu lich ngay. He thong se tao hoa don coc theo cau hinh phong kham."
-              selected={props.selectedPaymentOption === "DEPOSIT_30_PERCENT"}
-              onClick={() => props.onSelectPaymentOption("DEPOSIT_30_PERCENT")}
-            />
-            <PaymentOptionCard
-              title="Thanh toan tai quay"
-              description="Gui yeu cau dat lich truoc, thanh toan khi ban den kham."
-              selected={props.selectedPaymentOption === "PAY_AT_COUNTER"}
-              onClick={() => props.onSelectPaymentOption("PAY_AT_COUNTER")}
-            />
-          </div>
-          <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50/70 p-4">
-            <p className="text-sm font-bold text-[#0a5fbe]">
-              Phi coc duoc tinh theo cau hinh phong kham
-            </p>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              Neu chon coc truoc, he thong se tao hoa don loai <strong>DEPOSIT</strong>.
-              Neu chon thanh toan tai quay, lich van duoc gui va ban thanh toan luc den kham.
-            </p>
-          </div>
         </section>
 
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
@@ -163,11 +142,7 @@ export function BookingPanel(props: BookingPanelProps) {
           <button
             type="button"
             disabled={!canReview}
-            onClick={() => {
-              props.onOpenReview();
-              setReviewAccepted(false);
-              setReviewOpen(true);
-            }}
+            onClick={props.onOpenReview}
             className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#0863c5] px-6 text-sm font-bold text-white transition hover:bg-[#0753a8] disabled:cursor-not-allowed disabled:bg-slate-300 sm:w-auto"
           >
             {props.isCheckingAvailability ? (
@@ -176,7 +151,7 @@ export function BookingPanel(props: BookingPanelProps) {
                 Mở màn hình xác nhận...
               </>
             ) : (
-              "Xem lại & Xác nhận"
+              "Tiếp tục đến bước Xác nhận →"
             )}
           </button>
         </div>
@@ -188,16 +163,16 @@ export function BookingPanel(props: BookingPanelProps) {
           onClick={() => setReviewOpen(false)}
         >
           <div
-            className="mx-auto my-6 w-full max-w-4xl overflow-hidden rounded-[32px] bg-white shadow-2xl transition-all"
+            className="mx-auto my-6 w-full max-w-5xl overflow-hidden rounded-[32px] bg-white shadow-2xl transition-all"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5 sm:px-7">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#0863c5]">
-                  Xac nhan dat lich
-                </p>
+                {/* <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#0863c5]">
+                  Xác nhận đặt lịch
+                </p> */}
                 <h3 className="mt-1 text-2xl font-bold text-slate-900">
-                  Xem lai thong tin va hoan tat
+                  Xem lại thông tin và hoàn tất
                 </h3>
               </div>
               <button
@@ -235,16 +210,16 @@ export function BookingPanel(props: BookingPanelProps) {
               </div>
             ) : (
               <>
-                <div className="grid gap-6 p-6 sm:p-7 lg:grid-cols-[1fr_340px]">
-                  <section className="space-y-6">
+                <div className="grid gap-6 p-6 sm:p-7 lg:grid-cols-[minmax(0,1fr)_340px]">
+                  <section className="min-w-0 space-y-6">
                     <article className="rounded-[28px] bg-gradient-to-br from-[#0863c5] to-[#05468c] p-6 text-white shadow-lg shadow-blue-100">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-xs font-bold uppercase tracking-[0.16em] text-white/70">
-                            Thong tin tong quan
+                            Thông tin dịch vụ đã chọn
                           </p>
                           <h4 className="mt-1 text-2xl font-bold text-white">
-                            {props.selectedService?.name ?? "Lịch hẹn khám"}
+                            {props.selectedTreatmentMethod?.name ?? props.selectedService?.name ?? "Lịch hẹn khám"}
                           </h4>
                         </div>
                         <span className="grid h-14 w-14 place-items-center rounded-2xl bg-white/14 text-white">
@@ -254,11 +229,11 @@ export function BookingPanel(props: BookingPanelProps) {
                       <div className="mt-6 grid gap-3 rounded-[22px] border border-white/15 bg-white/10 p-4 backdrop-blur">
                         <SummaryLine
                           icon="appointment"
-                          label="Dich vu"
-                          value={props.selectedService?.name ?? "Chưa chọn"}
+                          label="Loại dịch vụ & Phương pháp"
+                          value={`${props.selectedService?.name ?? "Chưa chọn"} - ${props.selectedTreatmentMethod?.name ?? ""}`}
                           detail={
-                            props.selectedService
-                              ? `${props.selectedService.price} d`
+                            props.selectedTreatmentMethod
+                              ? `${props.selectedTreatmentMethod.price} đ (${props.selectedTreatmentMethod.durationMinutes} phút)`
                               : ""
                           }
                           inverse
@@ -313,7 +288,7 @@ export function BookingPanel(props: BookingPanelProps) {
                     </div>
                   </section>
 
-                  <aside className="space-y-5">
+                  <aside className="min-w-0 space-y-5">
                     <section className="rounded-[28px] border border-slate-200 bg-slate-50/70 p-5">
                       <div className="flex items-center justify-between gap-3">
                         <div>
@@ -429,11 +404,10 @@ function PaymentOptionCard({
       type="button"
       onClick={onClick}
       aria-pressed={selected}
-      className={`rounded-2xl border p-4 text-left transition ${
-        selected
-          ? "border-[#0863c5] bg-blue-50/70 ring-2 ring-blue-100"
-          : "border-slate-200 bg-white hover:border-blue-200 hover:bg-blue-50/40"
-      }`}
+      className={`rounded-2xl border p-4 text-left transition ${selected
+        ? "border-[#0863c5] bg-blue-50/70 ring-2 ring-blue-100"
+        : "border-slate-200 bg-white hover:border-blue-200 hover:bg-blue-50/40"
+        }`}
     >
       <div className="flex items-start justify-between gap-3">
         <div>
@@ -441,9 +415,8 @@ function PaymentOptionCard({
           <p className="mt-2 text-sm leading-6 text-slate-500">{description}</p>
         </div>
         <span
-          className={`grid h-5 w-5 place-items-center rounded-full border-2 ${
-            selected ? "border-[#0863c5]" : "border-slate-300"
-          }`}
+          className={`grid h-5 w-5 place-items-center rounded-full border-2 ${selected ? "border-[#0863c5]" : "border-slate-300"
+            }`}
         >
           {selected ? <span className="h-2.5 w-2.5 rounded-full bg-[#0863c5]" /> : null}
         </span>
@@ -472,17 +445,22 @@ function ReviewCard({
   value: string;
   detail: string;
 }) {
+  const isLongText = value.length > 12;
+
   return (
     <article className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,.04)]">
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0 flex-1">
           <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
             {label}
           </p>
-          <p className="mt-3 text-[28px] font-bold leading-none text-slate-900">
+          <p
+            className={`mt-2 font-bold leading-snug text-slate-900 break-words ${isLongText ? "text-base" : "text-2xl"
+              }`}
+          >
             {value}
           </p>
-          <p className="mt-3 text-sm leading-6 text-slate-500">{detail}</p>
+          <p className="mt-2 text-xs leading-5 text-slate-500">{detail}</p>
         </div>
         <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-blue-50 text-[#0863c5]">
           <DashboardIcon name={icon} className="h-5 w-5" />
@@ -522,32 +500,28 @@ function SummaryLine({
   return (
     <div className="flex items-start gap-3">
       <span
-        className={`grid h-10 w-10 shrink-0 place-items-center rounded-2xl ${
-          inverse ? "bg-white/14 text-white" : "bg-blue-50 text-[#0863c5]"
-        }`}
+        className={`grid h-10 w-10 shrink-0 place-items-center rounded-2xl ${inverse ? "bg-white/14 text-white" : "bg-blue-50 text-[#0863c5]"
+          }`}
       >
         <DashboardIcon name={icon} className="h-5 w-5" />
       </span>
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         <p
-          className={`text-[11px] font-bold uppercase tracking-[0.14em] ${
-            inverse ? "text-white/70" : "text-slate-400"
-          }`}
+          className={`text-[11px] font-bold uppercase tracking-[0.14em] ${inverse ? "text-white/70" : "text-slate-400"
+            }`}
         >
           {label}
         </p>
         <p
-          className={`mt-1 truncate text-base font-bold ${
-            inverse ? "text-white" : "text-slate-900"
-          }`}
+          className={`mt-1 text-base font-bold leading-snug break-words ${inverse ? "text-white" : "text-slate-900"
+            }`}
         >
           {value}
         </p>
         {detail ? (
           <p
-            className={`mt-1 text-sm ${
-              inverse ? "text-white/80" : "text-slate-500"
-            }`}
+            className={`mt-1 text-sm break-words ${inverse ? "text-white/80" : "text-slate-500"
+              }`}
           >
             {detail}
           </p>

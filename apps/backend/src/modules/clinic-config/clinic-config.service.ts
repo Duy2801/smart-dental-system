@@ -97,7 +97,67 @@ export class ClinicConfigService {
       String(next.bookingDepositValue ?? 30),
     );
 
+    if (dto.businessHours) {
+      try {
+        await this.syncDoctorWeeklyAvailability(next.businessHours);
+      } catch (err) {
+        console.error('Error syncing doctor weekly availability:', err);
+      }
+    }
+
     return next;
+  }
+
+  private async syncDoctorWeeklyAvailability(businessHours: BusinessHourDto[]) {
+    const doctors = await this.prisma.doctor.findMany({
+      where: { isActive: true },
+      select: { id: true },
+    });
+
+    if (doctors.length === 0) return;
+
+    for (const bh of businessHours) {
+      if (bh.isOpen) {
+        for (const doctor of doctors) {
+          const existing = await this.prisma.doctorAvailability.findFirst({
+            where: {
+              doctorId: doctor.id,
+              recordType: 'WEEKLY',
+              dayOfWeek: bh.id,
+            },
+          });
+
+          if (existing) {
+            await this.prisma.doctorAvailability.update({
+              where: { id: existing.id },
+              data: {
+                startTime: bh.start,
+                endTime: bh.end,
+                isActive: true,
+              },
+            });
+          } else {
+            await this.prisma.doctorAvailability.create({
+              data: {
+                doctorId: doctor.id,
+                recordType: 'WEEKLY',
+                dayOfWeek: bh.id,
+                startTime: bh.start,
+                endTime: bh.end,
+                isActive: true,
+              },
+            });
+          }
+        }
+      } else {
+        await this.prisma.doctorAvailability.deleteMany({
+          where: {
+            recordType: 'WEEKLY',
+            dayOfWeek: bh.id,
+          },
+        });
+      }
+    }
   }
 
   async getConfiguredBusinessHours() {
@@ -267,17 +327,18 @@ export class ClinicConfigService {
     return dayId === 0 ? 7 : dayId;
   }
 
-  private upsertConfig(configKey: string, configValue: string) {
+  private upsertConfig(configKey: string, configValue?: string | null) {
+    const value = configValue ?? '';
     return this.prisma.clinicConfig.upsert({
       where: { configKey },
       update: {
-        configValue,
+        configValue: value,
         configType: 'CLINIC_PROFILE',
       },
       create: {
         configType: 'CLINIC_PROFILE',
         configKey,
-        configValue,
+        configValue: value,
       },
     });
   }

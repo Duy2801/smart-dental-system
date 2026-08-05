@@ -11,8 +11,6 @@ type ServiceDto = {
   description?: string | null;
   detailSummary?: string | null;
   thumbnailUrl?: string | null;
-  durationMinutes: number;
-  basePrice: string | number;
   displayOrder?: number;
   isActive: boolean;
   isFeatured: boolean;
@@ -33,8 +31,7 @@ type ServiceListDto = {
   data: ServiceDto[];
 };
 
-const FALLBACK_IMAGE =
-  "https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=1200&q=85";
+
 
 export function formatServicePrice(value: string | number) {
   return `${new Intl.NumberFormat("vi-VN").format(Number(value ?? 0))} đ`;
@@ -49,11 +46,21 @@ function mapService(item: ServiceDto): DentalService {
   const aggregatedSteps = item.procedureSteps ?? treatmentMethods.flatMap((m) => m.procedureSteps ?? []);
   const aggregatedFaqs = item.faqs ?? treatmentMethods.flatMap((m) => m.faqs ?? []);
 
-  const image = item.thumbnailUrl || aggregatedMedia?.[0]?.url || FALLBACK_IMAGE;
+  const image = item.thumbnailUrl || aggregatedMedia?.[0]?.url;
   const description =
     item.description ||
     item.shortDescription ||
     "Dịch vụ nha khoa chuyên nghiệp, được cá nhân hóa theo tình trạng răng miệng của bạn.";
+
+  const prices = treatmentMethods
+    .map((m) => Number(m.basePrice ?? 0))
+    .filter((p) => p > 0);
+  const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
+
+  const durations = treatmentMethods
+    .map((m) => Number(m.durationMinutes ?? 0))
+    .filter((d) => d > 0);
+  const minDuration = durations.length > 0 ? Math.min(...durations) : 30;
 
   return {
     id: item.id,
@@ -65,9 +72,9 @@ function mapService(item: ServiceDto): DentalService {
     shortDescription: item.shortDescription || description,
     detailSummary: item.detailSummary ?? null,
     category: item.category,
-    price: formatServicePrice(item.basePrice),
-    priceValue: Number(item.basePrice ?? 0),
-    durationMinutes: item.durationMinutes,
+    price: minPrice > 0 ? `Từ ${formatServicePrice(minPrice)}` : "Liên hệ",
+    priceValue: minPrice,
+    durationMinutes: minDuration,
     displayOrder: item.displayOrder,
     image,
     imageAlt: aggregatedMedia?.[0]?.alt || item.name,

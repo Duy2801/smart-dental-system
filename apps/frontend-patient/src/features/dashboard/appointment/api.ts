@@ -8,16 +8,25 @@ import type {
   Dentist,
 } from "./types";
 
+type TreatmentMethodDto = {
+  id: string;
+  serviceId: string;
+  name: string;
+  slug?: string | null;
+  description?: string | null;
+  basePrice: string | number;
+  durationMinutes?: number | null;
+};
+
 type ServiceDto = {
   id: string;
   category: string;
   name: string;
-  durationMinutes?: number;
   slug?: string | null;
   shortDescription?: string | null;
   description?: string | null;
-  basePrice?: string | number;
   icon?: string | null;
+  treatmentMethods?: TreatmentMethodDto[];
 };
 
 type DoctorDto = {
@@ -41,6 +50,7 @@ type BookingOptionsDto = {
 
 export type BookingOptionsQuery = {
   serviceId?: string;
+  treatmentMethodId?: string;
   doctorId?: string;
   date?: string;
   time?: string;
@@ -94,7 +104,7 @@ type AppointmentDto = {
 
 type CreateAppointmentPayload = {
   doctorId: string;
-  serviceId: string;
+  treatmentMethodId: string;
   scheduledAt: string;
   notes?: string;
   paymentOption?: AppointmentPaymentOption;
@@ -157,6 +167,8 @@ function normalizeStatus(status: string): AppointmentStatus {
 
 function mapAppointment(item: AppointmentDto): AppointmentItem {
   const scheduledAt = new Date(item.scheduledAt);
+  const doctorName = item.doctor?.user?.fullName ?? "Bác sĩ phòng khám";
+  const serviceName = item.service?.name ?? "Dịch vụ nha khoa";
 
   return {
     id: item.id,
@@ -164,12 +176,12 @@ function mapAppointment(item: AppointmentDto): AppointmentItem {
     serviceId: item.serviceId,
     scheduledAt: item.scheduledAt,
     endAt: item.endAt,
-    durationMinutes: item.service.durationMinutes ?? 30,
+    durationMinutes: item.service?.durationMinutes ?? 30,
     dateId: new Intl.DateTimeFormat("en-CA", {
       timeZone: "Asia/Ho_Chi_Minh",
     }).format(scheduledAt),
-    doctor: item.doctor.user.fullName,
-    service: item.service.name,
+    doctor: doctorName,
+    service: serviceName,
     date: new Intl.DateTimeFormat("vi-VN", {
       weekday: "long",
       day: "2-digit",
@@ -180,8 +192,8 @@ function mapAppointment(item: AppointmentDto): AppointmentItem {
       hour: "2-digit",
       minute: "2-digit",
     }).format(scheduledAt),
-    status: normalizeStatus(item.status),
-    initials: getInitials(item.doctor.user.fullName),
+    status: normalizeStatus(item.status ?? "PENDING"),
+    initials: getInitials(doctorName),
     rescheduleCount: Array.isArray(item.rescheduleHistory)
       ? item.rescheduleHistory.length
       : 0,
@@ -192,18 +204,31 @@ function mapAppointment(item: AppointmentDto): AppointmentItem {
   };
 }
 
+function mapTreatmentMethod(item: TreatmentMethodDto) {
+  const rawPrice = Number(item.basePrice ?? 0);
+  return {
+    id: item.id,
+    serviceId: item.serviceId,
+    name: item.name,
+    description: item.description || "",
+    price: new Intl.NumberFormat("vi-VN").format(rawPrice),
+    rawPrice,
+    durationMinutes: item.durationMinutes ?? 30,
+  };
+}
+
 function mapService(item: ServiceDto): AppointmentService {
   return {
     id: item.id,
     name: item.name,
+    category: item.category,
     description:
       item.shortDescription ||
       item.description ||
       "Dịch vụ nha khoa chuyên nghiệp.",
     icon: item.icon ?? "shield",
-    price: new Intl.NumberFormat("vi-VN").format(Number(item.basePrice ?? 0)),
-    durationMinutes: item.durationMinutes ?? 30,
     href: `/service/${item.id}`,
+    treatmentMethods: (item.treatmentMethods ?? []).map(mapTreatmentMethod),
   };
 }
 

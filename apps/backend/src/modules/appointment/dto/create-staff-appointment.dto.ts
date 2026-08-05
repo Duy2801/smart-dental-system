@@ -20,7 +20,7 @@ export class CreateStaffAppointmentDto {
 
   @ApiProperty()
   @IsUUID()
-  serviceId: string;
+  treatmentMethodId: string;
 
   @ApiProperty()
   @IsDateString()

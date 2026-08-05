@@ -297,6 +297,43 @@ const doctorSpecializations = [
   'Phẫu thuật miệng',
 ];
 
+const specializationsData = [
+  { code: 'IMPLANT', name: 'Cấy ghép Implant và Phục hình', description: 'Chuyên khoa cấy ghép trụ Implant và phục hình răng đã mất' },
+  { code: 'ORTHODONTICS', name: 'Chỉnh nha', description: 'Chuyên khoa nắn chỉnh răng lệch lạc, niềng răng mắc cài và khay niềng trong suốt' },
+  { code: 'COSMETIC', name: 'Nha khoa Thẩm mỹ', description: 'Chuyên khoa dán sứ Veneer, thiết kế nụ cười và cải thiện màu sắc răng' },
+  { code: 'GENERAL', name: 'Điều trị Tổng quát', description: 'Chuyên khoa khám tổng quát, cạo vôi răng, trám răng sâu' },
+  { code: 'PERIODONTICS', name: 'Nha chu', description: 'Chuyên khoa điều trị bệnh lý về nướu và mô quanh răng' },
+  { code: 'ENDODONTICS', name: 'Nội nha', description: 'Chuyên khoa điều trị tủy răng và bảo tồn răng thật' },
+  { code: 'PEDIATRIC', name: 'Răng trẻ em', description: 'Chuyên khoa chăm sóc và điều trị nha khoa cho trẻ em' },
+  { code: 'PROSTHODONTICS', name: 'Phục hình sứ', description: 'Chuyên khoa bọc răng sứ, cầu răng sứ và phục hình hàm' },
+  { code: 'ORAL_SURGERY', name: 'Phẫu thuật miệng', description: 'Chuyên khoa nhổ răng khôn, tiểu phẫu xương hàm và mô mềm' },
+  { code: 'WHITENING', name: 'Tẩy trắng và chăm sóc nụ cười', description: 'Chuyên khoa tẩy trắng răng và duy trì sức khỏe men răng' },
+];
+
+const doctorSpecializationCodesMap: Record<number, string[]> = {
+  0: ['IMPLANT', 'ORAL_SURGERY'],
+  1: ['ORTHODONTICS', 'COSMETIC'],
+  2: ['COSMETIC', 'PROSTHODONTICS'],
+  3: ['GENERAL', 'ENDODONTICS'],
+  4: ['PERIODONTICS', 'GENERAL'],
+  5: ['ENDODONTICS', 'GENERAL'],
+  6: ['PEDIATRIC', 'GENERAL'],
+  7: ['PROSTHODONTICS', 'IMPLANT'],
+  8: ['WHITENING', 'COSMETIC'],
+  9: ['ORAL_SURGERY', 'IMPLANT'],
+};
+
+const serviceToSpecializationCodeMap: Record<string, string> = {
+  'trong-rang-implant': 'IMPLANT',
+  'boc-rang-su': 'PROSTHODONTICS',
+  'dan-su-veneer': 'COSMETIC',
+  'nieng-rang': 'ORTHODONTICS',
+  'nieng-rang-mac-cai': 'ORTHODONTICS',
+  'nho-rang-khon': 'ORAL_SURGERY',
+  'nha-khoa-tong-quat': 'GENERAL',
+  'nha-khoa-tre-em': 'PEDIATRIC',
+};
+
 const doctorPositions = [
   'Giám đốc chuyên môn',
   'Trưởng khoa Chỉnh nha',
@@ -1164,6 +1201,17 @@ async function seedBaseData() {
     createdRoles.set(code, role);
   }
 
+  const createdSpecializations = new Map<string, { id: string }>();
+  for (const spec of specializationsData) {
+    const item = await prisma.specialization.upsert({
+      where: { code: spec.code },
+      update: { name: spec.name, description: spec.description, isActive: true },
+      create: { code: spec.code, name: spec.name, description: spec.description, isActive: true },
+      select: { id: true },
+    });
+    createdSpecializations.set(spec.code, item);
+  }
+
   const createdPermissions: Array<{ id: string; code: string }> = [];
   for (const [code, name, module, action] of permissions) {
     createdPermissions.push(
@@ -1415,6 +1463,23 @@ async function seedBaseData() {
       })),
     });
 
+    const doctorIndex = doctorSeeds.indexOf(doctorSeed);
+    const specCodes = doctorSpecializationCodesMap[doctorIndex] || ['GENERAL'];
+    await prisma.doctorSpecialization.deleteMany({
+      where: { doctorId: doctor.id },
+    });
+    for (const specCode of specCodes) {
+      const spec = createdSpecializations.get(specCode);
+      if (spec) {
+        await prisma.doctorSpecialization.create({
+          data: {
+            doctorId: doctor.id,
+            specializationId: spec.id,
+          },
+        });
+      }
+    }
+
     doctors.push(doctor);
   }
 
@@ -1443,10 +1508,15 @@ async function seedBaseData() {
 
     if (!obsoleteService) continue;
 
-    await prisma.appointment.updateMany({
+    const obsoleteMethods = await prisma.treatmentMethod.findMany({
       where: { serviceId: obsoleteService.id },
-      data: { serviceId: fallbackId, treatmentMethodId: null },
+      select: { id: true },
     });
+    if (obsoleteMethods.length > 0) {
+      await prisma.appointment.deleteMany({
+        where: { treatmentMethodId: { in: obsoleteMethods.map((m) => m.id) } },
+      });
+    }
     await prisma.clinicalCase.updateMany({
       where: { serviceId: obsoleteService.id },
       data: { serviceId: fallbackId },
@@ -1465,7 +1535,6 @@ async function seedBaseData() {
     id: string;
     name: string;
     slug: string | null;
-    basePrice: { toString(): string };
   }> = [];
   for (const serviceSeed of services) {
     const existingService = await prisma.service.findFirst({
@@ -1475,6 +1544,9 @@ async function seedBaseData() {
       select: { id: true },
     });
 
+    const specCode = serviceToSpecializationCodeMap[serviceSeed.slug];
+    const specId = specCode ? createdSpecializations.get(specCode)?.id ?? null : null;
+
     const serviceData = {
       category: serviceSeed.category,
       name: serviceSeed.name,
@@ -1483,10 +1555,9 @@ async function seedBaseData() {
       shortDescription: serviceSeed.shortDescription,
       description: serviceSeed.description,
       thumbnailUrl: serviceSeed.thumbnailUrl,
-      durationMinutes: serviceSeed.durationMinutes,
-      basePrice: serviceSeed.basePrice,
       isFeatured: serviceSeed.isFeatured,
       displayOrder: serviceSeed.displayOrder,
+      specializationId: specId,
       isActive: true,
     };
 
@@ -1494,19 +1565,18 @@ async function seedBaseData() {
       id: string;
       name: string;
       slug: string | null;
-      basePrice: { toString(): string };
     };
 
     if (existingService) {
       service = await prisma.service.update({
         where: { id: existingService.id },
         data: serviceData,
-        select: { id: true, name: true, slug: true, basePrice: true },
+        select: { id: true, name: true, slug: true },
       });
     } else {
       service = await prisma.service.create({
         data: serviceData,
-        select: { id: true, name: true, slug: true, basePrice: true },
+        select: { id: true, name: true, slug: true },
       });
     }
 
@@ -1636,10 +1706,13 @@ async function seedRelatedData(
   );
   const seededTreatmentMethods = await prisma.treatmentMethod.findMany({
     where: { serviceId: { in: context.services.map((service) => service.id) } },
-    select: { id: true, slug: true, serviceId: true },
+    select: { id: true, name: true, slug: true, serviceId: true, basePrice: true },
   });
   const treatmentMethodsBySlug = Object.fromEntries(
     seededTreatmentMethods.map((method) => [method.slug, method]),
+  );
+  const treatmentMethodsById = Object.fromEntries(
+    seededTreatmentMethods.map((method) => [method.id, method]),
   );
 
   for (let index = 0; index < 10; index += 1) {
@@ -1682,7 +1755,7 @@ async function seedRelatedData(
     id: string;
     patientId: string | null;
     doctorId: string;
-    serviceId: string;
+    treatmentMethodId: string | null;
     scheduledAt: Date;
   }> = [];
 
@@ -1711,7 +1784,6 @@ async function seedRelatedData(
   for (let index = 0; index < receptionistAppointments.length; index += 1) {
     const row = receptionistAppointments[index];
     const scheduledAt = atLocalDay(row.day, row.hour, row.minute);
-    const service = servicesBySlug[row.serviceSlug];
     const treatmentMethod = treatmentMethodsBySlug[row.methodSlug];
     const appointmentStatus = row.status;
 
@@ -1721,7 +1793,7 @@ async function seedRelatedData(
           appointmentCode: `APT-SEED-${String(index + 1).padStart(3, '0')}`,
           patientId: context.patients[row.patient].id,
           doctorId: context.doctors[row.doctor % context.doctors.length].id,
-          serviceId: service.id,
+          serviceId: treatmentMethod?.serviceId ?? context.services[0].id,
           treatmentMethodId: treatmentMethod?.id ?? null,
           scheduledAt,
           endAt: new Date(scheduledAt.getTime() + 45 * 60 * 1000),
@@ -1753,7 +1825,7 @@ async function seedRelatedData(
           id: true,
           patientId: true,
           doctorId: true,
-          serviceId: true,
+          treatmentMethodId: true,
           scheduledAt: true,
         },
       }),
@@ -1797,7 +1869,7 @@ async function seedRelatedData(
             {
               service: service.name,
               tooth: `${11 + index}`,
-              estimatedCost: service.basePrice.toString(),
+              estimatedCost: '1000000',
             },
           ],
         },
@@ -1909,12 +1981,18 @@ async function seedRelatedData(
   ];
 
   for (let index = 0; index < clinicalCaseTitles.length; index += 1) {
+    const appointment = appointments[index];
+    const method = appointment.treatmentMethodId
+      ? treatmentMethodsById[appointment.treatmentMethodId]
+      : null;
+    const serviceId = method?.serviceId ?? context.services[0].id;
+
     await prisma.clinicalCase.create({
       data: {
-        patientId: appointments[index].patientId!,
-        doctorId: appointments[index].doctorId,
-        serviceId: appointments[index].serviceId,
-        appointmentId: appointments[index].id,
+        patientId: appointment.patientId!,
+        doctorId: appointment.doctorId,
+        serviceId,
+        appointmentId: appointment.id,
         medicalRecordId: medicalRecords[index].id,
         treatmentPlanId: treatmentPlans[index].id,
         title: clinicalCaseTitles[index],
@@ -1946,8 +2024,10 @@ async function seedRelatedData(
   ] as const;
   for (let index = 0; index < 10; index += 1) {
     const appointment = appointments[index];
-    const service = servicesById[appointment.serviceId];
-    const subtotal = Number(service.basePrice.toString());
+    const method = appointment.treatmentMethodId
+      ? treatmentMethodsById[appointment.treatmentMethodId]
+      : null;
+    const subtotal = method ? Number(method.basePrice.toString()) : 1000000;
     const discountAmount = index % 2 === 0 ? Math.round(subtotal * 0.05) : 0;
     const status = invoiceStatuses[index];
     invoices.push(
@@ -1962,9 +2042,10 @@ async function seedRelatedData(
               : null,
           items: [
             {
-              serviceId: service.id,
-              name: service.name,
-              description: service.name,
+              serviceId: method?.serviceId ?? context.services[0].id,
+              treatmentMethodId: method?.id ?? null,
+              name: method?.name ?? 'Dịch vụ',
+              description: method?.name ?? 'Dịch vụ',
               quantity: 1,
               qty: 1,
               unitPrice: subtotal,

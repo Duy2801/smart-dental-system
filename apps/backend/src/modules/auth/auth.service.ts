@@ -176,7 +176,12 @@ export class AuthService {
                 id: true,
                 scheduledAt: true,
                 status: true,
-                service: { select: { name: true } },
+                treatmentMethod: {
+                  select: {
+                    name: true,
+                    service: { select: { name: true } },
+                  },
+                },
                 doctor: {
                   select: {
                     user: { select: { fullName: true } },
@@ -220,7 +225,10 @@ export class AuthService {
             id: lastAppointment.id,
             scheduledAt: lastAppointment.scheduledAt,
             status: lastAppointment.status,
-            serviceName: lastAppointment.service.name,
+            serviceName:
+              lastAppointment.treatmentMethod?.service?.name ??
+              lastAppointment.treatmentMethod?.name ??
+              'Dịch vụ',
             doctorName: lastAppointment.doctor.user.fullName,
           }
         : null,

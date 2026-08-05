@@ -1,13 +1,23 @@
 import type { DashboardIconName } from "../common/DashboardIcon";
 
+export type TreatmentMethodItem = {
+  id: string;
+  serviceId: string;
+  name: string;
+  description?: string;
+  price: string;
+  rawPrice: number;
+  durationMinutes: number;
+};
+
 export type AppointmentService = {
   id: string;
   name: string;
+  category?: string;
   description: string;
   icon: string;
-  price: string;
-  durationMinutes: number;
   href: string;
+  treatmentMethods: TreatmentMethodItem[];
 };
 
 export type Dentist = {

@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { CreateDoctorDto } from './dto/create-doctor-dto';
@@ -18,8 +19,11 @@ export class DoctorController {
   constructor(private readonly doctorService: DoctorService) {}
 
   @Get()
-  findAll() {
-    return this.doctorService.getAllDoctors();
+  findAll(
+    @Query('serviceId') serviceId?: string,
+    @Query('specializationId') specializationId?: string,
+  ) {
+    return this.doctorService.getAllDoctors(serviceId, specializationId);
   }
 
   @Get(':id')
