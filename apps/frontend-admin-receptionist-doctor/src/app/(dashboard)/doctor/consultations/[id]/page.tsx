@@ -16,6 +16,7 @@ import {
   Warning,
   CheckCircle,
   XCircle,
+  Sparkle,
 } from "@phosphor-icons/react";
 import { ROUTES } from "@/src/constants/routes";
 import apiClient from "@/src/lib/api/client";
@@ -132,6 +133,13 @@ export default function ConsultationRoomPage() {
   const [callStartedAt, setCallStartedAt] = useState<number | null>(null);
   const [tick, setTick] = useState(0);
   const [pinCopied, setPinCopied] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiSummary, setAiSummary] = useState<{
+    bulletPoints: string[];
+    questionsToAsk: string[];
+    riskFlags: string[];
+    disclaimer: string;
+  } | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -157,7 +165,10 @@ export default function ConsultationRoomPage() {
   };
 
   useEffect(() => {
-    if (id) load();
+    if (id) {
+      setAiSummary(null);
+      load();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -167,10 +178,32 @@ export default function ConsultationRoomPage() {
     return () => clearInterval(t);
   }, [inCall]);
 
-  const summary = useMemo(
+  const localSummary = useMemo(
     () => buildSummary(detail?.chatbotSessions ?? []),
     [detail],
   );
+
+  const handleAiSummarize = async () => {
+    setAiLoading(true);
+    try {
+      const res = await apiClient.post<{
+        bulletPoints: string[];
+        questionsToAsk: string[];
+        riskFlags: string[];
+        disclaimer: string;
+      }>("/ai/doctor/summarize-patient", { consultationId: id });
+      setAiSummary({
+        bulletPoints: res.data.bulletPoints ?? [],
+        questionsToAsk: res.data.questionsToAsk ?? [],
+        riskFlags: res.data.riskFlags ?? [],
+        disclaimer: res.data.disclaimer,
+      });
+    } catch (err) {
+      alert(apiErrorMessage(err, "Không tạo được tóm tắt AI."));
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const handleStart = async () => {
     if (!detail) return;
@@ -491,11 +524,25 @@ export default function ConsultationRoomPage() {
           {sideTab === "chatbot" ? (
             <div className="flex flex-1 flex-col overflow-hidden">
               <div className="border-b border-border bg-brand-light/40 px-4 py-3">
-                <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-brand-dark/70">
-                  Tóm tắt trước khi gọi
-                </p>
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-brand-dark/70">
+                    Tóm tắt trước khi gọi
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleAiSummarize}
+                    disabled={aiLoading}
+                    className="inline-flex items-center gap-1 rounded-md bg-brand px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-brand-dark disabled:opacity-60"
+                  >
+                    <Sparkle size={12} weight="fill" />
+                    {aiLoading ? "Đang tạo…" : "Tóm tắt AI"}
+                  </button>
+                </div>
                 <ul className="space-y-1.5">
-                  {summary.map((line, i) => (
+                  {(aiSummary?.bulletPoints?.length
+                    ? aiSummary.bulletPoints
+                    : localSummary
+                  ).map((line, i) => (
                     <li
                       key={i}
                       className="flex gap-2 text-sm leading-snug text-brand-dark"
@@ -505,6 +552,35 @@ export default function ConsultationRoomPage() {
                     </li>
                   ))}
                 </ul>
+                {aiSummary?.questionsToAsk?.length ? (
+                  <div className="mt-3 space-y-1.5 border-t border-brand/20 pt-3">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-brand-dark/70">
+                      Câu hỏi nên hỏi thêm
+                    </p>
+                    {aiSummary.questionsToAsk.map((q, i) => (
+                      <p key={i} className="text-sm text-brand-dark">
+                        · {q}
+                      </p>
+                    ))}
+                  </div>
+                ) : null}
+                {aiSummary?.riskFlags?.length ? (
+                  <div className="mt-3 space-y-1.5 border-t border-amber-200/80 pt-3">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-amber-800/80">
+                      Cờ lưu ý
+                    </p>
+                    {aiSummary.riskFlags.map((f, i) => (
+                      <p key={i} className="text-sm text-amber-900">
+                        · {f}
+                      </p>
+                    ))}
+                  </div>
+                ) : null}
+                {aiSummary?.disclaimer ? (
+                  <p className="mt-3 text-[10px] leading-relaxed text-muted-foreground">
+                    {aiSummary.disclaimer}
+                  </p>
+                ) : null}
               </div>
 
               <div className="flex-1 space-y-5 overflow-y-auto p-4">

@@ -6,7 +6,9 @@ class Settings(BaseSettings):
 
     ai_service_name: str = "smart-dental-ai"
     ai_service_port: int = 8000
-    llm_provider: str = "openai"
+    llm_provider: str = "groq"
+    groq_api_key: str = ""
+    groq_model: str = "llama-3.3-70b-versatile"
     openai_api_key: str = ""
     openai_model: str = "gpt-4o-mini"
     gemini_api_key: str = ""

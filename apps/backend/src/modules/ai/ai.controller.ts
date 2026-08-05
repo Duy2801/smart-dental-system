@@ -1,0 +1,35 @@
+import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { CurrentUser } from 'src/common/decorators/curent-user.decorator';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/common/guards/roles.guard';
+import type { AuthenticatedUser } from 'src/common/interfaces/authenticated-user.interface';
+import { AiService } from './ai.service';
+import { DraftMedicalRecordDto } from './dto/draft-medical-record.dto';
+import { SummarizePatientDto } from './dto/summarize-patient.dto';
+
+@ApiTags('AI Doctor Assist')
+@ApiBearerAuth()
+@Controller(['ai/doctor', 'admin/ai/doctor'])
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('DOCTOR', 'ADMIN')
+export class AiController {
+  constructor(private readonly aiService: AiService) {}
+
+  @Post('summarize-patient')
+  summarizePatient(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: SummarizePatientDto,
+  ) {
+    return this.aiService.summarizePatient(user, dto);
+  }
+
+  @Post('draft-medical-record')
+  draftMedicalRecord(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: DraftMedicalRecordDto,
+  ) {
+    return this.aiService.draftMedicalRecord(user, dto);
+  }
+}
