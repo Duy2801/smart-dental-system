@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseUUIDPipe,
   Patch,
   Query,
   UseGuards,
@@ -13,6 +14,7 @@ import { Roles } from 'src/common/decorators/roles.decorator';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import type { AuthenticatedUser } from 'src/common/interfaces/authenticated-user.interface';
+import { UpdateVideoConsultationNotesDto } from './dto/update-video-consultation-notes.dto';
 import { VideoConsultationService } from './video-consultation.service';
 
 @ApiTags('Video Consultation')
@@ -35,7 +37,7 @@ export class VideoConsultationController {
   @Roles('DOCTOR', 'ADMIN', 'PATIENT')
   @UseGuards(JwtAuthGuard, RolesGuard)
   findOne(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.service.findOne(id, user);
@@ -45,7 +47,7 @@ export class VideoConsultationController {
   @Roles('DOCTOR', 'ADMIN')
   @UseGuards(JwtAuthGuard, RolesGuard)
   start(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.service.start(id, user);
@@ -55,19 +57,29 @@ export class VideoConsultationController {
   @Roles('DOCTOR', 'ADMIN')
   @UseGuards(JwtAuthGuard, RolesGuard)
   complete(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.service.complete(id, user);
+  }
+
+  @Patch(':id/cancel')
+  @Roles('DOCTOR', 'ADMIN')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  cancel(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.service.cancel(id, user);
   }
 
   @Patch(':id/notes')
   @Roles('DOCTOR', 'ADMIN')
   @UseGuards(JwtAuthGuard, RolesGuard)
   updateNotes(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: AuthenticatedUser,
-    @Body() body: { notes?: string | null },
+    @Body() body: UpdateVideoConsultationNotesDto,
   ) {
     return this.service.updateNotes(id, user, body.notes ?? null);
   }

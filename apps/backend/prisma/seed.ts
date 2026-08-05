@@ -1827,7 +1827,16 @@ async function seedRelatedData(
               },
             ],
           },
-          images: [],
+          images:
+            index === 0
+              ? [
+                  {
+                    url: 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1785763846/smart-dental/promotions/banner-dieu-tri-tuy.png',
+                    caption: 'Seed X-quang mẫu',
+                    type: 'xray',
+                  },
+                ]
+              : [],
           prescriptions: [
             {
               name: 'Paracetamol',
@@ -2035,6 +2044,120 @@ async function seedRelatedData(
     });
   }
 
+  const aiDemoChatSessions: { role: string; content: string }[][] = [
+    [
+      {
+        role: 'patient',
+        content:
+          'Em bị ê răng số 6 khi uống nước lạnh, đau khoảng 3 ngày, đau tăng về đêm.',
+      },
+      {
+        role: 'assistant',
+        content:
+          'Triệu chứng có thể liên quan tủy răng hoặc men răng mòn. Nên đặt lịch khám sớm.',
+      },
+      {
+        role: 'patient',
+        content: 'Em dị ứng penicillin, có uống thuốc giảm đau được không?',
+      },
+    ],
+    [
+      {
+        role: 'patient',
+        content: 'Răng khôn hàm dưới sưng nướu, há miệng hơi khó, không sốt.',
+      },
+      {
+        role: 'assistant',
+        content:
+          'Có thể do viêm quanh răng khôn. Cần bác sĩ chụp phim và đánh giá có nên nhổ không.',
+      },
+    ],
+    [
+      {
+        role: 'patient',
+        content: 'Muốn tư vấn bọc sứ răng cửa, răng hơi vàng và thưa nhẹ.',
+      },
+      {
+        role: 'assistant',
+        content:
+          'Bạn có thể đặt lịch tư vấn trực tuyến để bác sĩ xem ảnh và gợi ý phương án.',
+      },
+    ],
+    [
+      {
+        role: 'patient',
+        content: 'Con 8 tuổi sốt nhẹ, sưng má, phải nói là đau răng hàm trên.',
+      },
+      {
+        role: 'assistant',
+        content:
+          'Trẻ có thể bị sâu răng/viêm tủy. Nên khám sớm, tránh lan nhiễm.',
+      },
+    ],
+    [
+      {
+        role: 'patient',
+        content: 'Sau khi nhổ răng 2 ngày vẫn chảy máu nhẹ và đau dữ dội.',
+      },
+      {
+        role: 'assistant',
+        content:
+          'Cần bác sĩ kiểm tra ngay — có thể khô xương hoặc nhiễm trùng sau nhổ.',
+      },
+    ],
+    [
+      {
+        role: 'patient',
+        content: 'Niềng răng 6 tháng, dây cung hay tuột, có cần tái khám sớm?',
+      },
+      {
+        role: 'assistant',
+        content: 'Nên hẹn lại để chỉnh cung, tránh kéo dài thời gian điều trị.',
+      },
+    ],
+    [
+      {
+        role: 'patient',
+        content: 'Hơi thở hôi, hay bị chảy máu chân răng khi đánh răng.',
+      },
+      {
+        role: 'assistant',
+        content: 'Có thể viêm nướu — nên cạo vôi và khám nha chu.',
+      },
+    ],
+    [
+      {
+        role: 'patient',
+        content: 'Răng sứ cũ bị vỡ mép, muốn tư vấn thay mới.',
+      },
+      {
+        role: 'assistant',
+        content: 'Bác sĩ sẽ kiểm tra chân răng và gợi ý bọc sứ/veneer phù hợp.',
+      },
+    ],
+    [
+      {
+        role: 'patient',
+        content: 'Đau hàm khi nhai, nghe tiếng lục cục khớp thái dương hàm.',
+      },
+      {
+        role: 'assistant',
+        content: 'Có thể rối loạn khớp thái dương hàm — cần khám chuyên sâu.',
+      },
+    ],
+    [
+      {
+        role: 'patient',
+        content: 'Muốn tẩy trắng răng nhưng răng nhạy cảm, có an toàn không?',
+      },
+      {
+        role: 'assistant',
+        content:
+          'Tùy tình trạng men răng; bác sĩ sẽ đánh giá trước khi làm.',
+      },
+    ],
+  ];
+
   for (let index = 0; index < 10; index += 1) {
     const isClosed = index % 3 === 0;
     await prisma.chatbotConversation.create({
@@ -2042,37 +2165,144 @@ async function seedRelatedData(
         sessionId: `seed-session-${String(index + 1).padStart(3, '0')}`,
         patientId: context.patients[index].id,
         status: isClosed ? 'CLOSED' : index % 3 === 1 ? 'ACTIVE' : 'ESCALATED',
-        messages: [
-          { role: 'patient', content: 'I need advice about tooth pain.' },
-          {
-            role: 'assistant',
-            content: 'Please book a checkup if pain persists.',
-          },
-        ],
+        messages: aiDemoChatSessions[index] ?? aiDemoChatSessions[0],
         startedAt: addDays(-index),
         endedAt: isClosed ? addDays(-index + 1) : null,
       },
     });
   }
 
-  for (let index = 0; index < 10; index += 1) {
+  /** Buổi tư vấn video — ưu tiên doctor@ (index 0) có nhiều ca hôm nay để test AI */
+  const videoConsultSeeds: Array<{
+    patientIdx: number;
+    doctorIdx: number;
+    dayOffset: number;
+    hour: number;
+    minute: number;
+    status: 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+    paid: boolean;
+    duration: number;
+  }> = [
+    {
+      patientIdx: 0,
+      doctorIdx: 0,
+      dayOffset: 0,
+      hour: 9,
+      minute: 0,
+      status: 'SCHEDULED',
+      paid: true,
+      duration: 20,
+    },
+    {
+      patientIdx: 1,
+      doctorIdx: 0,
+      dayOffset: 0,
+      hour: 14,
+      minute: 0,
+      status: 'IN_PROGRESS',
+      paid: true,
+      duration: 25,
+    },
+    {
+      patientIdx: 2,
+      doctorIdx: 0,
+      dayOffset: 1,
+      hour: 10,
+      minute: 30,
+      status: 'SCHEDULED',
+      paid: false,
+      duration: 20,
+    },
+    {
+      patientIdx: 3,
+      doctorIdx: 0,
+      dayOffset: -2,
+      hour: 11,
+      minute: 0,
+      status: 'COMPLETED',
+      paid: true,
+      duration: 30,
+    },
+    {
+      patientIdx: 4,
+      doctorIdx: 0,
+      dayOffset: 2,
+      hour: 15,
+      minute: 0,
+      status: 'CANCELLED',
+      paid: false,
+      duration: 20,
+    },
+    {
+      patientIdx: 5,
+      doctorIdx: 1,
+      dayOffset: 0,
+      hour: 8,
+      minute: 30,
+      status: 'SCHEDULED',
+      paid: true,
+      duration: 20,
+    },
+    {
+      patientIdx: 6,
+      doctorIdx: 2,
+      dayOffset: 1,
+      hour: 9,
+      minute: 0,
+      status: 'SCHEDULED',
+      paid: true,
+      duration: 25,
+    },
+    {
+      patientIdx: 7,
+      doctorIdx: 3,
+      dayOffset: 3,
+      hour: 16,
+      minute: 0,
+      status: 'SCHEDULED',
+      paid: false,
+      duration: 20,
+    },
+    {
+      patientIdx: 8,
+      doctorIdx: 4,
+      dayOffset: -1,
+      hour: 13,
+      minute: 0,
+      status: 'COMPLETED',
+      paid: true,
+      duration: 25,
+    },
+    {
+      patientIdx: 9,
+      doctorIdx: 5,
+      dayOffset: 4,
+      hour: 10,
+      minute: 0,
+      status: 'SCHEDULED',
+      paid: true,
+      duration: 20,
+    },
+  ];
+
+  for (let index = 0; index < videoConsultSeeds.length; index += 1) {
+    const row = videoConsultSeeds[index];
+    const scheduledAt = atLocalDay(row.dayOffset, row.hour, row.minute);
+    const inProgress = row.status === 'IN_PROGRESS';
     await prisma.videoConsultation.create({
       data: {
-        patientId: context.patients[index].id,
-        doctorId: context.doctors[index].id,
-        scheduledAt: addDays(index + 3),
-        durationMinutes: 20 + index * 5,
-        status:
-          index % 4 === 0
-            ? 'SCHEDULED'
-            : index % 4 === 1
-              ? 'IN_PROGRESS'
-              : index % 4 === 2
-                ? 'COMPLETED'
-                : 'CANCELLED',
-        meetingUrl: `https://meet.smartdental.test/seed-${index + 1}`,
+        patientId: context.patients[row.patientIdx].id,
+        doctorId: context.doctors[row.doctorIdx].id,
+        scheduledAt,
+        durationMinutes: row.duration,
+        status: row.status,
+        meetingUrl: inProgress
+          ? `https://meet.jit.si/SmartDentalSeed${index + 1}#sdsPin=${String(100000 + index).slice(-6)}`
+          : row.status === 'COMPLETED' || row.status === 'CANCELLED'
+            ? null
+            : null,
         fee: String(200000 + index * 50000),
-        isPaid: index % 2 === 0,
+        isPaid: row.paid,
         notes: `Seed video consultation ${index + 1}`,
       },
     });

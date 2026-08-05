@@ -3,19 +3,20 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import axios from "axios";
 import {
   ArrowLeft,
   ChatCircleDots,
+  Copy,
   FloppyDisk,
-  Microphone,
-  MicrophoneSlash,
   PhoneDisconnect,
   SpinnerGap,
   User,
   VideoCamera,
-  VideoCameraSlash,
   Warning,
   CheckCircle,
+  XCircle,
+  Sparkle,
 } from "@phosphor-icons/react";
 import { ROUTES } from "@/src/constants/routes";
 import apiClient from "@/src/lib/api/client";
@@ -52,6 +53,8 @@ type ConsultationDetail = {
 };
 
 type SideTab = "chatbot" | "patient";
+
+const NOTES_MAX = 10000;
 
 const STATUS_CFG: Record<ConsultStatus, { label: string; color: string }> = {
   SCHEDULED: {
@@ -104,6 +107,14 @@ function elapsedLabel(startedAt: number | null) {
   return `${m}:${s}`;
 }
 
+function apiErrorMessage(err: unknown, fallback: string) {
+  if (!axios.isAxiosError(err)) return fallback;
+  const raw = err.response?.data?.message;
+  if (Array.isArray(raw) && typeof raw[0] === "string") return raw[0];
+  if (typeof raw === "string" && raw.trim()) return raw;
+  return fallback;
+}
+
 export default function ConsultationRoomPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -114,14 +125,21 @@ export default function ConsultationRoomPage() {
   const [error, setError] = useState<string | null>(null);
   const [sideTab, setSideTab] = useState<SideTab>("chatbot");
   const [notes, setNotes] = useState("");
+  const [notesError, setNotesError] = useState<string | null>(null);
   const [savingNotes, setSavingNotes] = useState(false);
   const [notesSaved, setNotesSaved] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [inCall, setInCall] = useState(false);
-  const [micOn, setMicOn] = useState(true);
-  const [camOn, setCamOn] = useState(true);
   const [callStartedAt, setCallStartedAt] = useState<number | null>(null);
   const [tick, setTick] = useState(0);
+  const [pinCopied, setPinCopied] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiSummary, setAiSummary] = useState<{
+    bulletPoints: string[];
+    questionsToAsk: string[];
+    riskFlags: string[];
+    disclaimer: string;
+  } | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -135,16 +153,22 @@ export default function ConsultationRoomPage() {
       if (res.data.status === "IN_PROGRESS" && res.data.meetingUrl) {
         setInCall(true);
         setCallStartedAt((prev) => prev ?? Date.now());
+      } else {
+        setInCall(false);
+        setCallStartedAt(null);
       }
-    } catch {
-      setError("Không thể tải buổi tư vấn.");
+    } catch (err) {
+      setError(apiErrorMessage(err, "Không thể tải buổi tư vấn."));
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (id) load();
+    if (id) {
+      setAiSummary(null);
+      load();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -154,12 +178,41 @@ export default function ConsultationRoomPage() {
     return () => clearInterval(t);
   }, [inCall]);
 
-  const summary = useMemo(
+  const localSummary = useMemo(
     () => buildSummary(detail?.chatbotSessions ?? []),
     [detail],
   );
 
+  const handleAiSummarize = async () => {
+    setAiLoading(true);
+    try {
+      const res = await apiClient.post<{
+        bulletPoints: string[];
+        questionsToAsk: string[];
+        riskFlags: string[];
+        disclaimer: string;
+      }>("/ai/doctor/summarize-patient", { consultationId: id });
+      setAiSummary({
+        bulletPoints: res.data.bulletPoints ?? [],
+        questionsToAsk: res.data.questionsToAsk ?? [],
+        riskFlags: res.data.riskFlags ?? [],
+        disclaimer: res.data.disclaimer,
+      });
+    } catch (err) {
+      alert(apiErrorMessage(err, "Không tạo được tóm tắt AI."));
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   const handleStart = async () => {
+    if (!detail) return;
+    if (!detail.isPaid) {
+      const ok = confirm(
+        "Buổi tư vấn chưa thanh toán. Bạn vẫn muốn bắt đầu?",
+      );
+      if (!ok) return;
+    }
     setActionLoading(true);
     try {
       const res = await apiClient.patch<
@@ -177,40 +230,73 @@ export default function ConsultationRoomPage() {
       );
       setInCall(true);
       setCallStartedAt(Date.now());
-    } catch {
-      alert("Không thể bắt đầu tư vấn. Vui lòng thử lại.");
+    } catch (err) {
+      alert(apiErrorMessage(err, "Không thể bắt đầu tư vấn. Vui lòng thử lại."));
     } finally {
       setActionLoading(false);
     }
   };
 
   const handleComplete = async () => {
+    if (!confirm("Kết thúc buổi tư vấn? Link phòng sẽ hết hạn ngay.")) return;
     setActionLoading(true);
     try {
       await apiClient.patch(`/video-consultations/${id}/complete`);
       setInCall(false);
       setCallStartedAt(null);
       await load();
-    } catch {
-      alert("Không thể kết thúc tư vấn. Vui lòng thử lại.");
+    } catch (err) {
+      alert(apiErrorMessage(err, "Không thể kết thúc tư vấn. Vui lòng thử lại."));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!confirm("Hủy buổi tư vấn này? Thao tác không hoàn tác được.")) return;
+    setActionLoading(true);
+    try {
+      await apiClient.patch(`/video-consultations/${id}/cancel`);
+      setInCall(false);
+      setCallStartedAt(null);
+      await load();
+    } catch (err) {
+      alert(apiErrorMessage(err, "Không thể hủy buổi tư vấn."));
     } finally {
       setActionLoading(false);
     }
   };
 
   const handleSaveNotes = async () => {
+    if (notes.length > NOTES_MAX) {
+      setNotesError(`Ghi chú tối đa ${NOTES_MAX.toLocaleString("vi-VN")} ký tự.`);
+      return;
+    }
+    setNotesError(null);
     setSavingNotes(true);
     setNotesSaved(false);
     try {
       await apiClient.patch(`/video-consultations/${id}/notes`, {
-        notes: notes || null,
+        notes: notes.trim() || null,
       });
+      setNotes(notes.trim());
       setNotesSaved(true);
       setTimeout(() => setNotesSaved(false), 2500);
-    } catch {
-      alert("Lưu ghi chú thất bại.");
+    } catch (err) {
+      alert(apiErrorMessage(err, "Lưu ghi chú thất bại."));
     } finally {
       setSavingNotes(false);
+    }
+  };
+
+  const handleCopyPin = async () => {
+    if (!detail?.roomPin) return;
+    try {
+      await navigator.clipboard.writeText(detail.roomPin);
+      setPinCopied(true);
+      setTimeout(() => setPinCopied(false), 2000);
+    } catch {
+      alert(`Mã PIN: ${detail.roomPin}`);
     }
   };
 
@@ -242,7 +328,14 @@ export default function ConsultationRoomPage() {
 
   const cfg = STATUS_CFG[detail.status];
   const canStart =
+    detail.status === "SCHEDULED" ||
+    (detail.status === "IN_PROGRESS" && !detail.meetingUrl);
+  const canCancel =
     detail.status === "SCHEDULED" || detail.status === "IN_PROGRESS";
+  const notesEditable =
+    detail.status === "SCHEDULED" ||
+    detail.status === "IN_PROGRESS" ||
+    detail.status === "COMPLETED";
   const showCall = inCall && !!detail.meetingUrl;
 
   return (
@@ -273,6 +366,11 @@ export default function ConsultationRoomPage() {
               >
                 {cfg.label}
               </span>
+              {!detail.isPaid && detail.status !== "CANCELLED" ? (
+                <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700">
+                  Chưa thanh toán
+                </span>
+              ) : null}
             </div>
             <p className="text-sm text-muted-foreground">
               {formatWhen(detail.scheduledAt)} · {detail.durationMinutes} phút
@@ -280,20 +378,30 @@ export default function ConsultationRoomPage() {
               <span className="sr-only">{tick}</span>
             </p>
             {showCall && detail.roomPin ? (
-              <p className="text-sm text-brand-dark">
-                Mã PIN phòng:{" "}
-                <span className="font-mono text-base font-bold tracking-widest">
-                  {detail.roomPin}
+              <p className="flex flex-wrap items-center gap-2 text-sm text-brand-dark">
+                <span>
+                  Mã PIN phòng:{" "}
+                  <span className="font-mono text-base font-bold tracking-widest">
+                    {detail.roomPin}
+                  </span>
                 </span>
-                <span className="ml-2 text-xs font-normal text-muted-foreground">
-                  (gửi cho bệnh nhân · chỉ hiện khi đang gọi)
+                <button
+                  type="button"
+                  onClick={handleCopyPin}
+                  className="inline-flex items-center gap-1 rounded-md bg-brand/10 px-2 py-0.5 text-xs font-semibold text-brand hover:bg-brand/15"
+                >
+                  <Copy size={12} />
+                  {pinCopied ? "Đã copy" : "Copy PIN"}
+                </button>
+                <span className="text-xs font-normal text-muted-foreground">
+                  (gửi cho bệnh nhân)
                 </span>
               </p>
             ) : null}
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {canStart && !showCall && detail.status !== "COMPLETED" && (
+            {canStart && (
               <button
                 type="button"
                 onClick={handleStart}
@@ -315,12 +423,22 @@ export default function ConsultationRoomPage() {
                 Kết thúc
               </button>
             )}
+            {canCancel && (
+              <button
+                type="button"
+                onClick={handleCancel}
+                disabled={actionLoading}
+                className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-60"
+              >
+                <XCircle size={16} />
+                Hủy buổi
+              </button>
+            )}
           </div>
         </div>
       </div>
 
       <div className="mx-auto grid w-full max-w-[1400px] flex-1 grid-cols-1 gap-6 p-4 md:p-6 xl:grid-cols-12">
-        {/* Video column */}
         <section className="flex flex-col overflow-hidden rounded-2xl border border-border bg-white shadow-sm xl:col-span-7">
           <div className="relative flex min-h-[320px] flex-1 flex-col bg-[#0b1a33] sm:min-h-[420px]">
             {showCall ? (
@@ -337,62 +455,29 @@ export default function ConsultationRoomPage() {
                 </div>
                 <div className="space-y-1">
                   <p className="text-base font-semibold text-white">
-                    Chuẩn bị phòng tư vấn
+                    {detail.status === "CANCELLED"
+                      ? "Buổi tư vấn đã hủy"
+                      : detail.status === "COMPLETED"
+                        ? "Buổi tư vấn đã kết thúc"
+                        : "Chuẩn bị phòng tư vấn"}
                   </p>
                   <p className="max-w-sm text-sm text-white/65">
                     {detail.status === "COMPLETED"
-                      ? "Buổi tư vấn đã kết thúc. Link phòng đã hết hạn và không thể vào lại."
-                      : "Xem lịch sử Chatbot bên phải trước khi gọi. Khi sẵn sàng, bấm \"Bắt đầu tư vấn\" — hệ thống tạo phòng ngẫu nhiên + mã PIN."}
+                      ? "Link phòng đã hết hạn và không thể vào lại."
+                      : detail.status === "CANCELLED"
+                        ? "Không thể bắt đầu buổi đã hủy."
+                        : 'Xem lịch sử Chatbot bên phải trước khi gọi. Khi sẵn sàng, bấm "Bắt đầu tư vấn" — hệ thống tạo phòng ngẫu nhiên + mã PIN.'}
                   </p>
                 </div>
               </div>
             )}
-
-            {/* Doctor PiP placeholder */}
-            <div className="absolute bottom-4 right-4 flex h-24 w-36 items-center justify-center overflow-hidden rounded-xl border border-white/20 bg-brand-dark/80 text-white shadow-lg backdrop-blur-sm">
-              {camOn ? (
-                <div className="flex flex-col items-center gap-1">
-                  <User size={22} weight="duotone" />
-                  <span className="text-[10px] font-medium text-white/80">Bạn</span>
-                </div>
-              ) : (
-                <VideoCameraSlash size={22} className="text-white/70" />
-              )}
-            </div>
           </div>
 
           {showCall && (
             <div className="flex items-center justify-center gap-3 border-t border-border bg-slate-50/80 px-4 py-3">
-              <button
-                type="button"
-                onClick={() => setMicOn((v) => !v)}
-                className={cn(
-                  "flex h-11 w-11 items-center justify-center rounded-full transition-colors",
-                  micOn
-                    ? "bg-white text-brand-dark ring-1 ring-border hover:bg-muted"
-                    : "bg-red-500 text-white hover:bg-red-600",
-                )}
-                aria-label={micOn ? "Tắt mic" : "Bật mic"}
-              >
-                {micOn ? <Microphone size={18} /> : <MicrophoneSlash size={18} />}
-              </button>
-              <button
-                type="button"
-                onClick={() => setCamOn((v) => !v)}
-                className={cn(
-                  "flex h-11 w-11 items-center justify-center rounded-full transition-colors",
-                  camOn
-                    ? "bg-white text-brand-dark ring-1 ring-border hover:bg-muted"
-                    : "bg-red-500 text-white hover:bg-red-600",
-                )}
-                aria-label={camOn ? "Tắt camera" : "Bật camera"}
-              >
-                {camOn ? (
-                  <VideoCamera size={18} />
-                ) : (
-                  <VideoCameraSlash size={18} />
-                )}
-              </button>
+              <p className="text-xs text-muted-foreground">
+                Mic/camera điều khiển trong cửa sổ Jitsi
+              </p>
               <button
                 type="button"
                 onClick={handleComplete}
@@ -406,7 +491,6 @@ export default function ConsultationRoomPage() {
           )}
         </section>
 
-        {/* Context column */}
         <section className="flex min-h-[420px] flex-col overflow-hidden rounded-2xl border border-border bg-white shadow-sm xl:col-span-5">
           <div className="flex border-b border-border bg-slate-50/60 p-1.5">
             <button
@@ -440,11 +524,25 @@ export default function ConsultationRoomPage() {
           {sideTab === "chatbot" ? (
             <div className="flex flex-1 flex-col overflow-hidden">
               <div className="border-b border-border bg-brand-light/40 px-4 py-3">
-                <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-brand-dark/70">
-                  Tóm tắt trước khi gọi
-                </p>
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-brand-dark/70">
+                    Tóm tắt trước khi gọi
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleAiSummarize}
+                    disabled={aiLoading}
+                    className="inline-flex items-center gap-1 rounded-md bg-brand px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-brand-dark disabled:opacity-60"
+                  >
+                    <Sparkle size={12} weight="fill" />
+                    {aiLoading ? "Đang tạo…" : "Tóm tắt AI"}
+                  </button>
+                </div>
                 <ul className="space-y-1.5">
-                  {summary.map((line, i) => (
+                  {(aiSummary?.bulletPoints?.length
+                    ? aiSummary.bulletPoints
+                    : localSummary
+                  ).map((line, i) => (
                     <li
                       key={i}
                       className="flex gap-2 text-sm leading-snug text-brand-dark"
@@ -454,6 +552,35 @@ export default function ConsultationRoomPage() {
                     </li>
                   ))}
                 </ul>
+                {aiSummary?.questionsToAsk?.length ? (
+                  <div className="mt-3 space-y-1.5 border-t border-brand/20 pt-3">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-brand-dark/70">
+                      Câu hỏi nên hỏi thêm
+                    </p>
+                    {aiSummary.questionsToAsk.map((q, i) => (
+                      <p key={i} className="text-sm text-brand-dark">
+                        · {q}
+                      </p>
+                    ))}
+                  </div>
+                ) : null}
+                {aiSummary?.riskFlags?.length ? (
+                  <div className="mt-3 space-y-1.5 border-t border-amber-200/80 pt-3">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-amber-800/80">
+                      Cờ lưu ý
+                    </p>
+                    {aiSummary.riskFlags.map((f, i) => (
+                      <p key={i} className="text-sm text-amber-900">
+                        · {f}
+                      </p>
+                    ))}
+                  </div>
+                ) : null}
+                {aiSummary?.disclaimer ? (
+                  <p className="mt-3 text-[10px] leading-relaxed text-muted-foreground">
+                    {aiSummary.disclaimer}
+                  </p>
+                ) : null}
               </div>
 
               <div className="flex-1 space-y-5 overflow-y-auto p-4">
@@ -504,19 +631,44 @@ export default function ConsultationRoomPage() {
                   label="Tiền sử"
                   value={detail.medicalHistory?.trim() || "Chưa ghi nhận"}
                 />
+                <InfoRow
+                  label="Phí tư vấn"
+                  value={`${detail.fee.toLocaleString("vi-VN")}đ · ${detail.isPaid ? "Đã thanh toán" : "Chưa thanh toán"}`}
+                />
               </div>
 
               <div className="flex flex-1 flex-col gap-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Ghi chú tư vấn
-                </label>
+                <div className="flex items-center justify-between gap-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Ghi chú tư vấn
+                  </label>
+                  <span
+                    className={cn(
+                      "text-[11px] tabular-nums",
+                      notes.length > NOTES_MAX
+                        ? "font-semibold text-red-600"
+                        : "text-muted-foreground",
+                    )}
+                  >
+                    {notes.length.toLocaleString("vi-VN")}/
+                    {NOTES_MAX.toLocaleString("vi-VN")}
+                  </span>
+                </div>
                 <textarea
                   value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
+                  onChange={(e) => {
+                    setNotes(e.target.value);
+                    if (notesError) setNotesError(null);
+                  }}
                   rows={7}
+                  maxLength={NOTES_MAX + 200}
+                  disabled={!notesEditable}
                   placeholder="Ghi nhận triệu chứng, tư vấn đã đưa, hướng xử trí..."
-                  className="w-full flex-1 resize-none rounded-xl border border-border bg-white px-3 py-2.5 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand"
+                  className="w-full flex-1 resize-none rounded-xl border border-border bg-white px-3 py-2.5 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-muted-foreground"
                 />
+                {notesError ? (
+                  <p className="text-xs font-medium text-red-600">{notesError}</p>
+                ) : null}
                 <div className="flex items-center justify-between gap-2 pt-1">
                   {notesSaved ? (
                     <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
@@ -526,15 +678,17 @@ export default function ConsultationRoomPage() {
                   ) : (
                     <span />
                   )}
-                  <button
-                    type="button"
-                    onClick={handleSaveNotes}
-                    disabled={savingNotes}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-dark disabled:opacity-60"
-                  >
-                    <FloppyDisk size={15} />
-                    {savingNotes ? "Đang lưu..." : "Lưu ghi chú"}
-                  </button>
+                  {notesEditable ? (
+                    <button
+                      type="button"
+                      onClick={handleSaveNotes}
+                      disabled={savingNotes || notes.length > NOTES_MAX}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-dark disabled:opacity-60"
+                    >
+                      <FloppyDisk size={15} />
+                      {savingNotes ? "Đang lưu..." : "Lưu ghi chú"}
+                    </button>
+                  ) : null}
                 </div>
               </div>
             </div>
