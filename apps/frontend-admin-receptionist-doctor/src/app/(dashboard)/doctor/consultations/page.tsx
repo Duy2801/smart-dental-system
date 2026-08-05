@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import axios from "axios";
 import {
   MagnifyingGlass,
   SpinnerGap,
@@ -9,6 +10,7 @@ import {
   VideoCamera,
   Clock,
   ArrowRight,
+  XCircle,
 } from "@phosphor-icons/react";
 import { Header } from "@/src/components/layout/header";
 import { ROUTES } from "@/src/constants/routes";
@@ -131,6 +133,14 @@ function primaryAction(item: Consultation) {
   return { label: "Xem lại", href: `${ROUTES.DOCTOR.CONSULTATIONS}/${item.id}` };
 }
 
+function apiErrorMessage(err: unknown, fallback: string) {
+  if (!axios.isAxiosError(err)) return fallback;
+  const raw = err.response?.data?.message;
+  if (Array.isArray(raw) && typeof raw[0] === "string") return raw[0];
+  if (typeof raw === "string" && raw.trim()) return raw;
+  return fallback;
+}
+
 export default function DoctorConsultationsPage() {
   const doctorId = getUserInfo().doctorId;
   const [items, setItems] = useState<Consultation[]>([]);
@@ -140,14 +150,26 @@ export default function DoctorConsultationsPage() {
   );
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterKey>("all");
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
 
-  useEffect(() => {
+  const load = () => {
     if (!doctorId) return;
+    setLoading(true);
     apiClient
       .get<Consultation[]>(`/video-consultations?doctorId=${doctorId}`)
-      .then((res) => setItems(res.data ?? []))
-      .catch(() => setError("Không thể tải danh sách tư vấn trực tuyến."))
+      .then((res) => {
+        setItems(res.data ?? []);
+        setError(null);
+      })
+      .catch((err) =>
+        setError(apiErrorMessage(err, "Không thể tải danh sách tư vấn trực tuyến.")),
+      )
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [doctorId]);
 
   const filtered = useMemo(() => {
@@ -161,6 +183,23 @@ export default function DoctorConsultationsPage() {
       );
     });
   }, [items, filter, search]);
+
+  const handleCancel = async (id: string, patientName: string) => {
+    if (!confirm(`Hủy buổi tư vấn với ${patientName}?`)) return;
+    setCancellingId(id);
+    try {
+      await apiClient.patch(`/video-consultations/${id}/cancel`);
+      setItems((prev) =>
+        prev.map((item) =>
+          item.id === id ? { ...item, status: "CANCELLED" as const } : item,
+        ),
+      );
+    } catch (err) {
+      alert(apiErrorMessage(err, "Không thể hủy buổi tư vấn."));
+    } finally {
+      setCancellingId(null);
+    }
+  };
 
   return (
     <>
@@ -228,6 +267,8 @@ export default function DoctorConsultationsPage() {
               {filtered.map((item) => {
                 const cfg = STATUS_CFG[item.status];
                 const action = primaryAction(item);
+                const canCancel =
+                  item.status === "SCHEDULED" || item.status === "IN_PROGRESS";
                 return (
                   <li
                     key={item.id}
@@ -249,6 +290,11 @@ export default function DoctorConsultationsPage() {
                         >
                           {cfg.label}
                         </span>
+                        {!item.isPaid && item.status !== "CANCELLED" ? (
+                          <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700">
+                            Chưa TT
+                          </span>
+                        ) : null}
                       </div>
 
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
@@ -264,13 +310,26 @@ export default function DoctorConsultationsPage() {
                       </div>
                     </div>
 
-                    <Link
-                      href={action.href}
-                      className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-dark active:scale-[0.98]"
-                    >
-                      {action.label}
-                      <ArrowRight size={14} weight="bold" />
-                    </Link>
+                    <div className="flex shrink-0 flex-wrap items-center gap-2">
+                      {canCancel ? (
+                        <button
+                          type="button"
+                          onClick={() => handleCancel(item.id, item.patientName)}
+                          disabled={cancellingId === item.id}
+                          className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-60"
+                        >
+                          <XCircle size={14} />
+                          {cancellingId === item.id ? "Đang hủy..." : "Hủy"}
+                        </button>
+                      ) : null}
+                      <Link
+                        href={action.href}
+                        className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-dark active:scale-[0.98]"
+                      >
+                        {action.label}
+                        <ArrowRight size={14} weight="bold" />
+                      </Link>
+                    </div>
                   </li>
                 );
               })}
