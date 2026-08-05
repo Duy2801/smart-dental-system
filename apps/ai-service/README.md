@@ -45,6 +45,13 @@ Patient / Doctor UI  →  NestJS (apps/backend)  →  AI Service (apps/ai-servic
 
 NestJS giữ auth, DB, nghiệp vụ. Python chỉ làm inference / sinh text.
 
+## RAG (kiến thức phòng khám)
+
+Trước khi gọi LLM, service tìm đoạn liên quan trong `data/knowledge.jsonl` (bảng giá, FAQ, quy trình, protocol, mẫu HSBA/chat) rồi nhét vào prompt.
+
+- Sửa/bổ sung tri thức: thêm dòng JSON vào `knowledge.jsonl` (mỗi dòng = 1 chunk).
+- Search hiện tại: token-overlap (không cần embedding API). Đổi sang embedding khi KB lớn.
+
 ## NestJS proxy (bác sĩ)
 
 Backend gọi AI qua:
