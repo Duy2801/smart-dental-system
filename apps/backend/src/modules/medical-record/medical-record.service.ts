@@ -119,6 +119,9 @@ export class MedicalRecordService {
     await this.ensureCanAccess(exists.doctorId, user);
 
     const data: Prisma.MedicalRecordUpdateInput = {};
+    if (dto.chiefComplaint !== undefined) {
+      data.chiefComplaint = dto.chiefComplaint?.trim() || null;
+    }
     if (dto.diagnosis !== undefined) {
       data.diagnosis = dto.diagnosis?.trim() || null;
     }
