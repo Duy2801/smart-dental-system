@@ -1,7 +1,7 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { getLiveClinicConfigInfo } from "../home/api";
+import { useClinicConfigQuery } from "../home/hooks/useHomeQueries";
+import type { getLiveClinicConfigInfo } from "../home/api";
 
 function getOpenHoursText(
   hours: NonNullable<Awaited<ReturnType<typeof getLiveClinicConfigInfo>>["businessHours"]>,
@@ -13,10 +13,7 @@ function getOpenHoursText(
 }
 
 export function DashboardFooterClinicInfo() {
-  const { data: clinic, isLoading } = useQuery({
-    queryKey: ["patient", "clinic-config"],
-    queryFn: getLiveClinicConfigInfo,
-  });
+  const { data: clinic, isLoading } = useClinicConfigQuery();
 
   if (isLoading) {
     return (

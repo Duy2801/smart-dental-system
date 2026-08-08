@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
 import { DashboardIcon } from "../../common/DashboardIcon";
-import { getHomeClinicalCases, type HomeClinicalCase } from "../api";
+import { type HomeClinicalCase } from "../api";
+import { useHomeClinicalCasesQuery } from "../hooks/useHomeQueries";
 import { T } from "../../common/typography";
 
 function ParkwayClinicalCaseCard({ item }: { item: HomeClinicalCase }) {
@@ -113,10 +113,7 @@ function ClinicalCaseSkeleton() {
 }
 
 export function ClinicalCasesSection() {
-  const { data: cases = [], isLoading: loading } = useQuery({
-    queryKey: ["patient", "home", "clinical-cases"],
-    queryFn: getHomeClinicalCases,
-  });
+  const { data: cases = [], isLoading: loading } = useHomeClinicalCasesQuery();
 
   const [currentIndex, setCurrentIndex] = useState(0);
 

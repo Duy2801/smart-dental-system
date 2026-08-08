@@ -1,38 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { cancelMyConsultation, getMyConsultations } from "../api";
-import type { PatientConsultationItem } from "../types";
+import { useState } from "react";
+import {
+  useCancelConsultationMutation,
+  useMyConsultationsQuery,
+} from "../hooks/useConsultationQueries";
 
 interface MyConsultationsListProps {
   onBookNew: () => void;
 }
 
 export function MyConsultationsList({ onBookNew }: MyConsultationsListProps) {
-  const [myConsultations, setMyConsultations] = useState<
-    PatientConsultationItem[]
-  >([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const {
+    data: myConsultations = [],
+    isLoading,
+    refetch,
+  } = useMyConsultationsQuery();
+  const cancelMutation = useCancelConsultationMutation();
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [cancelNotice, setCancelNotice] = useState<string | null>(null);
-
-  const loadConsultations = () => {
-    setIsLoading(true);
-    getMyConsultations()
-      .then((data) => {
-        setMyConsultations(data);
-      })
-      .catch((err) => {
-        console.error("Lỗi khi tải danh sách tư vấn:", err);
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
-  };
-
-  useEffect(() => {
-    loadConsultations();
-  }, []);
 
   const handleCancelBooking = async (id: string) => {
     if (
@@ -47,14 +33,13 @@ export function MyConsultationsList({ onBookNew }: MyConsultationsListProps) {
     setCancelNotice(null);
 
     try {
-      const res = await cancelMyConsultation(id);
+      const res = await cancelMutation.mutateAsync(id);
       setCancelNotice(
         `Đã hủy thành công! ${res.refundInfo.note} Số tiền hoàn dự kiến: ${new Intl.NumberFormat(
           "vi-VN",
           { style: "currency", currency: "VND" },
         ).format(res.refundInfo.refundAmount)}`,
       );
-      loadConsultations();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Hủy không thành công.";
       alert(msg);
@@ -70,7 +55,7 @@ export function MyConsultationsList({ onBookNew }: MyConsultationsListProps) {
           Danh Sách Buổi Tư Vấn Trực Tuyến Của Tôi
         </h2>
         <button
-          onClick={loadConsultations}
+          onClick={() => void refetch()}
           className="text-xs font-semibold text-blue-600 hover:underline"
         >
           Làm mới

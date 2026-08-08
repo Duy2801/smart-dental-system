@@ -89,6 +89,11 @@ export type AppointmentItem = {
   rescheduleCount?: number;
 };
 
+export type PatientAppointmentsData = {
+  upcoming: AppointmentItem[];
+  history: AppointmentItem[];
+};
+
 type AppointmentDto = {
   id: string;
   doctorId: string;

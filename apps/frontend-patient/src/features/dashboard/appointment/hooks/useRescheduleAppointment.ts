@@ -1,12 +1,15 @@
 import { useMemo, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/features/dashboard/common/toast";
 import {
-  getAppointmentOptions,
   reschedulePatientAppointment,
   type AppointmentItem,
 } from "../api";
 import { getCreateAppointmentErrorMessage, pickFirstBookableDate } from "../utils";
+import {
+  appointmentQueryKeys,
+  useAppointmentRescheduleOptionsQuery,
+} from "./useAppointmentQueries";
 
 type UseRescheduleAppointmentParams = {
   appointment: AppointmentItem | null;
@@ -21,23 +24,17 @@ export function useRescheduleAppointment({
   const [selectedDateId, setSelectedDateId] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
 
-  const optionsQuery = useQuery({
-    queryKey: [
-      "patient",
-      "appointment-options",
-      "reschedule",
-      appointment?.id,
-      selectedDateId,
-    ],
-    queryFn: () =>
-      getAppointmentOptions({
-        serviceId: appointment?.serviceId,
-        doctorId: appointment?.doctorId,
-        date: selectedDateId,
-      }),
-    enabled: Boolean(appointment?.id),
-    placeholderData: (previousData) => previousData,
-  });
+  const rescheduleParams = useMemo(
+    () => ({
+      appointmentId: appointment?.id,
+      serviceId: appointment?.serviceId,
+      doctorId: appointment?.doctorId,
+      date: selectedDateId,
+    }),
+    [appointment?.doctorId, appointment?.id, appointment?.serviceId, selectedDateId],
+  );
+
+  const optionsQuery = useAppointmentRescheduleOptionsQuery(rescheduleParams);
 
   const dates = useMemo(() => optionsQuery.data?.dates ?? [], [optionsQuery.data?.dates]);
   const timeSlots = useMemo(
@@ -64,7 +61,7 @@ export function useRescheduleAppointment({
     }) => reschedulePatientAppointment(appointmentId, { scheduledAt }),
     onSuccess: async () => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["patient", "appointments"] }),
+        queryClient.invalidateQueries({ queryKey: appointmentQueryKeys.all }),
         queryClient.invalidateQueries({
           queryKey: ["patient", "appointment-options"],
         }),

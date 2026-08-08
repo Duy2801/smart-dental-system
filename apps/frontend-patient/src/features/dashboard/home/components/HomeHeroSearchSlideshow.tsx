@@ -2,10 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { DashboardIcon } from "../../common/DashboardIcon";
-import { getHomeServices, getBanners } from "../api";
+import { useHomeBannersQuery, useHomeServicesQuery } from "../hooks/useHomeQueries";
 import { ROUTES, buildRoute } from "../../common/routes";
 import Image from "next/image";
 const SEARCH_PLACEHOLDER = "Tìm kiếm theo dịch vụ, bác sĩ, triệu chứng...";
@@ -15,15 +14,8 @@ export function HomeHeroSearchSlideshow() {
   const searchCardRef = useRef<HTMLDivElement>(null);
   const searchButtonRef = useRef<HTMLButtonElement>(null);
 
-  const { data: banners = [], isLoading: isLoadingBanners } = useQuery({
-    queryKey: ["patient", "home", "banners"],
-    queryFn: getBanners,
-  });
-
-  const { data: services = [], isLoading } = useQuery({
-    queryKey: ["patient", "home", "services"],
-    queryFn: getHomeServices,
-  });
+  const { data: banners = [], isLoading: isLoadingBanners } = useHomeBannersQuery();
+  const { data: services = [], isLoading } = useHomeServicesQuery();
 
   const [activeSlide, setActiveSlide] = useState(0);
   const [heroIndex, setHeroIndex] = useState(0);

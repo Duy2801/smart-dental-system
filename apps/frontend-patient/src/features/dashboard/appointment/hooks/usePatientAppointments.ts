@@ -1,13 +1,8 @@
 import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { getPatientAppointments } from "../api";
+import { usePatientAppointmentsQuery } from "./useAppointmentQueries";
 
 export function usePatientAppointments(isLoggedIn: boolean) {
-  const patientAppointmentsQuery = useQuery({
-    queryKey: ["patient", "appointments"],
-    queryFn: getPatientAppointments,
-    enabled: isLoggedIn,
-  });
+  const patientAppointmentsQuery = usePatientAppointmentsQuery(isLoggedIn);
 
   const upcoming = useMemo(
     () => patientAppointmentsQuery.data?.upcoming ?? [],

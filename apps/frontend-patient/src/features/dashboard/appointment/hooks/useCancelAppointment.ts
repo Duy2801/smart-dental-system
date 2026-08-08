@@ -1,16 +1,50 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/features/dashboard/common/toast";
-import { cancelPatientAppointment } from "../api";
+import {
+  cancelPatientAppointment,
+  type AppointmentItem,
+  type PatientAppointmentsData,
+} from "../api";
 import { getCreateAppointmentErrorMessage } from "../utils";
+import { appointmentQueryKeys } from "./useAppointmentQueries";
 
 export function useCancelAppointment() {
   const queryClient = useQueryClient();
 
   const cancelAppointmentMutation = useMutation({
     mutationFn: cancelPatientAppointment,
-    onSuccess: async () => {
+    onMutate: async (appointmentId) => {
+      await queryClient.cancelQueries({ queryKey: appointmentQueryKeys.all });
+
+      const previousData =
+        queryClient.getQueryData<PatientAppointmentsData>(
+          appointmentQueryKeys.all,
+        );
+
+      if (previousData) {
+        queryClient.setQueryData<PatientAppointmentsData>(
+          appointmentQueryKeys.all,
+          {
+            ...previousData,
+            upcoming: previousData.upcoming.map((item: AppointmentItem) =>
+              item.id === appointmentId
+                ? { ...item, status: "cancelled" as const }
+                : item,
+            ),
+          },
+        );
+      }
+
+      return { previousData };
+    },
+    onError: (_err, _appointmentId, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(appointmentQueryKeys.all, context.previousData);
+      }
+    },
+    onSettled: async () => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["patient", "appointments"] }),
+        queryClient.invalidateQueries({ queryKey: appointmentQueryKeys.all }),
         queryClient.invalidateQueries({
           queryKey: ["patient", "appointment-options"],
         }),

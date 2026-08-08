@@ -6,6 +6,7 @@ import {
 } from "../api";
 import { getCreateAppointmentErrorMessage } from "../utils";
 import type { AppointmentPaymentOption, BookingDate } from "../types";
+import { appointmentQueryKeys } from "./useAppointmentQueries";
 
 type UseCreateAppointmentParams = {
   dates: BookingDate[];
@@ -46,7 +47,7 @@ export function useCreateAppointment({
     mutationFn: createPatientAppointment,
     onSuccess: async () => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["patient", "appointments"] }),
+        queryClient.invalidateQueries({ queryKey: appointmentQueryKeys.all }),
         queryClient.invalidateQueries({
           queryKey: ["patient", "appointment-options"],
         }),

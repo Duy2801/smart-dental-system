@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getAvailableConsultationSlots } from "../api";
+import { useEffect } from "react";
+import { useConsultationSlotsQuery } from "../hooks/useConsultationQueries";
 import type { ConsultationDurationMinutes } from "../types";
 
 interface SlotPickerProps {
@@ -21,29 +21,14 @@ export function SlotPicker({
   onChangeDate,
   onSelectSlot,
 }: SlotPickerProps) {
-  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
-  const [isLoadingSlots, setIsLoadingSlots] = useState<boolean>(false);
+  const { data: availableSlots = [], isLoading: isLoadingSlots } =
+    useConsultationSlotsQuery(doctorId, selectedDate, selectedDuration);
 
   useEffect(() => {
-    if (!doctorId || !selectedDate) return;
-
-    setIsLoadingSlots(true);
-    onSelectSlot("");
-    getAvailableConsultationSlots(doctorId, selectedDate, selectedDuration)
-      .then((slots) => {
-        setAvailableSlots(slots);
-        if (slots.length > 0) {
-          onSelectSlot(slots[0]);
-        }
-      })
-      .catch((err) => {
-        console.error("Lỗi khi tải khung giờ khả dụng:", err);
-        setAvailableSlots([]);
-      })
-      .finally(() => {
-        setIsLoadingSlots(false);
-      });
-  }, [doctorId, selectedDate, selectedDuration]);
+    if (availableSlots.length > 0 && !availableSlots.includes(selectedSlot)) {
+      onSelectSlot(availableSlots[0]);
+    }
+  }, [availableSlots, selectedSlot, onSelectSlot]);
 
   return (
     <div className="space-y-4 pt-4 border-t">

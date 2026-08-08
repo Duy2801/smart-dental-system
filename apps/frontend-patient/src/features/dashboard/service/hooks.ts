@@ -13,6 +13,9 @@ export function usePatientServicesQuery() {
   return useQuery({
     queryKey: patientServiceQueryKeys.all,
     queryFn: getPatientServices,
+    staleTime: 10 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -21,5 +24,8 @@ export function usePatientServiceDetailQuery(serviceId: string) {
     queryKey: patientServiceQueryKeys.detail(serviceId),
     queryFn: () => getPatientServiceDetail(serviceId),
     enabled: Boolean(serviceId),
+    staleTime: 10 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 }

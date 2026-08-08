@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import apiClient from "@/lib/axios";
 import { toast } from "@/features/dashboard/common/toast";
 import { useQueryClient } from "@tanstack/react-query";
+import { appointmentQueryKeys } from "../../hooks/useAppointmentQueries";
 
 type DepositPaymentModalProps = {
   isOpen: boolean;
@@ -105,7 +106,7 @@ export function DepositPaymentModal({
           "Lịch hẹn của bạn đã được xác nhận giữ chỗ thành công.",
         );
         await Promise.all([
-          queryClient.invalidateQueries({ queryKey: ["patient", "appointments"] }),
+          queryClient.invalidateQueries({ queryKey: appointmentQueryKeys.all }),
           queryClient.invalidateQueries({ queryKey: ["patient", "appointment-options"] }),
         ]);
         setTimeout(() => {

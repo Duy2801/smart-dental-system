@@ -1,17 +1,26 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchPromotions, fetchServicesForPromotions } from "../api/promotionApi";
 
+export const promotionQueryKeys = {
+  all: ["patient", "promotions"] as const,
+  services: () => ["patient", "promotions", "services"] as const,
+};
+
 export function usePromotions() {
   const promotionsQuery = useQuery({
-    queryKey: ["promotions"],
+    queryKey: promotionQueryKeys.all,
     queryFn: fetchPromotions,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 10 * 60 * 1000, // 10 mins cache
+    gcTime: 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const servicesQuery = useQuery({
-    queryKey: ["promotion-services"],
+    queryKey: promotionQueryKeys.services(),
     queryFn: fetchServicesForPromotions,
-    staleTime: 1000 * 60 * 10,
+    staleTime: 10 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   return {

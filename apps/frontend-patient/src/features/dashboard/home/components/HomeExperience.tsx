@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+
 import {
   useEffect,
   useMemo,
@@ -13,10 +13,13 @@ import { DashboardIcon } from "../../common/DashboardIcon";
 import { buildRoute, ROUTES } from "../../common/routes";
 import { T } from "../../common/typography";
 import {
-  getHomeDoctors,
-  getHomeServices,
+  useHomeBannersQuery,
+  useHomeServicesQuery,
+  useHomeDoctorsQuery,
+  usePrefetchDoctorDetail,
+} from "../hooks/useHomeQueries";
+import {
   getDoctorBullets,
-  getBanners,
   type HomeDoctorCard,
   type HomeServiceCard,
 } from "../api";
@@ -118,15 +121,8 @@ function ServiceVisual({ service }: { service: HomeServiceCard }) {
 }
 
 export function HomeHeroSlideshow() {
-  const { data: banners = [], isLoading: loadingBanners } = useQuery({
-    queryKey: ["patient", "home", "banners"],
-    queryFn: getBanners,
-  });
-
-  const { data: services = [], isLoading: loadingServices } = useQuery({
-    queryKey: ["patient", "home", "services"],
-    queryFn: getHomeServices,
-  });
+  const { data: banners = [], isLoading: loadingBanners } = useHomeBannersQuery();
+  const { data: services = [], isLoading: loadingServices } = useHomeServicesQuery();
 
   const [active, setActive] = useState(0);
 
@@ -436,10 +432,7 @@ function DoctorCardContent({
 }
 
 export function DoctorDirectory() {
-  const { data: doctors = [], isLoading: loading } = useQuery({
-    queryKey: ["patient", "home", "doctors"],
-    queryFn: getHomeDoctors,
-  });
+  const { data: doctors = [], isLoading: loading } = useHomeDoctorsQuery();
   const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {

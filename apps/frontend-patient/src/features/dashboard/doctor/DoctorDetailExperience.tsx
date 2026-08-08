@@ -159,6 +159,9 @@ export function DoctorDetailExperience({ doctorId }: { doctorId: string }) {
     queryKey: ["patient", "doctor-detail", doctorId],
     queryFn: () => getDoctorDetail(doctorId),
     enabled: Boolean(doctorId),
+    staleTime: 10 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const visibleMedia = useMemo(() => doctor?.media.slice(0, 4) ?? [], [doctor]);

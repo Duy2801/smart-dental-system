@@ -14,7 +14,11 @@ import { MyConsultationsList } from "./MyConsultationsList";
 import { PaymentCheckoutView } from "./PaymentCheckoutView";
 import { SlotPicker } from "./SlotPicker";
 
+import { useQueryClient } from "@tanstack/react-query";
+import { consultationQueryKeys } from "../hooks/useConsultationQueries";
+
 export function ConsultationWorkspace() {
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<"book" | "my-consultations">("book");
 
   // Booking Form state
@@ -57,6 +61,9 @@ export function ConsultationWorkspace() {
         notes,
       });
 
+      await queryClient.invalidateQueries({
+        queryKey: consultationQueryKeys.all,
+      });
       setBookingResult(result);
     } catch (err: unknown) {
       const msg =

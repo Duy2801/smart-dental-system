@@ -1,19 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
-import { getPatientRecords } from "../api";
 import { mapRecordTreatments } from "./recordMappers";
+import { usePatientRecordsQuery } from "../hooks/useRecordsQueries";
 import { RecordHistorySection } from "./RecordHistorySection";
 import { RecordPatientHero } from "./RecordPatientHero";
 import { PatientPageSkeleton } from "../../common/PatientSkeleton";
 import { ROUTES } from "../../common/routes";
 
 export function PatientRecordsPageClient() {
-  const recordsQuery = useQuery({
-    queryKey: ["patient", "records"],
-    queryFn: getPatientRecords,
-  });
+  const recordsQuery = usePatientRecordsQuery();
 
   if (recordsQuery.isLoading) {
     return <PatientPageSkeleton />;

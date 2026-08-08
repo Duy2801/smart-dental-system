@@ -16,3 +16,5 @@ export { InsightsSection } from "./components/InsightsSection";
 export type { FeaturedArticle } from "./components/InsightsSection";
 export { QuickActions } from "./components/QuickActions";
 export type { QuickAction } from "./components/QuickActions";
+export * from "./hooks/useHomeQueries";
+

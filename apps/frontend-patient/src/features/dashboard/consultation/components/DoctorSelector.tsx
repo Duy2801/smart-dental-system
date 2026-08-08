@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getConsultationDoctors } from "../api";
-import type { ConsultationDoctor } from "../types";
+import { useEffect } from "react";
+import { useConsultationDoctorsQuery } from "../hooks/useConsultationQueries";
 
 interface DoctorSelectorProps {
   selectedDoctorId: string;
@@ -13,27 +12,13 @@ export function DoctorSelector({
   selectedDoctorId,
   onSelectDoctor,
 }: DoctorSelectorProps) {
-  const [doctors, setDoctors] = useState<ConsultationDoctor[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>("");
+  const { data: doctors = [], isLoading, isError } = useConsultationDoctorsQuery();
 
   useEffect(() => {
-    setIsLoading(true);
-    getConsultationDoctors()
-      .then((data) => {
-        setDoctors(data);
-        if (data.length > 0 && !selectedDoctorId) {
-          onSelectDoctor(data[0].id);
-        }
-      })
-      .catch((err) => {
-        console.error("Lỗi khi tải danh sách bác sĩ:", err);
-        setError("Không thể tải danh sách bác sĩ tư vấn.");
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
-  }, []);
+    if (doctors.length > 0 && !selectedDoctorId) {
+      onSelectDoctor(doctors[0].id);
+    }
+  }, [doctors, selectedDoctorId, onSelectDoctor]);
 
   return (
     <div className="space-y-4 pt-4 border-t">
@@ -50,9 +35,9 @@ export function DoctorSelector({
         <div className="py-6 text-center text-slate-400 text-sm">
           Đang tải danh sách bác sĩ tư vấn...
         </div>
-      ) : error ? (
+      ) : isError ? (
         <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
-          {error}
+          Không thể tải danh sách bác sĩ tư vấn.
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

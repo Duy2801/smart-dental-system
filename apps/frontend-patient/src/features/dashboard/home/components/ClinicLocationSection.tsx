@@ -3,8 +3,7 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
-import { getLiveClinicConfigInfo } from "../api";
+import { useClinicConfigQuery } from "../hooks/useHomeQueries";
 import { ROUTES } from "../../common/routes";
 import { T } from "../../common/typography";
 
@@ -38,10 +37,7 @@ export function ClinicLocationSection() {
     data: clinic,
     isLoading,
     isError,
-  } = useQuery({
-    queryKey: ["patient", "clinic-config"],
-    queryFn: getLiveClinicConfigInfo,
-  });
+  } = useClinicConfigQuery();
   const [copied, setCopied] = useState(false);
 
   const openHours = formatBusinessHours(clinic?.businessHours);

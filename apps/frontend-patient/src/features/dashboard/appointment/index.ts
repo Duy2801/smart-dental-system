@@ -10,3 +10,4 @@ export type {
   Dentist,
   NotificationPreferences,
 } from "./types";
+export * from "./hooks/useAppointmentQueries";

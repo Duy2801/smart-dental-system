@@ -13,6 +13,8 @@ import { RecordClinicalImage } from "./RecordClinicalImage";
 import { formatMoney, type TreatmentRecordView } from "./recordMappers";
 import { ROUTES } from "../../common/routes";
 import { T } from "../../common/typography";
+import { recordsQueryKeys } from "../hooks/useRecordsQueries";
+import { appointmentQueryKeys } from "../../appointment/hooks/useAppointmentQueries";
 
 type RecordTreatmentCardProps = {
   treatment: TreatmentRecordView;
@@ -109,8 +111,8 @@ export function RecordTreatmentCard({
     mutationFn: confirmPatientAppointment,
     onSuccess: async () => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["patient", "records"] }),
-        queryClient.invalidateQueries({ queryKey: ["patient", "appointments"] }),
+        queryClient.invalidateQueries({ queryKey: recordsQueryKeys.all }),
+        queryClient.invalidateQueries({ queryKey: appointmentQueryKeys.all }),
       ]);
       toast.success(
         "Đã xác nhận lịch hẹn",
@@ -128,8 +130,8 @@ export function RecordTreatmentCard({
     mutationFn: restorePatientAppointment,
     onSuccess: async () => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["patient", "records"] }),
-        queryClient.invalidateQueries({ queryKey: ["patient", "appointments"] }),
+        queryClient.invalidateQueries({ queryKey: recordsQueryKeys.all }),
+        queryClient.invalidateQueries({ queryKey: appointmentQueryKeys.all }),
       ]);
       toast.success(
         "Lịch hẹn tiếp theo đã được khôi phục",

@@ -1,10 +1,11 @@
 import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import {
-  getAppointmentOptions,
-  type BookingOptionsQuery,
-} from "../api";
+import { type BookingOptionsQuery } from "../api";
 import { getAvailableTimes } from "../utils";
+import {
+  useAppointmentAvailabilityQuery,
+  useAppointmentOptionsBaseQuery,
+  useAppointmentScheduleQuery,
+} from "./useAppointmentQueries";
 
 type UseAppointmentBookingDataParams = {
   selectedServiceId: string;
@@ -21,47 +22,32 @@ export function useAppointmentBookingData({
   selectedDateId,
   selectedTime,
 }: UseAppointmentBookingDataParams) {
-  const baseOptionsQuery = useQuery({
-    queryKey: ["patient", "appointment-options", "base"],
-    queryFn: () => getAppointmentOptions(),
-  });
+  const baseOptionsQuery = useAppointmentOptionsBaseQuery();
 
-  const scheduleQueryParams: BookingOptionsQuery = {
-    serviceId: selectedServiceId,
-    treatmentMethodId: selectedTreatmentMethodId,
-    date: selectedDateId,
-  };
+  const scheduleQueryParams: BookingOptionsQuery = useMemo(
+    () => ({
+      serviceId: selectedServiceId,
+      treatmentMethodId: selectedTreatmentMethodId,
+      date: selectedDateId,
+    }),
+    [selectedDateId, selectedServiceId, selectedTreatmentMethodId],
+  );
 
-  const scheduleQuery = useQuery({
-    queryKey: [
-      "patient",
-      "appointment-options",
-      "schedule",
-      scheduleQueryParams,
-    ],
-    queryFn: () => getAppointmentOptions(scheduleQueryParams),
-    enabled: Boolean(selectedServiceId),
-    placeholderData: (previousData) => previousData,
-  });
+  const scheduleQuery = useAppointmentScheduleQuery(scheduleQueryParams);
 
-  const availabilityQueryParams: BookingOptionsQuery = {
-    serviceId: selectedServiceId,
-    treatmentMethodId: selectedTreatmentMethodId,
-    date: selectedDateId,
-    time: selectedTime,
-  };
+  const availabilityQueryParams: BookingOptionsQuery = useMemo(
+    () => ({
+      serviceId: selectedServiceId,
+      treatmentMethodId: selectedTreatmentMethodId,
+      date: selectedDateId,
+      time: selectedTime,
+    }),
+    [selectedDateId, selectedServiceId, selectedTime, selectedTreatmentMethodId],
+  );
 
-  const availabilityQuery = useQuery({
-    queryKey: [
-      "patient",
-      "appointment-options",
-      "availability",
-      availabilityQueryParams,
-    ],
-    queryFn: () => getAppointmentOptions(availabilityQueryParams),
-    enabled: Boolean(selectedServiceId && selectedDateId && selectedTime),
-    placeholderData: (previousData) => previousData,
-  });
+  const availabilityQuery = useAppointmentAvailabilityQuery(
+    availabilityQueryParams,
+  );
 
   const services = useMemo(
     () => baseOptionsQuery.data?.services ?? [],

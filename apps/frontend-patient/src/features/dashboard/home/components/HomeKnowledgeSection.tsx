@@ -2,15 +2,17 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { DashboardIcon, type DashboardIconName } from "../../common/DashboardIcon";
 import { ROUTES, buildRoute } from "../../common/routes";
 import { T } from "../../common/typography";
-import {
-  getHomeServices,
+import type {
   getLiveClinicConfigInfo,
-  type HomeServiceCard,
+  HomeServiceCard,
 } from "../api";
+import {
+  useClinicConfigQuery,
+  useHomeServicesQuery,
+} from "../hooks/useHomeQueries";
 
 type BusinessHour = {
   id: number;
@@ -151,15 +153,9 @@ export function HomeKnowledgeSection() {
     data: services = [],
     isLoading: loadingServices,
     isError: servicesError,
-  } = useQuery({
-    queryKey: ["patient", "home", "knowledge-services"],
-    queryFn: getHomeServices,
-  });
+  } = useHomeServicesQuery();
 
-  const { data: clinic, isLoading: loadingClinic } = useQuery({
-    queryKey: ["patient", "clinic-config"],
-    queryFn: getLiveClinicConfigInfo,
-  });
+  const { data: clinic, isLoading: loadingClinic } = useClinicConfigQuery();
 
   const faqItems = useMemo(
     () => [...buildServiceFaqs(services)],

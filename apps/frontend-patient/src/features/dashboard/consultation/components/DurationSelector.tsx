@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getConsultationPackages } from "../api";
+import { useEffect } from "react";
+import { useConsultationPackagesQuery } from "../hooks/useConsultationQueries";
 import type {
   ConsultationDurationMinutes,
   ConsultationDurationOption,
@@ -19,37 +19,17 @@ export function DurationSelector({
   selectedDuration,
   onSelectDuration,
 }: DurationSelectorProps) {
-  const [options, setOptions] = useState<ConsultationDurationOption[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const { data: options = [], isLoading: loading } = useConsultationPackagesQuery();
 
   useEffect(() => {
-    let isMounted = true;
-    async function fetchPackages() {
-      try {
-        setLoading(true);
-        const data = await getConsultationPackages();
-        if (isMounted) {
-          setOptions(data || []);
-          if (data && data.length > 0) {
-            // Pick first option if current selection is invalid
-            const matched = data.find((opt) => opt.minutes === selectedDuration);
-            onSelectDuration(matched ? matched.minutes : data[0].minutes, matched || data[0]);
-          }
-        }
-      } catch (error) {
-        console.error("Lỗi khi tải danh sách gói tư vấn từ DB:", error);
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
+    if (options.length > 0) {
+      const matched = options.find((opt) => opt.minutes === selectedDuration);
+      onSelectDuration(
+        matched ? matched.minutes : options[0].minutes,
+        matched || options[0],
+      );
     }
-    fetchPackages();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  }, [options, selectedDuration, onSelectDuration]);
 
   return (
     <div className="space-y-4">
