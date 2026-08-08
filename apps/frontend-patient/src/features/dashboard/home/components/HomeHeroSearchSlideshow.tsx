@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { DashboardIcon } from "../../common/DashboardIcon";
-import { getHomeServices } from "../api";
+import { getHomeServices, getBanners } from "../api";
 import { ROUTES, buildRoute } from "../../common/routes";
 import Image from "next/image";
 const SEARCH_PLACEHOLDER = "Tìm kiếm theo dịch vụ, bác sĩ, triệu chứng...";
@@ -15,14 +15,32 @@ export function HomeHeroSearchSlideshow() {
   const searchCardRef = useRef<HTMLDivElement>(null);
   const searchButtonRef = useRef<HTMLButtonElement>(null);
 
+  const { data: banners = [], isLoading: isLoadingBanners } = useQuery({
+    queryKey: ["patient", "home", "banners"],
+    queryFn: getBanners,
+  });
+
   const { data: services = [], isLoading } = useQuery({
     queryKey: ["patient", "home", "services"],
     queryFn: getHomeServices,
   });
 
   const [activeSlide, setActiveSlide] = useState(0);
+  const [heroIndex, setHeroIndex] = useState(0);
   const [keyword, setKeyword] = useState("");
   const [placeholder, setPlaceholder] = useState("");
+
+  const activeBanners = useMemo(() => {
+    return banners.filter((b) => b.isActive !== false);
+  }, [banners]);
+
+  useEffect(() => {
+    if (activeBanners.length <= 1) return;
+    const timer = window.setInterval(() => {
+      setHeroIndex((current) => (current + 1) % activeBanners.length);
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, [activeBanners.length]);
 
   const slides = useMemo(() => {
     if (!services.length) return [];
@@ -98,28 +116,38 @@ export function HomeHeroSearchSlideshow() {
     setActiveSlide((prev) => (prev >= totalPages - 1 ? 0 : prev + 1));
   };
 
-  if (isLoading) {
-    return (
-      <section className="relative w-full pb-12">
-        <div className="h-[360px] animate-pulse bg-gradient-to-r from-amber-100 via-blue-50 to-amber-100" />
-      </section>
-    );
-  }
-
   const suggestions = services.slice(0, 8).map((s) => s.title);
+  const currentHeroBanner = activeBanners.length ? activeBanners[heroIndex % activeBanners.length] : null;
 
   return (
     <section className="relative w-full pb-12">
-      {/* Top Banner Section with bannerhome.png (Full Width) */}
+      {/* Dynamic Top Banner Section from DB */}
       <div className="relative w-full overflow-hidden bg-gradient-to-b from-[#0058bc] via-blue-50/40 to-[#f6f8fc] pb-20 sm:pb-28">
-        <img
-          src="/bannerhome.png"
-          alt="Smart Dental Banner"
-          className="h-auto w-full object-cover min-h-[240px] max-h-[480px] sm:max-h-[580px]"
-        />
+        {isLoadingBanners ? (
+          <div className="h-[280px] w-full animate-pulse bg-slate-300/40 sm:h-[420px]" />
+        ) : currentHeroBanner ? (
+          <a
+            href={currentHeroBanner.linkUrl || "#"}
+            target={currentHeroBanner.linkUrl?.startsWith("http") ? "_blank" : "_self"}
+            rel="noopener noreferrer"
+            className="block w-full"
+          >
+            <img
+              src={currentHeroBanner.imageUrl}
+              alt={currentHeroBanner.title || "Smart Dental Banner"}
+              className="h-auto w-full object-cover min-h-[240px] max-h-[480px] sm:max-h-[580px] transition-all duration-700"
+            />
+          </a>
+        ) : (
+          <img
+            src="/bannerhome.png"
+            alt="Smart Dental Banner"
+            className="h-auto w-full object-cover min-h-[240px] max-h-[480px] sm:max-h-[580px]"
+          />
+        )}
       </div>
 
-      {/* Floating White Search Card (Matching Image 1) */}
+      {/* Floating White Search Card */}
       <div
         ref={searchCardRef}
         onClick={(event) => event.stopPropagation()}
@@ -146,8 +174,15 @@ export function HomeHeroSearchSlideshow() {
           </button>
         </form>
 
-        {/* Popular Tags / Keywords from DB */}
-        {suggestions.length > 0 && (
+        {/* Popular Tags / Keywords from DB (or Skeleton during loading) */}
+        {isLoading ? (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-4 py-3 text-xs sm:px-6">
+            <span className="font-semibold text-slate-400">Gợi ý:</span>
+            <span className="h-4 w-20 animate-pulse rounded-md bg-slate-200/80" />
+            <span className="h-4 w-28 animate-pulse rounded-md bg-slate-200/80" />
+            <span className="h-4 w-24 animate-pulse rounded-md bg-slate-200/80" />
+          </div>
+        ) : suggestions.length > 0 ? (
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-4 py-3 text-xs text-slate-600 sm:px-6">
             <span className="font-semibold text-slate-400">Gợi ý:</span>
             {suggestions.map((item) => (
@@ -160,7 +195,7 @@ export function HomeHeroSearchSlideshow() {
               </Link>
             ))}
           </div>
-        )}
+        ) : null}
 
         {/* Quick Contact & Clinic Location Links (Image 1 Bottom Row) */}
         <div className="grid divide-y divide-slate-100 border-t border-slate-100 sm:grid-cols-2 sm:divide-x sm:divide-y-0">
@@ -196,8 +231,15 @@ export function HomeHeroSearchSlideshow() {
         </div>
       </div>
 
-      {/* Dual Banner Slideshow Section (Matching Image 2 Layout) */}
-      {slides.length > 0 && (
+      {/* Dual Banner Slideshow Section */}
+      {isLoading ? (
+        <div className="mx-auto mt-10 max-w-[1280px] px-4 sm:px-6 lg:px-8">
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div className="h-[210px] animate-pulse rounded-2xl border border-slate-200/80 bg-slate-200/60 sm:h-[250px]" />
+            <div className="h-[210px] animate-pulse rounded-2xl border border-slate-200/80 bg-slate-200/60 sm:h-[250px]" />
+          </div>
+        </div>
+      ) : slides.length > 0 ? (
         <div className="mx-auto mt-10 max-w-[1280px] px-4 sm:px-6 lg:px-8">
           <div className="relative">
             {/* Nav Arrows */}
@@ -232,17 +274,16 @@ export function HomeHeroSearchSlideshow() {
                     href={slide.href}
                     className="group relative flex min-h-[210px] flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/80 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 p-6 text-white shadow-md transition duration-300 hover:-translate-y-1 hover:shadow-xl sm:min-h-[250px] sm:p-7"
                   >
-                    <div className="relative h-full w-full">
-                      {slide.imageUrl && (
-                        <Image
+                    {slide.imageUrl && (
+                      <div className="absolute inset-0 pointer-events-none">
+                        <img
                           src={slide.imageUrl}
                           alt={slide.title}
-                          fill
-                          className="object-cover opacity-35 transition duration-500 group-hover:scale-105 group-hover:opacity-45"
+                          className="h-full w-full object-cover opacity-30 transition duration-500 group-hover:scale-105 group-hover:opacity-40"
                         />
-                      )}
-                    </div>
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/30 to-transparent" />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/40 to-transparent pointer-events-none" />
 
                     <div className="relative z-10">
                       {slide.badge && (
@@ -289,7 +330,7 @@ export function HomeHeroSearchSlideshow() {
             )}
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* Floating Chat/CSKH Button (Bottom Right of Image 1 & 2) */}
       <Link

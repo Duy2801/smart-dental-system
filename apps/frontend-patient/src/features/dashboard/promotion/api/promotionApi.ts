@@ -8,7 +8,7 @@ type PaginatedServicesResponse = {
     name: string;
     slug?: string | null;
     basePrice: string | number;
-    thumbnailUrl?: string | null;
+    treatmentMethods?: { imageUrl?: string | null }[];
   }[];
 };
 
@@ -41,7 +41,7 @@ export async function fetchServicesForPromotions(): Promise<ServiceOption[]> {
         slug: item.slug ?? null,
         category: item.category,
         basePrice: Number(item.basePrice || 0),
-        imageUrl: item.thumbnailUrl ?? null,
+        imageUrl: item.treatmentMethods?.find((m) => m.imageUrl)?.imageUrl ?? null,
       }));
     }
     return [];

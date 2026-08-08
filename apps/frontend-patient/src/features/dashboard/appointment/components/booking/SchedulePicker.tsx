@@ -29,15 +29,15 @@ export function SchedulePicker({
 
   return (
     <fieldset>
-      <legend className="sr-only">Chon lich trinh va gio kham</legend>
+      <legend className="sr-only">Chọn lịch trình và giờ khám</legend>
       <div className="grid overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm md:grid-cols-[1.2fr_0.8fr]">
         <div className="border-b border-slate-100 p-5 md:border-b-0 md:border-r">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-slate-800">
-              15 ngay gan nhat
+              15 ngày gần nhất
             </h3>
             <span className="text-[10px] font-semibold text-slate-400">
-              Chon ngay kham
+              Chọn ngày khám
             </span>
           </div>
 
@@ -51,7 +51,7 @@ export function SchedulePicker({
                   disabled={!date.isOpen}
                   onClick={() => onSelectDate(date.id)}
                   aria-pressed={selected}
-                  title={date.isOpen ? "Co lich lam viec" : "Phong kham nghi"}
+                  title={date.isOpen ? "Có lịch làm việc" : "Phòng khám nghỉ"}
                   className={`mx-auto grid h-14 w-11 place-items-center rounded-lg text-xs font-semibold transition ${
                     selected
                       ? "bg-[#0863c5] text-white shadow-md shadow-blue-200"
@@ -73,15 +73,15 @@ export function SchedulePicker({
 
         <div className="p-5">
           <h3 className="text-xs font-bold uppercase tracking-[0.08em] text-slate-500">
-            Khung gio con trong
+            Khung giờ còn trống
           </h3>
           <p className="mt-1 text-[10px] text-slate-400">
-            Gio dia phuong - {slotIntervalMinutes} phut/luot
+            Giờ địa phương - {slotIntervalMinutes} phút/lượt
           </p>
           {blockedRanges.length ? (
             <div className="mt-3 rounded-xl border border-slate-200 bg-slate-100 px-3 py-2">
               <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">
-                Ban da co lich trong cac khoang:
+                Bạn đã có lịch trong các khoảng:
               </p>
               <p className="mt-1 text-xs font-medium text-slate-700">
                 {blockedRanges.join(", ")}
@@ -91,7 +91,7 @@ export function SchedulePicker({
           <div className="mt-4 grid grid-cols-2 gap-2.5">
             {visibleTimes.length === 0 ? (
               <p className="col-span-2 rounded-lg bg-amber-50 px-3 py-3 text-center text-xs font-semibold text-amber-700">
-                Ngay nay khong con khung gio hop le.
+                Ngày này không còn khung giờ hợp lệ.
               </p>
             ) : null}
             {visibleTimes.map((time) => {
@@ -104,7 +104,7 @@ export function SchedulePicker({
                   disabled={blocked}
                   onClick={() => onSelectTime(time)}
                   aria-pressed={selected}
-                  title={blocked ? "Ban da co lich o khung gio nay" : undefined}
+                  title={blocked ? "Bạn đã có lịch ở khung giờ này" : undefined}
                   className={`rounded-lg border px-2 py-3 text-xs font-semibold transition ${
                     blocked
                       ? "cursor-not-allowed border-slate-300 bg-slate-200 text-slate-500"

@@ -55,15 +55,18 @@ function ServiceIconContent({
 }) {
   return (
     <>
-      <span
-        className={`grid h-20 w-20 place-items-center rounded-full transition ${selected ? "bg-white" : "bg-cyan-50"
-          }`}
+      <div
+        className={`relative flex h-20 w-20 items-center justify-center rounded-2xl p-1.5 transition-all duration-300 ${
+          selected
+            ? "bg-white shadow-md ring-2 ring-[#0863c5]/30 scale-105"
+            : "bg-white/90 shadow-sm ring-1 ring-slate-200/60 group-hover:bg-white group-hover:shadow-md group-hover:scale-105"
+        }`}
       >
         {service.icon ? (
           <img
             src={service.icon}
-            alt=""
-            className="h-14 w-14 object-contain"
+            alt={service.title}
+            className="h-full w-full object-contain rounded-xl transition duration-300"
             aria-hidden="true"
           />
         ) : (
@@ -71,8 +74,14 @@ function ServiceIconContent({
             {service.title.slice(0, 2)}
           </span>
         )}
-      </span>
-      <span className="mt-3 line-clamp-2 min-h-12 text-[15px] font-bold leading-6 text-slate-800 group-hover:text-[#0863c5]">
+      </div>
+      <span
+        className={`mt-3.5 line-clamp-2 min-h-11 text-center text-[13px] sm:text-[14px] font-extrabold leading-tight transition-colors duration-200 ${
+          selected
+            ? "text-[#0863c5]"
+            : "text-slate-700 group-hover:text-[#0863c5]"
+        }`}
+      >
         {service.title}
       </span>
     </>
@@ -88,10 +97,11 @@ function ServiceIconTile({
   selected?: boolean;
   onSelect?: () => void;
 }) {
-  const className = `group flex min-h-[150px] flex-col items-center justify-center rounded-2xl border p-4 text-center transition duration-200 hover:-translate-y-0.5 hover:shadow-md ${selected
-    ? "border-[#0863c5] bg-blue-50 shadow-sm ring-2 ring-blue-100"
-    : "border-slate-100 bg-slate-50 hover:border-blue-100 hover:bg-white"
-    }`;
+  const className = `group relative flex min-h-[160px] flex-col items-center justify-center rounded-2xl border p-4 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${
+    selected
+      ? "border-[#0863c5] bg-gradient-to-b from-blue-50/90 via-blue-50/40 to-white shadow-md ring-2 ring-[#0863c5]/20"
+      : "border-slate-200/70 bg-gradient-to-b from-slate-50/80 to-white hover:border-blue-300/80 hover:bg-gradient-to-b hover:from-blue-50/40 hover:to-white"
+  }`;
 
   if (!onSelect) {
     return (
@@ -125,17 +135,18 @@ function PopularMethodCard({
   service: DentalService;
   method: TreatmentMethod;
 }) {
-  const methodImage = method.media?.[0];
+  const imageUrl = method.imageUrl || method.media?.[0]?.url;
+  const imageAlt = method.media?.[0]?.alt || method.name;
 
   return (
     <div
       className="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-lg"
     >
       <div className="relative aspect-[16/10] overflow-hidden bg-slate-100">
-        {methodImage?.url ? (
+        {imageUrl ? (
           <img
-            src={methodImage.url}
-            alt={methodImage.alt || method.name}
+            src={imageUrl}
+            alt={imageAlt}
             className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
           />
         ) : (
@@ -184,15 +195,16 @@ function MethodCard({
   service: DentalService;
   method: TreatmentMethod;
 }) {
-  const methodImage = method.media?.[0];
+  const imageUrl = method.imageUrl || method.media?.[0]?.url;
+  const imageAlt = method.media?.[0]?.alt || method.name;
 
   return (
     <div className="group grid h-full overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-lg sm:grid-cols-[180px_1fr]">
       <div className="relative min-h-[180px] overflow-hidden bg-slate-100">
-        {methodImage?.url ? (
+        {imageUrl ? (
           <img
-            src={methodImage.url}
-            alt={methodImage.alt || method.name}
+            src={imageUrl}
+            alt={imageAlt}
             className="h-full min-h-[180px] w-full object-cover transition duration-500 group-hover:scale-105"
           />
         ) : (

@@ -44,6 +44,7 @@ export type TreatmentMethodMinAggregateOutputType = {
   name: string | null
   slug: string | null
   description: string | null
+  imageUrl: string | null
   basePrice: runtime.Decimal | null
   durationMinutes: number | null
   displayOrder: number | null
@@ -58,6 +59,7 @@ export type TreatmentMethodMaxAggregateOutputType = {
   name: string | null
   slug: string | null
   description: string | null
+  imageUrl: string | null
   basePrice: runtime.Decimal | null
   durationMinutes: number | null
   displayOrder: number | null
@@ -72,6 +74,7 @@ export type TreatmentMethodCountAggregateOutputType = {
   name: number
   slug: number
   description: number
+  imageUrl: number
   basePrice: number
   durationMinutes: number
   displayOrder: number
@@ -100,6 +103,7 @@ export type TreatmentMethodMinAggregateInputType = {
   name?: true
   slug?: true
   description?: true
+  imageUrl?: true
   basePrice?: true
   durationMinutes?: true
   displayOrder?: true
@@ -114,6 +118,7 @@ export type TreatmentMethodMaxAggregateInputType = {
   name?: true
   slug?: true
   description?: true
+  imageUrl?: true
   basePrice?: true
   durationMinutes?: true
   displayOrder?: true
@@ -128,6 +133,7 @@ export type TreatmentMethodCountAggregateInputType = {
   name?: true
   slug?: true
   description?: true
+  imageUrl?: true
   basePrice?: true
   durationMinutes?: true
   displayOrder?: true
@@ -229,6 +235,7 @@ export type TreatmentMethodGroupByOutputType = {
   name: string
   slug: string | null
   description: string | null
+  imageUrl: string | null
   basePrice: runtime.Decimal
   durationMinutes: number | null
   displayOrder: number
@@ -266,6 +273,7 @@ export type TreatmentMethodWhereInput = {
   name?: Prisma.StringFilter<"TreatmentMethod"> | string
   slug?: Prisma.StringNullableFilter<"TreatmentMethod"> | string | null
   description?: Prisma.StringNullableFilter<"TreatmentMethod"> | string | null
+  imageUrl?: Prisma.StringNullableFilter<"TreatmentMethod"> | string | null
   basePrice?: Prisma.DecimalFilter<"TreatmentMethod"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   durationMinutes?: Prisma.IntNullableFilter<"TreatmentMethod"> | number | null
   displayOrder?: Prisma.IntFilter<"TreatmentMethod"> | number
@@ -285,6 +293,7 @@ export type TreatmentMethodOrderByWithRelationInput = {
   name?: Prisma.SortOrder
   slug?: Prisma.SortOrderInput | Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
+  imageUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   basePrice?: Prisma.SortOrder
   durationMinutes?: Prisma.SortOrderInput | Prisma.SortOrder
   displayOrder?: Prisma.SortOrder
@@ -307,6 +316,7 @@ export type TreatmentMethodWhereUniqueInput = Prisma.AtLeast<{
   serviceId?: Prisma.UuidFilter<"TreatmentMethod"> | string
   name?: Prisma.StringFilter<"TreatmentMethod"> | string
   description?: Prisma.StringNullableFilter<"TreatmentMethod"> | string | null
+  imageUrl?: Prisma.StringNullableFilter<"TreatmentMethod"> | string | null
   basePrice?: Prisma.DecimalFilter<"TreatmentMethod"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   durationMinutes?: Prisma.IntNullableFilter<"TreatmentMethod"> | number | null
   displayOrder?: Prisma.IntFilter<"TreatmentMethod"> | number
@@ -326,6 +336,7 @@ export type TreatmentMethodOrderByWithAggregationInput = {
   name?: Prisma.SortOrder
   slug?: Prisma.SortOrderInput | Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
+  imageUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   basePrice?: Prisma.SortOrder
   durationMinutes?: Prisma.SortOrderInput | Prisma.SortOrder
   displayOrder?: Prisma.SortOrder
@@ -348,6 +359,7 @@ export type TreatmentMethodScalarWhereWithAggregatesInput = {
   name?: Prisma.StringWithAggregatesFilter<"TreatmentMethod"> | string
   slug?: Prisma.StringNullableWithAggregatesFilter<"TreatmentMethod"> | string | null
   description?: Prisma.StringNullableWithAggregatesFilter<"TreatmentMethod"> | string | null
+  imageUrl?: Prisma.StringNullableWithAggregatesFilter<"TreatmentMethod"> | string | null
   basePrice?: Prisma.DecimalWithAggregatesFilter<"TreatmentMethod"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   durationMinutes?: Prisma.IntNullableWithAggregatesFilter<"TreatmentMethod"> | number | null
   displayOrder?: Prisma.IntWithAggregatesFilter<"TreatmentMethod"> | number
@@ -361,6 +373,7 @@ export type TreatmentMethodCreateInput = {
   name: string
   slug?: string | null
   description?: string | null
+  imageUrl?: string | null
   basePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
   durationMinutes?: number | null
   displayOrder?: number
@@ -380,6 +393,7 @@ export type TreatmentMethodUncheckedCreateInput = {
   name: string
   slug?: string | null
   description?: string | null
+  imageUrl?: string | null
   basePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
   durationMinutes?: number | null
   displayOrder?: number
@@ -397,6 +411,7 @@ export type TreatmentMethodUpdateInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   basePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
@@ -416,6 +431,7 @@ export type TreatmentMethodUncheckedUpdateInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   basePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
@@ -434,6 +450,7 @@ export type TreatmentMethodCreateManyInput = {
   name: string
   slug?: string | null
   description?: string | null
+  imageUrl?: string | null
   basePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
   durationMinutes?: number | null
   displayOrder?: number
@@ -447,6 +464,7 @@ export type TreatmentMethodUpdateManyMutationInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   basePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
@@ -461,6 +479,7 @@ export type TreatmentMethodUncheckedUpdateManyInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   basePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
@@ -485,6 +504,7 @@ export type TreatmentMethodCountOrderByAggregateInput = {
   name?: Prisma.SortOrder
   slug?: Prisma.SortOrder
   description?: Prisma.SortOrder
+  imageUrl?: Prisma.SortOrder
   basePrice?: Prisma.SortOrder
   durationMinutes?: Prisma.SortOrder
   displayOrder?: Prisma.SortOrder
@@ -505,6 +525,7 @@ export type TreatmentMethodMaxOrderByAggregateInput = {
   name?: Prisma.SortOrder
   slug?: Prisma.SortOrder
   description?: Prisma.SortOrder
+  imageUrl?: Prisma.SortOrder
   basePrice?: Prisma.SortOrder
   durationMinutes?: Prisma.SortOrder
   displayOrder?: Prisma.SortOrder
@@ -519,6 +540,7 @@ export type TreatmentMethodMinOrderByAggregateInput = {
   name?: Prisma.SortOrder
   slug?: Prisma.SortOrder
   description?: Prisma.SortOrder
+  imageUrl?: Prisma.SortOrder
   basePrice?: Prisma.SortOrder
   durationMinutes?: Prisma.SortOrder
   displayOrder?: Prisma.SortOrder
@@ -656,6 +678,7 @@ export type TreatmentMethodCreateWithoutServiceInput = {
   name: string
   slug?: string | null
   description?: string | null
+  imageUrl?: string | null
   basePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
   durationMinutes?: number | null
   displayOrder?: number
@@ -673,6 +696,7 @@ export type TreatmentMethodUncheckedCreateWithoutServiceInput = {
   name: string
   slug?: string | null
   description?: string | null
+  imageUrl?: string | null
   basePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
   durationMinutes?: number | null
   displayOrder?: number
@@ -720,6 +744,7 @@ export type TreatmentMethodScalarWhereInput = {
   name?: Prisma.StringFilter<"TreatmentMethod"> | string
   slug?: Prisma.StringNullableFilter<"TreatmentMethod"> | string | null
   description?: Prisma.StringNullableFilter<"TreatmentMethod"> | string | null
+  imageUrl?: Prisma.StringNullableFilter<"TreatmentMethod"> | string | null
   basePrice?: Prisma.DecimalFilter<"TreatmentMethod"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   durationMinutes?: Prisma.IntNullableFilter<"TreatmentMethod"> | number | null
   displayOrder?: Prisma.IntFilter<"TreatmentMethod"> | number
@@ -733,6 +758,7 @@ export type TreatmentMethodCreateWithoutMediaInput = {
   name: string
   slug?: string | null
   description?: string | null
+  imageUrl?: string | null
   basePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
   durationMinutes?: number | null
   displayOrder?: number
@@ -751,6 +777,7 @@ export type TreatmentMethodUncheckedCreateWithoutMediaInput = {
   name: string
   slug?: string | null
   description?: string | null
+  imageUrl?: string | null
   basePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
   durationMinutes?: number | null
   displayOrder?: number
@@ -783,6 +810,7 @@ export type TreatmentMethodUpdateWithoutMediaInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   basePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
@@ -801,6 +829,7 @@ export type TreatmentMethodUncheckedUpdateWithoutMediaInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   basePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
@@ -817,6 +846,7 @@ export type TreatmentMethodCreateWithoutProcedureStepsInput = {
   name: string
   slug?: string | null
   description?: string | null
+  imageUrl?: string | null
   basePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
   durationMinutes?: number | null
   displayOrder?: number
@@ -835,6 +865,7 @@ export type TreatmentMethodUncheckedCreateWithoutProcedureStepsInput = {
   name: string
   slug?: string | null
   description?: string | null
+  imageUrl?: string | null
   basePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
   durationMinutes?: number | null
   displayOrder?: number
@@ -867,6 +898,7 @@ export type TreatmentMethodUpdateWithoutProcedureStepsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   basePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
@@ -885,6 +917,7 @@ export type TreatmentMethodUncheckedUpdateWithoutProcedureStepsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   basePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
@@ -901,6 +934,7 @@ export type TreatmentMethodCreateWithoutFaqsInput = {
   name: string
   slug?: string | null
   description?: string | null
+  imageUrl?: string | null
   basePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
   durationMinutes?: number | null
   displayOrder?: number
@@ -919,6 +953,7 @@ export type TreatmentMethodUncheckedCreateWithoutFaqsInput = {
   name: string
   slug?: string | null
   description?: string | null
+  imageUrl?: string | null
   basePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
   durationMinutes?: number | null
   displayOrder?: number
@@ -951,6 +986,7 @@ export type TreatmentMethodUpdateWithoutFaqsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   basePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
@@ -969,6 +1005,7 @@ export type TreatmentMethodUncheckedUpdateWithoutFaqsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   basePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
@@ -985,6 +1022,7 @@ export type TreatmentMethodCreateWithoutAppointmentsInput = {
   name: string
   slug?: string | null
   description?: string | null
+  imageUrl?: string | null
   basePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
   durationMinutes?: number | null
   displayOrder?: number
@@ -1003,6 +1041,7 @@ export type TreatmentMethodUncheckedCreateWithoutAppointmentsInput = {
   name: string
   slug?: string | null
   description?: string | null
+  imageUrl?: string | null
   basePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
   durationMinutes?: number | null
   displayOrder?: number
@@ -1035,6 +1074,7 @@ export type TreatmentMethodUpdateWithoutAppointmentsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   basePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1053,6 +1093,7 @@ export type TreatmentMethodUncheckedUpdateWithoutAppointmentsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   basePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1069,6 +1110,7 @@ export type TreatmentMethodCreateManyServiceInput = {
   name: string
   slug?: string | null
   description?: string | null
+  imageUrl?: string | null
   basePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
   durationMinutes?: number | null
   displayOrder?: number
@@ -1082,6 +1124,7 @@ export type TreatmentMethodUpdateWithoutServiceInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   basePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1099,6 +1142,7 @@ export type TreatmentMethodUncheckedUpdateWithoutServiceInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   basePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1116,6 +1160,7 @@ export type TreatmentMethodUncheckedUpdateManyWithoutServiceInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   basePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1188,6 +1233,7 @@ export type TreatmentMethodSelect<ExtArgs extends runtime.Types.Extensions.Inter
   name?: boolean
   slug?: boolean
   description?: boolean
+  imageUrl?: boolean
   basePrice?: boolean
   durationMinutes?: boolean
   displayOrder?: boolean
@@ -1208,6 +1254,7 @@ export type TreatmentMethodSelectCreateManyAndReturn<ExtArgs extends runtime.Typ
   name?: boolean
   slug?: boolean
   description?: boolean
+  imageUrl?: boolean
   basePrice?: boolean
   durationMinutes?: boolean
   displayOrder?: boolean
@@ -1223,6 +1270,7 @@ export type TreatmentMethodSelectUpdateManyAndReturn<ExtArgs extends runtime.Typ
   name?: boolean
   slug?: boolean
   description?: boolean
+  imageUrl?: boolean
   basePrice?: boolean
   durationMinutes?: boolean
   displayOrder?: boolean
@@ -1238,6 +1286,7 @@ export type TreatmentMethodSelectScalar = {
   name?: boolean
   slug?: boolean
   description?: boolean
+  imageUrl?: boolean
   basePrice?: boolean
   durationMinutes?: boolean
   displayOrder?: boolean
@@ -1246,7 +1295,7 @@ export type TreatmentMethodSelectScalar = {
   updatedAt?: boolean
 }
 
-export type TreatmentMethodOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "serviceId" | "name" | "slug" | "description" | "basePrice" | "durationMinutes" | "displayOrder" | "isActive" | "createdAt" | "updatedAt", ExtArgs["result"]["treatmentMethod"]>
+export type TreatmentMethodOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "serviceId" | "name" | "slug" | "description" | "imageUrl" | "basePrice" | "durationMinutes" | "displayOrder" | "isActive" | "createdAt" | "updatedAt", ExtArgs["result"]["treatmentMethod"]>
 export type TreatmentMethodInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   service?: boolean | Prisma.ServiceDefaultArgs<ExtArgs>
   media?: boolean | Prisma.TreatmentMethod$mediaArgs<ExtArgs>
@@ -1277,6 +1326,7 @@ export type $TreatmentMethodPayload<ExtArgs extends runtime.Types.Extensions.Int
     name: string
     slug: string | null
     description: string | null
+    imageUrl: string | null
     basePrice: runtime.Decimal
     durationMinutes: number | null
     displayOrder: number
@@ -1716,6 +1766,7 @@ export interface TreatmentMethodFieldRefs {
   readonly name: Prisma.FieldRef<"TreatmentMethod", 'String'>
   readonly slug: Prisma.FieldRef<"TreatmentMethod", 'String'>
   readonly description: Prisma.FieldRef<"TreatmentMethod", 'String'>
+  readonly imageUrl: Prisma.FieldRef<"TreatmentMethod", 'String'>
   readonly basePrice: Prisma.FieldRef<"TreatmentMethod", 'Decimal'>
   readonly durationMinutes: Prisma.FieldRef<"TreatmentMethod", 'Int'>
   readonly displayOrder: Prisma.FieldRef<"TreatmentMethod", 'Int'>

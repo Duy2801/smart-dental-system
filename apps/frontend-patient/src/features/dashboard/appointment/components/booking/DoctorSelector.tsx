@@ -19,7 +19,7 @@ export function DoctorSelector({
 }: DoctorSelectorProps) {
   return (
     <fieldset>
-      <legend className="sr-only">Chon bac si</legend>
+      <legend className="sr-only">Chọn bác sĩ</legend>
       {doctors.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
           Không có bác sĩ trong khung giờ này. Vui lòng chọn ngày hoặc giờ khác.
@@ -53,7 +53,7 @@ export function DoctorSelector({
                   {doctor.specialty}
                 </span>
                 <span className="mt-2 block text-[10px] font-semibold text-amber-500">
-                  {doctor.experience} kinh nghiem
+                  {doctor.experience} kinh nghiệm
                 </span>
               </span>
               <span

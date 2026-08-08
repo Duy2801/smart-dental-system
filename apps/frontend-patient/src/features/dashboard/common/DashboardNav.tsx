@@ -58,7 +58,7 @@ export function DashboardNav() {
   return (
     <nav
       aria-label="Điều hướng chính"
-      className="hidden h-full items-center justify-center gap-3 md:flex lg:gap-6"
+      className="hidden h-full items-center justify-center gap-6 md:flex lg:gap-8 xl:gap-12"
     >
       {MAIN_NAV.map((item) => {
         const active =
@@ -72,11 +72,13 @@ export function DashboardNav() {
             href={item.href}
             prefetch={false}
             aria-current={active ? "page" : undefined}
-            className={`relative flex h-full min-w-[104px] items-center justify-center px-3 text-center text-sm font-semibold transition hover:text-[#0863c5] ${active ? "text-[#0863c5]" : "text-slate-500"
+            className={`relative flex h-full items-center px-1 text-sm font-semibold transition-colors duration-200 hover:text-[#0863c5] ${active ? "text-[#0863c5] font-bold" : "text-slate-600"
               }`}
           >
-            {item.label}
-            {active && <span className="absolute inset-x-4 bottom-0 h-0.5 rounded-full bg-[#0863c5]" />}
+            <span>{item.label}</span>
+            {active && (
+              <span className="absolute bottom-0 inset-x-0 h-[3px] rounded-t-full bg-[#0863c5]" />
+            )}
           </Link>
         );
       })}

@@ -465,10 +465,9 @@ const services = [
     category: 'Implant',
     name: 'Trồng răng Implant',
     slug: 'trong-rang-implant',
-    icon: '/service/trông răng implant.png',
+    icon: 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786205641/smart-dental/services/icons/trong-rang-implant.png',
     shortDescription: 'Cấy ghép răng giả cố định, khôi phục thẩm mỹ và chức năng ăn nhai hoàn hảo như răng thật.',
     description: 'Giải pháp cấy ghép trụ Implant sinh học vào xương hàm thay thế chân răng đã mất, nâng đỡ mão răng sứ bền chắc lâu dài.',
-    thumbnailUrl: serviceImageUrls.implant,
     durationMinutes: 60,
     basePrice: '13000000',
     isFeatured: true,
@@ -478,10 +477,9 @@ const services = [
     category: 'Phục hình',
     name: 'Bọc răng sứ',
     slug: 'boc-rang-su',
-    icon: '/service/bọc sứ.png',
+    icon: 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786205643/smart-dental/services/icons/boc-rang-su.png',
     shortDescription: 'Khôi phục hình dáng và chức năng của răng tổn thương bằng mão sứ.',
     description: 'Bọc mão sứ giúp bảo vệ răng đã chữa tủy, răng vỡ mẻ lớn hoặc cải thiện thẩm mỹ nụ cười.',
-    thumbnailUrl: serviceImageUrls.dentalCrown,
     durationMinutes: 90,
     basePrice: '3500000',
     isFeatured: true,
@@ -491,10 +489,9 @@ const services = [
     category: 'Thẩm mỹ',
     name: 'Dán sứ Veneer',
     slug: 'dan-su-veneer',
-    icon: '/service/Dán sứ.png',
+    icon: 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786205645/smart-dental/services/icons/dan-su-veneer.png',
     shortDescription: 'Mặt dán sứ siêu mỏng bảo tồn răng thật tối đa, mang lại nụ cười rạng rỡ.',
     description: 'Dán sứ Veneer sử dụng mặt sứ siêu mỏng (0.3 - 0.5mm) dán lên mặt trước răng để cải thiện màu sắc, hình dáng mà ít mài răng.',
-    thumbnailUrl: serviceImageUrls.dentalCrown,
     durationMinutes: 60,
     basePrice: '8000000',
     isFeatured: true,
@@ -504,10 +501,9 @@ const services = [
     category: 'Chỉnh nha',
     name: 'Niềng răng',
     slug: 'nieng-rang',
-    icon: '/service/niềng răng.png',
+    icon: 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786205646/smart-dental/services/icons/nieng-rang.png',
     shortDescription: 'Chỉnh nha bằng khay niềng trong suốt Invisalign, thẩm mỹ và tiện lợi.',
     description: 'Sử dụng các khay nhựa y tế trong suốt thiết kế riêng để dịch chuyển răng, có thể tháo lắp dễ dàng khi ăn uống.',
-    thumbnailUrl: serviceImageUrls.braces,
     durationMinutes: 45,
     basePrice: '45000000',
     isFeatured: true,
@@ -517,10 +513,9 @@ const services = [
     category: 'Chỉnh nha',
     name: 'Niềng răng mắc cài',
     slug: 'nieng-rang-mac-cai',
-    icon: '/service/niềng răng mắc cài.png',
+    icon: 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786205647/smart-dental/services/icons/nieng-rang-mac-cai.png',
     shortDescription: 'Nắn chỉnh răng lệch lạc, khớp cắn sai lệch bằng hệ thống mắc cài.',
     description: 'Phương pháp chỉnh nha truyền thống và hiện đại sử dụng mắc cài kim loại hoặc sứ để kéo răng về đúng vị trí.',
-    thumbnailUrl: serviceImageUrls.braces,
     durationMinutes: 45,
     basePrice: '25000000',
     isFeatured: false,
@@ -530,10 +525,9 @@ const services = [
     category: 'Tiểu phẫu',
     name: 'Nhổ răng khôn',
     slug: 'nho-rang-khon',
-    icon: '/service/nho rang khon.png',
+    icon: 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786205648/smart-dental/services/icons/nho-rang-khon.png',
     shortDescription: 'Nhổ răng khôn mọc lệch, mọc ngầm an toàn bằng công nghệ sóng siêu âm.',
     description: 'Tiểu phẫu nhổ răng khôn mọc lệch, mọc kẹt tránh biến chứng sưng viêm nguy hiểm với công nghệ Piezotome.',
-    thumbnailUrl: serviceImageUrls.toothExtraction,
     durationMinutes: 45,
     basePrice: '2000000',
     isFeatured: true,
@@ -543,10 +537,9 @@ const services = [
     category: 'Tổng quát',
     name: 'Nha khoa tổng quát',
     slug: 'nha-khoa-tong-quat',
-    icon: '/service/nha khoa tong quat.png',
+    icon: 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786205649/smart-dental/services/icons/nha-khoa-tong-quat.png',
     shortDescription: 'Chăm sóc răng miệng định kỳ, cạo vôi răng và điều trị tổng quát.',
     description: 'Các dịch vụ cơ bản chăm sóc và bảo vệ sức khỏe răng miệng bao gồm khám định kỳ, cạo vôi răng, trám răng sâu và chữa tủy.',
-    thumbnailUrl: serviceImageUrls.dentalCheckup,
     durationMinutes: 30,
     basePrice: '150000',
     isFeatured: false,
@@ -556,10 +549,9 @@ const services = [
     category: 'Nha khoa trẻ em',
     name: 'Nha khoa trẻ em',
     slug: 'nha-khoa-tre-em',
-    icon: '/service/Nha khoa tre em.png',
+    icon: 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786205651/smart-dental/services/icons/nha-khoa-tre-em.png',
     shortDescription: 'Khám răng nhẹ nhàng và điều trị dự phòng sâu răng cho bé.',
     description: 'Dịch vụ nha khoa thân thiện giúp bé thoải mái khám răng, nhổ răng sữa và bôi vecni flour bảo vệ men răng.',
-    thumbnailUrl: serviceImageUrls.kidsDental,
     durationMinutes: 30,
     basePrice: '150000',
     isFeatured: false,
@@ -1212,6 +1204,56 @@ async function seedBaseData() {
     createdSpecializations.set(spec.code, item);
   }
 
+  const consultationPackagesData = [
+    {
+      minutes: 15,
+      label: '15 Phút - Nhanh',
+      price: 50000,
+      description: 'Giải đáp thắc mắc nhanh, xem kết quả chụp X-quang hoặc tư vấn sau điều trị.',
+      tag: 'Khỏi chờ lâu',
+      displayOrder: 1,
+    },
+    {
+      minutes: 30,
+      label: '30 Phút - Tiêu Chuẩn',
+      price: 100000,
+      description: 'Khám sơ bộ triệu chứng, tư vấn các dịch vụ nha khoa phổ thông và phương án.',
+      tag: 'Phổ biến nhất',
+      displayOrder: 2,
+    },
+    {
+      minutes: 60,
+      label: '60 Phút - Chuyên Sâu',
+      price: 150000,
+      description: 'Chẩn đoán chi tiết phác đồ niềng răng, Implant, thẩm mỹ nụ cười toàn diện.',
+      tag: 'Chuyên sâu',
+      displayOrder: 3,
+    },
+  ];
+
+  for (const pkg of consultationPackagesData) {
+    await prisma.consultationPackage.upsert({
+      where: { minutes: pkg.minutes },
+      update: {
+        label: pkg.label,
+        price: pkg.price,
+        description: pkg.description,
+        tag: pkg.tag,
+        displayOrder: pkg.displayOrder,
+        isActive: true,
+      },
+      create: {
+        minutes: pkg.minutes,
+        label: pkg.label,
+        price: pkg.price,
+        description: pkg.description,
+        tag: pkg.tag,
+        displayOrder: pkg.displayOrder,
+        isActive: true,
+      },
+    });
+  }
+
   const createdPermissions: Array<{ id: string; code: string }> = [];
   for (const [code, name, module, action] of permissions) {
     createdPermissions.push(
@@ -1529,6 +1571,7 @@ async function seedBaseData() {
     },
   });
 
+  await prisma.appointment.deleteMany({});
   await prisma.treatmentMethod.deleteMany({});
 
   const createdServices: Array<{
@@ -1554,7 +1597,6 @@ async function seedBaseData() {
       icon: serviceSeed.icon,
       shortDescription: serviceSeed.shortDescription,
       description: serviceSeed.description,
-      thumbnailUrl: serviceSeed.thumbnailUrl,
       isFeatured: serviceSeed.isFeatured,
       displayOrder: serviceSeed.displayOrder,
       specializationId: specId,
@@ -1597,6 +1639,7 @@ async function seedBaseData() {
           name: methodSeed.name,
           slug: methodSeed.slug,
           description: methodSeed.description,
+          imageUrl: (methodSeed as any).imageUrl ?? tm.media?.[0]?.url ?? null,
           basePrice: methodSeed.basePrice,
           durationMinutes: methodSeed.durationMinutes,
           displayOrder: index + 1,
@@ -2487,6 +2530,59 @@ async function seedRelatedData(
 async function main() {
   const context = await seedBaseData();
   await seedRelatedData(context);
+
+  // Seed Banner records
+  await prisma.banner.deleteMany({});
+  const initialBanners = [
+    {
+      title: 'Nha Khoa Thẩm Mỹ Công Nghệ Cao Smart Dental',
+      description: 'Chăm sóc nụ cười toàn diện cùng đội ngũ thạc sĩ, bác sĩ chuyên khoa với hệ thống trang thiết bị hiện đại chuẩn Châu Âu.',
+      imageUrl: 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786204828/smart-dental/banners/bannerhome.png',
+      linkUrl: '/booking',
+      targetType: 'SERVICE',
+      displayOrder: 1,
+      isActive: true,
+    },
+    {
+      title: 'Ưu Đãi Niềng Răng Thẩm Mỹ 30%',
+      description: 'Giảm ngay 30% gói Niềng Răng Thẩm Mỹ (Mắc cài & Trong suốt). Mô phỏng nụ cười 3D ClinCheck miễn phí.',
+      imageUrl: 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1785763841/smart-dental/promotions/banner-nieng-rang.png',
+      linkUrl: '/promotions',
+      targetType: 'PROMOTION',
+      displayOrder: 2,
+      isActive: true,
+    },
+    {
+      title: 'Trồng Răng Implant Giảm Ngay 5 Triệu',
+      description: 'Trồng răng Implant chuyên nghiệp giảm trực tiếp 5.000.000đ cho mỗi trụ Implant. Miễn phí chụp phim CT ConeBeam 3D.',
+      imageUrl: 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1785763842/smart-dental/promotions/banner-implant.png',
+      linkUrl: '/promotions',
+      targetType: 'PROMOTION',
+      displayOrder: 3,
+      isActive: true,
+    },
+    {
+      title: 'Nhổ Răng Không Đau Giảm 500K',
+      description: 'Tiểu phẫu nhổ răng khôn mọc lệch, mọc ngầm công nghệ siêu âm không đau, an toàn, hiệu quả.',
+      imageUrl: 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1785763843/smart-dental/promotions/banner-nho-rang.png',
+      linkUrl: '/promotions',
+      targetType: 'PROMOTION',
+      displayOrder: 4,
+      isActive: true,
+    },
+    {
+      title: 'Lấy Cao Răng Siêu Âm Chỉ Từ 99K',
+      description: 'Dịch vụ lấy cao răng công nghệ sóng siêu âm nhẹ nhàng không buốt giá, làm sạch mảng bám mang lại hàm răng sáng bóng.',
+      imageUrl: 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1785763844/smart-dental/promotions/banner-cao-rang.png',
+      linkUrl: '/promotions',
+      targetType: 'PROMOTION',
+      displayOrder: 5,
+      isActive: true,
+    },
+  ];
+  for (const b of initialBanners) {
+    await prisma.banner.create({ data: b });
+  }
 
   console.log('Seed completed.');
   console.table([

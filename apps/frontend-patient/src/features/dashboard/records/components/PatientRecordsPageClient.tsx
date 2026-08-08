@@ -32,7 +32,7 @@ export function PatientRecordsPageClient() {
   const treatments = mapRecordTreatments(recordsQuery.data.treatmentPlans);
 
   return (
-    <main className="mx-auto w-full max-w-[1520px] space-y-5 px-4 py-7 sm:px-6 lg:px-8">
+    <main className="mx-auto w-full max-w-[1360px] space-y-5 px-4 py-7 sm:px-6 lg:px-8">
       <div className="flex items-center gap-2 text-[11px] font-medium text-slate-500">
         <Link href={ROUTES.home} className="hover:text-[#0058bc]">
           Trang chủ

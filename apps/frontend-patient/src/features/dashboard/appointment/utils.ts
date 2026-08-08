@@ -66,6 +66,8 @@ export function getCreateAppointmentErrorMessage(error: unknown) {
         "Bạn chỉ được có tối đa 5 lịch trong 7 ngày để tránh đặt lịch quá nhiều.",
       "appointment.online_booking_blocked":
         "Bạn đã có từ 3 lần vắng mặt. Vui lòng liên hệ lễ tân để đặt lịch.",
+      "appointment.deposit_not_available":
+        "Tính năng đặt cọc cho dịch vụ này hiện chưa khả dụng. Vui lòng chọn thanh toán tại quầy.",
       "doctor.not_available_at_selected_time":
         "Bác sĩ không làm việc trong khung giờ đã chọn.",
       "doctor.unavailable": "Bác sĩ hiện không khả dụng.",

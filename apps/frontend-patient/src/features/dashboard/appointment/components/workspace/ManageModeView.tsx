@@ -1,43 +1,48 @@
+"use client";
+
+import { useState } from "react";
 import type { AppointmentItem, AppointmentStatus } from "../../api";
 import { DashboardIcon } from "../../../common/DashboardIcon";
 import { AppointmentRecordCard } from "./AppointmentRecordCard";
 import { AppointmentsEmptyState } from "./AppointmentsEmptyState";
 import { AppointmentHistoryList } from "./AppointmentHistoryList";
 import { T } from "../../../common/typography";
+import { useAppointmentWorkspaceView } from "../../hooks/useAppointmentWorkspaceView";
 
 type ManageModeViewProps = {
   appointments: AppointmentItem[];
   upcoming: AppointmentItem[];
-  history: AppointmentItem[];
-  query: string;
-  statusFilter: AppointmentStatus | "all";
+  historyItems: AppointmentItem[];
   loading: boolean;
-  onQueryChange: (value: string) => void;
-  onStatusFilterChange: (value: AppointmentStatus | "all") => void;
-  onResetFilters: () => void;
   onOpenBooking: () => void;
   onReschedule: (appointment: AppointmentItem) => void;
   onCancelAppointment: (appointmentId: string) => void;
+  onPayDeposit?: (appointment: AppointmentItem) => void;
   cancellingAppointmentId: string | null;
 };
 
 export function ManageModeView({
   appointments,
   upcoming,
-  history,
-  query,
-  statusFilter,
+  historyItems,
   loading,
-  onQueryChange,
-  onStatusFilterChange,
-  onResetFilters,
   onOpenBooking,
   onReschedule,
   onCancelAppointment,
+  onPayDeposit,
   cancellingAppointmentId,
 }: ManageModeViewProps) {
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<AppointmentStatus | "all">("all");
+
+  const { filteredUpcoming, history } = useAppointmentWorkspaceView({
+    upcoming,
+    historyItems,
+    query,
+    statusFilter,
+  });
   return (
-    <main className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8">
+    <main className="mx-auto w-full max-w-[1360px] px-4 py-6 sm:px-6 lg:px-8">
       <section className="rounded-[28px] border border-slate-200 bg-white px-5 py-5 shadow-[0_16px_40px_rgba(15,23,42,.04)] sm:px-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="max-w-3xl">
@@ -94,7 +99,7 @@ export function ManageModeView({
             />
             <input
               value={query}
-              onChange={(event) => onQueryChange(event.target.value)}
+              onChange={(event) => setQuery(event.target.value)}
               placeholder="Tìm theo bác sĩ hoặc dịch vụ..."
               className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-50"
             />
@@ -113,7 +118,7 @@ export function ManageModeView({
             <select
               value={statusFilter}
               onChange={(event) =>
-                onStatusFilterChange(event.target.value as AppointmentStatus | "all")
+                setStatusFilter(event.target.value as AppointmentStatus | "all")
               }
               className="h-12 w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 pl-11 pr-10 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-50"
             >
@@ -140,7 +145,7 @@ export function ManageModeView({
                 <button
                   key={item.value}
                   onClick={() =>
-                    onStatusFilterChange(item.value as AppointmentStatus | "all")
+                    setStatusFilter(item.value as AppointmentStatus | "all")
                   }
                   className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${active
                     ? "border-[#0058bc] bg-[#0058bc] text-white"
@@ -186,14 +191,15 @@ export function ManageModeView({
                   </div>
                 </div>
 
-                {upcoming.length ? (
+                {filteredUpcoming.length ? (
                   <div className="grid gap-4">
-                    {upcoming.map((item) => (
+                    {filteredUpcoming.map((item) => (
                       <AppointmentRecordCard
                         key={item.id}
                         appointment={item}
                         onReschedule={() => onReschedule(item)}
                         onCancel={() => onCancelAppointment(item.id)}
+                        onPayDeposit={() => onPayDeposit?.(item)}
                         canCancel={
                           item.status === "pending" || item.status === "confirmed"
                         }

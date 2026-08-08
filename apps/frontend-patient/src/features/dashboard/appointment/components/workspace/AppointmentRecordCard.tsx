@@ -46,6 +46,7 @@ type AppointmentRecordCardProps = {
   appointment: AppointmentItem;
   onReschedule: () => void;
   onCancel?: () => void;
+  onPayDeposit?: () => void;
   canCancel?: boolean;
   isCancelling?: boolean;
 };
@@ -54,6 +55,7 @@ export function AppointmentRecordCard({
   appointment,
   onReschedule,
   onCancel,
+  onPayDeposit,
   canCancel = false,
   isCancelling = false,
 }: AppointmentRecordCardProps) {
@@ -94,10 +96,16 @@ export function AppointmentRecordCard({
                 <h3 className="truncate text-base font-extrabold text-slate-900 group-hover:text-[#0863c5] transition-colors">
                   {appointment.doctor}
                 </h3>
-                <div className="mt-0.5 flex items-center gap-2">
+                <div className="mt-0.5 flex flex-wrap items-center gap-2">
                   <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-xs font-semibold text-[#0863c5] border border-blue-100/80">
                     {appointment.service}
                   </span>
+                  {appointment.isDepositPending ? (
+                    <span className="inline-flex items-center gap-1 rounded-md bg-amber-100 px-2 py-0.5 text-[11px] font-extrabold text-amber-800 border border-amber-200">
+                      <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-ping" />
+                      Chờ cọc 30% ({appointment.depositAmount?.toLocaleString("vi-VN") ?? ""}đ)
+                    </span>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -149,6 +157,18 @@ export function AppointmentRecordCard({
 
         {/* 3. Action Buttons */}
         <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap lg:justify-end">
+          {appointment.isDepositPending && appointment.depositInvoiceId && onPayDeposit ? (
+            <button
+              type="button"
+              onClick={onPayDeposit}
+              className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 px-4 text-xs font-black text-white shadow-md shadow-amber-500/20 transition-all hover:from-amber-600 hover:to-amber-700 hover:shadow-lg"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              Cọc ngay (VietQR)
+            </button>
+          ) : null}
           <button
             type="button"
             className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-blue-50 text-[#0863c5] border border-blue-100 transition-all duration-200 hover:bg-[#0863c5] hover:text-white hover:shadow-md hover:shadow-blue-500/20"

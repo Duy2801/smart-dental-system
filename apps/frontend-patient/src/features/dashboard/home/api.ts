@@ -18,7 +18,7 @@ type ServiceDto = {
   icon?: string | null;
   shortDescription?: string | null;
   description?: string | null;
-  thumbnailUrl?: string | null;
+  treatmentMethods?: { imageUrl?: string | null }[];
   durationMinutes: number;
   basePrice: string | number;
 };
@@ -204,7 +204,7 @@ function mapService(service: ServiceDto): HomeServiceCard {
     price: formatVnd(service.basePrice),
     href: `/service/${service.id}`,
     icon: service.icon ?? null,
-    imageUrl: service.thumbnailUrl ?? null,
+    imageUrl: service.treatmentMethods?.find((m) => m.imageUrl)?.imageUrl ?? null,
     imageAlt: service.name,
     durationMinutes: service.durationMinutes,
   };

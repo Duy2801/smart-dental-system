@@ -128,7 +128,6 @@ export class ServiceService {
         shortDescription: cleanOptionalText(dto.shortDescription),
         description: cleanOptionalText(dto.description),
         detailSummary: cleanOptionalText(dto.detailSummary),
-        thumbnailUrl: cleanOptionalText(dto.thumbnailUrl),
         highlights: cleanHighlights(dto.highlights),
         suitableFor: cleanTextList(dto.suitableFor),
         includedItems: cleanTextList(dto.includedItems),
@@ -150,6 +149,7 @@ export class ServiceService {
                 name: tm.name.trim(),
                 slug: cleanOptionalText(tm.slug),
                 description: cleanOptionalText(tm.description),
+                imageUrl: cleanOptionalText(tm.imageUrl),
                 basePrice: tm.basePrice,
                 durationMinutes: tm.durationMinutes,
                 displayOrder: tm.displayOrder ?? tmIndex + 1,
@@ -216,10 +216,6 @@ export class ServiceService {
             dto.detailSummary === undefined
               ? undefined
               : cleanOptionalText(dto.detailSummary),
-          thumbnailUrl:
-            dto.thumbnailUrl === undefined
-              ? undefined
-              : cleanOptionalText(dto.thumbnailUrl),
           highlights:
             dto.highlights === undefined
               ? undefined
@@ -269,6 +265,7 @@ export class ServiceService {
                 name: tm.name.trim(),
                 slug: cleanOptionalText(tm.slug),
                 description: cleanOptionalText(tm.description),
+                imageUrl: cleanOptionalText(tm.imageUrl),
                 basePrice: tm.basePrice,
                 durationMinutes: tm.durationMinutes,
                 displayOrder: tm.displayOrder ?? 0,

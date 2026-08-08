@@ -5,6 +5,7 @@ export type TreatmentMethodItem = {
   serviceId: string;
   name: string;
   description?: string;
+  imageUrl?: string | null;
   price: string;
   rawPrice: number;
   durationMinutes: number;

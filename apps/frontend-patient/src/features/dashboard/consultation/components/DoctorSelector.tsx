@@ -1,0 +1,100 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { getConsultationDoctors } from "../api";
+import type { ConsultationDoctor } from "../types";
+
+interface DoctorSelectorProps {
+  selectedDoctorId: string;
+  onSelectDoctor: (doctorId: string) => void;
+}
+
+export function DoctorSelector({
+  selectedDoctorId,
+  onSelectDoctor,
+}: DoctorSelectorProps) {
+  const [doctors, setDoctors] = useState<ConsultationDoctor[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>("");
+
+  useEffect(() => {
+    setIsLoading(true);
+    getConsultationDoctors()
+      .then((data) => {
+        setDoctors(data);
+        if (data.length > 0 && !selectedDoctorId) {
+          onSelectDoctor(data[0].id);
+        }
+      })
+      .catch((err) => {
+        console.error("Lỗi khi tải danh sách bác sĩ:", err);
+        setError("Không thể tải danh sách bác sĩ tư vấn.");
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, []);
+
+  return (
+    <div className="space-y-4 pt-4 border-t">
+      <div className="flex items-center gap-2">
+        <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-700 font-bold text-sm">
+          2
+        </span>
+        <h2 className="text-lg font-bold text-slate-800">
+          Chọn Bác Sĩ Tư Vấn Trực Tuyến
+        </h2>
+      </div>
+
+      {isLoading ? (
+        <div className="py-6 text-center text-slate-400 text-sm">
+          Đang tải danh sách bác sĩ tư vấn...
+        </div>
+      ) : error ? (
+        <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
+          {error}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {doctors.map((doctor) => {
+            const isSelected = selectedDoctorId === doctor.id;
+            return (
+              <div
+                key={doctor.id}
+                onClick={() => onSelectDoctor(doctor.id)}
+                className={`cursor-pointer rounded-xl p-4 border-2 transition-all flex items-center gap-4 ${
+                  isSelected
+                    ? "border-blue-600 bg-blue-50/40 shadow-sm"
+                    : "border-slate-200 hover:border-slate-300"
+                }`}
+              >
+                <div className="w-14 h-14 rounded-full bg-slate-200 flex-shrink-0 overflow-hidden border border-slate-300 flex items-center justify-center text-slate-600 font-bold text-lg">
+                  {doctor.avatarUrl ? (
+                    <img
+                      src={doctor.avatarUrl}
+                      alt={doctor.fullName}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    doctor.fullName.slice(0, 2).toUpperCase()
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h4 className="font-bold text-slate-800 text-sm truncate">
+                    {doctor.fullName}
+                  </h4>
+                  <p className="text-xs text-blue-600 font-medium truncate">
+                    {doctor.specialization}
+                  </p>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    {doctor.yearsExperience} năm kinh nghiệm
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}

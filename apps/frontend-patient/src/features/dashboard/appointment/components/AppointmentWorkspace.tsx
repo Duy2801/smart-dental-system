@@ -1,19 +1,14 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import { useAppSelector } from "@/providers";
-import { type AppointmentStatus } from "../api";
-import { useAppointmentBookingData } from "../hooks/useAppointmentBookingData";
 import { useBookingAuthGuard } from "../hooks/useBookingAuthGuard";
-import { useCreateAppointment } from "../hooks/useCreateAppointment";
 import { usePatientAppointments } from "../hooks/usePatientAppointments";
-import { useAppointmentWorkspaceSync } from "../hooks/useAppointmentWorkspaceSync";
-import { useAppointmentWorkspaceView } from "../hooks/useAppointmentWorkspaceView";
 import { useCancelAppointment } from "../hooks/useCancelAppointment";
-import type { AppointmentPaymentOption, NotificationPreferences } from "../types";
 import { BookingModeView } from "./booking/BookingModeView";
 import { ManageModeView } from "./workspace/ManageModeView";
 import { RescheduleAppointmentModal } from "./workspace/RescheduleAppointmentModal";
+import { DepositPaymentModal } from "./booking/DepositPaymentModal";
 import type { AppointmentItem } from "../api";
 
 export function AppointmentWorkspace({
@@ -27,93 +22,22 @@ export function AppointmentWorkspace({
   const isLoggedIn = isAuthenticated && Boolean(accessToken);
 
   const [mode, setMode] = useState<"manage" | "booking">(initialMode);
-  const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<AppointmentStatus | "all">(
-    "all",
-  );
-  const [selectedServiceId, setSelectedServiceId] = useState("");
-  const [selectedMethodId, setSelectedMethodId] = useState("");
-  const [selectedDoctorId, setSelectedDoctorId] = useState("");
-  const [selectedDateId, setSelectedDateId] = useState("");
-  const [selectedTime, setSelectedTime] = useState("");
-  const [selectedPaymentOption, setSelectedPaymentOption] =
-    useState<AppointmentPaymentOption>("DEPOSIT_30_PERCENT");
-  const [bookingSuccessMessage, setBookingSuccessMessage] = useState<
-    string | null
-  >(null);
   const [reschedulingAppointment, setReschedulingAppointment] =
     useState<AppointmentItem | null>(null);
-  const [notifications, setNotifications] = useState<NotificationPreferences>({
-    email: true,
-    app: true,
-    sms: false,
-  });
+  const [depositModalState, setDepositModalState] = useState<{
+    isOpen: boolean;
+    invoiceId: string;
+    depositAmount: number;
+    serviceName?: string;
+    doctorName?: string;
+    scheduledTime?: string;
+  } | null>(null);
 
   const { ensureLoggedInBeforeBooking } = useBookingAuthGuard({ isLoggedIn });
-  const {
-    baseOptionsQuery,
-    services,
-    dates,
-    doctors,
-    availableTimes,
-    selectedService,
-    selectedTreatmentMethod,
-    selectedDoctor,
-    selectedDate,
-    slotIntervalMinutes,
-    loading,
-    checkingAvailability,
-  } = useAppointmentBookingData({
-    selectedServiceId,
-    selectedTreatmentMethodId: selectedMethodId,
-    selectedDoctorId,
-    selectedDateId,
-    selectedTime,
-  });
-  const { upcoming, historyItems, appointments } = usePatientAppointments(
-    isLoggedIn,
-  );
-  const blockedBookingTimes = useMemo(() => {
-    if (!selectedDateId) {
-      return {
-        times: [] as string[],
-        ranges: [] as string[],
-      };
-    }
-
-    return collectBlockedTimeData(
-      upcoming,
-      selectedDateId,
-      availableTimes,
-      selectedTreatmentMethod?.durationMinutes ?? 30,
-    );
-  }, [availableTimes, selectedDateId, selectedTreatmentMethod?.durationMinutes, upcoming]);
-  const selectableAvailableTimes = useMemo(
-    () =>
-      availableTimes.filter((time) => !blockedBookingTimes.times.includes(time)),
-    [availableTimes, blockedBookingTimes.times],
-  );
-  const effectiveSelectedTime = blockedBookingTimes.times.includes(selectedTime)
-    ? ""
-    : selectedTime;
-  const { createAppointment, isSubmitting: submitting } = useCreateAppointment({
-    dates,
-    availableTimes: selectableAvailableTimes,
-    selectedDoctorId,
-    selectedServiceId,
-    selectedTreatmentMethodId: selectedMethodId,
-    selectedDateId,
-    selectedTime: effectiveSelectedTime,
-    selectedPaymentOption,
-    ensureLoggedInBeforeBooking,
-    onSelectedTimeChange: setSelectedTime,
-    onSelectedDoctorChange: setSelectedDoctorId,
-    onSuccess: setBookingSuccessMessage,
-  });
-  const {
-    cancelAppointment,
-    cancellingAppointmentId,
-  } = useCancelAppointment();
+  const { upcoming, historyItems, appointments, patientAppointmentsQuery } =
+    usePatientAppointments(isLoggedIn);
+  const { cancelAppointment, cancellingAppointmentId } =
+    useCancelAppointment();
 
   const openBookingMode = useCallback(async () => {
     const canBook = await ensureLoggedInBeforeBooking();
@@ -121,87 +45,17 @@ export function AppointmentWorkspace({
     setMode("booking");
   }, [ensureLoggedInBeforeBooking]);
 
-  useAppointmentWorkspaceSync({
-    bookingOptionsData: baseOptionsQuery.data,
-    hasBookingOptionsError: baseOptionsQuery.isError,
-    dates,
-    doctors,
-    availableTimes: selectableAvailableTimes,
-    selectedDateId,
-    selectedTime: effectiveSelectedTime,
-    selectedDoctorId,
-    onOpenBookingMode: openBookingMode,
-    setSelectedServiceId,
-    setSelectedMethodId,
-    setSelectedDoctorId,
-    setSelectedDateId,
-    setSelectedTime,
-  });
-
-  const { filteredUpcoming, history, current } = useAppointmentWorkspaceView({
-    upcoming,
-    historyItems,
-    query,
-    statusFilter,
-  });
-
   if (mode === "booking") {
     return (
       <BookingModeView
-        services={services}
-        doctors={doctors}
-        dates={dates}
-        times={selectableAvailableTimes}
-        blockedTimes={blockedBookingTimes.times}
-        blockedRanges={blockedBookingTimes.ranges}
-        selectedServiceId={selectedServiceId}
-        selectedMethodId={selectedMethodId}
-        selectedDoctorId={selectedDoctorId}
-        selectedDateId={selectedDateId}
-        selectedTime={effectiveSelectedTime}
-        selectedService={selectedService}
-        selectedTreatmentMethod={selectedTreatmentMethod}
-        selectedDoctor={selectedDoctor}
-        selectedDate={selectedDate}
-        selectedPaymentOption={selectedPaymentOption}
-        slotIntervalMinutes={slotIntervalMinutes}
-        current={current}
-        notifications={notifications}
-        successMessage={bookingSuccessMessage}
-        isSubmitting={submitting}
-        isCheckingAvailability={checkingAvailability}
-        onSelectService={(serviceId) => {
-          setSelectedServiceId(serviceId);
-          const targetService = services.find((s) => s.id === serviceId);
-          if (targetService && targetService.treatmentMethods.length > 0) {
-            setSelectedMethodId(targetService.treatmentMethods[0].id);
-          } else {
-            setSelectedMethodId("");
+        isLoggedIn={isLoggedIn}
+        ensureLoggedInBeforeBooking={ensureLoggedInBeforeBooking}
+        upcomingAppointments={upcoming}
+        onCancelBooking={() => setMode("manage")}
+        onBookingComplete={(depositInfo) => {
+          if (depositInfo) {
+            setDepositModalState(depositInfo);
           }
-        }}
-        onSelectMethod={setSelectedMethodId}
-        onSelectDoctor={setSelectedDoctorId}
-        onSelectDate={setSelectedDateId}
-        onSelectTime={setSelectedTime}
-        onSelectPaymentOption={setSelectedPaymentOption}
-        onToggleNotification={(key) =>
-          setNotifications((value) => ({ ...value, [key]: !value[key] }))
-        }
-        onOpenReview={() => setBookingSuccessMessage(null)}
-        onConfirmBooking={createAppointment}
-        onCancelBooking={() => {
-          setBookingSuccessMessage(null);
-          setSelectedServiceId("");
-          setSelectedMethodId("");
-          setSelectedDoctorId("");
-          setSelectedDateId("");
-          setSelectedTime("");
-          setSelectedPaymentOption("DEPOSIT_30_PERCENT");
-          setMode("manage");
-        }}
-        onCloseSuccess={() => {
-          setBookingSuccessMessage(null);
-          setSelectedPaymentOption("DEPOSIT_30_PERCENT");
           setMode("manage");
         }}
       />
@@ -212,20 +66,24 @@ export function AppointmentWorkspace({
     <>
       <ManageModeView
         appointments={appointments}
-        upcoming={filteredUpcoming}
-        history={history}
-        query={query}
-        statusFilter={statusFilter}
-        loading={loading}
-        onQueryChange={setQuery}
-        onStatusFilterChange={setStatusFilter}
-        onResetFilters={() => {
-          setQuery("");
-          setStatusFilter("all");
-        }}
+        upcoming={upcoming}
+        historyItems={historyItems}
+        loading={patientAppointmentsQuery.isLoading}
         onOpenBooking={openBookingMode}
         onReschedule={setReschedulingAppointment}
         onCancelAppointment={cancelAppointment}
+        onPayDeposit={(appointment) => {
+          if (appointment.depositInvoiceId && appointment.depositAmount) {
+            setDepositModalState({
+              isOpen: true,
+              invoiceId: appointment.depositInvoiceId,
+              depositAmount: appointment.depositAmount,
+              serviceName: appointment.service,
+              doctorName: appointment.doctor,
+              scheduledTime: `${appointment.time} ${appointment.date}`,
+            });
+          }
+        }}
         cancellingAppointmentId={cancellingAppointmentId}
       />
       {reschedulingAppointment ? (
@@ -235,44 +93,21 @@ export function AppointmentWorkspace({
           onClose={() => setReschedulingAppointment(null)}
         />
       ) : null}
+      {depositModalState?.isOpen ? (
+        <DepositPaymentModal
+          isOpen={depositModalState.isOpen}
+          invoiceId={depositModalState.invoiceId}
+          depositAmount={depositModalState.depositAmount}
+          serviceName={depositModalState.serviceName}
+          doctorName={depositModalState.doctorName}
+          scheduledTime={depositModalState.scheduledTime}
+          onClose={() => setDepositModalState(null)}
+          onSuccess={() => {
+            setDepositModalState(null);
+            setMode("manage");
+          }}
+        />
+      ) : null}
     </>
   );
-}
-
-function collectBlockedTimeData(
-  appointments: AppointmentItem[],
-  dateId: string,
-  candidateTimes: string[],
-  serviceDurationMinutes: number,
-) {
-  const appointmentsForDate = appointments.filter(
-    (appointment) => appointment.dateId === dateId,
-  );
-
-  const times = candidateTimes.filter((time) => {
-    const slotStart = new Date(`${dateId}T${time}:00`);
-    const slotEnd = new Date(slotStart.getTime() + serviceDurationMinutes * 60 * 1000);
-
-    return appointmentsForDate.some((appointment) => {
-      const bookedStart = new Date(appointment.scheduledAt);
-      const bookedEnd = new Date(appointment.endAt);
-      return bookedStart < slotEnd && bookedEnd > slotStart;
-    });
-  });
-
-  const ranges = appointmentsForDate.map((appointment) =>
-    `${toHourMinute(appointment.scheduledAt)} - ${toHourMinute(appointment.endAt)}`,
-  );
-
-  return {
-    times,
-    ranges,
-  };
-}
-
-function toHourMinute(value: string) {
-  return new Intl.DateTimeFormat("vi-VN", {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
 }

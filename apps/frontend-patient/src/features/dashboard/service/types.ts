@@ -29,6 +29,7 @@ export type TreatmentMethod = {
   name: string;
   slug?: string | null;
   description?: string | null;
+  imageUrl?: string | null;
   basePrice: number | string;
   durationMinutes?: number | null;
   displayOrder?: number;

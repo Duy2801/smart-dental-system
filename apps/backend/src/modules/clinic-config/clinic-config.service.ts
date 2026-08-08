@@ -31,7 +31,11 @@ export class ClinicConfigService {
     );
     const specialDates = this.parseSpecialDates(values['clinic.specialDates']);
     const bookingDepositEnabled =
-      values['booking.deposit.enabled'] === 'true';
+      values['booking.deposit.enabled'] === undefined ||
+      values['booking.deposit.enabled'] === null ||
+      values['booking.deposit.enabled'] === ''
+        ? true
+        : values['booking.deposit.enabled'] === 'true';
     const bookingDepositCalculationMode =
       this.parseDepositCalculationMode(values['booking.deposit.mode']);
     const bookingDepositValue = this.parseDecimal(values['booking.deposit.value']);

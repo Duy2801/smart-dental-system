@@ -50,6 +50,7 @@ const appointmentInclude = {
   doctor: { include: { user: true } },
   treatmentMethod: { include: { service: true } },
   medicalRecords: { select: { id: true }, take: 1 },
+  invoices: { select: { id: true, invoiceType: true, status: true, finalAmount: true } },
 };
 
 type BookingOptionQuery = {
@@ -1160,11 +1161,10 @@ export class AppointmentService {
       treatmentMethod.service,
       clinicConfig,
     );
-    // Lễ tân chọn cọc: luôn cho phép ~30% kể cả khi clinic tắt cọc online
+    // Người dùng hoặc Lễ tân chọn cọc (DEPOSIT_30_PERCENT): luôn cho phép cọc 30%
     if (
       input.paymentOption === AppointmentPaymentOption.DEPOSIT_30_PERCENT &&
-      !depositPolicy.enabled &&
-      input.bookingSource === BookingSource.RECEPTIONIST
+      !depositPolicy.enabled
     ) {
       depositPolicy = {
         enabled: true,

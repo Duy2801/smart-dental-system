@@ -64,7 +64,7 @@ export function PromotionWorkspace() {
   };
 
   return (
-    <div className="mx-auto max-w-7xl space-y-8 px-4 pb-12 sm:px-6 lg:px-8">
+    <div className="mx-auto w-full max-w-[1360px] space-y-8 px-4 py-6 sm:px-6 lg:px-8">
       {/* Centered Intro Header Section (Clean layout, no blue background box) */}
       <section className="text-center py-4 space-y-4 max-w-3xl mx-auto">
         <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 border border-blue-200 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-[#0058bc]">

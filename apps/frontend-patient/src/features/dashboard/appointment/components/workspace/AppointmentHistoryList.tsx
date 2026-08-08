@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { AppointmentItem, AppointmentStatus } from "../../api";
 import { DashboardIcon } from "../../../common/DashboardIcon";
 import { AppointmentsEmptyState } from "./AppointmentsEmptyState";
+import { AppointmentDetailModal } from "./AppointmentDetailModal";
 import { T } from "../../../common/typography";
 
 const ITEMS_PER_PAGE = 4;
@@ -59,25 +60,6 @@ export function AppointmentHistoryList({
   const [selectedAppointment, setSelectedAppointment] =
     useState<AppointmentItem | null>(null);
   const [page, setPage] = useState(1);
-
-  useEffect(() => {
-    if (!selectedAppointment) return;
-
-    const previousOverflow = document.body.style.overflow;
-    const previousPaddingRight = document.body.style.paddingRight;
-    const scrollbarWidth =
-      window.innerWidth - document.documentElement.clientWidth;
-
-    document.body.style.overflow = "hidden";
-    if (scrollbarWidth > 0) {
-      document.body.style.paddingRight = `${scrollbarWidth}px`;
-    }
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.body.style.paddingRight = previousPaddingRight;
-    };
-  }, [selectedAppointment]);
 
   const mappedHistory = useMemo(() => {
     return history.map((appointment) => {
@@ -175,7 +157,7 @@ export function AppointmentHistoryList({
                       </div>
                     </div>
 
-                  <span className={`w-fit rounded-full border px-3 py-1 text-[11px] font-bold ${status.className}`}>
+                    <span className={`w-fit rounded-full border px-3 py-1 text-[11px] font-bold ${status.className}`}>
                       {status.label}
                     </span>
                   </div>
@@ -210,85 +192,60 @@ export function AppointmentHistoryList({
           })}
         </div>
 
-        <div className="border-t border-slate-100 px-5 py-4 sm:px-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-slate-500">
-              Trang {currentPage} / {totalPages}
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setPage((current) => Math.max(1, current - 1))}
-                disabled={currentPage === 1}
-                className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 px-4 text-sm font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Trước
-              </button>
-              {Array.from({ length: totalPages }).map((_, index) => {
-                const pageNumber = index + 1;
+        {/* Pagination controls */}
+        {totalPages > 1 ? (
+          <div className="border-t border-slate-100 px-5 py-4 sm:px-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-slate-500">
+                Trang {currentPage} / {totalPages}
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPage((current) => Math.max(1, current - 1))}
+                  disabled={currentPage === 1}
+                  className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 px-4 text-sm font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Trước
+                </button>
+                {Array.from({ length: totalPages }).map((_, index) => {
+                  const pageNumber = index + 1;
 
-                return (
-                  <button
-                    key={pageNumber}
-                    type="button"
-                    onClick={() => setPage(pageNumber)}
-                    className={`inline-flex h-10 w-10 items-center justify-center rounded-xl text-sm font-bold transition ${
-                      pageNumber === currentPage
-                        ? "bg-[#0a5fbe] text-white shadow-lg shadow-blue-100"
-                        : "border border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50"
-                    }`}
-                  >
-                    {pageNumber}
-                  </button>
-                );
-              })}
-              <button
-                type="button"
-                onClick={() =>
-                  setPage((current) => Math.min(totalPages, current + 1))
-                }
-                disabled={currentPage === totalPages}
-                className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 px-4 text-sm font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Sau
-              </button>
+                  return (
+                    <button
+                      key={pageNumber}
+                      type="button"
+                      onClick={() => setPage(pageNumber)}
+                      className={`inline-flex h-10 w-10 items-center justify-center rounded-xl text-sm font-bold transition ${
+                        pageNumber === currentPage
+                          ? "bg-[#0a5fbe] text-white shadow-lg shadow-blue-100"
+                          : "border border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50"
+                      }`}
+                    >
+                      {pageNumber}
+                    </button>
+                  );
+                })}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPage((current) => Math.min(totalPages, current + 1))
+                  }
+                  disabled={currentPage === totalPages}
+                  className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 px-4 text-sm font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Sau
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        ) : null}
       </div>
 
-      {selectedAppointment ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6 backdrop-blur-[4px]"
-          role="presentation"
-          onClick={() => setSelectedAppointment(null)}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            onClick={(event) => event.stopPropagation()}
-            className="w-full max-w-2xl rounded-[28px] bg-white p-6 shadow-[0_24px_70px_rgba(15,23,42,.25)]"
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className={`${T.fieldLabel} text-[#0a5fbe]`}>
-                  Chi tiết lịch hẹn
-                </p>
-                <h4 className="mt-2 text-2xl font-bold text-slate-900">
-                  {selectedAppointment.service}
-                </h4>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedAppointment(null)}
-                className="text-sm font-bold text-slate-500"
-              >
-                Đóng
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <AppointmentDetailModal
+        appointment={selectedAppointment}
+        onClose={() => setSelectedAppointment(null)}
+      />
     </>
   );
 }

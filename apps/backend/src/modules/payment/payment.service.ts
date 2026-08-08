@@ -186,6 +186,36 @@ export class PaymentService {
     };
   }
 
+  async getPaymentByInvoice(invoiceId: string) {
+    const invoice = await this.prisma.invoice.findUnique({
+      where: { id: invoiceId },
+      select: {
+        id: true,
+        invoiceCode: true,
+        status: true,
+        finalAmount: true,
+        appointmentId: true,
+      },
+    });
+    if (!invoice) throw new NotFoundException('invoice.not_found');
+
+    const latestPayment = await this.prisma.payment.findFirst({
+      where: { invoiceId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return {
+      invoiceId: invoice.id,
+      invoiceCode: invoice.invoiceCode,
+      invoiceStatus: invoice.status,
+      finalAmount: Number(invoice.finalAmount),
+      appointmentId: invoice.appointmentId,
+      paymentId: latestPayment?.id ?? null,
+      status: latestPayment?.status ?? (invoice.status === InvoiceStatus.PAID ? PaymentStatus.SUCCESS : PaymentStatus.PENDING),
+      paidAt: latestPayment?.paidAt ?? null,
+    };
+  }
+
   /** Lễ tân xác nhận tay khi đã thấy tiền vào (fallback nếu webhook chậm). */
   async confirmByStaff(userId: string, paymentId: string) {
     const payment = await this.prisma.payment.findUnique({

@@ -19,7 +19,11 @@ type UseCreateAppointmentParams = {
   ensureLoggedInBeforeBooking: () => Promise<boolean>;
   onSelectedTimeChange: (time: string) => void;
   onSelectedDoctorChange: (doctorId: string) => void;
-  onSuccess: (message: string) => void;
+  onSuccess: (data: {
+    message: string;
+    depositInvoiceId?: string | null;
+    depositAmount?: number;
+  }) => void;
 };
 
 export function useCreateAppointment({
@@ -133,7 +137,11 @@ export function useCreateAppointment({
           : "Lịch hẹn này được giữ và thanh toán tại quầy khi đến khám.";
 
       toast.success("Đặt lịch thành công", policyDescription);
-      onSuccess(successMessage);
+      onSuccess({
+        message: successMessage,
+        depositInvoiceId: created.bookingPolicy?.depositInvoiceId,
+        depositAmount: created.bookingPolicy?.depositAmount,
+      });
     } catch (appointmentError) {
       toast.error(
         "Không thể đặt lịch hẹn",

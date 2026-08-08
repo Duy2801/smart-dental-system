@@ -1,10 +1,13 @@
+"use client";
+
+import { useState } from "react";
 import type { NotificationPreferences } from "../../types";
 import type { DashboardIconName } from "../../../common/DashboardIcon";
 import { DashboardIcon } from "../../../common/DashboardIcon";
 
 type NotificationSettingsProps = {
-  value: NotificationPreferences;
-  onChange: (key: keyof NotificationPreferences) => void;
+  initialValue?: NotificationPreferences;
+  onChange?: (key: keyof NotificationPreferences, value: boolean) => void;
 };
 
 const settings: Array<{
@@ -34,9 +37,20 @@ const settings: Array<{
 ];
 
 export function NotificationSettings({
-  value,
+  initialValue = { email: true, app: true, sms: false },
   onChange,
 }: NotificationSettingsProps) {
+  const [preferences, setPreferences] =
+    useState<NotificationPreferences>(initialValue);
+
+  const toggle = (key: keyof NotificationPreferences) => {
+    setPreferences((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      onChange?.(key, next[key]);
+      return next;
+    });
+  };
+
   return (
     <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
       <h2 className="text-lg font-bold tracking-[-0.02em] text-slate-900">
@@ -62,15 +76,15 @@ export function NotificationSettings({
             <button
               type="button"
               role="switch"
-              aria-checked={value[setting.key]}
-              onClick={() => onChange(setting.key)}
+              aria-checked={preferences[setting.key]}
+              onClick={() => toggle(setting.key)}
               className={`relative h-6 w-11 rounded-full transition ${
-                value[setting.key] ? "bg-[#0863c5]" : "bg-slate-200"
+                preferences[setting.key] ? "bg-[#0863c5]" : "bg-slate-200"
               }`}
             >
               <span
                 className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow-sm transition ${
-                  value[setting.key] ? "left-6" : "left-1"
+                  preferences[setting.key] ? "left-6" : "left-1"
                 }`}
               />
             </button>

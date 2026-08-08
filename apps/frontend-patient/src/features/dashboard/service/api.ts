@@ -10,7 +10,6 @@ type ServiceDto = {
   shortDescription?: string | null;
   description?: string | null;
   detailSummary?: string | null;
-  thumbnailUrl?: string | null;
   displayOrder?: number;
   isActive: boolean;
   isFeatured: boolean;
@@ -46,7 +45,7 @@ function mapService(item: ServiceDto): DentalService {
   const aggregatedSteps = item.procedureSteps ?? treatmentMethods.flatMap((m) => m.procedureSteps ?? []);
   const aggregatedFaqs = item.faqs ?? treatmentMethods.flatMap((m) => m.faqs ?? []);
 
-  const image = item.thumbnailUrl || aggregatedMedia?.[0]?.url;
+  const image = treatmentMethods.find((m) => m.imageUrl)?.imageUrl || aggregatedMedia?.[0]?.url || "";
   const description =
     item.description ||
     item.shortDescription ||

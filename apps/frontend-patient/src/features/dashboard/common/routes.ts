@@ -16,6 +16,7 @@ export const ROUTES = {
   // ─── Trang chính ─────────────────────────────────────────────────────
   home: "/home",
   appointment: "/appointment",
+  consultation: "/consultation",
   service: "/service",
   records: "/records",
   profile: "/profile",
@@ -37,9 +38,10 @@ export const ROUTES = {
 /** Menu điều hướng chính trên header */
 export const MAIN_NAV = [
   { label: "Trang chủ", href: ROUTES.home },
-  { label: "Ưu đãi", href: ROUTES.promotions },
-  { label: "Lịch hẹn", href: ROUTES.appointment },
+  { label: "Đặt lịch khám", href: ROUTES.appointment },
+  { label: "Tư vấn", href: ROUTES.consultation },
   { label: "Dịch vụ", href: ROUTES.service },
+  { label: "Ưu đãi", href: ROUTES.promotions },
   { label: "Hồ sơ", href: ROUTES.records },
 ] as const;
 

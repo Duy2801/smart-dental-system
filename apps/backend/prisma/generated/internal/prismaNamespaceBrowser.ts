@@ -84,7 +84,8 @@ export const ModelName = {
   ChatbotConversation: 'ChatbotConversation',
   VideoConsultation: 'VideoConsultation',
   Notification: 'Notification',
-  Banner: 'Banner'
+  Banner: 'Banner',
+  ConsultationPackage: 'ConsultationPackage'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -186,7 +187,6 @@ export const ServiceScalarFieldEnum = {
   shortDescription: 'shortDescription',
   description: 'description',
   detailSummary: 'detailSummary',
-  thumbnailUrl: 'thumbnailUrl',
   durationMinutes: 'durationMinutes',
   basePrice: 'basePrice',
   highlights: 'highlights',
@@ -239,6 +239,7 @@ export const TreatmentMethodScalarFieldEnum = {
   name: 'name',
   slug: 'slug',
   description: 'description',
+  imageUrl: 'imageUrl',
   basePrice: 'basePrice',
   durationMinutes: 'durationMinutes',
   displayOrder: 'displayOrder',
@@ -667,6 +668,22 @@ export const BannerScalarFieldEnum = {
 } as const
 
 export type BannerScalarFieldEnum = (typeof BannerScalarFieldEnum)[keyof typeof BannerScalarFieldEnum]
+
+
+export const ConsultationPackageScalarFieldEnum = {
+  id: 'id',
+  minutes: 'minutes',
+  label: 'label',
+  price: 'price',
+  description: 'description',
+  tag: 'tag',
+  displayOrder: 'displayOrder',
+  isActive: 'isActive',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ConsultationPackageScalarFieldEnum = (typeof ConsultationPackageScalarFieldEnum)[keyof typeof ConsultationPackageScalarFieldEnum]
 
 
 export const SortOrder = {

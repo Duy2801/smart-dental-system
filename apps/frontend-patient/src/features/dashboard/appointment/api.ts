@@ -14,6 +14,7 @@ type TreatmentMethodDto = {
   name: string;
   slug?: string | null;
   description?: string | null;
+  imageUrl?: string | null;
   basePrice: string | number;
   durationMinutes?: number | null;
 };
@@ -79,6 +80,11 @@ export type AppointmentItem = {
   time: string;
   status: AppointmentStatus;
   initials: string;
+  paymentOption?: string;
+  paymentStatus?: string;
+  depositAmount?: number;
+  depositInvoiceId?: string | null;
+  isDepositPending?: boolean;
   preparation?: string[];
   rescheduleCount?: number;
 };
@@ -90,6 +96,15 @@ type AppointmentDto = {
   scheduledAt: string;
   endAt: string;
   status: string;
+  paymentOption?: string;
+  paymentStatus?: string;
+  depositAmount?: number | string;
+  invoices?: Array<{
+    id: string;
+    invoiceType: string;
+    status: string;
+    finalAmount: number | string;
+  }>;
   doctor: {
     user: {
       fullName: string;
@@ -169,6 +184,13 @@ function mapAppointment(item: AppointmentDto): AppointmentItem {
   const scheduledAt = new Date(item.scheduledAt);
   const doctorName = item.doctor?.user?.fullName ?? "Bác sĩ phòng khám";
   const serviceName = item.service?.name ?? "Dịch vụ nha khoa";
+  const depositInvoice = item.invoices?.find(
+    (inv) => inv.invoiceType === "DEPOSIT"
+  );
+  const isDepositPending =
+    item.paymentOption === "DEPOSIT_30_PERCENT" &&
+    (item.paymentStatus === "PENDING_DEPOSIT" || !item.paymentStatus) &&
+    depositInvoice?.status !== "PAID";
 
   return {
     id: item.id,
@@ -194,6 +216,11 @@ function mapAppointment(item: AppointmentDto): AppointmentItem {
     }).format(scheduledAt),
     status: normalizeStatus(item.status ?? "PENDING"),
     initials: getInitials(doctorName),
+    paymentOption: item.paymentOption,
+    paymentStatus: item.paymentStatus,
+    depositAmount: item.depositAmount ? Number(item.depositAmount) : (depositInvoice ? Number(depositInvoice.finalAmount) : undefined),
+    depositInvoiceId: depositInvoice?.id ?? null,
+    isDepositPending,
     rescheduleCount: Array.isArray(item.rescheduleHistory)
       ? item.rescheduleHistory.length
       : 0,
@@ -211,6 +238,7 @@ function mapTreatmentMethod(item: TreatmentMethodDto) {
     serviceId: item.serviceId,
     name: item.name,
     description: item.description || "",
+    imageUrl: item.imageUrl ?? null,
     price: new Intl.NumberFormat("vi-VN").format(rawPrice),
     rawPrice,
     durationMinutes: item.durationMinutes ?? 30,

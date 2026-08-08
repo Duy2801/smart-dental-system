@@ -417,7 +417,8 @@ export const ModelName = {
   ChatbotConversation: 'ChatbotConversation',
   VideoConsultation: 'VideoConsultation',
   Notification: 'Notification',
-  Banner: 'Banner'
+  Banner: 'Banner',
+  ConsultationPackage: 'ConsultationPackage'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -433,7 +434,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "clinicConfig" | "user" | "role" | "permission" | "userRole" | "rolePermission" | "service" | "specialization" | "doctorSpecialization" | "treatmentMethod" | "serviceMedia" | "serviceProcedureStep" | "serviceFaq" | "promotion" | "patient" | "doctor" | "doctorEducation" | "doctorCertificate" | "doctorMedia" | "doctorAvailability" | "appointment" | "medicalRecord" | "treatmentPlan" | "treatmentPlanStep" | "clinicalCase" | "invoice" | "prescription" | "prescriptionItem" | "payment" | "review" | "chatbotConversation" | "videoConsultation" | "notification" | "banner"
+    modelProps: "clinicConfig" | "user" | "role" | "permission" | "userRole" | "rolePermission" | "service" | "specialization" | "doctorSpecialization" | "treatmentMethod" | "serviceMedia" | "serviceProcedureStep" | "serviceFaq" | "promotion" | "patient" | "doctor" | "doctorEducation" | "doctorCertificate" | "doctorMedia" | "doctorAvailability" | "appointment" | "medicalRecord" | "treatmentPlan" | "treatmentPlanStep" | "clinicalCase" | "invoice" | "prescription" | "prescriptionItem" | "payment" | "review" | "chatbotConversation" | "videoConsultation" | "notification" | "banner" | "consultationPackage"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2953,6 +2954,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    ConsultationPackage: {
+      payload: Prisma.$ConsultationPackagePayload<ExtArgs>
+      fields: Prisma.ConsultationPackageFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ConsultationPackageFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConsultationPackagePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ConsultationPackageFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConsultationPackagePayload>
+        }
+        findFirst: {
+          args: Prisma.ConsultationPackageFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConsultationPackagePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ConsultationPackageFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConsultationPackagePayload>
+        }
+        findMany: {
+          args: Prisma.ConsultationPackageFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConsultationPackagePayload>[]
+        }
+        create: {
+          args: Prisma.ConsultationPackageCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConsultationPackagePayload>
+        }
+        createMany: {
+          args: Prisma.ConsultationPackageCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ConsultationPackageCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConsultationPackagePayload>[]
+        }
+        delete: {
+          args: Prisma.ConsultationPackageDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConsultationPackagePayload>
+        }
+        update: {
+          args: Prisma.ConsultationPackageUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConsultationPackagePayload>
+        }
+        deleteMany: {
+          args: Prisma.ConsultationPackageDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ConsultationPackageUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ConsultationPackageUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConsultationPackagePayload>[]
+        }
+        upsert: {
+          args: Prisma.ConsultationPackageUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ConsultationPackagePayload>
+        }
+        aggregate: {
+          args: Prisma.ConsultationPackageAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateConsultationPackage>
+        }
+        groupBy: {
+          args: Prisma.ConsultationPackageGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ConsultationPackageGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ConsultationPackageCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ConsultationPackageCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -3075,7 +3150,6 @@ export const ServiceScalarFieldEnum = {
   shortDescription: 'shortDescription',
   description: 'description',
   detailSummary: 'detailSummary',
-  thumbnailUrl: 'thumbnailUrl',
   durationMinutes: 'durationMinutes',
   basePrice: 'basePrice',
   highlights: 'highlights',
@@ -3128,6 +3202,7 @@ export const TreatmentMethodScalarFieldEnum = {
   name: 'name',
   slug: 'slug',
   description: 'description',
+  imageUrl: 'imageUrl',
   basePrice: 'basePrice',
   durationMinutes: 'durationMinutes',
   displayOrder: 'displayOrder',
@@ -3556,6 +3631,22 @@ export const BannerScalarFieldEnum = {
 } as const
 
 export type BannerScalarFieldEnum = (typeof BannerScalarFieldEnum)[keyof typeof BannerScalarFieldEnum]
+
+
+export const ConsultationPackageScalarFieldEnum = {
+  id: 'id',
+  minutes: 'minutes',
+  label: 'label',
+  price: 'price',
+  description: 'description',
+  tag: 'tag',
+  displayOrder: 'displayOrder',
+  isActive: 'isActive',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ConsultationPackageScalarFieldEnum = (typeof ConsultationPackageScalarFieldEnum)[keyof typeof ConsultationPackageScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -4154,6 +4245,7 @@ export type GlobalOmitConfig = {
   videoConsultation?: Prisma.VideoConsultationOmit
   notification?: Prisma.NotificationOmit
   banner?: Prisma.BannerOmit
+  consultationPackage?: Prisma.ConsultationPackageOmit
 }
 
 /* Types for Logging */

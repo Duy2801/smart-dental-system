@@ -83,6 +83,10 @@ export class CreateTreatmentMethodDto {
   @IsString()
   description?: string;
 
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+
   @IsNumber()
   @Min(0)
   basePrice: number;
@@ -146,10 +150,6 @@ export class CreateServiceDto {
   @IsOptional()
   @IsString()
   detailSummary?: string;
-
-  @IsOptional()
-  @IsString()
-  thumbnailUrl?: string;
 
   @IsOptional()
   @IsBoolean()

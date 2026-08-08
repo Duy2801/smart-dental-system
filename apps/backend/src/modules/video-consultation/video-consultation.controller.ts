@@ -5,6 +5,7 @@ import {
   Param,
   ParseUUIDPipe,
   Patch,
+  Post,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -14,6 +15,7 @@ import { Roles } from 'src/common/decorators/roles.decorator';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import type { AuthenticatedUser } from 'src/common/interfaces/authenticated-user.interface';
+import { CreateVideoConsultationDto } from './dto/create-video-consultation.dto';
 import { UpdateVideoConsultationNotesDto } from './dto/update-video-consultation-notes.dto';
 import { VideoConsultationService } from './video-consultation.service';
 
@@ -22,6 +24,59 @@ import { VideoConsultationService } from './video-consultation.service';
 @Controller(['video-consultations', 'admin/video-consultations'])
 export class VideoConsultationController {
   constructor(private service: VideoConsultationService) {}
+
+  @Get('packages')
+  @Roles('PATIENT', 'DOCTOR', 'ADMIN', 'RECEPTIONIST')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  getConsultationPackages() {
+    return this.service.getConsultationPackages();
+  }
+
+  @Get('consultation-doctors')
+  @Roles('PATIENT', 'DOCTOR', 'ADMIN', 'RECEPTIONIST')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  findDoctorsForConsultation() {
+    return this.service.findDoctorsForConsultation();
+  }
+
+  @Get('available-slots')
+  @Roles('PATIENT', 'DOCTOR', 'ADMIN', 'RECEPTIONIST')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  getAvailableSlots(
+    @Query('doctorId') doctorId: string,
+    @Query('date') date: string,
+    @Query('durationMinutes') durationMinutes?: string,
+  ) {
+    const duration = durationMinutes ? parseInt(durationMinutes, 10) : 30;
+    return this.service.getAvailableSlots(doctorId, date, duration);
+  }
+
+  @Get('patient/my-consultations')
+  @Roles('PATIENT', 'ADMIN')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  findByPatient(@CurrentUser() user: AuthenticatedUser) {
+    return this.service.findByPatient(user);
+  }
+
+  @Post('booking')
+  @Roles('PATIENT', 'ADMIN')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  createBooking(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreateVideoConsultationDto,
+  ) {
+    return this.service.createBooking(user, dto);
+  }
+
+  @Patch('patient/:id/cancel')
+  @Roles('PATIENT', 'ADMIN')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  cancelBookingByPatient(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.service.cancelBookingByPatient(user, id);
+  }
 
   @Get()
   @Roles('DOCTOR', 'ADMIN')

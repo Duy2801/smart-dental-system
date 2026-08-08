@@ -59,7 +59,7 @@ export class PaymentController {
 
   @Post()
   @ApiBearerAuth()
-  @Roles('RECEPTIONIST', 'ADMIN')
+  @Roles('PATIENT', 'RECEPTIONIST', 'ADMIN')
   @UseGuards(JwtAuthGuard, RolesGuard)
   create(
     @CurrentUser() user: AuthenticatedUser,
@@ -68,9 +68,20 @@ export class PaymentController {
     return this.paymentService.createPayment(user.userId, dto);
   }
 
+  @Get('invoice/:invoiceId')
+  @ApiBearerAuth()
+  @Roles('PATIENT', 'RECEPTIONIST', 'ADMIN')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  findByInvoice(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('invoiceId') invoiceId: string,
+  ) {
+    return this.paymentService.getPaymentByInvoice(invoiceId);
+  }
+
   @Get(':id')
   @ApiBearerAuth()
-  @Roles('RECEPTIONIST', 'ADMIN')
+  @Roles('PATIENT', 'RECEPTIONIST', 'ADMIN')
   @UseGuards(JwtAuthGuard, RolesGuard)
   findOne(@Param('id') id: string) {
     return this.paymentService.getPayment(id);

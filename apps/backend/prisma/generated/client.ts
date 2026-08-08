@@ -209,3 +209,8 @@ export type Notification = Prisma.NotificationModel
  * 
  */
 export type Banner = Prisma.BannerModel
+/**
+ * Model ConsultationPackage
+ * 
+ */
+export type ConsultationPackage = Prisma.ConsultationPackageModel
