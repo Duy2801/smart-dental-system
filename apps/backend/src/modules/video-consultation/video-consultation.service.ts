@@ -148,12 +148,44 @@ export class VideoConsultationService {
     return this.toSummary(updated, true);
   }
 
-  async updateNotes(id: string, user: AuthenticatedUser, notes: string | null) {
-    await this.getAuthorizedRow(id, user, { doctorOnly: true });
+  async cancel(id: string, user: AuthenticatedUser) {
+    const row = await this.getAuthorizedRow(id, user, { doctorOnly: true });
+
+    if (
+      row.status !== VideoConsultationStatus.SCHEDULED &&
+      row.status !== VideoConsultationStatus.IN_PROGRESS
+    ) {
+      throw new BadRequestException(
+        'Chỉ có thể hủy buổi tư vấn đang chờ hoặc đang diễn ra',
+      );
+    }
 
     const updated = await this.prisma.videoConsultation.update({
       where: { id },
-      data: { notes },
+      data: {
+        status: VideoConsultationStatus.CANCELLED,
+        meetingUrl: null,
+      },
+      include: consultInclude,
+    });
+    return this.toSummary(updated, true);
+  }
+
+  async updateNotes(id: string, user: AuthenticatedUser, notes: string | null) {
+    const row = await this.getAuthorizedRow(id, user, { doctorOnly: true });
+
+    if (row.status === VideoConsultationStatus.CANCELLED) {
+      throw new BadRequestException(
+        'Không thể ghi chú buổi tư vấn đã hủy',
+      );
+    }
+
+    const normalized =
+      notes === null || notes === undefined ? null : notes.trim() || null;
+
+    const updated = await this.prisma.videoConsultation.update({
+      where: { id },
+      data: { notes: normalized },
       include: consultInclude,
     });
     return this.toSummary(updated, true);
