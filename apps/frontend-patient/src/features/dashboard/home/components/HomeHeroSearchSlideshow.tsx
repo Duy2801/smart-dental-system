@@ -7,7 +7,7 @@ import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { DashboardIcon } from "../../common/DashboardIcon";
 import { getHomeServices } from "../api";
 import { ROUTES, buildRoute } from "../../common/routes";
-
+import Image from "next/image";
 const SEARCH_PLACEHOLDER = "Tìm kiếm theo dịch vụ, bác sĩ, triệu chứng...";
 
 export function HomeHeroSearchSlideshow() {
@@ -232,13 +232,16 @@ export function HomeHeroSearchSlideshow() {
                     href={slide.href}
                     className="group relative flex min-h-[210px] flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/80 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 p-6 text-white shadow-md transition duration-300 hover:-translate-y-1 hover:shadow-xl sm:min-h-[250px] sm:p-7"
                   >
-                    {slide.imageUrl && (
-                      <img
-                        src={slide.imageUrl}
-                        alt={slide.title}
-                        className="absolute inset-0 h-full w-full object-cover opacity-35 transition duration-500 group-hover:scale-105 group-hover:opacity-45"
-                      />
-                    )}
+                    <div className="relative h-full w-full">
+                      {slide.imageUrl && (
+                        <Image
+                          src={slide.imageUrl}
+                          alt={slide.title}
+                          fill
+                          className="object-cover opacity-35 transition duration-500 group-hover:scale-105 group-hover:opacity-45"
+                        />
+                      )}
+                    </div>
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/30 to-transparent" />
 
                     <div className="relative z-10">
@@ -275,11 +278,10 @@ export function HomeHeroSearchSlideshow() {
                     key={idx}
                     type="button"
                     onClick={() => setActiveSlide(idx)}
-                    className={`h-2 rounded-full transition-all duration-300 ${
-                      idx === activeSlide
-                        ? "w-6 bg-slate-800"
-                        : "w-2 bg-slate-300 hover:bg-slate-400"
-                    }`}
+                    className={`h-2 rounded-full transition-all duration-300 ${idx === activeSlide
+                      ? "w-6 bg-slate-800"
+                      : "w-2 bg-slate-300 hover:bg-slate-400"
+                      }`}
                     aria-label={`Go to slide page ${idx + 1}`}
                   />
                 ))}
