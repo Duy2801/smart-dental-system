@@ -1,5 +1,6 @@
 "use client";
 
+import { formatCurrency } from "@/utils/helpers";
 import type { ConsultationBookingResult } from "../types";
 
 interface PaymentCheckoutViewProps {
@@ -114,10 +115,7 @@ export function PaymentCheckoutView({
             <div className="flex justify-between py-1 border-b border-dashed">
               <span className="text-slate-500">Số tiền (100%):</span>
               <span className="font-bold text-emerald-600 text-base">
-                {new Intl.NumberFormat("vi-VN", {
-                  style: "currency",
-                  currency: "VND",
-                }).format(bookingResult.invoice.finalAmount)}
+                {formatCurrency(bookingResult.invoice.finalAmount)}
               </span>
             </div>
             <div className="flex justify-between py-1 border-b border-dashed bg-blue-50 p-2.5 rounded-lg">

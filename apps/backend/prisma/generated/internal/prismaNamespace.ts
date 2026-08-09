@@ -3257,6 +3257,7 @@ export const PromotionScalarFieldEnum = {
   description: 'description',
   imageUrl: 'imageUrl',
   applicableServiceSlug: 'applicableServiceSlug',
+  applicableTreatmentMethodId: 'applicableTreatmentMethodId',
   discountType: 'discountType',
   discountValue: 'discountValue',
   minOrderAmount: 'minOrderAmount',

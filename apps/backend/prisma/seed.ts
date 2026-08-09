@@ -460,6 +460,33 @@ const serviceImageUrls = {
     'https://images.unsplash.com/photo-1606811971618-4486d14f3f99?auto=format&fit=crop&w=1200&q=80',
 } as const;
 
+/** Unique Cloudinary images per treatment method slug */
+const treatmentMethodImages: Record<string, string> = {
+  'implant-single': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786260992/smart-dental/treatment-methods/implant-single_1786260993688.png',
+  'implant-multiple': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786260993/smart-dental/treatment-methods/implant-multiple_1786260994564.png',
+  'implant-full-arch': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786260996/smart-dental/treatment-methods/implant-full-arch_1786260997378.png',
+  'implant-bone-graft': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786260997/smart-dental/treatment-methods/implant-bone-graft_1786260998317.png',
+  'crown-titan': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786260985/smart-dental/treatment-methods/crown-titan_1786260985144.png',
+  'crown-zirconia': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786260987/smart-dental/treatment-methods/crown-zirconia_1786260988162.png',
+  'crown-cercon': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786260988/smart-dental/treatment-methods/crown-cercon_1786260989440.png',
+  'crown-emax': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786260989/smart-dental/treatment-methods/crown-emax_1786260990285.png',
+  'veneer-emax': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786260990/smart-dental/treatment-methods/veneer-emax_1786260991446.png',
+  'veneer-ultra-thin': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786260991/smart-dental/treatment-methods/veneer-ultra-thin_1786260992485.png',
+  'wisdom-tooth-upper': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786261002/smart-dental/treatment-methods/wisdom-tooth-upper_1786261003440.png',
+  'wisdom-tooth-lower': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786261003/smart-dental/treatment-methods/wisdom-tooth-lower_1786261004456.png',
+  'wisdom-tooth-piezotome': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786261004/smart-dental/treatment-methods/wisdom-tooth-piezotome_1786261005310.png',
+  'clear-aligner-lite': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786261005/smart-dental/treatment-methods/clear-aligner-lite_1786261006255.png',
+  'clear-aligner-full': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786261006/smart-dental/treatment-methods/clear-aligner-full_1786261007281.png',
+  'braces-metal': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786261007/smart-dental/treatment-methods/braces-metal_1786261008689.png',
+  'braces-ceramic': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786261008/smart-dental/treatment-methods/braces-ceramic_1786261009783.png',
+  'checkup-standard': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786260998/smart-dental/treatment-methods/checkup-standard_1786260999333.png',
+  'cleaning-ultrasonic-standard': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786260998/smart-dental/treatment-methods/cleaning-ultrasonic-standard_1786261000210.png',
+  'filling-composite': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786260999/smart-dental/treatment-methods/filling-composite_1786261001073.png',
+  'root-canal-general': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786261001/smart-dental/treatment-methods/root-canal-general_1786261002555.png',
+  'kids-extraction-milk-tooth': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786261009/smart-dental/treatment-methods/kids-extraction-milk-tooth_1786261010625.png',
+  'kids-fluoride-varnish': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786261010/smart-dental/treatment-methods/kids-fluoride-varnish_1786261011858.png',
+};
+
 const services = [
   {
     category: 'Implant',
@@ -1063,6 +1090,7 @@ const promotions = [
     imageUrl:
       'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1785763841/smart-dental/promotions/banner-nieng-rang.png',
     applicableServiceSlug: 'nieng-rang',
+    applicableTreatmentMethodSlug: 'braces-invisalign-lite',
     discountType: 'PERCENTAGE' as const,
     discountValue: '30',
     minOrderAmount: '15000000',
@@ -1080,6 +1108,7 @@ const promotions = [
     imageUrl:
       'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1785763842/smart-dental/promotions/banner-implant.png',
     applicableServiceSlug: 'trong-rang-implant',
+    applicableTreatmentMethodSlug: 'implant-korea-osstem',
     discountType: 'FIXED_AMOUNT' as const,
     discountValue: '5000000',
     minOrderAmount: '12000000',
@@ -1097,6 +1126,7 @@ const promotions = [
     imageUrl:
       'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1785763843/smart-dental/promotions/banner-nho-rang.png',
     applicableServiceSlug: 'nho-rang-khon',
+    applicableTreatmentMethodSlug: 'wisdom-tooth-piezotome',
     discountType: 'FIXED_AMOUNT' as const,
     discountValue: '500000',
     minOrderAmount: '2000000',
@@ -1114,6 +1144,7 @@ const promotions = [
     imageUrl:
       'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1785763844/smart-dental/promotions/banner-cao-rang.png',
     applicableServiceSlug: 'nha-khoa-tong-quat',
+    applicableTreatmentMethodSlug: 'cleaning-ultrasonic-standard',
     discountType: 'FIXED_AMOUNT' as const,
     discountValue: '150000',
     minOrderAmount: '200000',
@@ -1131,6 +1162,7 @@ const promotions = [
     imageUrl:
       'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1785763846/smart-dental/promotions/banner-dieu-tri-tuy.png',
     applicableServiceSlug: 'nha-khoa-tong-quat',
+    applicableTreatmentMethodSlug: 'root-canal-general',
     discountType: 'PERCENTAGE' as const,
     discountValue: '20',
     minOrderAmount: '1000000',
@@ -1639,7 +1671,7 @@ async function seedBaseData() {
           name: methodSeed.name,
           slug: methodSeed.slug,
           description: methodSeed.description,
-          imageUrl: (methodSeed as any).imageUrl ?? tm.media?.[0]?.url ?? null,
+          imageUrl: treatmentMethodImages[methodSeed.slug] ?? (methodSeed as any).imageUrl ?? tm.media?.[0]?.url ?? null,
           basePrice: methodSeed.basePrice,
           durationMinutes: methodSeed.durationMinutes,
           displayOrder: index + 1,
@@ -1676,12 +1708,23 @@ async function seedBaseData() {
 
   await prisma.promotion.deleteMany({});
   const createdPromotions: Array<{ id: string }> = [];
-  for (const promotion of promotions) {
+  for (const promotionItem of promotions) {
+    const { applicableTreatmentMethodSlug, ...promoData } = promotionItem as any;
+    let applicableTreatmentMethodId: string | null = null;
+    if (applicableTreatmentMethodSlug) {
+      const tm = await prisma.treatmentMethod.findFirst({
+        where: { slug: applicableTreatmentMethodSlug },
+        select: { id: true },
+      });
+      if (tm) {
+        applicableTreatmentMethodId = tm.id;
+      }
+    }
     createdPromotions.push(
       await prisma.promotion.upsert({
-        where: { code: promotion.code },
-        update: promotion,
-        create: promotion,
+        where: { code: promoData.code },
+        update: { ...promoData, applicableTreatmentMethodId },
+        create: { ...promoData, applicableTreatmentMethodId },
         select: { id: true },
       }),
     );
@@ -1698,42 +1741,20 @@ async function seedBaseData() {
 }
 
 async function cleanGeneratedSampleData() {
-  await prisma.notification.deleteMany({
-    where: { type: 'MARKETING', title: { startsWith: 'Seed Marketing' } },
-  });
-  await prisma.notification.deleteMany({
-    where: { type: { startsWith: 'SEED_' } },
-  });
-  await prisma.review.deleteMany({
-    where: { comment: { startsWith: 'Seed review' } },
-  });
-  await prisma.payment.deleteMany({
-    where: { transactionRef: { startsWith: 'SEED-PAY-' } },
-  });
-  await prisma.invoice.deleteMany({
-    where: { invoiceCode: { startsWith: 'INV-SEED-' } },
-  });
-  await prisma.clinicalCase.deleteMany({
-    where: { title: { startsWith: 'Seed clinical case' } },
-  });
-  await prisma.medicalRecord.deleteMany({
-    where: { chiefComplaint: { startsWith: 'Seed complaint' } },
-  });
-  await prisma.treatmentPlan.deleteMany({
-    where: { title: { startsWith: 'Seed Treatment Plan' } },
-  });
-  await prisma.chatbotConversation.deleteMany({
-    where: { sessionId: { startsWith: 'seed-session-' } },
-  });
-  await prisma.videoConsultation.deleteMany({
-    where: { notes: { startsWith: 'Seed video consultation' } },
-  });
-  await prisma.doctorAvailability.deleteMany({
-    where: { reason: { startsWith: 'Seed availability' } },
-  });
-  await prisma.appointment.deleteMany({
-    where: { appointmentCode: { startsWith: 'APT-SEED-' } },
-  });
+  await prisma.review.deleteMany({});
+  await prisma.prescriptionItem.deleteMany({});
+  await prisma.prescription.deleteMany({});
+  await prisma.clinicalCase.deleteMany({});
+  await prisma.payment.deleteMany({});
+  await prisma.invoice.deleteMany({});
+  await prisma.medicalRecord.deleteMany({});
+  await prisma.treatmentPlanStep.deleteMany({});
+  await prisma.treatmentPlan.deleteMany({});
+  await prisma.chatbotConversation.deleteMany({});
+  await prisma.videoConsultation.deleteMany({});
+  await prisma.doctorAvailability.deleteMany({});
+  await prisma.appointment.deleteMany({});
+  await prisma.notification.deleteMany({});
 }
 
 async function seedRelatedData(
@@ -1945,12 +1966,12 @@ async function seedRelatedData(
           images:
             index === 0
               ? [
-                  {
-                    url: 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1785763846/smart-dental/promotions/banner-dieu-tri-tuy.png',
-                    caption: 'Seed X-quang mẫu',
-                    type: 'xray',
-                  },
-                ]
+                {
+                  url: 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1785763846/smart-dental/promotions/banner-dieu-tri-tuy.png',
+                  caption: 'Seed X-quang mẫu',
+                  type: 'xray',
+                },
+              ]
               : [],
           prescriptions: [
             {
@@ -2008,21 +2029,21 @@ async function seedRelatedData(
   const clinicalCaseImages = [
     {
       before:
-        'https://images.unsplash.com/photo-1609840114035-3c981b782dfe?auto=format&fit=crop&w=1200&q=80',
+        'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786244572/smart-dental/clinical-cases/case-1-before.png',
       after:
-        'https://images.unsplash.com/photo-1606811971618-4486d14f3f99?auto=format&fit=crop&w=1200&q=80',
+        'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786244573/smart-dental/clinical-cases/case-1-after.png',
     },
     {
       before:
-        'https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=1200&q=80',
+        'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786244574/smart-dental/clinical-cases/case-2-before.png',
       after:
-        'https://images.unsplash.com/photo-1606811841689-23dfddce3e95?auto=format&fit=crop&w=1200&q=80',
+        'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786244575/smart-dental/clinical-cases/case-2-after.png',
     },
     {
       before:
-        'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=1200&q=80',
+        'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786244575/smart-dental/clinical-cases/case-3-before.png',
       after:
-        'https://images.unsplash.com/photo-1606811842243-8d7e4d055798?auto=format&fit=crop&w=1200&q=80',
+        'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786244576/smart-dental/clinical-cases/case-3-after.png',
     },
   ];
 
@@ -2307,107 +2328,107 @@ async function seedRelatedData(
     paid: boolean;
     duration: number;
   }> = [
-    {
-      patientIdx: 0,
-      doctorIdx: 0,
-      dayOffset: 0,
-      hour: 9,
-      minute: 0,
-      status: 'SCHEDULED',
-      paid: true,
-      duration: 20,
-    },
-    {
-      patientIdx: 1,
-      doctorIdx: 0,
-      dayOffset: 0,
-      hour: 14,
-      minute: 0,
-      status: 'IN_PROGRESS',
-      paid: true,
-      duration: 25,
-    },
-    {
-      patientIdx: 2,
-      doctorIdx: 0,
-      dayOffset: 1,
-      hour: 10,
-      minute: 30,
-      status: 'SCHEDULED',
-      paid: false,
-      duration: 20,
-    },
-    {
-      patientIdx: 3,
-      doctorIdx: 0,
-      dayOffset: -2,
-      hour: 11,
-      minute: 0,
-      status: 'COMPLETED',
-      paid: true,
-      duration: 30,
-    },
-    {
-      patientIdx: 4,
-      doctorIdx: 0,
-      dayOffset: 2,
-      hour: 15,
-      minute: 0,
-      status: 'CANCELLED',
-      paid: false,
-      duration: 20,
-    },
-    {
-      patientIdx: 5,
-      doctorIdx: 1,
-      dayOffset: 0,
-      hour: 8,
-      minute: 30,
-      status: 'SCHEDULED',
-      paid: true,
-      duration: 20,
-    },
-    {
-      patientIdx: 6,
-      doctorIdx: 2,
-      dayOffset: 1,
-      hour: 9,
-      minute: 0,
-      status: 'SCHEDULED',
-      paid: true,
-      duration: 25,
-    },
-    {
-      patientIdx: 7,
-      doctorIdx: 3,
-      dayOffset: 3,
-      hour: 16,
-      minute: 0,
-      status: 'SCHEDULED',
-      paid: false,
-      duration: 20,
-    },
-    {
-      patientIdx: 8,
-      doctorIdx: 4,
-      dayOffset: -1,
-      hour: 13,
-      minute: 0,
-      status: 'COMPLETED',
-      paid: true,
-      duration: 25,
-    },
-    {
-      patientIdx: 9,
-      doctorIdx: 5,
-      dayOffset: 4,
-      hour: 10,
-      minute: 0,
-      status: 'SCHEDULED',
-      paid: true,
-      duration: 20,
-    },
-  ];
+      {
+        patientIdx: 0,
+        doctorIdx: 0,
+        dayOffset: 0,
+        hour: 9,
+        minute: 0,
+        status: 'SCHEDULED',
+        paid: true,
+        duration: 20,
+      },
+      {
+        patientIdx: 1,
+        doctorIdx: 0,
+        dayOffset: 0,
+        hour: 14,
+        minute: 0,
+        status: 'IN_PROGRESS',
+        paid: true,
+        duration: 25,
+      },
+      {
+        patientIdx: 2,
+        doctorIdx: 0,
+        dayOffset: 1,
+        hour: 10,
+        minute: 30,
+        status: 'SCHEDULED',
+        paid: false,
+        duration: 20,
+      },
+      {
+        patientIdx: 3,
+        doctorIdx: 0,
+        dayOffset: -2,
+        hour: 11,
+        minute: 0,
+        status: 'COMPLETED',
+        paid: true,
+        duration: 30,
+      },
+      {
+        patientIdx: 4,
+        doctorIdx: 0,
+        dayOffset: 2,
+        hour: 15,
+        minute: 0,
+        status: 'CANCELLED',
+        paid: false,
+        duration: 20,
+      },
+      {
+        patientIdx: 5,
+        doctorIdx: 1,
+        dayOffset: 0,
+        hour: 8,
+        minute: 30,
+        status: 'SCHEDULED',
+        paid: true,
+        duration: 20,
+      },
+      {
+        patientIdx: 6,
+        doctorIdx: 2,
+        dayOffset: 1,
+        hour: 9,
+        minute: 0,
+        status: 'SCHEDULED',
+        paid: true,
+        duration: 25,
+      },
+      {
+        patientIdx: 7,
+        doctorIdx: 3,
+        dayOffset: 3,
+        hour: 16,
+        minute: 0,
+        status: 'SCHEDULED',
+        paid: false,
+        duration: 20,
+      },
+      {
+        patientIdx: 8,
+        doctorIdx: 4,
+        dayOffset: -1,
+        hour: 13,
+        minute: 0,
+        status: 'COMPLETED',
+        paid: true,
+        duration: 25,
+      },
+      {
+        patientIdx: 9,
+        doctorIdx: 5,
+        dayOffset: 4,
+        hour: 10,
+        minute: 0,
+        status: 'SCHEDULED',
+        paid: true,
+        duration: 20,
+      },
+    ];
 
   for (let index = 0; index < videoConsultSeeds.length; index += 1) {
     const row = videoConsultSeeds[index];
@@ -2542,43 +2563,7 @@ async function main() {
       targetType: 'SERVICE',
       displayOrder: 1,
       isActive: true,
-    },
-    {
-      title: 'Ưu Đãi Niềng Răng Thẩm Mỹ 30%',
-      description: 'Giảm ngay 30% gói Niềng Răng Thẩm Mỹ (Mắc cài & Trong suốt). Mô phỏng nụ cười 3D ClinCheck miễn phí.',
-      imageUrl: 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1785763841/smart-dental/promotions/banner-nieng-rang.png',
-      linkUrl: '/promotions',
-      targetType: 'PROMOTION',
-      displayOrder: 2,
-      isActive: true,
-    },
-    {
-      title: 'Trồng Răng Implant Giảm Ngay 5 Triệu',
-      description: 'Trồng răng Implant chuyên nghiệp giảm trực tiếp 5.000.000đ cho mỗi trụ Implant. Miễn phí chụp phim CT ConeBeam 3D.',
-      imageUrl: 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1785763842/smart-dental/promotions/banner-implant.png',
-      linkUrl: '/promotions',
-      targetType: 'PROMOTION',
-      displayOrder: 3,
-      isActive: true,
-    },
-    {
-      title: 'Nhổ Răng Không Đau Giảm 500K',
-      description: 'Tiểu phẫu nhổ răng khôn mọc lệch, mọc ngầm công nghệ siêu âm không đau, an toàn, hiệu quả.',
-      imageUrl: 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1785763843/smart-dental/promotions/banner-nho-rang.png',
-      linkUrl: '/promotions',
-      targetType: 'PROMOTION',
-      displayOrder: 4,
-      isActive: true,
-    },
-    {
-      title: 'Lấy Cao Răng Siêu Âm Chỉ Từ 99K',
-      description: 'Dịch vụ lấy cao răng công nghệ sóng siêu âm nhẹ nhàng không buốt giá, làm sạch mảng bám mang lại hàm răng sáng bóng.',
-      imageUrl: 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1785763844/smart-dental/promotions/banner-cao-rang.png',
-      linkUrl: '/promotions',
-      targetType: 'PROMOTION',
-      displayOrder: 5,
-      isActive: true,
-    },
+    }
   ];
   for (const b of initialBanners) {
     await prisma.banner.create({ data: b });

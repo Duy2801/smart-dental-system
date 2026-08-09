@@ -1,14 +1,28 @@
 import apiClient from "@/lib/axios";
 import type { PromotionDto, ServiceOption } from "../types";
 
+type TreatmentMethodDto = {
+  id: string;
+  name: string;
+  slug?: string | null;
+  description?: string | null;
+  imageUrl?: string | null;
+  basePrice: string | number;
+  durationMinutes?: number;
+};
+
 type PaginatedServicesResponse = {
   data: {
     id: string;
     category: string;
     name: string;
     slug?: string | null;
+    description?: string | null;
+    shortDescription?: string | null;
+    badge?: string | null;
+    image?: string | null;
     basePrice: string | number;
-    treatmentMethods?: { imageUrl?: string | null }[];
+    treatmentMethods?: TreatmentMethodDto[];
   }[];
 };
 
@@ -30,19 +44,48 @@ export async function fetchServicesForPromotions(): Promise<ServiceOption[]> {
     const response = await apiClient.get<PaginatedServicesResponse>("/services", {
       params: {
         isActive: true,
-        limit: 50,
+        limit: 100,
       },
     });
 
     if (response.data && Array.isArray(response.data.data)) {
-      return response.data.data.map((item) => ({
-        id: item.id,
-        name: item.name,
-        slug: item.slug ?? null,
-        category: item.category,
-        basePrice: Number(item.basePrice || 0),
-        imageUrl: item.treatmentMethods?.find((m) => m.imageUrl)?.imageUrl ?? null,
-      }));
+      const options: ServiceOption[] = [];
+
+      for (const service of response.data.data) {
+        if (service.treatmentMethods && service.treatmentMethods.length > 0) {
+          for (const tm of service.treatmentMethods) {
+            options.push({
+              id: tm.id,
+              serviceId: service.id,
+              serviceSlug: service.slug ?? null,
+              name: tm.name,
+              slug: tm.slug ?? service.slug ?? null,
+              category: service.category || service.name,
+              basePrice: Number(tm.basePrice || 0),
+              description: tm.description ?? service.description ?? null,
+              shortDescription: tm.description ?? service.shortDescription ?? null,
+              badge: service.badge ?? null,
+              imageUrl: tm.imageUrl ?? service.image ?? null,
+            });
+          }
+        } else {
+          options.push({
+            id: service.id,
+            serviceId: service.id,
+            serviceSlug: service.slug ?? null,
+            name: service.name,
+            slug: service.slug ?? null,
+            category: service.category,
+            basePrice: Number(service.basePrice || 0),
+            description: service.description ?? null,
+            shortDescription: service.shortDescription ?? null,
+            badge: service.badge ?? null,
+            imageUrl: service.image ?? null,
+          });
+        }
+      }
+
+      return options;
     }
     return [];
   } catch (error) {

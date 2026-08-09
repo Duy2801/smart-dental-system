@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DashboardIcon } from "@/features/dashboard/common/DashboardIcon";
 import { T } from "@/features/dashboard/common/typography";
@@ -8,6 +8,7 @@ import { buildRoute } from "@/features/dashboard/common/routes";
 import { toast } from "@/features/dashboard/common/toast";
 import { AuthRequireModal } from "@/features/dashboard/common/AuthRequireModal";
 import { useAppSelector } from "@/providers";
+import { formatCurrency, formatDate } from "@/utils/helpers";
 import type { PromotionDto, ServiceOption } from "../types";
 
 type PromotionDetailModalProps = {
@@ -49,61 +50,69 @@ export function PromotionDetailModal({
     }
   }, [promotion]);
 
-  // Automatically find & pre-select the exact applicable service for this promotion!
-  useEffect(() => {
-    if (!promotion || services.length === 0) return;
+  // Filter applicable services by exact relational mapping or slug
+  const applicableServices = useMemo(() => {
+    if (!promotion) return [];
 
-    // 1. Try matching by applicable_service_slug directly
-    if (promotion.applicable_service_slug) {
-      const exactMatch = services.find(
+    // 1. Direct DB relational treatment method mapping
+    if (promotion.applicable_treatment_method) {
+      const tm = promotion.applicable_treatment_method;
+      return [
+        {
+          id: tm.id,
+          serviceId: tm.serviceId,
+          serviceSlug: tm.serviceSlug ?? null,
+          name: tm.name,
+          slug: tm.slug ?? null,
+          category: tm.category || "DỊCH VỤ NHA KHOA",
+          basePrice: tm.basePrice,
+          description: tm.description ?? null,
+          shortDescription: tm.description ?? null,
+          imageUrl: tm.imageUrl ?? null,
+        },
+      ];
+    }
+
+    if (services && services.length > 0 && promotion.applicable_treatment_method_id) {
+      const directMatch = services.find((s) => s.id === promotion.applicable_treatment_method_id);
+      if (directMatch) return [directMatch];
+    }
+
+    if (!services || services.length === 0) return [];
+
+    if (promotion.applicable_service_slug && promotion.applicable_service_slug.toLowerCase() !== "all") {
+      const targetSlug = promotion.applicable_service_slug.toLowerCase();
+      const filteredBySlug = services.filter(
         (s) =>
-          s.slug === promotion.applicable_service_slug ||
-          s.category === promotion.applicable_service_slug,
+          s.slug?.toLowerCase() === targetSlug ||
+          s.serviceSlug?.toLowerCase() === targetSlug ||
+          s.category.toLowerCase() === targetSlug ||
+          s.id.toLowerCase() === targetSlug ||
+          s.serviceId?.toLowerCase() === targetSlug
       );
-      if (exactMatch) {
-        setSelectedServiceId(exactMatch.id);
-        return;
+      if (filteredBySlug.length > 0) {
+        return filteredBySlug;
       }
     }
 
-    // 2. Keyword match between promotion name/code and service name
-    const promoText = (promotion.name + " " + promotion.code + " " + promotion.description).toLowerCase();
-    const keywordMatch = services.find((s) => {
-      const name = s.name.toLowerCase();
-      const cat = s.category.toLowerCase();
-      if (promoText.includes("invisalign") || promoText.includes("niềng")) {
-        return name.includes("niềng") || cat.includes("nieng");
-      }
-      if (promoText.includes("veneer") || promoText.includes("dán sứ")) {
-        return name.includes("veneer") || cat.includes("veneer") || name.includes("sứ");
-      }
-      if (promoText.includes("implant")) {
-        return name.includes("implant") || cat.includes("implant");
-      }
-      if (promoText.includes("piezotome") || promoText.includes("nhổ răng")) {
-        return name.includes("nhổ") || cat.includes("nho");
-      }
-      if (promoText.includes("cạo vôi") || promoText.includes("tổng quát") || promoText.includes("tẩy trắng")) {
-        return name.includes("cạo") || name.includes("tổng quát") || cat.includes("tong-quat");
-      }
-      return false;
-    });
-
-    if (keywordMatch) {
-      setSelectedServiceId(keywordMatch.id);
-    } else {
-      setSelectedServiceId(services[0].id);
-    }
+    return services;
   }, [promotion, services]);
+
+  // Pre-select first applicable service
+  useEffect(() => {
+    if (applicableServices.length > 0) {
+      setSelectedServiceId(applicableServices[0].id);
+    }
+  }, [applicableServices]);
 
   if (!promotion) return null;
 
   const isPercentage = promotion.discount_type === "PERCENTAGE";
   const discountLabel = isPercentage
     ? `Giảm ${promotion.discount_value}%`
-    : `Giảm ${new Intl.NumberFormat("vi-VN").format(promotion.discount_value)}đ`;
+    : `Giảm ${formatCurrency(promotion.discount_value)}`;
 
-  const selectedService = services.find((s) => s.id === selectedServiceId);
+  const selectedService = applicableServices.find((s) => s.id === selectedServiceId) || applicableServices[0];
 
   // Calculate discount for selected service
   let calculatedDiscount = 0;
@@ -137,15 +146,8 @@ export function PromotionDetailModal({
     router.push(targetUrl);
   };
 
-  const startDateFormatted = new Date(promotion.start_date).toLocaleDateString(
-    "vi-VN",
-    { day: "2-digit", month: "2-digit", year: "numeric" },
-  );
-
-  const endDateFormatted = new Date(promotion.end_date).toLocaleDateString(
-    "vi-VN",
-    { day: "2-digit", month: "2-digit", year: "numeric" },
-  );
+  const startDateFormatted = formatDate(promotion.start_date);
+  const endDateFormatted = formatDate(promotion.end_date);
 
   return (
     <div
@@ -153,7 +155,7 @@ export function PromotionDetailModal({
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-200/80 animate-in zoom-in-95 duration-200"
+        className="relative w-full max-w-5xl max-h-[92vh] flex flex-col overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-200/80 animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header Bar */}
@@ -164,9 +166,9 @@ export function PromotionDetailModal({
             </span>
             <div>
               <p className="text-xs font-bold uppercase tracking-wider text-blue-200">
-                Chi tiết ưu đãi chương trình
+                Chi tiết chương trình ưu đãi
               </p>
-              <h2 className="text-lg font-black text-white leading-tight">{promotion.name}</h2>
+              <h2 className="text-lg sm:text-xl font-black text-white leading-tight">{promotion.name}</h2>
             </div>
           </div>
 
@@ -179,129 +181,141 @@ export function PromotionDetailModal({
           </button>
         </div>
 
-        {/* Modal Body Content */}
-        <div className="flex-1 space-y-6 overflow-y-auto p-6 sm:p-7">
-          {/* Promotion Banner Image - FULL UNCROPPED 1:1 DISPLAY */}
-          {promotion.image_url && (
-            <div className="relative w-full max-w-sm mx-auto aspect-square overflow-hidden rounded-2xl border border-slate-100 shadow-sm">
-              <img
-                src={promotion.image_url}
-                alt={promotion.name}
-                className="h-full w-full object-cover"
-              />
-            </div>
-          )}
+        {/* Modal Body Content (Spacious 2-Column Grid) */}
+        <div className="flex-1 overflow-y-auto p-6 sm:p-8">
+          <div className="grid gap-8 lg:grid-cols-12">
+            {/* Left Column: Image, Info & Conditions (7 cols) */}
+            <div className="lg:col-span-7 space-y-6">
+              {/* Promotion Banner Image */}
+              {promotion.image_url && (
+                <div className="relative w-full overflow-hidden rounded-2xl border border-slate-100 shadow-sm bg-slate-50">
+                  <img
+                    src={promotion.image_url}
+                    alt={promotion.name}
+                    className="h-64 sm:h-72 w-full object-cover"
+                  />
+                </div>
+              )}
 
-          {/* Main Discount & Voucher Code Row */}
-          <div className="flex flex-col gap-4 rounded-2xl border border-blue-100 bg-blue-50/50 p-5 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <span className="inline-block rounded-full bg-[#0058bc] px-3.5 py-1 text-xs font-black uppercase text-white">
-                {discountLabel}
-              </span>
-              <p className="mt-2 text-xs font-medium text-slate-600">
-                Thời gian hiệu lực: <strong className="text-slate-800">{startDateFormatted} – {endDateFormatted}</strong>
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2 rounded-2xl border border-blue-200 bg-white px-4 py-2.5 shadow-sm">
-              <div className="text-right">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Mã ưu đãi</p>
-                <p className="text-base font-black text-[#0058bc]">{promotion.code}</p>
+              {/* Main Discount & Validity Info */}
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className="inline-block rounded-full bg-[#0058bc] px-4 py-1.5 text-xs font-black uppercase text-white shadow-xs">
+                  {discountLabel}
+                </span>
+                <span className="text-xs font-semibold text-slate-500 bg-slate-100 rounded-full px-3 py-1">
+                  Hiệu lực: <strong className="text-slate-800">{startDateFormatted} – {endDateFormatted}</strong>
+                </span>
               </div>
-              <button
-                type="button"
-                onClick={handleCopyCode}
-                className="ml-2 rounded-xl bg-blue-50 px-3 py-2 text-xs font-bold text-[#0058bc] transition hover:bg-blue-100"
-              >
-                {copied ? "Đã chép" : "Copy"}
-              </button>
-            </div>
-          </div>
 
-          {/* Description Section */}
-          <div className="space-y-2">
-            <h3 className={`${T.sectionTitle} text-slate-900`}>Mô tả chương trình</h3>
-            <p className={`${T.body} text-slate-600 leading-relaxed`}>
-              {promotion.description}
-            </p>
-          </div>
+              {/* Description Section */}
+              <div className="space-y-2">
+                <h3 className={`${T.sectionTitle} text-slate-900`}>Nội dung ưu đãi</h3>
+                <p className={`${T.body} text-slate-600 leading-relaxed text-sm`}>
+                  {promotion.description}
+                </p>
+              </div>
 
-          {/* Conditions Grid */}
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
-              <p className={`${T.fieldLabel} text-slate-400`}>Đơn hàng tối thiểu</p>
-              <p className="mt-1 text-sm font-bold text-slate-800">
-                {promotion.min_order_amount && promotion.min_order_amount > 0
-                  ? `${new Intl.NumberFormat("vi-VN").format(promotion.min_order_amount)}đ`
-                  : "Không giới hạn"}
-              </p>
-            </div>
+              {/* Conditions Grid */}
+              <div className="grid gap-3 sm:grid-cols-2 pt-2">
+                <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
+                  <p className={`${T.fieldLabel} text-slate-400`}>Đơn hàng tối thiểu</p>
+                  <p className="mt-1 text-sm font-bold text-slate-800">
+                    {promotion.min_order_amount && promotion.min_order_amount > 0
+                      ? formatCurrency(promotion.min_order_amount)
+                      : "Không giới hạn"}
+                  </p>
+                </div>
 
-            <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
-              <p className={`${T.fieldLabel} text-slate-400`}>Lượt sử dụng còn lại</p>
-              <p className="mt-1 text-sm font-bold text-slate-800">
-                {promotion.max_uses > 0
-                  ? `${promotion.max_uses - promotion.used_count} / ${promotion.max_uses} lượt`
-                  : "Không giới hạn số lượt"}
-              </p>
-            </div>
-          </div>
-
-          {/* Apply to Service Interactive Section */}
-          <div className="space-y-4 rounded-2xl border border-blue-200/80 bg-gradient-to-br from-slate-50 to-blue-50/30 p-5">
-            <div className="flex items-center justify-between">
-              <h3 className={`${T.cardTitle} text-slate-900`}>
-                Dịch vụ áp dụng khuyến mãi
-              </h3>
-              <span className="text-xs font-bold text-[#0058bc]">
-                Đã tự động chọn dịch vụ phù hợp
-              </span>
+                <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
+                  <p className={`${T.fieldLabel} text-slate-400`}>Lượt sử dụng còn lại</p>
+                  <p className="mt-1 text-sm font-bold text-slate-800">
+                    {promotion.max_uses > 0
+                      ? `${promotion.max_uses - promotion.used_count} / ${promotion.max_uses} lượt`
+                      : "Không giới hạn số lượt"}
+                  </p>
+                </div>
+              </div>
             </div>
 
-            {/* Service Select Dropdown */}
-            {services.length > 0 ? (
-              <div className="space-y-3">
-                <select
-                  value={selectedServiceId}
-                  onChange={(e) => setSelectedServiceId(e.target.value)}
-                  className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-[#0058bc] focus:ring-4 focus:ring-blue-100"
-                >
-                  {services.map((service) => (
-                    <option key={service.id} value={service.id}>
-                      {service.name} — {new Intl.NumberFormat("vi-VN").format(service.basePrice)}đ
-                    </option>
-                  ))}
-                </select>
+            {/* Right Column: Code Box, Service Selection & Price Breakdown (5 cols) */}
+            <div className="lg:col-span-5 space-y-6">
+              {/* Voucher Code Box */}
+              <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50/80 to-cyan-50/40 p-5 shadow-xs">
+                <p className="text-xs font-bold uppercase tracking-wider text-[#0058bc] mb-2">Mã ưu đãi của bạn</p>
+                <div className="flex items-center justify-between rounded-xl border border-blue-200 bg-white p-3 shadow-xs">
+                  <span className="text-lg sm:text-xl font-black text-[#0058bc] tracking-wide">{promotion.code}</span>
+                  <button
+                    type="button"
+                    onClick={handleCopyCode}
+                    className="rounded-xl bg-[#0058bc] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#004698] shadow-xs"
+                  >
+                    {copied ? "Đã sao chép" : "Sao chép mã"}
+                  </button>
+                </div>
+              </div>
 
-                {/* Calculation Breakdown Card */}
-                {selectedService && (
-                  <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-2 text-xs">
-                    <div className="flex justify-between text-slate-600">
-                      <span>Giá niêm yết dịch vụ ({selectedService.name}):</span>
-                      <span className="font-semibold text-slate-800">
-                        {new Intl.NumberFormat("vi-VN").format(selectedService.basePrice)}đ
-                      </span>
-                    </div>
+              {/* Service Application & Calculation Breakdown */}
+              <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <h3 className={`${T.cardTitle} text-slate-900 text-sm`}>
+                    Chọn dịch vụ muốn áp dụng
+                  </h3>
+                </div>
 
-                    <div className="flex justify-between text-emerald-600 font-bold">
-                      <span>Mức giảm khuyến mãi ({promotion.code}):</span>
-                      <span>
-                        -{new Intl.NumberFormat("vi-VN").format(calculatedDiscount)}đ
-                      </span>
-                    </div>
+                {applicableServices.length > 0 ? (
+                  <div className="space-y-4">
+                    <select
+                      value={selectedServiceId}
+                      onChange={(e) => setSelectedServiceId(e.target.value)}
+                      className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-xs font-semibold text-slate-800 outline-none transition focus:border-[#0058bc] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                    >
+                      {applicableServices.map((service) => (
+                        <option key={service.id} value={service.id}>
+                          {service.name} — {formatCurrency(service.basePrice)}
+                        </option>
+                      ))}
+                    </select>
 
-                    <div className="flex justify-between border-t border-slate-100 pt-2 text-sm font-black text-[#0058bc]">
-                      <span>Chi phí sau ưu đãi:</span>
-                      <span className="text-base text-[#0058bc]">
-                        {new Intl.NumberFormat("vi-VN").format(finalPrice)}đ
-                      </span>
-                    </div>
+                    {/* Calculation Breakdown Card */}
+                    {selectedService && (
+                      <div className="rounded-2xl border border-blue-100 bg-blue-50/40 p-4 space-y-2.5 text-xs">
+                        <div className="flex justify-between text-slate-600">
+                          <span>Giá gốc ({selectedService.name}):</span>
+                          <span className="font-semibold text-slate-800">
+                            {formatCurrency(selectedService.basePrice)}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between text-emerald-600 font-bold">
+                          <span>Ưu đãi áp dụng ({promotion.code}):</span>
+                          <span>
+                            -{formatCurrency(calculatedDiscount)}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between border-t border-blue-200/60 pt-2.5 text-sm font-black text-[#0058bc]">
+                          <span>Chi phí thanh toán dự kiến:</span>
+                          <span className="text-base text-[#0058bc]">
+                            {formatCurrency(finalPrice)}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
+                ) : (
+                  <p className="text-xs text-slate-500">Đang tải danh sách dịch vụ...</p>
                 )}
+
+                <button
+                  type="button"
+                  onClick={handleBookNow}
+                  className="mt-2 w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-[#0058bc] py-3.5 text-xs font-bold text-white shadow-lg shadow-blue-500/20 transition hover:bg-[#004698] hover:shadow-xl"
+                >
+                  <DashboardIcon name="calendar" className="h-4 w-4" />
+                  Đặt dịch vụ ngay với mã ưu đãi
+                </button>
               </div>
-            ) : (
-              <p className="text-xs text-slate-500">Đang tải danh sách dịch vụ...</p>
-            )}
+            </div>
           </div>
         </div>
 
@@ -310,18 +324,9 @@ export function PromotionDetailModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-100"
+            className="rounded-xl border border-slate-200 bg-white px-6 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-100"
           >
             Đóng
-          </button>
-
-          <button
-            type="button"
-            onClick={handleBookNow}
-            className="inline-flex items-center gap-2 rounded-xl bg-[#0058bc] px-6 py-2.5 text-xs font-bold text-white shadow-lg shadow-blue-500/20 transition hover:bg-[#004698] hover:shadow-xl"
-          >
-            <DashboardIcon name="calendar" className="h-4 w-4" />
-            Đặt dịch vụ ngay
           </button>
         </div>
       </div>

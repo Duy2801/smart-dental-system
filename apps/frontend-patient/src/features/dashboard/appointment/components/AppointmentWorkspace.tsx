@@ -12,7 +12,7 @@ import { DepositPaymentModal } from "./booking/DepositPaymentModal";
 import type { AppointmentItem } from "../api";
 
 export function AppointmentWorkspace({
-  initialMode = "manage",
+  initialMode = "booking",
 }: {
   initialMode?: "manage" | "booking";
 }) {

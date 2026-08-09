@@ -1,12 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { Suspense } from "react";
 import { DashboardIcon } from "@/features/dashboard/common/DashboardIcon";
 import { DashboardFooterClinicInfo } from "@/features/dashboard/common/DashboardFooterClinicInfo";
 import { DashboardNav } from "@/features/dashboard/common/DashboardNav";
 import { ScrollRevealProvider } from "@/features/dashboard/common/ScrollReveal";
 import { PatientBottomNav } from "@/features/dashboard/common/PatientBottomNav";
 import { ChatbotWidget } from "@/features/dashboard/chatbot/ChatbotWidget";
+import { NotificationNavbarBadge } from "@/features/dashboard/notification/components/NotificationNavbarBadge";
 import { ROUTES, FOOTER_LINKS } from "@/features/dashboard/common/routes";
 import { T } from "@/features/dashboard/common/typography";
 
@@ -29,18 +31,13 @@ function DashboardHeader() {
         </Link>
 
         <div className="flex h-full items-center justify-center">
-          <DashboardNav />
+          <Suspense fallback={<div className="h-full" />}>
+            <DashboardNav />
+          </Suspense>
         </div>
 
         <div className="flex shrink-0 items-center justify-end gap-2 sm:gap-3">
-          <Link
-            href={ROUTES.notification}
-            aria-label="Thông báo"
-            className="relative grid h-10 w-10 place-items-center rounded-full text-slate-600 transition hover:bg-slate-100 hover:text-[#0863c5]"
-          >
-            <DashboardIcon name="bell" className="h-5 w-5" />
-            <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full border-2 border-white bg-rose-500" />
-          </Link>
+          <NotificationNavbarBadge />
           <Link
             href={ROUTES.profile}
             aria-label="Hồ sơ cá nhân"

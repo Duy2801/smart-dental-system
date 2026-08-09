@@ -1,16 +1,11 @@
 import Link from "next/link";
 import type { AppointmentService, TreatmentMethodItem } from "../../types";
 import { DashboardIcon } from "../../../common/DashboardIcon";
+import { formatCurrency } from "@/utils/helpers";
 
 function formatPrice(value: string | number | undefined | null) {
   if (value === undefined || value === null || value === "") return "Liên hệ";
-  if (typeof value === "number") {
-    return `${new Intl.NumberFormat("vi-VN").format(value)} đ`;
-  }
-  const cleaned = String(value).replace(/[^\d]/g, "");
-  if (!cleaned) return "Liên hệ";
-  const num = Number(cleaned);
-  return `${new Intl.NumberFormat("vi-VN").format(num)} đ`;
+  return formatCurrency(value);
 }
 
 type ServiceSelectorProps = {

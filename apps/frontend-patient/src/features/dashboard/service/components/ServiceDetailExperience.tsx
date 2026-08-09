@@ -86,7 +86,7 @@ export function ServiceDetailExperience({ serviceId }: { serviceId: string }) {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <span className="inline-block rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-bold text-[#0863c5]">
-                      {method.durationMinutes ? minutesLabel(method.durationMinutes) : "Tư vấn kỹ"}
+                      Phương pháp
                     </span>
                     {isSelected && (
                       <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#0863c5] text-[10px] font-extrabold text-white">
@@ -288,17 +288,6 @@ export function ServiceDetailExperience({ serviceId }: { serviceId: string }) {
                     </td>
                     <td className="px-6 py-4 text-slate-500">
                       {service.pricingNote || "Chưa cập nhật ghi chú giá"}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="px-6 py-4 font-bold text-slate-950">
-                      Thời lượng
-                    </td>
-                    <td className="px-6 py-4 text-slate-600">
-                      {minutesLabel(activeMethod?.durationMinutes || service.durationMinutes)}
-                    </td>
-                    <td className="px-6 py-4 text-slate-500">
-                      Hệ thống tự lọc khung giờ phù hợp khi đặt lịch
                     </td>
                   </tr>
                 </tbody>

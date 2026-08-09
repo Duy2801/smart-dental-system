@@ -285,6 +285,7 @@ export type TreatmentMethodWhereInput = {
   procedureSteps?: Prisma.ServiceProcedureStepListRelationFilter
   faqs?: Prisma.ServiceFaqListRelationFilter
   appointments?: Prisma.AppointmentListRelationFilter
+  promotions?: Prisma.PromotionListRelationFilter
 }
 
 export type TreatmentMethodOrderByWithRelationInput = {
@@ -305,6 +306,7 @@ export type TreatmentMethodOrderByWithRelationInput = {
   procedureSteps?: Prisma.ServiceProcedureStepOrderByRelationAggregateInput
   faqs?: Prisma.ServiceFaqOrderByRelationAggregateInput
   appointments?: Prisma.AppointmentOrderByRelationAggregateInput
+  promotions?: Prisma.PromotionOrderByRelationAggregateInput
 }
 
 export type TreatmentMethodWhereUniqueInput = Prisma.AtLeast<{
@@ -328,6 +330,7 @@ export type TreatmentMethodWhereUniqueInput = Prisma.AtLeast<{
   procedureSteps?: Prisma.ServiceProcedureStepListRelationFilter
   faqs?: Prisma.ServiceFaqListRelationFilter
   appointments?: Prisma.AppointmentListRelationFilter
+  promotions?: Prisma.PromotionListRelationFilter
 }, "id" | "slug">
 
 export type TreatmentMethodOrderByWithAggregationInput = {
@@ -385,6 +388,7 @@ export type TreatmentMethodCreateInput = {
   procedureSteps?: Prisma.ServiceProcedureStepCreateNestedManyWithoutTreatmentMethodInput
   faqs?: Prisma.ServiceFaqCreateNestedManyWithoutTreatmentMethodInput
   appointments?: Prisma.AppointmentCreateNestedManyWithoutTreatmentMethodInput
+  promotions?: Prisma.PromotionCreateNestedManyWithoutApplicableTreatmentMethodInput
 }
 
 export type TreatmentMethodUncheckedCreateInput = {
@@ -404,6 +408,7 @@ export type TreatmentMethodUncheckedCreateInput = {
   procedureSteps?: Prisma.ServiceProcedureStepUncheckedCreateNestedManyWithoutTreatmentMethodInput
   faqs?: Prisma.ServiceFaqUncheckedCreateNestedManyWithoutTreatmentMethodInput
   appointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutTreatmentMethodInput
+  promotions?: Prisma.PromotionUncheckedCreateNestedManyWithoutApplicableTreatmentMethodInput
 }
 
 export type TreatmentMethodUpdateInput = {
@@ -423,6 +428,7 @@ export type TreatmentMethodUpdateInput = {
   procedureSteps?: Prisma.ServiceProcedureStepUpdateManyWithoutTreatmentMethodNestedInput
   faqs?: Prisma.ServiceFaqUpdateManyWithoutTreatmentMethodNestedInput
   appointments?: Prisma.AppointmentUpdateManyWithoutTreatmentMethodNestedInput
+  promotions?: Prisma.PromotionUpdateManyWithoutApplicableTreatmentMethodNestedInput
 }
 
 export type TreatmentMethodUncheckedUpdateInput = {
@@ -442,6 +448,7 @@ export type TreatmentMethodUncheckedUpdateInput = {
   procedureSteps?: Prisma.ServiceProcedureStepUncheckedUpdateManyWithoutTreatmentMethodNestedInput
   faqs?: Prisma.ServiceFaqUncheckedUpdateManyWithoutTreatmentMethodNestedInput
   appointments?: Prisma.AppointmentUncheckedUpdateManyWithoutTreatmentMethodNestedInput
+  promotions?: Prisma.PromotionUncheckedUpdateManyWithoutApplicableTreatmentMethodNestedInput
 }
 
 export type TreatmentMethodCreateManyInput = {
@@ -657,6 +664,22 @@ export type TreatmentMethodUpdateOneRequiredWithoutFaqsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.TreatmentMethodUpdateToOneWithWhereWithoutFaqsInput, Prisma.TreatmentMethodUpdateWithoutFaqsInput>, Prisma.TreatmentMethodUncheckedUpdateWithoutFaqsInput>
 }
 
+export type TreatmentMethodCreateNestedOneWithoutPromotionsInput = {
+  create?: Prisma.XOR<Prisma.TreatmentMethodCreateWithoutPromotionsInput, Prisma.TreatmentMethodUncheckedCreateWithoutPromotionsInput>
+  connectOrCreate?: Prisma.TreatmentMethodCreateOrConnectWithoutPromotionsInput
+  connect?: Prisma.TreatmentMethodWhereUniqueInput
+}
+
+export type TreatmentMethodUpdateOneWithoutPromotionsNestedInput = {
+  create?: Prisma.XOR<Prisma.TreatmentMethodCreateWithoutPromotionsInput, Prisma.TreatmentMethodUncheckedCreateWithoutPromotionsInput>
+  connectOrCreate?: Prisma.TreatmentMethodCreateOrConnectWithoutPromotionsInput
+  upsert?: Prisma.TreatmentMethodUpsertWithoutPromotionsInput
+  disconnect?: Prisma.TreatmentMethodWhereInput | boolean
+  delete?: Prisma.TreatmentMethodWhereInput | boolean
+  connect?: Prisma.TreatmentMethodWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.TreatmentMethodUpdateToOneWithWhereWithoutPromotionsInput, Prisma.TreatmentMethodUpdateWithoutPromotionsInput>, Prisma.TreatmentMethodUncheckedUpdateWithoutPromotionsInput>
+}
+
 export type TreatmentMethodCreateNestedOneWithoutAppointmentsInput = {
   create?: Prisma.XOR<Prisma.TreatmentMethodCreateWithoutAppointmentsInput, Prisma.TreatmentMethodUncheckedCreateWithoutAppointmentsInput>
   connectOrCreate?: Prisma.TreatmentMethodCreateOrConnectWithoutAppointmentsInput
@@ -689,6 +712,7 @@ export type TreatmentMethodCreateWithoutServiceInput = {
   procedureSteps?: Prisma.ServiceProcedureStepCreateNestedManyWithoutTreatmentMethodInput
   faqs?: Prisma.ServiceFaqCreateNestedManyWithoutTreatmentMethodInput
   appointments?: Prisma.AppointmentCreateNestedManyWithoutTreatmentMethodInput
+  promotions?: Prisma.PromotionCreateNestedManyWithoutApplicableTreatmentMethodInput
 }
 
 export type TreatmentMethodUncheckedCreateWithoutServiceInput = {
@@ -707,6 +731,7 @@ export type TreatmentMethodUncheckedCreateWithoutServiceInput = {
   procedureSteps?: Prisma.ServiceProcedureStepUncheckedCreateNestedManyWithoutTreatmentMethodInput
   faqs?: Prisma.ServiceFaqUncheckedCreateNestedManyWithoutTreatmentMethodInput
   appointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutTreatmentMethodInput
+  promotions?: Prisma.PromotionUncheckedCreateNestedManyWithoutApplicableTreatmentMethodInput
 }
 
 export type TreatmentMethodCreateOrConnectWithoutServiceInput = {
@@ -769,6 +794,7 @@ export type TreatmentMethodCreateWithoutMediaInput = {
   procedureSteps?: Prisma.ServiceProcedureStepCreateNestedManyWithoutTreatmentMethodInput
   faqs?: Prisma.ServiceFaqCreateNestedManyWithoutTreatmentMethodInput
   appointments?: Prisma.AppointmentCreateNestedManyWithoutTreatmentMethodInput
+  promotions?: Prisma.PromotionCreateNestedManyWithoutApplicableTreatmentMethodInput
 }
 
 export type TreatmentMethodUncheckedCreateWithoutMediaInput = {
@@ -787,6 +813,7 @@ export type TreatmentMethodUncheckedCreateWithoutMediaInput = {
   procedureSteps?: Prisma.ServiceProcedureStepUncheckedCreateNestedManyWithoutTreatmentMethodInput
   faqs?: Prisma.ServiceFaqUncheckedCreateNestedManyWithoutTreatmentMethodInput
   appointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutTreatmentMethodInput
+  promotions?: Prisma.PromotionUncheckedCreateNestedManyWithoutApplicableTreatmentMethodInput
 }
 
 export type TreatmentMethodCreateOrConnectWithoutMediaInput = {
@@ -821,6 +848,7 @@ export type TreatmentMethodUpdateWithoutMediaInput = {
   procedureSteps?: Prisma.ServiceProcedureStepUpdateManyWithoutTreatmentMethodNestedInput
   faqs?: Prisma.ServiceFaqUpdateManyWithoutTreatmentMethodNestedInput
   appointments?: Prisma.AppointmentUpdateManyWithoutTreatmentMethodNestedInput
+  promotions?: Prisma.PromotionUpdateManyWithoutApplicableTreatmentMethodNestedInput
 }
 
 export type TreatmentMethodUncheckedUpdateWithoutMediaInput = {
@@ -839,6 +867,7 @@ export type TreatmentMethodUncheckedUpdateWithoutMediaInput = {
   procedureSteps?: Prisma.ServiceProcedureStepUncheckedUpdateManyWithoutTreatmentMethodNestedInput
   faqs?: Prisma.ServiceFaqUncheckedUpdateManyWithoutTreatmentMethodNestedInput
   appointments?: Prisma.AppointmentUncheckedUpdateManyWithoutTreatmentMethodNestedInput
+  promotions?: Prisma.PromotionUncheckedUpdateManyWithoutApplicableTreatmentMethodNestedInput
 }
 
 export type TreatmentMethodCreateWithoutProcedureStepsInput = {
@@ -857,6 +886,7 @@ export type TreatmentMethodCreateWithoutProcedureStepsInput = {
   media?: Prisma.ServiceMediaCreateNestedManyWithoutTreatmentMethodInput
   faqs?: Prisma.ServiceFaqCreateNestedManyWithoutTreatmentMethodInput
   appointments?: Prisma.AppointmentCreateNestedManyWithoutTreatmentMethodInput
+  promotions?: Prisma.PromotionCreateNestedManyWithoutApplicableTreatmentMethodInput
 }
 
 export type TreatmentMethodUncheckedCreateWithoutProcedureStepsInput = {
@@ -875,6 +905,7 @@ export type TreatmentMethodUncheckedCreateWithoutProcedureStepsInput = {
   media?: Prisma.ServiceMediaUncheckedCreateNestedManyWithoutTreatmentMethodInput
   faqs?: Prisma.ServiceFaqUncheckedCreateNestedManyWithoutTreatmentMethodInput
   appointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutTreatmentMethodInput
+  promotions?: Prisma.PromotionUncheckedCreateNestedManyWithoutApplicableTreatmentMethodInput
 }
 
 export type TreatmentMethodCreateOrConnectWithoutProcedureStepsInput = {
@@ -909,6 +940,7 @@ export type TreatmentMethodUpdateWithoutProcedureStepsInput = {
   media?: Prisma.ServiceMediaUpdateManyWithoutTreatmentMethodNestedInput
   faqs?: Prisma.ServiceFaqUpdateManyWithoutTreatmentMethodNestedInput
   appointments?: Prisma.AppointmentUpdateManyWithoutTreatmentMethodNestedInput
+  promotions?: Prisma.PromotionUpdateManyWithoutApplicableTreatmentMethodNestedInput
 }
 
 export type TreatmentMethodUncheckedUpdateWithoutProcedureStepsInput = {
@@ -927,6 +959,7 @@ export type TreatmentMethodUncheckedUpdateWithoutProcedureStepsInput = {
   media?: Prisma.ServiceMediaUncheckedUpdateManyWithoutTreatmentMethodNestedInput
   faqs?: Prisma.ServiceFaqUncheckedUpdateManyWithoutTreatmentMethodNestedInput
   appointments?: Prisma.AppointmentUncheckedUpdateManyWithoutTreatmentMethodNestedInput
+  promotions?: Prisma.PromotionUncheckedUpdateManyWithoutApplicableTreatmentMethodNestedInput
 }
 
 export type TreatmentMethodCreateWithoutFaqsInput = {
@@ -945,6 +978,7 @@ export type TreatmentMethodCreateWithoutFaqsInput = {
   media?: Prisma.ServiceMediaCreateNestedManyWithoutTreatmentMethodInput
   procedureSteps?: Prisma.ServiceProcedureStepCreateNestedManyWithoutTreatmentMethodInput
   appointments?: Prisma.AppointmentCreateNestedManyWithoutTreatmentMethodInput
+  promotions?: Prisma.PromotionCreateNestedManyWithoutApplicableTreatmentMethodInput
 }
 
 export type TreatmentMethodUncheckedCreateWithoutFaqsInput = {
@@ -963,6 +997,7 @@ export type TreatmentMethodUncheckedCreateWithoutFaqsInput = {
   media?: Prisma.ServiceMediaUncheckedCreateNestedManyWithoutTreatmentMethodInput
   procedureSteps?: Prisma.ServiceProcedureStepUncheckedCreateNestedManyWithoutTreatmentMethodInput
   appointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutTreatmentMethodInput
+  promotions?: Prisma.PromotionUncheckedCreateNestedManyWithoutApplicableTreatmentMethodInput
 }
 
 export type TreatmentMethodCreateOrConnectWithoutFaqsInput = {
@@ -997,6 +1032,7 @@ export type TreatmentMethodUpdateWithoutFaqsInput = {
   media?: Prisma.ServiceMediaUpdateManyWithoutTreatmentMethodNestedInput
   procedureSteps?: Prisma.ServiceProcedureStepUpdateManyWithoutTreatmentMethodNestedInput
   appointments?: Prisma.AppointmentUpdateManyWithoutTreatmentMethodNestedInput
+  promotions?: Prisma.PromotionUpdateManyWithoutApplicableTreatmentMethodNestedInput
 }
 
 export type TreatmentMethodUncheckedUpdateWithoutFaqsInput = {
@@ -1014,6 +1050,99 @@ export type TreatmentMethodUncheckedUpdateWithoutFaqsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   media?: Prisma.ServiceMediaUncheckedUpdateManyWithoutTreatmentMethodNestedInput
   procedureSteps?: Prisma.ServiceProcedureStepUncheckedUpdateManyWithoutTreatmentMethodNestedInput
+  appointments?: Prisma.AppointmentUncheckedUpdateManyWithoutTreatmentMethodNestedInput
+  promotions?: Prisma.PromotionUncheckedUpdateManyWithoutApplicableTreatmentMethodNestedInput
+}
+
+export type TreatmentMethodCreateWithoutPromotionsInput = {
+  id?: string
+  name: string
+  slug?: string | null
+  description?: string | null
+  imageUrl?: string | null
+  basePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
+  durationMinutes?: number | null
+  displayOrder?: number
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  service: Prisma.ServiceCreateNestedOneWithoutTreatmentMethodsInput
+  media?: Prisma.ServiceMediaCreateNestedManyWithoutTreatmentMethodInput
+  procedureSteps?: Prisma.ServiceProcedureStepCreateNestedManyWithoutTreatmentMethodInput
+  faqs?: Prisma.ServiceFaqCreateNestedManyWithoutTreatmentMethodInput
+  appointments?: Prisma.AppointmentCreateNestedManyWithoutTreatmentMethodInput
+}
+
+export type TreatmentMethodUncheckedCreateWithoutPromotionsInput = {
+  id?: string
+  serviceId: string
+  name: string
+  slug?: string | null
+  description?: string | null
+  imageUrl?: string | null
+  basePrice: runtime.Decimal | runtime.DecimalJsLike | number | string
+  durationMinutes?: number | null
+  displayOrder?: number
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  media?: Prisma.ServiceMediaUncheckedCreateNestedManyWithoutTreatmentMethodInput
+  procedureSteps?: Prisma.ServiceProcedureStepUncheckedCreateNestedManyWithoutTreatmentMethodInput
+  faqs?: Prisma.ServiceFaqUncheckedCreateNestedManyWithoutTreatmentMethodInput
+  appointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutTreatmentMethodInput
+}
+
+export type TreatmentMethodCreateOrConnectWithoutPromotionsInput = {
+  where: Prisma.TreatmentMethodWhereUniqueInput
+  create: Prisma.XOR<Prisma.TreatmentMethodCreateWithoutPromotionsInput, Prisma.TreatmentMethodUncheckedCreateWithoutPromotionsInput>
+}
+
+export type TreatmentMethodUpsertWithoutPromotionsInput = {
+  update: Prisma.XOR<Prisma.TreatmentMethodUpdateWithoutPromotionsInput, Prisma.TreatmentMethodUncheckedUpdateWithoutPromotionsInput>
+  create: Prisma.XOR<Prisma.TreatmentMethodCreateWithoutPromotionsInput, Prisma.TreatmentMethodUncheckedCreateWithoutPromotionsInput>
+  where?: Prisma.TreatmentMethodWhereInput
+}
+
+export type TreatmentMethodUpdateToOneWithWhereWithoutPromotionsInput = {
+  where?: Prisma.TreatmentMethodWhereInput
+  data: Prisma.XOR<Prisma.TreatmentMethodUpdateWithoutPromotionsInput, Prisma.TreatmentMethodUncheckedUpdateWithoutPromotionsInput>
+}
+
+export type TreatmentMethodUpdateWithoutPromotionsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  basePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  service?: Prisma.ServiceUpdateOneRequiredWithoutTreatmentMethodsNestedInput
+  media?: Prisma.ServiceMediaUpdateManyWithoutTreatmentMethodNestedInput
+  procedureSteps?: Prisma.ServiceProcedureStepUpdateManyWithoutTreatmentMethodNestedInput
+  faqs?: Prisma.ServiceFaqUpdateManyWithoutTreatmentMethodNestedInput
+  appointments?: Prisma.AppointmentUpdateManyWithoutTreatmentMethodNestedInput
+}
+
+export type TreatmentMethodUncheckedUpdateWithoutPromotionsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  serviceId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  basePrice?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  displayOrder?: Prisma.IntFieldUpdateOperationsInput | number
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  media?: Prisma.ServiceMediaUncheckedUpdateManyWithoutTreatmentMethodNestedInput
+  procedureSteps?: Prisma.ServiceProcedureStepUncheckedUpdateManyWithoutTreatmentMethodNestedInput
+  faqs?: Prisma.ServiceFaqUncheckedUpdateManyWithoutTreatmentMethodNestedInput
   appointments?: Prisma.AppointmentUncheckedUpdateManyWithoutTreatmentMethodNestedInput
 }
 
@@ -1033,6 +1162,7 @@ export type TreatmentMethodCreateWithoutAppointmentsInput = {
   media?: Prisma.ServiceMediaCreateNestedManyWithoutTreatmentMethodInput
   procedureSteps?: Prisma.ServiceProcedureStepCreateNestedManyWithoutTreatmentMethodInput
   faqs?: Prisma.ServiceFaqCreateNestedManyWithoutTreatmentMethodInput
+  promotions?: Prisma.PromotionCreateNestedManyWithoutApplicableTreatmentMethodInput
 }
 
 export type TreatmentMethodUncheckedCreateWithoutAppointmentsInput = {
@@ -1051,6 +1181,7 @@ export type TreatmentMethodUncheckedCreateWithoutAppointmentsInput = {
   media?: Prisma.ServiceMediaUncheckedCreateNestedManyWithoutTreatmentMethodInput
   procedureSteps?: Prisma.ServiceProcedureStepUncheckedCreateNestedManyWithoutTreatmentMethodInput
   faqs?: Prisma.ServiceFaqUncheckedCreateNestedManyWithoutTreatmentMethodInput
+  promotions?: Prisma.PromotionUncheckedCreateNestedManyWithoutApplicableTreatmentMethodInput
 }
 
 export type TreatmentMethodCreateOrConnectWithoutAppointmentsInput = {
@@ -1085,6 +1216,7 @@ export type TreatmentMethodUpdateWithoutAppointmentsInput = {
   media?: Prisma.ServiceMediaUpdateManyWithoutTreatmentMethodNestedInput
   procedureSteps?: Prisma.ServiceProcedureStepUpdateManyWithoutTreatmentMethodNestedInput
   faqs?: Prisma.ServiceFaqUpdateManyWithoutTreatmentMethodNestedInput
+  promotions?: Prisma.PromotionUpdateManyWithoutApplicableTreatmentMethodNestedInput
 }
 
 export type TreatmentMethodUncheckedUpdateWithoutAppointmentsInput = {
@@ -1103,6 +1235,7 @@ export type TreatmentMethodUncheckedUpdateWithoutAppointmentsInput = {
   media?: Prisma.ServiceMediaUncheckedUpdateManyWithoutTreatmentMethodNestedInput
   procedureSteps?: Prisma.ServiceProcedureStepUncheckedUpdateManyWithoutTreatmentMethodNestedInput
   faqs?: Prisma.ServiceFaqUncheckedUpdateManyWithoutTreatmentMethodNestedInput
+  promotions?: Prisma.PromotionUncheckedUpdateManyWithoutApplicableTreatmentMethodNestedInput
 }
 
 export type TreatmentMethodCreateManyServiceInput = {
@@ -1135,6 +1268,7 @@ export type TreatmentMethodUpdateWithoutServiceInput = {
   procedureSteps?: Prisma.ServiceProcedureStepUpdateManyWithoutTreatmentMethodNestedInput
   faqs?: Prisma.ServiceFaqUpdateManyWithoutTreatmentMethodNestedInput
   appointments?: Prisma.AppointmentUpdateManyWithoutTreatmentMethodNestedInput
+  promotions?: Prisma.PromotionUpdateManyWithoutApplicableTreatmentMethodNestedInput
 }
 
 export type TreatmentMethodUncheckedUpdateWithoutServiceInput = {
@@ -1153,6 +1287,7 @@ export type TreatmentMethodUncheckedUpdateWithoutServiceInput = {
   procedureSteps?: Prisma.ServiceProcedureStepUncheckedUpdateManyWithoutTreatmentMethodNestedInput
   faqs?: Prisma.ServiceFaqUncheckedUpdateManyWithoutTreatmentMethodNestedInput
   appointments?: Prisma.AppointmentUncheckedUpdateManyWithoutTreatmentMethodNestedInput
+  promotions?: Prisma.PromotionUncheckedUpdateManyWithoutApplicableTreatmentMethodNestedInput
 }
 
 export type TreatmentMethodUncheckedUpdateManyWithoutServiceInput = {
@@ -1179,6 +1314,7 @@ export type TreatmentMethodCountOutputType = {
   procedureSteps: number
   faqs: number
   appointments: number
+  promotions: number
 }
 
 export type TreatmentMethodCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1186,6 +1322,7 @@ export type TreatmentMethodCountOutputTypeSelect<ExtArgs extends runtime.Types.E
   procedureSteps?: boolean | TreatmentMethodCountOutputTypeCountProcedureStepsArgs
   faqs?: boolean | TreatmentMethodCountOutputTypeCountFaqsArgs
   appointments?: boolean | TreatmentMethodCountOutputTypeCountAppointmentsArgs
+  promotions?: boolean | TreatmentMethodCountOutputTypeCountPromotionsArgs
 }
 
 /**
@@ -1226,6 +1363,13 @@ export type TreatmentMethodCountOutputTypeCountAppointmentsArgs<ExtArgs extends 
   where?: Prisma.AppointmentWhereInput
 }
 
+/**
+ * TreatmentMethodCountOutputType without action
+ */
+export type TreatmentMethodCountOutputTypeCountPromotionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.PromotionWhereInput
+}
+
 
 export type TreatmentMethodSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1245,6 +1389,7 @@ export type TreatmentMethodSelect<ExtArgs extends runtime.Types.Extensions.Inter
   procedureSteps?: boolean | Prisma.TreatmentMethod$procedureStepsArgs<ExtArgs>
   faqs?: boolean | Prisma.TreatmentMethod$faqsArgs<ExtArgs>
   appointments?: boolean | Prisma.TreatmentMethod$appointmentsArgs<ExtArgs>
+  promotions?: boolean | Prisma.TreatmentMethod$promotionsArgs<ExtArgs>
   _count?: boolean | Prisma.TreatmentMethodCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["treatmentMethod"]>
 
@@ -1302,6 +1447,7 @@ export type TreatmentMethodInclude<ExtArgs extends runtime.Types.Extensions.Inte
   procedureSteps?: boolean | Prisma.TreatmentMethod$procedureStepsArgs<ExtArgs>
   faqs?: boolean | Prisma.TreatmentMethod$faqsArgs<ExtArgs>
   appointments?: boolean | Prisma.TreatmentMethod$appointmentsArgs<ExtArgs>
+  promotions?: boolean | Prisma.TreatmentMethod$promotionsArgs<ExtArgs>
   _count?: boolean | Prisma.TreatmentMethodCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type TreatmentMethodIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1319,6 +1465,7 @@ export type $TreatmentMethodPayload<ExtArgs extends runtime.Types.Extensions.Int
     procedureSteps: Prisma.$ServiceProcedureStepPayload<ExtArgs>[]
     faqs: Prisma.$ServiceFaqPayload<ExtArgs>[]
     appointments: Prisma.$AppointmentPayload<ExtArgs>[]
+    promotions: Prisma.$PromotionPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1732,6 +1879,7 @@ export interface Prisma__TreatmentMethodClient<T, Null = never, ExtArgs extends 
   procedureSteps<T extends Prisma.TreatmentMethod$procedureStepsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.TreatmentMethod$procedureStepsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ServiceProcedureStepPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   faqs<T extends Prisma.TreatmentMethod$faqsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.TreatmentMethod$faqsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ServiceFaqPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   appointments<T extends Prisma.TreatmentMethod$appointmentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.TreatmentMethod$appointmentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AppointmentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  promotions<T extends Prisma.TreatmentMethod$promotionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.TreatmentMethod$promotionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PromotionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2267,6 +2415,30 @@ export type TreatmentMethod$appointmentsArgs<ExtArgs extends runtime.Types.Exten
   take?: number
   skip?: number
   distinct?: Prisma.AppointmentScalarFieldEnum | Prisma.AppointmentScalarFieldEnum[]
+}
+
+/**
+ * TreatmentMethod.promotions
+ */
+export type TreatmentMethod$promotionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Promotion
+   */
+  select?: Prisma.PromotionSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Promotion
+   */
+  omit?: Prisma.PromotionOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.PromotionInclude<ExtArgs> | null
+  where?: Prisma.PromotionWhereInput
+  orderBy?: Prisma.PromotionOrderByWithRelationInput | Prisma.PromotionOrderByWithRelationInput[]
+  cursor?: Prisma.PromotionWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.PromotionScalarFieldEnum | Prisma.PromotionScalarFieldEnum[]
 }
 
 /**

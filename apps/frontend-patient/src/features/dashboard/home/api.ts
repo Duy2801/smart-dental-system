@@ -229,7 +229,7 @@ function mapDoctorDetail(doctor: DoctorDto): DoctorDetail {
   const reviews = doctor.reviews ?? [];
   const averageRating = reviews.length
     ? reviews.reduce((total, review) => total + review.rating, 0) /
-      reviews.length
+    reviews.length
     : 0;
 
   return {

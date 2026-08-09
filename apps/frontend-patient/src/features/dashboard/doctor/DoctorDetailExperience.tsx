@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState, type FormEvent } from "react";
+import { useMemo, useState } from "react";
 import { DashboardIcon } from "../common/DashboardIcon";
 import { getDoctorDetail, type DoctorDetail } from "../home/api";
 import { ROUTES, buildRoute } from "../common/routes";
@@ -49,40 +49,27 @@ function DoctorHeroImage({ doctor }: { doctor: DoctorDetail }) {
 }
 
 function ContactPanel({ doctor }: { doctor: DoctorDetail }) {
-  const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState([
-    `Xin chào, tôi là trợ lý của ${doctor.name}. Bạn muốn bác sĩ tư vấn vấn đề gì?`,
-  ]);
-
-  function sendMessage(event: FormEvent) {
-    event.preventDefault();
-    const content = message.trim();
-    if (!content) return;
-    setMessages((current) => [...current, content]);
-    setMessage("");
-  }
-
   return (
     <aside className="space-y-5 lg:sticky lg:top-24">
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <h2 className="flex items-center gap-2 font-bold text-slate-900">
           <DashboardIcon name="calendar" className="h-5 w-5 text-[#0058bc]" />
-          Đặt lịch với bác sĩ
+          Đặt lịch khám với bác sĩ
         </h2>
         <p className={`mt-2 ${T.bodySm}`}>
-          Chọn bác sĩ này khi đặt lịch để hệ thống gợi ý khung giờ phù hợp.
+          Hệ thống tự động ưu tiên chọn {doctor.name} làm bác sĩ điều trị chính khi bạn đăng ký.
         </p>
         <Link
           href={buildRoute.appointmentBooking()}
           className="mt-4 block rounded-xl bg-[#0058bc] px-5 py-3.5 text-center text-sm font-bold text-white shadow-lg shadow-blue-200 transition hover:bg-[#004ca3]"
         >
-          Đặt lịch hẹn
+          Đặt lịch khám ngay
         </Link>
       </section>
 
-      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="flex items-center gap-3 border-b border-slate-100 p-5">
-          <span className="relative grid h-10 w-10 place-items-center overflow-hidden rounded-full bg-blue-100 text-xs font-bold text-[#0058bc]">
+      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
+        <div className="flex items-center gap-3">
+          <span className="relative grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-blue-100 text-xs font-bold text-[#0058bc]">
             {doctor.avatarUrl ? (
               <img
                 src={doctor.avatarUrl}
@@ -96,44 +83,22 @@ function ContactPanel({ doctor }: { doctor: DoctorDetail }) {
           </span>
           <div>
             <h2 className="text-sm font-bold text-slate-900">
-              Trao đổi với bác sĩ
+              Tư vấn trực tuyến 1:1
             </h2>
-            <p className="text-[10px] text-emerald-600">
-              Trực tuyến qua trợ lý phòng khám
+            <p className="text-xs text-slate-500">
+              Kết nối trực tiếp qua video call
             </p>
           </div>
         </div>
-        <div className="h-52 space-y-3 overflow-y-auto bg-slate-50 p-4">
-          {messages.map((text, index) => (
-            <div
-              key={`${text}-${index}`}
-              className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs leading-5 ${
-                index === 0
-                  ? "rounded-tl-sm bg-white text-slate-600 shadow-sm"
-                  : "ml-auto rounded-tr-sm bg-[#0058bc] text-white"
-              }`}
-            >
-              {text}
-            </div>
-          ))}
-        </div>
-        <form
-          onSubmit={sendMessage}
-          className="flex gap-2 border-t border-slate-100 p-3"
+        <p className="text-xs text-slate-600 leading-relaxed">
+          Đăng ký lịch tư vấn trực tuyến từ xa với bác sĩ để nhận chẩn đoán sơ bộ và phương án điều trị.
+        </p>
+        <Link
+          href="/consultation"
+          className="block w-full rounded-xl border border-blue-200 bg-blue-50/60 py-2.5 text-center text-xs font-bold text-[#0058bc] transition hover:bg-blue-100"
         >
-          <input
-            value={message}
-            onChange={(event) => setMessage(event.target.value)}
-            placeholder="Nhập câu hỏi cho bác sĩ..."
-            className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2.5 text-xs outline-none focus:border-blue-400"
-          />
-          <button
-            aria-label="Gửi tin nhắn"
-            className="grid h-10 w-10 place-items-center rounded-xl bg-[#0058bc] text-white"
-          >
-            <DashboardIcon name="send" className="h-4 w-4" />
-          </button>
-        </form>
+          Đăng ký tư vấn Telehealth
+        </Link>
       </section>
     </aside>
   );
@@ -372,10 +337,10 @@ export function DoctorDetailExperience({ doctorId }: { doctorId: string }) {
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
                         <h3 className="font-bold text-slate-900">
-                          {review.patient.user.fullName}
+                          {review.patient?.user?.fullName || "Bệnh nhân ẩn danh"}
                         </h3>
                         <p className={`${T.bodySm}`}>
-                          {review.appointment.service.name}
+                          {review.appointment?.service?.name || "Khám & Điều trị nha khoa"}
                         </p>
                       </div>
                       <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-600">

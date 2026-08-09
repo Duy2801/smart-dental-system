@@ -24,4 +24,9 @@ export class CreateAppointmentDto {
   @IsOptional()
   @IsEnum(AppointmentPaymentOption)
   paymentOption?: AppointmentPaymentOption;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  promotionCode?: string;
 }

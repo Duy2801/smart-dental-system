@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { DashboardIcon } from "@/features/dashboard/common/DashboardIcon";
 import { T } from "@/features/dashboard/common/typography";
+import { formatCurrency, formatDate } from "@/utils/helpers";
 import type { PromotionDto } from "../types";
 
 type PromotionCardProps = {
@@ -28,12 +29,9 @@ export function PromotionCard({
   const isPercentage = promotion.discount_type === "PERCENTAGE";
   const discountLabel = isPercentage
     ? `Giảm ${promotion.discount_value}%`
-    : `Giảm ${new Intl.NumberFormat("vi-VN").format(promotion.discount_value)}đ`;
+    : `Giảm ${formatCurrency(promotion.discount_value)}`;
 
-  const endDateFormatted = new Date(promotion.end_date).toLocaleDateString(
-    "vi-VN",
-    { day: "2-digit", month: "2-digit", year: "numeric" },
-  );
+  const endDateFormatted = formatDate(promotion.end_date);
 
   const usagePercent =
     promotion.max_uses > 0
@@ -97,7 +95,7 @@ export function PromotionCard({
             </div>
             {promotion.min_order_amount && promotion.min_order_amount > 0 ? (
               <span className="text-[10px] font-bold text-slate-500">
-                Đơn từ {new Intl.NumberFormat("vi-VN").format(promotion.min_order_amount)}đ
+                Đơn từ {formatCurrency(promotion.min_order_amount)}
               </span>
             ) : (
               <span className="text-[10px] font-bold text-emerald-600">Mọi đơn</span>

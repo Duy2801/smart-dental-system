@@ -1,12 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { DashboardIcon } from "../../common/DashboardIcon";
 import { formatServicePrice } from "../api";
 import type { DentalService, ServiceFaq, TreatmentMethod } from "../types";
-import { buildRoute } from "../../common/routes";
+import { buildRoute, ROUTES } from "../../common/routes";
 import { T } from "../../common/typography";
+import { EmptySearchResult } from "../../common/EmptySearchResult";
+
+function normalizeText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
 
 type ServiceGroupBrowserProps = {
   services: DentalService[];
@@ -140,9 +149,9 @@ function PopularMethodCard({
 
   return (
     <div
-      className="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-lg"
+      className="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-lg"
     >
-      <div className="relative aspect-[16/10] overflow-hidden bg-slate-100">
+      <div className="relative aspect-square w-full overflow-hidden bg-slate-100">
         {imageUrl ? (
           <img
             src={imageUrl}
@@ -199,13 +208,13 @@ function MethodCard({
   const imageAlt = method.media?.[0]?.alt || method.name;
 
   return (
-    <div className="group grid h-full overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-lg sm:grid-cols-[180px_1fr]">
-      <div className="relative min-h-[180px] overflow-hidden bg-slate-100">
+    <div className="group grid h-full overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-lg sm:grid-cols-[200px_1fr]">
+      <div className="relative aspect-square w-full sm:w-[200px] overflow-hidden bg-slate-100">
         {imageUrl ? (
           <img
             src={imageUrl}
             alt={imageAlt}
-            className="h-full min-h-[180px] w-full object-cover transition duration-500 group-hover:scale-105"
+            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
           />
         ) : (
           <div className="flex h-full min-h-[180px] w-full items-center justify-center bg-blue-50 px-5 text-center text-sm font-extrabold text-[#0863c5]">
@@ -230,11 +239,9 @@ function MethodCard({
             <span className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-bold text-[#0863c5]">
               {formatServicePrice(method.basePrice)}
             </span>
-            {method.durationMinutes ? (
-              <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600">
-                {method.durationMinutes} phút
-              </span>
-            ) : null}
+            <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600">
+              Chuyên sâu
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <Link
@@ -338,13 +345,40 @@ export function ServiceGroupBrowser({
       }),
     [services],
   );
+  const searchParams = useSearchParams();
+  const keywordFromUrl = searchParams.get("keyword") || "";
+
+  const filteredServices = useMemo(() => {
+    if (!keywordFromUrl) return orderedServices;
+    const kw = normalizeText(keywordFromUrl);
+    return orderedServices.filter((service) => {
+      const matchTitle = normalizeText(service.title).includes(kw);
+      const matchSlug = service.slug && normalizeText(service.slug).includes(kw);
+      const matchDesc = service.description && normalizeText(service.description).includes(kw);
+      const matchMethods = (service.treatmentMethods ?? []).some(
+        (m) =>
+          normalizeText(m.name).includes(kw) ||
+          (m.description && normalizeText(m.description).includes(kw))
+      );
+      return matchTitle || matchSlug || matchDesc || matchMethods;
+    });
+  }, [orderedServices, keywordFromUrl]);
+
   const [selectedServiceId, setSelectedServiceId] = useState(
-    orderedServices[0]?.id ?? "",
+    filteredServices[0]?.id ?? "",
   );
 
+  useEffect(() => {
+    if (filteredServices.length > 0) {
+      if (!filteredServices.some((s) => s.id === selectedServiceId)) {
+        setSelectedServiceId(filteredServices[0].id);
+      }
+    }
+  }, [filteredServices, selectedServiceId]);
+
   const selectedService =
-    orderedServices.find((service) => service.id === selectedServiceId) ||
-    orderedServices[0] ||
+    filteredServices.find((service) => service.id === selectedServiceId) ||
+    filteredServices[0] ||
     null;
 
   const selectedMethods = useMemo<MethodMatch[]>(() => {
@@ -356,7 +390,7 @@ export function ServiceGroupBrowser({
   }, [selectedService]);
 
   const popularMethods = useMemo<MethodMatch[]>(() => {
-    return orderedServices
+    return filteredServices
       .flatMap((service) =>
         (service.treatmentMethods ?? []).map((method) => ({
           service,
@@ -370,10 +404,10 @@ export function ServiceGroupBrowser({
         return (a.method.displayOrder ?? 0) - (b.method.displayOrder ?? 0);
       })
       .slice(0, 4);
-  }, [orderedServices]);
+  }, [filteredServices]);
 
   const serviceFaqs = useMemo<FaqMatch[]>(() => {
-    return orderedServices.flatMap((service) =>
+    return filteredServices.flatMap((service) =>
       (service.treatmentMethods ?? []).flatMap((method) =>
         (method.faqs ?? []).slice(0, 2).map((faq) => ({
           ...faq,
@@ -382,15 +416,28 @@ export function ServiceGroupBrowser({
         })),
       ),
     );
-  }, [orderedServices]);
+  }, [filteredServices]);
 
-  if (!orderedServices.length) return null;
+  if (keywordFromUrl && !filteredServices.length) {
+    return (
+      <div className="py-6">
+        <EmptySearchResult
+          title="Không tìm thấy dịch vụ hoặc bác sĩ"
+          description="Hãy thử tìm kiếm từ khóa dịch vụ, phương pháp điều trị hoặc tên bác sĩ khác"
+          actionHref={ROUTES.service}
+          actionText="Xem tất cả dịch vụ"
+        />
+      </div>
+    );
+  }
+
+  if (!filteredServices.length) return null;
 
   if (compact) {
     return (
       <div className="space-y-9">
         <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-8">
-          {orderedServices.map((service) => (
+          {filteredServices.map((service) => (
             <ServiceIconTile key={service.id} service={service} />
           ))}
         </div>
@@ -418,7 +465,7 @@ export function ServiceGroupBrowser({
       </section>
 
       <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-8">
-        {orderedServices.map((service) => (
+        {filteredServices.map((service) => (
           <ServiceIconTile
             key={service.id}
             service={service}
@@ -450,9 +497,10 @@ export function ServiceGroupBrowser({
               ))}
             </div>
           ) : (
-            <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-sm font-semibold text-slate-500">
-              Chưa có phương pháp điều trị trong nhóm này.
-            </div>
+            <EmptySearchResult
+              title="Không tìm thấy sản phẩm"
+              description="Hãy thử tìm kiếm từ khóa dịch vụ khác"
+            />
           )}
         </section>
       ) : null}

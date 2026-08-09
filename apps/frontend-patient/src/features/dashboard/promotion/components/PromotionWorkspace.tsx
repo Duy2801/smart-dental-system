@@ -1,9 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { DashboardIcon } from "@/features/dashboard/common/DashboardIcon";
 import { AuthRequireModal } from "@/features/dashboard/common/AuthRequireModal";
 import { toast } from "@/features/dashboard/common/toast";
+import { buildRoute } from "@/features/dashboard/common/routes";
 import { useAppSelector } from "@/providers";
 import { usePromotions } from "../hooks/usePromotions";
 import { PromotionCard, PromotionCardSkeleton } from "./PromotionCard";
@@ -13,12 +15,44 @@ import type { PromotionDto } from "../types";
 type FilterTab = "all" | "percentage" | "fixed" | "expiring";
 
 export function PromotionWorkspace() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { promotions: dbPromotions, services, isLoading } = usePromotions();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
   const [selectedPromotion, setSelectedPromotion] = useState<PromotionDto | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
+
+  // Auto select & open promotion detail modal if query string exists (e.g. from Notification click)
+  useEffect(() => {
+    if (!dbPromotions || dbPromotions.length === 0) return;
+
+    const qParam = searchParams.get("q") || searchParams.get("code") || searchParams.get("id");
+    if (!qParam) return;
+
+    const term = qParam.trim().toLowerCase();
+    
+    // Find matching promotion by code, name, or description
+    const matched = dbPromotions.find((item) => {
+      const name = item.name.toLowerCase();
+      const code = item.code.toLowerCase();
+      const desc = item.description.toLowerCase();
+      return (
+        code === term ||
+        name === term ||
+        name.includes(term) ||
+        term.includes(name) ||
+        term.includes(code) ||
+        desc.includes(term)
+      );
+    }) || dbPromotions[0]; // fallback to first promo if query was general
+
+    if (matched) {
+      setSelectedPromotion(matched);
+      setSearchQuery(qParam);
+    }
+  }, [searchParams, dbPromotions]);
 
   const isAuthenticated =
     useAppSelector((state) => state.login.isAuthenticated) ||
@@ -151,7 +185,7 @@ export function PromotionWorkspace() {
             <PromotionCard
               key={promo.id}
               promotion={promo}
-              onViewDetail={(item) => setSelectedPromotion(item)}
+              onViewDetail={(item) => router.push(buildRoute.promotionDetail(item.id))}
               onApplyPromotion={handleApplyPromotion}
             />
           ))}

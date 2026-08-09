@@ -13,11 +13,13 @@ import {
   AppointmentStatus,
   BookingSource,
   DepositCalculationMode,
+  DiscountType,
   InvoiceStatus,
   InvoiceType,
 } from 'prisma/generated/enums';
 import { PrismaService } from '../prisma/prisma.service';
 import { ClinicConfigService } from '../clinic-config/clinic-config.service';
+import { NotificationService } from '../notification/notification.service';
 import {
   BusinessHourDto,
   ClinicSpecialDateDto,
@@ -95,6 +97,7 @@ export class AppointmentService {
   constructor(
     private prisma: PrismaService,
     private clinicConfigService: ClinicConfigService,
+    private notificationService: NotificationService,
     @InjectQueue('mail-queue') private readonly mailQueue: Queue,
   ) {}
 
@@ -172,6 +175,7 @@ export class AppointmentService {
       scheduledAt: dto.scheduledAt,
       notes: dto.notes,
       paymentOption: dto.paymentOption,
+      promotionCode: dto.promotionCode,
       bookingSource: BookingSource.PATIENT_APP,
       createdBy: userId,
     });
@@ -1109,6 +1113,7 @@ export class AppointmentService {
     scheduledAt: string;
     notes?: string;
     paymentOption?: AppointmentPaymentOption;
+    promotionCode?: string;
     bookingSource: BookingSource;
     createdBy: string;
     skipOnlineBookingBlock?: boolean;
@@ -1172,9 +1177,21 @@ export class AppointmentService {
         value: 30,
       };
     }
+    const serviceBasePrice = Number(treatmentMethod.basePrice);
+    const promotion = input.promotionCode?.trim()
+      ? await this.resolveAppointmentPromotion({
+          code: input.promotionCode.trim(),
+          serviceBasePrice,
+          treatmentMethodId: treatmentMethod.id,
+        })
+      : null;
+    const serviceDiscountAmount = promotion?.discountAmount ?? 0;
+    const payableServicePrice = Number(
+      Math.max(0, serviceBasePrice - serviceDiscountAmount).toFixed(2),
+    );
     const depositAmount = depositPolicy.enabled
       ? this.calculateDepositAmount(
-          Number(treatmentMethod.basePrice),
+          payableServicePrice,
           depositPolicy,
         )
       : 0;
@@ -1262,9 +1279,12 @@ export class AppointmentService {
             serviceId: treatmentMethod.service.id,
             treatmentMethodId: treatmentMethod.id,
             serviceName: treatmentMethod.name,
-            serviceBasePrice: Number(treatmentMethod.basePrice),
+            serviceBasePrice,
+            payableServicePrice,
             depositPolicy,
             depositAmount,
+            promotionId: promotion?.promotionId,
+            serviceDiscountAmount,
             createdBy: input.createdBy,
           })
         : null;
@@ -1273,6 +1293,21 @@ export class AppointmentService {
       appointment,
       depositAmount: depositInvoice ? depositAmount : 0,
     });
+
+    if (patient?.userId) {
+      const dateStr = scheduledAt.toLocaleDateString('vi-VN');
+      const timeStr = scheduledAt.toLocaleTimeString('vi-VN', {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+      await this.notificationService.createNotification({
+        userId: patient.userId,
+        type: 'APPOINTMENT_CONFIRMED',
+        title: 'Lịch hẹn đã được xác nhận',
+        content: `Cuộc hẹn ${treatmentMethod.name} vào ngày ${dateStr} lúc ${timeStr} đã được hệ thống tiếp nhận thành công.`,
+        appointmentId: appointment.id,
+      });
+    }
 
     return {
       ...this.withDerivedService(appointment),
@@ -1471,12 +1506,22 @@ export class AppointmentService {
     treatmentMethodId: string;
     serviceName: string;
     serviceBasePrice: number;
+    payableServicePrice: number;
     depositPolicy: DepositPolicy;
     depositAmount: number;
+    promotionId?: string;
+    serviceDiscountAmount?: number;
     createdBy: string;
   }) {
+    const originalDepositAmount = this.calculateDepositAmount(
+      input.serviceBasePrice,
+      input.depositPolicy,
+    );
+    const depositDiscountAmount = Number(
+      Math.max(0, originalDepositAmount - input.depositAmount).toFixed(2),
+    );
     const remainingAmount = Number(
-      (input.serviceBasePrice - input.depositAmount).toFixed(2),
+      (input.payableServicePrice - input.depositAmount).toFixed(2),
     );
 
     return this.prisma.invoice.create({
@@ -1484,6 +1529,7 @@ export class AppointmentService {
         invoiceCode: await this.generateInvoiceCode(),
         patientId: input.patientId,
         appointmentId: input.appointmentId,
+        promotionId: input.promotionId,
         invoiceType: InvoiceType.DEPOSIT,
         items: [
           {
@@ -1495,10 +1541,23 @@ export class AppointmentService {
                 ? `Coc ${input.depositPolicy.value}% cho ${input.serviceName}`
                 : `Coc ${input.depositAmount} cho ${input.serviceName}`,
             qty: 1,
-            unit_price: input.depositAmount,
-            amount: input.depositAmount,
+            unit_price: originalDepositAmount,
+            amount: originalDepositAmount,
             type: 'DEPOSIT',
           },
+          ...(input.serviceDiscountAmount && input.serviceDiscountAmount > 0
+            ? [
+                {
+                  service_id: input.serviceId,
+                  treatment_method_id: input.treatmentMethodId,
+                  description: `Giam gia ap dung cho ${input.serviceName}`,
+                  qty: 1,
+                  unit_price: -depositDiscountAmount,
+                  amount: -depositDiscountAmount,
+                  type: 'DISCOUNT',
+                },
+              ]
+            : []),
           {
             service_id: input.serviceId,
             treatment_method_id: input.treatmentMethodId,
@@ -1513,7 +1572,8 @@ export class AppointmentService {
             type: 'BALANCE',
           },
         ],
-        subtotal: input.depositAmount,
+        subtotal: originalDepositAmount,
+        discountAmount: depositDiscountAmount,
         finalAmount: input.depositAmount,
         status: InvoiceStatus.ISSUED,
         issuedAt: new Date(),
@@ -1576,6 +1636,47 @@ export class AppointmentService {
       throw new BadRequestException('appointment.deposit_percentage_invalid');
     }
     return Number((basePrice * (policy.value / 100)).toFixed(2));
+  }
+
+  private async resolveAppointmentPromotion(input: {
+    code: string;
+    serviceBasePrice: number;
+    treatmentMethodId: string;
+  }) {
+    const now = new Date();
+    const promo = await this.prisma.promotion.findFirst({
+      where: {
+        code: { equals: input.code, mode: 'insensitive' },
+        isActive: true,
+        startDate: { lte: now },
+        endDate: { gte: now },
+        OR: [
+          { applicableTreatmentMethodId: null },
+          { applicableTreatmentMethodId: input.treatmentMethodId },
+        ],
+      },
+    });
+
+    if (!promo) {
+      throw new BadRequestException('promotion.not_found');
+    }
+    if (Number(promo.minOrderAmount) > input.serviceBasePrice) {
+      throw new BadRequestException('promotion.min_order_not_met');
+    }
+    if (promo.maxUses != null && promo.usedCount >= promo.maxUses) {
+      throw new BadRequestException('promotion.exhausted');
+    }
+
+    const value = Number(promo.discountValue);
+    const discountAmount =
+      promo.discountType === DiscountType.PERCENTAGE
+        ? Number(((input.serviceBasePrice * value) / 100).toFixed(2))
+        : Math.min(value, input.serviceBasePrice);
+
+    return {
+      promotionId: promo.id,
+      discountAmount,
+    };
   }
 
   private ensurePatientCancellationAllowed(appointment: {

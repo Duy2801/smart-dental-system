@@ -5,6 +5,7 @@ import {
   type DashboardIconName,
 } from "@/features/dashboard/common/DashboardIcon";
 import { CountUp } from "@/features/dashboard/common/CountUp";
+import { ROUTES } from "@/features/dashboard/common/routes";
 import {
   ClinicalCasesSection,
   ClinicLocationSection,
@@ -81,48 +82,58 @@ export default function PatientHomePage() {
         <ClinicalCasesSection />
       </Reveal>
 
-      <section className="relative overflow-hidden rounded-3xl bg-[#0058bc] p-7 text-white sm:p-10">
-        <div className="absolute -right-12 -top-24 h-80 w-80 skew-x-[-20deg] bg-white/5" />
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#004bb1] via-[#0058bc] to-[#007ded] p-7 text-white shadow-xl shadow-blue-900/15 transition duration-300 hover:shadow-2xl sm:p-10">
+        <div className="absolute -right-12 -top-24 h-80 w-80 skew-x-[-20deg] bg-white/10 blur-xl pointer-events-none" />
         <div className="relative grid items-center gap-8 md:grid-cols-[1.5fr_.7fr]">
           <div>
-            <span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 text-[11px] font-bold">
-              <DashboardIcon name="sparkles" className="h-4 w-4" />
-              Chương trình Dental Rewards
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/15 px-3.5 py-1.5 text-xs font-extrabold backdrop-blur-md">
+              <DashboardIcon name="sparkles" className="h-4 w-4 text-amber-300" />
+              Chương trình Ưu Đãi Đặc Biệt
             </span>
-            <h2 className="mt-5 max-w-2xl text-2xl font-bold sm:text-3xl">
+            <h2 className="mt-5 max-w-2xl text-2xl font-extrabold tracking-tight sm:text-3xl lg:text-4xl">
               Cùng sẻ chia nụ cười, nhận ưu đãi không giới hạn
             </h2>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">
-              Tích điểm đổi quà cho mỗi lần điều trị và nhận Voucher 1.000.000đ
-              khi giới thiệu thành công bạn bè hoặc người thân.
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-white/85 sm:text-base">
+              Khám phá các gói ưu đãi nha khoa cao cấp, tích điểm đổi quà và nhận Voucher giảm giá dịch vụ hấp dẫn dành riêng cho bạn và gia đình.
             </p>
-            <div className="mt-6 flex gap-3">
+            <div className="mt-6 flex flex-wrap gap-3">
               <Link
-                href="/profile"
-                className="rounded-xl bg-white px-5 py-3 text-xs font-bold text-[#0058bc]"
+                href={ROUTES.promotions}
+                className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3.5 text-xs font-extrabold text-[#0058bc] shadow-lg transition hover:-translate-y-0.5 hover:bg-slate-50 active:translate-y-0"
               >
-                Tham gia ngay
+                <DashboardIcon name="sparkles" className="h-4 w-4 text-[#0058bc]" />
+                Khám phá ưu đãi ngay
               </Link>
               <Link
-                href="/service"
-                className="rounded-xl border border-white/35 px-5 py-3 text-xs font-bold"
+                href={ROUTES.promotions}
+                className="inline-flex items-center gap-2 rounded-xl border border-white/40 bg-white/10 px-6 py-3.5 text-xs font-extrabold text-white backdrop-blur-md transition hover:bg-white/20"
               >
-                Xem bảng thưởng
+                Xem tất cả ưu đãi
               </Link>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-2xl border border-white/20 bg-white/10 p-5 text-center">
-              <strong className="text-3xl">500K</strong>
-              <p className="mt-1 text-[10px] text-white/70">Điểm tặng mới</p>
-            </div>
-            <div className="rounded-2xl border border-white/20 bg-white/10 p-5 text-center">
-              <strong className="text-3xl">10%</strong>
-              <p className="mt-1 text-[10px] text-white/70">Giảm phí dịch vụ</p>
-            </div>
-            <div className="col-span-2 rounded-2xl border border-white/20 bg-white/10 p-4 text-center text-xs font-bold">
-              Thẻ thành viên hạng Gold
-            </div>
+          <div className="grid grid-cols-2 gap-3.5">
+            <Link
+              href={ROUTES.promotions}
+              className="group rounded-2xl border border-white/25 bg-white/15 p-5 text-center backdrop-blur-md transition hover:bg-white/25 hover:border-white/40"
+            >
+              <strong className="text-3xl font-extrabold text-white">500K</strong>
+              <p className="mt-1 text-xs font-bold text-white/80 group-hover:text-white">Voucher quà tặng</p>
+            </Link>
+            <Link
+              href={ROUTES.promotions}
+              className="group rounded-2xl border border-white/25 bg-white/15 p-5 text-center backdrop-blur-md transition hover:bg-white/25 hover:border-white/40"
+            >
+              <strong className="text-3xl font-extrabold text-white">10%</strong>
+              <p className="mt-1 text-xs font-bold text-white/80 group-hover:text-white">Giảm phí dịch vụ</p>
+            </Link>
+            <Link
+              href={ROUTES.promotions}
+              className="col-span-2 group rounded-2xl border border-white/25 bg-white/15 p-4 text-center text-xs font-extrabold text-white backdrop-blur-md transition hover:bg-white/25 hover:border-white/40 flex items-center justify-center gap-2"
+            >
+              <DashboardIcon name="sparkles" className="h-4 w-4 text-amber-300" />
+              Đặc quyền thành viên & Thẻ VIP Gold
+            </Link>
           </div>
         </div>
       </section>

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Metadata } from "next";
 import { PromotionWorkspace } from "@/features/dashboard/promotion";
 
@@ -7,5 +8,9 @@ export const metadata: Metadata = {
 };
 
 export default function PromotionsPage() {
-  return <PromotionWorkspace />;
+  return (
+    <Suspense fallback={<div className="min-h-[50vh] flex items-center justify-center text-sm font-semibold text-slate-500">Đang tải ưu đãi...</div>}>
+      <PromotionWorkspace />
+    </Suspense>
+  );
 }

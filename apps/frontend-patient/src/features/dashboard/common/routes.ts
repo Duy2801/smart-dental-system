@@ -80,6 +80,9 @@ export const buildRoute = {
   /** Chi tiết dịch vụ */
   serviceDetail: (serviceId: string | number) => `${ROUTES.service}/${serviceId}`,
 
+  /** Chi tiết ưu đãi */
+  promotionDetail: (promotionId: string | number) => `${ROUTES.promotions}/${promotionId}`,
+
   /** Đặt lịch kết hợp service + method */
   appointmentWithService: (serviceId: string | number, methodId?: string | number) => {
     const params = new URLSearchParams({ intent: "booking" });

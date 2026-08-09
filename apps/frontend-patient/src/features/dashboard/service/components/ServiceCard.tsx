@@ -41,7 +41,7 @@ export function ServiceCard({ service }: { service: DentalService }) {
               </p>
             </div>
             <span className="rounded-full bg-blue-50 px-3 py-1.5 text-[10px] font-bold text-[#0863c5]">
-              {service.durationMinutes} phút
+              Chuẩn Y Khoa
             </span>
           </div>
           <span

@@ -350,6 +350,7 @@ model TreatmentMethod {
   procedureSteps ServiceProcedureStep[]
   faqs           ServiceFaq[]
   appointments   Appointment[]
+  promotions     Promotion[]            @relation("PromotionTreatmentMethod")
 
   @@index([serviceId, isActive])
   @@map("treatment_methods")
@@ -399,25 +400,28 @@ model ServiceFaq {
 }
 
 model Promotion {
-  id                    String       @id @default(uuid()) @db.Uuid
-  code                  String       @unique
-  name                  String
-  description           String?      @db.Text
-  imageUrl              String?      @map("image_url") @db.Text
-  applicableServiceSlug String?      @map("applicable_service_slug")
-  discountType          DiscountType @map("discount_type")
-  discountValue         Decimal      @map("discount_value") @db.Decimal(12, 2)
-  minOrderAmount        Decimal      @default(0) @map("min_order_amount") @db.Decimal(12, 2)
-  maxUses               Int?         @map("max_uses")
-  usedCount             Int          @default(0) @map("used_count")
-  startDate             DateTime     @map("start_date")
-  endDate               DateTime     @map("end_date")
-  isActive              Boolean      @default(true) @map("is_active")
-  createdAt             DateTime     @default(now()) @map("created_at")
+  id                          String          @id @default(uuid()) @db.Uuid
+  code                        String          @unique
+  name                        String
+  description                 String?         @db.Text
+  imageUrl                    String?         @map("image_url") @db.Text
+  applicableServiceSlug       String?         @map("applicable_service_slug")
+  applicableTreatmentMethodId String?         @map("applicable_treatment_method_id") @db.Uuid
+  discountType                DiscountType    @map("discount_type")
+  discountValue               Decimal         @map("discount_value") @db.Decimal(12, 2)
+  minOrderAmount              Decimal         @default(0) @map("min_order_amount") @db.Decimal(12, 2)
+  maxUses                     Int?            @map("max_uses")
+  usedCount                   Int             @default(0) @map("used_count")
+  startDate                   DateTime        @map("start_date")
+  endDate                     DateTime        @map("end_date")
+  isActive                    Boolean         @default(true) @map("is_active")
+  createdAt                   DateTime        @default(now()) @map("created_at")
 
-  invoices Invoice[]
+  applicableTreatmentMethod   TreatmentMethod? @relation("PromotionTreatmentMethod", fields: [applicableTreatmentMethodId], references: [id], onDelete: SetNull)
+  invoices                    Invoice[]
 
   @@index([isActive, startDate, endDate])
+  @@index([applicableTreatmentMethodId])
   @@map("promotions")
 }
 

@@ -4,10 +4,17 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { DashboardIcon } from "../../common/DashboardIcon";
-import { useHomeBannersQuery, useHomeServicesQuery } from "../hooks/useHomeQueries";
+import { useHomeBannersQuery, useHomeServicesQuery, useHomeDoctorsQuery } from "../hooks/useHomeQueries";
 import { ROUTES, buildRoute } from "../../common/routes";
-import Image from "next/image";
+
 const SEARCH_PLACEHOLDER = "Tìm kiếm theo dịch vụ, bác sĩ, triệu chứng...";
+
+function normalizeText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
 
 export function HomeHeroSearchSlideshow() {
   const router = useRouter();
@@ -15,12 +22,14 @@ export function HomeHeroSearchSlideshow() {
   const searchButtonRef = useRef<HTMLButtonElement>(null);
 
   const { data: banners = [], isLoading: isLoadingBanners } = useHomeBannersQuery();
-  const { data: services = [], isLoading } = useHomeServicesQuery();
+  const { data: services = [], isLoading: isLoadingServices } = useHomeServicesQuery();
+  const { data: doctors = [], isLoading: isLoadingDoctors } = useHomeDoctorsQuery();
 
   const [activeSlide, setActiveSlide] = useState(0);
   const [heroIndex, setHeroIndex] = useState(0);
   const [keyword, setKeyword] = useState("");
   const [placeholder, setPlaceholder] = useState("");
+  const [isFocused, setIsFocused] = useState(false);
 
   const activeBanners = useMemo(() => {
     return banners.filter((b) => b.isActive !== false);
@@ -90,14 +99,68 @@ export function HomeHeroSearchSlideshow() {
     };
   }, []);
 
+  // Filter doctors & services for autocomplete dropdown
+  const searchResults = useMemo(() => {
+    const trimmed = keyword.trim();
+    if (!trimmed) return { doctorMatches: [], serviceMatches: [] };
+
+    const norm = normalizeText(trimmed);
+
+    const docMatches = doctors.filter((doc) => {
+      const haystack = normalizeText(`${doc.name} ${doc.specialization} ${doc.position || ""}`);
+      return haystack.includes(norm);
+    });
+
+    const svcMatches = services.filter((svc) => {
+      const haystack = normalizeText(`${svc.title} ${svc.description || ""}`);
+      return haystack.includes(norm);
+    });
+
+    return {
+      doctorMatches: docMatches.slice(0, 4),
+      serviceMatches: svcMatches.slice(0, 4),
+    };
+  }, [keyword, doctors, services]);
+
   function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmed = keyword.trim();
-    router.push(
-      trimmed
-        ? `${ROUTES.service}?keyword=${encodeURIComponent(trimmed)}`
-        : ROUTES.service,
-    );
+    if (!trimmed) {
+      setIsFocused(false);
+      return;
+    }
+
+    const norm = normalizeText(trimmed);
+    const isDoctorKeyword =
+      norm.includes("bac si") ||
+      norm.includes("bác sĩ") ||
+      norm.includes("bs") ||
+      norm.includes("thac si") ||
+      norm.includes("tien si") ||
+      norm.includes("bác sỹ");
+
+    // Check exact doctor match
+    const exactDoctor = doctors.find((d) => normalizeText(d.name) === norm);
+    if (exactDoctor) {
+      router.push(buildRoute.doctorDetail(exactDoctor.id));
+      setIsFocused(false);
+      return;
+    }
+
+    // Check exact service match
+    const exactService = services.find((s) => normalizeText(s.title) === norm);
+    if (exactService) {
+      router.push(buildRoute.serviceDetail(exactService.id));
+      setIsFocused(false);
+      return;
+    }
+
+    if (isDoctorKeyword || searchResults.doctorMatches.length > searchResults.serviceMatches.length) {
+      router.push(`${ROUTES.doctor}?keyword=${encodeURIComponent(trimmed)}`);
+    } else {
+      router.push(`${ROUTES.service}?keyword=${encodeURIComponent(trimmed)}`);
+    }
+    setIsFocused(false);
   }
 
   const handlePrev = () => {
@@ -108,8 +171,19 @@ export function HomeHeroSearchSlideshow() {
     setActiveSlide((prev) => (prev >= totalPages - 1 ? 0 : prev + 1));
   };
 
-  const suggestions = services.slice(0, 8).map((s) => s.title);
+  const suggestions = useMemo(() => {
+    const items: Array<{ id: string; label: string; href: string }> = [];
+    services.slice(0, 6).forEach((s) => {
+      items.push({ id: s.id, label: s.title, href: buildRoute.serviceDetail(s.id) });
+    });
+    doctors.slice(0, 2).forEach((d) => {
+      items.push({ id: d.id, label: `BS. ${d.name}`, href: buildRoute.doctorDetail(d.id) });
+    });
+    return items;
+  }, [services, doctors]);
+
   const currentHeroBanner = activeBanners.length ? activeBanners[heroIndex % activeBanners.length] : null;
+  const showDropdown = isFocused && keyword.trim().length > 0;
 
   return (
     <section className="relative w-full pb-12">
@@ -143,31 +217,148 @@ export function HomeHeroSearchSlideshow() {
       <div
         ref={searchCardRef}
         onClick={(event) => event.stopPropagation()}
-        className="relative z-20 mx-auto -mt-24 w-[calc(100%-2rem)] max-w-[960px] overflow-hidden rounded-3xl bg-white shadow-2xl shadow-slate-900/15 ring-1 ring-slate-200/80 sm:-mt-32 lg:-mt-36"
+        className="relative z-30 mx-auto -mt-24 w-[calc(100%-2rem)] max-w-[960px] overflow-visible rounded-3xl bg-white shadow-2xl shadow-slate-900/15 ring-1 ring-slate-200/80 sm:-mt-32 lg:-mt-36"
       >
-        <form
-          onSubmit={handleSearch}
-          className="flex items-center gap-3 border-b border-slate-100 bg-slate-50/50 px-4 py-3.5 sm:px-6"
-        >
-          <DashboardIcon name="search" className="h-5 w-5 shrink-0 text-slate-400" />
-          <input
-            value={keyword}
-            onChange={(event) => setKeyword(event.target.value)}
-            className="w-full bg-transparent text-sm font-medium text-slate-800 outline-none placeholder:text-slate-400 sm:text-base"
-            placeholder={placeholder || SEARCH_PLACEHOLDER}
-            aria-label="Tìm kiếm dịch vụ nha khoa"
-          />
-          <button
-            ref={searchButtonRef}
-            type="submit"
-            className="shrink-0 rounded-xl bg-[#0058bc] px-5 py-2.5 text-xs font-bold text-white shadow-md transition hover:bg-[#004699] sm:text-sm"
+        <div className="relative">
+          <form
+            onSubmit={handleSearch}
+            className="flex items-center gap-3 border-b border-slate-100 bg-slate-50/50 px-4 py-3.5 sm:px-6 rounded-t-3xl"
           >
-            Tìm kiếm
-          </button>
-        </form>
+            <DashboardIcon name="search" className="h-5 w-5 shrink-0 text-slate-400" />
+            <input
+              value={keyword}
+              onChange={(event) => {
+                setKeyword(event.target.value);
+                setIsFocused(true);
+              }}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => {
+                // Short delay to allow clicking dropdown links
+                setTimeout(() => setIsFocused(false), 200);
+              }}
+              className="w-full bg-transparent text-sm font-medium text-slate-800 outline-none placeholder:text-slate-400 sm:text-base"
+              placeholder={placeholder || SEARCH_PLACEHOLDER}
+              aria-label="Tìm kiếm dịch vụ nha khoa hoặc bác sĩ"
+            />
+            <button
+              ref={searchButtonRef}
+              type="submit"
+              className="shrink-0 rounded-xl bg-[#0058bc] px-5 py-2.5 text-xs font-bold text-white shadow-md transition hover:bg-[#004699] sm:text-sm"
+            >
+              Tìm kiếm
+            </button>
+          </form>
 
-        {/* Popular Tags / Keywords from DB (or Skeleton during loading) */}
-        {isLoading ? (
+          {/* Autocomplete Results Dropdown */}
+          {showDropdown && (
+            <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-[420px] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl ring-1 ring-black/5 animate-in fade-in slide-in-from-top-2 duration-200">
+              {searchResults.doctorMatches.length === 0 && searchResults.serviceMatches.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
+                  <div className="relative mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-slate-50">
+                    <svg
+                      className="h-9 w-9 text-slate-300"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+                      />
+                    </svg>
+                  </div>
+                  <div className="text-base font-extrabold text-slate-900">
+                    Không tìm thấy dịch vụ hoặc bác sĩ
+                  </div>
+                  <div className="mt-1 text-xs text-slate-500">
+                    Hãy thử tìm kiếm từ khóa dịch vụ hoặc tên bác sĩ khác
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Doctor Results Section */}
+                  {searchResults.doctorMatches.length > 0 && (
+                    <div>
+                      <div className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-[#0058bc]">
+                        🩺 Bác sĩ phù hợp ({searchResults.doctorMatches.length})
+                      </div>
+                      <div className="mt-1 space-y-1">
+                        {searchResults.doctorMatches.map((doc) => (
+                          <Link
+                            key={doc.id}
+                            href={buildRoute.doctorDetail(doc.id)}
+                            onClick={() => setIsFocused(false)}
+                            className="flex items-center justify-between rounded-xl px-3 py-2.5 transition hover:bg-blue-50/70"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full border border-blue-100 bg-blue-50">
+                                {doc.avatarUrl ? (
+                                  <img src={doc.avatarUrl} alt={doc.name} className="h-full w-full object-cover" />
+                                ) : (
+                                  <div className="grid h-full w-full place-items-center text-xs font-bold text-[#0058bc]">
+                                    BS
+                                  </div>
+                                )}
+                              </div>
+                              <div>
+                                <div className="text-sm font-bold text-slate-900">{doc.name}</div>
+                                <div className="text-xs text-slate-500">{doc.specialization} · {doc.position || "Bác sĩ chuyên khoa"}</div>
+                              </div>
+                            </div>
+                            <span className="rounded-lg bg-blue-100 px-2.5 py-1 text-[11px] font-bold text-[#0058bc]">
+                              Chi tiết bác sĩ ›
+                            </span>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Service Results Section */}
+                  {searchResults.serviceMatches.length > 0 && (
+                    <div>
+                      <div className="px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-[#0058bc]">
+                        🦷 Dịch vụ nha khoa ({searchResults.serviceMatches.length})
+                      </div>
+                      <div className="mt-1 space-y-1">
+                        {searchResults.serviceMatches.map((svc) => (
+                          <Link
+                            key={svc.id}
+                            href={buildRoute.serviceDetail(svc.id)}
+                            onClick={() => setIsFocused(false)}
+                            className="flex items-center justify-between rounded-xl px-3 py-2.5 transition hover:bg-blue-50/70"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-cyan-50 text-cyan-600">
+                                {svc.icon ? (
+                                  <img src={svc.icon} alt={svc.title} className="h-6 w-6 object-contain" />
+                                ) : (
+                                  <DashboardIcon name="sparkles" className="h-5 w-5 text-[#0058bc]" />
+                                )}
+                              </div>
+                              <div>
+                                <div className="text-sm font-bold text-slate-900">{svc.title}</div>
+                                <div className="text-xs text-slate-500 line-clamp-1">{svc.description}</div>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <span className="text-xs font-extrabold text-[#0058bc]">{svc.price} đ</span>
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Popular Tags / Keywords from DB */}
+        {isLoadingServices || isLoadingDoctors ? (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-4 py-3 text-xs sm:px-6">
             <span className="font-semibold text-slate-400">Gợi ý:</span>
             <span className="h-4 w-20 animate-pulse rounded-md bg-slate-200/80" />
@@ -179,20 +370,20 @@ export function HomeHeroSearchSlideshow() {
             <span className="font-semibold text-slate-400">Gợi ý:</span>
             {suggestions.map((item) => (
               <Link
-                key={item}
-                href={`${ROUTES.service}?keyword=${encodeURIComponent(item)}`}
-                className="transition hover:text-[#0058bc] hover:underline"
+                key={item.id}
+                href={item.href}
+                className="transition hover:text-[#0058bc] hover:underline font-medium"
               >
-                {item}
+                {item.label}
               </Link>
             ))}
           </div>
         ) : null}
 
-        {/* Quick Contact & Clinic Location Links (Image 1 Bottom Row) */}
+        {/* Quick Contact & Clinic Location Links */}
         <div className="grid divide-y divide-slate-100 border-t border-slate-100 sm:grid-cols-2 sm:divide-x sm:divide-y-0">
           <Link
-            href={ROUTES.contact}
+            href={ROUTES.consultation}
             className="flex items-center justify-between gap-3 px-5 py-3.5 transition hover:bg-blue-50/50 sm:px-6"
           >
             <div className="flex items-center gap-3">
@@ -224,7 +415,7 @@ export function HomeHeroSearchSlideshow() {
       </div>
 
       {/* Dual Banner Slideshow Section */}
-      {isLoading ? (
+      {isLoadingServices ? (
         <div className="mx-auto mt-10 max-w-[1280px] px-4 sm:px-6 lg:px-8">
           <div className="grid gap-5 sm:grid-cols-2">
             <div className="h-[210px] animate-pulse rounded-2xl border border-slate-200/80 bg-slate-200/60 sm:h-[250px]" />
@@ -324,14 +515,6 @@ export function HomeHeroSearchSlideshow() {
         </div>
       ) : null}
 
-      {/* Floating Chat/CSKH Button (Bottom Right of Image 1 & 2) */}
-      <Link
-        href={ROUTES.contact}
-        className="fixed bottom-6 right-6 z-40 grid h-14 w-14 place-items-center rounded-full bg-[#0058bc] text-white shadow-2xl transition hover:scale-110 hover:bg-[#004699] active:scale-95"
-        title="Tư vấn trực tuyến"
-      >
-        <DashboardIcon name="chat" className="h-6 w-6" />
-      </Link>
     </section>
   );
 }

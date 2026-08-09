@@ -128,6 +128,7 @@ type CreateAppointmentPayload = {
   scheduledAt: string;
   notes?: string;
   paymentOption?: AppointmentPaymentOption;
+  promotionCode?: string;
 };
 
 type BookingPolicyDto = {

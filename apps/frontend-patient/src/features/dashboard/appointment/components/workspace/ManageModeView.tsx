@@ -8,6 +8,7 @@ import { AppointmentsEmptyState } from "./AppointmentsEmptyState";
 import { AppointmentHistoryList } from "./AppointmentHistoryList";
 import { T } from "../../../common/typography";
 import { useAppointmentWorkspaceView } from "../../hooks/useAppointmentWorkspaceView";
+import { AppointmentWorkspaceHeader } from "../AppointmentWorkspaceHeader";
 
 type ManageModeViewProps = {
   appointments: AppointmentItem[];
@@ -43,34 +44,15 @@ export function ManageModeView({
   });
   return (
     <main className="mx-auto w-full max-w-[1360px] px-4 py-6 sm:px-6 lg:px-8">
-      <section className="rounded-[28px] border border-slate-200 bg-white px-5 py-5 shadow-[0_16px_40px_rgba(15,23,42,.04)] sm:px-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="max-w-3xl">
-            <p className={`inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 ${T.overline} text-[#0058bc]`}>
-              <DashboardIcon name="calendar" className="h-4 w-4" />
-              Appointment
-            </p>
-            <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-slate-900 sm:text-[2.15rem]">
-              Quản lý lịch hẹn
-            </h1>
-            <p className={`mt-2 max-w-2xl ${T.body}`}>
-              Bố cục gọn, rõ thao tác, tối ưu để nhìn nhanh lịch sắp tới và xử lý
-              ngay trên cả desktop lẫn mobile.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <button
-              onClick={onOpenBooking}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-[#0058bc] px-5 text-sm font-bold text-white transition hover:bg-[#064ea3]"
-            >
-              <span className="text-lg leading-none">+</span>
-              Đặt lịch mới
-            </button>
-          </div>
-        </div>
-      </section>
+      <AppointmentWorkspaceHeader
+        mode="manage"
+        title="Quản lý lịch hẹn"
+        subtitle="Bố cục gọn, rõ thao tác, tối ưu để nhìn nhanh lịch sắp tới và xử lý ngay trên cả desktop lẫn mobile."
+        onSelectManage={() => {}}
+        onSelectBooking={onOpenBooking}
+      />
 
-      <section className="mt-5 rounded-[28px] border border-slate-200 bg-white px-5 py-5 shadow-[0_12px_34px_rgba(15,23,42,.04)] sm:px-6">
+      <section className="rounded-[28px] border border-slate-200 bg-white px-5 py-5 shadow-[0_12px_34px_rgba(15,23,42,.04)] sm:px-6">
         <div className="grid gap-3 sm:grid-cols-3">
           <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
             <p className={`${T.fieldLabel}`}>Tổng lịch</p>

@@ -62,7 +62,7 @@ function buildServiceFaqs(services: HomeServiceCard[]): FaqItem[] {
       icon: index % 2 === 0 ? "braces" : "sparkles",
       question: questions[index % questions.length],
       answer: answers[index % answers.length],
-      href: buildRoute.appointmentWithService(service.id),
+      href: ROUTES.consultation,
     };
   });
 }
@@ -77,7 +77,7 @@ function buildClinicFaqs(
       icon: "clock",
       question: "Phòng khám làm việc vào những khung giờ nào?",
       answer: formatOpenHours(clinic?.businessHours),
-      href: ROUTES.appointment,
+      href: ROUTES.consultation,
     },
     {
       id: "clinic-contact",
@@ -87,7 +87,7 @@ function buildClinicFaqs(
       answer: clinic?.phone
         ? `Bạn có thể gọi hotline ${clinic.phone}${clinic.email ? ` hoặc gửi email đến ${clinic.email}` : ""}.`
         : "Phòng khám chưa cập nhật hotline trong cấu hình hệ thống.",
-      href: ROUTES.appointment,
+      href: ROUTES.consultation,
     },
   ];
 }
@@ -199,10 +199,10 @@ export function HomeKnowledgeSection() {
 
       <div className="flex justify-center">
         <Link
-          href={ROUTES.appointment}
+          href={ROUTES.consultation}
           className="inline-flex h-11 items-center gap-2 rounded-full border border-[#0058bc]/20 bg-white px-5 text-sm font-extrabold text-[#0058bc] shadow-sm transition hover:border-[#0058bc] hover:bg-blue-50"
         >
-          Đặt lịch hẹn với bác sĩ
+          Đặt lịch tư vấn với bác sĩ
         </Link>
       </div>
     </section>

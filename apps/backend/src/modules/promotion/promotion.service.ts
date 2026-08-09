@@ -20,6 +20,14 @@ export class PromotionService {
             ],
           }
         : undefined,
+      include: {
+        applicableTreatmentMethod: {
+          include: {
+            service: true,
+            media: { orderBy: { sortOrder: 'asc' } },
+          },
+        },
+      },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -30,6 +38,27 @@ export class PromotionService {
       description: promotion.description ?? '',
       image_url: promotion.imageUrl ?? null,
       applicable_service_slug: promotion.applicableServiceSlug ?? null,
+      applicable_treatment_method_id: promotion.applicableTreatmentMethodId ?? null,
+      applicable_treatment_method: promotion.applicableTreatmentMethod
+        ? {
+            id: promotion.applicableTreatmentMethod.id,
+            name: promotion.applicableTreatmentMethod.name,
+            slug: promotion.applicableTreatmentMethod.slug,
+            description: promotion.applicableTreatmentMethod.description,
+            imageUrl:
+              promotion.applicableTreatmentMethod.imageUrl ||
+              promotion.applicableTreatmentMethod.media?.[0]?.url ||
+              null,
+            basePrice: Number(promotion.applicableTreatmentMethod.basePrice),
+            durationMinutes: promotion.applicableTreatmentMethod.durationMinutes,
+            serviceId: promotion.applicableTreatmentMethod.serviceId,
+            category:
+              promotion.applicableTreatmentMethod.service?.category ||
+              promotion.applicableTreatmentMethod.service?.name ||
+              'NHA KHOA TỔNG QUÁT',
+            serviceSlug: promotion.applicableTreatmentMethod.service?.slug,
+          }
+        : null,
       discount_type: promotion.discountType,
       discount_value: Number(promotion.discountValue),
       min_order_amount: Number(promotion.minOrderAmount ?? 0),

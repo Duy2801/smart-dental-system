@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import type {
   AppointmentPaymentOption,
   AppointmentService,
@@ -7,16 +8,14 @@ import type {
   Dentist,
   TreatmentMethodItem,
 } from "../../types";
+import { formatCurrency } from "@/utils/helpers";
+import { usePromotions } from "../../../promotion/hooks/usePromotions";
+import { calculateDiscount } from "../../../promotion/utils/promotionUtils";
+import type { PromotionDto } from "../../../promotion/types";
 
 function formatPrice(value: string | number | undefined | null) {
   if (value === undefined || value === null || value === "") return "Liên hệ";
-  if (typeof value === "number") {
-    return `${new Intl.NumberFormat("vi-VN").format(value)} đ`;
-  }
-  const cleaned = String(value).replace(/[^\d]/g, "");
-  if (!cleaned) return "Liên hệ";
-  const num = Number(cleaned);
-  return `${new Intl.NumberFormat("vi-VN").format(num)} đ`;
+  return formatCurrency(value);
 }
 
 type BookingConfirmationViewProps = {
@@ -27,10 +26,12 @@ type BookingConfirmationViewProps = {
   selectedTime: string;
   selectedPaymentOption: AppointmentPaymentOption;
   onSelectPaymentOption: (option: AppointmentPaymentOption) => void;
+  selectedPromotionCode: string;
+  onSelectPromotionCode: (code: string) => void;
   acceptedTerms: boolean;
   onToggleTerms: (accepted: boolean) => void;
   isSubmitting: boolean;
-  onConfirmBooking: () => void;
+  onConfirmBooking: (promotionCode?: string) => void;
   onBackToEdit: () => void;
 };
 
@@ -42,6 +43,8 @@ export function BookingConfirmationView({
   selectedTime,
   selectedPaymentOption,
   onSelectPaymentOption,
+  selectedPromotionCode,
+  onSelectPromotionCode,
   acceptedTerms,
   onToggleTerms,
   isSubmitting,
@@ -49,6 +52,38 @@ export function BookingConfirmationView({
   onBackToEdit,
 }: BookingConfirmationViewProps) {
   const formattedMonth = selectedDate?.month ? `thg ${selectedDate.month}` : "";
+  const basePrice = selectedTreatmentMethod?.rawPrice ?? 0;
+  const { promotions } = usePromotions();
+  const availablePromotions = useMemo(
+    () =>
+      promotions.filter((promotion) =>
+        isPromotionApplicable(promotion, {
+          basePrice,
+          serviceId: selectedService?.id,
+          treatmentMethodId: selectedTreatmentMethod?.id,
+        }),
+      ),
+    [basePrice, promotions, selectedService?.id, selectedTreatmentMethod?.id],
+  );
+  const autoPromotion = useMemo(
+    () => pickBestPromotion(availablePromotions, basePrice),
+    [availablePromotions, basePrice],
+  );
+  const manualCode = selectedPromotionCode.trim();
+  const manualPromotion = manualCode
+    ? availablePromotions.find(
+        (promotion) =>
+          promotion.code.toLowerCase() === manualCode.toLowerCase(),
+      ) ?? null
+    : null;
+  const appliedPromotion = manualCode ? manualPromotion : autoPromotion;
+  const hasInvalidManualCode = Boolean(manualCode && !manualPromotion);
+  const discountResult = appliedPromotion
+    ? calculateDiscount(appliedPromotion, basePrice)
+    : { discountAmount: 0, finalPrice: basePrice };
+  const depositBaseAmount = Number((basePrice * 0.3).toFixed(2));
+  const depositAmount = Number((discountResult.finalPrice * 0.3).toFixed(2));
+  const depositDiscount = Math.max(0, depositBaseAmount - depositAmount);
 
   return (
     <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.75fr)_380px]">
@@ -66,7 +101,7 @@ export function BookingConfirmationView({
             </div>
             <div className="text-right shrink-0">
               <p className="text-lg font-extrabold text-white">
-                {formatPrice(selectedTreatmentMethod?.price)}
+                {formatPrice(basePrice)}
               </p>
               {selectedTreatmentMethod?.durationMinutes ? (
                 <p className="text-[11px] text-blue-100/90 font-medium">
@@ -79,6 +114,91 @@ export function BookingConfirmationView({
             <span className="font-medium truncate">
               Phương pháp: <strong>{selectedTreatmentMethod?.name || "--"}</strong>
             </span>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                Ưu đãi áp dụng
+              </h3>
+              <p className="mt-1 text-xs text-slate-500">
+                Hệ thống tự chọn mã tốt nhất, bạn vẫn có thể chọn mã khác.
+              </p>
+            </div>
+            {appliedPromotion ? (
+              <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+                {appliedPromotion.code}
+              </span>
+            ) : null}
+          </div>
+
+          <div className="mt-3">
+            <select
+              value={selectedPromotionCode}
+              onChange={(event) => onSelectPromotionCode(event.target.value)}
+              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-50"
+            >
+              <option value="">
+                {autoPromotion
+                  ? `Tự động áp dụng mã tốt nhất (${autoPromotion.code})`
+                  : "Chưa có mã giảm giá phù hợp"}
+              </option>
+              {availablePromotions.map((promotion) => {
+                const discount = calculateDiscount(
+                  promotion,
+                  basePrice,
+                ).discountAmount;
+
+                return (
+                  <option key={promotion.id} value={promotion.code}>
+                    {promotion.code} - {promotion.name} - giảm {formatPrice(discount)}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+
+          {hasInvalidManualCode ? (
+            <p className="mt-2 text-xs font-semibold text-rose-600">
+              Mã không hợp lệ, hết hạn hoặc không áp dụng cho dịch vụ này.
+            </p>
+          ) : appliedPromotion ? (
+            <p className="mt-2 text-xs text-emerald-700">
+              Đã áp dụng {appliedPromotion.name}: giảm {formatPrice(discountResult.discountAmount)}.
+            </p>
+          ) : (
+            <p className="mt-2 text-xs text-slate-500">
+              Hiện chưa có mã phù hợp cho dịch vụ này.
+            </p>
+          )}
+
+          <div className="mt-4 space-y-2 rounded-xl bg-slate-50 p-3 text-sm">
+            <div className="flex justify-between gap-3 text-slate-600">
+              <span>Giá dịch vụ</span>
+              <strong className="text-slate-900">{formatPrice(basePrice)}</strong>
+            </div>
+            <div className="flex justify-between gap-3 text-slate-600">
+              <span>Giảm giá</span>
+              <strong className="text-emerald-600">-{formatPrice(discountResult.discountAmount)}</strong>
+            </div>
+            <div className="flex justify-between gap-3 border-t border-slate-200 pt-2 text-slate-900">
+              <span className="font-bold">Sau giảm</span>
+              <strong>{formatPrice(discountResult.finalPrice)}</strong>
+            </div>
+            <div className="flex justify-between gap-3 text-xs text-slate-500">
+              <span>Cọc giữ lịch 30%</span>
+              <strong className="text-[#0863c5]">
+                {formatPrice(depositAmount)}
+              </strong>
+            </div>
+            {depositDiscount > 0 ? (
+              <div className="flex justify-between gap-3 text-xs text-emerald-700">
+                <span>Tiết kiệm trên tiền cọc</span>
+                <strong>-{formatPrice(depositDiscount)}</strong>
+              </div>
+            ) : null}
           </div>
         </div>
 
@@ -212,8 +332,8 @@ export function BookingConfirmationView({
 
             <button
               type="button"
-              disabled={!acceptedTerms || isSubmitting}
-              onClick={onConfirmBooking}
+              disabled={!acceptedTerms || isSubmitting || hasInvalidManualCode}
+              onClick={() => onConfirmBooking(appliedPromotion?.code)}
               className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#0863c5] px-4 text-xs font-bold text-white transition hover:bg-[#0753a8] disabled:cursor-not-allowed disabled:bg-slate-300 shadow-md shadow-blue-200"
             >
               {isSubmitting ? (
@@ -238,4 +358,53 @@ export function BookingConfirmationView({
       </aside>
     </div>
   );
+}
+
+function isPromotionApplicable(
+  promotion: PromotionDto,
+  input: {
+    basePrice: number;
+    serviceId?: string;
+    treatmentMethodId?: string;
+  },
+) {
+  const now = Date.now();
+  const startsAt = new Date(promotion.start_date).getTime();
+  const endsAt = new Date(promotion.end_date).getTime();
+  const minOrderAmount = promotion.min_order_amount ?? 0;
+  const isExhausted =
+    promotion.max_uses > 0 && promotion.used_count >= promotion.max_uses;
+
+  if (
+    !promotion.is_active ||
+    Number.isNaN(startsAt) ||
+    Number.isNaN(endsAt) ||
+    startsAt > now ||
+    endsAt < now ||
+    isExhausted ||
+    input.basePrice < minOrderAmount
+  ) {
+    return false;
+  }
+
+  if (promotion.applicable_treatment_method_id) {
+    return promotion.applicable_treatment_method_id === input.treatmentMethodId;
+  }
+
+  if (promotion.applicable_treatment_method?.serviceId) {
+    return promotion.applicable_treatment_method.serviceId === input.serviceId;
+  }
+
+  return true;
+}
+
+function pickBestPromotion(promotions: PromotionDto[], basePrice: number) {
+  return promotions.reduce<PromotionDto | null>((best, promotion) => {
+    if (!best) return promotion;
+
+    const currentDiscount = calculateDiscount(promotion, basePrice).discountAmount;
+    const bestDiscount = calculateDiscount(best, basePrice).discountAmount;
+
+    return currentDiscount > bestDiscount ? promotion : best;
+  }, null);
 }

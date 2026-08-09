@@ -2,11 +2,13 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { PatientPageSkeleton } from "@/features/dashboard/common/PatientSkeleton";
 import { getDoctors, getDoctorBullets, type HomeDoctorCard } from "@/features/dashboard/home/api";
 import { getPatientServices } from "@/features/dashboard/service/api";
+import { EmptySearchResult } from "@/features/dashboard/common/EmptySearchResult";
 
 function getInitials(name: string) {
   return name
@@ -117,11 +119,20 @@ function DoctorCard({ doctor }: { doctor: HomeDoctorCard }) {
   );
 }
 
-export default function DoctorsPage() {
+function DoctorsPageContent() {
+  const searchParams = useSearchParams();
+  const keywordFromUrl = searchParams.get("keyword") || "";
   const [selectedServiceId, setSelectedServiceId] = useState("");
-  const [doctorName, setDoctorName] = useState("");
+  const [doctorName, setDoctorName] = useState(keywordFromUrl);
   const [selectedDoctorId, setSelectedDoctorId] = useState("");
   const [searched, setSearched] = useState(true);
+
+  useEffect(() => {
+    if (keywordFromUrl) {
+      setDoctorName(keywordFromUrl);
+      setSearched(true);
+    }
+  }, [keywordFromUrl]);
 
   const doctorsQuery = useQuery({
     queryKey: ["patient", "doctors"],
@@ -313,12 +324,27 @@ export default function DoctorsPage() {
               ))}
             </div>
           ) : (
-            <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-500">
-              Không tìm thấy bác sĩ phù hợp.
-            </div>
+            <EmptySearchResult
+              title="Không tìm thấy dịch vụ hoặc bác sĩ"
+              description="Hãy thử tìm kiếm từ khóa dịch vụ, phương pháp điều trị hoặc tên bác sĩ khác"
+              onReset={() => {
+                setDoctorName("");
+                setSelectedServiceId("");
+                setSelectedDoctorId("");
+              }}
+            />
           )}
         </section>
       ) : null}
     </main>
   );
 }
+
+export default function DoctorsPage() {
+  return (
+    <Suspense fallback={<PatientPageSkeleton />}>
+      <DoctorsPageContent />
+    </Suspense>
+  );
+}
+

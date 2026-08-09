@@ -17,6 +17,7 @@ type UseCreateAppointmentParams = {
   selectedDateId: string;
   selectedTime: string;
   selectedPaymentOption: AppointmentPaymentOption;
+  selectedPromotionCode?: string;
   ensureLoggedInBeforeBooking: () => Promise<boolean>;
   onSelectedTimeChange: (time: string) => void;
   onSelectedDoctorChange: (doctorId: string) => void;
@@ -36,6 +37,7 @@ export function useCreateAppointment({
   selectedDateId,
   selectedTime,
   selectedPaymentOption,
+  selectedPromotionCode,
   ensureLoggedInBeforeBooking,
   onSelectedTimeChange,
   onSelectedDoctorChange,
@@ -56,7 +58,7 @@ export function useCreateAppointment({
     },
   });
 
-  async function createAppointment() {
+  async function createAppointment(promotionCode?: string) {
     const canBook = await ensureLoggedInBeforeBooking();
     if (!canBook) return;
 
@@ -126,6 +128,8 @@ export function useCreateAppointment({
           `${selectedDateId}T${selectedTime}:00`,
         ).toISOString(),
         paymentOption: selectedPaymentOption,
+        promotionCode:
+          promotionCode?.trim() || selectedPromotionCode?.trim() || undefined,
       });
 
       const successMessage =

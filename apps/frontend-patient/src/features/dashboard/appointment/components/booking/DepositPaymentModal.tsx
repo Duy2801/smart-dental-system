@@ -5,6 +5,7 @@ import apiClient from "@/lib/axios";
 import { toast } from "@/features/dashboard/common/toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { appointmentQueryKeys } from "../../hooks/useAppointmentQueries";
+import { formatCurrency } from "@/utils/helpers";
 
 type DepositPaymentModalProps = {
   isOpen: boolean;
@@ -245,7 +246,7 @@ export function DepositPaymentModal({
                   <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Số tiền đặt cọc (30%)</span>
                   <div className="flex items-center justify-between rounded-xl bg-blue-50 border border-blue-100 px-3 py-1.5 mt-0.5">
                     <span className="font-mono font-extrabold text-blue-700 text-base">
-                      {paymentData.amount.toLocaleString("vi-VN")} đ
+                      {formatCurrency(paymentData.amount)}
                     </span>
                     <button
                       type="button"

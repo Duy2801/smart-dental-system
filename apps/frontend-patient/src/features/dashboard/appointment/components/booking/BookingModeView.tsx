@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { useAppointmentBookingData } from "../../hooks/useAppointmentBookingData";
 import { useCreateAppointment } from "../../hooks/useCreateAppointment";
 import { useAppointmentWorkspaceSync } from "../../hooks/useAppointmentWorkspaceSync";
@@ -13,6 +12,7 @@ import { BookingConfirmationView } from "./BookingConfirmationView";
 import { CurrentAppointmentCard } from "../sidebar/CurrentAppointmentCard";
 import { NotificationSettings } from "../sidebar/NotificationSettings";
 import { SupportCard } from "../sidebar/SupportCard";
+import { AppointmentWorkspaceHeader } from "../AppointmentWorkspaceHeader";
 
 type BookingModeViewProps = {
   isLoggedIn: boolean;
@@ -44,6 +44,7 @@ export function BookingModeView({
   const [selectedTime, setSelectedTime] = useState("");
   const [selectedPaymentOption, setSelectedPaymentOption] =
     useState<AppointmentPaymentOption>("DEPOSIT_30_PERCENT");
+  const [selectedPromotionCode, setSelectedPromotionCode] = useState("");
 
   const {
     baseOptionsQuery,
@@ -95,6 +96,7 @@ export function BookingModeView({
     selectedDateId,
     selectedTime: effectiveSelectedTime,
     selectedPaymentOption,
+    selectedPromotionCode,
     ensureLoggedInBeforeBooking,
     onSelectedTimeChange: setSelectedTime,
     onSelectedDoctorChange: setSelectedDoctorId,
@@ -162,48 +164,21 @@ export function BookingModeView({
 
   return (
     <main className="mx-auto w-full max-w-[1360px] px-4 py-4 sm:px-6 lg:px-8">
-      {/* Breadcrumbs */}
-      <nav className="mb-3 flex items-center gap-2 text-xs text-slate-500">
-        <Link href="/home" className="hover:text-slate-800 transition">
-          Trang chủ
-        </Link>
-        <span>/</span>
-        {viewStep === "confirmation" ? (
-          <>
-            <button
-              type="button"
-              onClick={() => setViewStep("form")}
-              className="text-slate-600 hover:text-slate-900 hover:underline font-medium transition"
-            >
-              Lịch hẹn
-            </button>
-            <span>/</span>
-            <span className="font-semibold text-[#0863c5]">Xác nhận</span>
-          </>
-        ) : (
-          <span className="font-semibold text-slate-900">Lịch hẹn</span>
-        )}
-      </nav>
-
-      {/* Header section */}
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
-        <div>
-          {viewStep === "confirmation" ? (
-            <h1 className="text-xl font-extrabold text-slate-900 sm:text-2xl">
-              Xác nhận thông tin & Hoàn tất đặt lịch
-            </h1>
-          ) : (
-            <>
-              <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
-                Đặt lịch hẹn mới
-              </h1>
-              <p className="mt-1 text-xs text-slate-500">
-                Chọn dịch vụ, thời gian và bác sĩ phù hợp với bạn.
-              </p>
-            </>
-          )}
-        </div>
-      </div>
+      <AppointmentWorkspaceHeader
+        mode="booking"
+        title={
+          viewStep === "confirmation"
+            ? "Xác nhận thông tin & Hoàn tất đặt lịch"
+            : "Đặt lịch hẹn mới"
+        }
+        subtitle={
+          viewStep === "confirmation"
+            ? undefined
+            : "Chọn dịch vụ, thời gian và bác sĩ phù hợp với bạn."
+        }
+        onSelectManage={onCancelBooking}
+        onSelectBooking={() => setViewStep("form")}
+      />
 
       {viewStep === "form" ? (
         <div className="grid items-start gap-7 lg:grid-cols-[minmax(0,1.7fr)_360px]">
@@ -253,6 +228,8 @@ export function BookingModeView({
           selectedTime={effectiveSelectedTime}
           selectedPaymentOption={selectedPaymentOption}
           onSelectPaymentOption={setSelectedPaymentOption}
+          selectedPromotionCode={selectedPromotionCode}
+          onSelectPromotionCode={setSelectedPromotionCode}
           acceptedTerms={acceptedTerms}
           onToggleTerms={setAcceptedTerms}
           isSubmitting={isSubmitting}

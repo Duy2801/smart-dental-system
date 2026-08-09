@@ -116,14 +116,6 @@ export function BookingPanel({
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         <button
           type="button"
-          onClick={onCancelBooking}
-          className="inline-flex h-12 w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-6 text-sm font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 sm:w-auto"
-        >
-          Hủy đặt lịch
-        </button>
-
-        <button
-          type="button"
           disabled={!canReview}
           onClick={onOpenReview}
           className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#0863c5] px-6 text-sm font-bold text-white transition hover:bg-[#0753a8] disabled:cursor-not-allowed disabled:bg-slate-300 sm:w-auto"

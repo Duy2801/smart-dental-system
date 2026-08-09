@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { usePatientServicesQuery } from "../hooks";
 import { PatientGridSkeleton } from "../../common/PatientSkeleton";
 import { ServiceGroupBrowser } from "./ServiceGroupBrowser";
@@ -36,7 +37,9 @@ export function ServiceCatalogExperience() {
         </section>
       ) : services.length ? (
         <section aria-live="polite">
-          <ServiceGroupBrowser services={services} />
+          <Suspense fallback={<PatientGridSkeleton />}>
+            <ServiceGroupBrowser services={services} />
+          </Suspense>
         </section>
       ) : (
         <section className="rounded-2xl border border-dashed border-slate-200 bg-white p-10 text-center">

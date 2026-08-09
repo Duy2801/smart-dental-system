@@ -187,7 +187,7 @@ export function ClinicLocationSection() {
               href={ROUTES.appointment}
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#0058bc] px-5 py-3 text-xs font-bold text-white shadow-md shadow-blue-500/20 transition hover:bg-[#004494]"
             >
-              Đặt lịch khám tại cơ sở này
+              Đặt lịch khám tại đây
             </Link>
           </div>
         </div>
