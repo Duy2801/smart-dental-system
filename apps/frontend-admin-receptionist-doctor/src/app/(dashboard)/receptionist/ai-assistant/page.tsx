@@ -225,11 +225,19 @@ export default function AIAssistantPage() {
   const [typing, setTyping] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [showPrompts, setShowPrompts] = useState(true);
+  const [isLoaded, setIsLoaded] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => { setMessages(loadMessages()); }, []);
-  useEffect(() => { if (messages.length > 0) saveMessages(messages); }, [messages]);
+  useEffect(() => { 
+    setMessages(loadMessages()); 
+    setIsLoaded(true);
+  }, []);
+  
+  useEffect(() => { 
+    if (isLoaded && messages.length > 0) saveMessages(messages); 
+  }, [messages, isLoaded]);
+  
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, typing]);
   useEffect(() => { textareaRef.current?.focus(); }, []);
 
@@ -276,13 +284,9 @@ export default function AIAssistantPage() {
   }
 
   return (
-    <>
+    <div className="flex h-screen flex-col overflow-hidden">
       <Header title="Trợ lý AI" description="Hỗ trợ nghiệp vụ lễ tân nha khoa">
         <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-600">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
-            Llama 3.3 70B
-          </span>
           <button
             type="button"
             onClick={clearChat}
@@ -294,15 +298,14 @@ export default function AIAssistantPage() {
         </div>
       </Header>
 
-      <div className="flex h-[calc(100vh-64px)] flex-col bg-muted">
+      <div className="flex min-h-0 flex-1 flex-col bg-muted">
 
         {/* Notice bar */}
         <div className="flex items-center gap-2 border-b border-border bg-brand-light px-6 py-2">
           <Sparkle size={13} weight="fill" className="shrink-0 text-brand" />
           <p className="text-xs font-medium text-brand-dark">
             <kbd className="rounded border border-brand/20 bg-white px-1 py-0.5 font-mono text-[10px]">Enter</kbd> gửi &nbsp;·&nbsp;
-            <kbd className="rounded border border-brand/20 bg-white px-1 py-0.5 font-mono text-[10px]">Shift+Enter</kbd> xuống dòng &nbsp;·&nbsp;
-            Lịch sử lưu tự động
+            <kbd className="rounded border border-brand/20 bg-white px-1 py-0.5 font-mono text-[10px]">Shift+Enter</kbd> xuống dòng
           </p>
         </div>
 
@@ -481,12 +484,9 @@ export default function AIAssistantPage() {
               <PaperPlaneTilt size={15} weight="fill" />
             </button>
           </div>
-          <p className="mt-1.5 text-center text-[10px] text-muted-foreground">
-            SmartDental AI - Groq / llama-3.3-70b - phiên bản nội bộ
-          </p>
         </div>
 
       </div>
-    </>
+    </div>
   );
 }
