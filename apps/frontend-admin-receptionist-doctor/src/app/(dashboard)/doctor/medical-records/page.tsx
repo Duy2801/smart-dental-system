@@ -18,6 +18,7 @@ import {
   Check,
   Plus,
   PencilSimple,
+  Sparkle,
 } from "@phosphor-icons/react";
 import axios from "axios";
 import apiClient from "@/src/lib/api/client";
@@ -114,6 +115,7 @@ function MedicalRecordsContent() {
   const [activeTab, setActiveTab] = useState<TabKey>("OVERVIEW");
 
   const [form, setForm] = useState({
+    chiefComplaint: "",
     diagnosis: "",
     treatmentNotes: "",
     internalNotes: "",
@@ -121,6 +123,8 @@ function MedicalRecordsContent() {
     images: [] as RecordImage[],
     dentalChart: { teeth: [] } as DentalChartData,
   });
+  const [aiDraftLoading, setAiDraftLoading] = useState(false);
+  const [aiDraftNote, setAiDraftNote] = useState<string | null>(null);
 
   const doctorId = getDoctorIdFromCookie();
   const today = localDateStr();
@@ -135,6 +139,7 @@ function MedicalRecordsContent() {
     setSaved(false);
     setSaveError(null);
     setForm({
+      chiefComplaint: data.chiefComplaint ?? "",
       diagnosis: data.diagnosis ?? "",
       treatmentNotes: data.treatmentNotes ?? "",
       internalNotes: data.internalNotes ?? "",
@@ -151,6 +156,7 @@ function MedicalRecordsContent() {
           : [],
       },
     });
+    setAiDraftNote(null);
     setRecords((prev) => {
       if (prev.some((r) => r.id === data.id)) return prev;
       return [
@@ -243,6 +249,7 @@ function MedicalRecordsContent() {
       const res = await apiClient.patch<RecordDetail>(
         `/medical-records/${selectedId}`,
         {
+          chiefComplaint: form.chiefComplaint.trim() || null,
           diagnosis: form.diagnosis.trim() || null,
           treatmentNotes: form.treatmentNotes.trim() || null,
           internalNotes: form.internalNotes.trim() || null,
@@ -281,6 +288,52 @@ function MedicalRecordsContent() {
     }
   };
 
+  const handleAiDraft = async () => {
+    if (!detail) return;
+    setAiDraftLoading(true);
+    setAiDraftNote(null);
+    setSaveError(null);
+    try {
+      const res = await apiClient.post<{
+        chiefComplaint: string | null;
+        diagnosisDraft: string | null;
+        treatmentNotesDraft: string | null;
+        disclaimer: string;
+      }>("/ai/doctor/draft-medical-record", {
+        patientId: detail.patientId,
+        chiefComplaint: form.chiefComplaint.trim() || undefined,
+        serviceName: detail.serviceName || undefined,
+        doctorNotesHint: form.internalNotes.trim() || undefined,
+      });
+      setForm((f) => ({
+        ...f,
+        chiefComplaint:
+          res.data.chiefComplaint?.trim() || f.chiefComplaint,
+        diagnosis: res.data.diagnosisDraft?.trim() || f.diagnosis,
+        treatmentNotes:
+          res.data.treatmentNotesDraft?.trim() || f.treatmentNotes,
+      }));
+      setAiDraftNote(
+        res.data.disclaimer ||
+          "Bản nháp AI — chỉnh sửa rồi bấm Lưu hồ sơ.",
+      );
+    } catch (err) {
+      const status = axios.isAxiosError(err) ? err.response?.status : null;
+      const msg = axios.isAxiosError(err)
+        ? err.response?.data?.message
+        : null;
+      setSaveError(
+        typeof msg === "string" && msg.trim()
+          ? msg
+          : status === 403
+            ? "Không có quyền dùng AI cho bệnh nhân này."
+            : "Không tạo được nháp AI. Kiểm tra AI service đang chạy.",
+      );
+    } finally {
+      setAiDraftLoading(false);
+    }
+  };
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return records;
@@ -305,7 +358,7 @@ function MedicalRecordsContent() {
     : "#";
 
   return (
-    <div className="min-h-screen bg-slate-50/50 p-4 sm:p-6 lg:p-8">
+    <div className="bg-slate-50/50 p-4 sm:p-6 lg:p-8">
       <div className="mx-auto max-w-[1400px]">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-brand-dark">
@@ -521,34 +574,60 @@ function MedicalRecordsContent() {
                 <div className="min-h-[400px] rounded-2xl border border-border bg-white p-6 shadow-sm">
                   {activeTab === "OVERVIEW" && (
                     <div className="space-y-5">
-                      <div className="flex items-center justify-between border-b border-border pb-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
                         <h3 className="text-base font-bold text-slate-900">
                           Ghi chép lâm sàng
                         </h3>
-                        {saved && (
-                          <span className="flex items-center gap-1.5 text-xs font-medium text-green-600">
-                            <Check size={14} weight="bold" /> Đã lưu
-                          </span>
-                        )}
-                        {saveError && (
-                          <span className="flex items-center gap-1.5 text-xs font-medium text-red-600">
-                            <Warning size={14} /> {saveError}
-                          </span>
-                        )}
+                        <div className="flex flex-wrap items-center gap-2">
+                          {saved && (
+                            <span className="flex items-center gap-1.5 text-xs font-medium text-green-600">
+                              <Check size={14} weight="bold" /> Đã lưu
+                            </span>
+                          )}
+                          {saveError && (
+                            <span className="flex items-center gap-1.5 text-xs font-medium text-red-600">
+                              <Warning size={14} /> {saveError}
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={handleAiDraft}
+                            disabled={aiDraftLoading || detailLoading}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-brand/30 bg-brand-light/50 px-3 py-1.5 text-xs font-semibold text-brand-dark hover:bg-brand-light disabled:opacity-60"
+                          >
+                            {aiDraftLoading ? (
+                              <SpinnerGap size={14} className="animate-spin" />
+                            ) : (
+                              <Sparkle size={14} weight="fill" />
+                            )}
+                            {aiDraftLoading ? "Đang soạn…" : "Nháp AI"}
+                          </button>
+                        </div>
                       </div>
+
+                      {aiDraftNote && (
+                        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                          {aiDraftNote}
+                        </p>
+                      )}
 
                       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                         <div className="space-y-4">
                           <div className="space-y-1.5">
                             <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                              Lý do khám (chỉ đọc)
+                              Lý do khám
                             </label>
                             <textarea
                               rows={2}
-                              readOnly
-                              value={detail.chiefComplaint ?? ""}
-                              placeholder="Chưa có lý do khám"
-                              className="w-full resize-none rounded-xl border border-border bg-slate-100 px-4 py-3 text-sm font-medium text-slate-700 outline-none"
+                              value={form.chiefComplaint}
+                              onChange={(e) =>
+                                setForm((f) => ({
+                                  ...f,
+                                  chiefComplaint: e.target.value,
+                                }))
+                              }
+                              placeholder="Lý do khám / triệu chứng chính..."
+                              className="w-full resize-none rounded-xl border border-border bg-white px-4 py-3 text-sm font-medium text-slate-800 shadow-sm outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand/20"
                             />
                           </div>
 

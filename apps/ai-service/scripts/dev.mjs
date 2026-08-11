@@ -41,6 +41,7 @@ if (!existsSync(envFile) && existsSync(envExample)) {
 }
 
 const childEnv = loadEnvFile(envFile);
+const port = childEnv.AI_SERVICE_PORT || "8001";
 
 const child = spawn(
   python,
@@ -52,7 +53,7 @@ const child = spawn(
     "--host",
     "127.0.0.1",
     "--port",
-    process.env.AI_SERVICE_PORT || "8001",
+    String(port),
   ],
   { cwd: root, stdio: "inherit", env: childEnv },
 );

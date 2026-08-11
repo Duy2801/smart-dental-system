@@ -5,6 +5,7 @@ import Link from "next/link";
 import { cn } from "@/src/lib/utils/cn";
 import { Header } from "@/src/components/layout/header";
 import apiClient from "@/src/lib/api/client";
+import { getApiErrorMessage } from "@/src/lib/utils/api-error";
 import {
   mapAppointments,
   localDateStr,
@@ -24,6 +25,8 @@ import {
   MagnifyingGlass,
   X,
   Warning,
+  CircleNotch,
+  ArrowClockwise,
 } from "@phosphor-icons/react";
 
 interface AppointmentInfo {
@@ -42,6 +45,9 @@ interface AppointmentInfo {
 }
 
 type Mode = "search" | "pick" | "confirm" | "done";
+
+const MIN_SEARCH_LEN = 2;
+const MAX_NOTES_LEN = 500;
 
 function getInitials(name: string): string {
   return name
@@ -225,7 +231,11 @@ export default function CheckInPage() {
 
   const runSearch = async (query: string) => {
     const q = query.trim();
-    if (!q) return;
+    if (q.length < MIN_SEARCH_LEN) {
+      setSearchError(`Nhập ít nhất ${MIN_SEARCH_LEN} ký tự để tìm kiếm.`);
+      setMode("search");
+      return;
+    }
     setSearching(true);
     setSearchError("");
     setCandidates([]);
@@ -257,8 +267,10 @@ export default function CheckInPage() {
 
       setCandidates(list);
       setMode("pick");
-    } catch {
-      setSearchError("Không tải được lịch hẹn từ máy chủ.");
+    } catch (err) {
+      setSearchError(
+        getApiErrorMessage(err, "Không tải được lịch hẹn từ máy chủ."),
+      );
       setMode("search");
     } finally {
       setSearching(false);
@@ -276,13 +288,16 @@ export default function CheckInPage() {
     setSubmitting(true);
     try {
       await apiClient.patch(`/appointments/${appointment.id}/check-in`, {
-        notes: notes.trim() || undefined,
+        notes: notes.trim().slice(0, MAX_NOTES_LEN) || undefined,
       });
       setMode("done");
       showToast("Check-in thành công! Bệnh nhân đã vào phòng chờ.", "success");
-    } catch {
+    } catch (err) {
       showToast(
-        "Check-in thất bại. Lịch có thể đã được check-in hoặc không còn hiệu lực.",
+        getApiErrorMessage(
+          err,
+          "Check-in thất bại. Lịch có thể đã được check-in hoặc không còn hiệu lực.",
+        ),
         "error",
       );
     } finally {
@@ -310,7 +325,7 @@ export default function CheckInPage() {
           title="Check-in"
           description="Quét mã QR hoặc nhập mã lịch hẹn."
         />
-        <div className="bg-muted min-h-screen flex items-center justify-center p-6">
+        <div className="bg-muted flex flex-1 items-center justify-center p-6">
           <div className="w-full max-w-md rounded-2xl border border-border bg-white p-8 shadow-sm text-center space-y-5">
             <div className="relative mx-auto h-60 w-60 overflow-hidden rounded-2xl border-2 border-dashed border-brand bg-slate-900">
               <video
@@ -348,23 +363,29 @@ export default function CheckInPage() {
                   value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" && searchValue.trim()) {
+                    if (e.key === "Enter" && searchValue.trim().length >= MIN_SEARCH_LEN) {
                       setIsQRMode(false);
                       void runSearch(searchValue);
                     }
                   }}
                   placeholder="APT-SEED-001"
+                  minLength={MIN_SEARCH_LEN}
                   className="flex-1 rounded-lg border border-border bg-muted px-3 py-2 text-sm font-medium outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
                 />
                 <button
                   type="button"
-                  disabled={!searchValue.trim() || searching}
+                  disabled={
+                    searchValue.trim().length < MIN_SEARCH_LEN || searching
+                  }
                   onClick={() => {
                     setIsQRMode(false);
                     void runSearch(searchValue);
                   }}
-                  className="rounded-lg bg-brand px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
                 >
+                  {searching ? (
+                    <CircleNotch size={14} className="animate-spin" />
+                  ) : null}
                   Tìm
                 </button>
               </div>
@@ -396,7 +417,7 @@ export default function CheckInPage() {
     return (
       <>
         <Header title="Check-in" />
-        <div className="bg-muted min-h-screen flex items-center justify-center p-6">
+        <div className="bg-muted flex flex-1 items-center justify-center p-6">
           <div className="w-full max-w-sm rounded-2xl border border-border bg-white p-8 shadow-sm text-center">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
               <CheckCircle size={36} weight="fill" />
@@ -452,10 +473,10 @@ export default function CheckInPage() {
         </button>
       </Header>
 
-      <div className="bg-muted min-h-screen p-6">
+      <div className="bg-muted p-6">
         <div className="mx-auto max-w-xl space-y-5">
           {mode === "search" && (
-            <div className="rounded-2xl border border-border bg-white shadow-sm overflow-hidden">
+            <div className="rounded-2xl border border-border bg-white shadow-sm">
               <div className="border-b border-border bg-brand/5 px-6 py-5 text-center">
                 <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-brand/10 text-brand">
                   <UserCheck size={28} weight="duotone" />
@@ -475,7 +496,7 @@ export default function CheckInPage() {
                     className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
                   />
                   <input
-                    type="text"
+                    type="search"
                     value={searchValue}
                     onChange={(e) => {
                       setSearchValue(e.target.value);
@@ -483,28 +504,49 @@ export default function CheckInPage() {
                     }}
                     onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                     placeholder="VD: 0977889900 hoặc APT-SEED-001"
+                    minLength={MIN_SEARCH_LEN}
                     className="w-full rounded-lg border border-border bg-muted py-3 pl-10 pr-4 text-sm font-medium outline-none focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand/20"
                     autoFocus
                   />
                 </div>
 
                 {searchError && (
-                  <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs font-medium text-amber-800">
-                    <Warning
-                      weight="fill"
-                      size={14}
-                      className="mt-0.5 shrink-0 text-amber-500"
-                    />
-                    {searchError}
+                  <div className="flex items-start justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs font-medium text-amber-800">
+                    <div className="flex items-start gap-2 min-w-0">
+                      <Warning
+                        weight="fill"
+                        size={14}
+                        className="mt-0.5 shrink-0 text-amber-500"
+                      />
+                      <span>{searchError}</span>
+                    </div>
+                    {searchValue.trim().length >= MIN_SEARCH_LEN && (
+                      <button
+                        type="button"
+                        onClick={() => void runSearch(searchValue)}
+                        disabled={searching}
+                        className="inline-flex shrink-0 items-center gap-1 font-semibold hover:underline disabled:opacity-50"
+                      >
+                        <ArrowClockwise size={12} />
+                        Thử lại
+                      </button>
+                    )}
                   </div>
                 )}
 
                 <button
                   onClick={handleSearch}
-                  disabled={searching || !searchValue.trim()}
-                  className="w-full rounded-lg bg-brand py-3 text-sm font-bold text-white shadow-sm hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={searching || searchValue.trim().length < MIN_SEARCH_LEN}
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-brand py-3 text-sm font-bold text-white shadow-sm hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {searching ? "Đang tìm kiếm..." : "Tìm lịch hẹn"}
+                  {searching ? (
+                    <>
+                      <CircleNotch size={16} className="animate-spin" />
+                      Đang tìm kiếm...
+                    </>
+                  ) : (
+                    "Tìm lịch hẹn"
+                  )}
                 </button>
 
                 <p className="text-center text-xs text-muted-foreground">
@@ -521,7 +563,7 @@ export default function CheckInPage() {
           )}
 
           {mode === "pick" && (
-            <div className="rounded-2xl border border-border bg-white shadow-sm overflow-hidden">
+            <div className="rounded-2xl border border-border bg-white shadow-sm">
               <div className="flex items-center justify-between border-b border-border px-5 py-4">
                 <div>
                   <h2 className="text-sm font-bold text-brand-dark">
@@ -574,7 +616,7 @@ export default function CheckInPage() {
           )}
 
           {mode === "confirm" && appointment && (
-            <div className="rounded-2xl border border-border bg-white shadow-sm overflow-hidden">
+            <div className="rounded-2xl border border-border bg-white shadow-sm">
               <div className="border-b border-border bg-brand/5 px-6 py-5">
                 <div className="flex items-center justify-between">
                   <button
@@ -702,10 +744,14 @@ export default function CheckInPage() {
                   <textarea
                     rows={2}
                     value={notes}
+                    maxLength={MAX_NOTES_LEN}
                     onChange={(e) => setNotes(e.target.value)}
                     placeholder="VD: Bệnh nhân đến trễ 15 phút..."
                     className="w-full resize-y rounded-lg border border-border bg-white px-4 py-3 text-sm font-medium outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
                   />
+                  <p className="text-right text-[10px] text-muted-foreground">
+                    {notes.length}/{MAX_NOTES_LEN}
+                  </p>
                 </div>
 
                 <div className="flex items-center justify-end gap-3 border-t border-border pt-5">
@@ -716,11 +762,16 @@ export default function CheckInPage() {
                     Hủy
                   </button>
                   <button
+                    type="button"
                     onClick={() => void handleCheckIn()}
                     disabled={submitting || !historyOk}
                     className="inline-flex items-center gap-2 rounded-lg bg-brand px-6 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    <UserCheck size={16} weight="bold" />
+                    {submitting ? (
+                      <CircleNotch size={16} className="animate-spin" />
+                    ) : (
+                      <UserCheck size={16} weight="bold" />
+                    )}
                     {submitting ? "Đang xử lý..." : "Hoàn tất Check-in"}
                   </button>
                 </div>

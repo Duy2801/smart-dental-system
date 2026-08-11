@@ -22,6 +22,7 @@ export const ROUTES = {
     PATIENTS_NEW: "/receptionist/patients/new",
     CHECK_IN: "/receptionist/check-in",
     BILLING: "/receptionist/billing",
+    AI_ASSISTANT: "/receptionist/ai-assistant",
   },
   DOCTOR: {
     ROOT: "/doctor",
