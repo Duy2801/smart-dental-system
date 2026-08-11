@@ -34,6 +34,7 @@ interface Message {
   role: Role;
   content: string;
   timestamp: string; // ISO string
+  isError?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -203,6 +204,23 @@ function CopyBtn({ text }: { text: string }) {
 
 export default function AIAssistantPage() {
   const [messages, setMessages] = useState<Message[]>([makeWelcome()]);
+  const [userInitials, setUserInitials] = useState("LT");
+
+  useEffect(() => {
+    try {
+      // Decode JWT payload or simple JSON cookie
+      const match = document.cookie.match(new RegExp("(^| )user_info=([^;]+)"));
+      if (match && match[2]) {
+        const user = JSON.parse(decodeURIComponent(match[2]));
+        if (user?.fullName) {
+          const initials = user.fullName.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
+          setUserInitials(initials);
+        }
+      }
+    } catch {
+      // fallback to LT
+    }
+  }, []);
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
@@ -213,6 +231,7 @@ export default function AIAssistantPage() {
   useEffect(() => { setMessages(loadMessages()); }, []);
   useEffect(() => { if (messages.length > 0) saveMessages(messages); }, [messages]);
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, typing]);
+  useEffect(() => { textareaRef.current?.focus(); }, []);
 
   async function send(text: string) {
     const trimmed = text.trim();
@@ -238,6 +257,7 @@ export default function AIAssistantPage() {
         id: `a${Date.now()}`, role: "assistant",
         content: "Xin lỗi, tôi đang không thể kết nối. Vui lòng thử lại sau.",
         timestamp: new Date().toISOString(),
+        isError: true,
       }]);
     } finally {
       setTyping(false);
@@ -340,6 +360,19 @@ export default function AIAssistantPage() {
                     {msg.role === "assistant" && msg.id !== "w" && (
                       <div className="flex items-center gap-2 flex-wrap pl-0.5">
                         <CopyBtn text={msg.content} />
+                        {msg.isError && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const lastUserMsg = [...messages].reverse().find(m => m.role === "user");
+                              if (lastUserMsg) void send(lastUserMsg.content);
+                            }}
+                            className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold text-amber-600 transition-colors hover:bg-amber-50"
+                          >
+                            <ArrowClockwise size={11} />
+                            Thử lại
+                          </button>
+                        )}
                         {actions.map((a) => (
                           <Link
                             key={a.href}
@@ -357,7 +390,7 @@ export default function AIAssistantPage() {
 
                   {msg.role === "user" && (
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-brand-light text-[11px] font-bold text-brand-dark shadow-sm">
-                      LT
+                      {userInitials}
                     </div>
                   )}
                 </div>
