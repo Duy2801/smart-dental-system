@@ -310,7 +310,7 @@ export default function CheckInPage() {
           title="Check-in"
           description="Quét mã QR hoặc nhập mã lịch hẹn."
         />
-        <div className="bg-muted min-h-screen flex items-center justify-center p-6">
+        <div className="bg-muted flex flex-1 items-center justify-center p-6">
           <div className="w-full max-w-md rounded-2xl border border-border bg-white p-8 shadow-sm text-center space-y-5">
             <div className="relative mx-auto h-60 w-60 overflow-hidden rounded-2xl border-2 border-dashed border-brand bg-slate-900">
               <video
@@ -396,7 +396,7 @@ export default function CheckInPage() {
     return (
       <>
         <Header title="Check-in" />
-        <div className="bg-muted min-h-screen flex items-center justify-center p-6">
+        <div className="bg-muted flex flex-1 items-center justify-center p-6">
           <div className="w-full max-w-sm rounded-2xl border border-border bg-white p-8 shadow-sm text-center">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
               <CheckCircle size={36} weight="fill" />
@@ -452,7 +452,7 @@ export default function CheckInPage() {
         </button>
       </Header>
 
-      <div className="bg-muted min-h-screen p-6">
+      <div className="bg-muted p-6">
         <div className="mx-auto max-w-xl space-y-5">
           {mode === "search" && (
             <div className="rounded-2xl border border-border bg-white shadow-sm overflow-hidden">

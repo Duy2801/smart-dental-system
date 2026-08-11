@@ -241,7 +241,7 @@ function NewPrescriptionContent() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/50 px-6 py-8">
+    <div className="bg-slate-50/50 px-6 py-8">
       <div className="mx-auto max-w-4xl">
         <div className="mb-6 space-y-4">
           <Link

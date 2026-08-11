@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/src/lib/utils/cn";
 import { Header } from "@/src/components/layout/header";
@@ -9,6 +9,7 @@ import type { AppointmentStatus } from "@/src/components/shared/appointment-stat
 import apiClient from "@/src/lib/api/client";
 import { mapAppointments, localDateStr } from "@/src/lib/receptionist/mappers";
 import type { ReceptionistAppointment } from "@/src/lib/receptionist/mappers";
+import { getApiErrorMessage } from "@/src/lib/utils/api-error";
 import { formatDoctorName } from "@/src/lib/utils/format";
 import {
   CalendarPlus,
@@ -17,6 +18,7 @@ import {
   CalendarBlank,
   Phone,
   UserCheck,
+  UserCircleCheck,
   BellSimpleRinging,
   Receipt,
   DotsThree,
@@ -28,6 +30,8 @@ import {
   CaretRight,
   Stethoscope,
   UserMinus,
+  ArrowClockwise,
+  CircleNotch,
 } from "@phosphor-icons/react";
 
 type Appointment = ReceptionistAppointment;
@@ -103,6 +107,15 @@ function TableRowSkeleton() {
   );
 }
 
+function statusEndpoint(status: AppointmentStatus): string | null {
+  if (status === "CONFIRMED") return "confirm";
+  if (status === "CHECKED_IN") return "check-in";
+  if (status === "IN_PROGRESS") return "start";
+  if (status === "CANCELLED") return "cancel";
+  if (status === "NO_SHOW") return "no-show";
+  return null;
+}
+
 // ---------------------------------------------------------------------------
 // Dropdown menu (click-based, accessible)
 // ---------------------------------------------------------------------------
@@ -110,9 +123,11 @@ function TableRowSkeleton() {
 function ActionMenu({
   apt,
   onStatusChange,
+  disabled,
 }: {
   apt: Appointment;
   onStatusChange: (id: string, status: AppointmentStatus) => void;
+  disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -129,6 +144,8 @@ function ActionMenu({
   return (
     <div ref={ref} className="relative">
       <button
+        type="button"
+        disabled={disabled}
         onClick={() => setOpen((v) => !v)}
         className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-slate-100 hover:text-slate-900 active:scale-[0.98]"
         aria-label="Tùy chọn"
@@ -137,7 +154,7 @@ function ActionMenu({
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-30 mt-1 w-44 rounded-xl border border-border bg-white py-1.5 shadow-xl">
+        <div className="absolute right-0 top-full z-50 mt-1 w-44 rounded-xl border border-border bg-white py-1.5 shadow-xl">
           <Link
             href={`/receptionist/appointments/${apt.id}`}
             className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-muted hover:text-brand-dark"
@@ -246,6 +263,7 @@ function FilterPanel({
             <option value="COMPLETED">Hoàn thành</option>
             <option value="CANCELLED">Đã hủy</option>
             <option value="NO_SHOW">Vắng mặt</option>
+            <option value="RESCHEDULED">Đổi lịch</option>
           </select>
         </div>
       </div>
@@ -288,6 +306,7 @@ export default function ReceptionistAppointmentsPage() {
   const [doctors, setDoctors] = useState<{ id: string; fullName: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   useEffect(() => {
     apiClient
@@ -304,41 +323,43 @@ export default function ReceptionistAppointmentsPage() {
       .catch(() => setDoctors([]));
   }, []);
 
-  // fetch
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const dateStr = toDateStr(selectedDate);
-        const params = new URLSearchParams({ date: dateStr });
-        if (doctorFilter) params.append("doctorId", doctorFilter);
-        const res = await apiClient.get(`/appointments?${params.toString()}`);
-        setAppointments(mapAppointments(res.data));
-      } catch {
-        setError("Không tải được lịch hẹn từ máy chủ.");
-        setAppointments([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-    setPage(1);
+  const fetchAppointments = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const dateStr = toDateStr(selectedDate);
+      const params = new URLSearchParams({ date: dateStr });
+      if (doctorFilter) params.append("doctorId", doctorFilter);
+      const res = await apiClient.get(`/appointments?${params.toString()}`);
+      setAppointments(mapAppointments(res.data));
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Không tải được lịch hẹn từ máy chủ."));
+      setAppointments([]);
+    } finally {
+      setLoading(false);
+    }
   }, [selectedDate, doctorFilter]);
 
-  // derived
+  useEffect(() => {
+    void fetchAppointments();
+    setPage(1);
+  }, [fetchAppointments]);
+
+  const searchQuery = search.trim().toLowerCase();
   const filtered = appointments.filter((a) => {
     if (appliedStatus && a.status !== appliedStatus) return false;
-    const q = search.toLowerCase();
-    if (!q) return true;
+    if (!searchQuery) return true;
     return (
-      a.patient?.fullName.toLowerCase().includes(q) ||
-      a.patient?.phone.includes(q) ||
-      a.appointmentCode.toLowerCase().includes(q) ||
-      a.id.toLowerCase().includes(q) ||
-      a.service?.name.toLowerCase().includes(q)
+      a.patient?.fullName.toLowerCase().includes(searchQuery) ||
+      a.patient?.phone.includes(searchQuery) ||
+      a.appointmentCode.toLowerCase().includes(searchQuery) ||
+      a.id.toLowerCase().includes(searchQuery) ||
+      a.service?.name.toLowerCase().includes(searchQuery)
     );
   });
+
+  const isEmptyDueToSearch =
+    searchQuery.length > 0 && filtered.length === 0 && appointments.length > 0;
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -354,26 +375,26 @@ export default function ReceptionistAppointmentsPage() {
   const isYesterday = toDateStr(selectedDate) === toDateStr(new Date(today.getTime() - 86400000));
   const isTomorrow = toDateStr(selectedDate) === toDateStr(new Date(today.getTime() + 86400000));
 
-  // status action
   const handleStatusChange = async (id: string, status: AppointmentStatus) => {
-    const endpoint =
-      status === "CONFIRMED" ? "confirm" :
-      status === "CHECKED_IN" ? "check-in" :
-      status === "IN_PROGRESS" ? "start" :
-      status === "CANCELLED" ? "cancel" :
-      status === "NO_SHOW" ? "no-show" : null;
+    if (status === "CANCELLED" && !window.confirm("Xác nhận hủy lịch hẹn này?")) return;
+    if (status === "NO_SHOW" && !window.confirm("Đánh dấu bệnh nhân vắng mặt?")) return;
 
+    const endpoint = statusEndpoint(status);
     if (!endpoint) return;
 
+    setActionLoading(id);
+    setError(null);
     try {
       await apiClient.patch(`/appointments/${id}/${endpoint}`);
-      setAppointments((prev) =>
-        prev.map((a) => (a.id === id ? { ...a, status } : a))
-      );
-    } catch {
-      setError("Cập nhật trạng thái thất bại.");
+      await fetchAppointments();
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Cập nhật trạng thái thất bại."));
+    } finally {
+      setActionLoading(null);
     }
   };
+
+  const isActionBusy = (id: string) => actionLoading === id;
 
   // active filter badge count
   const filterCount = [appliedStatus].filter(Boolean).length;
@@ -393,7 +414,7 @@ export default function ReceptionistAppointmentsPage() {
         </Link>
       </Header>
 
-      <div className="bg-muted min-h-screen p-6 space-y-5">
+      <div className="bg-muted p-6 space-y-5">
 
         {/* ── TOOLBAR ──────────────────────────────────────────────── */}
         <div className="flex flex-wrap items-center gap-3">
@@ -405,7 +426,7 @@ export default function ReceptionistAppointmentsPage() {
               className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
             />
             <input
-              type="text"
+              type="search"
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
               placeholder="Tên, SĐT, mã lịch, dịch vụ..."
@@ -486,6 +507,18 @@ export default function ReceptionistAppointmentsPage() {
             ))}
           </select>
 
+          {/* Refresh */}
+          <button
+            type="button"
+            onClick={() => void fetchAppointments()}
+            disabled={loading}
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition-all hover:bg-muted disabled:opacity-50 active:scale-[0.98]"
+            title="Làm mới"
+          >
+            <ArrowClockwise size={14} className={loading ? "animate-spin" : ""} />
+            Làm mới
+          </button>
+
           {/* Advanced filter */}
           <div className="relative">
             <button
@@ -513,14 +546,24 @@ export default function ReceptionistAppointmentsPage() {
 
         {/* ── ERROR ─────────────────────────────────────────────────── */}
         {error && (
-          <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-            <Warning weight="fill" size={16} className="shrink-0" />
-            {error}
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+            <div className="flex items-center gap-2 min-w-0">
+              <Warning weight="fill" size={16} className="shrink-0" />
+              <span className="truncate">{error}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => void fetchAppointments()}
+              className="inline-flex shrink-0 items-center gap-1.5 font-semibold hover:underline"
+            >
+              <ArrowClockwise size={14} />
+              Thử lại
+            </button>
           </div>
         )}
 
         {/* ── TABLE CARD ────────────────────────────────────────────── */}
-        <div className="rounded-2xl border border-border bg-white shadow-sm overflow-hidden">
+        <div className="rounded-2xl border border-border bg-white shadow-sm">
 
           {/* Sub-header: date label + count */}
           <div className="flex items-center justify-between border-b border-border bg-white px-5 py-3">
@@ -555,6 +598,22 @@ export default function ReceptionistAppointmentsPage() {
                   Array.from({ length: 6 }).map((_, i) => (
                     <TableRowSkeleton key={i} />
                   ))
+                ) : isEmptyDueToSearch ? (
+                  <tr>
+                    <td colSpan={6}>
+                      <div className="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
+                        <MagnifyingGlass size={36} className="text-slate-300" />
+                        <p className="text-sm font-medium">Không tìm thấy kết quả phù hợp</p>
+                        <button
+                          type="button"
+                          onClick={() => setSearch("")}
+                          className="text-xs font-bold text-brand hover:underline"
+                        >
+                          Xóa bộ lọc tìm kiếm
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
                 ) : paginated.length === 0 ? (
                   <tr>
                     <td colSpan={6}>
@@ -575,6 +634,7 @@ export default function ReceptionistAppointmentsPage() {
                     const name = apt.patient?.fullName ?? "Khách vãng lai";
                     const initials = getInitials(name);
                     const avatarColor = getAvatarColor(name);
+                    const busy = isActionBusy(apt.id);
 
                     return (
                       <tr
@@ -642,30 +702,51 @@ export default function ReceptionistAppointmentsPage() {
 
                         {/* Actions */}
                         <td className="px-5 py-3.5">
-                          <div className="flex items-center justify-end gap-2">
+                          <div className="relative z-10 flex items-center justify-end gap-2">
                             {/* Primary action button per status */}
                             {apt.status === "PENDING" && (
-                              <button
-                                onClick={() => handleStatusChange(apt.id, "CONFIRMED")}
-                                className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-amber-500 px-3 text-xs font-bold text-white shadow-sm transition-all hover:bg-amber-600 active:scale-[0.98]"
-                              >
-                                <Phone size={12} weight="fill" /> Xác nhận
-                              </button>
+                              <>
+                                <button
+                                  type="button"
+                                  disabled={busy}
+                                  onClick={() => void handleStatusChange(apt.id, "CONFIRMED")}
+                                  className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-amber-500 px-3 text-xs font-bold text-white shadow-sm transition-all hover:bg-amber-600 active:scale-[0.98] disabled:opacity-60"
+                                >
+                                  {busy ? <CircleNotch size={12} className="animate-spin" /> : <Phone size={12} weight="fill" />}
+                                  Xác nhận
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={busy}
+                                  onClick={() => void handleStatusChange(apt.id, "CHECKED_IN")}
+                                  className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-brand bg-white px-3 text-xs font-semibold text-brand shadow-sm transition-all hover:bg-brand/5 active:scale-[0.98] disabled:opacity-60"
+                                  title="Check-in trực tiếp (walk-in)"
+                                >
+                                  {busy ? <CircleNotch size={12} className="animate-spin" /> : <UserCircleCheck size={12} weight="fill" />}
+                                  Check-in
+                                </button>
+                              </>
                             )}
                             {apt.status === "CONFIRMED" && (
                               <button
-                                onClick={() => handleStatusChange(apt.id, "CHECKED_IN")}
-                                className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-brand px-3 text-xs font-bold text-white shadow-sm transition-all hover:bg-brand-dark active:scale-[0.98]"
+                                type="button"
+                                disabled={busy}
+                                onClick={() => void handleStatusChange(apt.id, "CHECKED_IN")}
+                                className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-brand px-3 text-xs font-bold text-white shadow-sm transition-all hover:bg-brand-dark active:scale-[0.98] disabled:opacity-60"
                               >
-                                <UserCheck size={12} weight="fill" /> Check-in
+                                {busy ? <CircleNotch size={12} className="animate-spin" /> : <UserCheck size={12} weight="fill" />}
+                                Check-in
                               </button>
                             )}
                             {apt.status === "CHECKED_IN" && (
                               <button
-                                onClick={() => handleStatusChange(apt.id, "IN_PROGRESS")}
-                                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-white px-3 text-xs font-semibold text-brand-dark shadow-sm transition-all hover:bg-muted active:scale-[0.98]"
+                                type="button"
+                                disabled={busy}
+                                onClick={() => void handleStatusChange(apt.id, "IN_PROGRESS")}
+                                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-white px-3 text-xs font-semibold text-brand-dark shadow-sm transition-all hover:bg-muted active:scale-[0.98] disabled:opacity-60"
                               >
-                                <BellSimpleRinging size={12} /> Nhắc BS
+                                {busy ? <CircleNotch size={12} className="animate-spin" /> : <BellSimpleRinging size={12} />}
+                                Nhắc BS
                               </button>
                             )}
                             {apt.status === "COMPLETED" && apt.invoicePending && (
@@ -678,7 +759,11 @@ export default function ReceptionistAppointmentsPage() {
                             )}
 
                             {/* 3-dot menu */}
-                            <ActionMenu apt={apt} onStatusChange={handleStatusChange} />
+                            <ActionMenu
+                              apt={apt}
+                              onStatusChange={(id, status) => void handleStatusChange(id, status)}
+                              disabled={busy}
+                            />
                           </div>
                         </td>
                       </tr>

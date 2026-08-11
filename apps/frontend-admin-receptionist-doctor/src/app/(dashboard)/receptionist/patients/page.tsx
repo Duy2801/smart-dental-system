@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { cn } from "@/src/lib/utils/cn";
 import { Header } from "@/src/components/layout/header";
 import apiClient from "@/src/lib/api/client";
+import { getApiErrorMessage } from "@/src/lib/utils/api-error";
 import {
   UserPlus,
   MagnifyingGlass,
@@ -21,6 +23,7 @@ import {
   Users,
   X,
   ClockCounterClockwise,
+  ArrowClockwise,
 } from "@phosphor-icons/react";
 
 // ---------------------------------------------------------------------------
@@ -135,7 +138,7 @@ function PatientMenu({ patient }: { patient: Patient }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-30 mt-1 w-44 rounded-xl border border-border bg-white py-1.5 shadow-xl">
+        <div className="absolute right-0 top-full z-50 mt-1 w-44 rounded-xl border border-border bg-white py-1.5 shadow-xl">
           <Link
             href={`/receptionist/patients/${patient.id}`}
             className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-muted hover:text-brand-dark"
@@ -271,6 +274,7 @@ function FilterPanel({
 const PAGE_SIZE = 10;
 
 export default function ReceptionistPatientsPage() {
+  const router = useRouter();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -285,55 +289,58 @@ export default function ReceptionistPatientsPage() {
   const [appliedAlert, setAppliedAlert] = useState<AlertFilter>("");
   const [appliedVisit, setAppliedVisit] = useState<VisitFilter>("");
 
-  // fetch
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const params = new URLSearchParams();
-        if (search) params.set("search", search);
-        const res = await apiClient.get(`/patients?${params}`);
-        const list = Array.isArray(res.data) ? res.data : [];
-        setPatients(
-          list.map(
-            (p: {
-              id: string;
-              patientCode?: string;
-              fullName: string;
-              phone?: string | null;
-              dateOfBirth?: string | null;
-              gender?: "MALE" | "FEMALE" | null;
-              allergies?: string[];
-              medicalHistory?: string | null;
-              lastVisit?: string | null;
-              lastVisitDate?: string | null;
-              totalVisits?: number;
-            }) => ({
-              id: p.id,
-              patientCode: p.patientCode ?? p.id.slice(0, 8).toUpperCase(),
-              fullName: p.fullName,
-              phone: p.phone ?? "",
-              dateOfBirth: p.dateOfBirth,
-              gender: p.gender,
-              allergies: p.allergies ?? [],
-              medicalHistory: p.medicalHistory,
-              lastVisit: p.lastVisit ?? p.lastVisitDate ?? null,
-              totalVisits: p.totalVisits ?? 0,
-            }),
-          ),
-        );
-      } catch {
-        setError("Không tải được danh sách bệnh nhân từ máy chủ.");
-        setPatients([]);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchPatients = useCallback(async (query: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const params = new URLSearchParams();
+      const q = query.trim();
+      if (q) params.set("search", q);
+      const res = await apiClient.get(`/patients?${params}`);
+      const list = Array.isArray(res.data) ? res.data : [];
+      setPatients(
+        list.map(
+          (p: {
+            id: string;
+            patientCode?: string;
+            fullName: string;
+            phone?: string | null;
+            dateOfBirth?: string | null;
+            gender?: "MALE" | "FEMALE" | null;
+            allergies?: string[];
+            medicalHistory?: string | null;
+            lastVisit?: string | null;
+            lastVisitDate?: string | null;
+            totalVisits?: number;
+          }) => ({
+            id: p.id,
+            patientCode: p.patientCode ?? p.id.slice(0, 8).toUpperCase(),
+            fullName: p.fullName,
+            phone: p.phone ?? "",
+            dateOfBirth: p.dateOfBirth,
+            gender: p.gender,
+            allergies: p.allergies ?? [],
+            medicalHistory: p.medicalHistory,
+            lastVisit: p.lastVisit ?? p.lastVisitDate ?? null,
+            totalVisits: p.totalVisits ?? 0,
+          }),
+        ),
+      );
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Không tải được danh sách bệnh nhân từ máy chủ."));
+      setPatients([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-    const timer = setTimeout(fetchData, 350);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void fetchPatients(search);
+      setPage(1);
+    }, 350);
     return () => clearTimeout(timer);
-  }, [search]);
+  }, [search, fetchPatients]);
 
   // filter + paginate
   const filtered = patients.filter((p) => {
@@ -348,6 +355,11 @@ export default function ReceptionistPatientsPage() {
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const filterCount = [appliedAlert, appliedVisit].filter(Boolean).length;
+  const searchQuery = search.trim();
+  const isEmptyDueToFilter =
+    filterCount > 0 && filtered.length === 0 && patients.length > 0;
+  const isEmptyDueToSearch =
+    searchQuery.length > 0 && filtered.length === 0 && patients.length === 0 && !loading;
 
   return (
     <>
@@ -364,7 +376,7 @@ export default function ReceptionistPatientsPage() {
         </Link>
       </Header>
 
-      <div className="bg-muted min-h-screen p-6 space-y-5">
+      <div className="bg-muted p-6 space-y-5">
 
         {/* ── TOOLBAR ──────────────────────────────────────────────── */}
         <div className="flex flex-wrap items-center gap-3">
@@ -375,13 +387,25 @@ export default function ReceptionistPatientsPage() {
               className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
             />
             <input
-              type="text"
+              type="search"
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
               placeholder="Tên, SĐT, mã bệnh nhân..."
               className="w-full rounded-lg border border-border bg-white py-2 pl-8 pr-4 text-sm font-medium outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand/20"
             />
           </div>
+
+          {/* Refresh */}
+          <button
+            type="button"
+            onClick={() => void fetchPatients(search)}
+            disabled={loading}
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition-all hover:bg-muted disabled:opacity-50 active:scale-[0.98]"
+            title="Làm mới"
+          >
+            <ArrowClockwise size={14} className={loading ? "animate-spin" : ""} />
+            Làm mới
+          </button>
 
           {/* Advanced filter */}
           <div className="relative">
@@ -422,14 +446,24 @@ export default function ReceptionistPatientsPage() {
 
         {/* ── ERROR ─────────────────────────────────────────────────── */}
         {error && (
-          <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-            <Warning weight="fill" size={16} className="shrink-0" />
-            {error}
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+            <div className="flex items-center gap-2 min-w-0">
+              <Warning weight="fill" size={16} className="shrink-0" />
+              <span className="truncate">{error}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => void fetchPatients(search)}
+              className="inline-flex shrink-0 items-center gap-1.5 font-semibold hover:underline"
+            >
+              <ArrowClockwise size={14} />
+              Thử lại
+            </button>
           </div>
         )}
 
         {/* ── TABLE CARD ────────────────────────────────────────────── */}
-        <div className="rounded-2xl border border-border bg-white shadow-sm overflow-hidden">
+        <div className="rounded-2xl border border-border bg-white shadow-sm">
 
           {/* Sub-header */}
           <div className="flex items-center justify-between border-b border-border bg-white px-5 py-3">
@@ -460,6 +494,44 @@ export default function ReceptionistPatientsPage() {
               <tbody className="divide-y divide-border/40">
                 {loading ? (
                   Array.from({ length: 6 }).map((_, i) => <RowSkeleton key={i} />)
+                ) : isEmptyDueToFilter ? (
+                  <tr>
+                    <td colSpan={6}>
+                      <div className="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
+                        <Funnel size={36} className="text-slate-300" />
+                        <p className="text-sm font-medium">Không có bệnh nhân phù hợp bộ lọc</p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAlertFilter("");
+                            setVisitFilter("");
+                            setAppliedAlert("");
+                            setAppliedVisit("");
+                            setPage(1);
+                          }}
+                          className="text-xs font-bold text-brand hover:underline"
+                        >
+                          Xóa bộ lọc
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ) : isEmptyDueToSearch ? (
+                  <tr>
+                    <td colSpan={6}>
+                      <div className="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
+                        <MagnifyingGlass size={36} className="text-slate-300" />
+                        <p className="text-sm font-medium">Không tìm thấy bệnh nhân phù hợp</p>
+                        <button
+                          type="button"
+                          onClick={() => setSearch("")}
+                          className="text-xs font-bold text-brand hover:underline"
+                        >
+                          Xóa tìm kiếm
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
                 ) : paginated.length === 0 ? (
                   <tr>
                     <td colSpan={6}>
@@ -489,7 +561,7 @@ export default function ReceptionistPatientsPage() {
                       <tr
                         key={patient.id}
                         className="group cursor-pointer transition-colors hover:bg-muted"
-                        onClick={() => window.location.assign(`/receptionist/patients/${patient.id}`)}
+                        onClick={() => router.push(`/receptionist/patients/${patient.id}`)}
                       >
                         {/* Patient */}
                         <td className="px-5 py-3.5">
@@ -600,7 +672,7 @@ export default function ReceptionistPatientsPage() {
                           className="px-5 py-3.5"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <div className="flex items-center justify-end gap-2">
+                          <div className="relative z-10 flex items-center justify-end gap-2">
                             <Link
                               href={`/receptionist/appointments/new?patientId=${patient.id}`}
                               className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition-all hover:border-brand hover:text-brand active:scale-[0.98]"

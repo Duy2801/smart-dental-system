@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { cn } from "@/src/lib/utils/cn";
 import { Header } from "@/src/components/layout/header";
 import apiClient from "@/src/lib/api/client";
@@ -197,6 +198,8 @@ function InvoiceItem({
 }
 
 export default function BillingPage() {
+  const searchParams = useSearchParams();
+  const invoiceIdParam = searchParams.get("invoiceId");
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"UNPAID" | "PAID">("UNPAID");
@@ -293,6 +296,10 @@ export default function BillingPage() {
       const all = [...unpaid, ...paid];
       setInvoices(all);
       setSelected((prev) => {
+        if (invoiceIdParam) {
+          const fromParam = all.find((i) => i.id === invoiceIdParam);
+          if (fromParam) return fromParam;
+        }
         if (prev) {
           const fresh = all.find((i) => i.id === prev.id);
           if (fresh) return fresh;
@@ -305,7 +312,7 @@ export default function BillingPage() {
     } finally {
       setLoading(false);
     }
-  }, [mapInv]);
+  }, [invoiceIdParam, mapInv]);
 
   useEffect(() => {
     void fetchInvoices();
@@ -546,7 +553,7 @@ export default function BillingPage() {
         description="Thu tiền khách hàng — tiền mặt hoặc chuyển khoản SePay."
       />
 
-      <div className="min-h-screen bg-muted p-6">
+      <div className="bg-muted p-6">
         <div className="mx-auto max-w-7xl">
           <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-12">
             <div className="flex flex-col overflow-hidden rounded-2xl border border-border bg-white shadow-sm lg:col-span-4 lg:sticky lg:top-6 lg:max-h-[calc(100vh-6rem)]">
