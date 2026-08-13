@@ -21,7 +21,7 @@ export function RoleLayout({ title, items, children }: RoleLayoutProps) {
     <div className="flex h-screen overflow-hidden bg-muted">
       <Sidebar title={title} items={items} pathname={pathname} />
       <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
-        <main className="flex-1">{children}</main>
+        <main className="flex min-h-0 flex-1 flex-col">{children}</main>
       </div>
     </div>
   );

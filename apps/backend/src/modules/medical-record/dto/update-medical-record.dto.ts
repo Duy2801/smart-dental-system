@@ -63,6 +63,11 @@ export class UpdateMedicalRecordDto {
   @IsOptional()
   @IsString()
   @MaxLength(2000)
+  chiefComplaint?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
   diagnosis?: string | null;
 
   @IsOptional()

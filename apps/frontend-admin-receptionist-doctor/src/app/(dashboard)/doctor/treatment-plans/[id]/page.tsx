@@ -207,7 +207,7 @@ export default function TreatmentPlanDetailPage() {
   const ps = planStatusMap[plan.status] ?? planStatusMap.PLANNED;
 
   return (
-    <div className="min-h-screen bg-slate-50/50 px-6 py-8">
+    <div className="bg-slate-50/50 px-6 py-8">
       <div className="mx-auto max-w-4xl">
 
         {/* Breadcrumb */}

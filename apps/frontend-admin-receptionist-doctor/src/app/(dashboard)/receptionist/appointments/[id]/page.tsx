@@ -13,8 +13,8 @@ import type {
   ReceptionistAppointment,
 } from "@/src/lib/receptionist/mappers";
 import { formatDoctorName } from "@/src/lib/utils/format";
+import { getApiErrorMessage } from "@/src/lib/utils/api-error";
 import { cn } from "@/src/lib/utils/cn";
-import { AxiosError } from "axios";
 import {
   ArrowLeft,
   Phone,
@@ -30,21 +30,12 @@ import {
   XCircle,
   UserMinus,
   ClockCountdown,
+  ArrowClockwise,
 } from "@phosphor-icons/react";
 
 function formatTime(t?: string) {
   if (!t) return "--:--";
   return t.slice(0, 5);
-}
-
-function apiErrorMessage(err: unknown, fallback: string) {
-  if (err instanceof AxiosError) {
-    const msg = (err.response?.data as { message?: string | string[] })
-      ?.message;
-    if (Array.isArray(msg) && msg[0]) return String(msg[0]);
-    if (typeof msg === "string" && msg) return msg;
-  }
-  return fallback;
 }
 
 function dateFromIso(iso?: string) {
@@ -67,17 +58,24 @@ export default function AppointmentDetailPage() {
   const [loadingSlots, setLoadingSlots] = useState(false);
 
   const loadAppointment = async () => {
-    const res = await apiClient.get(`/appointments/${id}`);
-    const mapped = mapAppointment(res.data as ApiAppointment);
-    setApt(mapped);
-    setRescheduleDate(dateFromIso(mapped.scheduledAt));
-    setRescheduleTime(formatTime(mapped.startTime));
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await apiClient.get(`/appointments/${id}`);
+      const mapped = mapAppointment(res.data as ApiAppointment);
+      setApt(mapped);
+      setRescheduleDate(dateFromIso(mapped.scheduledAt));
+      setRescheduleTime(formatTime(mapped.startTime));
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Không tải được lịch hẹn từ máy chủ."));
+      setApt(null);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    loadAppointment()
-      .catch(() => setError("Không tải được lịch hẹn từ máy chủ."))
-      .finally(() => setLoading(false));
+    void loadAppointment();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -115,15 +113,17 @@ export default function AppointmentDetailPage() {
     message: string,
   ) => {
     if (!apt) return;
+    if (status === "CANCELLED" && !window.confirm("Xác nhận hủy lịch hẹn này?")) return;
+    if (status === "NO_SHOW" && !window.confirm("Đánh dấu bệnh nhân vắng mặt?")) return;
     setActing(true);
     setError(null);
     try {
       await apiClient.patch(`/appointments/${apt.id}/${endpoint}`);
-      setApt({ ...apt, status });
+      await loadAppointment();
       setToast(message);
       setTimeout(() => setToast(null), 2500);
     } catch (err) {
-      setError(apiErrorMessage(err, "Cập nhật trạng thái thất bại."));
+      setError(getApiErrorMessage(err, "Cập nhật trạng thái thất bại."));
     } finally {
       setActing(false);
     }
@@ -149,7 +149,7 @@ export default function AppointmentDetailPage() {
       setToast("Đã đổi lịch hẹn");
       setTimeout(() => setToast(null), 2500);
     } catch (err) {
-      setError(apiErrorMessage(err, "Đổi lịch thất bại."));
+      setError(getApiErrorMessage(err, "Đổi lịch thất bại."));
     } finally {
       setActing(false);
     }
@@ -170,10 +170,20 @@ export default function AppointmentDetailPage() {
     return (
       <>
         <Header title="Chi tiết lịch hẹn" />
-        <div className="bg-muted min-h-screen p-6">
-          <div className="flex items-center gap-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-inset ring-red-200">
-            <Warning size={18} className="shrink-0" />
-            {error}
+        <div className="bg-muted p-6">
+          <div className="flex items-center justify-between gap-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-inset ring-red-200">
+            <div className="flex items-center gap-2 min-w-0">
+              <Warning size={18} className="shrink-0" />
+              <span className="truncate">{error}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => void loadAppointment()}
+              className="inline-flex shrink-0 items-center gap-1.5 font-semibold hover:underline"
+            >
+              <ArrowClockwise size={14} />
+              Thử lại
+            </button>
           </div>
         </div>
       </>
@@ -190,7 +200,7 @@ export default function AppointmentDetailPage() {
     <>
       <Header title="Chi tiết lịch hẹn" description={apt.appointmentCode} />
 
-      <div className="bg-muted min-h-screen p-6 space-y-5">
+      <div className="bg-muted p-6 space-y-5">
         <Link
           href="/receptionist/appointments"
           className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground transition-colors hover:text-brand-dark"
@@ -288,6 +298,7 @@ export default function AppointmentDetailPage() {
                       <input
                         type="date"
                         value={rescheduleDate}
+                        min={localDateStr()}
                         onChange={(e) => setRescheduleDate(e.target.value)}
                         className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm font-semibold outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
                       />

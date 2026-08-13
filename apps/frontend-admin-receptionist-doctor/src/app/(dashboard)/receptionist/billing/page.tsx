@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { cn } from "@/src/lib/utils/cn";
 import { Header } from "@/src/components/layout/header";
 import apiClient from "@/src/lib/api/client";
+import { getApiErrorMessage } from "@/src/lib/utils/api-error";
 import { formatDoctorName } from "@/src/lib/utils/format";
 import {
   MagnifyingGlass,
@@ -19,6 +21,8 @@ import {
   X,
   SpinnerGap,
   Copy,
+  CircleNotch,
+  ArrowClockwise,
 } from "@phosphor-icons/react";
 
 interface ServiceLine {
@@ -75,6 +79,27 @@ function getInitials(name: string): string {
 
 function formatVND(amount: number): string {
   return amount.toLocaleString("vi-VN") + "đ";
+}
+
+function validatePayAmount(
+  raw: string,
+  remaining: number,
+): { ok: true; amount: number } | { ok: false; message: string } {
+  if (remaining <= 0) {
+    return { ok: false, message: "Hóa đơn không còn số tiền cần thu." };
+  }
+  const digits = raw.trim().replace(/\D/g, "");
+  const amount = digits ? Number(digits) : Math.round(remaining);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return { ok: false, message: "Số tiền phải lớn hơn 0." };
+  }
+  if (amount > remaining) {
+    return {
+      ok: false,
+      message: `Số tiền không được vượt quá ${formatVND(remaining)}.`,
+    };
+  }
+  return { ok: true, amount: Math.round(amount) };
 }
 
 function doctorLabel(name: string) {
@@ -197,13 +222,17 @@ function InvoiceItem({
 }
 
 export default function BillingPage() {
+  const searchParams = useSearchParams();
+  const invoiceIdParam = searchParams.get("invoiceId");
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [activeTab, setActiveTab] = useState<"UNPAID" | "PAID">("UNPAID");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Invoice | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("TRANSFER");
   const [payAmount, setPayAmount] = useState("");
+  const [payAmountError, setPayAmountError] = useState("");
   const [discountCode, setDiscountCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [transfer, setTransfer] = useState<TransferSession | null>(null);
@@ -280,6 +309,7 @@ export default function BillingPage() {
   const fetchInvoices = useCallback(async () => {
     try {
       setLoading(true);
+      setLoadError("");
       const [unpaidRes, paidRes] = await Promise.all([
         apiClient.get(`/invoices?status=UNPAID`),
         apiClient.get(`/invoices?status=PAID`),
@@ -293,19 +323,26 @@ export default function BillingPage() {
       const all = [...unpaid, ...paid];
       setInvoices(all);
       setSelected((prev) => {
+        if (invoiceIdParam) {
+          const fromParam = all.find((i) => i.id === invoiceIdParam);
+          if (fromParam) return fromParam;
+        }
         if (prev) {
           const fresh = all.find((i) => i.id === prev.id);
           if (fresh) return fresh;
         }
         return all.find((i) => isOpenInvoice(i.status)) ?? all[0] ?? null;
       });
-    } catch {
+    } catch (err) {
       setInvoices([]);
       setSelected(null);
+      setLoadError(
+        getApiErrorMessage(err, "Không tải được danh sách hóa đơn."),
+      );
     } finally {
       setLoading(false);
     }
-  }, [mapInv]);
+  }, [invoiceIdParam, mapInv]);
 
   useEffect(() => {
     void fetchInvoices();
@@ -343,20 +380,31 @@ export default function BillingPage() {
   };
 
   const parsePayAmount = (invoice: Invoice, override?: string) => {
-    const raw = (override ?? payAmount).replace(/\D/g, "");
-    const n = raw ? Number(raw) : invoice.remaining;
-    if (!Number.isFinite(n) || n <= 0) return invoice.remaining;
-    return Math.min(n, invoice.remaining);
+    const result = validatePayAmount(override ?? payAmount, invoice.remaining);
+    if (!result.ok) return invoice.remaining;
+    return result.amount;
   };
+
+  const resolvePayAmount = (
+    invoice: Invoice,
+    override?: string,
+  ): { ok: true; amount: number } | { ok: false; message: string } =>
+    validatePayAmount(override ?? payAmount, invoice.remaining);
 
   const startTransfer = async (
     invoice: Invoice,
     promo?: string,
     amountOverride?: string,
   ) => {
+    const amountCheck = resolvePayAmount(invoice, amountOverride);
+    if (!amountCheck.ok) {
+      setPayAmountError(amountCheck.message);
+      return;
+    }
+    setPayAmountError("");
     setTransferLoading(true);
     setTransfer(null);
-    const amount = parsePayAmount(invoice, amountOverride);
+    const amount = amountCheck.amount;
     try {
       const res = await apiClient.post<{
         id: string;
@@ -413,8 +461,11 @@ export default function BillingPage() {
           // ignore poll errors
         }
       }, 4000);
-    } catch {
-      showToast("Không tạo được QR chuyển khoản SePay.", "error");
+    } catch (err) {
+      showToast(
+        getApiErrorMessage(err, "Không tạo được QR chuyển khoản SePay."),
+        "error",
+      );
     } finally {
       setTransferLoading(false);
     }
@@ -424,6 +475,7 @@ export default function BillingPage() {
     stopPoll();
     setTransfer(null);
     setDiscountCode("");
+    setPayAmountError("");
     if (selected && isOpenInvoice(selected.status)) {
       setPayAmount(String(Math.round(selected.remaining)));
     } else {
@@ -441,8 +493,15 @@ export default function BillingPage() {
 
   const handleConfirm = async () => {
     if (!selected || !isOpenInvoice(selected.status)) return;
+    const amountCheck = resolvePayAmount(selected);
+    if (!amountCheck.ok) {
+      setPayAmountError(amountCheck.message);
+      showToast(amountCheck.message, "error");
+      return;
+    }
+    setPayAmountError("");
     setSubmitting(true);
-    const amount = parsePayAmount(selected);
+    const amount = amountCheck.amount;
     try {
       if (paymentMethod === "CASH") {
         const res = await apiClient.post<{
@@ -479,8 +538,11 @@ export default function BillingPage() {
           "success",
         );
       }
-    } catch {
-      showToast("Thu tiền thất bại. Thử lại.", "error");
+    } catch (err) {
+      showToast(
+        getApiErrorMessage(err, "Thu tiền thất bại. Thử lại."),
+        "error",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -493,6 +555,9 @@ export default function BillingPage() {
       paymentMethod !== "TRANSFER" ||
       !isOpenInvoice(selected.status)
     ) {
+      if (selected && !discountCode.trim()) {
+        showToast("Nhập mã khuyến mãi trước khi áp dụng.", "error");
+      }
       return;
     }
     await startTransfer(selected, discountCode);
@@ -511,8 +576,8 @@ export default function BillingPage() {
         ? inv.status === "PAID"
         : isOpenInvoice(inv.status);
     if (!inTab) return false;
-    if (!search) return true;
-    const q = search.toLowerCase();
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
     return (
       inv.patient.toLowerCase().includes(q) ||
       inv.code.toLowerCase().includes(q) ||
@@ -544,9 +609,23 @@ export default function BillingPage() {
       <Header
         title="Thanh toán"
         description="Thu tiền khách hàng — tiền mặt hoặc chuyển khoản SePay."
-      />
+      >
+        <button
+          type="button"
+          onClick={() => void fetchInvoices()}
+          disabled={loading}
+          className="inline-flex items-center gap-2 rounded-lg border border-border bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-sm hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {loading ? (
+            <CircleNotch size={14} className="animate-spin" />
+          ) : (
+            <ArrowClockwise size={14} />
+          )}
+          Làm mới
+        </button>
+      </Header>
 
-      <div className="min-h-screen bg-muted p-6">
+      <div className="bg-muted p-6">
         <div className="mx-auto max-w-7xl">
           <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-12">
             <div className="flex flex-col overflow-hidden rounded-2xl border border-border bg-white shadow-sm lg:col-span-4 lg:sticky lg:top-6 lg:max-h-[calc(100vh-6rem)]">
@@ -557,7 +636,7 @@ export default function BillingPage() {
                     className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
                   />
                   <input
-                    type="text"
+                    type="search"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Tên khách, mã hóa đơn..."
@@ -597,7 +676,22 @@ export default function BillingPage() {
               </div>
 
               <div className="flex-1 space-y-2 overflow-y-auto p-3">
-                {loading ? (
+                {loadError && !loading ? (
+                  <div className="flex flex-col items-center gap-3 py-10 px-4 text-center">
+                    <WarningCircle size={32} className="text-amber-500" />
+                    <p className="text-sm font-medium text-slate-700">
+                      {loadError}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => void fetchInvoices()}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-xs font-bold text-white hover:bg-brand-dark"
+                    >
+                      <ArrowClockwise size={14} />
+                      Thử lại
+                    </button>
+                  </div>
+                ) : loading ? (
                   Array.from({ length: 3 }).map((_, i) => (
                     <div
                       key={i}
@@ -607,7 +701,13 @@ export default function BillingPage() {
                 ) : filtered.length === 0 ? (
                   <div className="flex flex-col items-center justify-center gap-2 py-12 text-muted-foreground">
                     <ReceiptX size={32} className="text-slate-300" />
-                    <p className="text-sm font-medium">Không có hóa đơn nào</p>
+                    <p className="text-sm font-medium">
+                      {search.trim()
+                        ? "Không tìm thấy hóa đơn phù hợp"
+                        : activeTab === "PAID"
+                          ? "Chưa có hóa đơn đã thu xong"
+                          : "Không có hóa đơn chờ thu"}
+                    </p>
                   </div>
                 ) : (
                   filtered.map((inv) => (
@@ -779,12 +879,26 @@ export default function BillingPage() {
                                 type="text"
                                 inputMode="numeric"
                                 value={payAmount}
-                                onChange={(e) =>
+                                onChange={(e) => {
                                   setPayAmount(
                                     e.target.value.replace(/[^\d]/g, ""),
-                                  )
-                                }
-                                className="w-full rounded-lg border border-border bg-white px-3 py-2 font-mono text-sm font-bold outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
+                                  );
+                                  setPayAmountError("");
+                                }}
+                                onBlur={() => {
+                                  if (!selected) return;
+                                  const check = validatePayAmount(
+                                    payAmount,
+                                    selected.remaining,
+                                  );
+                                  if (!check.ok) setPayAmountError(check.message);
+                                }}
+                                className={cn(
+                                  "w-full rounded-lg border bg-white px-3 py-2 font-mono text-sm font-bold outline-none focus:ring-2 focus:ring-brand/20",
+                                  payAmountError
+                                    ? "border-red-300 focus:border-red-400"
+                                    : "border-border focus:border-brand",
+                                )}
                               />
                               {paymentMethod === "TRANSFER" && (
                                 <button
@@ -796,6 +910,11 @@ export default function BillingPage() {
                                 </button>
                               )}
                             </div>
+                            {payAmountError && (
+                              <p className="text-[11px] font-medium text-red-600">
+                                {payAmountError}
+                              </p>
+                            )}
                             <p className="text-[10px] text-muted-foreground">
                               Có thể thu một phần; phần còn lại giữ trên hóa
                               đơn.
@@ -987,13 +1106,18 @@ export default function BillingPage() {
                           onClick={() => void handleConfirm()}
                           disabled={
                             submitting ||
+                            !!payAmountError ||
                             (paymentMethod === "TRANSFER" &&
                               !transfer &&
                               transferLoading)
                           }
                           className="inline-flex items-center gap-2 rounded-lg bg-brand px-6 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                          <Receipt size={16} weight="fill" />
+                          {submitting ? (
+                            <CircleNotch size={16} className="animate-spin" />
+                          ) : (
+                            <Receipt size={16} weight="fill" />
+                          )}
                           {submitting
                             ? "Đang xử lý..."
                             : paymentMethod === "CASH"

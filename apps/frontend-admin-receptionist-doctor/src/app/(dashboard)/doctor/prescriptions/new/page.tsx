@@ -10,7 +10,9 @@ import {
   SpinnerGap,
   Warning,
   CheckCircle,
+  Sparkle,
 } from "@phosphor-icons/react";
+import axios from "axios";
 import apiClient from "@/src/lib/api/client";
 
 type Patient = {
@@ -72,6 +74,9 @@ function NewPrescriptionContent() {
     { key: 1, medicineName: "", dosage: "", frequency: "", duration: "", instruction: "" },
   ]);
   const [submitting, setSubmitting] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiNote, setAiNote] = useState<string | null>(null);
+  const [allergyWarnings, setAllergyWarnings] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
@@ -128,6 +133,66 @@ function NewPrescriptionContent() {
     );
   };
 
+  const handleAiDraft = async () => {
+    if (!selectedPatientId && !selectedRecordId) {
+      setError("Chọn bệnh nhân và hồ sơ bệnh án trước khi dùng Nháp AI.");
+      return;
+    }
+    setAiLoading(true);
+    setError(null);
+    setAiNote(null);
+    setAllergyWarnings([]);
+    try {
+      const res = await apiClient.post<{
+        notes: string | null;
+        items: Array<{
+          medicineName: string;
+          dosage: string;
+          frequency: string | null;
+          duration: string | null;
+          instruction: string | null;
+        }>;
+        allergyWarnings: string[];
+        disclaimer: string;
+      }>("/ai/doctor/draft-prescription", {
+        medicalRecordId: selectedRecordId || undefined,
+        patientId: selectedPatientId || undefined,
+      });
+      const items = res.data.items ?? [];
+      if (items.length === 0) {
+        setError("AI chưa gợi ý được thuốc. Kiểm tra HSBA có chẩn đoán chưa.");
+        return;
+      }
+      setMedications(
+        items.map((it, i) => ({
+          key: Date.now() + i,
+          medicineName: it.medicineName ?? "",
+          dosage: it.dosage ?? "",
+          frequency: it.frequency ?? "",
+          duration: it.duration ?? "",
+          instruction: it.instruction ?? "",
+        })),
+      );
+      if (res.data.notes?.trim()) setNotes(res.data.notes.trim());
+      setAllergyWarnings(res.data.allergyWarnings ?? []);
+      setAiNote(
+        res.data.disclaimer ||
+          "Bản nháp AI — kiểm tra dị ứng rồi mới lưu.",
+      );
+    } catch (err) {
+      const msg = axios.isAxiosError(err)
+        ? err.response?.data?.message
+        : null;
+      setError(
+        typeof msg === "string" && msg.trim()
+          ? msg
+          : "Không tạo được nháp đơn thuốc. Kiểm tra AI service.",
+      );
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!doctorId) {
       setError("Không tìm thấy thông tin bác sĩ. Vui lòng đăng nhập lại.");
@@ -176,7 +241,7 @@ function NewPrescriptionContent() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/50 px-6 py-8">
+    <div className="bg-slate-50/50 px-6 py-8">
       <div className="mx-auto max-w-4xl">
         <div className="mb-6 space-y-4">
           <Link
@@ -197,6 +262,19 @@ function NewPrescriptionContent() {
               </p>
             </div>
             <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={handleAiDraft}
+                disabled={aiLoading || submitting || success || !selectedRecordId}
+                className="inline-flex items-center gap-2 rounded-xl border border-brand/30 bg-brand-light/50 px-4 py-2.5 text-sm font-medium text-brand-dark transition-all hover:bg-brand-light disabled:opacity-60"
+              >
+                {aiLoading ? (
+                  <SpinnerGap size={15} className="animate-spin" />
+                ) : (
+                  <Sparkle size={15} weight="fill" />
+                )}
+                {aiLoading ? "Đang soạn…" : "Nháp AI"}
+              </button>
               <button
                 onClick={handleSubmit}
                 disabled={submitting || success}
@@ -219,6 +297,25 @@ function NewPrescriptionContent() {
           <div className="mb-4 flex items-center gap-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-inset ring-red-200">
             <Warning size={18} className="shrink-0" />
             {error}
+          </div>
+        )}
+
+        {aiNote && (
+          <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            {aiNote}
+          </div>
+        )}
+
+        {allergyWarnings.length > 0 && (
+          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            <p className="mb-1.5 flex items-center gap-2 font-semibold">
+              <Warning size={16} /> Cảnh báo dị ứng / an toàn thuốc
+            </p>
+            <ul className="list-inside list-disc space-y-1">
+              {allergyWarnings.map((w, i) => (
+                <li key={i}>{w}</li>
+              ))}
+            </ul>
           </div>
         )}
 

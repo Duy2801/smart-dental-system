@@ -8,6 +8,9 @@ import { Header } from "@/src/components/layout/header";
 import { AppointmentStatusBadge } from "@/src/components/shared/appointment-status-badge";
 import type { AppointmentStatus } from "@/src/components/shared/appointment-status-badge";
 import apiClient from "@/src/lib/api/client";
+import { localDateStr } from "@/src/lib/receptionist/mappers";
+import { getApiErrorMessage } from "@/src/lib/utils/api-error";
+import { validatePatientBasics } from "@/src/lib/utils/patient-validation";
 import { formatDoctorName } from "@/src/lib/utils/format";
 import {
   Wallet,
@@ -23,6 +26,7 @@ import {
   Check,
   SpinnerGap,
   User,
+  ArrowClockwise,
 } from "@phosphor-icons/react";
 
 type PatientDetail = {
@@ -110,6 +114,7 @@ function PatientDetailContent() {
   const searchParams = useSearchParams();
   const [patient, setPatient] = useState<PatientDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [editing, setEditing] = useState(searchParams.get("tab") === "edit");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -126,35 +131,55 @@ function PatientDetailContent() {
     emergencyContactPhone: "",
   });
 
+  const loadPatient = async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const res = await apiClient.get(`/patients/${id}`);
+      const data = res.data as PatientDetail;
+      if (!data?.id) throw new Error("not found");
+      setPatient(data);
+      setDraft({
+        fullName: data.fullName ?? "",
+        phone: data.phone ?? "",
+        email: data.email ?? "",
+        address: data.address ?? "",
+        dateOfBirth: dobInputValue(data.dateOfBirth),
+        gender:
+          data.gender === "MALE" || data.gender === "FEMALE"
+            ? data.gender
+            : "",
+        medicalHistory: stripAllergyLine(data.medicalHistory),
+        allergies: (data.allergies ?? []).join(", "),
+        emergencyContactName: data.emergencyContactName ?? "",
+        emergencyContactPhone: data.emergencyContactPhone ?? "",
+      });
+    } catch (err) {
+      setLoadError(getApiErrorMessage(err, "Không tìm thấy bệnh nhân."));
+      setPatient(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    apiClient
-      .get(`/patients/${id}`)
-      .then((res) => {
-        const data = res.data as PatientDetail;
-        if (!data?.id) throw new Error("not found");
-        setPatient(data);
-        setDraft({
-          fullName: data.fullName ?? "",
-          phone: data.phone ?? "",
-          email: data.email ?? "",
-          address: data.address ?? "",
-          dateOfBirth: dobInputValue(data.dateOfBirth),
-          gender:
-            data.gender === "MALE" || data.gender === "FEMALE"
-              ? data.gender
-              : "",
-          medicalHistory: stripAllergyLine(data.medicalHistory),
-          allergies: (data.allergies ?? []).join(", "),
-          emergencyContactName: data.emergencyContactName ?? "",
-          emergencyContactPhone: data.emergencyContactPhone ?? "",
-        });
-      })
-      .catch(() => setPatient(null))
-      .finally(() => setLoading(false));
+    void loadPatient();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const handleSave = async () => {
     if (!patient) return;
+    const validationError = validatePatientBasics({
+      fullName: draft.fullName,
+      phone: draft.phone,
+      email: draft.email,
+      dateOfBirth: draft.dateOfBirth || undefined,
+    });
+    if (validationError) {
+      setSaveError(validationError);
+      return;
+    }
+
     setSaving(true);
     setSaveError(null);
     const allergies = draft.allergies
@@ -185,8 +210,8 @@ function PatientDetailContent() {
         allergies: (updated?.allergies ?? allergies).join(", "),
       }));
       setEditing(false);
-    } catch {
-      setSaveError("Không lưu được. Kiểm tra SĐT/email và thử lại.");
+    } catch (err) {
+      setSaveError(getApiErrorMessage(err, "Không lưu được. Kiểm tra SĐT/email và thử lại."));
     } finally {
       setSaving(false);
     }
@@ -203,19 +228,31 @@ function PatientDetailContent() {
     );
   }
 
-  if (!patient) {
+  if (loadError && !patient) {
     return (
       <>
         <Header title="Chi tiết bệnh nhân" />
-        <div className="bg-muted min-h-screen p-6">
-          <div className="flex items-center gap-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-inset ring-red-200">
-            <Warning size={18} className="shrink-0" />
-            Không tìm thấy bệnh nhân.
+        <div className="bg-muted p-6">
+          <div className="flex items-center justify-between gap-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-inset ring-red-200">
+            <div className="flex items-center gap-2 min-w-0">
+              <Warning size={18} className="shrink-0" />
+              <span className="truncate">{loadError}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => void loadPatient()}
+              className="inline-flex shrink-0 items-center gap-1.5 font-semibold hover:underline"
+            >
+              <ArrowClockwise size={14} />
+              Thử lại
+            </button>
           </div>
         </div>
       </>
     );
   }
+
+  if (!patient) return null;
 
   const initials = patient.fullName
     .split(/\s+/)
@@ -271,7 +308,7 @@ function PatientDetailContent() {
         </div>
       </Header>
 
-      <div className="bg-muted min-h-screen p-6 space-y-5">
+      <div className="bg-muted p-6 space-y-5">
         <Link
           href="/receptionist/patients"
           className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground transition-colors hover:text-brand-dark"
@@ -347,6 +384,7 @@ function PatientDetailContent() {
                       <input
                         type="date"
                         value={draft.dateOfBirth}
+                        max={localDateStr()}
                         onChange={(e) =>
                           setDraft((d) => ({
                             ...d,

@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/src/lib/utils/cn";
 import apiClient from "@/src/lib/api/client";
 import { localDateStr } from "@/src/lib/receptionist/mappers";
+import { getApiErrorMessage } from "@/src/lib/utils/api-error";
 import { formatDoctorName } from "@/src/lib/utils/format";
 import {
   ArrowLeft,
@@ -15,7 +16,6 @@ import {
   Check,
   SpinnerGap,
 } from "@phosphor-icons/react";
-import { AxiosError } from "axios";
 
 type PatientOpt = { id: string; name: string; phone: string };
 type ServiceOpt = { id: string; name: string };
@@ -25,15 +25,6 @@ type DoctorOpt = {
   spec: string;
   status: "AVAILABLE" | "BUSY";
 };
-
-function apiErrorMessage(err: unknown, fallback: string) {
-  if (err instanceof AxiosError) {
-    const msg = (err.response?.data as { message?: string | string[] })?.message;
-    if (Array.isArray(msg) && msg[0]) return String(msg[0]);
-    if (typeof msg === "string" && msg) return msg;
-  }
-  return fallback;
-}
 
 function NewAppointmentForm() {
   const router = useRouter();
@@ -109,8 +100,8 @@ function NewAppointmentForm() {
           })),
         );
         setTimeSlots(opts.timeSlots ?? []);
-      } catch {
-        setError("Không tải được dữ liệu đặt lịch từ máy chủ.");
+      } catch (err) {
+        setError(getApiErrorMessage(err, "Không tải được dữ liệu đặt lịch từ máy chủ."));
       } finally {
         setLoadingOpts(false);
       }
@@ -159,6 +150,18 @@ function NewAppointmentForm() {
       setError("Vui lòng chọn đủ bệnh nhân, dịch vụ, ngày, giờ và bác sĩ.");
       return;
     }
+    if (timeSlots.length === 0) {
+      setError("Không còn khung giờ trống cho ngày đã chọn.");
+      return;
+    }
+    if (!timeSlots.includes(selectedTime)) {
+      setError("Khung giờ đã chọn không còn khả dụng. Vui lòng chọn lại.");
+      return;
+    }
+    if (date < localDateStr()) {
+      setError("Không thể đặt lịch cho ngày đã qua.");
+      return;
+    }
 
     setSubmitting(true);
     const scheduledAt = new Date(`${date}T${selectedTime}:00`).toISOString();
@@ -174,7 +177,7 @@ function NewAppointmentForm() {
       router.push(`/receptionist/appointments/${res.data?.id ?? ""}`);
     } catch (err) {
       setError(
-        apiErrorMessage(
+        getApiErrorMessage(
           err,
           "Tạo lịch hẹn thất bại. Kiểm tra slot còn trống và thử lại.",
         ),
@@ -192,7 +195,7 @@ function NewAppointmentForm() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50/50 px-4 py-8 sm:px-6 lg:px-8">
+    <div className="bg-slate-50/50 px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-4xl">
         <div className="mb-6 space-y-4">
           <Link
@@ -311,7 +314,11 @@ function NewAppointmentForm() {
                       <input
                         type="date"
                         value={date}
-                        onChange={(e) => setDate(e.target.value)}
+                        min={localDateStr()}
+                        onChange={(e) => {
+                          setDate(e.target.value);
+                          setSelectedTime("");
+                        }}
                         className="w-full rounded-xl border-transparent bg-slate-50 py-3 pl-11 pr-4 text-sm font-semibold text-slate-900 outline-none transition-all focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand/20"
                       />
                     </div>

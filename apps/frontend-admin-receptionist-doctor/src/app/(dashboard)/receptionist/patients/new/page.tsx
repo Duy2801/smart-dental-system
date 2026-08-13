@@ -5,6 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Header } from "@/src/components/layout/header";
 import apiClient from "@/src/lib/api/client";
+import { getApiErrorMessage } from "@/src/lib/utils/api-error";
+import { localDateStr } from "@/src/lib/receptionist/mappers";
+import { validatePatientBasics } from "@/src/lib/utils/patient-validation";
 import {
   ArrowLeft,
   Check,
@@ -50,8 +53,14 @@ export default function NewPatientPage() {
 
   const save = async (andBook: boolean) => {
     setError(null);
-    if (!form.fullName.trim() || !form.phone.trim()) {
-      setError("Vui lòng nhập họ tên và số điện thoại.");
+    const validationError = validatePatientBasics({
+      fullName: form.fullName,
+      phone: form.phone,
+      email: form.email,
+      dateOfBirth: form.dateOfBirth || undefined,
+    });
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
@@ -77,8 +86,8 @@ export default function NewPatientPage() {
       const res = await apiClient.post<{ id: string }>("/patients", payload);
       if (!res.data?.id) throw new Error("missing id");
       id = res.data.id;
-    } catch {
-      setError("Không tạo được bệnh nhân. Kiểm tra SĐT/email đã tồn tại chưa.");
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Không tạo được bệnh nhân. Kiểm tra SĐT/email đã tồn tại chưa."));
       setSubmitting(false);
       return;
     }
@@ -98,7 +107,7 @@ export default function NewPatientPage() {
         description="Đăng ký hồ sơ khách hàng mới cho phòng khám."
       />
 
-      <div className="bg-muted min-h-screen p-6">
+      <div className="bg-muted p-6">
         <div className="mx-auto max-w-3xl space-y-5">
           <Link
             href="/receptionist/patients"
@@ -145,6 +154,8 @@ export default function NewPatientPage() {
                     value={form.phone}
                     onChange={(e) => set("phone", e.target.value)}
                     placeholder="0901234567"
+                    minLength={8}
+                    inputMode="tel"
                     className="w-full rounded-xl border border-border bg-muted px-4 py-2.5 text-sm font-mono font-medium outline-none transition-all focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand/20"
                   />
                 </div>
@@ -167,6 +178,7 @@ export default function NewPatientPage() {
                   <input
                     type="date"
                     value={form.dateOfBirth}
+                    max={localDateStr()}
                     onChange={(e) => set("dateOfBirth", e.target.value)}
                     className="w-full rounded-xl border border-border bg-muted px-4 py-2.5 text-sm font-medium outline-none transition-all focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand/20"
                   />

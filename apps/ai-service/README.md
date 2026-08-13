@@ -58,6 +58,8 @@ Backend gọi AI qua:
 
 - `POST /api/v1/admin/ai/doctor/summarize-patient` `{ consultationId | patientId }`
 - `POST /api/v1/admin/ai/doctor/draft-medical-record` `{ patientId?, chiefComplaint?, … }`
+- `POST /api/v1/admin/ai/doctor/draft-prescription` `{ medicalRecordId | patientId }`
+- `POST /api/v1/admin/ai/doctor/draft-treatment-plan` `{ patientId | medicalRecordId }`
 
 Env Nest (`apps/backend/.env`):
 

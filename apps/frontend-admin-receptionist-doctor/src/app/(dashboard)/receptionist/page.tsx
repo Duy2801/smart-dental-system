@@ -1,13 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/src/lib/utils/cn";
 import { Header } from "@/src/components/layout/header";
-import { AppointmentStatusBadge } from "@/src/components/shared/appointment-status-badge";
+import {
+  AppointmentStatusBadge,
+  type AppointmentStatus,
+} from "@/src/components/shared/appointment-status-badge";
 import apiClient from "@/src/lib/api/client";
 import { mapAppointments, localDateStr } from "@/src/lib/receptionist/mappers";
 import type { ReceptionistAppointment } from "@/src/lib/receptionist/mappers";
+import { getApiErrorMessage } from "@/src/lib/utils/api-error";
 import { formatDoctorName } from "@/src/lib/utils/format";
 import {
   CalendarBlank,
@@ -24,6 +28,12 @@ import {
   Stethoscope,
   ArrowRight,
   Warning,
+  ArrowClockwise,
+  DotsThree,
+  Eye,
+  X,
+  UserMinus,
+  CircleNotch,
 } from "@phosphor-icons/react";
 
 // ---------------------------------------------------------------------------
@@ -32,12 +42,17 @@ import {
 
 type Appointment = ReceptionistAppointment;
 
-interface PendingBill {
-  id: string;
-  patientName: string;
-  total: number;
-  invoiceId: string;
-}
+type QueueTab = "ALL" | "PENDING" | "CONFIRMED" | "CHECKED_IN" | "IN_PROGRESS";
+
+const TABS: { id: QueueTab; label: string }[] = [
+  { id: "ALL", label: "Tất cả" },
+  { id: "PENDING", label: "Chờ xác nhận" },
+  { id: "CONFIRMED", label: "Đã xác nhận" },
+  { id: "CHECKED_IN", label: "Đã Check-in" },
+  { id: "IN_PROGRESS", label: "Đang khám" },
+];
+
+const REFRESH_MS = 60_000;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -71,8 +86,13 @@ function formatTime(timeStr: string): string {
   return timeStr.slice(0, 5);
 }
 
-function formatVND(amount: number): string {
-  return amount.toLocaleString("vi-VN") + " ₫";
+function statusEndpoint(status: AppointmentStatus): string | null {
+  if (status === "CONFIRMED") return "confirm";
+  if (status === "CHECKED_IN") return "check-in";
+  if (status === "IN_PROGRESS") return "start";
+  if (status === "CANCELLED") return "cancel";
+  if (status === "NO_SHOW") return "no-show";
+  return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -102,18 +122,80 @@ function QueueRowSkeleton() {
 }
 
 // ---------------------------------------------------------------------------
-// Tab config
+// Queue action menu
 // ---------------------------------------------------------------------------
 
-type QueueTab = "ALL" | "PENDING" | "CONFIRMED" | "CHECKED_IN" | "IN_PROGRESS";
+function QueueActionMenu({
+  apt,
+  onStatusChange,
+  disabled,
+}: {
+  apt: Appointment;
+  onStatusChange: (id: string, status: AppointmentStatus) => void;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
 
-const TABS: { id: QueueTab; label: string }[] = [
-  { id: "ALL", label: "Tất cả" },
-  { id: "PENDING", label: "Chưa tới" },
-  { id: "CONFIRMED", label: "Đã xác nhận" },
-  { id: "CHECKED_IN", label: "Đã Check-in" },
-  { id: "IN_PROGRESS", label: "Đang khám" },
-];
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => setOpen((v) => !v)}
+        className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white text-muted-foreground transition-colors hover:bg-muted hover:text-slate-900 disabled:opacity-50"
+        aria-label="Tùy chọn"
+      >
+        <DotsThree size={16} weight="bold" />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full z-50 mt-1 w-44 rounded-xl border border-border bg-white py-1.5 shadow-xl">
+          <Link
+            href={`/receptionist/appointments/${apt.id}`}
+            className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-muted"
+            onClick={() => setOpen(false)}
+          >
+            <Eye size={13} /> Xem chi tiết
+          </Link>
+          {(apt.status === "PENDING" || apt.status === "CONFIRMED") && (
+            <>
+              <div className="my-1 mx-2 h-px bg-slate-100" />
+              <button
+                type="button"
+                onClick={() => {
+                  onStatusChange(apt.id, "CANCELLED");
+                  setOpen(false);
+                }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
+              >
+                <X size={13} /> Khách báo hủy
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onStatusChange(apt.id, "NO_SHOW");
+                  setOpen(false);
+                }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
+              >
+                <UserMinus size={13} /> Đánh dấu vắng mặt
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Main Component
@@ -121,120 +203,76 @@ const TABS: { id: QueueTab; label: string }[] = [
 
 export default function ReceptionistDashboard() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [pendingBills, setPendingBills] = useState<PendingBill[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<QueueTab>("ALL");
   const [search, setSearch] = useState("");
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  // --------------------------------------------------
-  // Fetch
-  // --------------------------------------------------
-
-  useEffect(() => {
+  const fetchDashboard = useCallback(async () => {
     const today = localDateStr();
+    try {
+      setLoading(true);
+      setError(null);
 
-    const fetchAll = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const [apptRes, invRes] = await Promise.all([
-          apiClient.get(`/appointments?date=${today}`),
-          apiClient.get(`/invoices?status=UNPAID`).catch(() => ({ data: [] })),
-        ]);
-        setAppointments(mapAppointments(apptRes.data));
-        const invoices = Array.isArray(invRes.data) ? invRes.data : [];
-        setPendingBills(
-          invoices.map(
-            (inv: {
-              id: string;
-              patient_name?: string;
-              final_amount?: number;
-              invoice_code?: string;
-            }) => ({
-              id: inv.id,
-              patientName: inv.patient_name ?? "—",
-              total: Number(inv.final_amount ?? 0),
-              invoiceId: inv.invoice_code ?? inv.id,
-            }),
-          ),
-        );
-      } catch {
-        setError("Không tải được dữ liệu từ máy chủ. Kiểm tra backend đang chạy.");
-        setAppointments([]);
-        setPendingBills([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAll();
+      const apptRes = await apiClient.get(`/appointments?date=${today}`);
+      setAppointments(mapAppointments(apptRes.data));
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Không tải được dữ liệu từ máy chủ."));
+      setAppointments([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  // --------------------------------------------------
-  // Derived stats
-  // --------------------------------------------------
+  useEffect(() => {
+    void fetchDashboard();
+    const timer = setInterval(() => void fetchDashboard(), REFRESH_MS);
+    return () => clearInterval(timer);
+  }, [fetchDashboard]);
 
   const total = appointments.length;
   const pendingCount = appointments.filter((a) => a.status === "PENDING").length;
   const checkedInCount = appointments.filter((a) => a.status === "CHECKED_IN").length;
-  const billCount = pendingBills.length || appointments.filter((a) => a.status === "COMPLETED" && a.invoicePending).length;
+  const billCount = appointments.filter(
+    (a) => a.status === "COMPLETED" && a.invoicePending,
+  ).length;
 
-  // --------------------------------------------------
-  // Filtered list
-  // --------------------------------------------------
-
+  const searchQuery = search.trim().toLowerCase();
   const filtered = appointments.filter((apt) => {
     const matchTab = activeTab === "ALL" || apt.status === activeTab;
-    const q = search.toLowerCase();
+    if (!searchQuery) return matchTab;
     const matchSearch =
-      !q ||
-      apt.patient?.fullName.toLowerCase().includes(q) ||
-      apt.patient?.phone.includes(q) ||
-      apt.service?.name.toLowerCase().includes(q);
+      apt.patient?.fullName.toLowerCase().includes(searchQuery) ||
+      apt.patient?.phone.includes(searchQuery) ||
+      apt.appointmentCode.toLowerCase().includes(searchQuery) ||
+      apt.service?.name.toLowerCase().includes(searchQuery);
     return matchTab && matchSearch;
   });
 
-  // --------------------------------------------------
-  // Actions
-  // --------------------------------------------------
+  const isEmptyDueToSearch =
+    searchQuery.length > 0 && filtered.length === 0 && appointments.length > 0;
 
-  const handleConfirm = async (id: string) => {
+  const handleStatusChange = async (id: string, status: AppointmentStatus) => {
+    if (status === "CANCELLED" && !window.confirm("Xác nhận hủy lịch hẹn này?")) return;
+    if (status === "NO_SHOW" && !window.confirm("Đánh dấu bệnh nhân vắng mặt?")) return;
+
+    const endpoint = statusEndpoint(status);
+    if (!endpoint) return;
+
+    setActionLoading(id);
+    setError(null);
     try {
-      await apiClient.patch(`/appointments/${id}/confirm`);
-      setAppointments((prev) =>
-        prev.map((a) => (a.id === id ? { ...a, status: "CONFIRMED" } : a))
-      );
-    } catch {
-      setError("Xác nhận lịch hẹn thất bại.");
+      await apiClient.patch(`/appointments/${id}/${endpoint}`);
+      await fetchDashboard();
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Cập nhật trạng thái thất bại."));
+    } finally {
+      setActionLoading(null);
     }
   };
 
-  const handleCheckIn = async (id: string) => {
-    try {
-      await apiClient.patch(`/appointments/${id}/check-in`);
-      setAppointments((prev) =>
-        prev.map((a) => (a.id === id ? { ...a, status: "CHECKED_IN" } : a))
-      );
-    } catch {
-      setError("Check-in thất bại.");
-    }
-  };
-
-  const handleNotifyDoctor = async (id: string) => {
-    try {
-      await apiClient.patch(`/appointments/${id}/start`);
-      setAppointments((prev) =>
-        prev.map((a) => (a.id === id ? { ...a, status: "IN_PROGRESS" } : a))
-      );
-    } catch {
-      setError("Không thể nhắc bác sĩ (cần đã check-in).");
-    }
-  };
-
-  // --------------------------------------------------
-  // Render
-  // --------------------------------------------------
+  const isActionBusy = (id: string) => actionLoading === id;
 
   return (
     <>
@@ -251,14 +289,12 @@ export default function ReceptionistDashboard() {
         </Link>
       </Header>
 
-      <div className="bg-muted min-h-screen p-6 space-y-6">
-        {/* ── STATS ROW ─────────────────────────────────────────── */}
+      <div className="bg-muted p-6 space-y-6">
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {loading ? (
             Array.from({ length: 4 }).map((_, i) => <StatSkeleton key={i} />)
           ) : (
             <>
-              {/* Tổng lịch */}
               <div className="rounded-2xl border border-border bg-white p-5 shadow-sm flex items-start justify-between">
                 <div>
                   <p className="text-xs font-semibold text-muted-foreground">Lịch hẹn hôm nay</p>
@@ -270,7 +306,6 @@ export default function ReceptionistDashboard() {
                 </div>
               </div>
 
-              {/* Chờ xác nhận */}
               <div className="rounded-2xl border border-border bg-white p-5 shadow-sm flex items-start justify-between">
                 <div>
                   <p className="text-xs font-semibold text-muted-foreground">Chờ xác nhận</p>
@@ -282,7 +317,6 @@ export default function ReceptionistDashboard() {
                 </div>
               </div>
 
-              {/* Đã check-in */}
               <div className="rounded-2xl border border-border bg-white p-5 shadow-sm flex items-start justify-between">
                 <div>
                   <p className="text-xs font-semibold text-muted-foreground">Đã Check-in</p>
@@ -294,7 +328,6 @@ export default function ReceptionistDashboard() {
                 </div>
               </div>
 
-              {/* Chờ thu tiền */}
               <div className="rounded-2xl border border-border bg-white p-5 shadow-sm flex items-start justify-between">
                 <div>
                   <p className="text-xs font-semibold text-muted-foreground">Chờ thu tiền</p>
@@ -309,50 +342,63 @@ export default function ReceptionistDashboard() {
           )}
         </div>
 
-        {/* ── ERROR BANNER ───────────────────────────────────────── */}
         {error && (
-          <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-            <Warning weight="fill" size={16} className="shrink-0" />
-            {error}
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+            <div className="flex items-center gap-2 min-w-0">
+              <Warning weight="fill" size={16} className="shrink-0" />
+              <span className="truncate">{error}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => void fetchDashboard()}
+              className="inline-flex shrink-0 items-center gap-1.5 font-semibold hover:underline"
+            >
+              <ArrowClockwise size={14} />
+              Thử lại
+            </button>
           </div>
         )}
 
-        {/* ── MAIN GRID ─────────────────────────────────────────── */}
         <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
-
-          {/* ── LIVE QUEUE (2/3) ─────────────────────────────────── */}
           <div className="lg:col-span-2 space-y-4">
-
-            {/* Search bar */}
             <div className="relative">
               <MagnifyingGlass
                 size={16}
                 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
               />
               <input
-                type="text"
+                type="search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Tra cứu bệnh nhân (Tên, SĐT, dịch vụ)..."
+                placeholder="Tra cứu bệnh nhân (Tên, SĐT, mã lịch, dịch vụ)..."
                 className="w-full rounded-lg border border-border bg-white py-2.5 pl-9 pr-4 text-sm font-medium outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand/20"
               />
             </div>
 
-            {/* Queue card */}
-            <div className="rounded-2xl border border-border bg-white shadow-sm overflow-hidden">
-              {/* Card header + tabs */}
+            <div className="rounded-2xl border border-border bg-white shadow-sm">
               <div className="border-b border-border px-5 pt-4">
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="text-sm font-bold text-brand-dark">Hàng đợi hôm nay</h2>
-                  <Link
-                    href="/receptionist/appointments"
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-brand hover:text-brand-dark transition-colors"
-                  >
-                    Xem tất cả <ArrowRight size={12} weight="bold" />
-                  </Link>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => void fetchDashboard()}
+                      disabled={loading}
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-brand transition-colors disabled:opacity-50"
+                      title="Làm mới"
+                    >
+                      <ArrowClockwise size={12} className={loading ? "animate-spin" : ""} />
+                      Làm mới
+                    </button>
+                    <Link
+                      href="/receptionist/appointments"
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-brand hover:text-brand-dark transition-colors"
+                    >
+                      Xem tất cả <ArrowRight size={12} weight="bold" />
+                    </Link>
+                  </div>
                 </div>
 
-                {/* Tabs */}
                 <div className="flex gap-1 overflow-x-auto">
                   {TABS.map((tab) => {
                     const count =
@@ -362,12 +408,13 @@ export default function ReceptionistDashboard() {
                     return (
                       <button
                         key={tab.id}
+                        type="button"
                         onClick={() => setActiveTab(tab.id)}
                         className={cn(
                           "flex shrink-0 items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-semibold transition-all -mb-px",
                           activeTab === tab.id
                             ? "border-brand text-brand"
-                            : "border-transparent text-muted-foreground hover:text-brand-dark"
+                            : "border-transparent text-muted-foreground hover:text-brand-dark",
                         )}
                       >
                         {tab.label}
@@ -377,7 +424,7 @@ export default function ReceptionistDashboard() {
                               "rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none",
                               activeTab === tab.id
                                 ? "bg-brand text-white"
-                                : "bg-slate-100 text-slate-500"
+                                : "bg-slate-100 text-slate-500",
                             )}
                           >
                             {count}
@@ -389,17 +436,34 @@ export default function ReceptionistDashboard() {
                 </div>
               </div>
 
-              {/* Rows */}
               {loading ? (
                 <div className="divide-y divide-border/50">
                   {Array.from({ length: 4 }).map((_, i) => (
                     <QueueRowSkeleton key={i} />
                   ))}
                 </div>
+              ) : isEmptyDueToSearch ? (
+                <div className="flex flex-col items-center justify-center gap-3 py-14 text-muted-foreground">
+                  <MagnifyingGlass size={36} className="text-slate-300" />
+                  <p className="text-sm font-medium">Không tìm thấy kết quả phù hợp</p>
+                  <button
+                    type="button"
+                    onClick={() => setSearch("")}
+                    className="text-xs font-bold text-brand hover:underline"
+                  >
+                    Xóa bộ lọc tìm kiếm
+                  </button>
+                </div>
               ) : filtered.length === 0 ? (
                 <div className="flex flex-col items-center justify-center gap-3 py-14 text-muted-foreground">
                   <CalendarBlank size={36} className="text-slate-300" />
                   <p className="text-sm font-medium">Hàng đợi trống hôm nay</p>
+                  <Link
+                    href="/receptionist/appointments/new"
+                    className="text-xs font-bold text-brand hover:underline"
+                  >
+                    + Tạo lịch mới
+                  </Link>
                 </div>
               ) : (
                 <div className="divide-y divide-border/50">
@@ -407,23 +471,22 @@ export default function ReceptionistDashboard() {
                     const name = apt.patient?.fullName ?? "Khách vãng lai";
                     const initials = getInitials(name);
                     const avatarColor = getAvatarColor(name);
+                    const busy = isActionBusy(apt.id);
 
                     return (
                       <div
                         key={apt.id}
                         className="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-muted"
                       >
-                        {/* Avatar */}
                         <div
                           className={cn(
                             "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold",
-                            avatarColor
+                            avatarColor,
                           )}
                         >
                           {initials}
                         </div>
 
-                        {/* Info */}
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="text-sm font-bold text-brand-dark truncate">
@@ -433,6 +496,7 @@ export default function ReceptionistDashboard() {
                           </div>
                           <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground font-medium">
                             <span className="font-mono">{formatTime(apt.startTime)}</span>
+                            <span className="font-mono opacity-60">{apt.appointmentCode}</span>
                             {apt.patient?.phone && (
                               <span className="font-mono opacity-80">{apt.patient.phone}</span>
                             )}
@@ -443,37 +507,72 @@ export default function ReceptionistDashboard() {
                               </span>
                             )}
                             {apt.doctor?.fullName && (
-                              <span className="text-slate-500">{formatDoctorName(apt.doctor.fullName)}</span>
+                              <span className="text-slate-500">
+                                {formatDoctorName(apt.doctor.fullName)}
+                              </span>
                             )}
                           </div>
                         </div>
 
-                        {/* Action button */}
-                        <div className="shrink-0">
+                        <div className="relative z-10 flex shrink-0 items-center gap-1.5">
                           {apt.status === "PENDING" && (
-                            <button
-                              onClick={() => handleConfirm(apt.id)}
-                              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-amber-500 px-3 text-xs font-bold text-white shadow-sm transition-all hover:bg-amber-600 active:scale-[0.98]"
-                            >
-                              <Phone size={13} weight="fill" />
-                              Xác nhận
-                            </button>
+                            <>
+                              <button
+                                type="button"
+                                disabled={busy}
+                                onClick={() => void handleStatusChange(apt.id, "CONFIRMED")}
+                                className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-amber-500 px-3 text-xs font-bold text-white shadow-sm transition-all hover:bg-amber-600 active:scale-[0.98] disabled:opacity-60"
+                              >
+                                {busy ? (
+                                  <CircleNotch size={13} className="animate-spin" />
+                                ) : (
+                                  <Phone size={13} weight="fill" />
+                                )}
+                                Xác nhận
+                              </button>
+                              <button
+                                type="button"
+                                disabled={busy}
+                                onClick={() => void handleStatusChange(apt.id, "CHECKED_IN")}
+                                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-brand bg-white px-3 text-xs font-semibold text-brand shadow-sm transition-all hover:bg-brand/5 active:scale-[0.98] disabled:opacity-60"
+                                title="Check-in trực tiếp (walk-in)"
+                              >
+                                {busy ? (
+                                  <CircleNotch size={13} className="animate-spin" />
+                                ) : (
+                                  <UserCircleCheck size={13} weight="fill" />
+                                )}
+                                Check-in
+                              </button>
+                            </>
                           )}
                           {apt.status === "CONFIRMED" && (
                             <button
-                              onClick={() => handleCheckIn(apt.id)}
-                              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-brand px-3 text-xs font-bold text-white shadow-sm transition-all hover:bg-brand-dark active:scale-[0.98]"
+                              type="button"
+                              disabled={busy}
+                              onClick={() => void handleStatusChange(apt.id, "CHECKED_IN")}
+                              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-brand px-3 text-xs font-bold text-white shadow-sm transition-all hover:bg-brand-dark active:scale-[0.98] disabled:opacity-60"
                             >
-                              <UserCircleCheck size={13} weight="fill" />
+                              {busy ? (
+                                <CircleNotch size={13} className="animate-spin" />
+                              ) : (
+                                <UserCircleCheck size={13} weight="fill" />
+                              )}
                               Check-in
                             </button>
                           )}
                           {apt.status === "CHECKED_IN" && (
                             <button
-                              onClick={() => handleNotifyDoctor(apt.id)}
-                              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-white px-3 text-xs font-semibold text-brand-dark shadow-sm transition-all hover:bg-muted active:scale-[0.98]"
+                              type="button"
+                              disabled={busy}
+                              onClick={() => void handleStatusChange(apt.id, "IN_PROGRESS")}
+                              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-white px-3 text-xs font-semibold text-brand-dark shadow-sm transition-all hover:bg-muted active:scale-[0.98] disabled:opacity-60"
                             >
-                              <BellRinging size={13} />
+                              {busy ? (
+                                <CircleNotch size={13} className="animate-spin" />
+                              ) : (
+                                <BellRinging size={13} />
+                              )}
                               Nhắc BS
                             </button>
                           )}
@@ -487,6 +586,7 @@ export default function ReceptionistDashboard() {
                             </Link>
                           )}
                           {(apt.status === "IN_PROGRESS" ||
+                            apt.status === "RESCHEDULED" ||
                             (apt.status === "COMPLETED" && !apt.invoicePending) ||
                             apt.status === "CANCELLED" ||
                             apt.status === "NO_SHOW") && (
@@ -497,6 +597,15 @@ export default function ReceptionistDashboard() {
                               Chi tiết
                             </Link>
                           )}
+                          {(apt.status === "PENDING" ||
+                            apt.status === "CONFIRMED" ||
+                            apt.status === "CHECKED_IN") && (
+                            <QueueActionMenu
+                              apt={apt}
+                              onStatusChange={(id, status) => void handleStatusChange(id, status)}
+                              disabled={busy}
+                            />
+                          )}
                         </div>
                       </div>
                     );
@@ -506,10 +615,7 @@ export default function ReceptionistDashboard() {
             </div>
           </div>
 
-          {/* ── SIDEBAR (1/3) ──────────────────────────────────────── */}
           <div className="space-y-5">
-
-            {/* Quick Actions */}
             <div className="rounded-2xl border border-border bg-white p-5 shadow-sm">
               <h2 className="mb-4 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 Thao tác nhanh
@@ -545,52 +651,6 @@ export default function ReceptionistDashboard() {
                 </Link>
               </div>
             </div>
-
-            {/* Pending Bills */}
-            <div className="rounded-2xl border border-border bg-white shadow-sm overflow-hidden">
-              <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
-                <h2 className="text-sm font-bold text-slate-900">Phiếu chờ thu</h2>
-                {billCount > 0 && (
-                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">
-                    {billCount}
-                  </span>
-                )}
-              </div>
-
-              {loading ? (
-                <div className="p-4 space-y-3">
-                  {[1, 2].map((i) => (
-                    <div key={i} className="h-16 rounded-xl animate-pulse bg-slate-100" />
-                  ))}
-                </div>
-              ) : pendingBills.length === 0 ? (
-                <div className="flex flex-col items-center justify-center gap-2 py-8 text-muted-foreground">
-                  <ReceiptX size={28} className="text-slate-300" />
-                  <p className="text-xs font-medium">Không có phiếu chờ thu</p>
-                </div>
-              ) : (
-                <div className="divide-y divide-border/50">
-                  {pendingBills.map((bill) => (
-                    <div key={bill.id} className="flex items-center justify-between gap-3 px-5 py-4 transition-colors hover:bg-muted">
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-brand-dark truncate">{bill.patientName}</p>
-                        <p className="mt-0.5 font-mono text-sm font-bold text-red-600">
-                          {formatVND(bill.total)}
-                        </p>
-                      </div>
-                      <Link
-                        href="/receptionist/billing"
-                        className="shrink-0 inline-flex h-8 items-center gap-1.5 rounded-lg bg-brand px-3 text-xs font-bold text-white shadow-sm transition-all hover:bg-brand-dark active:scale-[0.98]"
-                      >
-                        <Receipt size={13} weight="fill" />
-                        Thu
-                      </Link>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
           </div>
         </div>
       </div>
