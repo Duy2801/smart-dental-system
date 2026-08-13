@@ -9,6 +9,8 @@ import {
   Clock,
   CheckCircle,
   ArrowClockwise,
+  VideoCamera,
+  Storefront,
 } from "@phosphor-icons/react";
 import apiClient from "@/src/lib/api/client";
 
@@ -23,12 +25,14 @@ type AppointmentStatus =
 
 type TodayAppointment = {
   id: string;
+  type: "OFFLINE" | "ONLINE";
   start_time: string;
   end_time: string;
   patient_name: string;
   service_name: string;
-  status: AppointmentStatus;
+  status: AppointmentStatus | "SCHEDULED";
   recordId: string | null;
+  sortTime: number;
 };
 
 type RawAppointment = {
@@ -36,9 +40,17 @@ type RawAppointment = {
   scheduledAt: string;
   endAt: string | null;
   status: AppointmentStatus;
-  patient?: { user?: { fullName?: string } | null } | null;
+  patient?: { fullName?: string | null; user?: { fullName?: string } | null } | null;
   service?: { name?: string } | null;
   medicalRecords?: { id: string }[];
+};
+
+type RawVideoConsultation = {
+  id: string;
+  patientName: string;
+  scheduledAt: string;
+  durationMinutes: number;
+  status: "SCHEDULED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
 };
 
 const statusConfig: Record<AppointmentStatus, { label: string; color: string }> = {
@@ -49,9 +61,10 @@ const statusConfig: Record<AppointmentStatus, { label: string; color: string }> 
   COMPLETED: { label: "Đã hoàn thành", color: "bg-green-100 text-green-700 border-green-200" },
   CANCELLED: { label: "Đã hủy", color: "bg-red-100 text-red-600 border-red-200" },
   NO_SHOW: { label: "Không đến", color: "bg-slate-100 text-slate-600 border-slate-200" },
+  SCHEDULED: { label: "Sắp tới", color: "bg-blue-100 text-blue-700 border-blue-200" },
 };
 
-const WAITING_STATUSES: AppointmentStatus[] = ["PENDING", "CONFIRMED", "CHECKED_IN"];
+const WAITING_STATUSES = ["PENDING", "CONFIRMED", "CHECKED_IN", "SCHEDULED"];
 
 function getUserInfo(): { doctorId: string | null; fullName: string | null } {
   if (typeof document === "undefined") return { doctorId: null, fullName: null };
@@ -137,20 +150,52 @@ export default function DoctorDashboardPage() {
     setError(null);
     try {
       const date = todayDateStr();
-      const res = await apiClient.get<RawAppointment[]>(
-        `/appointments?doctorId=${doctorId}&from=${date}&to=${date}`,
-      );
-      setAppointments(
-        (res.data ?? []).map((a) => ({
-          id: a.id,
-          start_time: formatTime(a.scheduledAt),
-          end_time: a.endAt ? formatTime(a.endAt) : "—",
-          patient_name: a.patient?.user?.fullName ?? "—",
-          service_name: a.service?.name ?? "—",
-          status: a.status,
-          recordId: a.medicalRecords?.[0]?.id ?? null,
-        })),
-      );
+      const [apptRes, vcRes] = await Promise.all([
+        apiClient.get<RawAppointment[]>(`/appointments?doctorId=${doctorId}&from=${date}&to=${date}`),
+        apiClient.get<RawVideoConsultation[]>(`/video-consultations?doctorId=${doctorId}`),
+      ]);
+
+      const offlineList = (apptRes.data ?? []).map((a) => ({
+        id: a.id,
+        type: "OFFLINE" as const,
+        start_time: formatTime(a.scheduledAt),
+        end_time: a.endAt ? formatTime(a.endAt) : "—",
+        patient_name: a.patient?.fullName ?? a.patient?.user?.fullName ?? "—",
+        service_name: a.service?.name ?? "—",
+        status: a.status,
+        recordId: a.medicalRecords?.[0]?.id ?? null,
+        sortTime: new Date(a.scheduledAt).getTime(),
+      }));
+
+      // Filter video consultations for today
+      const todayStart = new Date(date);
+      todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date(date);
+      todayEnd.setHours(23, 59, 59, 999);
+
+      const onlineList = (vcRes.data ?? [])
+        .filter((vc) => {
+          const t = new Date(vc.scheduledAt).getTime();
+          return t >= todayStart.getTime() && t <= todayEnd.getTime();
+        })
+        .map((vc) => {
+          const start = new Date(vc.scheduledAt);
+          const end = new Date(start.getTime() + vc.durationMinutes * 60000);
+          return {
+            id: vc.id,
+            type: "ONLINE" as const,
+            start_time: formatTime(vc.scheduledAt),
+            end_time: formatTime(end.toISOString()),
+            patient_name: vc.patientName,
+            service_name: `Tư vấn trực tuyến (${vc.durationMinutes} phút)`,
+            status: vc.status,
+            recordId: null,
+            sortTime: start.getTime(),
+          };
+        });
+
+      const merged = [...offlineList, ...onlineList].sort((a, b) => a.sortTime - b.sortTime);
+      setAppointments(merged);
     } catch {
       setError("Không thể tải dữ liệu. Vui lòng thử lại.");
     } finally {
@@ -295,13 +340,38 @@ export default function DoctorDashboardPage() {
                           <span className="text-base font-semibold text-brand-dark">
                             {item.patient_name}
                           </span>
-                          <span className="text-sm text-muted-foreground">{item.service_name}</span>
+                          <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                            {item.type === "ONLINE" ? (
+                              <span className="inline-flex items-center gap-1 rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-blue-700">
+                                <VideoCamera size={12} weight="fill" />
+                                Gọi video
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-600">
+                                <Storefront size={12} weight="fill" />
+                                Tại phòng khám
+                              </span>
+                            )}
+                            {item.service_name}
+                          </span>
                         </div>
                         <div className="flex shrink-0 flex-col gap-3 sm:items-end">
-                          <span className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium", cfg.color)}>
-                            {cfg.label}
+                          <span className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium", cfg?.color)}>
+                            {cfg?.label ?? item.status}
                           </span>
-                          {item.status === "CHECKED_IN" && (
+                          
+                          {/* Online Actions */}
+                          {item.type === "ONLINE" && item.status !== "CANCELLED" && (
+                            <Link
+                              href={`/doctor/consultations/${item.id}`}
+                              className="inline-flex items-center justify-center rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-dark active:scale-[0.98]"
+                            >
+                              Mở phòng tư vấn
+                            </Link>
+                          )}
+
+                          {/* Offline Actions */}
+                          {item.type === "OFFLINE" && item.status === "CHECKED_IN" && (
                             <button
                               onClick={() => handleStartAppointment(item.id)}
                               disabled={actionLoading === item.id}
@@ -310,7 +380,7 @@ export default function DoctorDashboardPage() {
                               {actionLoading === item.id ? "Đang xử lý..." : "Bắt đầu khám"}
                             </button>
                           )}
-                          {item.status === "IN_PROGRESS" && (
+                          {item.type === "OFFLINE" && item.status === "IN_PROGRESS" && (
                             <button
                               onClick={() => handleCompleteAppointment(item.id)}
                               disabled={actionLoading === item.id}
@@ -319,7 +389,7 @@ export default function DoctorDashboardPage() {
                               {actionLoading === item.id ? "Đang xử lý..." : "Kết thúc khám"}
                             </button>
                           )}
-                          {item.status === "COMPLETED" && (
+                          {item.type === "OFFLINE" && item.status === "COMPLETED" && (
                             <Link
                               href={
                                 item.recordId

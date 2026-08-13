@@ -34,6 +34,7 @@ const planInclude = {
     select: {
       id: true,
       patientCode: true,
+      fullName: true,
       user: { select: { fullName: true } },
     },
   },
@@ -415,7 +416,7 @@ export class TreatmentPlanService {
       description: p.description ?? null,
       status: p.status,
       patientId: p.patientId,
-      patientName: p.patient?.user?.fullName ?? '—',
+      patientName: p.patient?.fullName ?? p.patient?.user?.fullName ?? 'Bệnh nhân',
       patientCode: p.patient?.patientCode ?? '—',
       startDate: p.startDate ?? null,
       expectedEndDate: p.expectedEndDate ?? null,

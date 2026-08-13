@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { MagnifyingGlass, SpinnerGap } from "@phosphor-icons/react";
+import { MagnifyingGlass, SpinnerGap, VideoCamera } from "@phosphor-icons/react";
 import { cn } from "@/src/lib/utils/cn";
 import type { ScheduleAppointment, AppointmentStatus } from "./types";
 import { statusConfig } from "./types";
@@ -69,6 +69,7 @@ export function AppointmentList({ appointments, loading, onStatusChange }: Props
           className="rounded-md border border-border py-1.5 px-3 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand"
         >
           <option value="ALL">Tất cả trạng thái</option>
+          <option value="SCHEDULED">Sắp tới (Video)</option>
           <option value="PENDING">Chờ xác nhận</option>
           <option value="CONFIRMED">Đã xác nhận</option>
           <option value="CHECKED_IN">Đã check-in</option>
@@ -137,13 +138,17 @@ export function AppointmentList({ appointments, loading, onStatusChange }: Props
                               <span className="font-semibold text-slate-900">
                                 {apt.patientName}
                               </span>
-                              <span className="rounded-md border border-border/40 bg-muted/50 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
-                                {apt.patientCode}
-                              </span>
+                              {apt.patientCode && apt.patientCode !== "—" && (
+                                <span className="rounded-md border border-border/40 bg-muted/50 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+                                  {apt.patientCode}
+                                </span>
+                              )}
                             </div>
-                            <p className="mt-0.5 text-xs text-muted-foreground">
-                              {apt.patientPhone}
-                            </p>
+                            {apt.patientPhone && apt.patientPhone !== "—" && (
+                              <p className="mt-0.5 text-xs text-muted-foreground">
+                                {apt.patientPhone}
+                              </p>
+                            )}
                           </div>
                         </div>
 
@@ -165,7 +170,17 @@ export function AppointmentList({ appointments, loading, onStatusChange }: Props
                           </span>
 
                           <div className="w-[140px] flex justify-end">
-                            {apt.status === "CHECKED_IN" && (
+                            {apt.type === "ONLINE" && apt.status !== "CANCELLED" && (
+                              <Link
+                                href={`/doctor/consultations/${apt.id}`}
+                                className="flex items-center gap-1.5 rounded-lg bg-brand px-4 py-1.5 text-xs font-medium text-white transition-all hover:bg-brand-dark hover:shadow-sm active:scale-[0.98]"
+                              >
+                                <VideoCamera size={14} weight="fill" />
+                                Mở phòng
+                              </Link>
+                            )}
+
+                            {apt.type === "OFFLINE" && apt.status === "CHECKED_IN" && (
                               <button
                                 disabled={actionLoading === `${apt.id}-start`}
                                 onClick={() => handleAction(apt.id, "start")}
@@ -177,7 +192,7 @@ export function AppointmentList({ appointments, loading, onStatusChange }: Props
                                 Bắt đầu khám
                               </button>
                             )}
-                            {apt.status === "IN_PROGRESS" && (
+                            {apt.type === "OFFLINE" && apt.status === "IN_PROGRESS" && (
                               <button
                                 disabled={actionLoading === `${apt.id}-complete`}
                                 onClick={() => handleAction(apt.id, "complete")}
@@ -189,13 +204,12 @@ export function AppointmentList({ appointments, loading, onStatusChange }: Props
                                 Kết thúc
                               </button>
                             )}
-                            {(apt.status === "CONFIRMED" ||
-                              apt.status === "PENDING") && (
+                            {apt.type === "OFFLINE" && (apt.status === "CONFIRMED" || apt.status === "PENDING") && (
                               <span className="rounded-lg border border-border bg-white px-4 py-1.5 text-xs font-medium text-muted-foreground opacity-60">
                                 Chờ check-in
                               </span>
                             )}
-                            {apt.status === "COMPLETED" && (
+                            {apt.type === "OFFLINE" && apt.status === "COMPLETED" && (
                               <Link
                                 href={
                                   apt.medicalRecordId

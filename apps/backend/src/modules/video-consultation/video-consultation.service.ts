@@ -25,7 +25,7 @@ const consultInclude = {
       fullName: true,
       phone: true,
       medicalHistory: true,
-      user: { select: { fullName: true, phone: true } },
+      user: { select: { id: true, fullName: true, phone: true } },
     },
   },
 } as const;
@@ -47,7 +47,7 @@ type ConsultRow = {
     fullName?: string | null;
     phone?: string | null;
     medicalHistory?: string | null;
-    user: { fullName: string; phone: string | null } | null;
+    user: { id: string; fullName: string; phone: string | null } | null;
   };
 };
 
@@ -354,6 +354,47 @@ export class VideoConsultationService {
       throw new BadRequestException('Thời gian tư vấn phải ở tương lai');
     }
 
+    const scheduledEndMs = scheduledAt.getTime() + dto.durationMinutes * 60 * 1000;
+
+    const overlappingAppointment = await this.prisma.appointment.findFirst({
+      where: {
+        doctorId: dto.doctorId,
+        status: { notIn: ['CANCELLED', 'NO_SHOW'] },
+        AND: [
+          { scheduledAt: { lt: new Date(scheduledEndMs) } },
+          { endAt: { gt: scheduledAt } },
+        ],
+      },
+    });
+
+    if (overlappingAppointment) {
+      throw new BadRequestException('Bác sĩ đã có lịch khám tại phòng khám vào khung giờ này');
+    }
+
+    const startOfDay = new Date(scheduledAt);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(scheduledAt);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const existingConsultations = await this.prisma.videoConsultation.findMany({
+      where: {
+        doctorId: dto.doctorId,
+        scheduledAt: { gte: startOfDay, lte: endOfDay },
+        status: { notIn: ['CANCELLED'] },
+      },
+      select: { scheduledAt: true, durationMinutes: true },
+    });
+
+    const isConsultationConflict = existingConsultations.some((vc) => {
+      const vcStart = vc.scheduledAt.getTime();
+      const vcEnd = vcStart + vc.durationMinutes * 60 * 1000;
+      return vcStart < scheduledEndMs && vcEnd > scheduledAt.getTime();
+    });
+
+    if (isConsultationConflict) {
+      throw new BadRequestException('Bác sĩ đã có lịch tư vấn trực tuyến vào khung giờ này');
+    }
+
     const fee = await this.calculateConsultationFee(dto.durationMinutes);
 
     const consultation = await this.prisma.videoConsultation.create({
@@ -632,18 +673,21 @@ export class VideoConsultationService {
       include: consultInclude,
     });
 
-    // Thông báo cuộc gọi đã bắt đầu
-    await this.prisma.notification.create({
-      data: {
-        userId: user.userId,
-        type: 'SYSTEM',
-        title: '📞 Buổi tư vấn trực tuyến đã bắt đầu!',
-        content: 'Bác sĩ đã mở phòng tư vấn. Vui lòng bấm vào nút Tham Gia Gọi Video.',
-        channel: 'IN_APP',
-        status: 'SENT',
-        sentAt: new Date(),
-      },
-    });
+    // Thông báo cuộc gọi đã bắt đầu — gửi đến bệnh nhân
+    const patientUserId = updated.patient.user?.id;
+    if (patientUserId) {
+      await this.prisma.notification.create({
+        data: {
+          userId: patientUserId,
+          type: 'SYSTEM',
+          title: '📞 Bác sĩ đã mở phòng tư vấn!',
+          content: 'Bác sĩ đã sẵn sàng. Vui lòng vào mục "Lịch tư vấn của tôi" và bấm "Vào Phòng Video Call" để bắt đầu.',
+          channel: 'IN_APP',
+          status: 'SENT',
+          sentAt: new Date(),
+        },
+      });
+    }
 
     return this.toSummary(updated, true);
   }
@@ -788,6 +832,7 @@ export class VideoConsultationService {
       patientId: row.patientId,
       patientName: row.patient.fullName ?? row.patient.user?.fullName ?? 'Benh nhan',
       patientCode: row.patient.patientCode,
+      patientPhone: row.patient.phone ?? row.patient.user?.phone ?? null,
       scheduledAt: row.scheduledAt,
       durationMinutes: row.durationMinutes,
       status: row.status,

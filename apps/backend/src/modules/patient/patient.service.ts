@@ -476,69 +476,67 @@ export class PatientService {
 
   async findPatientsByDoctor(doctorId: string, search?: string) {
     const q = search?.trim().toLowerCase();
-    const rows = await this.prisma.appointment.findMany({
-      where: { doctorId, patient: { isNot: null } },
-      select: {
-        scheduledAt: true,
-        status: true,
-        service: { select: { name: true } },
-        patient: {
-          select: {
-            id: true,
-            patientCode: true,
-            fullName: true,
-            phone: true,
-            email: true,
-            dateOfBirth: true,
-            gender: true,
-            medicalHistory: true,
-            user: { select: { fullName: true, phone: true, email: true } },
-          },
-        },
+    
+    const patients = await this.prisma.patient.findMany({
+      where: {
+        OR: [
+          { appointments: { some: { doctorId } } },
+          { videoConsultations: { some: { doctorId } } }
+        ]
       },
-      orderBy: { scheduledAt: 'desc' },
+      include: {
+        user: { select: { fullName: true, phone: true, email: true } },
+        appointments: {
+          where: { doctorId },
+          select: { scheduledAt: true, status: true, service: { select: { name: true } } },
+        },
+        videoConsultations: {
+          where: { doctorId },
+          select: { scheduledAt: true, status: true, durationMinutes: true },
+        },
+      }
     });
 
-    // deduplicate by patientId, keep most recent appointment info
-    const seen = new Map<string, (typeof rows)[0]>();
-    for (const row of rows) {
-      if (row.patient && !seen.has(row.patient.id)) {
-        seen.set(row.patient.id, row);
-      }
-    }
+    return patients.map((p) => {
+      const identity = this.getPatientIdentity(p);
+      const age = p.dateOfBirth
+        ? new Date().getFullYear() - new Date(p.dateOfBirth).getFullYear()
+        : null;
 
-    const totalVisitMap = new Map<string, number>();
-    for (const row of rows) {
-      if (row.patient) {
-        totalVisitMap.set(
-          row.patient.id,
-          (totalVisitMap.get(row.patient.id) ?? 0) + 1,
-        );
-      }
-    }
+      // Combine both types of visits
+      const offlineVisits = p.appointments.map(a => ({
+        scheduledAt: a.scheduledAt,
+        serviceName: a.service?.name ?? 'Khám trực tiếp',
+        status: a.status
+      }));
+      
+      const onlineVisits = p.videoConsultations.map(vc => ({
+        scheduledAt: vc.scheduledAt,
+        serviceName: `Tư vấn trực tuyến (${vc.durationMinutes} phút)`,
+        status: vc.status
+      }));
 
-    return Array.from(seen.values())
-      .map((row) => {
-        const p = row.patient!;
-        const identity = this.getPatientIdentity(p);
-        const age = p.dateOfBirth
-          ? new Date().getFullYear() - new Date(p.dateOfBirth).getFullYear()
-          : null;
-        return {
-          id: p.id,
-          patientCode: p.patientCode,
-          fullName: identity.fullName,
-          phone: identity.phone,
-          email: identity.email,
-          gender: p.gender,
-          age,
-          lastVisitDate: row.scheduledAt,
-          lastService: row.service.name,
-          lastStatus: row.status,
-          totalVisits: totalVisitMap.get(p.id) ?? 1,
-          medicalHistory: p.medicalHistory,
-        };
-      })
+      const allVisits = [...offlineVisits, ...onlineVisits].sort(
+        (a, b) => b.scheduledAt.getTime() - a.scheduledAt.getTime()
+      );
+      
+      const lastVisit = allVisits[0];
+
+      return {
+        id: p.id,
+        patientCode: p.patientCode,
+        fullName: identity.fullName,
+        phone: identity.phone,
+        email: identity.email,
+        gender: p.gender,
+        age,
+        lastVisitDate: lastVisit?.scheduledAt ?? null,
+        lastService: lastVisit?.serviceName ?? '—',
+        lastStatus: lastVisit?.status ?? '—',
+        totalVisits: allVisits.length,
+        medicalHistory: p.medicalHistory,
+      };
+    })
       .filter((p) => {
         if (!q) return true;
         return (
@@ -552,11 +550,18 @@ export class PatientService {
 
   async findPatientDetail(patientId: string, doctorId?: string) {
     if (doctorId) {
-      const related = await this.prisma.appointment.findFirst({
-        where: { patientId, doctorId },
-        select: { id: true },
-      });
-      if (!related) {
+      const [relatedAppt, relatedVideo] = await Promise.all([
+        this.prisma.appointment.findFirst({
+          where: { patientId, doctorId },
+          select: { id: true },
+        }),
+        this.prisma.videoConsultation.findFirst({
+          where: { patientId, doctorId },
+          select: { id: true },
+        })
+      ]);
+
+      if (!relatedAppt && !relatedVideo) {
         throw new ForbiddenException(
           'Bạn không có quyền xem bệnh nhân này',
         );

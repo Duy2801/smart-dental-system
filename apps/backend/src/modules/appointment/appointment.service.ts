@@ -1392,6 +1392,30 @@ export class AppointmentService {
     if (conflict) {
       throw new ConflictException('appointment.doctor_time_conflict');
     }
+
+    const startOfDay = new Date(scheduledAt);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(scheduledAt);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const existingConsultations = await this.prisma.videoConsultation.findMany({
+      where: {
+        doctorId,
+        scheduledAt: { gte: startOfDay, lte: endOfDay },
+        status: { notIn: ['CANCELLED'] },
+      },
+      select: { scheduledAt: true, durationMinutes: true },
+    });
+
+    const vcConflict = existingConsultations.some((vc) => {
+      const vcStart = vc.scheduledAt.getTime();
+      const vcEnd = vcStart + vc.durationMinutes * 60 * 1000;
+      return vcStart < endAt.getTime() && vcEnd > scheduledAt.getTime();
+    });
+
+    if (vcConflict) {
+      throw new ConflictException('appointment.doctor_time_conflict_video');
+    }
   }
 
   private async ensurePatientHasNoIncompleteTreatmentMethodAppointment(

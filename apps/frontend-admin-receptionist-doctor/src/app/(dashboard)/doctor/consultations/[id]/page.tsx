@@ -99,9 +99,12 @@ function buildSummary(sessions: ChatSession[]): string[] {
   return unique;
 }
 
-function elapsedLabel(startedAt: number | null) {
-  if (!startedAt) return "00:00";
-  const sec = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+function elapsedSec(startedAt: number | null) {
+  if (!startedAt) return 0;
+  return Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+}
+
+function elapsedLabel(sec: number) {
   const m = String(Math.floor(sec / 60)).padStart(2, "0");
   const s = String(sec % 60).padStart(2, "0");
   return `${m}:${s}`;
@@ -374,7 +377,20 @@ export default function ConsultationRoomPage() {
             </div>
             <p className="text-sm text-muted-foreground">
               {formatWhen(detail.scheduledAt)} · {detail.durationMinutes} phút
-              {showCall ? ` · ${elapsedLabel(callStartedAt)}` : null}
+              {showCall ? (() => {
+                const sec = elapsedSec(callStartedAt);
+                const limitSec = detail.durationMinutes * 60;
+                const over = sec > limitSec;
+                const warn = !over && sec >= limitSec - 5 * 60;
+                return (
+                  <span className={cn(
+                    "ml-1 font-semibold",
+                    over ? "text-red-600" : warn ? "text-amber-500" : "text-muted-foreground",
+                  )}>
+                    · {elapsedLabel(sec)}{over ? " — Quá giờ" : warn ? " — Sắp hết giờ" : ""}
+                  </span>
+                );
+              })() : null}
               <span className="sr-only">{tick}</span>
             </p>
             {showCall && detail.roomPin ? (

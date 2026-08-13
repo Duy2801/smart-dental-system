@@ -100,7 +100,7 @@ export function WeekCalendar({
           )}
           <div
             className="grid grid-cols-8"
-            style={{ gridTemplateRows: `repeat(${hours.length * 2}, 30px)` }}
+            style={{ gridTemplateRows: `repeat(${hours.length * 2}, 72px)` }}
           >
             {hours.map((hour, idx) => (
               <div
@@ -127,7 +127,7 @@ export function WeekCalendar({
                 {hours.map((_, hIdx) => (
                   <div
                     key={hIdx}
-                    className="h-[60px] w-full border-b border-border/20"
+                    className="h-[144px] w-full border-b border-border/20"
                   />
                 ))}
               </div>
@@ -184,44 +184,62 @@ export function WeekCalendar({
               );
             })}
 
-            {appointments.map((apt) => {
-              const dayIdx = weekDays.findIndex((d) => d.iso === apt.dayIso);
-              if (dayIdx < 0) return null;
-              const config =
-                statusConfig[apt.status as AppointmentStatus] ?? statusConfig.PENDING;
-              const gridRow = getGridRowFromIso(apt.scheduledAt);
-              const span = getDuration(apt.durationMinutes);
-              return (
-                <div
-                  key={apt.id}
-                  onClick={() => setSelected(apt)}
-                  className={cn(
-                    "m-0.5 cursor-pointer overflow-hidden rounded-xl p-2 text-xs shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md hover:z-10 relative",
-                    config.color,
-                    config.ring,
-                    selected?.id === apt.id && "ring-2 ring-brand",
-                  )}
-                  style={{
-                    gridColumn: dayIdx + 2,
-                    gridRow: `${gridRow} / span ${Math.max(1, Math.round(span))}`,
-                  }}
-                  title={`${apt.patientName} — ${apt.serviceName}`}
-                >
-                  <span className="mb-0.5 block font-mono text-[10px] opacity-70 leading-none">
-                    {new Date(apt.scheduledAt).toLocaleTimeString("vi-VN", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
-                  <span className="block truncate font-semibold text-[13px] leading-tight text-slate-900">
-                    {apt.patientName}
-                  </span>
-                  <span className="block truncate text-[11px] leading-tight opacity-80">
-                    {apt.serviceName}
-                  </span>
-                </div>
+            {(() => {
+              const placed: { dayIdx: number; start: number; end: number }[] = [];
+              const sorted = [...appointments].sort(
+                (a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()
               );
-            })}
+
+              return sorted.map((apt) => {
+                const dayIdx = weekDays.findIndex((d) => d.iso === apt.dayIso);
+                if (dayIdx < 0) return null;
+                const config = statusConfig[apt.status as AppointmentStatus] ?? statusConfig.PENDING;
+                const gridRow = getGridRowFromIso(apt.scheduledAt);
+                const span = getDuration(apt.durationMinutes);
+
+                // Tính toán overlap
+                const overlaps = placed.filter(
+                  (p) => p.dayIdx === dayIdx && p.start < gridRow + span && p.end > gridRow
+                );
+                const colIndex = overlaps.length;
+                placed.push({ dayIdx, start: gridRow, end: gridRow + span });
+
+                return (
+                  <div
+                    key={apt.id}
+                    onClick={() => setSelected(apt)}
+                    className={cn(
+                      "cursor-pointer overflow-hidden rounded-xl p-1.5 px-2 text-xs shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md border-[1.5px] border-white",
+                      config.color,
+                      config.ring,
+                      selected?.id === apt.id ? "ring-2 ring-brand z-30" : "z-10",
+                    )}
+                    style={{
+                      gridColumn: dayIdx + 2,
+                      gridRow: `${Math.max(1, Math.round(gridRow))} / span ${Math.max(1, Math.round(span))}`,
+                      width: `calc(100% - ${colIndex * 12 + 2}px)`,
+                      marginLeft: "2px",
+                      position: "relative",
+                      zIndex: selected?.id === apt.id ? 30 : 10 + colIndex,
+                    }}
+                    title={`${apt.patientName} — ${apt.serviceName}`}
+                  >
+                    <span className="mb-1 block font-mono text-[10px] opacity-70 leading-none">
+                      {new Date(apt.scheduledAt).toLocaleTimeString("vi-VN", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                    <span className="block truncate font-semibold text-[13px] leading-tight text-slate-900">
+                      {apt.patientName}
+                    </span>
+                    <span className="block truncate text-[11px] leading-tight opacity-80 mt-0.5">
+                      {apt.serviceName}
+                    </span>
+                  </div>
+                );
+              });
+            })()}
           </div>
         </div>
       </div>
