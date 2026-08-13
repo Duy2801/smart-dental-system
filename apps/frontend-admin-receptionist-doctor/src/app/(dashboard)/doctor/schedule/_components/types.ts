@@ -5,10 +5,12 @@ export type AppointmentStatus =
   | "IN_PROGRESS"
   | "COMPLETED"
   | "CANCELLED"
-  | "NO_SHOW";
+  | "NO_SHOW"
+  | "SCHEDULED";
 
 export type ScheduleAppointment = {
   id: string;
+  type: "OFFLINE" | "ONLINE";
   appointmentCode: string;
   scheduledAt: string;
   durationMinutes: number;
@@ -68,5 +70,10 @@ export const statusConfig: Record<
     label: "Không đến",
     color: "bg-slate-50 text-slate-700",
     ring: "ring-1 ring-inset ring-slate-600/20",
+  },
+  SCHEDULED: {
+    label: "Sắp tới",
+    color: "bg-blue-50 text-blue-700",
+    ring: "ring-1 ring-inset ring-blue-600/20",
   },
 };

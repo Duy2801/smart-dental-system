@@ -23,6 +23,8 @@ const recordInclude = {
     select: {
       id: true,
       patientCode: true,
+      fullName: true,
+      phone: true,
       user: { select: { fullName: true, phone: true } },
     },
   },
@@ -228,7 +230,7 @@ export class MedicalRecordService {
     return {
       id: r.id,
       patientId: r.patientId,
-      patientName: r.patient?.user?.fullName ?? '—',
+      patientName: r.patient?.fullName ?? r.patient?.user?.fullName ?? 'Bệnh nhân',
       patientCode: r.patient?.patientCode ?? '—',
       diagnosis: r.diagnosis ?? null,
       chiefComplaint: r.chiefComplaint ?? null,
@@ -245,7 +247,7 @@ export class MedicalRecordService {
       ...this.toSummary(r),
       treatmentNotes: r.treatmentNotes ?? null,
       internalNotes: r.internalNotes ?? null,
-      patientPhone: r.patient?.user?.phone ?? null,
+      patientPhone: r.patient?.phone ?? r.patient?.user?.phone ?? null,
       appointmentStatus: r.appointment?.status ?? null,
       images: Array.isArray(r.images) ? r.images : [],
       dentalChart:

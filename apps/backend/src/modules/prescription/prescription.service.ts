@@ -77,6 +77,7 @@ export class PrescriptionService {
           select: {
             id: true,
             patientCode: true,
+            fullName: true,
             user: { select: { fullName: true } },
           },
         },
@@ -96,7 +97,7 @@ export class PrescriptionService {
     return {
       id: p.id,
       patientId: p.patientId,
-      patientName: p.patient?.user?.fullName ?? '—',
+      patientName: (p.patient as any)?.fullName ?? p.patient?.user?.fullName ?? 'Bệnh nhân',
       patientCode: p.patient?.patientCode ?? '—',
       medicalRecordId: p.medicalRecordId,
       diagnosis: p.medicalRecord?.diagnosis ?? null,
@@ -124,6 +125,7 @@ export class PrescriptionService {
           select: {
             id: true,
             patientCode: true,
+            fullName: true,
             user: { select: { fullName: true } },
           },
         },
@@ -139,7 +141,7 @@ export class PrescriptionService {
     return prescriptions.map((p) => ({
       id: p.id,
       patientId: p.patientId,
-      patientName: p.patient?.user?.fullName ?? '—',
+      patientName: (p.patient as any)?.fullName ?? p.patient?.user?.fullName ?? 'Bệnh nhân',
       patientCode: p.patient?.patientCode ?? '—',
       diagnosis: p.medicalRecord?.diagnosis ?? null,
       scheduledAt: p.medicalRecord?.appointment?.scheduledAt ?? null,

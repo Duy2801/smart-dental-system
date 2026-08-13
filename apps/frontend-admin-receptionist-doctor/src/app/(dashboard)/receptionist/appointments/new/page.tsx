@@ -42,6 +42,7 @@ function NewAppointmentForm() {
 
   const [patientId, setPatientId] = useState(prefillId);
   const [serviceId, setServiceId] = useState("");
+  const [treatmentMethodId, setTreatmentMethodId] = useState("");
   const [date, setDate] = useState(localDateStr());
   const [checkInMode, setCheckInMode] = useState<"PENDING" | "WAITING">("PENDING");
   const [selectedDoctor, setSelectedDoctor] = useState("");
@@ -81,6 +82,7 @@ function NewAppointmentForm() {
 
         const opts = optionsRes.data as {
           services?: { id: string; name: string }[];
+          selectedTreatmentMethodId?: string;
           doctors?: {
             id: string;
             specialization?: string;
@@ -88,6 +90,9 @@ function NewAppointmentForm() {
           }[];
           timeSlots?: string[];
         };
+        if (opts.selectedTreatmentMethodId) {
+          setTreatmentMethodId(opts.selectedTreatmentMethodId);
+        }
         setServices(
           (opts.services ?? []).map((s) => ({ id: s.id, name: s.name })),
         );
@@ -123,13 +128,23 @@ function NewAppointmentForm() {
       .then((res) => {
         const opts = res.data as {
           timeSlots?: string[];
+          selectedTreatmentMethodId?: string;
           doctors?: {
             id: string;
             specialization?: string;
             user?: { fullName?: string };
           }[];
         };
-        if (opts.timeSlots) setTimeSlots(opts.timeSlots);
+        if (opts.selectedTreatmentMethodId) {
+          setTreatmentMethodId(opts.selectedTreatmentMethodId);
+        }
+        if (opts.timeSlots) {
+          setTimeSlots(opts.timeSlots);
+          if (selectedTime && !opts.timeSlots.includes(selectedTime)) {
+            setSelectedTime("");
+            setError("Khung giờ bạn vừa chọn không khả dụng cho bác sĩ này. Vui lòng chọn lại.");
+          }
+        }
         if (opts.doctors) {
           setDoctors(
             opts.doctors.map((d) => ({
@@ -146,7 +161,7 @@ function NewAppointmentForm() {
 
   const handleSubmit = async () => {
     setError(null);
-    if (!patientId || !serviceId || !date || !selectedTime || !selectedDoctor) {
+    if (!patientId || !serviceId || !treatmentMethodId || !date || !selectedTime || !selectedDoctor) {
       setError("Vui lòng chọn đủ bệnh nhân, dịch vụ, ngày, giờ và bác sĩ.");
       return;
     }

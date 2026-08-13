@@ -991,34 +991,26 @@ export default function BillingPage() {
                           )}
                       </div>
 
-                      <div className="relative overflow-hidden rounded-2xl bg-brand-dark p-5 shadow-lg">
-                        <div
-                          className={cn(
-                            "pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full opacity-30 blur-3xl",
-                            isOpenInvoice(selected.status)
-                              ? "bg-rose-400"
-                              : "bg-brand",
-                          )}
-                        />
-                        <div className="relative z-10 space-y-3">
+                      <div className="rounded-2xl border border-border bg-slate-50 p-5 shadow-sm">
+                        <div className="space-y-3">
                           <div className="flex items-center justify-between text-sm">
-                            <span className="font-medium text-slate-400">
+                            <span className="font-medium text-slate-500">
                               Tổng hóa đơn
                             </span>
-                            <span className="font-mono font-bold text-slate-200">
+                            <span className="font-mono font-bold text-slate-900">
                               {formatVND(selected.total)}
                             </span>
                           </div>
                           <div className="flex items-center justify-between text-sm">
-                            <span className="font-medium text-slate-400">
+                            <span className="font-medium text-slate-500">
                               Đã trả
                             </span>
-                            <span className="font-mono font-bold text-emerald-400">
+                            <span className="font-mono font-bold text-emerald-600">
                               {formatVND(selected.paid)}
                             </span>
                           </div>
                           <div className="flex items-center justify-between text-sm">
-                            <span className="font-medium text-slate-400">
+                            <span className="font-medium text-slate-500">
                               Khuyến mãi
                             </span>
                             {isOpenInvoice(selected.status) ? (
@@ -1030,35 +1022,33 @@ export default function BillingPage() {
                                   onChange={(e) =>
                                     setDiscountCode(e.target.value)
                                   }
-                                  className="w-24 rounded-lg border border-slate-700 bg-slate-800/60 px-2 py-1.5 text-right font-mono text-xs text-white outline-none placeholder:text-slate-600 focus:border-brand"
+                                  className="w-24 rounded-lg border border-border bg-white px-2 py-1.5 text-right font-mono text-xs text-slate-900 outline-none placeholder:text-muted-foreground focus:border-brand focus:ring-2 focus:ring-brand/20"
                                 />
                                 {paymentMethod === "TRANSFER" && (
                                   <button
                                     type="button"
                                     onClick={() => void applyPromo()}
-                                    className="rounded-lg bg-brand px-2 py-1.5 text-[10px] font-bold text-white"
+                                    className="rounded-lg bg-brand px-2 py-1.5 text-[10px] font-bold text-white hover:bg-brand-dark"
                                   >
                                     Áp
                                   </button>
                                 )}
                               </div>
                             ) : (
-                              <span className="font-mono font-bold text-emerald-400">
+                              <span className="font-mono font-bold text-emerald-600">
                                 {formatVND(selected.discount)}
                               </span>
                             )}
                           </div>
-                          <div className="relative my-2 border-t border-dashed border-slate-700/60 pt-4">
-                            <div className="absolute -left-7 -top-2.5 h-5 w-5 rounded-full bg-muted" />
-                            <div className="absolute -right-7 -top-2.5 h-5 w-5 rounded-full bg-muted" />
+                          <div className="my-2 border-t border-dashed border-border pt-4">
                             <div className="flex items-end justify-between">
                               <div>
-                                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                                   {isOpenInvoice(selected.status)
                                     ? "Còn nợ"
                                     : "Thành tiền"}
                                 </p>
-                                <p className="mt-0.5 text-xs font-bold text-slate-300">
+                                <p className="mt-0.5 text-xs font-bold text-slate-700">
                                   {isOpenInvoice(selected.status)
                                     ? "Thu lần này"
                                     : "Đã thanh toán đủ"}
@@ -1066,7 +1056,7 @@ export default function BillingPage() {
                               </div>
                               <div className="text-right">
                                 {isOpenInvoice(selected.status) && (
-                                  <p className="mb-1 font-mono text-sm font-bold text-rose-300">
+                                  <p className="mb-1 font-mono text-sm font-bold text-rose-500">
                                     {formatVND(selected.remaining)}
                                   </p>
                                 )}
@@ -1074,8 +1064,8 @@ export default function BillingPage() {
                                   className={cn(
                                     "font-mono text-3xl font-black tracking-tighter",
                                     isOpenInvoice(selected.status)
-                                      ? "text-rose-400"
-                                      : "text-emerald-400",
+                                      ? "text-rose-600"
+                                      : "text-emerald-600",
                                   )}
                                 >
                                   {formatVND(

@@ -10,6 +10,7 @@ import {
   Hash,
   Phone,
   SpinnerGap,
+  VideoCamera,
 } from "@phosphor-icons/react";
 import { cn } from "@/src/lib/utils/cn";
 import type { ScheduleAppointment, AppointmentStatus } from "./types";
@@ -139,7 +140,17 @@ export function AppointmentDetailPanel({
         )}
 
         <div className="flex flex-col gap-2 pt-1">
-          {apt.status === "CHECKED_IN" && (
+          {apt.type === "ONLINE" && apt.status !== "CANCELLED" && (
+            <Link
+              href={`/doctor/consultations/${apt.id}`}
+              className="flex items-center justify-center gap-2 rounded-xl bg-brand py-2.5 text-sm font-semibold text-white transition-all hover:bg-brand-dark"
+            >
+              <VideoCamera size={18} weight="fill" />
+              Mở phòng tư vấn
+            </Link>
+          )}
+
+          {apt.type === "OFFLINE" && apt.status === "CHECKED_IN" && (
             <button
               onClick={() => handleAction("start")}
               disabled={loading !== null}
@@ -151,7 +162,7 @@ export function AppointmentDetailPanel({
               {loading === "start" ? "Đang xử lý..." : "Bắt đầu khám"}
             </button>
           )}
-          {apt.status === "IN_PROGRESS" && (
+          {apt.type === "OFFLINE" && apt.status === "IN_PROGRESS" && (
             <button
               onClick={() => handleAction("complete")}
               disabled={loading !== null}
@@ -163,7 +174,7 @@ export function AppointmentDetailPanel({
               {loading === "complete" ? "Đang xử lý..." : "Kết thúc khám"}
             </button>
           )}
-          {apt.status === "COMPLETED" && (
+          {apt.type === "OFFLINE" && apt.status === "COMPLETED" && (
             <Link
               href={
                 apt.medicalRecordId

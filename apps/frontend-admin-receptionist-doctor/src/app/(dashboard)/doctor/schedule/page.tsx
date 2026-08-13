@@ -72,14 +72,15 @@ function toScheduleAppointment(raw: Record<string, unknown>): ScheduleAppointmen
 
   return {
     id: raw.id as string,
+    type: "OFFLINE",
     appointmentCode: raw.appointmentCode as string,
     scheduledAt,
     durationMinutes,
     dayIso: localDateStr(new Date(scheduledAt)),
     status: raw.status as ScheduleAppointment["status"],
-    patientName: (patientUser?.fullName as string) ?? "—",
+    patientName: (patient?.fullName as string) ?? (patientUser?.fullName as string) ?? "—",
     patientCode: (patient?.patientCode as string) ?? "—",
-    patientPhone: (patientUser?.phone as string) ?? "",
+    patientPhone: (patient?.phone as string) ?? (patientUser?.phone as string) ?? "",
     serviceName: (service?.name as string) ?? "—",
     notes: raw.notes as string | null,
     medicalRecordId: medicalRecords?.[0]?.id ?? null,
@@ -126,15 +127,41 @@ export default function DoctorSchedulePage() {
     setLoading(true);
     setError(null);
     try {
-      const [apptRes, availRes] = await Promise.all([
+      const [apptRes, availRes, vcRes] = await Promise.all([
         apiClient.get<Record<string, unknown>[]>(
           `/appointments?doctorId=${doctorId}&from=${fromStr}&to=${toStr}`,
         ),
         apiClient.get<{ records?: Record<string, unknown>[] }>(
           `/doctor-availability?doctorId=${doctorId}`,
         ),
+        apiClient.get<Record<string, unknown>[]>(
+          `/video-consultations?doctorId=${doctorId}`,
+        ),
       ]);
-      setAppointments(apptRes.data.map(toScheduleAppointment));
+      const offline = apptRes.data.map(toScheduleAppointment);
+      const online = (vcRes.data ?? [])
+        .filter((vc) => {
+          const iso = localDateStr(new Date(vc.scheduledAt as string));
+          return iso >= fromStr && iso <= toStr;
+        })
+        .map((vc) => {
+          return {
+            id: vc.id as string,
+            type: "ONLINE" as const,
+            appointmentCode: (vc.id as string).split("-")[0].toUpperCase(),
+            scheduledAt: vc.scheduledAt as string,
+            durationMinutes: vc.durationMinutes as number,
+            dayIso: localDateStr(new Date(vc.scheduledAt as string)),
+            status: vc.status as ScheduleAppointment["status"],
+            patientName: (vc.patientName as string) || "Bệnh nhân",
+            patientCode: (vc.patientCode as string) || "—",
+            patientPhone: (vc.patientPhone as string) || "—",
+            serviceName: "Tư vấn trực tuyến",
+            notes: (vc.notes as string) ?? null,
+            medicalRecordId: null,
+          };
+        });
+      setAppointments([...offline, ...online]);
       const offs = (availRes.data.records ?? [])
         .map(toTimeOff)
         .filter((r): r is TimeOffRecord => r !== null)

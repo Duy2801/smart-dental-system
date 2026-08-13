@@ -702,7 +702,7 @@ export default function ReceptionistAppointmentsPage() {
 
                         {/* Actions */}
                         <td className="px-5 py-3.5">
-                          <div className="relative z-10 flex items-center justify-end gap-2">
+                          <div className="flex items-center justify-end gap-2">
                             {/* Primary action button per status */}
                             {apt.status === "PENDING" && (
                               <>
