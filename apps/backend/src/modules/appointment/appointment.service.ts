@@ -1654,7 +1654,7 @@ export class AppointmentService {
     end.setDate(end.getDate() + 15);
     end.setHours(23, 59, 59, 999);
 
-    const [availabilityRecords, activeAppointments] = await Promise.all([
+    const [availabilityRecords, activeAppointments, activeVideoConsultations] = await Promise.all([
       this.prisma.doctorAvailability.findMany({
         where: {
           doctorId: { in: doctorIds },
@@ -1689,11 +1689,29 @@ export class AppointmentService {
           endAt: true,
         },
       }),
+      this.prisma.videoConsultation.findMany({
+        where: {
+          doctorId: { in: doctorIds },
+          status: { notIn: ['CANCELLED'] },
+          scheduledAt: { lte: end, gte: start },
+        },
+        select: {
+          doctorId: true,
+          scheduledAt: true,
+          durationMinutes: true,
+        },
+      }),
     ]);
+
+    const activeVcSlots = activeVideoConsultations.map((vc) => ({
+      doctorId: vc.doctorId,
+      scheduledAt: vc.scheduledAt,
+      endAt: new Date(vc.scheduledAt.getTime() + vc.durationMinutes * 60 * 1000),
+    }));
 
     return {
       availabilityRecords: availabilityRecords as AvailabilityRecordSnapshot[],
-      activeAppointments: activeAppointments as AppointmentSlotSnapshot[],
+      activeAppointments: [...activeAppointments, ...activeVcSlots] as AppointmentSlotSnapshot[],
     };
   }
 
@@ -2071,10 +2089,10 @@ export class AppointmentService {
   }
 
   private parseDateId(dateId: string) {
-    const value = new Date(`${dateId}T00:00:00`);
-    if (Number.isNaN(value.getTime())) {
-      throw new BadRequestException('appointment.invalid_time');
-    }
+    const [year, month, date] = dateId.split('-').map(Number);
+    const value = new Date();
+    value.setFullYear(year, month - 1, date);
+    value.setHours(0, 0, 0, 0);
     return value;
   }
 

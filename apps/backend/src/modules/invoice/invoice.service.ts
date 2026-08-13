@@ -39,6 +39,7 @@ export class InvoiceService {
           ? {
               OR: [
                 { invoiceCode: { contains: search, mode: 'insensitive' } },
+                { patient: { fullName: { contains: search, mode: 'insensitive' } } },
                 {
                   patient: {
                     user: {

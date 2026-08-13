@@ -672,7 +672,7 @@ export default function ReceptionistPatientsPage() {
                           className="px-5 py-3.5"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <div className="relative z-10 flex items-center justify-end gap-2">
+                          <div className="flex items-center justify-end gap-2">
                             <Link
                               href={`/receptionist/appointments/new?patientId=${patient.id}`}
                               className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition-all hover:border-brand hover:text-brand active:scale-[0.98]"

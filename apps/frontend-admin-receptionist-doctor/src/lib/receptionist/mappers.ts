@@ -20,6 +20,8 @@ export type ApiAppointment = {
   bookingSource?: string | null;
   patient?: {
     id: string;
+    fullName?: string | null;
+    phone?: string | null;
     medicalHistory?: string | null;
     user?: { fullName?: string | null; phone?: string | null } | null;
   } | null;
@@ -86,8 +88,8 @@ export function mapAppointment(raw: ApiAppointment): ReceptionistAppointment {
     patient: raw.patient
       ? {
           id: raw.patient.id,
-          fullName: raw.patient.user?.fullName ?? "Khách",
-          phone: raw.patient.user?.phone ?? "",
+          fullName: raw.patient.fullName ?? raw.patient.user?.fullName ?? "Khách",
+          phone: raw.patient.phone ?? raw.patient.user?.phone ?? "",
         }
       : null,
     doctor: raw.doctor

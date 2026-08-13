@@ -514,7 +514,7 @@ export default function ReceptionistDashboard() {
                           </div>
                         </div>
 
-                        <div className="relative z-10 flex shrink-0 items-center gap-1.5">
+                        <div className="flex shrink-0 items-center gap-1.5">
                           {apt.status === "PENDING" && (
                             <>
                               <button
