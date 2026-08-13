@@ -4,9 +4,12 @@ import Link from "next/link";
 import { ROUTES } from "../../common/routes";
 import { DashboardIcon } from "../../common/DashboardIcon";
 import { useUnreadNotificationCount } from "../hooks/useNotificationQueries";
+import { useAppSelector } from "@/providers";
 
 export function NotificationNavbarBadge() {
-  const { data } = useUnreadNotificationCount();
+  const { isAuthenticated, accessToken } = useAppSelector((state) => state.login);
+  const isLoggedIn = isAuthenticated && Boolean(accessToken);
+  const { data } = useUnreadNotificationCount(isLoggedIn);
   const unreadCount = data?.unreadCount ?? 0;
 
   return (

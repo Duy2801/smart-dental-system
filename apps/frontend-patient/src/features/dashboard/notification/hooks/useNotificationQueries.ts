@@ -13,7 +13,7 @@ export const notificationQueryKeys = {
   unreadCount: () => ["notifications", "unread-count"] as const,
 };
 
-export function useUserNotifications(filterType?: string) {
+export function useUserNotifications(filterType?: string, enabled = true) {
   return useQuery({
     queryKey: notificationQueryKeys.list(filterType),
     queryFn: () =>
@@ -22,15 +22,17 @@ export function useUserNotifications(filterType?: string) {
         unreadOnly: filterType === "UNREAD",
       }),
     staleTime: 30 * 1000,
+    enabled,
   });
 }
 
-export function useUnreadNotificationCount() {
+export function useUnreadNotificationCount(enabled = true) {
   return useQuery({
     queryKey: notificationQueryKeys.unreadCount(),
     queryFn: fetchUnreadNotificationCount,
     staleTime: 30 * 1000,
     refetchInterval: 60 * 1000,
+    enabled,
   });
 }
 

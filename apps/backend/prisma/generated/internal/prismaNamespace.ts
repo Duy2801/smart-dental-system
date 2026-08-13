@@ -399,6 +399,7 @@ export const ModelName = {
   ServiceFaq: 'ServiceFaq',
   Promotion: 'Promotion',
   Patient: 'Patient',
+  PatientAccount: 'PatientAccount',
   Doctor: 'Doctor',
   DoctorEducation: 'DoctorEducation',
   DoctorCertificate: 'DoctorCertificate',
@@ -434,7 +435,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "clinicConfig" | "user" | "role" | "permission" | "userRole" | "rolePermission" | "service" | "specialization" | "doctorSpecialization" | "treatmentMethod" | "serviceMedia" | "serviceProcedureStep" | "serviceFaq" | "promotion" | "patient" | "doctor" | "doctorEducation" | "doctorCertificate" | "doctorMedia" | "doctorAvailability" | "appointment" | "medicalRecord" | "treatmentPlan" | "treatmentPlanStep" | "clinicalCase" | "invoice" | "prescription" | "prescriptionItem" | "payment" | "review" | "chatbotConversation" | "videoConsultation" | "notification" | "banner" | "consultationPackage"
+    modelProps: "clinicConfig" | "user" | "role" | "permission" | "userRole" | "rolePermission" | "service" | "specialization" | "doctorSpecialization" | "treatmentMethod" | "serviceMedia" | "serviceProcedureStep" | "serviceFaq" | "promotion" | "patient" | "patientAccount" | "doctor" | "doctorEducation" | "doctorCertificate" | "doctorMedia" | "doctorAvailability" | "appointment" | "medicalRecord" | "treatmentPlan" | "treatmentPlanStep" | "clinicalCase" | "invoice" | "prescription" | "prescriptionItem" | "payment" | "review" | "chatbotConversation" | "videoConsultation" | "notification" | "banner" | "consultationPackage"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1545,6 +1546,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.PatientCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.PatientCountAggregateOutputType> | number
+        }
+      }
+    }
+    PatientAccount: {
+      payload: Prisma.$PatientAccountPayload<ExtArgs>
+      fields: Prisma.PatientAccountFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.PatientAccountFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientAccountPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.PatientAccountFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientAccountPayload>
+        }
+        findFirst: {
+          args: Prisma.PatientAccountFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientAccountPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.PatientAccountFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientAccountPayload>
+        }
+        findMany: {
+          args: Prisma.PatientAccountFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientAccountPayload>[]
+        }
+        create: {
+          args: Prisma.PatientAccountCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientAccountPayload>
+        }
+        createMany: {
+          args: Prisma.PatientAccountCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.PatientAccountCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientAccountPayload>[]
+        }
+        delete: {
+          args: Prisma.PatientAccountDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientAccountPayload>
+        }
+        update: {
+          args: Prisma.PatientAccountUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientAccountPayload>
+        }
+        deleteMany: {
+          args: Prisma.PatientAccountDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.PatientAccountUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.PatientAccountUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientAccountPayload>[]
+        }
+        upsert: {
+          args: Prisma.PatientAccountUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientAccountPayload>
+        }
+        aggregate: {
+          args: Prisma.PatientAccountAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregatePatientAccount>
+        }
+        groupBy: {
+          args: Prisma.PatientAccountGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PatientAccountGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.PatientAccountCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PatientAccountCountAggregateOutputType> | number
         }
       }
     }
@@ -3276,6 +3351,9 @@ export const PatientScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
   patientCode: 'patientCode',
+  fullName: 'fullName',
+  phone: 'phone',
+  email: 'email',
   dateOfBirth: 'dateOfBirth',
   gender: 'gender',
   address: 'address',
@@ -3287,6 +3365,20 @@ export const PatientScalarFieldEnum = {
 } as const
 
 export type PatientScalarFieldEnum = (typeof PatientScalarFieldEnum)[keyof typeof PatientScalarFieldEnum]
+
+
+export const PatientAccountScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  patientId: 'patientId',
+  relationship: 'relationship',
+  isPrimary: 'isPrimary',
+  canBook: 'canBook',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type PatientAccountScalarFieldEnum = (typeof PatientAccountScalarFieldEnum)[keyof typeof PatientAccountScalarFieldEnum]
 
 
 export const DoctorScalarFieldEnum = {
@@ -3838,6 +3930,20 @@ export type ListEnumGenderFieldRefInput<$PrismaModel> = FieldRefInputType<$Prism
 
 
 /**
+ * Reference to a field of type 'PatientRelationship'
+ */
+export type EnumPatientRelationshipFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PatientRelationship'>
+    
+
+
+/**
+ * Reference to a field of type 'PatientRelationship[]'
+ */
+export type ListEnumPatientRelationshipFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PatientRelationship[]'>
+    
+
+
+/**
  * Reference to a field of type 'AvailabilityRecordType'
  */
 export type EnumAvailabilityRecordTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AvailabilityRecordType'>
@@ -4227,6 +4333,7 @@ export type GlobalOmitConfig = {
   serviceFaq?: Prisma.ServiceFaqOmit
   promotion?: Prisma.PromotionOmit
   patient?: Prisma.PatientOmit
+  patientAccount?: Prisma.PatientAccountOmit
   doctor?: Prisma.DoctorOmit
   doctorEducation?: Prisma.DoctorEducationOmit
   doctorCertificate?: Prisma.DoctorCertificateOmit

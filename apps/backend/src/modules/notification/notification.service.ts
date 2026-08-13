@@ -252,6 +252,7 @@ export class NotificationService {
 
   async createMarketingCampaign(dto: CreateMarketingCampaignDto) {
     const patients = await this.prisma.patient.findMany({
+      where: { userId: { not: null } },
       select: { userId: true },
     });
 
@@ -269,7 +270,7 @@ export class NotificationService {
       patients.map((patient) =>
         this.prisma.notification.create({
           data: {
-            userId: patient.userId,
+            userId: patient.userId!,
             type: 'MARKETING',
             title: dto.title.trim(),
             content: dto.content.trim(),

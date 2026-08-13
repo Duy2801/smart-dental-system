@@ -115,6 +115,11 @@ export type Promotion = Prisma.PromotionModel
  */
 export type Patient = Prisma.PatientModel
 /**
+ * Model PatientAccount
+ * 
+ */
+export type PatientAccount = Prisma.PatientAccountModel
+/**
  * Model Doctor
  * 
  */

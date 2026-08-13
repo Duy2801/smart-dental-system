@@ -14,6 +14,7 @@ import { Roles } from 'src/common/decorators/roles.decorator';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import type { AuthenticatedUser } from 'src/common/interfaces/authenticated-user.interface';
+import { CreateManagedPatientDto } from './dto/create-managed-patient.dto';
 import { CreatePatientDto } from './dto/create-patient.dto';
 import { UpdatePatientDto } from './dto/update-patient.dto';
 import { PatientService } from './patient.service';
@@ -24,11 +25,31 @@ import { PatientService } from './patient.service';
 export class PatientController {
   constructor(private readonly patientService: PatientService) {}
 
+  @Get('me/profiles')
+  @Roles('PATIENT')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  getMyPatientProfiles(@CurrentUser() user: AuthenticatedUser) {
+    return this.patientService.getManagedPatientProfiles(user.userId);
+  }
+
+  @Post('me/profiles')
+  @Roles('PATIENT')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  createMyPatientProfile(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreateManagedPatientDto,
+  ) {
+    return this.patientService.createManagedPatientProfile(user.userId, dto);
+  }
+
   @Get('me/records')
   @Roles('PATIENT')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  getMyRecords(@CurrentUser() user: AuthenticatedUser) {
-    return this.patientService.getMyRecords(user.userId);
+  getMyRecords(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('patientId') patientId?: string,
+  ) {
+    return this.patientService.getMyRecords(user.userId, patientId);
   }
 
   @Patch('me')

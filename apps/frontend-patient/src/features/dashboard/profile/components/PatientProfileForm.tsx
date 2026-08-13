@@ -8,13 +8,12 @@ import {
   type SetStateAction,
 } from "react";
 import type { ProfileFormState } from "../types";
-import { T } from "../../common/typography";
 
 const genderOptions = [
-  { value: "UNKNOWN", label: "Chua cap nhat" },
+  { value: "UNKNOWN", label: "Chưa cập nhật" },
   { value: "MALE", label: "Nam" },
-  { value: "FEMALE", label: "Nu" },
-  { value: "OTHER", label: "Khac" },
+  { value: "FEMALE", label: "Nữ" },
+  { value: "OTHER", label: "Khác" },
 ] as const;
 
 type PatientProfileFormProps = {
@@ -22,20 +21,15 @@ type PatientProfileFormProps = {
   setForm: Dispatch<SetStateAction<ProfileFormState>>;
 };
 
-export function PatientProfileForm({
-  form,
-  setForm,
-}: PatientProfileFormProps) {
+export function PatientProfileForm({ form, setForm }: PatientProfileFormProps) {
   return (
-    <div className="space-y-5">
-      <section className="space-y-4">
-        <div>
-          <p className={`${T.fieldLabel}`}>
-            Thong tin ca nhan
-          </p>
-        </div>
+    <div className="space-y-6">
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+        <p className="mb-4 text-[11px] font-black uppercase tracking-[0.14em] text-[#0863c5]">
+          Thông tin cá nhân
+        </p>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Ho va ten">
+          <Field label="Họ và tên">
             <input
               value={form.fullName}
               onChange={(event) =>
@@ -43,7 +37,7 @@ export function PatientProfileForm({
               }
             />
           </Field>
-          <Field label="So dien thoai">
+          <Field label="Số điện thoại">
             <input
               value={form.phone}
               onChange={(event) =>
@@ -60,7 +54,7 @@ export function PatientProfileForm({
               }
             />
           </Field>
-          <Field label="Ngay sinh">
+          <Field label="Ngày sinh">
             <input
               type="date"
               value={form.dateOfBirth}
@@ -72,7 +66,7 @@ export function PatientProfileForm({
               }
             />
           </Field>
-          <Field label="Gioi tinh">
+          <Field label="Giới tính">
             <select
               value={form.gender}
               onChange={(event) =>
@@ -89,7 +83,7 @@ export function PatientProfileForm({
               ))}
             </select>
           </Field>
-          <Field label="Dia chi">
+          <Field label="Địa chỉ">
             <input
               value={form.address}
               onChange={(event) =>
@@ -100,14 +94,12 @@ export function PatientProfileForm({
         </div>
       </section>
 
-      <section className="space-y-4 border-t border-slate-100 pt-5">
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
-            Thong tin y te
-          </p>
-        </div>
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+        <p className="mb-4 text-[11px] font-black uppercase tracking-[0.14em] text-[#0863c5]">
+          Thông tin y tế
+        </p>
         <div className="space-y-4">
-          <Field label="Tien su y khoa">
+          <Field label="Tiền sử y khoa">
             <textarea
               value={form.medicalHistory}
               onChange={(event) =>
@@ -119,9 +111,10 @@ export function PatientProfileForm({
               rows={4}
             />
           </Field>
-          <Field label="Di ung (cach nhau boi dau phay)">
+          <Field label="Dị ứng">
             <input
               value={form.allergies}
+              placeholder="Ví dụ: kháng sinh, hải sản..."
               onChange={(event) =>
                 setForm((current) => ({ ...current, allergies: event.target.value }))
               }
@@ -133,19 +126,13 @@ export function PatientProfileForm({
   );
 }
 
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactElement<any>;
-}) {
+function Field({ label, children }: { label: string; children: ReactElement<any> }) {
   if (!isValidElement(children)) return null;
   const childProps = children.props as { className?: string };
 
   const control = cloneElement(children as ReactElement<any>, {
     className: [
-      "w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#0058bc] focus:bg-white focus:ring-4 focus:ring-blue-100",
+      "w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#0863c5] focus:bg-white focus:ring-2 focus:ring-blue-100",
       childProps.className ?? "",
     ]
       .filter(Boolean)

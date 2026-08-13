@@ -83,7 +83,8 @@ export class InvoiceService {
         id: invoice.id,
         invoice_code: invoice.invoiceCode,
         invoice_type: invoice.invoiceType,
-        patient_name: invoice.patient.user.fullName,
+        patient_name:
+          invoice.patient.fullName ?? invoice.patient.user?.fullName ?? 'Benh nhan',
         doctor_name: doctorName,
         issued_at: (invoice.issuedAt ?? new Date()).toISOString(),
         subtotal: Number(invoice.subtotal),

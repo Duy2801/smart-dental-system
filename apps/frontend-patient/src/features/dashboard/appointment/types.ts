@@ -38,10 +38,6 @@ export type BookingDate = {
   isOpen: boolean;
 };
 
-export type AppointmentPaymentOption =
-  | "DEPOSIT_30_PERCENT"
-  | "PAY_AT_COUNTER";
-
 export type CurrentAppointment = {
   service: string;
   date: string;

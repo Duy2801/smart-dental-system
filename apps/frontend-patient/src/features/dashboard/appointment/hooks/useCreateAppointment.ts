@@ -5,7 +5,7 @@ import {
   getAppointmentOptions,
 } from "../api";
 import { getCreateAppointmentErrorMessage } from "../utils";
-import type { AppointmentPaymentOption, BookingDate } from "../types";
+import type { BookingDate } from "../types";
 import { appointmentQueryKeys } from "./useAppointmentQueries";
 
 type UseCreateAppointmentParams = {
@@ -14,18 +14,14 @@ type UseCreateAppointmentParams = {
   selectedDoctorId: string;
   selectedServiceId: string;
   selectedTreatmentMethodId: string;
+  selectedPatientId: string;
   selectedDateId: string;
   selectedTime: string;
-  selectedPaymentOption: AppointmentPaymentOption;
   selectedPromotionCode?: string;
   ensureLoggedInBeforeBooking: () => Promise<boolean>;
   onSelectedTimeChange: (time: string) => void;
   onSelectedDoctorChange: (doctorId: string) => void;
-  onSuccess: (data: {
-    message: string;
-    depositInvoiceId?: string | null;
-    depositAmount?: number;
-  }) => void;
+  onSuccess: () => void;
 };
 
 export function useCreateAppointment({
@@ -34,9 +30,9 @@ export function useCreateAppointment({
   selectedDoctorId,
   selectedServiceId,
   selectedTreatmentMethodId,
+  selectedPatientId,
   selectedDateId,
   selectedTime,
-  selectedPaymentOption,
   selectedPromotionCode,
   ensureLoggedInBeforeBooking,
   onSelectedTimeChange,
@@ -50,6 +46,9 @@ export function useCreateAppointment({
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: appointmentQueryKeys.all }),
+        queryClient.invalidateQueries({
+          queryKey: appointmentQueryKeys.patientProfiles(),
+        }),
         queryClient.invalidateQueries({
           queryKey: ["patient", "appointment-options"],
         }),
@@ -66,6 +65,7 @@ export function useCreateAppointment({
 
     if (
       !selectedDoctorId ||
+      !selectedPatientId ||
       !selectedTreatmentMethodId ||
       !selectedDateId ||
       !selectedTime
@@ -121,32 +121,22 @@ export function useCreateAppointment({
         return;
       }
 
-      const created = await createAppointmentMutation.mutateAsync({
+      await createAppointmentMutation.mutateAsync({
         doctorId: selectedDoctorId,
+        patientId: selectedPatientId,
         treatmentMethodId: selectedTreatmentMethodId,
         scheduledAt: new Date(
           `${selectedDateId}T${selectedTime}:00`,
         ).toISOString(),
-        paymentOption: selectedPaymentOption,
         promotionCode:
           promotionCode?.trim() || selectedPromotionCode?.trim() || undefined,
       });
 
-      const successMessage =
-        selectedPaymentOption === "DEPOSIT_30_PERCENT"
-          ? `${created.appointment.service} luc ${created.appointment.time}. Ban da chon coc truoc de giu lich.`
-          : `${created.appointment.service} luc ${created.appointment.time}. Ban da chon thanh toan tai quay khi den kham.`;
-      const policyDescription =
-        selectedPaymentOption === "DEPOSIT_30_PERCENT"
-          ? `Lịch hẹn này sẽ giữ bằng khoản cọc ${created.bookingPolicy?.depositAmount.toLocaleString("vi-VN") ?? "theo cấu hình"}đ.`
-          : "Lịch hẹn này được giữ và thanh toán tại quầy khi đến khám.";
-
-      toast.success("Đặt lịch thành công", policyDescription);
-      onSuccess({
-        message: successMessage,
-        depositInvoiceId: created.bookingPolicy?.depositInvoiceId,
-        depositAmount: created.bookingPolicy?.depositAmount,
-      });
+      toast.success(
+        "Đặt lịch thành công",
+        "Lịch hẹn này được giữ và thanh toán tại quầy khi đến khám.",
+      );
+      onSuccess();
     } catch (appointmentError) {
       toast.error(
         "Không thể đặt lịch hẹn",

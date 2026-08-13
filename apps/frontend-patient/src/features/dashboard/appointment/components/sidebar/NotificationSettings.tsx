@@ -1,17 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { NotificationPreferences } from "../../types";
 import type { DashboardIconName } from "../../../common/DashboardIcon";
 import { DashboardIcon } from "../../../common/DashboardIcon";
 
+const STORAGE_KEY = "smart-dental-notification-preferences";
+
+type EditableNotificationKey = Exclude<keyof NotificationPreferences, "sms">;
+
 type NotificationSettingsProps = {
   initialValue?: NotificationPreferences;
-  onChange?: (key: keyof NotificationPreferences, value: boolean) => void;
+  onChange?: (key: EditableNotificationKey, value: boolean) => void;
 };
 
 const settings: Array<{
-  key: keyof NotificationPreferences;
+  key: EditableNotificationKey;
   title: string;
   description: string;
   icon: DashboardIconName;
@@ -28,12 +32,6 @@ const settings: Array<{
     description: "Thông báo tức thời",
     icon: "bell",
   },
-  {
-    key: "sms",
-    title: "Tin nhắn SMS",
-    description: "Dành cho lịch khẩn",
-    icon: "chat",
-  },
 ];
 
 export function NotificationSettings({
@@ -41,11 +39,35 @@ export function NotificationSettings({
   onChange,
 }: NotificationSettingsProps) {
   const [preferences, setPreferences] =
-    useState<NotificationPreferences>(initialValue);
+    useState<NotificationPreferences>({ ...initialValue, sms: false });
 
-  const toggle = (key: keyof NotificationPreferences) => {
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const savedValue = window.localStorage.getItem(STORAGE_KEY);
+    if (!savedValue) return;
+
+    try {
+      const savedPreferences = JSON.parse(savedValue) as Partial<NotificationPreferences>;
+      setPreferences((prev) => ({
+        ...prev,
+        email: savedPreferences.email ?? prev.email,
+        app: savedPreferences.app ?? prev.app,
+        sms: false,
+      }));
+    } catch {
+      window.localStorage.removeItem(STORAGE_KEY);
+    }
+  }, []);
+
+  const toggle = (key: EditableNotificationKey) => {
     setPreferences((prev) => {
-      const next = { ...prev, [key]: !prev[key] };
+      const next = { ...prev, [key]: !prev[key], sms: false };
+
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      }
+
       onChange?.(key, next[key]);
       return next;
     });
@@ -53,7 +75,7 @@ export function NotificationSettings({
 
   return (
     <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
-      <h2 className="text-lg font-bold tracking-[-0.02em] text-slate-900">
+      <h2 className="text-lg font-bold text-slate-900">
         Cài đặt thông báo
       </h2>
       <div className="mt-4 divide-y divide-slate-100">
@@ -77,6 +99,7 @@ export function NotificationSettings({
               type="button"
               role="switch"
               aria-checked={preferences[setting.key]}
+              aria-label={`${preferences[setting.key] ? "Tắt" : "Bật"} ${setting.title}`}
               onClick={() => toggle(setting.key)}
               className={`relative h-6 w-11 rounded-full transition ${
                 preferences[setting.key] ? "bg-[#0863c5]" : "bg-slate-200"

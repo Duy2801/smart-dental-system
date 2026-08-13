@@ -1,11 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAppointmentBookingData } from "../../hooks/useAppointmentBookingData";
 import { useCreateAppointment } from "../../hooks/useCreateAppointment";
 import { useAppointmentWorkspaceSync } from "../../hooks/useAppointmentWorkspaceSync";
-import type { AppointmentItem } from "../../api";
-import type { AppointmentPaymentOption } from "../../types";
+import {
+  createManagedPatientProfile,
+  type AppointmentItem,
+  type CreatePatientProfilePayload,
+} from "../../api";
 import { appointmentStatusLabels } from "../../utils";
 import { BookingPanel } from "./BookingPanel";
 import { BookingConfirmationView } from "./BookingConfirmationView";
@@ -13,23 +17,21 @@ import { CurrentAppointmentCard } from "../sidebar/CurrentAppointmentCard";
 import { NotificationSettings } from "../sidebar/NotificationSettings";
 import { SupportCard } from "../sidebar/SupportCard";
 import { AppointmentWorkspaceHeader } from "../AppointmentWorkspaceHeader";
+import {
+  appointmentQueryKeys,
+  useManagedPatientProfilesQuery,
+} from "../../hooks/useAppointmentQueries";
 
 type BookingModeViewProps = {
   isLoggedIn: boolean;
   ensureLoggedInBeforeBooking: () => Promise<boolean>;
   upcomingAppointments: AppointmentItem[];
   onCancelBooking: () => void;
-  onBookingComplete: (depositInfo?: {
-    isOpen: boolean;
-    invoiceId: string;
-    depositAmount: number;
-    serviceName?: string;
-    doctorName?: string;
-    scheduledTime?: string;
-  }) => void;
+  onBookingComplete: () => void;
 };
 
 export function BookingModeView({
+  isLoggedIn,
   ensureLoggedInBeforeBooking,
   upcomingAppointments,
   onCancelBooking,
@@ -42,9 +44,28 @@ export function BookingModeView({
   const [selectedDoctorId, setSelectedDoctorId] = useState("");
   const [selectedDateId, setSelectedDateId] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
-  const [selectedPaymentOption, setSelectedPaymentOption] =
-    useState<AppointmentPaymentOption>("DEPOSIT_30_PERCENT");
   const [selectedPromotionCode, setSelectedPromotionCode] = useState("");
+  const [selectedPatientId, setSelectedPatientId] = useState("");
+  const queryClient = useQueryClient();
+  const patientProfilesQuery = useManagedPatientProfilesQuery(isLoggedIn);
+  const patientProfiles = patientProfilesQuery.data ?? [];
+
+  const createPatientMutation = useMutation({
+    mutationFn: createManagedPatientProfile,
+    onSuccess: async (profile) => {
+      setSelectedPatientId(profile.id);
+      setSelectedServiceId("");
+      setSelectedMethodId("");
+      setSelectedDoctorId("");
+      setSelectedDateId("");
+      setSelectedTime("");
+      setSelectedPromotionCode("");
+      setAcceptedTerms(false);
+      await queryClient.invalidateQueries({
+        queryKey: appointmentQueryKeys.patientProfiles(),
+      });
+    },
+  });
 
   const {
     baseOptionsQuery,
@@ -66,17 +87,48 @@ export function BookingModeView({
     selectedTime,
   });
 
+  const selectedPatient = useMemo(
+    () => patientProfiles.find((patient) => patient.id === selectedPatientId),
+    [patientProfiles, selectedPatientId],
+  );
+
+  const resetBookingChoices = useCallback(() => {
+    setSelectedServiceId("");
+    setSelectedMethodId("");
+    setSelectedDoctorId("");
+    setSelectedDateId("");
+    setSelectedTime("");
+    setSelectedPromotionCode("");
+    setAcceptedTerms(false);
+  }, []);
+
+  const handleSelectPatient = useCallback(
+    (patientId: string) => {
+      setSelectedPatientId(patientId);
+      resetBookingChoices();
+    },
+    [resetBookingChoices],
+  );
+
   const blockedBookingTimes = useMemo(() => {
     if (!selectedDateId) {
       return { times: [] as string[], ranges: [] as string[] };
     }
     return collectBlockedTimeData(
-      upcomingAppointments,
+      upcomingAppointments.filter(
+        (appointment) => appointment.patientId === selectedPatientId,
+      ),
       selectedDateId,
       availableTimes,
       selectedTreatmentMethod?.durationMinutes ?? 30,
     );
-  }, [availableTimes, selectedDateId, selectedTreatmentMethod?.durationMinutes, upcomingAppointments]);
+  }, [
+    availableTimes,
+    selectedDateId,
+    selectedPatientId,
+    selectedTreatmentMethod?.durationMinutes,
+    upcomingAppointments,
+  ]);
 
   const selectableAvailableTimes = useMemo(
     () => availableTimes.filter((time) => !blockedBookingTimes.times.includes(time)),
@@ -95,28 +147,18 @@ export function BookingModeView({
     selectedTreatmentMethodId: selectedMethodId,
     selectedDateId,
     selectedTime: effectiveSelectedTime,
-    selectedPaymentOption,
     selectedPromotionCode,
+    selectedPatientId,
     ensureLoggedInBeforeBooking,
     onSelectedTimeChange: setSelectedTime,
     onSelectedDoctorChange: setSelectedDoctorId,
-    onSuccess: (data) => {
-      if (data.depositInvoiceId && data.depositAmount) {
-        onBookingComplete({
-          isOpen: true,
-          invoiceId: data.depositInvoiceId,
-          depositAmount: data.depositAmount,
-          serviceName: selectedService?.name,
-          doctorName: selectedDoctor?.name,
-          scheduledTime: `${effectiveSelectedTime} ${selectedDate?.day}/${selectedDate?.month}`,
-        });
-      } else {
-        onBookingComplete();
-      }
-    },
+    onSuccess: () => onBookingComplete(),
   });
 
   useAppointmentWorkspaceSync({
+    enabled: Boolean(selectedPatientId),
+    autoSelectDefaults: true,
+    defaultSelectionKey: selectedPatientId,
     bookingOptionsData: baseOptionsQuery.data,
     hasBookingOptionsError: baseOptionsQuery.isError,
     dates,
@@ -156,6 +198,7 @@ export function BookingModeView({
 
   const canReview =
     Boolean(selectedService) &&
+    Boolean(selectedPatient) &&
     Boolean(selectedTreatmentMethod) &&
     Boolean(selectedDoctor) &&
     Boolean(selectedDate) &&
@@ -183,6 +226,7 @@ export function BookingModeView({
       {viewStep === "form" ? (
         <div className="grid items-start gap-7 lg:grid-cols-[minmax(0,1.7fr)_360px]">
           <BookingPanel
+            patients={patientProfiles}
             services={services}
             doctors={doctors}
             dates={dates}
@@ -191,12 +235,20 @@ export function BookingModeView({
             blockedRanges={blockedBookingTimes.ranges}
             slotIntervalMinutes={slotIntervalMinutes}
             selectedServiceId={selectedServiceId}
+            selectedPatientId={selectedPatientId}
             selectedMethodId={selectedMethodId}
             selectedDoctorId={selectedDoctorId}
             selectedDateId={selectedDateId}
             selectedTime={effectiveSelectedTime}
             canReview={canReview}
             isCheckingAvailability={checkingAvailability}
+            isLoadingPatients={patientProfilesQuery.isLoading}
+            isCreatingPatient={createPatientMutation.isPending}
+            canEditBookingDetails={Boolean(selectedPatientId)}
+            onSelectPatient={handleSelectPatient}
+            onCreatePatient={async (payload: CreatePatientProfilePayload) => {
+              await createPatientMutation.mutateAsync(payload);
+            }}
             onSelectService={(serviceId) => {
               setSelectedServiceId(serviceId);
               const targetService = services.find((s) => s.id === serviceId);
@@ -205,11 +257,26 @@ export function BookingModeView({
               } else {
                 setSelectedMethodId("");
               }
+              setSelectedDoctorId("");
+              setSelectedDateId("");
+              setSelectedTime("");
             }}
-            onSelectMethod={setSelectedMethodId}
+            onSelectMethod={(methodId) => {
+              setSelectedMethodId(methodId);
+              setSelectedDoctorId("");
+              setSelectedDateId("");
+              setSelectedTime("");
+            }}
             onSelectDoctor={setSelectedDoctorId}
-            onSelectDate={setSelectedDateId}
-            onSelectTime={setSelectedTime}
+            onSelectDate={(dateId) => {
+              setSelectedDateId(dateId);
+              setSelectedDoctorId("");
+              setSelectedTime("");
+            }}
+            onSelectTime={(time) => {
+              setSelectedTime(time);
+              setSelectedDoctorId("");
+            }}
             onOpenReview={() => setViewStep("confirmation")}
             onCancelBooking={onCancelBooking}
           />
@@ -221,13 +288,12 @@ export function BookingModeView({
         </div>
       ) : (
         <BookingConfirmationView
+          selectedPatient={selectedPatient}
           selectedService={selectedService}
           selectedTreatmentMethod={selectedTreatmentMethod}
           selectedDoctor={selectedDoctor}
           selectedDate={selectedDate}
           selectedTime={effectiveSelectedTime}
-          selectedPaymentOption={selectedPaymentOption}
-          onSelectPaymentOption={setSelectedPaymentOption}
           selectedPromotionCode={selectedPromotionCode}
           onSelectPromotionCode={setSelectedPromotionCode}
           acceptedTerms={acceptedTerms}

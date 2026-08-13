@@ -104,6 +104,7 @@ export class AiService {
           patient: {
             select: {
               id: true,
+              fullName: true,
               medicalHistory: true,
               user: { select: { fullName: true } },
             },
@@ -120,7 +121,7 @@ export class AiService {
 
       return {
         patientId: row.patientId,
-        patientName: row.patient.user.fullName,
+        patientName: row.patient.fullName ?? row.patient.user?.fullName ?? 'Benh nhan',
         medicalHistory: row.patient.medicalHistory,
         chatbotMessages,
         recentDiagnoses,
@@ -135,6 +136,7 @@ export class AiService {
       where: { id: patientId },
       select: {
         id: true,
+        fullName: true,
         medicalHistory: true,
         user: { select: { fullName: true } },
       },
@@ -148,7 +150,7 @@ export class AiService {
 
     return {
       patientId,
-      patientName: patient.user.fullName,
+      patientName: patient.fullName ?? patient.user?.fullName ?? 'Benh nhan',
       medicalHistory: patient.medicalHistory,
       chatbotMessages,
       recentDiagnoses,

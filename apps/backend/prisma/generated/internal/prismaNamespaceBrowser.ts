@@ -66,6 +66,7 @@ export const ModelName = {
   ServiceFaq: 'ServiceFaq',
   Promotion: 'Promotion',
   Patient: 'Patient',
+  PatientAccount: 'PatientAccount',
   Doctor: 'Doctor',
   DoctorEducation: 'DoctorEducation',
   DoctorCertificate: 'DoctorCertificate',
@@ -313,6 +314,9 @@ export const PatientScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
   patientCode: 'patientCode',
+  fullName: 'fullName',
+  phone: 'phone',
+  email: 'email',
   dateOfBirth: 'dateOfBirth',
   gender: 'gender',
   address: 'address',
@@ -324,6 +328,20 @@ export const PatientScalarFieldEnum = {
 } as const
 
 export type PatientScalarFieldEnum = (typeof PatientScalarFieldEnum)[keyof typeof PatientScalarFieldEnum]
+
+
+export const PatientAccountScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  patientId: 'patientId',
+  relationship: 'relationship',
+  isPrimary: 'isPrimary',
+  canBook: 'canBook',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type PatientAccountScalarFieldEnum = (typeof PatientAccountScalarFieldEnum)[keyof typeof PatientAccountScalarFieldEnum]
 
 
 export const DoctorScalarFieldEnum = {

@@ -5,11 +5,17 @@ import type {
   BookingDate,
   Dentist,
 } from "../../types";
+import type {
+  CreatePatientProfilePayload,
+  PatientProfile,
+} from "../../api";
 import { DoctorSelector } from "./DoctorSelector";
+import { PatientSelector } from "./PatientSelector";
 import { SchedulePicker } from "./SchedulePicker";
 import { ServiceSelector } from "./ServiceSelector";
 
 export type BookingPanelProps = {
+  patients: PatientProfile[];
   services: AppointmentService[];
   doctors: Dentist[];
   dates: BookingDate[];
@@ -18,12 +24,18 @@ export type BookingPanelProps = {
   blockedRanges?: string[];
   slotIntervalMinutes: number;
   selectedServiceId: string;
+  selectedPatientId: string;
   selectedMethodId: string;
   selectedDoctorId: string;
   selectedDateId: string;
   selectedTime: string;
   canReview: boolean;
+  canEditBookingDetails: boolean;
   isCheckingAvailability?: boolean;
+  isLoadingPatients?: boolean;
+  isCreatingPatient?: boolean;
+  onSelectPatient: (id: string) => void;
+  onCreatePatient: (payload: CreatePatientProfilePayload) => Promise<void>;
   onSelectService: (id: string) => void;
   onSelectMethod: (id: string) => void;
   onSelectDoctor: (id: string) => void;
@@ -54,6 +66,7 @@ function LoadingSpinner() {
 }
 
 export function BookingPanel({
+  patients,
   services,
   doctors,
   dates,
@@ -62,12 +75,18 @@ export function BookingPanel({
   blockedRanges = [],
   slotIntervalMinutes,
   selectedServiceId,
+  selectedPatientId,
   selectedMethodId,
   selectedDoctorId,
   selectedDateId,
   selectedTime,
   canReview,
+  canEditBookingDetails,
   isCheckingAvailability,
+  isLoadingPatients,
+  isCreatingPatient,
+  onSelectPatient,
+  onCreatePatient,
   onSelectService,
   onSelectMethod,
   onSelectDoctor,
@@ -76,10 +95,26 @@ export function BookingPanel({
   onOpenReview,
   onCancelBooking,
 }: BookingPanelProps) {
+  const lockedSectionClass = canEditBookingDetails
+    ? undefined
+    : "pointer-events-none opacity-50";
+
   return (
     <div className="space-y-8">
       <section>
-        <StepTitle number={1}>Chọn dịch vụ & phương pháp điều trị</StepTitle>
+        <StepTitle number={1}>Chon nguoi kham</StepTitle>
+        <PatientSelector
+          patients={patients}
+          selectedPatientId={selectedPatientId}
+          isLoading={isLoadingPatients}
+          isCreating={isCreatingPatient}
+          onSelectPatient={onSelectPatient}
+          onCreatePatient={onCreatePatient}
+        />
+      </section>
+
+      <section className={lockedSectionClass}>
+        <StepTitle number={2}>Chọn dịch vụ & phương pháp điều trị</StepTitle>
         <ServiceSelector
           services={services}
           selectedServiceId={selectedServiceId}
@@ -89,8 +124,8 @@ export function BookingPanel({
         />
       </section>
 
-      <section>
-        <StepTitle number={2}>Chọn ngày và giờ khám</StepTitle>
+      <section className={lockedSectionClass}>
+        <StepTitle number={3}>Chọn ngày và giờ khám</StepTitle>
         <SchedulePicker
           dates={dates}
           times={times}
@@ -104,8 +139,8 @@ export function BookingPanel({
         />
       </section>
 
-      <section>
-        <StepTitle number={3}>Chọn bác sĩ</StepTitle>
+      <section className={lockedSectionClass}>
+        <StepTitle number={4}>Chọn bác sĩ</StepTitle>
         <DoctorSelector
           doctors={doctors}
           selectedId={selectedDoctorId}
@@ -133,3 +168,4 @@ export function BookingPanel({
     </div>
   );
 }
+

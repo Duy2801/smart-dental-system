@@ -2,12 +2,14 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 import {
   getAppointmentOptions,
+  getManagedPatientProfiles,
   getPatientAppointments,
   type BookingOptionsQuery,
 } from "../api";
 
 export const appointmentQueryKeys = {
   all: ["patient", "appointments"] as const,
+  patientProfiles: () => ["patient", "profiles"] as const,
   optionsBase: () => ["patient", "appointment-options", "base"] as const,
   optionsSchedule: (params: BookingOptionsQuery) =>
     ["patient", "appointment-options", "schedule", params] as const,
@@ -20,6 +22,17 @@ export const appointmentQueryKeys = {
     date?: string;
   }) => ["patient", "appointment-options", "reschedule", params] as const,
 };
+
+export function useManagedPatientProfilesQuery(isLoggedIn: boolean) {
+  return useQuery({
+    queryKey: appointmentQueryKeys.patientProfiles(),
+    queryFn: getManagedPatientProfiles,
+    enabled: isLoggedIn,
+    staleTime: 60 * 1000,
+    gcTime: 15 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+}
 
 /**
  * Hook to fetch patient appointments with optimized caching (staleTime 30s).

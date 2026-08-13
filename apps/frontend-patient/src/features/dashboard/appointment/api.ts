@@ -2,7 +2,6 @@ import apiClient from "@/lib/axios";
 import axios from "axios";
 import type { DashboardIconName } from "../common/DashboardIcon";
 import type {
-  AppointmentPaymentOption,
   AppointmentService,
   BookingDate,
   Dentist,
@@ -68,6 +67,9 @@ export type AppointmentStatus =
 
 export type AppointmentItem = {
   id: string;
+  patientId?: string | null;
+  patientName?: string | null;
+  patientRelationship?: string | null;
   doctorId: string;
   serviceId: string;
   scheduledAt: string;
@@ -82,9 +84,6 @@ export type AppointmentItem = {
   initials: string;
   paymentOption?: string;
   paymentStatus?: string;
-  depositAmount?: number;
-  depositInvoiceId?: string | null;
-  isDepositPending?: boolean;
   preparation?: string[];
   rescheduleCount?: number;
 };
@@ -96,6 +95,7 @@ export type PatientAppointmentsData = {
 
 type AppointmentDto = {
   id: string;
+  patientId?: string | null;
   doctorId: string;
   serviceId: string;
   scheduledAt: string;
@@ -103,7 +103,6 @@ type AppointmentDto = {
   status: string;
   paymentOption?: string;
   paymentStatus?: string;
-  depositAmount?: number | string;
   invoices?: Array<{
     id: string;
     invoiceType: string;
@@ -115,6 +114,18 @@ type AppointmentDto = {
       fullName: string;
     };
   };
+  patient?: {
+    id: string;
+    fullName?: string | null;
+    phone?: string | null;
+    email?: string | null;
+    user?: {
+      fullName: string;
+      phone?: string | null;
+      email?: string | null;
+    } | null;
+    patientAccounts?: Array<{ relationship: string }>;
+  } | null;
   service: {
     name: string;
     durationMinutes?: number;
@@ -123,20 +134,45 @@ type AppointmentDto = {
 };
 
 type CreateAppointmentPayload = {
+  patientId: string;
   doctorId: string;
   treatmentMethodId: string;
   scheduledAt: string;
   notes?: string;
-  paymentOption?: AppointmentPaymentOption;
   promotionCode?: string;
+};
+
+export type PatientProfile = {
+  id: string;
+  patientCode: string;
+  fullName: string;
+  phone?: string | null;
+  email?: string | null;
+  gender?: string;
+  dateOfBirth?: string | null;
+  address?: string | null;
+  medicalHistory?: string | null;
+  relationship: string;
+  isPrimary: boolean;
+  canBook: boolean;
+  lastVisit?: string | null;
+};
+
+export type CreatePatientProfilePayload = {
+  fullName: string;
+  phone?: string;
+  email?: string;
+  dateOfBirth?: string;
+  gender?: string;
+  relationship?: string;
+  address?: string;
+  medicalHistory?: string;
 };
 
 type BookingPolicyDto = {
   noShowCount?: number;
   requiresDeposit?: boolean;
   onlineBookingBlocked?: boolean;
-  depositAmount?: number;
-  depositInvoiceId?: string | null;
 };
 
 type CreateAppointmentResponseDto = AppointmentDto & {
@@ -147,8 +183,6 @@ export type BookingPolicySummary = {
   noShowCount: number;
   requiresDeposit: boolean;
   onlineBookingBlocked: boolean;
-  depositAmount: number;
-  depositInvoiceId: string | null;
 };
 
 export type CreateAppointmentResult = {
@@ -190,16 +224,13 @@ function mapAppointment(item: AppointmentDto): AppointmentItem {
   const scheduledAt = new Date(item.scheduledAt);
   const doctorName = item.doctor?.user?.fullName ?? "Bác sĩ phòng khám";
   const serviceName = item.service?.name ?? "Dịch vụ nha khoa";
-  const depositInvoice = item.invoices?.find(
-    (inv) => inv.invoiceType === "DEPOSIT"
-  );
-  const isDepositPending =
-    item.paymentOption === "DEPOSIT_30_PERCENT" &&
-    (item.paymentStatus === "PENDING_DEPOSIT" || !item.paymentStatus) &&
-    depositInvoice?.status !== "PAID";
-
+  const patientName =
+    item.patient?.fullName ?? item.patient?.user?.fullName ?? null;
   return {
     id: item.id,
+    patientId: item.patientId ?? item.patient?.id ?? null,
+    patientName,
+    patientRelationship: item.patient?.patientAccounts?.[0]?.relationship ?? null,
     doctorId: item.doctorId,
     serviceId: item.serviceId,
     scheduledAt: item.scheduledAt,
@@ -224,9 +255,6 @@ function mapAppointment(item: AppointmentDto): AppointmentItem {
     initials: getInitials(doctorName),
     paymentOption: item.paymentOption,
     paymentStatus: item.paymentStatus,
-    depositAmount: item.depositAmount ? Number(item.depositAmount) : (depositInvoice ? Number(depositInvoice.finalAmount) : undefined),
-    depositInvoiceId: depositInvoice?.id ?? null,
-    isDepositPending,
     rescheduleCount: Array.isArray(item.rescheduleHistory)
       ? item.rescheduleHistory.length
       : 0,
@@ -339,11 +367,24 @@ export async function createPatientAppointment(
         onlineBookingBlocked: Boolean(
           response.data.bookingPolicy.onlineBookingBlocked,
         ),
-        depositAmount: Number(response.data.bookingPolicy.depositAmount ?? 0),
-        depositInvoiceId: response.data.bookingPolicy.depositInvoiceId ?? null,
       }
       : null,
   } satisfies CreateAppointmentResult;
+}
+
+export async function getManagedPatientProfiles() {
+  const response = await apiClient.get<PatientProfile[]>("/patients/me/profiles");
+  return response.data;
+}
+
+export async function createManagedPatientProfile(
+  payload: CreatePatientProfilePayload,
+) {
+  const response = await apiClient.post<PatientProfile>(
+    "/patients/me/profiles",
+    payload,
+  );
+  return response.data;
 }
 
 export async function cancelPatientAppointment(appointmentId: string) {

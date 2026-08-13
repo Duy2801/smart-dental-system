@@ -25,7 +25,7 @@ type StepStatus = "completed" | "current" | "upcoming" | "summary";
 
 function StatPill({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+    <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-2xs">
       <p className={`${T.fieldLabel}`}>
         {label}
       </p>
@@ -42,7 +42,7 @@ function ContentBlock({
   children: ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs">
       <p className={`${T.fieldLabel}`}>
         {label}
       </p>
@@ -147,12 +147,12 @@ export function RecordTreatmentCard({
   });
 
   return (
-    <article className="overflow-hidden border border-slate-200 bg-white">
+    <article className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
       <div className="border-b border-slate-200 px-5 py-5 sm:px-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className={`${T.overline} text-[#0058bc]`}>
+              <span className={`${T.overline} text-[#0863c5]`}>
                 Quy trình {index + 1}
               </span>
               <span className="rounded-full border border-slate-200 px-3 py-1 text-[10px] font-semibold text-slate-500">
@@ -174,7 +174,7 @@ export function RecordTreatmentCard({
             {recordHref ? (
               <Link
                 href={recordHref}
-                className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 transition hover:border-[#0058bc] hover:text-[#0058bc]"
+                className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 transition hover:border-[#0863c5] hover:text-[#0863c5]"
               >
                 <DashboardIcon name="document" className="h-4 w-4" />
                 Bệnh án
@@ -182,7 +182,7 @@ export function RecordTreatmentCard({
             ) : null}
             <Link
               href={pdfHref}
-              className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 transition hover:border-[#0058bc] hover:text-[#0058bc]"
+              className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-700 transition hover:border-[#0863c5] hover:text-[#0863c5]"
             >
               <DashboardIcon name="document" className="h-4 w-4" />
               Tải PDF
@@ -219,7 +219,7 @@ export function RecordTreatmentCard({
                     type="button"
                     onClick={() => appointmentId && confirmMutation.mutate(appointmentId)}
                     disabled={confirmMutation.isPending || !appointmentId}
-                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#0058bc] px-4 text-sm font-bold text-white transition hover:bg-[#054a9f] disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#0863c5] px-4 text-sm font-bold text-white transition hover:bg-[#0753a8] disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <DashboardIcon name="checkup" className="h-4 w-4" />
                     {confirmMutation.isPending
@@ -231,7 +231,7 @@ export function RecordTreatmentCard({
                     type="button"
                     onClick={() => appointmentId && restoreMutation.mutate(appointmentId)}
                     disabled={restoreMutation.isPending || !appointmentId}
-                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#0058bc] px-4 text-sm font-bold text-white transition hover:bg-[#054a9f]"
+                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#0863c5] px-4 text-sm font-bold text-white transition hover:bg-[#0753a8]"
                   >
                     <DashboardIcon name="checkup" className="h-4 w-4" />
                     {restoreMutation.isPending
@@ -241,7 +241,7 @@ export function RecordTreatmentCard({
                 ) : (
                   <Link
                     href={appointmentCtaHref}
-                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#0058bc] px-4 text-sm font-bold text-white transition hover:bg-[#054a9f]"
+                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#0863c5] px-4 text-sm font-bold text-white transition hover:bg-[#0753a8]"
                   >
                     <DashboardIcon name="checkup" className="h-4 w-4" />
                     {appointmentCtaLabel}
@@ -273,7 +273,7 @@ export function RecordTreatmentCard({
                 type="button"
                 onClick={() => setSelectedStepId(step.id)}
                 className={`flex min-w-[220px] items-start gap-3 rounded-2xl border px-3 py-3 text-left transition ${selected
-                  ? "border-[#0058bc] bg-blue-50"
+                  ? "border-[#0863c5] bg-blue-50 ring-2 ring-blue-100"
                   : isPreviousStep
                     ? "border-emerald-300 bg-emerald-50"
                     : upcoming
@@ -283,7 +283,7 @@ export function RecordTreatmentCard({
               >
                 <span
                   className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl border text-[10px] font-bold ${selected
-                    ? "border-[#0058bc] bg-[#0058bc] text-white"
+                    ? "border-[#0863c5] bg-[#0863c5] text-white"
                     : complete
                       ? "border-emerald-500 bg-emerald-500 text-white"
                       : current
@@ -308,7 +308,7 @@ export function RecordTreatmentCard({
                       : upcoming
                         ? "bg-amber-100 text-amber-800"
                         : current || selected
-                          ? "bg-blue-100 text-[#0058bc]"
+                          ? "bg-blue-100 text-[#0863c5]"
                           : "bg-slate-100 text-slate-500"
                       }`}
                   >
@@ -321,7 +321,7 @@ export function RecordTreatmentCard({
         </div>
       </div>
 
-      <div className="grid gap-6 p-5 sm:p-6 xl:grid-cols-[minmax(0,1.15fr)_320px]">
+      <div className="grid gap-6 bg-slate-50/40 p-5 sm:p-6 xl:grid-cols-[minmax(0,1.15fr)_320px]">
         <div className="space-y-5">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <StatPill label="Bác sĩ" value={treatment.doctor} />
@@ -377,7 +377,7 @@ export function RecordTreatmentCard({
               <ul className="space-y-2">
                 {(selectedStep?.prescriptions ?? treatment.prescriptions).map((item) => (
                   <li key={item} className="flex items-start gap-2 text-sm leading-6 text-slate-700">
-                    <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#0058bc]" />
+                    <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#0863c5]" />
                     <span>{item}</span>
                   </li>
                 ))}
@@ -389,7 +389,7 @@ export function RecordTreatmentCard({
                 {(selectedStep?.careInstructions ?? treatment.careInstructions).map(
                   (item) => (
                     <li key={item} className="flex items-start gap-2 text-sm leading-6 text-slate-700">
-                      <span className="mt-0.5 text-[#0058bc]" aria-hidden="true">
+                        <span className="mt-0.5 text-[#0863c5]" aria-hidden="true">
                         ✓
                       </span>
                       <span>{item}</span>

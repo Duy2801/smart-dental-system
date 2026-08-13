@@ -21,6 +21,14 @@ enum Gender {
   UNKNOWN
 }
 
+enum PatientRelationship {
+  SELF
+  CHILD
+  FATHER
+  MOTHER
+  OTHER
+}
+
 enum DiscountType {
   PERCENTAGE
   FIXED_AMOUNT
@@ -198,6 +206,7 @@ model User {
   createdInvoices     Invoice[]      @relation("InvoiceCreator")
   receivedPayments    Payment[]      @relation("PaymentReceiver")
   notifications       Notification[]
+  patientAccounts     PatientAccount[]
 
   @@index([fullName])
   @@map("users")
@@ -427,8 +436,11 @@ model Promotion {
 
 model Patient {
   id                    String    @id @default(uuid()) @db.Uuid
-  userId                String    @unique @map("user_id") @db.Uuid
+  userId                String?   @unique @map("user_id") @db.Uuid
   patientCode           String    @unique @map("patient_code")
+  fullName              String?   @map("full_name")
+  phone                 String?
+  email                 String?
   dateOfBirth           DateTime? @map("date_of_birth") @db.Date
   gender                Gender    @default(UNKNOWN)
   address               String?   @db.Text
@@ -438,7 +450,8 @@ model Patient {
   createdAt             DateTime  @default(now()) @map("created_at")
   updatedAt             DateTime  @updatedAt @map("updated_at")
 
-  user                 User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                 User?                 @relation(fields: [userId], references: [id], onDelete: SetNull)
+  patientAccounts      PatientAccount[]
   appointments         Appointment[]
   clinicalCases        ClinicalCase[]
   medicalRecords       MedicalRecord[]
@@ -450,6 +463,25 @@ model Patient {
   videoConsultations   VideoConsultation[]
 
   @@map("patients")
+}
+
+model PatientAccount {
+  id           String              @id @default(uuid()) @db.Uuid
+  userId       String              @map("user_id") @db.Uuid
+  patientId    String              @map("patient_id") @db.Uuid
+  relationship PatientRelationship @default(OTHER)
+  isPrimary    Boolean             @default(false) @map("is_primary")
+  canBook      Boolean             @default(true) @map("can_book")
+  createdAt    DateTime            @default(now()) @map("created_at")
+  updatedAt    DateTime            @updatedAt @map("updated_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, patientId])
+  @@index([userId, relationship])
+  @@index([patientId])
+  @@map("patient_accounts")
 }
 
 model Doctor {

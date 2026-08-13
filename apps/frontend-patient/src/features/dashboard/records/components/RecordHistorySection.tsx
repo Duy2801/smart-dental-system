@@ -44,7 +44,7 @@ export function RecordHistorySection({ treatments }: RecordHistorySectionProps) 
   }
 
   return (
-    <section className="border border-slate-200 bg-white">
+    <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
       <div className="border-b border-slate-200 p-5 sm:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
@@ -64,7 +64,7 @@ export function RecordHistorySection({ treatments }: RecordHistorySectionProps) 
               aria-label="Lọc theo loại điều trị"
               value={filter}
               onChange={(event) => handleFilterChange(event.target.value)}
-              className="border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-[#0058bc]"
+              className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-[#0863c5] focus:ring-2 focus:ring-blue-100"
             >
               {filterOptions.map((option) => (
                 <option key={option} value={option}>
@@ -77,7 +77,7 @@ export function RecordHistorySection({ treatments }: RecordHistorySectionProps) 
       </div>
 
       <div className="grid gap-0 lg:grid-cols-[320px_minmax(0,1fr)]">
-        <div className="border-b border-slate-200 bg-slate-50 lg:border-b-0 lg:border-r">
+        <div className="border-b border-slate-200 bg-slate-50/80 lg:border-b-0 lg:border-r">
           <div className="p-4">
             <div className="space-y-2">
               {filteredTreatments.length ? (
@@ -88,9 +88,9 @@ export function RecordHistorySection({ treatments }: RecordHistorySectionProps) 
                       key={treatment.id}
                       type="button"
                       onClick={() => setSelectedId(treatment.id)}
-                      className={`w-full border px-4 py-3 text-left transition ${selected
-                        ? "border-[#0058bc] bg-white shadow-sm"
-                        : "border-slate-200 bg-white hover:border-slate-300"
+                      className={`w-full rounded-xl border px-4 py-3 text-left transition ${selected
+                        ? "border-[#0863c5] bg-blue-50 shadow-sm ring-2 ring-blue-100"
+                        : "border-slate-200 bg-white hover:border-blue-200 hover:bg-white"
                         }`}
                     >
                       <div className="flex items-center justify-between gap-3">
@@ -103,7 +103,7 @@ export function RecordHistorySection({ treatments }: RecordHistorySectionProps) 
                           </h3>
                           <p className={`mt-1 ${T.bodySm}`}>{treatment.date}</p>
                         </div>
-                        <span className="border border-slate-200 px-2 py-1 text-[10px] font-semibold text-slate-500">
+                        <span className="rounded-full border border-slate-200 bg-white px-2 py-1 text-[10px] font-semibold text-slate-500">
                           {treatment.category}
                         </span>
                       </div>
@@ -111,7 +111,7 @@ export function RecordHistorySection({ treatments }: RecordHistorySectionProps) 
                   );
                 })
               ) : (
-                <div className="border border-dashed border-slate-200 bg-white p-6 text-center text-sm text-slate-500">
+                <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-center text-sm text-slate-500">
                   Không có phác đồ phù hợp.
                 </div>
               )}
@@ -126,7 +126,7 @@ export function RecordHistorySection({ treatments }: RecordHistorySectionProps) 
               index={filteredTreatments.findIndex((item) => item.id === selectedTreatment.id)}
             />
           ) : (
-            <div className="border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-500">
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-500">
               Chọn một phác đồ để xem chi tiết.
             </div>
           )}

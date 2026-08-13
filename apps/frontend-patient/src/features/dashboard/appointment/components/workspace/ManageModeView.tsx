@@ -18,7 +18,6 @@ type ManageModeViewProps = {
   onOpenBooking: () => void;
   onReschedule: (appointment: AppointmentItem) => void;
   onCancelAppointment: (appointmentId: string) => void;
-  onPayDeposit?: (appointment: AppointmentItem) => void;
   cancellingAppointmentId: string | null;
 };
 
@@ -30,7 +29,6 @@ export function ManageModeView({
   onOpenBooking,
   onReschedule,
   onCancelAppointment,
-  onPayDeposit,
   cancellingAppointmentId,
 }: ManageModeViewProps) {
   const [query, setQuery] = useState("");
@@ -181,7 +179,6 @@ export function ManageModeView({
                         appointment={item}
                         onReschedule={() => onReschedule(item)}
                         onCancel={() => onCancelAppointment(item.id)}
-                        onPayDeposit={() => onPayDeposit?.(item)}
                         canCancel={
                           item.status === "pending" || item.status === "confirmed"
                         }

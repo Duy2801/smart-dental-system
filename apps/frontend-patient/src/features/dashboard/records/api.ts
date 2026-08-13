@@ -106,9 +106,10 @@ export type InvoiceSummary = {
   paidAt: string | null;
 };
 
-export async function getPatientRecords() {
+export async function getPatientRecords(patientId?: string) {
   const response = await apiClient.get<PatientRecordsResponse>(
     "/patients/me/records",
+    { params: patientId ? { patientId } : undefined },
   );
   return response.data;
 }

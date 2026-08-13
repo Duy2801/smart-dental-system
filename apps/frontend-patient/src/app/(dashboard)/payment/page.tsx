@@ -13,6 +13,8 @@ import type {
   Transaction,
 } from "@/features/dashboard/payment";
 import { DashboardIcon } from "@/features/dashboard/common/DashboardIcon";
+import { LoginRequiredPanel } from "@/features/dashboard/common/LoginRequiredPanel";
+import { useAppSelector } from "@/providers";
 
 const SUBTOTAL = 2_450_000;
 const PROMO_DISCOUNT = 100_000;
@@ -37,6 +39,8 @@ const currency = new Intl.NumberFormat("vi-VN", {
 });
 
 export default function PaymentPage() {
+  const { isAuthenticated, accessToken } = useAppSelector((state) => state.login);
+  const isLoggedIn = isAuthenticated && Boolean(accessToken);
   const [selectedMethodId, setSelectedMethodId] = useState(paymentMethods[0].id);
   const [promoCode, setPromoCode] = useState(VALID_PROMO_CODE);
   const [discount, setDiscount] = useState(PROMO_DISCOUNT);
@@ -64,6 +68,20 @@ export default function PaymentPage() {
   const downloadInvoice = (transaction: Transaction) => {
     setNotice(`Đang chuẩn bị hóa đơn ${transaction.invoiceCode}.`);
   };
+
+  if (!isLoggedIn) {
+    return (
+      <LoginRequiredPanel
+        title="Xem thanh toán và hóa đơn"
+        description="Đăng nhập để xem hóa đơn, lịch sử giao dịch, phương thức thanh toán và các khoản cần thanh toán của bạn."
+        loginLabel="Đăng nhập để xem thanh toán"
+        redirectTo="/payment"
+        secondaryHref="/service"
+        secondaryLabel="Xem dịch vụ"
+        icon="shield"
+      />
+    );
+  }
 
   return (
     <main className="mx-auto w-full max-w-[1360px] px-4 py-7 sm:px-6 sm:py-9 lg:px-8">

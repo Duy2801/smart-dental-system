@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { DashboardIcon } from "../../common/DashboardIcon";
+import { LoginRequiredPanel } from "../../common/LoginRequiredPanel";
+import { useAppSelector } from "@/providers";
 import {
   useMarkAllNotificationsRead,
   useMarkNotificationRead,
@@ -19,9 +21,12 @@ const filterTabs: { id: NotificationCategoryFilter; label: string; icon: string 
 ];
 
 export function NotificationWorkspace() {
+  const { isAuthenticated, accessToken } = useAppSelector((state) => state.login);
+  const isLoggedIn = isAuthenticated && Boolean(accessToken);
   const [activeTab, setActiveTab] = useState<NotificationCategoryFilter>("ALL");
   const { data: notifications, isLoading, isError } = useUserNotifications(
     activeTab === "ALL" || activeTab === "UNREAD" ? activeTab : undefined,
+    isLoggedIn,
   );
 
   const markReadMutation = useMarkNotificationRead();
@@ -38,6 +43,20 @@ export function NotificationWorkspace() {
   });
 
   const unreadCount = (notifications ?? []).filter((item) => !item.read).length;
+
+  if (!isLoggedIn) {
+    return (
+      <LoginRequiredPanel
+        title="Xem thông báo cá nhân"
+        description="Đăng nhập để xem thông báo lịch hẹn, nhắc khám, thanh toán và các cập nhật dành riêng cho tài khoản của bạn."
+        loginLabel="Đăng nhập để xem thông báo"
+        redirectTo="/notification"
+        secondaryHref="/promotions"
+        secondaryLabel="Xem ưu đãi"
+        icon="bell"
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">

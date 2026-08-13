@@ -14,6 +14,7 @@ import {
   Gender,
   InvoiceStatus,
   InvoiceType,
+  PatientRelationship,
   PaymentMethod,
   PaymentStatus,
   TreatmentPlanStatus,
@@ -22,11 +23,120 @@ import {
 } from '../../../prisma/generated/enums';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePatientDto } from './dto/create-patient.dto';
+import { CreateManagedPatientDto } from './dto/create-managed-patient.dto';
 import { UpdatePatientDto } from './dto/update-patient.dto';
 
 @Injectable()
 export class PatientService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async getManagedPatientProfiles(userId: string) {
+    await this.findOrCreatePatientProfile(userId);
+
+    const links = await this.prisma.patientAccount.findMany({
+      where: { userId },
+      include: {
+        patient: {
+          include: {
+            user: { select: { fullName: true, phone: true, email: true } },
+            appointments: {
+              orderBy: { scheduledAt: 'desc' },
+              take: 1,
+              select: { scheduledAt: true },
+            },
+          },
+        },
+      },
+      orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+    });
+
+    return links.map((link) => {
+      const identity = this.getPatientIdentity(link.patient);
+      return {
+        id: link.patient.id,
+        patientCode: link.patient.patientCode,
+        fullName: identity.fullName,
+        phone: identity.phone,
+        email: identity.email,
+        gender: link.patient.gender,
+        dateOfBirth: link.patient.dateOfBirth,
+        address: link.patient.address,
+        medicalHistory: link.patient.medicalHistory,
+        relationship: link.relationship,
+        isPrimary: link.isPrimary,
+        canBook: link.canBook,
+        lastVisit: link.patient.appointments[0]?.scheduledAt ?? null,
+      };
+    });
+  }
+
+  async createManagedPatientProfile(
+    userId: string,
+    dto: CreateManagedPatientDto,
+  ) {
+    await this.findOrCreatePatientProfile(userId);
+
+    const fullName = dto.fullName.trim();
+    const phone = this.cleanText(dto.phone);
+    const email = this.cleanText(dto.email)?.toLowerCase();
+    const dateOfBirth = dto.dateOfBirth ? new Date(dto.dateOfBirth) : null;
+
+    const duplicate = await this.prisma.patient.findFirst({
+      where: {
+        fullName: { equals: fullName, mode: 'insensitive' },
+        ...(dateOfBirth ? { dateOfBirth } : {}),
+        patientAccounts: { some: { userId } },
+      },
+      select: { id: true },
+    });
+
+    if (duplicate) {
+      throw new ConflictException('patient.profile_exists');
+    }
+
+    const patient = await this.prisma.patient.create({
+      data: {
+        patientCode: await this.generatePatientCode(),
+        fullName,
+        phone,
+        email,
+        dateOfBirth,
+        gender: dto.gender ?? Gender.UNKNOWN,
+        address: this.cleanText(dto.address),
+        medicalHistory: this.cleanText(dto.medicalHistory),
+        patientAccounts: {
+          create: {
+            userId,
+            relationship: dto.relationship ?? PatientRelationship.OTHER,
+            isPrimary: false,
+            canBook: true,
+          },
+        },
+      },
+      include: {
+        user: { select: { fullName: true, phone: true, email: true } },
+        patientAccounts: { where: { userId }, take: 1 },
+      },
+    });
+
+    const identity = this.getPatientIdentity(patient);
+    const link = patient.patientAccounts[0];
+    return {
+      id: patient.id,
+      patientCode: patient.patientCode,
+      fullName: identity.fullName,
+      phone: identity.phone,
+      email: identity.email,
+      gender: patient.gender,
+      dateOfBirth: patient.dateOfBirth,
+      address: patient.address,
+      medicalHistory: patient.medicalHistory,
+      relationship: link?.relationship ?? PatientRelationship.OTHER,
+      isPrimary: link?.isPrimary ?? false,
+      canBook: link?.canBook ?? true,
+      lastVisit: null,
+    };
+  }
 
   async findPatients(search?: string) {
     const q = search?.trim();
@@ -36,12 +146,19 @@ export class PatientService {
             OR: [
               { patientCode: { contains: q, mode: 'insensitive' } },
               {
+                fullName: { contains: q, mode: 'insensitive' },
+              },
+              { phone: { contains: q } },
+              { email: { contains: q, mode: 'insensitive' } },
+              {
                 user: {
-                  OR: [
-                    { fullName: { contains: q, mode: 'insensitive' } },
-                    { phone: { contains: q } },
-                    { email: { contains: q, mode: 'insensitive' } },
-                  ],
+                  is: {
+                    OR: [
+                      { fullName: { contains: q, mode: 'insensitive' } },
+                      { phone: { contains: q } },
+                      { email: { contains: q, mode: 'insensitive' } },
+                    ],
+                  },
                 },
               },
             ],
@@ -61,15 +178,16 @@ export class PatientService {
     });
 
     return patients.map((p) => {
+      const identity = this.getPatientIdentity(p);
       const age = p.dateOfBirth
         ? new Date().getFullYear() - new Date(p.dateOfBirth).getFullYear()
         : null;
       return {
         id: p.id,
         patientCode: p.patientCode,
-        fullName: p.user.fullName,
-        phone: p.user.phone,
-        email: p.user.email,
+        fullName: identity.fullName,
+        phone: identity.phone,
+        email: identity.email,
         gender: p.gender,
         age,
         dateOfBirth: p.dateOfBirth,
@@ -120,6 +238,9 @@ export class PatientService {
         patientProfile: {
           create: {
             patientCode: await this.generatePatientCode(),
+            fullName,
+            phone,
+            email,
             dateOfBirth: dto.dateOfBirth
               ? new Date(dto.dateOfBirth)
               : undefined,
@@ -136,6 +257,7 @@ export class PatientService {
     });
 
     const patient = user.patientProfile!;
+    await this.ensurePatientAccountLink(user.id, patient.id, true);
     return {
       id: patient.id,
       patientCode: patient.patientCode,
@@ -169,19 +291,30 @@ export class PatientService {
       this.mergeMedicalHistory(historyOnly || undefined, allergies) ?? null;
 
     await this.prisma.$transaction([
-      this.prisma.user.update({
-        where: { id: patient.userId },
-        data: {
-          ...(dto.fullName ? { fullName: dto.fullName.trim() } : {}),
-          ...(dto.phone ? { phone: dto.phone.trim() } : {}),
-          ...(dto.email?.trim()
-            ? { email: dto.email.trim().toLowerCase() }
-            : {}),
-        },
-      }),
+      ...(patient.userId
+        ? [
+            this.prisma.user.update({
+              where: { id: patient.userId },
+              data: {
+                ...(dto.fullName ? { fullName: dto.fullName.trim() } : {}),
+                ...(dto.phone ? { phone: dto.phone.trim() } : {}),
+                ...(dto.email?.trim()
+                  ? { email: dto.email.trim().toLowerCase() }
+                  : {}),
+              },
+            }),
+          ]
+        : []),
       this.prisma.patient.update({
         where: { id: patientId },
         data: {
+          ...(dto.fullName ? { fullName: dto.fullName.trim() } : {}),
+          ...(dto.phone !== undefined
+            ? { phone: dto.phone.trim() || null }
+            : {}),
+          ...(dto.email !== undefined
+            ? { email: dto.email?.trim().toLowerCase() || null }
+            : {}),
           ...(dto.address !== undefined
             ? { address: dto.address.trim() || null }
             : {}),
@@ -242,6 +375,9 @@ export class PatientService {
       this.prisma.patient.update({
         where: { id: patient.id },
         data: {
+          ...(fullName ? { fullName } : {}),
+          ...(phone ? { phone } : {}),
+          ...(email ? { email } : {}),
           ...(dto.address !== undefined ? { address: address || null } : {}),
           ...(medicalHistory !== null ? { medicalHistory } : {}),
           ...(dto.dateOfBirth !== undefined
@@ -292,6 +428,41 @@ export class PatientService {
     return value?.trim() || undefined;
   }
 
+  private getPatientIdentity(patient: {
+    fullName?: string | null;
+    phone?: string | null;
+    email?: string | null;
+    user?: { fullName: string; phone: string | null; email: string | null } | null;
+  }) {
+    return {
+      fullName: patient.fullName ?? patient.user?.fullName ?? 'Benh nhan',
+      phone: patient.phone ?? patient.user?.phone ?? null,
+      email: patient.email ?? patient.user?.email ?? null,
+    };
+  }
+
+  private async ensurePatientAccountLink(
+    userId: string,
+    patientId: string,
+    isPrimary = false,
+  ) {
+    await this.prisma.patientAccount.upsert({
+      where: { userId_patientId: { userId, patientId } },
+      update: {
+        relationship: PatientRelationship.SELF,
+        isPrimary,
+        canBook: true,
+      },
+      create: {
+        userId,
+        patientId,
+        relationship: PatientRelationship.SELF,
+        isPrimary,
+        canBook: true,
+      },
+    });
+  }
+
   async resolveDoctorIdByUserId(userId: string) {
     const doctor = await this.prisma.doctor.findUnique({
       where: { userId },
@@ -315,6 +486,9 @@ export class PatientService {
           select: {
             id: true,
             patientCode: true,
+            fullName: true,
+            phone: true,
+            email: true,
             dateOfBirth: true,
             gender: true,
             medicalHistory: true,
@@ -346,15 +520,16 @@ export class PatientService {
     return Array.from(seen.values())
       .map((row) => {
         const p = row.patient!;
+        const identity = this.getPatientIdentity(p);
         const age = p.dateOfBirth
           ? new Date().getFullYear() - new Date(p.dateOfBirth).getFullYear()
           : null;
         return {
           id: p.id,
           patientCode: p.patientCode,
-          fullName: p.user.fullName,
-          phone: p.user.phone,
-          email: p.user.email,
+          fullName: identity.fullName,
+          phone: identity.phone,
+          email: identity.email,
           gender: p.gender,
           age,
           lastVisitDate: row.scheduledAt,
@@ -393,6 +568,9 @@ export class PatientService {
       select: {
         id: true,
         patientCode: true,
+        fullName: true,
+        phone: true,
+        email: true,
         dateOfBirth: true,
         gender: true,
         address: true,
@@ -463,13 +641,14 @@ export class PatientService {
         : 0;
 
     const finance = await this.getPatientFinance(patientId, activePlan?.id);
+    const identity = this.getPatientIdentity(patient);
 
     return {
       id: patient.id,
       patientCode: patient.patientCode,
-      fullName: patient.user.fullName,
-      phone: patient.user.phone,
-      email: patient.user.email,
+      fullName: identity.fullName,
+      phone: identity.phone,
+      email: identity.email,
       gender: patient.gender,
       age,
       dateOfBirth: patient.dateOfBirth,
@@ -560,7 +739,20 @@ export class PatientService {
     };
   }
 
-  async getMyRecords(userId: string) {
+  async getMyRecords(userId: string, patientId?: string) {
+    if (patientId) {
+      const link = await this.prisma.patientAccount.findUnique({
+        where: { userId_patientId: { userId, patientId } },
+        select: { patientId: true },
+      });
+
+      if (!link) {
+        throw new ForbiddenException('patient.profile_forbidden');
+      }
+
+      return this.buildPatientRecordResponse(link.patientId);
+    }
+
     const patient = await this.ensurePatientWithRecordData(userId);
     return this.buildPatientRecordResponse(patient.id);
   }
@@ -586,15 +778,28 @@ export class PatientService {
       where: { userId },
       select: { id: true },
     });
-    if (existing) return existing;
+    if (existing) {
+      await this.ensurePatientAccountLink(userId, existing.id, true);
+      return existing;
+    }
 
-    return this.prisma.patient.create({
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { fullName: true, phone: true, email: true },
+    });
+
+    const patient = await this.prisma.patient.create({
       data: {
         userId,
         patientCode: await this.generatePatientCode(),
+        fullName: user.fullName,
+        phone: user.phone,
+        email: user.email,
       },
       select: { id: true },
     });
+    await this.ensurePatientAccountLink(userId, patient.id, true);
+    return patient;
   }
 
   private async getProfileSummary(userId: string) {
@@ -904,19 +1109,21 @@ export class PatientService {
         ],
       });
 
-      await tx.notification.create({
-        data: {
-          userId: patient.userId,
-          type: 'FOLLOW_UP',
-          title: 'Lich tai kham da duoc xac nhan',
-          content: `Lich tai kham cua ban vao ${secondVisit.toISOString()}.`,
-          channel: 'IN_APP',
-          status: 'PENDING',
-          scheduledAt: secondVisit,
-          appointmentId: followUpAppointment.id,
-          treatmentPlanId: plan.id,
-        },
-      });
+      if (patient.userId) {
+        await tx.notification.create({
+          data: {
+            userId: patient.userId,
+            type: 'FOLLOW_UP',
+            title: 'Lich tai kham da duoc xac nhan',
+            content: `Lich tai kham cua ban vao ${secondVisit.toISOString()}.`,
+            channel: 'IN_APP',
+            status: 'PENDING',
+            scheduledAt: secondVisit,
+            appointmentId: followUpAppointment.id,
+            treatmentPlanId: plan.id,
+          },
+        });
+      }
 
       void prescription;
     });
@@ -1037,14 +1244,15 @@ export class PatientService {
         appointment.status === AppointmentStatus.COMPLETED ||
         appointment.completedAt,
     );
+    const identity = this.getPatientIdentity(patient);
 
     return {
       patient: {
         id: patient.id,
         patientCode: patient.patientCode,
-        fullName: patient.user.fullName,
-        phone: patient.user.phone,
-        email: patient.user.email,
+        fullName: identity.fullName,
+        phone: identity.phone,
+        email: identity.email,
         gender: patient.gender,
         dateOfBirth: patient.dateOfBirth?.toISOString() ?? null,
         age: this.calculateAge(patient.dateOfBirth),

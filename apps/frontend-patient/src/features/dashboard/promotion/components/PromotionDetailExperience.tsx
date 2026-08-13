@@ -6,13 +6,12 @@ import { useRouter } from "next/navigation";
 import { DashboardIcon } from "@/features/dashboard/common/DashboardIcon";
 import { PatientPageSkeleton } from "@/features/dashboard/common/PatientSkeleton";
 import { AuthRequireModal } from "@/features/dashboard/common/AuthRequireModal";
-import { toast } from "@/features/dashboard/common/toast";
 import { ROUTES, buildRoute } from "@/features/dashboard/common/routes";
 import { useAppSelector } from "@/providers";
 import { formatCurrency } from "@/utils/helpers";
 
 import { usePromotions } from "../hooks/usePromotions";
-import type { PromotionDto, ServiceOption } from "../types";
+import type { PromotionDto } from "../types";
 import { PromotionHeroSection } from "./PromotionHeroSection";
 import { PromotionServicesList } from "./PromotionServicesList";
 import { PromotionCalculatorSidebar } from "./PromotionCalculatorSidebar";
@@ -23,7 +22,6 @@ export function PromotionDetailExperience({ promotionId }: { promotionId: string
   const { promotions, services, isLoading } = usePromotions();
 
   const [selectedServiceId, setSelectedServiceId] = useState<string>("");
-  const [copied, setCopied] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
 
   const isAuthenticated =
@@ -143,13 +141,6 @@ export function PromotionDetailExperience({ promotionId }: { promotionId: string
       ? `Giảm ${promotion.discount_value}%`
       : `Giảm ${formatCurrency(promotion.discount_value)}`;
 
-  const handleCopyCode = () => {
-    void navigator.clipboard.writeText(promotion.code);
-    setCopied(true);
-    toast.success("Đã sao chép mã ưu đãi thành công!");
-    setTimeout(() => setCopied(false), 3000);
-  };
-
   const handleBookNow = () => {
     const targetServiceId = selectedService?.id || services[0]?.id;
     if (!isAuthenticated) {
@@ -179,8 +170,6 @@ export function PromotionDetailExperience({ promotionId }: { promotionId: string
       <PromotionHeroSection
         promotion={promotion}
         discountLabel={discountLabel}
-        copied={copied}
-        onCopyCode={handleCopyCode}
         onBookNow={handleBookNow}
       />
 
@@ -218,3 +207,6 @@ export function PromotionDetailExperience({ promotionId }: { promotionId: string
     </main>
   );
 }
+
+
+

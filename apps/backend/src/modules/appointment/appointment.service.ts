@@ -12,7 +12,6 @@ import {
   AppointmentPaymentStatus,
   AppointmentStatus,
   BookingSource,
-  DepositCalculationMode,
   DiscountType,
   InvoiceStatus,
   InvoiceType,
@@ -44,7 +43,6 @@ const patientReschedulableStatuses: AppointmentStatus[] = [
 ];
 const patientCancelNoticeHours = 12;
 const patientRescheduleNoticeHours = 6;
-const noShowDepositThreshold = 2;
 const noShowOnlineBookingBlockedThreshold = 3;
 
 const appointmentInclude = {
@@ -82,12 +80,6 @@ type PatientBookingPolicy = {
   noShowCount: number;
   requiresDeposit: boolean;
   onlineBookingBlocked: boolean;
-};
-
-type DepositPolicy = {
-  enabled: boolean;
-  calculationMode: DepositCalculationMode;
-  value: number;
 };
 
 @Injectable()
@@ -134,8 +126,7 @@ export class AppointmentService {
       treatmentMethodId: dto.treatmentMethodId,
       scheduledAt: dto.scheduledAt,
       notes: dto.notes,
-      paymentOption:
-        dto.paymentOption ?? AppointmentPaymentOption.PAY_AT_COUNTER,
+      paymentOption: AppointmentPaymentOption.PAY_AT_COUNTER,
       bookingSource: BookingSource.RECEPTIONIST,
       createdBy: staffUserId,
       skipOnlineBookingBlock: true,
@@ -166,7 +157,9 @@ export class AppointmentService {
   }
 
   async createAppointmentForPatient(userId: string, dto: CreateAppointmentDto) {
-    const patient = await this.findOrCreatePatientProfile(userId);
+    const patient = dto.patientId
+      ? await this.ensureUserCanBookPatient(userId, dto.patientId)
+      : await this.findOrCreatePatientProfile(userId);
 
     return this.createAppointment({
       patientId: patient.id,
@@ -174,7 +167,7 @@ export class AppointmentService {
       treatmentMethodId: dto.treatmentMethodId,
       scheduledAt: dto.scheduledAt,
       notes: dto.notes,
-      paymentOption: dto.paymentOption,
+      paymentOption: AppointmentPaymentOption.PAY_AT_COUNTER,
       promotionCode: dto.promotionCode,
       bookingSource: BookingSource.PATIENT_APP,
       createdBy: userId,
@@ -350,7 +343,7 @@ export class AppointmentService {
     const updated = await this.prisma.appointment.update({
       where: { id: appointment.id },
       data: {
-        status: AppointmentStatus.PENDING,
+        status: AppointmentStatus.CONFIRMED,
         cancelledAt: null,
         cancellationReason: null,
         scheduleConfirmedAt: null,
@@ -431,15 +424,25 @@ export class AppointmentService {
                 },
                 {
                   patient: {
-                    user: {
+                    is: {
                       OR: [
+                        { fullName: { contains: search, mode: 'insensitive' } },
+                        { phone: { contains: search } },
                         {
-                          fullName: {
-                            contains: search,
-                            mode: 'insensitive',
+                          user: {
+                            is: {
+                              OR: [
+                                {
+                                  fullName: {
+                                    contains: search,
+                                    mode: 'insensitive',
+                                  },
+                                },
+                                { phone: { contains: search } },
+                              ],
+                            },
                           },
                         },
-                        { phone: { contains: search } },
                       ],
                     },
                   },
@@ -986,6 +989,13 @@ export class AppointmentService {
               (selectedTreatmentMethod.durationMinutes ?? 30) * 60 * 1000,
           )
         : null;
+    const selectedBusinessHour = startAt
+      ? this.getBusinessHourForDate(
+          startAt,
+          clinicConfig.businessHours,
+          clinicConfig.specialDates,
+        )
+      : null;
 
     const availableDoctors =
       startAt && endAt
@@ -999,6 +1009,8 @@ export class AppointmentService {
                   endAt,
                   bookingWindow.availabilityRecords,
                   bookingWindow.activeAppointments,
+                  selectedBusinessHour?.start,
+                  selectedBusinessHour?.end,
                 ),
               })),
             )
@@ -1065,13 +1077,15 @@ export class AppointmentService {
   }
 
   private async buildPatientAppointmentOwnerWhere(userId: string) {
-    const patient = await this.prisma.patient.findUnique({
+    await this.findOrCreatePatientProfile(userId);
+    const managedPatients = await this.prisma.patientAccount.findMany({
       where: { userId },
-      select: { id: true },
+      select: { patientId: true },
     });
+    const patientIds = managedPatients.map((item) => item.patientId);
 
-    return patient
-      ? { OR: [{ createdBy: userId }, { patientId: patient.id }] }
+    return patientIds.length
+      ? { OR: [{ createdBy: userId }, { patientId: { in: patientIds } }] }
       : { createdBy: userId };
   }
 
@@ -1080,14 +1094,62 @@ export class AppointmentService {
       where: { userId },
       select: { id: true, patientCode: true },
     });
-    if (existing) return existing;
+    if (existing) {
+      await this.ensurePatientAccountLink(userId, existing.id, true);
+      return existing;
+    }
 
-    return this.prisma.patient.create({
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { fullName: true, phone: true, email: true },
+    });
+
+    const patient = await this.prisma.patient.create({
       data: {
         userId,
         patientCode: await this.generatePatientCode(),
+        fullName: user.fullName,
+        phone: user.phone,
+        email: user.email,
       },
       select: { id: true, patientCode: true },
+    });
+    await this.ensurePatientAccountLink(userId, patient.id, true);
+    return patient;
+  }
+
+  private async ensureUserCanBookPatient(userId: string, patientId: string) {
+    const link = await this.prisma.patientAccount.findUnique({
+      where: { userId_patientId: { userId, patientId } },
+      select: { canBook: true, patient: { select: { id: true, patientCode: true } } },
+    });
+
+    if (!link?.canBook) {
+      throw new BadRequestException('patient.booking_permission_denied');
+    }
+
+    return link.patient;
+  }
+
+  private async ensurePatientAccountLink(
+    userId: string,
+    patientId: string,
+    isPrimary = false,
+  ) {
+    await this.prisma.patientAccount.upsert({
+      where: { userId_patientId: { userId, patientId } },
+      update: {
+        relationship: 'SELF',
+        isPrimary,
+        canBook: true,
+      },
+      create: {
+        userId,
+        patientId,
+        relationship: 'SELF',
+        isPrimary,
+        canBook: true,
+      },
     });
   }
 
@@ -1161,40 +1223,15 @@ export class AppointmentService {
     if (!input.skipOnlineBookingBlock) {
       this.ensureOnlineBookingAllowed(bookingPolicy);
     }
-    const clinicConfig = await this.clinicConfigService.getClinicConfig();
-    let depositPolicy = this.resolveDepositPolicy(
-      treatmentMethod.service,
-      clinicConfig,
-    );
-    // Người dùng hoặc Lễ tân chọn cọc (DEPOSIT_30_PERCENT): luôn cho phép cọc 30%
-    if (
-      input.paymentOption === AppointmentPaymentOption.DEPOSIT_30_PERCENT &&
-      !depositPolicy.enabled
-    ) {
-      depositPolicy = {
-        enabled: true,
-        calculationMode: DepositCalculationMode.PERCENT,
-        value: 30,
-      };
-    }
+    const paymentOption = AppointmentPaymentOption.PAY_AT_COUNTER;
     const serviceBasePrice = Number(treatmentMethod.basePrice);
-    const promotion = input.promotionCode?.trim()
-      ? await this.resolveAppointmentPromotion({
-          code: input.promotionCode.trim(),
-          serviceBasePrice,
-          treatmentMethodId: treatmentMethod.id,
-        })
-      : null;
-    const serviceDiscountAmount = promotion?.discountAmount ?? 0;
-    const payableServicePrice = Number(
-      Math.max(0, serviceBasePrice - serviceDiscountAmount).toFixed(2),
-    );
-    const depositAmount = depositPolicy.enabled
-      ? this.calculateDepositAmount(
-          payableServicePrice,
-          depositPolicy,
-        )
-      : 0;
+    if (input.promotionCode?.trim()) {
+      await this.resolveAppointmentPromotion({
+        code: input.promotionCode.trim(),
+        serviceBasePrice,
+        treatmentMethodId: treatmentMethod.id,
+      });
+    }
 
     const endAt = new Date(
       scheduledAt.getTime() +
@@ -1222,20 +1259,7 @@ export class AppointmentService {
       scheduledAt,
     );
 
-    const paymentStatus =
-      input.paymentOption === AppointmentPaymentOption.DEPOSIT_30_PERCENT &&
-      depositPolicy.enabled
-        ? AppointmentPaymentStatus.PENDING_DEPOSIT
-        : input.paymentOption === AppointmentPaymentOption.PAY_AT_COUNTER
-          ? AppointmentPaymentStatus.PAY_AT_COUNTER_SELECTED
-          : AppointmentPaymentStatus.NOT_SELECTED;
-
-    if (
-      input.paymentOption === AppointmentPaymentOption.DEPOSIT_30_PERCENT &&
-      !depositPolicy.enabled
-    ) {
-      throw new BadRequestException('appointment.deposit_not_available');
-    }
+    const paymentStatus = AppointmentPaymentStatus.PAY_AT_COUNTER_SELECTED;
 
     const appointment = await this.prisma.appointment.create({
       data: {
@@ -1248,60 +1272,28 @@ export class AppointmentService {
         endAt,
         status: AppointmentStatus.PENDING,
         bookingSource: input.bookingSource,
-        paymentOption: input.paymentOption,
+        paymentOption,
         paymentStatus,
-        depositPercent:
-          depositPolicy.calculationMode === DepositCalculationMode.PERCENT
-            ? depositPolicy.value
-            : 0,
-        depositAmount:
-          input.paymentOption === AppointmentPaymentOption.DEPOSIT_30_PERCENT &&
-          depositPolicy.enabled
-            ? depositAmount
-            : null,
-        scheduleConfirmedAt:
-          input.paymentOption === AppointmentPaymentOption.PAY_AT_COUNTER
-            ? new Date()
-            : null,
+        depositPercent: 0,
+        depositAmount: null,
+        scheduleConfirmedAt: new Date(),
         notes: input.notes,
         createdBy: input.createdBy,
       },
       include: appointmentInclude,
     });
 
-    const depositInvoice =
-      input.paymentOption === AppointmentPaymentOption.DEPOSIT_30_PERCENT &&
-      depositPolicy.enabled &&
-      input.patientId
-        ? await this.createDepositInvoiceForAppointment({
-            appointmentId: appointment.id,
-            patientId: input.patientId,
-            serviceId: treatmentMethod.service.id,
-            treatmentMethodId: treatmentMethod.id,
-            serviceName: treatmentMethod.name,
-            serviceBasePrice,
-            payableServicePrice,
-            depositPolicy,
-            depositAmount,
-            promotionId: promotion?.promotionId,
-            serviceDiscountAmount,
-            createdBy: input.createdBy,
-          })
-        : null;
+    await this.queueAppointmentConfirmationEmail(appointment);
 
-    await this.queueAppointmentConfirmationEmail({
-      appointment,
-      depositAmount: depositInvoice ? depositAmount : 0,
-    });
-
-    if (patient?.userId) {
+    const notificationUserId = patient?.userId ?? input.createdBy;
+    if (notificationUserId) {
       const dateStr = scheduledAt.toLocaleDateString('vi-VN');
       const timeStr = scheduledAt.toLocaleTimeString('vi-VN', {
         hour: '2-digit',
         minute: '2-digit',
       });
       await this.notificationService.createNotification({
-        userId: patient.userId,
+        userId: notificationUserId,
         type: 'APPOINTMENT_CONFIRMED',
         title: 'Lịch hẹn đã được xác nhận',
         content: `Cuộc hẹn ${treatmentMethod.name} vào ngày ${dateStr} lúc ${timeStr} đã được hệ thống tiếp nhận thành công.`,
@@ -1313,37 +1305,34 @@ export class AppointmentService {
       ...this.withDerivedService(appointment),
       bookingPolicy: {
         ...bookingPolicy,
-        depositAmount: depositInvoice ? depositAmount : 0,
-        depositInvoiceId: depositInvoice?.id ?? null,
+        requiresDeposit: false,
+        depositAmount: 0,
+        depositInvoiceId: null,
       },
     };
   }
 
-  private async queueAppointmentConfirmationEmail(input: {
-    appointment: Awaited<ReturnType<typeof this.prisma.appointment.create>>;
-    depositAmount: number;
-  }) {
-    const { appointment, depositAmount } = input;
+  private async queueAppointmentConfirmationEmail(
+    appointment: {
+      scheduledAt: Date;
+      patient?: { user?: { fullName: string; email: string | null } | null } | null;
+      doctor: { user: { fullName: string } };
+      treatmentMethod?: { name: string } | null;
+    },
+  ) {
     const patientUser = appointment.patient?.user;
     if (!patientUser?.email) return;
-
-    const paymentLabel =
-      appointment.paymentOption === AppointmentPaymentOption.DEPOSIT_30_PERCENT
-        ? 'Coc truoc'
-        : appointment.paymentOption === AppointmentPaymentOption.PAY_AT_COUNTER
-          ? 'Thanh toan tai quay'
-          : 'Chua chon';
 
     try {
       await this.mailQueue.add('send-appointment-confirmation', {
         name: patientUser.fullName,
         email: patientUser.email,
         locale: 'vi',
-        serviceName: appointment.treatmentMethod.name,
+        serviceName: appointment.treatmentMethod?.name ?? 'Dich vu nha khoa',
         doctorName: appointment.doctor.user.fullName,
         scheduledAt: appointment.scheduledAt.toISOString(),
-        paymentLabel,
-        depositAmount,
+        paymentLabel: 'Thanh toan tai quay',
+        depositAmount: 0,
       });
     } catch (error) {
       this.logger.warn(
@@ -1358,7 +1347,7 @@ export class AppointmentService {
     patientId: string | null,
     createdBy: string,
   ) {
-    return patientId ? { OR: [{ patientId }, { createdBy }] } : { createdBy };
+    return patientId ? { patientId } : { createdBy };
   }
 
   private async ensurePatientHasNoOverlappingAppointment(
@@ -1476,7 +1465,7 @@ export class AppointmentService {
 
     return {
       noShowCount,
-      requiresDeposit: noShowCount >= noShowDepositThreshold,
+      requiresDeposit: false,
       onlineBookingBlocked: noShowCount >= noShowOnlineBookingBlockedThreshold,
     };
   }
@@ -1497,145 +1486,6 @@ export class AppointmentService {
     if (bookingPolicy.onlineBookingBlocked) {
       throw new ConflictException('appointment.online_booking_blocked');
     }
-  }
-
-  private async createDepositInvoiceForAppointment(input: {
-    appointmentId: string;
-    patientId: string;
-    serviceId: string;
-    treatmentMethodId: string;
-    serviceName: string;
-    serviceBasePrice: number;
-    payableServicePrice: number;
-    depositPolicy: DepositPolicy;
-    depositAmount: number;
-    promotionId?: string;
-    serviceDiscountAmount?: number;
-    createdBy: string;
-  }) {
-    const originalDepositAmount = this.calculateDepositAmount(
-      input.serviceBasePrice,
-      input.depositPolicy,
-    );
-    const depositDiscountAmount = Number(
-      Math.max(0, originalDepositAmount - input.depositAmount).toFixed(2),
-    );
-    const remainingAmount = Number(
-      (input.payableServicePrice - input.depositAmount).toFixed(2),
-    );
-
-    return this.prisma.invoice.create({
-      data: {
-        invoiceCode: await this.generateInvoiceCode(),
-        patientId: input.patientId,
-        appointmentId: input.appointmentId,
-        promotionId: input.promotionId,
-        invoiceType: InvoiceType.DEPOSIT,
-        items: [
-          {
-            service_id: input.serviceId,
-            treatment_method_id: input.treatmentMethodId,
-            description:
-              input.depositPolicy.calculationMode ===
-              DepositCalculationMode.PERCENT
-                ? `Coc ${input.depositPolicy.value}% cho ${input.serviceName}`
-                : `Coc ${input.depositAmount} cho ${input.serviceName}`,
-            qty: 1,
-            unit_price: originalDepositAmount,
-            amount: originalDepositAmount,
-            type: 'DEPOSIT',
-          },
-          ...(input.serviceDiscountAmount && input.serviceDiscountAmount > 0
-            ? [
-                {
-                  service_id: input.serviceId,
-                  treatment_method_id: input.treatmentMethodId,
-                  description: `Giam gia ap dung cho ${input.serviceName}`,
-                  qty: 1,
-                  unit_price: -depositDiscountAmount,
-                  amount: -depositDiscountAmount,
-                  type: 'DISCOUNT',
-                },
-              ]
-            : []),
-          {
-            service_id: input.serviceId,
-            treatment_method_id: input.treatmentMethodId,
-            description:
-              input.depositPolicy.calculationMode ===
-              DepositCalculationMode.PERCENT
-                ? `Con lai ${100 - input.depositPolicy.value}% cho ${input.serviceName}`
-                : `Con lai ${Number((input.serviceBasePrice - input.depositAmount).toFixed(2))} cho ${input.serviceName}`,
-            qty: 1,
-            unit_price: remainingAmount,
-            amount: remainingAmount,
-            type: 'BALANCE',
-          },
-        ],
-        subtotal: originalDepositAmount,
-        discountAmount: depositDiscountAmount,
-        finalAmount: input.depositAmount,
-        status: InvoiceStatus.ISSUED,
-        issuedAt: new Date(),
-        createdBy: input.createdBy,
-      },
-      select: { id: true },
-    });
-  }
-
-  private resolveDepositPolicy(
-    service: {
-      depositOverrideEnabled: boolean;
-      depositRequired: boolean;
-      depositCalculationMode: DepositCalculationMode | null;
-      depositValue: unknown;
-    },
-    clinicConfig: {
-      bookingDepositEnabled: boolean;
-      bookingDepositCalculationMode: DepositCalculationMode;
-      bookingDepositValue: number;
-    },
-  ): DepositPolicy {
-    const mode =
-      service.depositOverrideEnabled && service.depositCalculationMode
-        ? service.depositCalculationMode
-        : clinicConfig.bookingDepositCalculationMode;
-
-    const valueFromService =
-      typeof service.depositValue === 'number'
-        ? service.depositValue
-        : Number(service.depositValue);
-
-    const value =
-      service.depositOverrideEnabled && Number.isFinite(valueFromService)
-        ? valueFromService
-        : clinicConfig.bookingDepositValue;
-
-    const enabled = service.depositOverrideEnabled
-      ? service.depositRequired
-      : clinicConfig.bookingDepositEnabled;
-
-    return {
-      enabled,
-      calculationMode: mode,
-      value,
-    };
-  }
-
-  private calculateDepositAmount(basePrice: number, policy: DepositPolicy) {
-    if (policy.calculationMode === DepositCalculationMode.FIXED) {
-      if (policy.value > basePrice) {
-        throw new BadRequestException(
-          'appointment.deposit_exceeds_service_price',
-        );
-      }
-      return Number(policy.value.toFixed(2));
-    }
-
-    if (policy.value < 0 || policy.value > 100) {
-      throw new BadRequestException('appointment.deposit_percentage_invalid');
-    }
-    return Number((basePrice * (policy.value / 100)).toFixed(2));
   }
 
   private async resolveAppointmentPromotion(input: {
@@ -1952,6 +1802,10 @@ export class AppointmentService {
     const workingRecords = dateOverrides.length
       ? dateOverrides
       : records.filter((record) => record.recordType === 'WEEKLY');
+
+    if (!workingRecords.length) {
+      return true;
+    }
 
     return workingRecords.some(
       (record) =>

@@ -28,6 +28,17 @@ export const Gender = {
 export type Gender = (typeof Gender)[keyof typeof Gender]
 
 
+export const PatientRelationship = {
+  SELF: 'SELF',
+  CHILD: 'CHILD',
+  FATHER: 'FATHER',
+  MOTHER: 'MOTHER',
+  OTHER: 'OTHER'
+} as const
+
+export type PatientRelationship = (typeof PatientRelationship)[keyof typeof PatientRelationship]
+
+
 export const DiscountType = {
   PERCENTAGE: 'PERCENTAGE',
   FIXED_AMOUNT: 'FIXED_AMOUNT'

@@ -2,12 +2,12 @@
 
 import { useMemo } from "react";
 import type {
-  AppointmentPaymentOption,
   AppointmentService,
   BookingDate,
   Dentist,
   TreatmentMethodItem,
 } from "../../types";
+import type { PatientProfile } from "../../api";
 import { formatCurrency } from "@/utils/helpers";
 import { usePromotions } from "../../../promotion/hooks/usePromotions";
 import { calculateDiscount } from "../../../promotion/utils/promotionUtils";
@@ -19,13 +19,12 @@ function formatPrice(value: string | number | undefined | null) {
 }
 
 type BookingConfirmationViewProps = {
+  selectedPatient?: PatientProfile;
   selectedService?: AppointmentService;
   selectedTreatmentMethod?: TreatmentMethodItem;
   selectedDoctor?: Dentist;
   selectedDate?: BookingDate;
   selectedTime: string;
-  selectedPaymentOption: AppointmentPaymentOption;
-  onSelectPaymentOption: (option: AppointmentPaymentOption) => void;
   selectedPromotionCode: string;
   onSelectPromotionCode: (code: string) => void;
   acceptedTerms: boolean;
@@ -36,13 +35,12 @@ type BookingConfirmationViewProps = {
 };
 
 export function BookingConfirmationView({
+  selectedPatient,
   selectedService,
   selectedTreatmentMethod,
   selectedDoctor,
   selectedDate,
   selectedTime,
-  selectedPaymentOption,
-  onSelectPaymentOption,
   selectedPromotionCode,
   onSelectPromotionCode,
   acceptedTerms,
@@ -81,37 +79,33 @@ export function BookingConfirmationView({
   const discountResult = appliedPromotion
     ? calculateDiscount(appliedPromotion, basePrice)
     : { discountAmount: 0, finalPrice: basePrice };
-  const depositBaseAmount = Number((basePrice * 0.3).toFixed(2));
-  const depositAmount = Number((discountResult.finalPrice * 0.3).toFixed(2));
-  const depositDiscount = Math.max(0, depositBaseAmount - depositAmount);
 
   return (
     <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.75fr)_380px]">
       <div className="min-w-0 space-y-4">
-        {/* Top Blue Banner Card (Compact) */}
         <div className="rounded-2xl bg-gradient-to-r from-[#0863c5] to-[#0753a8] p-5 text-white shadow-md shadow-blue-500/10">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0 flex-1">
               <span className="inline-block rounded-md bg-white/15 px-2.5 py-0.5 text-[10px] font-bold tracking-wider text-blue-100 uppercase">
-                DỊCH VỤ ĐÃ CHỌN
+                Dịch vụ đã chọn
               </span>
-              <h2 className="mt-1 text-xl font-bold text-white truncate">
+              <h2 className="mt-1 truncate text-xl font-bold text-white">
                 {selectedService?.name || "Chưa chọn dịch vụ"}
               </h2>
             </div>
-            <div className="text-right shrink-0">
+            <div className="shrink-0 text-right">
               <p className="text-lg font-extrabold text-white">
                 {formatPrice(basePrice)}
               </p>
               {selectedTreatmentMethod?.durationMinutes ? (
-                <p className="text-[11px] text-blue-100/90 font-medium">
+                <p className="text-[11px] font-medium text-blue-100/90">
                   Thời lượng: {selectedTreatmentMethod.durationMinutes} phút
                 </p>
               ) : null}
             </div>
           </div>
-          <div className="mt-2.5 border-t border-white/15 pt-2 flex items-center justify-between text-xs text-blue-100/90">
-            <span className="font-medium truncate">
+          <div className="mt-2.5 flex items-center justify-between border-t border-white/15 pt-2 text-xs text-blue-100/90">
+            <span className="truncate font-medium">
               Phương pháp: <strong>{selectedTreatmentMethod?.name || "--"}</strong>
             </span>
           </div>
@@ -184,28 +178,33 @@ export function BookingConfirmationView({
               <strong className="text-emerald-600">-{formatPrice(discountResult.discountAmount)}</strong>
             </div>
             <div className="flex justify-between gap-3 border-t border-slate-200 pt-2 text-slate-900">
-              <span className="font-bold">Sau giảm</span>
+              <span className="font-bold">Thanh toán tại quầy</span>
               <strong>{formatPrice(discountResult.finalPrice)}</strong>
             </div>
-            <div className="flex justify-between gap-3 text-xs text-slate-500">
-              <span>Cọc giữ lịch 30%</span>
-              <strong className="text-[#0863c5]">
-                {formatPrice(depositAmount)}
-              </strong>
-            </div>
-            {depositDiscount > 0 ? (
-              <div className="flex justify-between gap-3 text-xs text-emerald-700">
-                <span>Tiết kiệm trên tiền cọc</span>
-                <strong>-{formatPrice(depositDiscount)}</strong>
-              </div>
-            ) : null}
           </div>
         </div>
 
-        {/* Details Grid: Doctor & Date/Time */}
         <div className="grid gap-3 sm:grid-cols-2">
-          {/* Doctor Card */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs flex items-center gap-3.5">
+          <div className="flex items-center gap-3.5 rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs">
+            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-sky-50 text-[#0863c5]">
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.25a8.25 8.25 0 1115 0" />
+              </svg>
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Nguoi kham
+              </p>
+              <p className="mt-0.5 truncate text-sm font-bold text-slate-900">
+                {selectedPatient?.fullName || "Chua chon nguoi kham"}
+              </p>
+              <p className="truncate text-xs text-slate-500">
+                {selectedPatient?.relationship || "PATIENT"}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3.5 rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs">
             <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-blue-50 text-[#0863c5]">
               <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -213,19 +212,18 @@ export function BookingConfirmationView({
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                BÁC SĨ PHỤ TRÁCH
+                Bác sĩ phụ trách
               </p>
-              <p className="mt-0.5 text-sm font-bold text-slate-900 truncate">
+              <p className="mt-0.5 truncate text-sm font-bold text-slate-900">
                 {selectedDoctor?.name || "BS do phòng khám sắp xếp"}
               </p>
-              <p className="text-xs text-slate-500 truncate">
+              <p className="truncate text-xs text-slate-500">
                 {selectedDoctor?.specialty || "Chuyên khoa tổng quát"}
               </p>
             </div>
           </div>
 
-          {/* Date & Time Card */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs flex items-center gap-3.5">
+          <div className="flex items-center gap-3.5 rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs">
             <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-600">
               <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 002-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -233,66 +231,21 @@ export function BookingConfirmationView({
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                THỜI GIAN KHÁM
+                Thời gian khám
               </p>
-              <p className="mt-0.5 text-sm font-bold text-slate-900 truncate">
+              <p className="mt-0.5 truncate text-sm font-bold text-slate-900">
                 {selectedDate ? `${selectedDate.weekday} ${selectedDate.day} ${formattedMonth}` : "--/--"}
               </p>
-              <p className="text-xs font-semibold text-[#0863c5] truncate">
+              <p className="truncate text-xs font-semibold text-[#0863c5]">
                 Khung giờ: {selectedTime || "--:--"}
               </p>
             </div>
           </div>
         </div>
-
-        {/* Payment Selection Box */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs space-y-2.5">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-            Hình thức giữ lịch hẹn
-          </h3>
-          <div className="grid gap-2.5 sm:grid-cols-2">
-            <button
-              type="button"
-              onClick={() => onSelectPaymentOption("DEPOSIT_30_PERCENT")}
-              className={`rounded-xl border p-3 text-left transition flex items-start justify-between ${
-                selectedPaymentOption === "DEPOSIT_30_PERCENT"
-                  ? "border-[#0863c5] bg-blue-50/80 ring-2 ring-blue-100"
-                  : "border-slate-200 bg-white hover:border-blue-200"
-              }`}
-            >
-              <div>
-                <p className="text-xs font-bold text-slate-900">Đặt cọc giữ lịch (30%)</p>
-                <p className="mt-0.5 text-[11px] text-slate-500">Hệ thống tự động tạo hóa đơn cọc</p>
-              </div>
-              <span className={`grid h-4 w-4 shrink-0 place-items-center rounded-full border ${selectedPaymentOption === "DEPOSIT_30_PERCENT" ? "border-[#0863c5] bg-[#0863c5]" : "border-slate-300"}`}>
-                {selectedPaymentOption === "DEPOSIT_30_PERCENT" ? <span className="h-1.5 w-1.5 rounded-full bg-white" /> : null}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => onSelectPaymentOption("PAY_AT_COUNTER")}
-              className={`rounded-xl border p-3 text-left transition flex items-start justify-between ${
-                selectedPaymentOption === "PAY_AT_COUNTER"
-                  ? "border-[#0863c5] bg-blue-50/80 ring-2 ring-blue-100"
-                  : "border-slate-200 bg-white hover:border-blue-200"
-              }`}
-            >
-              <div>
-                <p className="text-xs font-bold text-slate-900">Thanh toán tại quầy</p>
-                <p className="mt-0.5 text-[11px] text-slate-500">Thanh toán khi đến khám tại phòng khám</p>
-              </div>
-              <span className={`grid h-4 w-4 shrink-0 place-items-center rounded-full border ${selectedPaymentOption === "PAY_AT_COUNTER" ? "border-[#0863c5] bg-[#0863c5]" : "border-slate-300"}`}>
-                {selectedPaymentOption === "PAY_AT_COUNTER" ? <span className="h-1.5 w-1.5 rounded-full bg-white" /> : null}
-              </span>
-            </button>
-          </div>
-        </div>
       </div>
 
-      {/* Right Column: Actions & Policies Sidebar */}
       <aside className="space-y-4">
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs space-y-3.5">
+        <section className="space-y-3.5 rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs">
           <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
             <h4 className="text-xs font-bold uppercase tracking-wider text-[#0863c5]">
               Quy định đặt lịch
@@ -304,21 +257,21 @@ export function BookingConfirmationView({
 
           <div className="space-y-2 text-xs text-slate-600">
             <div className="flex items-start gap-2">
-              <span className="mt-0.5 text-emerald-500 font-bold">✓</span>
-              <span><strong>Giữ lịch:</strong> Cọc trước hoặc thanh toán tại quầy khi đến khám.</span>
+              <span className="mt-0.5 font-bold text-emerald-500">✓</span>
+              <span><strong>Giữ lịch:</strong> Lịch hẹn được ghi nhận sau khi xác nhận.</span>
             </div>
             <div className="flex items-start gap-2">
-              <span className="mt-0.5 text-emerald-500 font-bold">✓</span>
-              <span><strong>Số tiền cọc:</strong> 30% giá trị dịch vụ theo cấu hình phòng khám.</span>
+              <span className="mt-0.5 font-bold text-emerald-500">✓</span>
+              <span><strong>Thanh toán:</strong> Thanh toán tại quầy khi đến khám.</span>
             </div>
             <div className="flex items-start gap-2">
-              <span className="mt-0.5 text-emerald-500 font-bold">✓</span>
-              <span><strong>Hóa đơn:</strong> Tự động tạo hóa đơn DEPOSIT ghi nhận trạng thái.</span>
+              <span className="mt-0.5 font-bold text-emerald-500">✓</span>
+              <span><strong>Hóa đơn:</strong> Lễ tân lập hóa đơn sau khi hoàn tất dịch vụ.</span>
             </div>
           </div>
 
-          <div className="pt-3 border-t border-slate-100 space-y-3">
-            <label className="flex items-start gap-2.5 cursor-pointer">
+          <div className="space-y-3 border-t border-slate-100 pt-3">
+            <label className="flex cursor-pointer items-start gap-2.5">
               <input
                 type="checkbox"
                 checked={acceptedTerms}
@@ -334,11 +287,11 @@ export function BookingConfirmationView({
               type="button"
               disabled={!acceptedTerms || isSubmitting || hasInvalidManualCode}
               onClick={() => onConfirmBooking(appliedPromotion?.code)}
-              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#0863c5] px-4 text-xs font-bold text-white transition hover:bg-[#0753a8] disabled:cursor-not-allowed disabled:bg-slate-300 shadow-md shadow-blue-200"
+              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#0863c5] px-4 text-xs font-bold text-white shadow-md shadow-blue-200 transition hover:bg-[#0753a8] disabled:cursor-not-allowed disabled:bg-slate-300"
             >
               {isSubmitting ? (
                 <>
-                  <span className="h-3.5 w-3.5 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
                   Đang xử lý...
                 </>
               ) : (

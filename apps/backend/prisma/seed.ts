@@ -1409,11 +1409,13 @@ async function seedBaseData() {
       create: { userId: user.id, roleId: patientRole.id },
     });
 
-    patients.push(
-      await prisma.patient.upsert({
+    const patient = await prisma.patient.upsert({
         where: { patientCode: patientSeed.patientCode },
         update: {
           userId: user.id,
+          fullName: patientSeed.fullName,
+          phone: patientSeed.phone,
+          email: patientSeed.email,
           dateOfBirth: patientSeed.dateOfBirth,
           gender: patientSeed.gender,
           address: patientSeed.address,
@@ -1424,6 +1426,9 @@ async function seedBaseData() {
         create: {
           userId: user.id,
           patientCode: patientSeed.patientCode,
+          fullName: patientSeed.fullName,
+          phone: patientSeed.phone,
+          email: patientSeed.email,
           dateOfBirth: patientSeed.dateOfBirth,
           gender: patientSeed.gender,
           address: patientSeed.address,
@@ -1432,8 +1437,25 @@ async function seedBaseData() {
           medicalHistory: patientSeed.medicalHistory,
         },
         select: { id: true, userId: true },
-      }),
-    );
+      });
+
+    await prisma.patientAccount.upsert({
+      where: { userId_patientId: { userId: user.id, patientId: patient.id } },
+      update: {
+        relationship: 'SELF',
+        isPrimary: true,
+        canBook: true,
+      },
+      create: {
+        userId: user.id,
+        patientId: patient.id,
+        relationship: 'SELF',
+        isPrimary: true,
+        canBook: true,
+      },
+    });
+
+    patients.push({ id: patient.id, userId: user.id });
   }
 
   const doctors: Array<{ id: string; userId: string }> = [];

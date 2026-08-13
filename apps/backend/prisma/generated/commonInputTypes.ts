@@ -429,6 +429,23 @@ export type EnumGenderWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedEnumGenderFilter<$PrismaModel>
 }
 
+export type EnumPatientRelationshipFilter<$PrismaModel = never> = {
+  equals?: $Enums.PatientRelationship | Prisma.EnumPatientRelationshipFieldRefInput<$PrismaModel>
+  in?: $Enums.PatientRelationship[] | Prisma.ListEnumPatientRelationshipFieldRefInput<$PrismaModel>
+  notIn?: $Enums.PatientRelationship[] | Prisma.ListEnumPatientRelationshipFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumPatientRelationshipFilter<$PrismaModel> | $Enums.PatientRelationship
+}
+
+export type EnumPatientRelationshipWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.PatientRelationship | Prisma.EnumPatientRelationshipFieldRefInput<$PrismaModel>
+  in?: $Enums.PatientRelationship[] | Prisma.ListEnumPatientRelationshipFieldRefInput<$PrismaModel>
+  notIn?: $Enums.PatientRelationship[] | Prisma.ListEnumPatientRelationshipFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumPatientRelationshipWithAggregatesFilter<$PrismaModel> | $Enums.PatientRelationship
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumPatientRelationshipFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumPatientRelationshipFilter<$PrismaModel>
+}
+
 export type EnumAvailabilityRecordTypeFilter<$PrismaModel = never> = {
   equals?: $Enums.AvailabilityRecordType | Prisma.EnumAvailabilityRecordTypeFieldRefInput<$PrismaModel>
   in?: $Enums.AvailabilityRecordType[] | Prisma.ListEnumAvailabilityRecordTypeFieldRefInput<$PrismaModel>
@@ -1181,6 +1198,23 @@ export type NestedEnumGenderWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumGenderFilter<$PrismaModel>
   _max?: Prisma.NestedEnumGenderFilter<$PrismaModel>
+}
+
+export type NestedEnumPatientRelationshipFilter<$PrismaModel = never> = {
+  equals?: $Enums.PatientRelationship | Prisma.EnumPatientRelationshipFieldRefInput<$PrismaModel>
+  in?: $Enums.PatientRelationship[] | Prisma.ListEnumPatientRelationshipFieldRefInput<$PrismaModel>
+  notIn?: $Enums.PatientRelationship[] | Prisma.ListEnumPatientRelationshipFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumPatientRelationshipFilter<$PrismaModel> | $Enums.PatientRelationship
+}
+
+export type NestedEnumPatientRelationshipWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.PatientRelationship | Prisma.EnumPatientRelationshipFieldRefInput<$PrismaModel>
+  in?: $Enums.PatientRelationship[] | Prisma.ListEnumPatientRelationshipFieldRefInput<$PrismaModel>
+  notIn?: $Enums.PatientRelationship[] | Prisma.ListEnumPatientRelationshipFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumPatientRelationshipWithAggregatesFilter<$PrismaModel> | $Enums.PatientRelationship
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumPatientRelationshipFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumPatientRelationshipFilter<$PrismaModel>
 }
 
 export type NestedEnumAvailabilityRecordTypeFilter<$PrismaModel = never> = {

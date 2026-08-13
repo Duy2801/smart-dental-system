@@ -16,9 +16,13 @@ import { SlotPicker } from "./SlotPicker";
 
 import { useQueryClient } from "@tanstack/react-query";
 import { consultationQueryKeys } from "../hooks/useConsultationQueries";
+import { LoginRequiredPanel } from "../../common/LoginRequiredPanel";
+import { useAppSelector } from "@/providers";
 
 export function ConsultationWorkspace() {
   const queryClient = useQueryClient();
+  const { isAuthenticated, accessToken } = useAppSelector((state) => state.login);
+  const isLoggedIn = isAuthenticated && Boolean(accessToken);
   const [activeTab, setActiveTab] = useState<"book" | "my-consultations">("book");
 
   // Booking Form state
@@ -41,6 +45,20 @@ export function ConsultationWorkspace() {
     const today = new Date().toISOString().split("T")[0];
     setSelectedDate(today);
   }, []);
+
+  if (!isLoggedIn) {
+    return (
+      <LoginRequiredPanel
+        title="Đặt tư vấn nha khoa trực tuyến"
+        description="Đăng nhập để chọn bác sĩ, khung giờ tư vấn, thanh toán và theo dõi lịch tư vấn online của bạn."
+        loginLabel="Đăng nhập để đặt tư vấn"
+        redirectTo="/consultation"
+        secondaryHref="/service"
+        secondaryLabel="Xem dịch vụ"
+        icon="calendar"
+      />
+    );
+  }
 
   const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

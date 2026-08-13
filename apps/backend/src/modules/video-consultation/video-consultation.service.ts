@@ -22,6 +22,8 @@ const consultInclude = {
     select: {
       id: true,
       patientCode: true,
+      fullName: true,
+      phone: true,
       medicalHistory: true,
       user: { select: { fullName: true, phone: true } },
     },
@@ -42,8 +44,10 @@ type ConsultRow = {
   createdAt: Date;
   patient: {
     patientCode: string;
+    fullName?: string | null;
+    phone?: string | null;
     medicalHistory?: string | null;
-    user: { fullName: string; phone: string | null };
+    user: { fullName: string; phone: string | null } | null;
   };
 };
 
@@ -427,7 +431,7 @@ export class VideoConsultationService {
             userId: doctor.userId,
             type: 'APPOINTMENT_REMINDER',
             title: '⏰ Lịch tư vấn bệnh nhân sắp bắt đầu trong 10 phút',
-            content: `Bạn có buổi tư vấn trực tuyến với bệnh nhân ${patient.user.fullName} lúc ${scheduledAt.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}.`,
+            content: `Bạn có buổi tư vấn trực tuyến với bệnh nhân ${patient.fullName ?? patient.user?.fullName ?? 'Benh nhan'} lúc ${scheduledAt.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}.`,
             channel: 'IN_APP',
             scheduledAt: reminderTime,
             status: 'PENDING',
@@ -588,7 +592,7 @@ export class VideoConsultationService {
 
     return {
       ...this.toSummary(row, true),
-      patientPhone: row.patient.user.phone,
+      patientPhone: row.patient.phone ?? row.patient.user?.phone ?? null,
       medicalHistory: row.patient.medicalHistory,
       chatbotSessions: chats.map((c) => ({
         id: c.id,
@@ -631,7 +635,7 @@ export class VideoConsultationService {
     // Thông báo cuộc gọi đã bắt đầu
     await this.prisma.notification.create({
       data: {
-        userId: updated.patient.user.phone ? updated.patientId : user.userId,
+        userId: user.userId,
         type: 'SYSTEM',
         title: '📞 Buổi tư vấn trực tuyến đã bắt đầu!',
         content: 'Bác sĩ đã mở phòng tư vấn. Vui lòng bấm vào nút Tham Gia Gọi Video.',
@@ -782,7 +786,7 @@ export class VideoConsultationService {
     return {
       id: row.id,
       patientId: row.patientId,
-      patientName: row.patient.user.fullName,
+      patientName: row.patient.fullName ?? row.patient.user?.fullName ?? 'Benh nhan',
       patientCode: row.patient.patientCode,
       scheduledAt: row.scheduledAt,
       durationMinutes: row.durationMinutes,

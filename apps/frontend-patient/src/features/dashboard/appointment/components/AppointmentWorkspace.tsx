@@ -5,10 +5,10 @@ import { useAppSelector } from "@/providers";
 import { useBookingAuthGuard } from "../hooks/useBookingAuthGuard";
 import { usePatientAppointments } from "../hooks/usePatientAppointments";
 import { useCancelAppointment } from "../hooks/useCancelAppointment";
+import { LoginRequiredPanel } from "../../common/LoginRequiredPanel";
 import { BookingModeView } from "./booking/BookingModeView";
 import { ManageModeView } from "./workspace/ManageModeView";
 import { RescheduleAppointmentModal } from "./workspace/RescheduleAppointmentModal";
-import { DepositPaymentModal } from "./booking/DepositPaymentModal";
 import type { AppointmentItem } from "../api";
 
 export function AppointmentWorkspace({
@@ -24,15 +24,6 @@ export function AppointmentWorkspace({
   const [mode, setMode] = useState<"manage" | "booking">(initialMode);
   const [reschedulingAppointment, setReschedulingAppointment] =
     useState<AppointmentItem | null>(null);
-  const [depositModalState, setDepositModalState] = useState<{
-    isOpen: boolean;
-    invoiceId: string;
-    depositAmount: number;
-    serviceName?: string;
-    doctorName?: string;
-    scheduledTime?: string;
-  } | null>(null);
-
   const { ensureLoggedInBeforeBooking } = useBookingAuthGuard({ isLoggedIn });
   const { upcoming, historyItems, appointments, patientAppointmentsQuery } =
     usePatientAppointments(isLoggedIn);
@@ -45,6 +36,20 @@ export function AppointmentWorkspace({
     setMode("booking");
   }, [ensureLoggedInBeforeBooking]);
 
+  if (!isLoggedIn) {
+    return (
+      <LoginRequiredPanel
+        title="Đặt lịch khám nha khoa"
+        description="Đăng nhập để chọn người khám, dịch vụ, bác sĩ và khung giờ phù hợp. Tài khoản giúp phòng khám lưu đúng hồ sơ bệnh nhân và gửi thông báo lịch hẹn cho bạn."
+        loginLabel="Đăng nhập để đặt lịch"
+        redirectTo="/appointment"
+        secondaryHref="/service"
+        secondaryLabel="Xem dịch vụ"
+        icon="calendar"
+      />
+    );
+  }
+
   if (mode === "booking") {
     return (
       <BookingModeView
@@ -52,10 +57,7 @@ export function AppointmentWorkspace({
         ensureLoggedInBeforeBooking={ensureLoggedInBeforeBooking}
         upcomingAppointments={upcoming}
         onCancelBooking={() => setMode("manage")}
-        onBookingComplete={(depositInfo) => {
-          if (depositInfo) {
-            setDepositModalState(depositInfo);
-          }
+        onBookingComplete={() => {
           setMode("manage");
         }}
       />
@@ -72,18 +74,6 @@ export function AppointmentWorkspace({
         onOpenBooking={openBookingMode}
         onReschedule={setReschedulingAppointment}
         onCancelAppointment={cancelAppointment}
-        onPayDeposit={(appointment) => {
-          if (appointment.depositInvoiceId && appointment.depositAmount) {
-            setDepositModalState({
-              isOpen: true,
-              invoiceId: appointment.depositInvoiceId,
-              depositAmount: appointment.depositAmount,
-              serviceName: appointment.service,
-              doctorName: appointment.doctor,
-              scheduledTime: `${appointment.time} ${appointment.date}`,
-            });
-          }
-        }}
         cancellingAppointmentId={cancellingAppointmentId}
       />
       {reschedulingAppointment ? (
@@ -91,21 +81,6 @@ export function AppointmentWorkspace({
           appointment={reschedulingAppointment}
           bookedAppointments={upcoming}
           onClose={() => setReschedulingAppointment(null)}
-        />
-      ) : null}
-      {depositModalState?.isOpen ? (
-        <DepositPaymentModal
-          isOpen={depositModalState.isOpen}
-          invoiceId={depositModalState.invoiceId}
-          depositAmount={depositModalState.depositAmount}
-          serviceName={depositModalState.serviceName}
-          doctorName={depositModalState.doctorName}
-          scheduledTime={depositModalState.scheduledTime}
-          onClose={() => setDepositModalState(null)}
-          onSuccess={() => {
-            setDepositModalState(null);
-            setMode("manage");
-          }}
         />
       ) : null}
     </>

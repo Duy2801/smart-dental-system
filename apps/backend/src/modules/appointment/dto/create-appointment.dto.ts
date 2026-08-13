@@ -3,6 +3,11 @@ import { IsDateString, IsEnum, IsOptional, IsString, IsUUID } from 'class-valida
 import { AppointmentPaymentOption } from '../../../../prisma/generated/enums';
 
 export class CreateAppointmentDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  patientId?: string;
+
   @ApiProperty()
   @IsUUID()
   doctorId: string;

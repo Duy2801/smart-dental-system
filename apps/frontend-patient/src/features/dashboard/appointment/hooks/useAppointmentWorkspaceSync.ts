@@ -10,6 +10,9 @@ type BookingOptionsData = {
 };
 
 type UseAppointmentWorkspaceSyncParams = {
+  enabled?: boolean;
+  autoSelectDefaults?: boolean;
+  defaultSelectionKey?: string;
   bookingOptionsData?: BookingOptionsData;
   hasBookingOptionsError: boolean;
   dates: BookingDate[];
@@ -27,6 +30,9 @@ type UseAppointmentWorkspaceSyncParams = {
 };
 
 export function useAppointmentWorkspaceSync({
+  enabled = true,
+  autoSelectDefaults = false,
+  defaultSelectionKey,
   bookingOptionsData,
   hasBookingOptionsError,
   dates,
@@ -52,7 +58,7 @@ export function useAppointmentWorkspaceSync({
   }, [hasBookingOptionsError]);
 
   useEffect(() => {
-    if (!bookingOptionsData) return;
+    if (!enabled || !bookingOptionsData) return;
 
     const params = getSearchParams();
     const requestedServiceId = params.get("service");
@@ -61,8 +67,6 @@ export function useAppointmentWorkspaceSync({
       params.get("method") ||
       params.get("treatmentMethodId");
     const requestedDoctorId = params.get("doctorId");
-
-    const firstBookableDate = pickFirstBookableDate(bookingOptionsData.dates);
 
     let initialService = bookingOptionsData.services.find(
       (service) => service.id === requestedServiceId,
@@ -74,7 +78,7 @@ export function useAppointmentWorkspaceSync({
       );
     }
 
-    if (!initialService) {
+    if (!initialService && autoSelectDefaults) {
       initialService = bookingOptionsData.services[0];
     }
 
@@ -84,28 +88,32 @@ export function useAppointmentWorkspaceSync({
         ? requestedMethodId
         : initialService?.treatmentMethods[0]?.id) || "";
 
-    if (requestedServiceId || requestedMethodId) {
+    if (requestedServiceId || requestedMethodId || autoSelectDefaults) {
       if (initialService) {
         setSelectedServiceId(initialService.id);
         setSelectedMethodId(initialMethodId);
       }
-    } else {
-      setSelectedServiceId((current) => current || initialService?.id || "");
-      setSelectedMethodId((current) => current || initialMethodId);
     }
 
-    setSelectedDoctorId(
-      (current) =>
-        current ||
-        bookingOptionsData.doctors.find(
-          (doctor) => doctor.id === requestedDoctorId,
-        )?.id ||
-        bookingOptionsData.doctors[0]?.id ||
-        "",
+    const requestedDoctor = bookingOptionsData.doctors.find(
+      (doctor) => doctor.id === requestedDoctorId,
     );
-    setSelectedDateId((current) => current || firstBookableDate?.id || "");
+    if (requestedDoctor) {
+      setSelectedDoctorId(
+        (current) =>
+          current || requestedDoctor.id,
+      );
+    }
+
+    if (autoSelectDefaults) {
+      const firstBookableDate = pickFirstBookableDate(bookingOptionsData.dates);
+      setSelectedDateId((current) => current || firstBookableDate?.id || "");
+    }
   }, [
+    autoSelectDefaults,
     bookingOptionsData,
+    defaultSelectionKey,
+    enabled,
     setSelectedDateId,
     setSelectedDoctorId,
     setSelectedMethodId,
@@ -113,15 +121,20 @@ export function useAppointmentWorkspaceSync({
   ]);
 
   useEffect(() => {
+    if (!enabled) return;
     if (!selectedDateId || dates.length === 0) return;
 
     if (availableTimes.length === 0) {
-      const nextDate = dates.find(
-        (date) => date.isOpen && date.id !== selectedDateId,
-      );
+      if (autoSelectDefaults) {
+        const nextDate = dates.find(
+          (date) => date.isOpen && date.id !== selectedDateId,
+        );
 
-      if (nextDate && nextDate.id !== selectedDateId) {
-        setSelectedDateId(nextDate.id);
+        if (nextDate && nextDate.id !== selectedDateId) {
+          setSelectedDateId(nextDate.id);
+        } else {
+          setSelectedTime("");
+        }
       } else {
         setSelectedTime("");
       }
@@ -129,12 +142,14 @@ export function useAppointmentWorkspaceSync({
       return;
     }
 
-    if (!selectedTime || !availableTimes.includes(selectedTime)) {
-      setSelectedTime(availableTimes[0]);
+    if (selectedTime && !availableTimes.includes(selectedTime)) {
+      setSelectedTime("");
     }
   }, [
+    autoSelectDefaults,
     availableTimes,
     dates,
+    enabled,
     selectedDateId,
     selectedTime,
     setSelectedDateId,
@@ -142,10 +157,11 @@ export function useAppointmentWorkspaceSync({
   ]);
 
   useEffect(() => {
+    if (!enabled) return;
     if (!selectedDoctorId) return;
     if (doctors.some((doctor) => doctor.id === selectedDoctorId)) return;
-    setSelectedDoctorId(doctors[0]?.id || "");
-  }, [doctors, selectedDoctorId, setSelectedDoctorId]);
+    setSelectedDoctorId(autoSelectDefaults ? doctors[0]?.id || "" : "");
+  }, [autoSelectDefaults, doctors, enabled, selectedDoctorId, setSelectedDoctorId]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
