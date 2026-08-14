@@ -13,6 +13,7 @@ import {
   VideoCamera,
 } from "@phosphor-icons/react";
 import { cn } from "@/src/lib/utils/cn";
+import { PatientAiBrief } from "@/src/components/doctor/patient-ai-brief";
 import type { ScheduleAppointment, AppointmentStatus } from "./types";
 import { statusConfig } from "./types";
 
@@ -107,7 +108,7 @@ export function AppointmentDetailPanel({
           <InfoRow
             icon={<Clock size={15} />}
             label="Thời gian"
-            value={`${scheduledDate.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" })} · ${scheduledDate.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })} – ${endDate.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })} (${apt.durationMinutes} phút)`}
+            value={`${scheduledDate.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" })} · ${scheduledDate.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })} - ${endDate.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })} (${apt.durationMinutes} phút)`}
           />
           <InfoRow
             icon={<User size={15} />}
@@ -117,7 +118,7 @@ export function AppointmentDetailPanel({
           <InfoRow
             icon={<Phone size={15} />}
             label="Số điện thoại"
-            value={apt.patientPhone || "—"}
+            value={apt.patientPhone || "-"}
           />
           <InfoRow
             icon={<Stethoscope size={15} />}
@@ -132,6 +133,14 @@ export function AppointmentDetailPanel({
             {apt.notes}
           </div>
         )}
+
+        <PatientAiBrief
+          key={apt.id}
+          patientId={apt.patientId}
+          consultationId={apt.type === "ONLINE" ? apt.id : null}
+          patientName={apt.patientName}
+          compact
+        />
 
         {error && (
           <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600 ring-1 ring-inset ring-red-200">

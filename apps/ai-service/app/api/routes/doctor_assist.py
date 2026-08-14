@@ -1,6 +1,11 @@
-from fastapi import APIRouter
+from secrets import compare_digest
 
+from fastapi import APIRouter, Depends, Header, HTTPException
+
+from app.config import get_settings
 from app.schemas.doctor_assist import (
+    AftercareRequest,
+    AftercareResponse,
     MedicalRecordDraftRequest,
     MedicalRecordDraftResponse,
     PrescriptionDraftRequest,
@@ -9,10 +14,19 @@ from app.schemas.doctor_assist import (
     SummarizePatientResponse,
     TreatmentPlanDraftRequest,
     TreatmentPlanDraftResponse,
+    TreatmentPlanExplanationRequest,
+    TreatmentPlanExplanationResponse,
 )
 from app.services.doctor_assist_service import DoctorAssistService
 
-router = APIRouter()
+
+def require_api_key(x_api_key: str | None = Header(default=None)):
+    expected = get_settings().ai_service_api_key
+    if not expected or not compare_digest(x_api_key or "", expected):
+        raise HTTPException(status_code=401, detail="Invalid AI service API key")
+
+
+router = APIRouter(dependencies=[Depends(require_api_key)])
 service = DoctorAssistService()
 
 
@@ -24,17 +38,31 @@ async def summarize_patient(body: SummarizePatientRequest):
 
 @router.post("/draft-medical-record", response_model=MedicalRecordDraftResponse)
 async def draft_medical_record(body: MedicalRecordDraftRequest):
-    """Gợi ý điền HSBA — bác sĩ phải duyệt trước khi lưu."""
+    """Gợi ý điền HSBA để bác sĩ duyệt trước khi lưu."""
     return await service.draft_medical_record(body)
 
 
 @router.post("/draft-prescription", response_model=PrescriptionDraftResponse)
 async def draft_prescription(body: PrescriptionDraftRequest):
-    """Gợi ý nháp đơn thuốc — bác sĩ phải duyệt trước khi lưu."""
+    """Gợi ý nháp đơn thuốc để bác sĩ duyệt trước khi lưu."""
     return await service.draft_prescription(body)
 
 
 @router.post("/draft-treatment-plan", response_model=TreatmentPlanDraftResponse)
 async def draft_treatment_plan(body: TreatmentPlanDraftRequest):
-    """Gợi ý nháp kế hoạch điều trị — bác sĩ phải duyệt trước khi lưu."""
+    """Gợi ý nháp kế hoạch điều trị để bác sĩ duyệt trước khi lưu."""
     return await service.draft_treatment_plan(body)
+
+
+@router.post("/generate-aftercare", response_model=AftercareResponse)
+async def generate_aftercare(body: AftercareRequest):
+    """Soạn nháp hướng dẫn sau điều trị để bác sĩ duyệt."""
+    return await service.generate_aftercare(body)
+
+
+@router.post(
+    "/explain-treatment-plan", response_model=TreatmentPlanExplanationResponse
+)
+async def explain_treatment_plan(body: TreatmentPlanExplanationRequest):
+    """Giải thích kế hoạch đã lưu bằng dữ liệu giá và thời lượng thật."""
+    return await service.explain_treatment_plan(body)

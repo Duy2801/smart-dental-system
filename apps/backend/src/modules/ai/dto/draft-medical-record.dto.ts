@@ -24,4 +24,9 @@ export class DraftMedicalRecordDto {
   @IsString()
   @MaxLength(2000)
   doctorNotesHint?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(20000)
+  transcript?: string;
 }

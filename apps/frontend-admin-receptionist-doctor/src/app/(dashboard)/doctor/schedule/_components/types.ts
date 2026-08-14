@@ -16,6 +16,7 @@ export type ScheduleAppointment = {
   durationMinutes: number;
   dayIso: string;
   status: AppointmentStatus;
+  patientId: string | null;
   patientName: string;
   patientCode: string;
   patientPhone: string;

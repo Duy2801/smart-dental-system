@@ -78,10 +78,11 @@ function toScheduleAppointment(raw: Record<string, unknown>): ScheduleAppointmen
     durationMinutes,
     dayIso: localDateStr(new Date(scheduledAt)),
     status: raw.status as ScheduleAppointment["status"],
-    patientName: (patient?.fullName as string) ?? (patientUser?.fullName as string) ?? "—",
-    patientCode: (patient?.patientCode as string) ?? "—",
+    patientId: (patient?.id as string | undefined) ?? null,
+    patientName: (patient?.fullName as string) ?? (patientUser?.fullName as string) ?? "-",
+    patientCode: (patient?.patientCode as string) ?? "",
     patientPhone: (patient?.phone as string) ?? (patientUser?.phone as string) ?? "",
-    serviceName: (service?.name as string) ?? "—",
+    serviceName: (service?.name as string) ?? "-",
     notes: raw.notes as string | null,
     medicalRecordId: medicalRecords?.[0]?.id ?? null,
   };
@@ -112,7 +113,7 @@ export default function DoctorSchedulePage() {
 
   const { from, to } = getWeekBounds(refDate);
   const weekDays = buildWeekDays(from);
-  const weekLabel = `${from.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" })} – ${to.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" })}, ${to.getFullYear()}`;
+  const weekLabel = `${from.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" })} - ${to.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" })}, ${to.getFullYear()}`;
 
   const doctorId = getUserInfo().doctorId;
   const fromStr = localDateStr(from);
@@ -153,9 +154,10 @@ export default function DoctorSchedulePage() {
             durationMinutes: vc.durationMinutes as number,
             dayIso: localDateStr(new Date(vc.scheduledAt as string)),
             status: vc.status as ScheduleAppointment["status"],
+            patientId: (vc.patientId as string | undefined) ?? null,
             patientName: (vc.patientName as string) || "Bệnh nhân",
-            patientCode: (vc.patientCode as string) || "—",
-            patientPhone: (vc.patientPhone as string) || "—",
+            patientCode: (vc.patientCode as string) || "",
+            patientPhone: (vc.patientPhone as string) || "",
             serviceName: "Tư vấn trực tuyến",
             notes: (vc.notes as string) ?? null,
             medicalRecordId: null,

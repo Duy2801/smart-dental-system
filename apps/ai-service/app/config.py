@@ -38,9 +38,22 @@ class Settings(BaseSettings):
     openai_model: str = "gpt-4o-mini"
     gemini_api_key: str = ""
     gemini_model: str = "gemini-2.0-flash"
+    node_env: str = "development"
     ai_service_api_key: str = "dev-local-key"
+    cors_origins: str = (
+        "http://localhost:3001,http://localhost:3002,"
+        "http://127.0.0.1:3001,http://127.0.0.1:3002"
+    )
 
 
 def get_settings() -> Settings:
     _apply_env_file()
-    return Settings()
+    settings = Settings()
+    if settings.node_env.lower() == "production" and (
+        not settings.ai_service_api_key
+        or settings.ai_service_api_key == "dev-local-key"
+    ):
+        raise RuntimeError(
+            "AI_SERVICE_API_KEY must be configured outside development"
+        )
+    return settings

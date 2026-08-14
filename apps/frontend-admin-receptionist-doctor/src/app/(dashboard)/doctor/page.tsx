@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { cn } from "@/src/lib/utils/cn";
 import { Header } from "@/src/components/layout/header";
+import { PatientAiBrief } from "@/src/components/doctor/patient-ai-brief";
 import Link from "next/link";
 import {
   CalendarCheck,
@@ -29,6 +30,7 @@ type TodayAppointment = {
   start_time: string;
   end_time: string;
   patient_name: string;
+  patientId: string | null;
   service_name: string;
   status: AppointmentStatus | "SCHEDULED";
   recordId: string | null;
@@ -40,7 +42,11 @@ type RawAppointment = {
   scheduledAt: string;
   endAt: string | null;
   status: AppointmentStatus;
-  patient?: { fullName?: string | null; user?: { fullName?: string } | null } | null;
+  patient?: {
+    id?: string;
+    fullName?: string | null;
+    user?: { fullName?: string } | null;
+  } | null;
   service?: { name?: string } | null;
   medicalRecords?: { id: string }[];
 };
@@ -53,7 +59,7 @@ type RawVideoConsultation = {
   status: "SCHEDULED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
 };
 
-const statusConfig: Record<AppointmentStatus, { label: string; color: string }> = {
+const statusConfig: Record<TodayAppointment["status"], { label: string; color: string }> = {
   PENDING: { label: "Chờ xác nhận", color: "bg-amber-100 text-amber-700 border-amber-200" },
   CONFIRMED: { label: "Đã xác nhận", color: "bg-blue-100 text-blue-700 border-blue-200" },
   CHECKED_IN: { label: "Đã check-in", color: "bg-violet-100 text-violet-700 border-violet-200" },
@@ -159,9 +165,10 @@ export default function DoctorDashboardPage() {
         id: a.id,
         type: "OFFLINE" as const,
         start_time: formatTime(a.scheduledAt),
-        end_time: a.endAt ? formatTime(a.endAt) : "—",
-        patient_name: a.patient?.fullName ?? a.patient?.user?.fullName ?? "—",
-        service_name: a.service?.name ?? "—",
+        end_time: a.endAt ? formatTime(a.endAt) : "-",
+        patient_name: a.patient?.fullName ?? a.patient?.user?.fullName ?? "-",
+        patientId: a.patient?.id ?? null,
+        service_name: a.service?.name ?? "-",
         status: a.status,
         recordId: a.medicalRecords?.[0]?.id ?? null,
         sortTime: new Date(a.scheduledAt).getTime(),
@@ -187,6 +194,7 @@ export default function DoctorDashboardPage() {
             start_time: formatTime(vc.scheduledAt),
             end_time: formatTime(end.toISOString()),
             patient_name: vc.patientName,
+            patientId: null,
             service_name: `Tư vấn trực tuyến (${vc.durationMinutes} phút)`,
             status: vc.status,
             recordId: null,
@@ -234,6 +242,12 @@ export default function DoctorDashboardPage() {
   const totalCount = appointments.length;
   const waitingCount = appointments.filter((a) => WAITING_STATUSES.includes(a.status)).length;
   const completedCount = appointments.filter((a) => a.status === "COMPLETED").length;
+  const briefAppointment = appointments.find(
+    (appointment) =>
+      (appointment.type === "ONLINE" || appointment.patientId) &&
+      (WAITING_STATUSES.includes(appointment.status) ||
+        appointment.status === "IN_PROGRESS"),
+  );
 
   const statCards = [
     {
@@ -307,6 +321,18 @@ export default function DoctorDashboardPage() {
               })}
         </div>
 
+        {briefAppointment && (
+          <PatientAiBrief
+            key={briefAppointment.id}
+            patientId={briefAppointment.patientId}
+            consultationId={
+              briefAppointment.type === "ONLINE" ? briefAppointment.id : null
+            }
+            patientName={briefAppointment.patient_name}
+            className="shadow-sm"
+          />
+        )}
+
         <div className="flex flex-col rounded-2xl border border-border bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-border p-5">
             <h3 className="text-base font-semibold text-brand-dark">Lịch làm việc hôm nay</h3>
@@ -335,7 +361,7 @@ export default function DoctorDashboardPage() {
                       <div className="flex flex-col gap-3 rounded-xl border border-border/50 bg-slate-50/50 p-4 transition-all hover:border-brand/30 hover:bg-white hover:shadow-sm sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex flex-col gap-1.5">
                           <span className="font-mono text-sm font-bold text-brand">
-                            {item.start_time} – {item.end_time}
+                            {item.start_time} - {item.end_time}
                           </span>
                           <span className="text-base font-semibold text-brand-dark">
                             {item.patient_name}

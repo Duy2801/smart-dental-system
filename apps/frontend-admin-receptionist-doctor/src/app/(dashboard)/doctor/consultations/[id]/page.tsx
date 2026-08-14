@@ -194,7 +194,11 @@ export default function ConsultationRoomPage() {
         questionsToAsk: string[];
         riskFlags: string[];
         disclaimer: string;
-      }>("/ai/doctor/summarize-patient", { consultationId: id });
+      }>(
+        "/ai/doctor/summarize-patient",
+        { consultationId: id },
+        { timeout: 60_000 },
+      );
       setAiSummary({
         bulletPoints: res.data.bulletPoints ?? [],
         questionsToAsk: res.data.questionsToAsk ?? [],
@@ -387,7 +391,7 @@ export default function ConsultationRoomPage() {
                     "ml-1 font-semibold",
                     over ? "text-red-600" : warn ? "text-amber-500" : "text-muted-foreground",
                   )}>
-                    · {elapsedLabel(sec)}{over ? " — Quá giờ" : warn ? " — Sắp hết giờ" : ""}
+                    · {elapsedLabel(sec)}{over ? " - Quá giờ" : warn ? " - Sắp hết giờ" : ""}
                   </span>
                 );
               })() : null}
@@ -482,7 +486,7 @@ export default function ConsultationRoomPage() {
                       ? "Link phòng đã hết hạn và không thể vào lại."
                       : detail.status === "CANCELLED"
                         ? "Không thể bắt đầu buổi đã hủy."
-                        : 'Xem lịch sử Chatbot bên phải trước khi gọi. Khi sẵn sàng, bấm "Bắt đầu tư vấn" — hệ thống tạo phòng ngẫu nhiên + mã PIN.'}
+                        : 'Xem lịch sử Chatbot bên phải trước khi gọi. Khi sẵn sàng, bấm "Bắt đầu tư vấn" để hệ thống tạo phòng ngẫu nhiên và mã PIN.'}
                   </p>
                 </div>
               </div>
@@ -642,7 +646,7 @@ export default function ConsultationRoomPage() {
               <div className="space-y-3 rounded-xl bg-slate-50 p-4 ring-1 ring-inset ring-border/60">
                 <InfoRow label="Họ tên" value={detail.patientName} />
                 <InfoRow label="Mã BN" value={detail.patientCode} />
-                <InfoRow label="Số điện thoại" value={detail.patientPhone ?? "—"} />
+                <InfoRow label="Số điện thoại" value={detail.patientPhone ?? "-"} />
                 <InfoRow
                   label="Tiền sử"
                   value={detail.medicalHistory?.trim() || "Chưa ghi nhận"}

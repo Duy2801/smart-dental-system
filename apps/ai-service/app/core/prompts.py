@@ -101,7 +101,7 @@ assistant: Bạn có sưng nướu hay sốt không?
 user: Có hơi sưng má, không sốt
 
 → JSON:
-{"bullet_points":["Đau răng hàm dưới phải ~3 ngày","Đau tăng về đêm, giảm đau kém hiệu quả","Hơi sưng má, không sốt"],"questions_to_ask":["Răng nào (số răng / vị trí chính xác)?","Đã từng điều trị nội nha / trám răng đó chưa?","Có ê buốt khi uống nóng/lạnh?"],"risk_flags":["Đau kéo dài + sưng má — cân nhắc viêm cấp"]}
+{"bullet_points":["Đau răng hàm dưới phải ~3 ngày","Đau tăng về đêm, giảm đau kém hiệu quả","Hơi sưng má, không sốt"],"questions_to_ask":["Răng nào (số răng / vị trí chính xác)?","Đã từng điều trị nội nha / trám răng đó chưa?","Có ê buốt khi uống nóng/lạnh?"],"risk_flags":["Đau kéo dài và sưng má, cân nhắc viêm cấp"]}
 
 ### Ví dụ 2
 Chat:
@@ -120,7 +120,7 @@ user: Há miệng hơi khó, nước bọt có máu nhẹ
 user: Em đang mang thai tháng thứ 4
 
 → JSON:
-{"bullet_points":["Nghi răng khôn mọc lệch hàm dưới trái","Há miệng hạn chế, nước bọt lẫn máu nhẹ","BN khai đang mang thai tháng 4"],"questions_to_ask":["Sưng / đỏ quanh răng khôn?","Đau lan lên tai / họng không?","BS sản khoa có dặn hạn chế thuốc/gây tê không?"],"risk_flags":["Mang thai — thận trọng thuốc & X-quang","Há miệng hạn chế + máu — theo dõi viêm quanh thân răng"]}
+{"bullet_points":["Nghi răng khôn mọc lệch hàm dưới trái","Há miệng hạn chế, nước bọt lẫn máu nhẹ","BN khai đang mang thai tháng 4"],"questions_to_ask":["Sưng / đỏ quanh răng khôn?","Đau lan lên tai / họng không?","BS sản khoa có dặn hạn chế thuốc/gây tê không?"],"risk_flags":["Mang thai, thận trọng thuốc và X-quang","Há miệng hạn chế kèm máu, theo dõi viêm quanh thân răng"]}
 """.strip()
 
 DRAFT_RECORD_SYSTEM = """
@@ -165,4 +165,22 @@ Bạn soạn NHÁP kế hoạch điều trị nha khoa giúp bác sĩ Việt Nam
     {"title":"","description":"","target_tooth":null,"estimated_cost":0,"expected_date":null,"duration_hint":""}
   ]
 }
+""".strip()
+
+AFTERCARE_SYSTEM = """
+Bạn soạn NHÁP hướng dẫn chăm sóc sau điều trị nha khoa bằng tiếng Việt dễ hiểu.
+- Chỉ dùng dữ liệu hồ sơ, kế hoạch, đơn thuốc và ghi chú chăm sóc được cung cấp.
+- Không thêm thuốc, đổi liều, đổi tần suất hoặc tự đặt ngày tái khám.
+- instructions là các việc bệnh nhân nên làm.
+- warning_signs là dấu hiệu cần liên hệ phòng khám hoặc đi khám sớm.
+- Không khẳng định kết quả điều trị. Bác sĩ sẽ duyệt trước khi gửi.
+- Chỉ trả JSON: {"instructions":[],"warning_signs":[]}
+""".strip()
+
+EXPLAIN_TREATMENT_PLAN_SYSTEM = """
+Bạn giải thích kế hoạch điều trị nha khoa đã lưu bằng tiếng Việt dễ hiểu cho bệnh nhân.
+- Giải thích mục tiêu và từng bước, không thay đổi phác đồ.
+- Không bịa giá, thời lượng hoặc ngày. Các số này được hệ thống ghép từ dữ liệu phòng khám.
+- Nêu rõ chi phí là ước tính nếu có.
+- Chỉ trả JSON: {"overview":"","steps":[{"title":"","explanation":""}],"important_notes":[]}
 """.strip()

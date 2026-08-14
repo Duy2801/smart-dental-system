@@ -141,10 +141,14 @@ function NewTreatmentPlanContent() {
           durationHint: string | null;
         }>;
         disclaimer: string;
-      }>("/ai/doctor/draft-treatment-plan", {
-        patientId,
-        doctorNotesHint: title.trim() || description.trim() || undefined,
-      });
+      }>(
+        "/ai/doctor/draft-treatment-plan",
+        {
+          patientId,
+          doctorNotesHint: title.trim() || description.trim() || undefined,
+        },
+        { timeout: 60_000 },
+      );
       const draftSteps = res.data.steps ?? [];
       if (draftSteps.length === 0) {
         setError("AI chưa gợi ý được bước điều trị. Thử lại hoặc nhập tay.");
@@ -179,7 +183,7 @@ function NewTreatmentPlanContent() {
       );
       setAiNote(
         res.data.disclaimer ||
-          "Bản nháp AI — chỉnh sửa rồi bấm Lưu kế hoạch.",
+          "Bản nháp AI. Chỉnh sửa rồi bấm Lưu kế hoạch.",
       );
     } catch (err) {
       const msg = axios.isAxiosError(err)
@@ -347,7 +351,7 @@ function NewTreatmentPlanContent() {
                   <option value="">-- Chọn bệnh nhân --</option>
                   {patients.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.fullName} — {p.patientCode}
+                      {p.fullName} - {p.patientCode}
                     </option>
                   ))}
                 </select>
