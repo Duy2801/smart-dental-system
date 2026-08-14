@@ -70,7 +70,7 @@ export default function LoginPage() {
       }
 
       dispatch(login({ user: session.user, accessToken: session.accessToken }));
-      router.replace(getSafeRedirectPath());
+      window.location.href = getSafeRedirectPath();
     } catch (loginError) {
       setError(getErrorMessage(loginError));
     } finally {

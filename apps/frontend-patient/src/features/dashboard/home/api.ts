@@ -10,6 +10,18 @@ type PaginatedResponse<T> = {
   };
 };
 
+type TreatmentMethodDto = {
+  id: string;
+  name: string;
+  slug?: string | null;
+  description?: string | null;
+  imageUrl?: string | null;
+  basePrice: string | number;
+  durationMinutes?: number | null;
+  displayOrder?: number;
+  isActive?: boolean;
+};
+
 type ServiceDto = {
   id: string;
   category: string;
@@ -18,9 +30,10 @@ type ServiceDto = {
   icon?: string | null;
   shortDescription?: string | null;
   description?: string | null;
-  treatmentMethods?: { imageUrl?: string | null }[];
-  durationMinutes: number;
-  basePrice: string | number;
+  treatmentMethods?: TreatmentMethodDto[];
+  treatment_methods?: TreatmentMethodDto[];
+  durationMinutes?: number;
+  basePrice?: string | number;
 };
 
 type DoctorDto = {
@@ -190,10 +203,39 @@ export async function getLiveClinicConfigInfo(): Promise<ClinicConfigInfo> {
 }
 
 function formatVnd(value: string | number) {
-  return new Intl.NumberFormat("vi-VN").format(Number(value || 0));
+  return `${new Intl.NumberFormat("vi-VN").format(Number(value || 0))} đ`;
 }
 
 function mapService(service: ServiceDto): HomeServiceCard {
+  const methods = service.treatmentMethods || service.treatment_methods || [];
+  const activeMethods = methods.filter((m) => m.isActive !== false);
+
+  const prices = activeMethods
+    .map((m) => Number(m.basePrice ?? 0))
+    .filter((p) => p > 0);
+
+  const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
+  const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
+
+  let priceText = "Liên hệ";
+  if (minPrice > 0) {
+    if (minPrice === maxPrice) {
+      priceText = formatVnd(minPrice);
+    } else {
+      priceText = `Từ ${formatVnd(minPrice)}`;
+    }
+  }
+
+  const imageUrl =
+    activeMethods.find((m) => m.imageUrl)?.imageUrl ||
+    methods.find((m) => m.imageUrl)?.imageUrl ||
+    null;
+
+  const durations = activeMethods
+    .map((m) => Number(m.durationMinutes ?? 0))
+    .filter((d) => d > 0);
+  const minDuration = durations.length > 0 ? Math.min(...durations) : (service.durationMinutes || 30);
+
   return {
     id: service.id,
     title: service.name,
@@ -201,22 +243,22 @@ function mapService(service: ServiceDto): HomeServiceCard {
       service.shortDescription ||
       service.description ||
       "Dịch vụ nha khoa với quy trình chăm sóc chuyên nghiệp.",
-    price: formatVnd(service.basePrice),
+    price: priceText,
     href: `/service/${service.id}`,
     icon: service.icon ?? null,
-    imageUrl: service.treatmentMethods?.find((m) => m.imageUrl)?.imageUrl ?? null,
+    imageUrl,
     imageAlt: service.name,
-    durationMinutes: service.durationMinutes,
+    durationMinutes: minDuration,
   };
 }
 
 function mapDoctor(doctor: DoctorDto): HomeDoctorCard {
   return {
     id: doctor.id,
-    name: doctor.user.fullName,
-    specialization: doctor.specialization,
-    doctorCode: doctor.doctorCode,
-    licenseNumber: doctor.licenseNumber,
+    name: doctor.user?.fullName || "Bác sĩ nha khoa",
+    specialization: doctor.specialization || "Răng Hàm Mặt",
+    doctorCode: doctor.doctorCode || "",
+    licenseNumber: doctor.licenseNumber || "",
     avatarUrl: doctor.avatarUrl ?? null,
     bio: doctor.bio || "",
     position: doctor.position || "Bác sĩ điều trị",
@@ -251,31 +293,37 @@ function mapDoctorDetail(doctor: DoctorDto): DoctorDetail {
 function mapClinicalCase(item: ClinicalCaseDto): HomeClinicalCase {
   return {
     id: item.id,
-    title: item.title.replace(/^Seed clinical case -\s*/i, ""),
+    title: (item.title || "").replace(/^Seed clinical case -\s*/i, ""),
     description:
       item.description ||
       "Ca điều trị đã được bệnh nhân đồng ý công khai hình ảnh trước và sau.",
     duration: item.treatmentDuration || "Đang cập nhật",
-    beforeImageUrl: item.beforeImageUrl,
-    afterImageUrl: item.afterImageUrl,
-    doctorName: item.doctor.user.fullName,
-    serviceName: item.service.name,
+    beforeImageUrl: item.beforeImageUrl || "",
+    afterImageUrl: item.afterImageUrl || "",
+    doctorName: item.doctor?.user?.fullName || "Bác sĩ chuyên khoa",
+    serviceName: item.service?.name || "Dịch vụ nha khoa",
   };
 }
 
-export async function getHomeServices() {
-  const response = await apiClient.get<PaginatedResponse<ServiceDto>>(
-    "/services",
-    {
+export async function getHomeServices(): Promise<HomeServiceCard[]> {
+  try {
+    const response = await apiClient.get<unknown>("/services", {
       params: {
         isActive: true,
         limit: 20,
         page: 1,
       },
-    },
-  );
+    });
 
-  return response.data.data.map(mapService);
+    const resData = (response as { data?: unknown })?.data ?? response;
+    const items = (resData as { data?: ServiceDto[] })?.data ?? (Array.isArray(resData) ? resData : []);
+
+    if (!Array.isArray(items)) return [];
+    return items.map(mapService);
+  } catch (error) {
+    console.error("Error fetching home services from API:", error);
+    return [];
+  }
 }
 
 export function getDoctorBullets(doctor: HomeDoctorCard): string[] {
@@ -327,9 +375,11 @@ export function getDoctorBullets(doctor: HomeDoctorCard): string[] {
 
 export async function getHomeDoctors(): Promise<HomeDoctorCard[]> {
   try {
-    const response = await apiClient.get<DoctorDto[]>("/doctors");
-    const active = response.data
-      .filter((doctor) => doctor.isActive && doctor.user.status !== "INACTIVE")
+    const response = await apiClient.get<unknown>("/doctors");
+    const raw = (response as { data?: unknown })?.data ?? response;
+    const items = Array.isArray(raw) ? (raw as DoctorDto[]) : [];
+    const active = items
+      .filter((doctor) => doctor && doctor.isActive && doctor.user?.status !== "INACTIVE")
       .map(mapDoctor);
 
     return active.slice(0, 6).map((doc) => ({
@@ -344,9 +394,11 @@ export async function getHomeDoctors(): Promise<HomeDoctorCard[]> {
 
 export async function getDoctors(): Promise<HomeDoctorCard[]> {
   try {
-    const response = await apiClient.get<DoctorDto[]>("/doctors");
-    const active = response.data
-      .filter((doctor) => doctor.isActive && doctor.user.status !== "INACTIVE")
+    const response = await apiClient.get<unknown>("/doctors");
+    const raw = (response as { data?: unknown })?.data ?? response;
+    const items = Array.isArray(raw) ? (raw as DoctorDto[]) : [];
+    const active = items
+      .filter((doctor) => doctor && doctor.isActive && doctor.user?.status !== "INACTIVE")
       .map(mapDoctor);
 
     return active.map((doc) => ({
@@ -361,15 +413,22 @@ export async function getDoctors(): Promise<HomeDoctorCard[]> {
 
 export async function getDoctorDetail(id: string) {
   const response = await apiClient.get<DoctorDto>(`/doctors/${id}`);
-  return mapDoctorDetail(response.data);
+  const data = (response as unknown as { data: DoctorDto }).data || response;
+  return mapDoctorDetail(data as DoctorDto);
 }
 
-export async function getHomeClinicalCases() {
-  const response = await apiClient.get<ClinicalCaseDto[]>("/clinical-cases", {
-    params: { limit: 3 },
-  });
-
-  return response.data.map(mapClinicalCase);
+export async function getHomeClinicalCases(): Promise<HomeClinicalCase[]> {
+  try {
+    const response = await apiClient.get<unknown>("/clinical-cases", {
+      params: { limit: 3 },
+    });
+    const raw = (response as { data?: unknown })?.data ?? response;
+    const items = Array.isArray(raw) ? (raw as ClinicalCaseDto[]) : [];
+    return items.map(mapClinicalCase);
+  } catch (error) {
+    console.error("Error fetching clinical cases from API:", error);
+    return [];
+  }
 }
 
 export type BannerDto = {
@@ -386,8 +445,9 @@ export type BannerDto = {
 
 export async function getBanners(): Promise<BannerDto[]> {
   try {
-    const response = await apiClient.get<BannerDto[]>("/banners");
-    return response.data;
+    const response = await apiClient.get<unknown>("/banners");
+    const raw = (response as { data?: unknown })?.data ?? response;
+    return Array.isArray(raw) ? (raw as BannerDto[]) : [];
   } catch (error) {
     console.error("Error fetching banners from API:", error);
     return [];

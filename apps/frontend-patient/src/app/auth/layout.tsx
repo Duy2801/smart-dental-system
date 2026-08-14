@@ -3,39 +3,42 @@ import type { ReactNode } from "react";
 
 function ToothLogo() {
   return (
-    <svg aria-hidden="true" className="h-6 w-6" viewBox="0 0 32 32" fill="none">
-      <path
-        d="M8.4 4.8c2.6-1.3 5.1.2 7.6.2s5-1.5 7.6-.2c4 2 3.2 7.6 1.8 11.2-1.8 4.6-2.8 11.2-6.1 11.2-2.1 0-1.4-7.5-3.3-7.5s-1.2 7.5-3.3 7.5c-3.3 0-4.3-6.6-6.1-11.2C5.2 12.4 4.4 6.8 8.4 4.8Z"
-        fill="currentColor"
-      />
-      <path
-        d="M11.1 7.8c1.4-.7 2.9.1 4.9.1"
-        stroke="white"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-        opacity=".72"
-      />
-    </svg>
+    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white shadow-sm shadow-blue-500/30">
+      <svg aria-hidden="true" className="h-4.5 w-4.5" viewBox="0 0 32 32" fill="none">
+        <path
+          d="M8.4 4.8c2.6-1.3 5.1.2 7.6.2s5-1.5 7.6-.2c4 2 3.2 7.6 1.8 11.2-1.8 4.6-2.8 11.2-6.1 11.2-2.1 0-1.4-7.5-3.3-7.5s-1.2 7.5-3.3 7.5c-3.3 0-4.3-6.6-6.1-11.2C5.2 12.4 4.4 6.8 8.4 4.8Z"
+          fill="currentColor"
+        />
+        <path
+          d="M11.1 7.8c1.4-.7 2.9.1 4.9.1"
+          stroke="white"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+          opacity=".72"
+        />
+      </svg>
+    </div>
   );
 }
 
 function AuthHeader() {
   return (
-    <header className="shrink-0 border-b border-[#e7eaf0] bg-white">
-      <div className="mx-auto flex h-14 w-full max-w-[1440px] items-center justify-between px-5 sm:px-8">
+    <header className="h-14 shrink-0 border-b border-slate-200/70 bg-white/80 backdrop-blur-md">
+      <div className="mx-auto flex h-full w-full max-w-6xl items-center justify-between px-6">
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-sm font-bold tracking-[-0.02em] text-[#0863c5]"
+          className="group flex items-center gap-2.5 text-sm font-bold tracking-tight text-slate-900 transition hover:opacity-90"
         >
           <ToothLogo />
-          <span>Smart Dental System</span>
+          <span className="font-extrabold text-slate-900">Smart Dental System</span>
         </Link>
 
-        <nav
-          aria-label="Liên kết hỗ trợ"
-          className="hidden items-center gap-5 text-[11px] font-medium text-slate-600 sm:flex"
-        >
-        </nav>
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200/80 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            Hệ thống sẵn sàng
+          </span>
+        </div>
       </div>
     </header>
   );
@@ -43,16 +46,16 @@ function AuthHeader() {
 
 function AuthFooter() {
   return (
-    <footer className="shrink-0 border-t border-[#e7eaf0] bg-white/80">
-      <div className="mx-auto flex min-h-14 w-full max-w-[1440px] flex-col justify-center gap-2 px-5 py-2.5 text-[10px] text-slate-500 sm:px-8 md:flex-row md:items-center md:justify-between">
-        <p className="font-medium text-slate-600">
+    <footer className="h-10 shrink-0 border-t border-slate-200/70 bg-white/60 backdrop-blur-md">
+      <div className="mx-auto flex h-full w-full max-w-6xl items-center justify-between px-6 text-[11px] text-slate-500">
+        <p className="font-medium">
           © 2026 DentaAI Precision. Clinical AI for Modern Dentistry.
         </p>
-        <nav aria-label="Thông tin pháp lý" className="flex items-center gap-5">
-          <Link href="/privacy" className="transition hover:text-[#0863c5]">
+        <nav aria-label="Thông tin pháp lý" className="flex items-center gap-5 font-medium">
+          <Link href="/privacy" className="transition hover:text-blue-600">
             Privacy Policy
           </Link>
-          <Link href="/standards" className="transition hover:text-[#0863c5]">
+          <Link href="/standards" className="transition hover:text-blue-600">
             HIPAA Compliance
           </Link>
         </nav>
@@ -63,12 +66,10 @@ function AuthFooter() {
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex h-dvh flex-col overflow-hidden bg-[#fafaff] text-slate-900">
+    <div className="flex h-screen w-screen flex-col overflow-hidden bg-slate-50 text-slate-900 antialiased selection:bg-blue-500 selection:text-white">
       <AuthHeader />
-      <main className="auth-background flex min-h-0 flex-1 items-center justify-center overflow-hidden px-4 py-5 sm:px-6">
-        <div className="flex max-h-full w-full max-w-[500px] items-center justify-center">
-          {children}
-        </div>
+      <main className="auth-background flex flex-1 items-center justify-center p-4 overflow-hidden">
+        {children}
       </main>
       <AuthFooter />
     </div>

@@ -17,6 +17,7 @@ import { SlotPicker } from "./SlotPicker";
 import { useQueryClient } from "@tanstack/react-query";
 import { consultationQueryKeys } from "../hooks/useConsultationQueries";
 import { LoginRequiredPanel } from "../../common/LoginRequiredPanel";
+import { DashboardIcon } from "../../common/DashboardIcon";
 import { useAppSelector } from "@/providers";
 
 export function ConsultationWorkspace() {
@@ -96,42 +97,48 @@ export function ConsultationWorkspace() {
 
   return (
     <div className="mx-auto w-full max-w-[1360px] px-4 py-6 sm:px-6 lg:px-8 space-y-6">
-      {/* Header Banner & Tab Switcher */}
-      <div className="bg-gradient-to-r from-blue-600 to-teal-500 rounded-2xl p-6 sm:p-8 text-white shadow-lg">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <span className="inline-block px-3 py-1 bg-white/20 rounded-full text-xs font-semibold uppercase tracking-wider mb-2">
+      {/* Header & Tab Switcher (Matching standard workspace layout) */}
+      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-0.5 text-[11px] font-bold uppercase tracking-wider text-[#0058bc]">
+              <DashboardIcon name="video" className="h-3.5 w-3.5" />
               Telehealth Center
             </span>
-            <h1 className="text-2xl sm:text-3xl font-bold">
-              Tư Vấn Nha Khoa Trực Tuyến
-            </h1>
-            <p className="text-blue-100 text-sm sm:text-base mt-1">
-              Kết nối trực tiếp Video Call 1-1 với Bác sĩ chuyên khoa nha khoa hàng đầu.
-            </p>
           </div>
-          <div className="flex bg-white/10 p-1.5 rounded-xl backdrop-blur-md border border-white/20">
-            <button
-              onClick={() => setActiveTab("book")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                activeTab === "book"
-                  ? "bg-white text-blue-700 shadow-md font-semibold"
-                  : "text-white hover:bg-white/10"
-              }`}
-            >
-              Đặt lịch tư vấn mới
-            </button>
-            <button
-              onClick={() => setActiveTab("my-consultations")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                activeTab === "my-consultations"
-                  ? "bg-white text-blue-700 shadow-md font-semibold"
-                  : "text-white hover:bg-white/10"
-              }`}
-            >
-              Lịch tư vấn của tôi
-            </button>
-          </div>
+          <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
+            Tư Vấn Nha Khoa Trực Tuyến
+          </h1>
+          <p className="mt-1 text-xs text-slate-500 sm:text-sm">
+            Kết nối trực tiếp Video Call 1-1 với Bác sĩ chuyên khoa nha khoa hàng đầu.
+          </p>
+        </div>
+
+        <div className="inline-flex w-full md:w-auto shrink-0 rounded-2xl border border-slate-200 bg-white p-1 shadow-[0_10px_28px_rgba(15,23,42,.05)]">
+          <button
+            type="button"
+            onClick={() => setActiveTab("book")}
+            className={`inline-flex h-11 flex-1 md:flex-none items-center justify-center gap-2 rounded-xl px-4 text-xs sm:text-sm font-bold transition ${
+              activeTab === "book"
+                ? "bg-[#0058bc] text-white shadow-sm"
+                : "text-slate-600 hover:bg-blue-50 hover:text-[#0058bc]"
+            }`}
+          >
+            <DashboardIcon name="calendar" className="h-4 w-4" />
+            Đặt lịch tư vấn mới
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("my-consultations")}
+            className={`inline-flex h-11 flex-1 md:flex-none items-center justify-center gap-2 rounded-xl px-4 text-xs sm:text-sm font-bold transition ${
+              activeTab === "my-consultations"
+                ? "bg-[#0058bc] text-white shadow-sm"
+                : "text-slate-600 hover:bg-blue-50 hover:text-[#0058bc]"
+            }`}
+          >
+            <DashboardIcon name="appointment" className="h-4 w-4" />
+            Lịch tư vấn của tôi
+          </button>
         </div>
       </div>
 

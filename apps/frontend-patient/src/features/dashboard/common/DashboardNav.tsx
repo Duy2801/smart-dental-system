@@ -244,7 +244,7 @@ export function DashboardNav() {
                               <div className="text-xs font-bold text-slate-900">{svc.title}</div>
                               {svc.price ? (
                                 <div className="text-[11px] font-semibold text-[#0058bc]">
-                                  Từ {Number(svc.price).toLocaleString("vi-VN")} đ
+                                  {svc.price}
                                 </div>
                               ) : (
                                 <div className="text-[11px] text-slate-500">Liên hệ tư vấn</div>

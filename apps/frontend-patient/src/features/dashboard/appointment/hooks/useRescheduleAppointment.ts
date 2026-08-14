@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/features/dashboard/common/toast";
 import {
@@ -21,17 +21,29 @@ export function useRescheduleAppointment({
   onClose,
 }: UseRescheduleAppointmentParams) {
   const queryClient = useQueryClient();
-  const [selectedDateId, setSelectedDateId] = useState("");
+
+  // Initialize selectedDateId with appointment.dateId so API loads for that date immediately
+  const initialDateId = appointment?.dateId ?? "";
+  const [selectedDateId, setSelectedDateId] = useState(initialDateId);
   const [selectedTime, setSelectedTime] = useState("");
+
+  // Sync date if appointment changes
+  useEffect(() => {
+    if (appointment?.dateId && !selectedDateId) {
+      setSelectedDateId(appointment.dateId);
+    }
+  }, [appointment?.dateId, selectedDateId]);
+
+  const activeDateId = selectedDateId || appointment?.dateId || "";
 
   const rescheduleParams = useMemo(
     () => ({
       appointmentId: appointment?.id,
       serviceId: appointment?.serviceId,
       doctorId: appointment?.doctorId,
-      date: selectedDateId,
+      date: activeDateId,
     }),
-    [appointment?.doctorId, appointment?.id, appointment?.serviceId, selectedDateId],
+    [appointment?.doctorId, appointment?.id, appointment?.serviceId, activeDateId],
   );
 
   const optionsQuery = useAppointmentRescheduleOptionsQuery(rescheduleParams);
@@ -42,7 +54,17 @@ export function useRescheduleAppointment({
     [optionsQuery.data?.timeSlots],
   );
 
-  const defaultDateId = pickFirstBookableDate(dates)?.id ?? "";
+  // Auto pick first available date if selectedDateId is empty or invalid
+  useEffect(() => {
+    if (dates.length > 0 && (!selectedDateId || !dates.some((d) => d.id === selectedDateId && d.isOpen))) {
+      const firstAvailable = pickFirstBookableDate(dates)?.id ?? dates[0]?.id;
+      if (firstAvailable && firstAvailable !== selectedDateId) {
+        setSelectedDateId(firstAvailable);
+      }
+    }
+  }, [dates, selectedDateId]);
+
+  const defaultDateId = pickFirstBookableDate(dates)?.id ?? dates[0]?.id ?? "";
   const resolvedDateId = selectedDateId || defaultDateId;
   const resolvedTime = selectedTime || timeSlots[0] || "";
 
