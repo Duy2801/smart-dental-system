@@ -14,6 +14,10 @@ import {
 } from "@phosphor-icons/react";
 import axios from "axios";
 import apiClient from "@/src/lib/api/client";
+import {
+  PrescriptionSafetyReview,
+  usePrescriptionSafetyReview,
+} from "@/src/components/doctor/prescription-safety-review";
 
 type Patient = {
   id: string;
@@ -68,10 +72,19 @@ function NewPrescriptionContent() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [records, setRecords] = useState<RecordSummary[]>([]);
   const [selectedPatientId, setSelectedPatientId] = useState(initPatientId);
-  const [selectedRecordId, setSelectedRecordId] = useState(initRecordId);
+  const [selectedRecordId, setSelectedRecordId] = useState(
+    initPatientId ? initRecordId : "",
+  );
   const [notes, setNotes] = useState("");
   const [medications, setMedications] = useState<MedItem[]>([
-    { key: 1, medicineName: "", dosage: "", frequency: "", duration: "", instruction: "" },
+    {
+      key: 1,
+      medicineName: "",
+      dosage: "",
+      frequency: "",
+      duration: "",
+      instruction: "",
+    },
   ]);
   const [submitting, setSubmitting] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
@@ -81,6 +94,11 @@ function NewPrescriptionContent() {
   const [success, setSuccess] = useState(false);
 
   const doctorId = getUserInfo().doctorId;
+  const safetyReview = usePrescriptionSafetyReview({
+    patientId: selectedPatientId || undefined,
+    medicalRecordId: selectedRecordId || undefined,
+    items: medications,
+  });
 
   // Load patients
   useEffect(() => {
@@ -93,11 +111,7 @@ function NewPrescriptionContent() {
 
   // Load medical records when patient changes
   useEffect(() => {
-    if (!doctorId || !selectedPatientId) {
-      setRecords([]);
-      setSelectedRecordId("");
-      return;
-    }
+    if (!doctorId || !selectedPatientId) return;
     apiClient
       .get<RecordSummary[]>(`/medical-records?doctorId=${doctorId}`)
       .then((res) => {
@@ -117,7 +131,14 @@ function NewPrescriptionContent() {
   const addMedication = () => {
     setMedications((prev) => [
       ...prev,
-      { key: Date.now(), medicineName: "", dosage: "", frequency: "", duration: "", instruction: "" },
+      {
+        key: Date.now(),
+        medicineName: "",
+        dosage: "",
+        frequency: "",
+        duration: "",
+        instruction: "",
+      },
     ]);
   };
 
@@ -127,7 +148,11 @@ function NewPrescriptionContent() {
     }
   };
 
-  const updateMed = (key: number, field: keyof Omit<MedItem, "key">, value: string) => {
+  const updateMed = (
+    key: number,
+    field: keyof Omit<MedItem, "key">,
+    value: string,
+  ) => {
     setMedications((prev) =>
       prev.map((m) => (m.key === key ? { ...m, [field]: value } : m)),
     );
@@ -154,10 +179,14 @@ function NewPrescriptionContent() {
         }>;
         allergyWarnings: string[];
         disclaimer: string;
-      }>("/ai/doctor/draft-prescription", {
-        medicalRecordId: selectedRecordId || undefined,
-        patientId: selectedPatientId || undefined,
-      });
+      }>(
+        "/ai/doctor/draft-prescription",
+        {
+          medicalRecordId: selectedRecordId || undefined,
+          patientId: selectedPatientId || undefined,
+        },
+        { timeout: 60_000 },
+      );
       const items = res.data.items ?? [];
       if (items.length === 0) {
         setError("AI chưa gợi ý được thuốc. Kiểm tra HSBA có chẩn đoán chưa.");
@@ -177,12 +206,10 @@ function NewPrescriptionContent() {
       setAllergyWarnings(res.data.allergyWarnings ?? []);
       setAiNote(
         res.data.disclaimer ||
-          "Bản nháp AI — kiểm tra dị ứng rồi mới lưu.",
+          "Bản nháp AI. Chạy kiểm tra an toàn trước khi lưu.",
       );
     } catch (err) {
-      const msg = axios.isAxiosError(err)
-        ? err.response?.data?.message
-        : null;
+      const msg = axios.isAxiosError(err) ? err.response?.data?.message : null;
       setError(
         typeof msg === "string" && msg.trim()
           ? msg
@@ -216,8 +243,14 @@ function NewPrescriptionContent() {
       setError("Mỗi thuốc cần có tên thuốc và liều dùng.");
       return;
     }
-    setSubmitting(true);
     setError(null);
+    if (!(await safetyReview.ensureReadyToSave())) {
+      document
+        .getElementById("prescription-safety-review")
+        ?.scrollIntoView({ block: "center" });
+      return;
+    }
+    setSubmitting(true);
     try {
       await apiClient.post(`/prescriptions?doctorId=${doctorId}`, {
         patientId: selectedPatientId,
@@ -265,7 +298,13 @@ function NewPrescriptionContent() {
               <button
                 type="button"
                 onClick={handleAiDraft}
-                disabled={aiLoading || submitting || success || !selectedRecordId}
+                disabled={
+                  aiLoading ||
+                  safetyReview.loading ||
+                  submitting ||
+                  success ||
+                  !selectedRecordId
+                }
                 className="inline-flex items-center gap-2 rounded-xl border border-brand/30 bg-brand-light/50 px-4 py-2.5 text-sm font-medium text-brand-dark transition-all hover:bg-brand-light disabled:opacity-60"
               >
                 {aiLoading ? (
@@ -277,7 +316,7 @@ function NewPrescriptionContent() {
               </button>
               <button
                 onClick={handleSubmit}
-                disabled={submitting || success}
+                disabled={submitting || safetyReview.loading || success}
                 className="inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-brand-dark hover:shadow active:scale-[0.98] disabled:opacity-60"
               >
                 {submitting ? (
@@ -287,7 +326,11 @@ function NewPrescriptionContent() {
                 ) : (
                   <Plus size={15} weight="bold" />
                 )}
-                {success ? "Đã lưu!" : submitting ? "Đang lưu..." : "Lưu đơn thuốc"}
+                {success
+                  ? "Đã lưu!"
+                  : submitting
+                    ? "Đang lưu..."
+                    : "Lưu đơn thuốc"}
               </button>
             </div>
           </div>
@@ -307,9 +350,9 @@ function NewPrescriptionContent() {
         )}
 
         {allergyWarnings.length > 0 && (
-          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             <p className="mb-1.5 flex items-center gap-2 font-semibold">
-              <Warning size={16} /> Cảnh báo dị ứng / an toàn thuốc
+              <Warning size={16} /> Lưu ý chưa xác minh từ bản nháp AI
             </p>
             <ul className="list-inside list-disc space-y-1">
               {allergyWarnings.map((w, i) => (
@@ -318,6 +361,13 @@ function NewPrescriptionContent() {
             </ul>
           </div>
         )}
+
+        <div className="mb-6">
+          <PrescriptionSafetyReview
+            controller={safetyReview}
+            disabled={!selectedRecordId || aiLoading || submitting || success}
+          />
+        </div>
 
         <div className="space-y-6">
           {/* 1. Thông tin */}
@@ -332,13 +382,17 @@ function NewPrescriptionContent() {
                 </label>
                 <select
                   value={selectedPatientId}
-                  onChange={(e) => setSelectedPatientId(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedPatientId(e.target.value);
+                    setRecords([]);
+                    setSelectedRecordId("");
+                  }}
                   className="w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand"
                 >
                   <option value="">-- Chọn bệnh nhân --</option>
                   {patients.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.fullName} — {p.patientCode}
+                      {p.fullName} - {p.patientCode}
                     </option>
                   ))}
                 </select>
@@ -346,7 +400,8 @@ function NewPrescriptionContent() {
 
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-brand-dark">
-                  Hồ sơ bệnh án liên quan <span className="text-red-500">*</span>
+                  Hồ sơ bệnh án liên quan{" "}
+                  <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={selectedRecordId}
@@ -363,7 +418,8 @@ function NewPrescriptionContent() {
                   ) : (
                     records.map((r) => (
                       <option key={r.id} value={r.id}>
-                        {formatDate(r.scheduledAt)}{r.diagnosis ? ` — ${r.diagnosis}` : ""}
+                        {formatDate(r.scheduledAt)}
+                        {r.diagnosis ? ` - ${r.diagnosis}` : ""}
                       </option>
                     ))
                   )}
@@ -507,11 +563,13 @@ function NewPrescriptionContent() {
 
 export default function NewPrescriptionPage() {
   return (
-    <Suspense fallback={
-      <div className="flex h-64 items-center justify-center">
-        <SpinnerGap size={32} className="animate-spin text-brand" />
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="flex h-64 items-center justify-center">
+          <SpinnerGap size={32} className="animate-spin text-brand" />
+        </div>
+      }
+    >
       <NewPrescriptionContent />
     </Suspense>
   );

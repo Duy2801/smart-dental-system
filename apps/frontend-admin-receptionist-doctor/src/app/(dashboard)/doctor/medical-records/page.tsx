@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState, Suspense } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  Suspense,
+} from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { cn } from "@/src/lib/utils/cn";
@@ -18,7 +24,6 @@ import {
   Check,
   Plus,
   PencilSimple,
-  Sparkle,
 } from "@phosphor-icons/react";
 import axios from "axios";
 import apiClient from "@/src/lib/api/client";
@@ -33,6 +38,8 @@ import {
   MedicalRecordImages,
   type RecordImage,
 } from "./_components/MedicalRecordImages";
+import { ClinicalScribeReview } from "@/src/components/doctor/clinical-scribe-review";
+import { AftercareDraft } from "@/src/components/doctor/aftercare-draft";
 
 type RecordSummary = {
   id: string;
@@ -74,15 +81,15 @@ type RecordDetail = RecordSummary & {
   dentalChart: DentalChartData;
 };
 
-type TabKey = "OVERVIEW" | "CHART" | "IMAGES" | "PRESCRIPTIONS";
+type TabKey = "OVERVIEW" | "CHART" | "IMAGES" | "PRESCRIPTIONS" | "AFTERCARE";
 
 function formatDate(iso: string | null) {
-  if (!iso) return "—";
+  if (!iso) return "-";
   return new Date(iso).toLocaleDateString("vi-VN");
 }
 
 function formatDateTime(iso: string | null) {
-  if (!iso) return "—";
+  if (!iso) return "-";
   return new Date(iso).toLocaleString("vi-VN", {
     day: "2-digit",
     month: "2-digit",
@@ -123,9 +130,6 @@ function MedicalRecordsContent() {
     images: [] as RecordImage[],
     dentalChart: { teeth: [] } as DentalChartData,
   });
-  const [aiDraftLoading, setAiDraftLoading] = useState(false);
-  const [aiDraftNote, setAiDraftNote] = useState<string | null>(null);
-
   const doctorId = getDoctorIdFromCookie();
   const today = localDateStr();
   // Khởi tạo trung tính để tránh hydration mismatch (cookie chỉ có trên client)
@@ -156,7 +160,6 @@ function MedicalRecordsContent() {
           : [],
       },
     });
-    setAiDraftNote(null);
     setRecords((prev) => {
       if (prev.some((r) => r.id === data.id)) return prev;
       return [
@@ -285,52 +288,6 @@ function MedicalRecordsContent() {
       );
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleAiDraft = async () => {
-    if (!detail) return;
-    setAiDraftLoading(true);
-    setAiDraftNote(null);
-    setSaveError(null);
-    try {
-      const res = await apiClient.post<{
-        chiefComplaint: string | null;
-        diagnosisDraft: string | null;
-        treatmentNotesDraft: string | null;
-        disclaimer: string;
-      }>("/ai/doctor/draft-medical-record", {
-        patientId: detail.patientId,
-        chiefComplaint: form.chiefComplaint.trim() || undefined,
-        serviceName: detail.serviceName || undefined,
-        doctorNotesHint: form.internalNotes.trim() || undefined,
-      });
-      setForm((f) => ({
-        ...f,
-        chiefComplaint:
-          res.data.chiefComplaint?.trim() || f.chiefComplaint,
-        diagnosis: res.data.diagnosisDraft?.trim() || f.diagnosis,
-        treatmentNotes:
-          res.data.treatmentNotesDraft?.trim() || f.treatmentNotes,
-      }));
-      setAiDraftNote(
-        res.data.disclaimer ||
-          "Bản nháp AI — chỉnh sửa rồi bấm Lưu hồ sơ.",
-      );
-    } catch (err) {
-      const status = axios.isAxiosError(err) ? err.response?.status : null;
-      const msg = axios.isAxiosError(err)
-        ? err.response?.data?.message
-        : null;
-      setSaveError(
-        typeof msg === "string" && msg.trim()
-          ? msg
-          : status === 403
-            ? "Không có quyền dùng AI cho bệnh nhân này."
-            : "Không tạo được nháp AI. Kiểm tra AI service đang chạy.",
-      );
-    } finally {
-      setAiDraftLoading(false);
     }
   };
 
@@ -553,6 +510,10 @@ function MedicalRecordsContent() {
                         key: "PRESCRIPTIONS" as TabKey,
                         label: `Đơn thuốc (${detail.prescriptions.length})`,
                       },
+                      {
+                        key: "AFTERCARE" as TabKey,
+                        label: "Hướng dẫn sau điều trị",
+                      },
                     ] as { key: TabKey; label: string }[]
                   ).map((tab) => (
                     <button
@@ -589,27 +550,23 @@ function MedicalRecordsContent() {
                               <Warning size={14} /> {saveError}
                             </span>
                           )}
-                          <button
-                            type="button"
-                            onClick={handleAiDraft}
-                            disabled={aiDraftLoading || detailLoading}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-brand/30 bg-brand-light/50 px-3 py-1.5 text-xs font-semibold text-brand-dark hover:bg-brand-light disabled:opacity-60"
-                          >
-                            {aiDraftLoading ? (
-                              <SpinnerGap size={14} className="animate-spin" />
-                            ) : (
-                              <Sparkle size={14} weight="fill" />
-                            )}
-                            {aiDraftLoading ? "Đang soạn…" : "Nháp AI"}
-                          </button>
                         </div>
                       </div>
 
-                      {aiDraftNote && (
-                        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-                          {aiDraftNote}
-                        </p>
-                      )}
+                      <ClinicalScribeReview
+                        key={detail.id}
+                        patientId={detail.patientId}
+                        serviceName={detail.serviceName}
+                        initialNotes={form.internalNotes}
+                        current={{
+                          chiefComplaint: form.chiefComplaint,
+                          diagnosis: form.diagnosis,
+                          treatmentNotes: form.treatmentNotes,
+                        }}
+                        onApply={(values) =>
+                          setForm((current) => ({ ...current, ...values }))
+                        }
+                      />
 
                       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                         <div className="space-y-4">
@@ -897,6 +854,13 @@ function MedicalRecordsContent() {
                         ))
                       )}
                     </div>
+                  )}
+
+                  {activeTab === "AFTERCARE" && (
+                    <AftercareDraft
+                      key={detail.id}
+                      medicalRecordId={detail.id}
+                    />
                   )}
                 </div>
               </>

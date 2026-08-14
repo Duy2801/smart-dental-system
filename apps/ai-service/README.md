@@ -60,9 +60,20 @@ Backend gọi AI qua:
 - `POST /api/v1/admin/ai/doctor/draft-medical-record` `{ patientId?, chiefComplaint?, … }`
 - `POST /api/v1/admin/ai/doctor/draft-prescription` `{ medicalRecordId | patientId }`
 - `POST /api/v1/admin/ai/doctor/draft-treatment-plan` `{ patientId | medicalRecordId }`
+- `POST /api/v1/admin/ai/doctor/review-prescription` `{ medicalRecordId | patientId, items }`
+- `POST /api/v1/admin/ai/doctor/generate-aftercare` `{ medicalRecordId }`
+- `POST /api/v1/admin/ai/doctor/send-aftercare` `{ medicalRecordId, content }`
+- `POST /api/v1/admin/ai/doctor/explain-treatment-plan` `{ treatmentPlanId }`
 
-Env Nest (`apps/backend/.env`):
+Env Nest (`apps/backend/.env`) và AI service (`apps/ai-service/.env`) phải dùng
+cùng `AI_SERVICE_API_KEY`:
 
 ```
 AI_SERVICE_URL=http://127.0.0.1:8001
+AI_SERVICE_API_KEY=dev-local-key
 ```
+
+Khi chạy production, đặt một key riêng thay cho `dev-local-key`; service sẽ từ
+chối khởi động nếu vẫn dùng key development. Có thể cấu hình danh sách origin
+trình duyệt được phép gọi AI service trực tiếp bằng `CORS_ORIGINS`, phân tách bởi
+dấu phẩy.

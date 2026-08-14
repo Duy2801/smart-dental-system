@@ -17,7 +17,16 @@ export class AiClientService {
   }
 
   private apiKey() {
-    return this.config.get<string>('AI_SERVICE_API_KEY') || '';
+    const configured = this.config.get<string>('AI_SERVICE_API_KEY');
+    if (
+      this.config.get<string>('NODE_ENV') === 'production' &&
+      (!configured || configured === 'dev-local-key')
+    ) {
+      throw new ServiceUnavailableException(
+        'AI_SERVICE_API_KEY phải được cấu hình riêng trong production.',
+      );
+    }
+    return configured || 'dev-local-key';
   }
 
   async post<T>(path: string, body: unknown): Promise<T> {
@@ -26,7 +35,7 @@ export class AiClientService {
       'Content-Type': 'application/json',
     };
     const key = this.apiKey();
-    if (key) headers['x-api-key'] = key;
+    headers['x-api-key'] = key;
 
     let res: Response;
     try {

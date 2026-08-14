@@ -9,6 +9,12 @@ import { AiService } from './ai.service';
 import { DraftMedicalRecordDto } from './dto/draft-medical-record.dto';
 import { DraftPrescriptionDto } from './dto/draft-prescription.dto';
 import { DraftTreatmentPlanDto } from './dto/draft-treatment-plan.dto';
+import {
+  ExplainTreatmentPlanDto,
+  GenerateAftercareDto,
+  ReviewPrescriptionDto,
+  SendAftercareDto,
+} from './dto/doctor-ai.dto';
 import { SummarizePatientDto } from './dto/summarize-patient.dto';
 
 @ApiTags('AI Doctor Assist')
@@ -49,5 +55,37 @@ export class AiController {
     @Body() dto: DraftTreatmentPlanDto,
   ) {
     return this.aiService.draftTreatmentPlan(user, dto);
+  }
+
+  @Post('review-prescription')
+  reviewPrescription(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: ReviewPrescriptionDto,
+  ) {
+    return this.aiService.reviewPrescription(user, dto);
+  }
+
+  @Post('generate-aftercare')
+  generateAftercare(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: GenerateAftercareDto,
+  ) {
+    return this.aiService.generateAftercare(user, dto);
+  }
+
+  @Post('send-aftercare')
+  sendAftercare(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: SendAftercareDto,
+  ) {
+    return this.aiService.sendAftercare(user, dto);
+  }
+
+  @Post('explain-treatment-plan')
+  explainTreatmentPlan(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: ExplainTreatmentPlanDto,
+  ) {
+    return this.aiService.explainTreatmentPlan(user, dto);
   }
 }

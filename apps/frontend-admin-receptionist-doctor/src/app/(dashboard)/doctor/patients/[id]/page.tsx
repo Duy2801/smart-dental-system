@@ -18,6 +18,7 @@ import {
   Plus,
 } from "@phosphor-icons/react";
 import apiClient from "@/src/lib/api/client";
+import { PatientAiBrief } from "@/src/components/doctor/patient-ai-brief";
 import {
   genderLabel,
   getDoctorIdFromCookie,
@@ -372,7 +373,14 @@ export default function DoctorPatientDetailPage() {
           )}
         </div>
 
-        <div className="xl:col-span-2">
+        <div className="space-y-4 xl:col-span-2">
+          <PatientAiBrief
+            key={patient.id}
+            patientId={patient.id}
+            patientName={patient.fullName}
+            className="shadow-sm"
+          />
+
           <div className="rounded-2xl border border-border bg-white shadow-sm">
             <div className="flex items-center justify-between border-b border-border p-5">
               <h2 className="text-base font-semibold text-brand-dark">

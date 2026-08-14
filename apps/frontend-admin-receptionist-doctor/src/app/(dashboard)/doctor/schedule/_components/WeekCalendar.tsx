@@ -155,7 +155,7 @@ export function WeekCalendar({
                     <div>
                       <span className="block font-semibold leading-tight">Nghỉ</span>
                       <span className="block font-mono text-[10px] opacity-70">
-                        {off.startTime}–{off.endTime}
+                        {off.startTime}-{off.endTime}
                       </span>
                       {off.reason && (
                         <span className="mt-0.5 block truncate text-[10px] opacity-80">
@@ -222,7 +222,7 @@ export function WeekCalendar({
                       position: "relative",
                       zIndex: selected?.id === apt.id ? 30 : 10 + colIndex,
                     }}
-                    title={`${apt.patientName} — ${apt.serviceName}`}
+                    title={`${apt.patientName} - ${apt.serviceName}`}
                   >
                     <span className="mb-1 block font-mono text-[10px] opacity-70 leading-none">
                       {new Date(apt.scheduledAt).toLocaleTimeString("vi-VN", {

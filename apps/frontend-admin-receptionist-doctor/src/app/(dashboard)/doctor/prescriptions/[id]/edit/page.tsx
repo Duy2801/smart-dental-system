@@ -14,6 +14,10 @@ import {
   Pill,
 } from "@phosphor-icons/react";
 import apiClient from "@/src/lib/api/client";
+import {
+  PrescriptionSafetyReview,
+  usePrescriptionSafetyReview,
+} from "@/src/components/doctor/prescription-safety-review";
 
 type PrescriptionItem = {
   id: string;
@@ -26,8 +30,10 @@ type PrescriptionItem = {
 
 type PrescriptionDetail = {
   id: string;
+  patientId: string;
   patientName: string;
   patientCode: string;
+  medicalRecordId: string;
   diagnosis: string | null;
   scheduledAt: string | null;
   notes: string | null;
@@ -45,7 +51,7 @@ type MedItem = {
 };
 
 function formatDate(iso: string | null) {
-  if (!iso) return "—";
+  if (!iso) return "Chưa có";
   return new Date(iso).toLocaleDateString("vi-VN");
 }
 
@@ -65,6 +71,11 @@ export default function EditPrescriptionPage() {
   const [submitting, setSubmitting] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const safetyReview = usePrescriptionSafetyReview({
+    patientId: prescription?.patientId,
+    medicalRecordId: prescription?.medicalRecordId,
+    items: medications,
+  });
 
   // Tải thông tin đơn thuốc
   useEffect(() => {
@@ -135,8 +146,14 @@ export default function EditPrescriptionPage() {
       setSaveError("Mỗi thuốc cần có tên thuốc và liều dùng.");
       return;
     }
-    setSubmitting(true);
     setSaveError(null);
+    if (!(await safetyReview.ensureReadyToSave())) {
+      document
+        .getElementById("prescription-safety-review")
+        ?.scrollIntoView({ block: "center" });
+      return;
+    }
+    setSubmitting(true);
     try {
       await apiClient.patch(`/prescriptions/${id}`, {
         notes: notes.trim() || undefined,
@@ -209,7 +226,7 @@ export default function EditPrescriptionPage() {
             </div>
             <button
               onClick={handleSubmit}
-              disabled={submitting || success}
+              disabled={submitting || safetyReview.loading || success}
               className="inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-brand-dark hover:shadow active:scale-[0.98] disabled:opacity-60"
             >
               {submitting ? (
@@ -219,7 +236,11 @@ export default function EditPrescriptionPage() {
               ) : (
                 <FloppyDisk size={15} weight="bold" />
               )}
-              {success ? "Đã lưu!" : submitting ? "Đang lưu..." : "Lưu thay đổi"}
+              {success
+                ? "Đã lưu!"
+                : submitting
+                  ? "Đang lưu..."
+                  : "Lưu thay đổi"}
             </button>
           </div>
         </div>
@@ -230,6 +251,13 @@ export default function EditPrescriptionPage() {
             {saveError}
           </div>
         )}
+
+        <div className="mb-6">
+          <PrescriptionSafetyReview
+            controller={safetyReview}
+            disabled={submitting || success}
+          />
+        </div>
 
         <div className="space-y-6">
           {/* 1. Thông tin bệnh nhân (chỉ đọc) */}
@@ -261,7 +289,7 @@ export default function EditPrescriptionPage() {
                   Chẩn đoán
                 </p>
                 <p className="mt-1 text-slate-700">
-                  {prescription.diagnosis ?? "—"}
+                  {prescription.diagnosis ?? "Chưa ghi nhận"}
                 </p>
               </div>
               <div className="rounded-xl bg-slate-50/80 px-4 py-3">
@@ -269,7 +297,9 @@ export default function EditPrescriptionPage() {
                   Ngày kê
                 </p>
                 <p className="mt-1 text-slate-700">
-                  {formatDate(prescription.scheduledAt ?? prescription.createdAt)}
+                  {formatDate(
+                    prescription.scheduledAt ?? prescription.createdAt,
+                  )}
                 </p>
               </div>
             </div>
@@ -417,7 +447,7 @@ export default function EditPrescriptionPage() {
             </Link>
             <button
               onClick={handleSubmit}
-              disabled={submitting || success}
+              disabled={submitting || safetyReview.loading || success}
               className="inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-brand-dark hover:shadow active:scale-[0.98] disabled:opacity-60"
             >
               {submitting ? (
@@ -427,7 +457,11 @@ export default function EditPrescriptionPage() {
               ) : (
                 <FloppyDisk size={15} weight="bold" />
               )}
-              {success ? "Đã lưu!" : submitting ? "Đang lưu..." : "Lưu thay đổi"}
+              {success
+                ? "Đã lưu!"
+                : submitting
+                  ? "Đang lưu..."
+                  : "Lưu thay đổi"}
             </button>
           </div>
         </div>

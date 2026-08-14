@@ -87,7 +87,7 @@ export function DentalChartEditor({ value, onChange }: Props) {
           <button
             key={n}
             type="button"
-            title={`${n}: ${STATUS_LABEL[status]} — bấm để đổi`}
+            title={`${n}: ${STATUS_LABEL[status]} - bấm để đổi`}
             onClick={() => cycle(n)}
             className={cn(
               "flex h-9 w-9 flex-col items-center justify-center rounded-md border text-[10px] font-bold transition-colors",
