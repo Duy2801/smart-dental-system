@@ -10,7 +10,10 @@ import {
   Max,
   Min,
 } from 'class-validator';
-import { AvailabilityRecordType } from '../../../../prisma/generated/client';
+import {
+  AvailabilityApprovalStatus,
+  AvailabilityRecordType,
+} from '../../../../prisma/generated/client';
 
 export class CreateDoctorAvailabilityDto {
   @IsUUID()
@@ -42,6 +45,11 @@ export class CreateDoctorAvailabilityDto {
   reason?: string;
 
   @IsOptional()
+  @IsEnum(AvailabilityApprovalStatus)
+  approvalStatus?: AvailabilityApprovalStatus;
+
+  @IsOptional()
   @IsBoolean()
   isActive?: boolean;
 }
+

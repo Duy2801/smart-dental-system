@@ -20,7 +20,7 @@ export function PromotionToolbar({
       <div className="flex flex-1 flex-col gap-3 sm:flex-row">
         <div className="relative w-full sm:max-w-xs">
           <svg
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
             xmlns="http://www.w3.org/2000/svg"
             width="16"
             height="16"
@@ -36,10 +36,10 @@ export function PromotionToolbar({
           </svg>
           <input
             type="text"
-            placeholder="Tim ma hoac ten CTKM..."
+            placeholder="Tìm theo mã hoặc tên voucher..."
             value={search}
             onChange={(event) => onSearchChange(event.target.value)}
-            className="w-full rounded-lg border border-border bg-white py-2 pl-9 pr-4 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand"
+            className="w-full rounded-xl border border-border bg-white py-2 pl-9 pr-4 text-sm font-medium outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand shadow-xs"
           />
         </div>
         <select
@@ -47,20 +47,20 @@ export function PromotionToolbar({
           onChange={(event) =>
             onStatusFilterChange(event.target.value as PromotionStatusFilter)
           }
-          className="rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand sm:max-w-[160px]"
+          className="rounded-xl border border-border bg-white px-3.5 py-2 text-sm font-medium text-slate-700 outline-none focus:border-brand focus:ring-1 focus:ring-brand sm:max-w-[180px] shadow-xs"
         >
-          <option value="ALL">Tat ca trang thai</option>
-          <option value="ACTIVE">Dang dien ra</option>
-          <option value="EXPIRED">Da ket thuc / Het luot</option>
-          <option value="PAUSED">Tam ngung</option>
+          <option value="ALL">Tất cả trạng thái</option>
+          <option value="ACTIVE">⚡ Đang diễn ra</option>
+          <option value="EXPIRED">🛑 Đã kết thúc / Hết lượt</option>
+          <option value="PAUSED">⏸️ Tạm ngưng</option>
         </select>
       </div>
       <button
         type="button"
         onClick={onAddClick}
-        className="flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-dark active:scale-[0.98]"
+        className="flex items-center justify-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-brand-dark hover:shadow active:scale-[0.98]"
       >
-        + Tao ma Voucher
+        <span>➕</span> Tạo mã Voucher mới
       </button>
     </div>
   );

@@ -3,7 +3,10 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { AvailabilityRecordType } from '../../../prisma/generated/client';
+import {
+  AvailabilityApprovalStatus,
+  AvailabilityRecordType,
+} from '../../../prisma/generated/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ClinicConfigService } from '../clinic-config/clinic-config.service';
 import type { BusinessHourDto } from '../clinic-config/dto/update-clinic-config.dto';
@@ -29,8 +32,10 @@ type AvailabilityRecord = {
   startTime: string;
   endTime: string;
   reason: string | null;
+  approvalStatus?: AvailabilityApprovalStatus;
   isActive: boolean;
 };
+
 
 @Injectable()
 export class DoctorAvailabilityService {
@@ -58,10 +63,109 @@ export class DoctorAvailabilityService {
     };
   }
 
-  async create(dto: CreateDoctorAvailabilityDto) {
+  async checkConflicts(query: {
+    doctorId: string;
+    specificDate?: string;
+    dayOfWeek?: number;
+    startTime?: string;
+    endTime?: string;
+  }) {
+    const { doctorId, specificDate, dayOfWeek, startTime = '00:00', endTime = '23:59' } = query;
+    if (!doctorId) return { hasConflict: false, conflicts: [] };
+
+    if (specificDate) {
+      const startDateTime = new Date(`${specificDate}T${startTime}:00.000Z`);
+      const endDateTime = new Date(`${specificDate}T${endTime}:00.000Z`);
+
+      const appointments = await this.prisma.appointment.findMany({
+        where: {
+          doctorId,
+          scheduledAt: { lt: endDateTime },
+          endAt: { gt: startDateTime },
+          status: { notIn: ['CANCELLED', 'COMPLETED'] },
+        },
+        include: {
+          patient: { select: { fullName: true, phone: true } },
+          service: { select: { name: true } },
+        },
+      });
+
+      return {
+        hasConflict: appointments.length > 0,
+        conflicts: appointments.map((c) => ({
+          id: c.id,
+          appointmentCode: c.appointmentCode,
+          scheduledAt: c.scheduledAt,
+          endAt: c.endAt,
+          patientName: c.patient?.fullName ?? 'Bệnh nhân',
+          patientPhone: c.patient?.phone ?? '',
+          serviceName: c.service?.name ?? '',
+        })),
+      };
+    }
+
+    const now = new Date();
+    const future = new Date();
+    future.setDate(now.getDate() + 30);
+
+    const appointments = await this.prisma.appointment.findMany({
+      where: {
+        doctorId,
+        scheduledAt: { gte: now, lte: future },
+        status: { notIn: ['CANCELLED', 'COMPLETED'] },
+      },
+      include: {
+        patient: { select: { fullName: true, phone: true } },
+        service: { select: { name: true } },
+      },
+    });
+
+    const conflicts = appointments.filter((app) => {
+      const appDay = app.scheduledAt.getUTCDay();
+      const targetDay = dayOfWeek === 7 ? 0 : dayOfWeek;
+      if (targetDay !== undefined && targetDay !== null && appDay !== targetDay) return false;
+
+      const appStart = app.scheduledAt.toISOString().slice(11, 16);
+      const appEnd = app.endAt.toISOString().slice(11, 16);
+      return appStart < endTime && appEnd > startTime;
+    });
+
+    return {
+      hasConflict: conflicts.length > 0,
+      conflicts: conflicts.map((c) => ({
+        id: c.id,
+        appointmentCode: c.appointmentCode,
+        scheduledAt: c.scheduledAt,
+        endAt: c.endAt,
+        patientName: c.patient?.fullName ?? 'Bệnh nhân',
+        patientPhone: c.patient?.phone ?? '',
+        serviceName: c.service?.name ?? '',
+      })),
+    };
+  }
+
+  async create(dto: CreateDoctorAvailabilityDto, force = false) {
     await this.ensureDoctorExists(dto.doctorId);
     this.validateAvailabilityPayload(dto);
     await this.ensureWithinClinicHours(dto);
+
+    if (dto.recordType === AvailabilityRecordType.TIME_OFF && !force) {
+      const conflictCheck = await this.checkConflicts({
+        doctorId: dto.doctorId,
+        specificDate: dto.specificDate,
+        dayOfWeek: dto.dayOfWeek,
+        startTime: dto.startTime,
+        endTime: dto.endTime,
+      });
+
+      if (conflictCheck.hasConflict) {
+        throw new BadRequestException({
+          code: 'APPOINTMENT_CONFLICT',
+          message: 'Có lịch hẹn bị trùng với thời gian đăng ký nghỉ!',
+          conflicts: conflictCheck.conflicts,
+        });
+      }
+    }
 
     const existing = await this.findExistingForSameSlot(dto);
     this.ensureNoOverlap([...existing, dto]);
@@ -70,17 +174,24 @@ export class DoctorAvailabilityService {
       data: {
         doctorId: dto.doctorId,
         recordType: dto.recordType,
-        dayOfWeek: dto.dayOfWeek,
+        dayOfWeek:
+          dto.dayOfWeek ??
+          (dto.specificDate
+            ? new Date(dto.specificDate).getUTCDay() || 7
+            : undefined),
+
         specificDate: dto.specificDate
           ? this.toDateOnly(dto.specificDate)
           : undefined,
         startTime: dto.startTime,
         endTime: dto.endTime,
         reason: dto.reason?.trim(),
+        approvalStatus: dto.approvalStatus ?? AvailabilityApprovalStatus.APPROVED,
         isActive: dto.isActive ?? true,
       },
     });
   }
+
 
   async autoCreateWeekly(dto: AutoWeeklyAvailabilityDto) {
     await this.ensureDoctorExists(dto.doctorId);
@@ -192,7 +303,7 @@ export class DoctorAvailabilityService {
     });
   }
 
-  async remove(id: string) {
+  async updateApprovalStatus(id: string, approvalStatus: AvailabilityApprovalStatus) {
     const current = await this.prisma.doctorAvailability.findUnique({
       where: { id },
     });
@@ -201,10 +312,115 @@ export class DoctorAvailabilityService {
       throw new NotFoundException('availability.not_found');
     }
 
+    return this.prisma.doctorAvailability.update({
+      where: { id },
+      data: { approvalStatus },
+    });
+  }
+
+  async getMatrixForAllDoctors() {
+    const doctors = await this.prisma.doctor.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        doctorCode: true,
+        specialization: true,
+        user: { select: { fullName: true, email: true } },
+        availability: {
+          where: { isActive: true },
+          orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }],
+        },
+      },
+    });
+
+    const businessHours =
+      await this.clinicConfigService.getConfiguredBusinessHours();
+
+    const days = [1, 2, 3, 4, 5, 6, 0].map((dayOfWeek) => {
+      const businessHour = businessHours.find((h) => h.id === dayOfWeek);
+      const doctorShifts = doctors.map((doc) => {
+        const shifts = doc.availability.filter(
+          (a) =>
+            a.recordType === AvailabilityRecordType.WEEKLY &&
+            this.matchesDayOfWeek(a, dayOfWeek) &&
+            a.approvalStatus === AvailabilityApprovalStatus.APPROVED,
+        );
+        const dateOverrides = doc.availability.filter(
+          (a) =>
+            a.recordType === AvailabilityRecordType.DATE_OVERRIDE &&
+            this.matchesDayOfWeek(a, dayOfWeek) &&
+            a.approvalStatus === AvailabilityApprovalStatus.APPROVED,
+        );
+        const timeOffs = doc.availability.filter(
+          (a) =>
+            a.recordType === AvailabilityRecordType.TIME_OFF &&
+            this.matchesDayOfWeek(a, dayOfWeek) &&
+            a.approvalStatus === AvailabilityApprovalStatus.APPROVED,
+        );
+
+
+        const isAvailable = (shifts.length > 0 || dateOverrides.length > 0) && timeOffs.length === 0;
+
+        return {
+          doctorId: doc.id,
+          doctorName: doc.user.fullName,
+          specialization: doc.specialization,
+          shifts,
+          dateOverrides,
+          timeOffs,
+          isAvailable,
+        };
+      });
+
+      const activeDoctorCount = doctorShifts.filter((d) => d.isAvailable).length;
+
+      return {
+        dayOfWeek,
+        label: this.getDayLabel(dayOfWeek),
+        businessHour,
+        isUnderstaffed: Boolean(businessHour?.isOpen) && activeDoctorCount < 2,
+        activeDoctorCount,
+        doctorShifts,
+      };
+    });
+
+    return { doctors, days };
+  }
+
+  async remove(id: string, force = false) {
+    const current = await this.prisma.doctorAvailability.findUnique({
+      where: { id },
+    });
+
+    if (!current) {
+      throw new NotFoundException('availability.not_found');
+    }
+
+    if (!force) {
+      const conflictCheck = await this.checkConflicts({
+        doctorId: current.doctorId,
+        specificDate: current.specificDate
+          ? current.specificDate.toISOString().slice(0, 10)
+          : undefined,
+        dayOfWeek: current.dayOfWeek ?? undefined,
+        startTime: current.startTime,
+        endTime: current.endTime,
+      });
+
+      if (conflictCheck.hasConflict) {
+        throw new BadRequestException({
+          code: 'APPOINTMENT_CONFLICT',
+          message: 'Có lịch hẹn bị ảnh hưởng khi xóa ca này!',
+          conflicts: conflictCheck.conflicts,
+        });
+      }
+    }
+
     await this.prisma.doctorAvailability.delete({ where: { id } });
 
     return { message: 'availability.deleted' };
   }
+
 
   private async ensureDoctorExists(doctorId: string) {
     const doctor = await this.prisma.doctor.findUnique({
@@ -369,13 +585,31 @@ export class DoctorAvailabilityService {
     }
   }
 
+  private matchesDayOfWeek(
+    record: { dayOfWeek: number | null; specificDate: Date | string | null },
+    targetDayOfWeek: number,
+  ): boolean {
+    if (record.dayOfWeek !== null && record.dayOfWeek !== undefined) {
+      return this.normalizeDayOfWeek(record.dayOfWeek) === targetDayOfWeek;
+    }
+    if (record.specificDate) {
+      const date = new Date(record.specificDate);
+      const day = date.getUTCDay();
+      return (day === 0 ? 0 : day) === targetDayOfWeek;
+    }
+    return false;
+  }
+
   private groupWeekly(records: AvailabilityRecord[]) {
     return [1, 2, 3, 4, 5, 6, 0].map((dayOfWeek) => {
       const dayRecords = records.filter(
-        (record) => this.normalizeDayOfWeek(record.dayOfWeek) === dayOfWeek,
+        (record) => this.matchesDayOfWeek(record, dayOfWeek),
       );
       const shifts = dayRecords.filter(
         (record) => record.recordType === AvailabilityRecordType.WEEKLY,
+      );
+      const dateOverrides = dayRecords.filter(
+        (record) => record.recordType === AvailabilityRecordType.DATE_OVERRIDE,
       );
       const timeOff = dayRecords.filter(
         (record) => record.recordType === AvailabilityRecordType.TIME_OFF,
@@ -385,10 +619,12 @@ export class DoctorAvailabilityService {
         dayOfWeek,
         label: this.getDayLabel(dayOfWeek),
         shifts,
+        dateOverrides,
         timeOff,
       };
     });
   }
+
 
   private getDayLabel(dayOfWeek: number) {
     const labels: Record<number, string> = {

@@ -21,7 +21,9 @@ type AppointmentStatus =
   | "IN_PROGRESS"
   | "COMPLETED"
   | "CANCELLED"
-  | "NO_SHOW";
+  | "NO_SHOW"
+  | "SCHEDULED";
+
 
 type TodayAppointment = {
   id: string;
