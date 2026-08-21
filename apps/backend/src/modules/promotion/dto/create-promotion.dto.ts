@@ -47,4 +47,20 @@ export class CreatePromotionDto {
   @IsOptional()
   @IsBoolean()
   is_active?: boolean;
+
+  @IsOptional()
+  @IsString()
+  applicable_service_slug?: string;
+
+  @IsOptional()
+  @IsString()
+  applicable_treatment_method_id?: string;
+
+  @IsOptional()
+  @IsString()
+  image_url?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  broadcast_notification?: boolean;
 }

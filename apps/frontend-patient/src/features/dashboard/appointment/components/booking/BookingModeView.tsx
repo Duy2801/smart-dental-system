@@ -157,7 +157,7 @@ export function BookingModeView({
 
   useAppointmentWorkspaceSync({
     enabled: Boolean(selectedPatientId),
-    autoSelectDefaults: true,
+    autoSelectDefaults: false,
     defaultSelectionKey: selectedPatientId,
     bookingOptionsData: baseOptionsQuery.data,
     hasBookingOptionsError: baseOptionsQuery.isError,

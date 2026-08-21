@@ -78,16 +78,19 @@ export function SchedulePicker({
           <p className="mt-1 text-[10px] text-slate-400">
             Giờ địa phương - {slotIntervalMinutes} phút/lượt
           </p>
-          {blockedRanges.length ? (
-            <div className="mt-3 rounded-xl border border-slate-200 bg-slate-100 px-3 py-2">
-              <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">
-                Bạn đã có lịch trong các khoảng:
-              </p>
-              <p className="mt-1 text-xs font-medium text-slate-700">
-                {blockedRanges.join(", ")}
-              </p>
-            </div>
-          ) : null}
+          {(() => {
+            const uniqueBlockedRanges = Array.from(new Set(blockedRanges));
+            return uniqueBlockedRanges.length ? (
+              <div className="mt-3 rounded-xl border border-slate-200 bg-slate-100 px-3 py-2">
+                <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">
+                  Bạn đã có lịch trong các khoảng:
+                </p>
+                <p className="mt-1 text-xs font-medium text-slate-700">
+                  {uniqueBlockedRanges.join(", ")}
+                </p>
+              </div>
+            ) : null;
+          })()}
           <div className="mt-4 grid grid-cols-2 gap-2.5">
             {visibleTimes.length === 0 ? (
               <p className="col-span-2 rounded-lg bg-amber-50 px-3 py-3 text-center text-xs font-semibold text-amber-700">

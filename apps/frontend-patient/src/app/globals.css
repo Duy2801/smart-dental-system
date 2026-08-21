@@ -94,24 +94,15 @@ body {
 }
 
 .auth-background {
+  background-color: #f8fafc;
   background-image:
-    radial-gradient(circle at 78% 44%, rgba(59, 130, 246, 0.08), transparent 29rem),
-    radial-gradient(circle at 22% 55%, rgba(14, 165, 233, 0.055), transparent 25rem);
+    radial-gradient(at 10% 10%, rgba(59, 130, 246, 0.09) 0px, transparent 40%),
+    radial-gradient(at 90% 85%, rgba(14, 165, 233, 0.08) 0px, transparent 40%),
+    radial-gradient(at 50% 50%, rgba(99, 102, 241, 0.04) 0px, transparent 60%);
 }
 
 .auth-card {
-  max-height: 100%;
-  overflow-y: auto;
-  scrollbar-width: none;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.auth-card::-webkit-scrollbar {
-  display: none;
-}
-
-@media (max-height: 760px) {
-  .auth-card {
-    padding-top: 1.25rem;
-    padding-bottom: 1.25rem;
-  }
-}

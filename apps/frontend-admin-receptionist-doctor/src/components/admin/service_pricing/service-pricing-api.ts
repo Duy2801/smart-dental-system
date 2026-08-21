@@ -10,6 +10,44 @@ type ServiceQuery = {
 };
 
 function toPayload(form: ServiceFormState) {
+  const treatmentMethods = form.treatmentMethods?.length
+    ? form.treatmentMethods.map((tm, tmIndex) => ({
+        id: tm.id || undefined,
+        name: tm.name.trim(),
+        slug: tm.slug.trim() || undefined,
+        description: tm.description.trim() || undefined,
+        imageUrl: tm.imageUrl.trim() || undefined,
+        basePrice: Number(tm.basePrice) || 0,
+        durationMinutes: Number(tm.durationMinutes) || 30,
+        displayOrder: Number(tm.displayOrder) || tmIndex + 1,
+        isActive: tm.isActive ?? true,
+        media: tm.media
+          ?.filter((m) => m.url.trim())
+          .map((m, mIdx) => ({
+            url: m.url.trim(),
+            alt: m.alt.trim() || undefined,
+            type: m.type.trim() || "BANNER",
+            sortOrder: Number(m.sortOrder) || mIdx + 1,
+          })),
+        procedureSteps: tm.procedureSteps
+          ?.filter((s) => s.title.trim() || s.description.trim())
+          .map((s, sIdx) => ({
+            stepOrder: Number(s.stepOrder) || sIdx + 1,
+            title: s.title.trim(),
+            description: s.description.trim(),
+            durationMinutes:
+              s.durationMinutes === "" ? undefined : Number(s.durationMinutes),
+          })),
+        faqs: tm.faqs
+          ?.filter((f) => f.question.trim() || f.answer.trim())
+          .map((f, fIdx) => ({
+            question: f.question.trim(),
+            answer: f.answer.trim(),
+            sortOrder: Number(f.sortOrder) || fIdx + 1,
+          })),
+      }))
+    : undefined;
+
   return {
     category: form.category,
     name: form.name,
@@ -21,6 +59,7 @@ function toPayload(form: ServiceFormState) {
     durationMinutes: Number(form.durationMinutes),
     basePrice: Number(form.basePrice),
     displayOrder: Number(form.displayOrder),
+    treatmentMethods,
     highlights: form.highlights
       .filter((item) => item.title.trim() || item.description.trim())
       .map((item) => ({

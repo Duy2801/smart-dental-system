@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAppSelector } from "@/providers";
@@ -16,9 +15,7 @@ import {
 import { mapRecordTreatments } from "./recordMappers";
 import { usePatientRecordsQuery } from "../hooks/useRecordsQueries";
 import { RecordHistorySection } from "./RecordHistorySection";
-import { RecordPatientHero } from "./RecordPatientHero";
 import { PatientPageSkeleton } from "../../common/PatientSkeleton";
-import { ROUTES } from "../../common/routes";
 import { LoginRequiredPanel } from "../../common/LoginRequiredPanel";
 
 const relationshipLabels: Record<string, string> = {
@@ -49,21 +46,24 @@ export function PatientRecordsPageClient() {
     },
   });
 
-  useEffect(() => {
-    if (selectedPatientId || profiles.length === 0) return;
-    const primaryProfile =
-      profiles.find((profile) => profile.isPrimary) ?? profiles[0];
-    setSelectedPatientId(primaryProfile.id);
+  // Calculate primary / active patient ID immediately without waiting for useEffect rerender
+  const activePatientId = useMemo(() => {
+    if (selectedPatientId) return selectedPatientId;
+    if (profiles.length === 0) return "";
+    const primary = profiles.find((profile) => profile.isPrimary) ?? profiles[0];
+    return primary?.id ?? "";
   }, [profiles, selectedPatientId]);
 
-  const selectedProfile = useMemo(
-    () => profiles.find((profile) => profile.id === selectedPatientId) ?? null,
-    [profiles, selectedPatientId],
-  );
+  // Sync state when activePatientId changes
+  useEffect(() => {
+    if (activePatientId && !selectedPatientId) {
+      setSelectedPatientId(activePatientId);
+    }
+  }, [activePatientId, selectedPatientId]);
 
   const recordsQuery = usePatientRecordsQuery(
-    selectedPatientId || undefined,
-    isLoggedIn && Boolean(selectedPatientId),
+    activePatientId || undefined,
+    isLoggedIn && Boolean(activePatientId),
   );
 
   if (profilesQuery.isLoading && !profiles.length) {
@@ -84,36 +84,15 @@ export function PatientRecordsPageClient() {
     );
   }
 
-  if (recordsQuery.isError || (!recordsQuery.isLoading && !recordsQuery.data)) {
-    return (
-      <main className="mx-auto w-full max-w-[1360px] px-4 py-7 sm:px-6 lg:px-8">
-        <section className="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm font-semibold text-rose-700">
-          Không thể tải hồ sơ điều trị. Vui lòng đăng nhập lại hoặc thử lại sau.
-        </section>
-      </main>
-    );
-  }
-
   const treatments = recordsQuery.data
     ? mapRecordTreatments(recordsQuery.data.treatmentPlans)
     : [];
-  const relationshipLabel = selectedProfile
-    ? relationshipLabels[selectedProfile.relationship] ?? "Người thân"
-    : "Người khám";
 
   return (
     <main className="mx-auto w-full max-w-[1360px] space-y-5 px-4 py-7 sm:px-6 lg:px-8">
-      <div className="flex items-center gap-2 text-[11px] font-medium text-slate-500">
-        <Link href={ROUTES.home} className="hover:text-[#0863c5]">
-          Trang chủ
-        </Link>
-        <span>/</span>
-        <span className="text-slate-800">Hồ sơ</span>
-      </div>
-
       <FamilyProfilePanel
         profiles={profiles}
-        selectedPatientId={selectedPatientId}
+        selectedPatientId={activePatientId}
         loading={profilesQuery.isLoading}
         creating={createProfileMutation.isPending}
         onSelect={setSelectedPatientId}
@@ -122,15 +101,18 @@ export function PatientRecordsPageClient() {
 
       <section className="min-w-0 space-y-5">
         {recordsQuery.isLoading || !recordsQuery.data ? (
-          <PatientPageSkeleton />
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-6 text-center shadow-sm">
+            <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-[#0058bc] border-t-transparent" />
+            <p className="mt-2 text-xs font-semibold text-slate-500">
+              Đang tải phác đồ và lịch sử khám bệnh...
+            </p>
+          </div>
+        ) : recordsQuery.isError ? (
+          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm font-semibold text-rose-700">
+            Không thể tải hồ sơ điều trị. Vui lòng đăng nhập lại hoặc thử lại sau.
+          </div>
         ) : (
-          <>
-            <RecordPatientHero
-              patient={recordsQuery.data.patient}
-              relationshipLabel={relationshipLabel}
-            />
-            <RecordHistorySection treatments={treatments} />
-          </>
+          <RecordHistorySection treatments={treatments} />
         )}
       </section>
     </main>
@@ -195,13 +177,6 @@ function FamilyProfilePanel({
               Danh sách hồ sơ
             </h2>
           </div>
-          <button
-            type="button"
-            onClick={() => setShowForm((value) => !value)}
-            className="h-9 rounded-xl border border-[#0863c5] bg-[#0863c5] px-3 text-xs font-bold text-white transition hover:bg-[#0753a8]"
-          >
-            + Thêm
-          </button>
         </div>
         <p className="mt-2 text-xs text-slate-500">
           Chọn hồ sơ để xem bệnh án tương ứng.

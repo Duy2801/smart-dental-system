@@ -3,8 +3,8 @@ import { cn } from "@/src/lib/utils/cn";
 import { formatDate } from "@/src/lib/utils/date";
 import {
   formatVND,
-  invoiceStatusConfig,
-  paymentLabels,
+  getInvoiceStatusConfig,
+  getPaymentLabel,
 } from "../finance-utils";
 import type { Invoice } from "../types";
 
@@ -20,83 +20,88 @@ export function InvoiceList({
   onSelectInvoice,
 }: InvoiceListProps) {
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-white shadow-sm">
-      <div className="hidden items-center border-b border-border bg-muted/50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:flex">
-        <div className="w-[20%]">Ma hoa don</div>
-        <div className="w-[25%]">Benh nhan</div>
-        <div className="w-[20%]">Trang thai</div>
-        <div className="w-[20%] pr-4 text-right">Tong tien</div>
+    <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
+      <div className="hidden items-center border-b border-border bg-slate-50/80 px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-slate-500 sm:flex">
+        <div className="w-[22%]">Mã hóa đơn & Ngày lập</div>
+        <div className="w-[28%]">Bệnh nhân & Bác sĩ</div>
+        <div className="w-[20%]">Trạng thái thanh toán</div>
+        <div className="w-[18%] pr-4 text-right">Tổng tiền & Đã thu</div>
+        <div className="w-[12%] text-right">Thao tác</div>
       </div>
       <div className="divide-y divide-border">
         {loading ? (
           <SkeletonRows count={6} />
         ) : invoices.length === 0 ? (
-          <div className="p-8 text-center text-sm text-muted-foreground">
-            Khong tim thay hoa don nao phu hop.
+          <div className="p-12 text-center text-sm font-medium text-slate-500">
+            Không tìm thấy hóa đơn nào phù hợp.
           </div>
         ) : (
-          invoices.map((invoice) => (
-            <div
-              key={invoice.id}
-              className="group relative flex flex-col gap-2 p-4 transition-colors hover:bg-muted/20 sm:flex-row sm:items-center sm:gap-0"
-            >
-              <div className="flex shrink-0 flex-col sm:w-[20%]">
-                <span className="font-semibold text-brand-dark">
-                  {invoice.invoice_code}
-                </span>
-                <span className="mt-0.5 text-xs text-muted-foreground">
-                  {formatDate(invoice.issued_at)}
-                </span>
-              </div>
+          invoices.map((invoice) => {
+            const statusConfig = getInvoiceStatusConfig(invoice.status);
+            const paymentText = getPaymentLabel(invoice.payment_method);
 
-              <div className="flex shrink-0 flex-col sm:w-[25%]">
-                <span className="font-medium text-brand-dark">
-                  {invoice.patient_name}
-                </span>
-                {invoice.payment_method ? (
-                  <span className="mt-0.5 text-xs text-muted-foreground">
-                    TT: {paymentLabels[invoice.payment_method]}
+            return (
+              <div
+                key={invoice.id}
+                className="group relative flex flex-col gap-3 p-5 sm:p-6 transition-all hover:bg-slate-50/80 sm:flex-row sm:items-center sm:gap-0"
+              >
+                {/* Code & Issued Date */}
+                <div className="flex shrink-0 flex-col sm:w-[22%]">
+                  <span className="font-mono text-sm font-extrabold text-slate-900 tracking-wide">
+                    {invoice.invoice_code}
                   </span>
-                ) : null}
-              </div>
+                  <span className="mt-1 text-xs text-slate-500">
+                    📅 {formatDate(invoice.issued_at)}
+                  </span>
+                </div>
 
-              <div className="flex shrink-0 items-center sm:w-[20%]">
-                <span
-                  className={cn(
-                    "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium",
-                    invoiceStatusConfig[invoice.status].color,
+                {/* Patient & Doctor */}
+                <div className="flex shrink-0 flex-col sm:w-[28%]">
+                  <span className="text-sm font-extrabold text-slate-900 line-clamp-1">
+                    👤 {invoice.patient_name}
+                  </span>
+                  <span className="mt-0.5 text-xs text-slate-500 line-clamp-1">
+                    {invoice.doctor_name ? `🩺 BS: ${invoice.doctor_name}` : `💳 ${paymentText}`}
+                  </span>
+                </div>
+
+                {/* Status */}
+                <div className="flex shrink-0 items-center sm:w-[20%]">
+                  <span
+                    className={cn(
+                      "inline-flex items-center rounded-full border px-3 py-1 text-xs shadow-2xs",
+                      statusConfig.color
+                    )}
+                  >
+                    {statusConfig.label}
+                  </span>
+                </div>
+
+                {/* Amount */}
+                <div className="flex shrink-0 flex-col sm:w-[18%] sm:justify-end sm:pr-4 sm:text-right">
+                  <span className="font-mono text-sm font-extrabold text-slate-900">
+                    {formatVND(invoice.final_amount)}
+                  </span>
+                  {typeof invoice.paid_amount === "number" && invoice.paid_amount > 0 && (
+                    <span className="mt-0.5 text-xs font-semibold text-emerald-600">
+                      Đã thu: {formatVND(invoice.paid_amount)}
+                    </span>
                   )}
-                >
-                  {invoiceStatusConfig[invoice.status].label}
-                </span>
-              </div>
+                </div>
 
-              <div className="flex shrink-0 sm:w-[20%] sm:justify-end sm:pr-4">
-                <span className="font-mono font-medium text-brand-dark">
-                  {formatVND(invoice.final_amount)}
-                </span>
+                {/* Actions */}
+                <div className="flex shrink-0 sm:w-[12%] sm:justify-end">
+                  <button
+                    type="button"
+                    onClick={() => onSelectInvoice(invoice)}
+                    className="flex items-center gap-1 rounded-xl border border-border bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-xs transition-all hover:bg-brand hover:text-white hover:border-brand active:scale-[0.98]"
+                  >
+                    👁️ Chi tiết
+                  </button>
+                </div>
               </div>
-
-              <div className="absolute right-4 top-1/2 flex -translate-y-1/2 items-center gap-1 rounded-lg border border-border bg-white p-1 opacity-100 shadow-sm transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
-                <button
-                  type="button"
-                  title="Xem chi tiet"
-                  onClick={() => onSelectInvoice(invoice)}
-                  className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-brand-light hover:text-brand"
-                >
-                  Xem
-                </button>
-                <div className="mx-1 h-4 w-[1px] bg-border" />
-                <button
-                  type="button"
-                  title="In hoa don"
-                  className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-brand-dark"
-                >
-                  In
-                </button>
-              </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>

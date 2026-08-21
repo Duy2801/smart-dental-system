@@ -19,12 +19,30 @@ export type DentalService = {
   isFeatured: boolean;
   displayOrder: number;
   isActive: boolean;
-  media: ServiceMedia[];
-  procedureSteps: ServiceProcedureStep[];
-  faqs: ServiceFaq[];
+  media?: ServiceMedia[];
+  procedureSteps?: ServiceProcedureStep[];
+  faqs?: ServiceFaq[];
+  treatmentMethods?: TreatmentMethod[];
   createdAt: string;
   updatedAt: string;
 };
+
+export type TreatmentMethod = {
+  id?: string;
+  serviceId?: string;
+  name: string;
+  slug: string | null;
+  description: string | null;
+  imageUrl: string | null;
+  basePrice: number | string;
+  durationMinutes: number | null;
+  displayOrder: number;
+  isActive: boolean;
+  media?: ServiceMedia[];
+  procedureSteps?: ServiceProcedureStep[];
+  faqs?: ServiceFaq[];
+};
+
 
 export type ServiceHighlight = {
   title: string;
@@ -65,24 +83,14 @@ export type ServiceListResponse = {
   };
 };
 
-export type ServiceFormState = {
-  category: string;
+export type TreatmentMethodFormItem = {
+  id?: string;
   name: string;
   slug: string;
-  shortDescription: string;
   description: string;
-  detailSummary: string;
-  thumbnailUrl: string;
-  durationMinutes: number;
+  imageUrl: string;
   basePrice: number;
-  highlights: ServiceHighlight[];
-  suitableFor: string[];
-  includedItems: string[];
-  preparationNotes: string[];
-  aftercareNotes: string[];
-  importantNotes: string[];
-  pricingNote: string;
-  isFeatured: boolean;
+  durationMinutes: number;
   displayOrder: number;
   isActive: boolean;
   media: Array<{
@@ -103,3 +111,44 @@ export type ServiceFormState = {
     sortOrder: number;
   }>;
 };
+
+export type ServiceFormState = {
+  category: string;
+  name: string;
+  slug: string;
+  shortDescription: string;
+  description: string;
+  detailSummary: string;
+  thumbnailUrl: string;
+  durationMinutes: number;
+  basePrice: number;
+  highlights: ServiceHighlight[];
+  suitableFor: string[];
+  includedItems: string[];
+  preparationNotes: string[];
+  aftercareNotes: string[];
+  importantNotes: string[];
+  pricingNote: string;
+  isFeatured: boolean;
+  displayOrder: number;
+  isActive: boolean;
+  treatmentMethods: TreatmentMethodFormItem[];
+  media: Array<{
+    url: string;
+    alt: string;
+    type: string;
+    sortOrder: number;
+  }>;
+  procedureSteps: Array<{
+    stepOrder: number;
+    title: string;
+    description: string;
+    durationMinutes: number | "";
+  }>;
+  faqs: Array<{
+    question: string;
+    answer: string;
+    sortOrder: number;
+  }>;
+};
+

@@ -1,5 +1,5 @@
 import { Skeleton, SkeletonRows } from "@/src/components/admin/common";
-import type { DentalService } from "../types";
+import type { DentalService, TreatmentMethod } from "../types";
 import { ServiceRow } from "./service-row";
 
 type ServiceGroupListProps = {
@@ -8,6 +8,20 @@ type ServiceGroupListProps = {
   onEdit: (service: DentalService) => void;
   onRemove: (service: DentalService) => void;
   onToggleStatus: (service: DentalService) => void;
+  onEditTreatmentMethod?: (
+    service: DentalService,
+    method: TreatmentMethod,
+    index: number
+  ) => void;
+  onCreateTreatmentMethod?: (service: DentalService) => void;
+  onToggleTreatmentMethodStatus?: (
+    service: DentalService,
+    index: number
+  ) => void;
+  onRemoveTreatmentMethod?: (
+    service: DentalService,
+    index: number
+  ) => void;
 };
 
 export function ServiceGroupList({
@@ -16,6 +30,10 @@ export function ServiceGroupList({
   onEdit,
   onRemove,
   onToggleStatus,
+  onEditTreatmentMethod,
+  onCreateTreatmentMethod,
+  onToggleTreatmentMethodStatus,
+  onRemoveTreatmentMethod,
 }: ServiceGroupListProps) {
   const entries = Object.entries(groupedServices);
 
@@ -62,6 +80,10 @@ export function ServiceGroupList({
                 onEdit={onEdit}
                 onToggleStatus={onToggleStatus}
                 onRemove={onRemove}
+                onEditTreatmentMethod={onEditTreatmentMethod}
+                onCreateTreatmentMethod={onCreateTreatmentMethod}
+                onToggleTreatmentMethodStatus={onToggleTreatmentMethodStatus}
+                onRemoveTreatmentMethod={onRemoveTreatmentMethod}
               />
             ))}
           </div>

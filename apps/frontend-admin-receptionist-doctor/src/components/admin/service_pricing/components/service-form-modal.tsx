@@ -5,7 +5,8 @@ import {
   AdminModal,
   AdminSelect,
 } from "@/src/components/admin/common";
-import type { ServiceFormState } from "../types";
+import { formatVND } from "../service-pricing-utils";
+import type { ServiceFormState, TreatmentMethod } from "../types";
 
 type ServiceFormModalProps = {
   initialValue: ServiceFormState;
@@ -13,6 +14,8 @@ type ServiceFormModalProps = {
   onSubmit: (form: ServiceFormState) => void;
   submitting: boolean;
   title: string;
+  onEditTreatmentMethod?: (method: TreatmentMethod, index: number) => void;
+  onCreateTreatmentMethod?: () => void;
 };
 
 type StepItem = ServiceFormState["procedureSteps"][number];
@@ -164,6 +167,8 @@ export function ServiceFormModal({
   onSubmit,
   submitting,
   title,
+  onEditTreatmentMethod,
+  onCreateTreatmentMethod,
 }: ServiceFormModalProps) {
   const [form, setForm] = useState<ServiceFormState>(initialValue);
 
@@ -173,7 +178,7 @@ export function ServiceFormModal({
 
   const setField = <Key extends keyof ServiceFormState>(
     key: Key,
-    value: ServiceFormState[Key],
+    value: ServiceFormState[Key]
   ) => {
     setForm((current) => ({ ...current, [key]: value }));
   };
@@ -181,12 +186,12 @@ export function ServiceFormModal({
   const updateMedia = <Key extends keyof MediaItem>(
     index: number,
     key: Key,
-    value: MediaItem[Key],
+    value: MediaItem[Key]
   ) => {
     setForm((current) => ({
       ...current,
       media: current.media.map((item, itemIndex) =>
-        itemIndex === index ? { ...item, [key]: value } : item,
+        itemIndex === index ? { ...item, [key]: value } : item
       ),
     }));
   };
@@ -194,12 +199,12 @@ export function ServiceFormModal({
   const updateStep = <Key extends keyof StepItem>(
     index: number,
     key: Key,
-    value: StepItem[Key],
+    value: StepItem[Key]
   ) => {
     setForm((current) => ({
       ...current,
       procedureSteps: current.procedureSteps.map((item, itemIndex) =>
-        itemIndex === index ? { ...item, [key]: value } : item,
+        itemIndex === index ? { ...item, [key]: value } : item
       ),
     }));
   };
@@ -207,12 +212,12 @@ export function ServiceFormModal({
   const updateFaq = <Key extends keyof FaqItem>(
     index: number,
     key: Key,
-    value: FaqItem[Key],
+    value: FaqItem[Key]
   ) => {
     setForm((current) => ({
       ...current,
       faqs: current.faqs.map((item, itemIndex) =>
-        itemIndex === index ? { ...item, [key]: value } : item,
+        itemIndex === index ? { ...item, [key]: value } : item
       ),
     }));
   };
@@ -220,12 +225,12 @@ export function ServiceFormModal({
   const updateHighlight = <Key extends keyof HighlightItem>(
     index: number,
     key: Key,
-    value: HighlightItem[Key],
+    value: HighlightItem[Key]
   ) => {
     setForm((current) => ({
       ...current,
       highlights: current.highlights.map((item, itemIndex) =>
-        itemIndex === index ? { ...item, [key]: value } : item,
+        itemIndex === index ? { ...item, [key]: value } : item
       ),
     }));
   };
@@ -240,12 +245,12 @@ export function ServiceFormModal({
       | "importantNotes"
     >,
     index: number,
-    value: string,
+    value: string
   ) => {
     setForm((current) => ({
       ...current,
       [key]: current[key].map((item, itemIndex) =>
-        itemIndex === index ? value : item,
+        itemIndex === index ? value : item
       ),
     }));
   };
@@ -291,7 +296,7 @@ export function ServiceFormModal({
       | "preparationNotes"
       | "aftercareNotes"
       | "importantNotes"
-    >,
+    >
   ) => {
     setField(key, [...form[key], ""]);
   };
@@ -305,42 +310,42 @@ export function ServiceFormModal({
       | "aftercareNotes"
       | "importantNotes"
     >,
-    index: number,
+    index: number
   ) => {
     setField(
       key,
-      form[key].filter((_, itemIndex) => itemIndex !== index),
+      form[key].filter((_, itemIndex) => itemIndex !== index)
     );
   };
 
   return (
     <AdminModal
       title={title}
-      description="Quản lý thông tin, giá, hình ảnh, quy trình và câu hỏi thường gặp của dịch vụ."
+      description="Quản lý thông tin chung nhóm dịch vụ, hình ảnh, quy trình và FAQ."
       onClose={onClose}
     >
       <form
-        className="mt-6 flex flex-col gap-5"
+        className="mt-4 flex flex-col gap-5"
         onSubmit={(event) => {
           event.preventDefault();
           onSubmit(form);
         }}
       >
-        <Section title="Thông tin chính">
+        <Section title="Thông tin dịch vụ (Nhóm chính)">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <AdminInput
               label="Danh mục"
               required
               value={form.category}
               onChange={(event) => setField("category", event.target.value)}
-              placeholder="VD: Tổng quát, Thẩm mỹ..."
+              placeholder="VD: Implant, Phục hình, Thẩm mỹ..."
             />
             <AdminInput
               label="Tên dịch vụ"
               required
               value={form.name}
               onChange={(event) => setField("name", event.target.value)}
-              placeholder="VD: Tẩy trắng răng"
+              placeholder="VD: Trồng răng Implant"
             />
           </div>
 
@@ -349,10 +354,10 @@ export function ServiceFormModal({
               label="Slug"
               value={form.slug}
               onChange={(event) => setField("slug", event.target.value)}
-              placeholder="tay-trang-rang"
+              placeholder="trong-rang-implant"
             />
             <ImagePicker
-              label="Ảnh đại diện"
+              label="Ảnh đại diện nhóm dịch vụ"
               value={form.thumbnailUrl}
               onChange={(value) => setField("thumbnailUrl", value)}
             />
@@ -366,152 +371,88 @@ export function ServiceFormModal({
             placeholder="Một câu ngắn để hiển thị ở card dịch vụ."
           />
 
-        <TextareaField
-          label="Mô tả chi tiết"
-          value={form.description}
-          onChange={(value) => setField("description", value)}
-          placeholder="Thông tin chuyên môn, lợi ích và lưu ý của dịch vụ."
-        />
+          <TextareaField
+            label="Mô tả chi tiết"
+            value={form.description}
+            onChange={(value) => setField("description", value)}
+            placeholder="Thông tin chuyên môn, lợi ích và lưu ý của dịch vụ."
+          />
+        </Section>
 
-        <TextareaField
-          label="Tóm tắt chuyên sâu trên trang chi tiết"
-          rows={4}
-          value={form.detailSummary}
-          onChange={(value) => setField("detailSummary", value)}
-          placeholder="Đoạn giải thích nổi bật ở đầu trang chi tiết dịch vụ."
-        />
-      </Section>
+        {/* Section: Treatment Methods Overview */}
+        <Section title="Các phương pháp điều trị đi kèm">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
+            <span className="text-xs font-medium text-muted-foreground">
+              Số lượng: <strong>{form.treatmentMethods.length} phương pháp</strong>. Nhấp vào phương pháp để chỉnh sửa giá & thông tin chi tiết riêng.
+            </span>
 
-      <Section title="Nội dung trang chi tiết">
-        <TextareaField
-          label="Ghi chú giá"
-          rows={2}
-          value={form.pricingNote}
-          onChange={(value) => setField("pricingNote", value)}
-          placeholder="VD: Giá hiển thị là mức khởi điểm, chi phí cuối cùng xác nhận sau thăm khám."
-        />
-
-        <div className="space-y-3">
-          <h5 className="text-sm font-semibold text-brand-dark">
-            Điểm nổi bật
-          </h5>
-          {form.highlights.map((highlight, index) => (
-            <div
-              key={index}
-              className="grid grid-cols-1 gap-3 rounded-lg border border-border bg-white p-3 lg:grid-cols-[160px_1fr_auto]"
-            >
-              <AdminSelect
-                label="Icon"
-                value={highlight.icon}
-                onChange={(event) =>
-                  updateHighlight(index, "icon", event.target.value)
-                }
-              >
-                {highlightIcons.map((icon) => (
-                  <option key={icon} value={icon}>
-                    {icon}
-                  </option>
-                ))}
-              </AdminSelect>
-              <div className="space-y-3">
-                <AdminInput
-                  label="Tiêu đề"
-                  value={highlight.title}
-                  onChange={(event) =>
-                    updateHighlight(index, "title", event.target.value)
-                  }
-                />
-                <TextareaField
-                  label="Mô tả"
-                  rows={2}
-                  value={highlight.description}
-                  onChange={(value) =>
-                    updateHighlight(index, "description", value)
-                  }
-                />
-              </div>
+            {onCreateTreatmentMethod && (
               <AdminButton
-                variant="danger"
-                className="self-end"
-                onClick={() =>
-                  setField(
-                    "highlights",
-                    form.highlights.filter(
-                      (_, itemIndex) => itemIndex !== index,
-                    ),
-                  )
-                }
+                type="button"
+                variant="secondary"
+                onClick={onCreateTreatmentMethod}
               >
-                Xóa
+                + Thêm phương pháp mới
               </AdminButton>
+            )}
+          </div>
+
+          {form.treatmentMethods.length === 0 ? (
+            <p className="text-xs text-muted-foreground italic py-2">
+              Chưa có phương pháp điều trị nào. Hãy bấm "Thêm phương pháp mới".
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+              {form.treatmentMethods.map((method, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-border bg-white p-3 shadow-2xs transition-all hover:border-brand/40"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-semibold text-slate-800 text-sm truncate">
+                        {method.name || `Phương pháp #${index + 1}`}
+                      </span>
+                    </div>
+                    <div className="mt-0.5 font-mono text-xs font-bold text-brand-dark">
+                      {formatVND(method.basePrice)} • {method.durationMinutes} phút
+                    </div>
+                  </div>
+
+                  {onEditTreatmentMethod && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onEditTreatmentMethod(
+                          {
+                            id: method.id,
+                            name: method.name,
+                            slug: method.slug ?? "",
+                            description: method.description ?? "",
+                            imageUrl: method.imageUrl ?? "",
+                            basePrice: method.basePrice,
+                            durationMinutes: method.durationMinutes,
+                            displayOrder: method.displayOrder,
+                            isActive: method.isActive,
+                          },
+                          index
+                        )
+                      }
+                      className="shrink-0 rounded-md bg-blue-50 px-2.5 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100"
+                    >
+                      Sửa
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
-          ))}
-          <AdminButton variant="secondary" onClick={addHighlight}>
-            Thêm điểm nổi bật
-          </AdminButton>
-        </div>
+          )}
+        </Section>
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <ContentListSection
-            title="Phù hợp với ai?"
-            addLabel="Thêm đối tượng"
-            items={form.suitableFor}
-            onAdd={() => addTextListItem("suitableFor")}
-            onChange={(index, value) =>
-              updateTextList("suitableFor", index, value)
-            }
-            onRemove={(index) => removeTextListItem("suitableFor", index)}
-          />
-          <ContentListSection
-            title="Bao gồm trong buổi hẹn"
-            addLabel="Thêm quyền lợi"
-            items={form.includedItems}
-            onAdd={() => addTextListItem("includedItems")}
-            onChange={(index, value) =>
-              updateTextList("includedItems", index, value)
-            }
-            onRemove={(index) => removeTextListItem("includedItems", index)}
-          />
-          <ContentListSection
-            title="Chuẩn bị trước buổi hẹn"
-            addLabel="Thêm lưu ý chuẩn bị"
-            items={form.preparationNotes}
-            onAdd={() => addTextListItem("preparationNotes")}
-            onChange={(index, value) =>
-              updateTextList("preparationNotes", index, value)
-            }
-            onRemove={(index) =>
-              removeTextListItem("preparationNotes", index)
-            }
-          />
-          <ContentListSection
-            title="Chăm sóc sau điều trị"
-            addLabel="Thêm hướng dẫn"
-            items={form.aftercareNotes}
-            onAdd={() => addTextListItem("aftercareNotes")}
-            onChange={(index, value) =>
-              updateTextList("aftercareNotes", index, value)
-            }
-            onRemove={(index) => removeTextListItem("aftercareNotes", index)}
-          />
-        </div>
-
-        <ContentListSection
-          title="Lưu ý quan trọng"
-          addLabel="Thêm lưu ý"
-          items={form.importantNotes}
-          onAdd={() => addTextListItem("importantNotes")}
-          onChange={(index, value) =>
-            updateTextList("importantNotes", index, value)
-          }
-          onRemove={(index) => removeTextListItem("importantNotes", index)}
-        />
-      </Section>
-
-      <Section title="Giá và sắp xếp">
+        <Section title="Giá mặc định & Sắp xếp">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <AdminInput
-              label="Thời lượng"
+              label="Thời lượng mặc định (Phút)"
               type="number"
               required
               min={1}
@@ -522,7 +463,7 @@ export function ServiceFormModal({
               className="font-mono"
             />
             <AdminInput
-              label="Giá cơ bản"
+              label="Giá khởi điểm mặc định (VND)"
               type="number"
               required
               min={0}
@@ -534,7 +475,7 @@ export function ServiceFormModal({
               className="text-right font-mono"
             />
             <AdminInput
-              label="Thứ tự"
+              label="Thứ tự hiển thị"
               type="number"
               min={0}
               value={form.displayOrder}
@@ -546,122 +487,63 @@ export function ServiceFormModal({
           </div>
         </Section>
 
-        <Section title="Hình ảnh">
+        <Section title="Nội dung chi tiết & Điểm nổi bật">
+          <TextareaField
+            label="Ghi chú giá"
+            rows={2}
+            value={form.pricingNote}
+            onChange={(value) => setField("pricingNote", value)}
+            placeholder="VD: Giá hiển thị là mức khởi điểm, chi phí cuối cùng xác nhận sau thăm khám."
+          />
+
           <div className="space-y-3">
-            {form.media.map((media, index) => (
+            <h5 className="text-sm font-semibold text-brand-dark">
+              Điểm nổi bật
+            </h5>
+            {form.highlights.map((highlight, index) => (
               <div
                 key={index}
-                className="grid grid-cols-1 gap-3 rounded-lg border border-border bg-white p-3 lg:grid-cols-[1.2fr_1fr_150px_80px_auto]"
+                className="grid grid-cols-1 gap-3 rounded-lg border border-border bg-white p-3 lg:grid-cols-[160px_1fr_auto]"
               >
-                <ImagePicker
-                  label="Chọn ảnh"
-                  value={media.url}
-                  onChange={(value) => updateMedia(index, "url", value)}
-                />
-                <AdminInput
-                  label="Mô tả ảnh"
-                  value={media.alt}
-                  onChange={(event) =>
-                    updateMedia(index, "alt", event.target.value)
-                  }
-                />
                 <AdminSelect
-                  label="Loại"
-                  value={media.type}
+                  label="Icon"
+                  value={highlight.icon}
                   onChange={(event) =>
-                    updateMedia(index, "type", event.target.value)
+                    updateHighlight(index, "icon", event.target.value)
                   }
                 >
-                  {mediaTypes.map((type) => (
-                    <option key={type} value={type}>
-                      {type}
+                  {highlightIcons.map((icon) => (
+                    <option key={icon} value={icon}>
+                      {icon}
                     </option>
                   ))}
                 </AdminSelect>
-                <AdminInput
-                  label="Thứ tự"
-                  type="number"
-                  min={0}
-                  value={media.sortOrder}
-                  onChange={(event) =>
-                    updateMedia(index, "sortOrder", Number(event.target.value))
-                  }
-                />
-                <AdminButton
-                  variant="danger"
-                  className="self-end"
-                  onClick={() =>
-                    setField(
-                      "media",
-                      form.media.filter((_, itemIndex) => itemIndex !== index),
-                    )
-                  }
-                >
-                  Xóa
-                </AdminButton>
-              </div>
-            ))}
-          </div>
-          <AdminButton variant="secondary" onClick={addMedia}>
-            Thêm ảnh
-          </AdminButton>
-        </Section>
-
-        <Section title="Quy trình thực hiện">
-          <div className="space-y-3">
-            {form.procedureSteps.map((step, index) => (
-              <div
-                key={index}
-                className="grid grid-cols-1 gap-3 rounded-lg border border-border bg-white p-3 lg:grid-cols-[90px_1fr_120px_auto]"
-              >
-                <AdminInput
-                  label="Bước"
-                  type="number"
-                  min={1}
-                  value={step.stepOrder}
-                  onChange={(event) =>
-                    updateStep(index, "stepOrder", Number(event.target.value))
-                  }
-                />
                 <div className="space-y-3">
                   <AdminInput
                     label="Tiêu đề"
-                    value={step.title}
+                    value={highlight.title}
                     onChange={(event) =>
-                      updateStep(index, "title", event.target.value)
+                      updateHighlight(index, "title", event.target.value)
                     }
                   />
                   <TextareaField
                     label="Mô tả"
                     rows={2}
-                    value={step.description}
+                    value={highlight.description}
                     onChange={(value) =>
-                      updateStep(index, "description", value)
+                      updateHighlight(index, "description", value)
                     }
                   />
                 </div>
-                <AdminInput
-                  label="Phút"
-                  type="number"
-                  min={1}
-                  value={step.durationMinutes}
-                  onChange={(event) =>
-                    updateStep(
-                      index,
-                      "durationMinutes",
-                      event.target.value ? Number(event.target.value) : "",
-                    )
-                  }
-                />
                 <AdminButton
                   variant="danger"
                   className="self-end"
                   onClick={() =>
                     setField(
-                      "procedureSteps",
-                      form.procedureSteps.filter(
-                        (_, itemIndex) => itemIndex !== index,
-                      ),
+                      "highlights",
+                      form.highlights.filter(
+                        (_, itemIndex) => itemIndex !== index
+                      )
                     )
                   }
                 >
@@ -669,59 +551,10 @@ export function ServiceFormModal({
                 </AdminButton>
               </div>
             ))}
+            <AdminButton variant="secondary" onClick={addHighlight}>
+              Thêm điểm nổi bật
+            </AdminButton>
           </div>
-          <AdminButton variant="secondary" onClick={addStep}>
-            Thêm bước
-          </AdminButton>
-        </Section>
-
-        <Section title="Câu hỏi thường gặp">
-          <div className="space-y-3">
-            {form.faqs.map((faq, index) => (
-              <div
-                key={index}
-                className="grid grid-cols-1 gap-3 rounded-lg border border-border bg-white p-3 lg:grid-cols-[1fr_1fr_90px_auto]"
-              >
-                <AdminInput
-                  label="Câu hỏi"
-                  value={faq.question}
-                  onChange={(event) =>
-                    updateFaq(index, "question", event.target.value)
-                  }
-                />
-                <TextareaField
-                  label="Trả lời"
-                  rows={2}
-                  value={faq.answer}
-                  onChange={(value) => updateFaq(index, "answer", value)}
-                />
-                <AdminInput
-                  label="Thứ tự"
-                  type="number"
-                  min={0}
-                  value={faq.sortOrder}
-                  onChange={(event) =>
-                    updateFaq(index, "sortOrder", Number(event.target.value))
-                  }
-                />
-                <AdminButton
-                  variant="danger"
-                  className="self-end"
-                  onClick={() =>
-                    setField(
-                      "faqs",
-                      form.faqs.filter((_, itemIndex) => itemIndex !== index),
-                    )
-                  }
-                >
-                  Xóa
-                </AdminButton>
-              </div>
-            ))}
-          </div>
-          <AdminButton variant="secondary" onClick={addFaq}>
-            Thêm FAQ
-          </AdminButton>
         </Section>
 
         <div className="mt-2 flex justify-end gap-3 border-t border-border bg-white pt-4">

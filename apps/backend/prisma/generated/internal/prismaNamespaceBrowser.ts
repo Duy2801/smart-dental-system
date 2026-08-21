@@ -414,6 +414,7 @@ export const DoctorAvailabilityScalarFieldEnum = {
   startTime: 'startTime',
   endTime: 'endTime',
   reason: 'reason',
+  approvalStatus: 'approvalStatus',
   isActive: 'isActive'
 } as const
 

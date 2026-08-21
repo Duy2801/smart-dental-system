@@ -56,6 +56,15 @@ export const AvailabilityRecordType = {
 export type AvailabilityRecordType = (typeof AvailabilityRecordType)[keyof typeof AvailabilityRecordType]
 
 
+export const AvailabilityApprovalStatus = {
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED'
+} as const
+
+export type AvailabilityApprovalStatus = (typeof AvailabilityApprovalStatus)[keyof typeof AvailabilityApprovalStatus]
+
+
 export const AppointmentStatus = {
   PENDING: 'PENDING',
   CONFIRMED: 'CONFIRMED',

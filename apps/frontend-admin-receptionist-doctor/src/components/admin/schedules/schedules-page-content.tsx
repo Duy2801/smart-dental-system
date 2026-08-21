@@ -11,21 +11,34 @@ import {
   deleteDoctorAvailability,
   getDoctorAvailability,
   getDoctors,
+  getShiftMatrix,
+  updateTimeOffApproval,
 } from "./schedule-api";
 import { ScheduleFormModal } from "./components/schedule-form-modal";
 import { ScheduleTable } from "./components/schedule-table";
 import { ScheduleToolbar } from "./components/schedule-toolbar";
+import { ShiftMatrixTable } from "./components/shift-matrix-table";
+import { ConflictModal } from "./components/conflict-modal";
 import { getErrorMessage } from "./schedule-utils";
-import type { ScheduleFormState } from "./types";
+import type { AppointmentConflictItem, AvailabilityApprovalStatus, ScheduleFormState } from "./types";
 import type { BusinessHour } from "../setting/types";
 
 export function SchedulesPageContent() {
   const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState<"INDIVIDUAL" | "MATRIX">("INDIVIDUAL");
   const [doctorId, setDoctorId] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [form, setForm] = useState<ScheduleFormState>(defaultScheduleForm);
+
+  // Conflict handling state
+  const [conflictModalOpen, setConflictModalOpen] = useState(false);
+  const [conflicts, setConflicts] = useState<AppointmentConflictItem[]>([]);
+  const [pendingAction, setPendingAction] = useState<{
+    type: "CREATE" | "DELETE";
+    deleteId?: string;
+  } | null>(null);
 
   const {
     data: doctors = [],
@@ -38,10 +51,12 @@ export function SchedulesPageContent() {
       return doctorList.filter((doctor) => doctor.isActive);
     },
   });
+
   const { data: clinicConfig } = useQuery({
     queryKey: queryKeys.admin.clinicConfig,
     queryFn: getClinicConfig,
   });
+
   const selectedDoctorId = doctorId || doctors[0]?.id || "";
   const businessHours = clinicConfig?.businessHours ?? [];
   const openBusinessHours = businessHours.filter((day) => day.isOpen);
@@ -55,7 +70,16 @@ export function SchedulesPageContent() {
   } = useQuery({
     queryKey: queryKeys.admin.schedules.availability(selectedDoctorId),
     queryFn: () => getDoctorAvailability(selectedDoctorId),
-    enabled: Boolean(selectedDoctorId),
+    enabled: Boolean(selectedDoctorId) && activeTab === "INDIVIDUAL",
+  });
+
+  const {
+    data: matrixData = null,
+    isLoading: loadingMatrix,
+  } = useQuery({
+    queryKey: ["admin", "schedules", "matrix"],
+    queryFn: getShiftMatrix,
+    enabled: activeTab === "MATRIX",
   });
 
   const selectedDoctor = useMemo(
@@ -63,18 +87,14 @@ export function SchedulesPageContent() {
     [selectedDoctorId, doctors],
   );
 
-  const invalidateSchedule = () =>
+  const invalidateSchedule = () => {
     queryClient.invalidateQueries({
       queryKey: queryKeys.admin.schedules.availability(selectedDoctorId),
     });
-
-  const deleteMutation = useMutation({
-    mutationFn: deleteDoctorAvailability,
-    onSuccess: invalidateSchedule,
-    onError: (err) => {
-      setError(getErrorMessage(err, "Xoa lich that bai"));
-    },
-  });
+    queryClient.invalidateQueries({
+      queryKey: ["admin", "schedules", "matrix"],
+    });
+  };
 
   const getBusinessHourForDay = (dayOfWeek: number) =>
     businessHours.find((day) => day.id === dayOfWeek);
@@ -125,73 +145,144 @@ export function SchedulesPageContent() {
     });
   };
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>, force = false) => {
+    if (event) event.preventDefault();
     if (!selectedDoctorId) return;
 
     setSubmitting(true);
     setError(null);
 
     try {
-      await createDoctorAvailability(selectedDoctorId, form, businessHours);
+      await createDoctorAvailability(selectedDoctorId, form, businessHours, force);
       setIsAddModalOpen(false);
+      setConflictModalOpen(false);
       await invalidateSchedule();
-    } catch (err) {
-      setError(getErrorMessage(err, "Luu lich that bai"));
+    } catch (err: any) {
+      const respData = err?.response?.data;
+      if (respData?.code === "APPOINTMENT_CONFLICT" && respData?.conflicts) {
+        setConflicts(respData.conflicts);
+        setPendingAction({ type: "CREATE" });
+        setConflictModalOpen(true);
+      } else {
+        setError(getErrorMessage(err, "Lưu lịch thất bại"));
+      }
     } finally {
       setSubmitting(false);
     }
   };
 
-  const removeRecord = async (id: string) => {
-    const confirmed = window.confirm("Ban chac chan muon xoa lich nay?");
-    if (!confirmed) return;
+  const handleApproveStatus = async (id: string, approvalStatus: AvailabilityApprovalStatus) => {
+    try {
+      await updateTimeOffApproval(id, approvalStatus);
+      await invalidateSchedule();
+    } catch (err) {
+      setError(getErrorMessage(err, "Cập nhật trạng thái phê duyệt thất bại"));
+    }
+  };
+
+  const removeRecord = async (id: string, force = false) => {
+    if (!force) {
+      const confirmed = window.confirm("Bạn chắc chắn muốn xóa lịch này?");
+      if (!confirmed) return;
+    }
 
     setError(null);
     try {
-      await deleteMutation.mutateAsync(id);
-    } catch {
-      // Error message is handled by the mutation onError callback.
+      await deleteDoctorAvailability(id, force);
+      setConflictModalOpen(false);
+      await invalidateSchedule();
+    } catch (err: any) {
+      const respData = err?.response?.data;
+      if (respData?.code === "APPOINTMENT_CONFLICT" && respData?.conflicts) {
+        setConflicts(respData.conflicts);
+        setPendingAction({ type: "DELETE", deleteId: id });
+        setConflictModalOpen(true);
+      } else {
+        setError(getErrorMessage(err, "Xóa lịch thất bại"));
+      }
+    }
+  };
+
+  const handleConfirmForce = () => {
+    if (!pendingAction) return;
+    if (pendingAction.type === "CREATE") {
+      handleSubmit(null as any, true);
+    } else if (pendingAction.type === "DELETE" && pendingAction.deleteId) {
+      removeRecord(pendingAction.deleteId, true);
     }
   };
 
   const queryError = isDoctorsError
-    ? "Khong tai duoc bac si"
+    ? "Không tải được danh sách bác sĩ"
     : isScheduleError
-      ? "Khong tai duoc lich"
+      ? "Không tải được lịch làm việc"
       : null;
 
   return (
     <>
       <div className="space-y-6 p-6 md:p-8">
-        <ScheduleToolbar
-          doctorId={selectedDoctorId}
-          doctors={doctors}
-          loadingDoctors={loadingDoctors}
-          selectedDoctor={selectedDoctor}
-          onDoctorChange={setDoctorId}
-          onOpenManual={() => openAddModal(openBusinessHours[0]?.id ?? 1)}
-          onOpenAuto={() => openAddModal(openBusinessHours[0]?.id ?? 1, true)}
-          scheduleDisabled={!canManageSchedule}
-        />
+        <div className="flex items-center justify-between border-b border-border pb-4">
+          <div className="flex gap-4">
+            <button
+              type="button"
+              onClick={() => setActiveTab("INDIVIDUAL")}
+              className={`pb-2 text-sm font-semibold transition-colors border-b-2 ${
+                activeTab === "INDIVIDUAL"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              Lịch từng bác sĩ
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("MATRIX")}
+              className={`pb-2 text-sm font-semibold transition-colors border-b-2 ${
+                activeTab === "MATRIX"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              Ma trận ca trực toàn phòng khám
+            </button>
+          </div>
+        </div>
 
-        <AdminAlert
-          message={
-            error ||
-            queryError ||
-            (clinicConfig && !clinicConfig.isBusinessHoursConfigured
-              ? "Can cau hinh gio lam viec phong kham truoc khi lap lich bac si."
-              : null)
-          }
-        />
+        {activeTab === "INDIVIDUAL" ? (
+          <>
+            <ScheduleToolbar
+              doctorId={selectedDoctorId}
+              doctors={doctors}
+              loadingDoctors={loadingDoctors}
+              selectedDoctor={selectedDoctor}
+              onDoctorChange={setDoctorId}
+              onOpenManual={() => openAddModal(openBusinessHours[0]?.id ?? 1)}
+              onOpenAuto={() => openAddModal(openBusinessHours[0]?.id ?? 1, true)}
+              scheduleDisabled={!canManageSchedule}
+            />
 
-        <ScheduleTable
-          businessHours={businessHours}
-          loading={loadingSchedule}
-          schedule={schedule}
-          onAddDay={(dayOfWeek) => openAddModal(dayOfWeek)}
-          onRemove={removeRecord}
-        />
+            <AdminAlert
+              message={
+                error ||
+                queryError ||
+                (clinicConfig && !clinicConfig.isBusinessHoursConfigured
+                  ? "Cần cấu hình giờ làm việc phòng khám trước khi lập lịch bác sĩ."
+                  : null)
+              }
+            />
+
+            <ScheduleTable
+              businessHours={businessHours}
+              loading={loadingSchedule}
+              schedule={schedule}
+              onAddDay={(dayOfWeek) => openAddModal(dayOfWeek)}
+              onRemove={(id) => removeRecord(id, false)}
+              onApprove={handleApproveStatus}
+            />
+          </>
+        ) : (
+          <ShiftMatrixTable loading={loadingMatrix} matrix={matrixData} />
+        )}
       </div>
 
       {isAddModalOpen ? (
@@ -201,10 +292,21 @@ export function SchedulesPageContent() {
           submitting={submitting}
           setForm={setForm}
           onClose={closeModal}
-          onSubmit={handleSubmit}
+          onSubmit={(e) => handleSubmit(e, false)}
           toggleSelectedDay={toggleSelectedDay}
+        />
+      ) : null}
+
+      {conflictModalOpen ? (
+        <ConflictModal
+          isOpen={conflictModalOpen}
+          onClose={() => setConflictModalOpen(false)}
+          onConfirmForce={handleConfirmForce}
+          conflicts={conflicts}
+          actionName={pendingAction?.type === "CREATE" ? "Đăng ký lịch / nghỉ" : "Xóa ca trực"}
         />
       ) : null}
     </>
   );
 }
+

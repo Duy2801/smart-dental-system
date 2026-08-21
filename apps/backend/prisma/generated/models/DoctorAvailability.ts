@@ -43,6 +43,7 @@ export type DoctorAvailabilityMinAggregateOutputType = {
   startTime: string | null
   endTime: string | null
   reason: string | null
+  approvalStatus: $Enums.AvailabilityApprovalStatus | null
   isActive: boolean | null
 }
 
@@ -55,6 +56,7 @@ export type DoctorAvailabilityMaxAggregateOutputType = {
   startTime: string | null
   endTime: string | null
   reason: string | null
+  approvalStatus: $Enums.AvailabilityApprovalStatus | null
   isActive: boolean | null
 }
 
@@ -67,6 +69,7 @@ export type DoctorAvailabilityCountAggregateOutputType = {
   startTime: number
   endTime: number
   reason: number
+  approvalStatus: number
   isActive: number
   _all: number
 }
@@ -89,6 +92,7 @@ export type DoctorAvailabilityMinAggregateInputType = {
   startTime?: true
   endTime?: true
   reason?: true
+  approvalStatus?: true
   isActive?: true
 }
 
@@ -101,6 +105,7 @@ export type DoctorAvailabilityMaxAggregateInputType = {
   startTime?: true
   endTime?: true
   reason?: true
+  approvalStatus?: true
   isActive?: true
 }
 
@@ -113,6 +118,7 @@ export type DoctorAvailabilityCountAggregateInputType = {
   startTime?: true
   endTime?: true
   reason?: true
+  approvalStatus?: true
   isActive?: true
   _all?: true
 }
@@ -212,6 +218,7 @@ export type DoctorAvailabilityGroupByOutputType = {
   startTime: string
   endTime: string
   reason: string | null
+  approvalStatus: $Enums.AvailabilityApprovalStatus
   isActive: boolean
   _count: DoctorAvailabilityCountAggregateOutputType | null
   _avg: DoctorAvailabilityAvgAggregateOutputType | null
@@ -247,6 +254,7 @@ export type DoctorAvailabilityWhereInput = {
   startTime?: Prisma.StringFilter<"DoctorAvailability"> | string
   endTime?: Prisma.StringFilter<"DoctorAvailability"> | string
   reason?: Prisma.StringNullableFilter<"DoctorAvailability"> | string | null
+  approvalStatus?: Prisma.EnumAvailabilityApprovalStatusFilter<"DoctorAvailability"> | $Enums.AvailabilityApprovalStatus
   isActive?: Prisma.BoolFilter<"DoctorAvailability"> | boolean
   doctor?: Prisma.XOR<Prisma.DoctorScalarRelationFilter, Prisma.DoctorWhereInput>
 }
@@ -260,6 +268,7 @@ export type DoctorAvailabilityOrderByWithRelationInput = {
   startTime?: Prisma.SortOrder
   endTime?: Prisma.SortOrder
   reason?: Prisma.SortOrderInput | Prisma.SortOrder
+  approvalStatus?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
   doctor?: Prisma.DoctorOrderByWithRelationInput
 }
@@ -276,6 +285,7 @@ export type DoctorAvailabilityWhereUniqueInput = Prisma.AtLeast<{
   startTime?: Prisma.StringFilter<"DoctorAvailability"> | string
   endTime?: Prisma.StringFilter<"DoctorAvailability"> | string
   reason?: Prisma.StringNullableFilter<"DoctorAvailability"> | string | null
+  approvalStatus?: Prisma.EnumAvailabilityApprovalStatusFilter<"DoctorAvailability"> | $Enums.AvailabilityApprovalStatus
   isActive?: Prisma.BoolFilter<"DoctorAvailability"> | boolean
   doctor?: Prisma.XOR<Prisma.DoctorScalarRelationFilter, Prisma.DoctorWhereInput>
 }, "id">
@@ -289,6 +299,7 @@ export type DoctorAvailabilityOrderByWithAggregationInput = {
   startTime?: Prisma.SortOrder
   endTime?: Prisma.SortOrder
   reason?: Prisma.SortOrderInput | Prisma.SortOrder
+  approvalStatus?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
   _count?: Prisma.DoctorAvailabilityCountOrderByAggregateInput
   _avg?: Prisma.DoctorAvailabilityAvgOrderByAggregateInput
@@ -309,6 +320,7 @@ export type DoctorAvailabilityScalarWhereWithAggregatesInput = {
   startTime?: Prisma.StringWithAggregatesFilter<"DoctorAvailability"> | string
   endTime?: Prisma.StringWithAggregatesFilter<"DoctorAvailability"> | string
   reason?: Prisma.StringNullableWithAggregatesFilter<"DoctorAvailability"> | string | null
+  approvalStatus?: Prisma.EnumAvailabilityApprovalStatusWithAggregatesFilter<"DoctorAvailability"> | $Enums.AvailabilityApprovalStatus
   isActive?: Prisma.BoolWithAggregatesFilter<"DoctorAvailability"> | boolean
 }
 
@@ -320,6 +332,7 @@ export type DoctorAvailabilityCreateInput = {
   startTime: string
   endTime: string
   reason?: string | null
+  approvalStatus?: $Enums.AvailabilityApprovalStatus
   isActive?: boolean
   doctor: Prisma.DoctorCreateNestedOneWithoutAvailabilityInput
 }
@@ -333,6 +346,7 @@ export type DoctorAvailabilityUncheckedCreateInput = {
   startTime: string
   endTime: string
   reason?: string | null
+  approvalStatus?: $Enums.AvailabilityApprovalStatus
   isActive?: boolean
 }
 
@@ -344,6 +358,7 @@ export type DoctorAvailabilityUpdateInput = {
   startTime?: Prisma.StringFieldUpdateOperationsInput | string
   endTime?: Prisma.StringFieldUpdateOperationsInput | string
   reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approvalStatus?: Prisma.EnumAvailabilityApprovalStatusFieldUpdateOperationsInput | $Enums.AvailabilityApprovalStatus
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   doctor?: Prisma.DoctorUpdateOneRequiredWithoutAvailabilityNestedInput
 }
@@ -357,6 +372,7 @@ export type DoctorAvailabilityUncheckedUpdateInput = {
   startTime?: Prisma.StringFieldUpdateOperationsInput | string
   endTime?: Prisma.StringFieldUpdateOperationsInput | string
   reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approvalStatus?: Prisma.EnumAvailabilityApprovalStatusFieldUpdateOperationsInput | $Enums.AvailabilityApprovalStatus
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
@@ -369,6 +385,7 @@ export type DoctorAvailabilityCreateManyInput = {
   startTime: string
   endTime: string
   reason?: string | null
+  approvalStatus?: $Enums.AvailabilityApprovalStatus
   isActive?: boolean
 }
 
@@ -380,6 +397,7 @@ export type DoctorAvailabilityUpdateManyMutationInput = {
   startTime?: Prisma.StringFieldUpdateOperationsInput | string
   endTime?: Prisma.StringFieldUpdateOperationsInput | string
   reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approvalStatus?: Prisma.EnumAvailabilityApprovalStatusFieldUpdateOperationsInput | $Enums.AvailabilityApprovalStatus
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
@@ -392,6 +410,7 @@ export type DoctorAvailabilityUncheckedUpdateManyInput = {
   startTime?: Prisma.StringFieldUpdateOperationsInput | string
   endTime?: Prisma.StringFieldUpdateOperationsInput | string
   reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approvalStatus?: Prisma.EnumAvailabilityApprovalStatusFieldUpdateOperationsInput | $Enums.AvailabilityApprovalStatus
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
@@ -414,6 +433,7 @@ export type DoctorAvailabilityCountOrderByAggregateInput = {
   startTime?: Prisma.SortOrder
   endTime?: Prisma.SortOrder
   reason?: Prisma.SortOrder
+  approvalStatus?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
 }
 
@@ -430,6 +450,7 @@ export type DoctorAvailabilityMaxOrderByAggregateInput = {
   startTime?: Prisma.SortOrder
   endTime?: Prisma.SortOrder
   reason?: Prisma.SortOrder
+  approvalStatus?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
 }
 
@@ -442,6 +463,7 @@ export type DoctorAvailabilityMinOrderByAggregateInput = {
   startTime?: Prisma.SortOrder
   endTime?: Prisma.SortOrder
   reason?: Prisma.SortOrder
+  approvalStatus?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
 }
 
@@ -495,6 +517,10 @@ export type EnumAvailabilityRecordTypeFieldUpdateOperationsInput = {
   set?: $Enums.AvailabilityRecordType
 }
 
+export type EnumAvailabilityApprovalStatusFieldUpdateOperationsInput = {
+  set?: $Enums.AvailabilityApprovalStatus
+}
+
 export type DoctorAvailabilityCreateWithoutDoctorInput = {
   id?: string
   recordType: $Enums.AvailabilityRecordType
@@ -503,6 +529,7 @@ export type DoctorAvailabilityCreateWithoutDoctorInput = {
   startTime: string
   endTime: string
   reason?: string | null
+  approvalStatus?: $Enums.AvailabilityApprovalStatus
   isActive?: boolean
 }
 
@@ -514,6 +541,7 @@ export type DoctorAvailabilityUncheckedCreateWithoutDoctorInput = {
   startTime: string
   endTime: string
   reason?: string | null
+  approvalStatus?: $Enums.AvailabilityApprovalStatus
   isActive?: boolean
 }
 
@@ -555,6 +583,7 @@ export type DoctorAvailabilityScalarWhereInput = {
   startTime?: Prisma.StringFilter<"DoctorAvailability"> | string
   endTime?: Prisma.StringFilter<"DoctorAvailability"> | string
   reason?: Prisma.StringNullableFilter<"DoctorAvailability"> | string | null
+  approvalStatus?: Prisma.EnumAvailabilityApprovalStatusFilter<"DoctorAvailability"> | $Enums.AvailabilityApprovalStatus
   isActive?: Prisma.BoolFilter<"DoctorAvailability"> | boolean
 }
 
@@ -566,6 +595,7 @@ export type DoctorAvailabilityCreateManyDoctorInput = {
   startTime: string
   endTime: string
   reason?: string | null
+  approvalStatus?: $Enums.AvailabilityApprovalStatus
   isActive?: boolean
 }
 
@@ -577,6 +607,7 @@ export type DoctorAvailabilityUpdateWithoutDoctorInput = {
   startTime?: Prisma.StringFieldUpdateOperationsInput | string
   endTime?: Prisma.StringFieldUpdateOperationsInput | string
   reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approvalStatus?: Prisma.EnumAvailabilityApprovalStatusFieldUpdateOperationsInput | $Enums.AvailabilityApprovalStatus
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
@@ -588,6 +619,7 @@ export type DoctorAvailabilityUncheckedUpdateWithoutDoctorInput = {
   startTime?: Prisma.StringFieldUpdateOperationsInput | string
   endTime?: Prisma.StringFieldUpdateOperationsInput | string
   reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approvalStatus?: Prisma.EnumAvailabilityApprovalStatusFieldUpdateOperationsInput | $Enums.AvailabilityApprovalStatus
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
@@ -599,6 +631,7 @@ export type DoctorAvailabilityUncheckedUpdateManyWithoutDoctorInput = {
   startTime?: Prisma.StringFieldUpdateOperationsInput | string
   endTime?: Prisma.StringFieldUpdateOperationsInput | string
   reason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approvalStatus?: Prisma.EnumAvailabilityApprovalStatusFieldUpdateOperationsInput | $Enums.AvailabilityApprovalStatus
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
@@ -613,6 +646,7 @@ export type DoctorAvailabilitySelect<ExtArgs extends runtime.Types.Extensions.In
   startTime?: boolean
   endTime?: boolean
   reason?: boolean
+  approvalStatus?: boolean
   isActive?: boolean
   doctor?: boolean | Prisma.DoctorDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["doctorAvailability"]>
@@ -626,6 +660,7 @@ export type DoctorAvailabilitySelectCreateManyAndReturn<ExtArgs extends runtime.
   startTime?: boolean
   endTime?: boolean
   reason?: boolean
+  approvalStatus?: boolean
   isActive?: boolean
   doctor?: boolean | Prisma.DoctorDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["doctorAvailability"]>
@@ -639,6 +674,7 @@ export type DoctorAvailabilitySelectUpdateManyAndReturn<ExtArgs extends runtime.
   startTime?: boolean
   endTime?: boolean
   reason?: boolean
+  approvalStatus?: boolean
   isActive?: boolean
   doctor?: boolean | Prisma.DoctorDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["doctorAvailability"]>
@@ -652,10 +688,11 @@ export type DoctorAvailabilitySelectScalar = {
   startTime?: boolean
   endTime?: boolean
   reason?: boolean
+  approvalStatus?: boolean
   isActive?: boolean
 }
 
-export type DoctorAvailabilityOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "doctorId" | "recordType" | "dayOfWeek" | "specificDate" | "startTime" | "endTime" | "reason" | "isActive", ExtArgs["result"]["doctorAvailability"]>
+export type DoctorAvailabilityOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "doctorId" | "recordType" | "dayOfWeek" | "specificDate" | "startTime" | "endTime" | "reason" | "approvalStatus" | "isActive", ExtArgs["result"]["doctorAvailability"]>
 export type DoctorAvailabilityInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   doctor?: boolean | Prisma.DoctorDefaultArgs<ExtArgs>
 }
@@ -680,6 +717,7 @@ export type $DoctorAvailabilityPayload<ExtArgs extends runtime.Types.Extensions.
     startTime: string
     endTime: string
     reason: string | null
+    approvalStatus: $Enums.AvailabilityApprovalStatus
     isActive: boolean
   }, ExtArgs["result"]["doctorAvailability"]>
   composites: {}
@@ -1113,6 +1151,7 @@ export interface DoctorAvailabilityFieldRefs {
   readonly startTime: Prisma.FieldRef<"DoctorAvailability", 'String'>
   readonly endTime: Prisma.FieldRef<"DoctorAvailability", 'String'>
   readonly reason: Prisma.FieldRef<"DoctorAvailability", 'String'>
+  readonly approvalStatus: Prisma.FieldRef<"DoctorAvailability", 'AvailabilityApprovalStatus'>
   readonly isActive: Prisma.FieldRef<"DoctorAvailability", 'Boolean'>
 }
     
