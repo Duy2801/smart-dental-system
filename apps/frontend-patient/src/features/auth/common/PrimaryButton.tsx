@@ -12,7 +12,7 @@ export function PrimaryButton({
   return (
     <button
       type="submit"
-      className={`flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#0863c5] px-4 text-sm font-bold text-white shadow-[0_5px_14px_rgba(8,99,197,0.22)] transition hover:bg-[#0756aa] focus:outline-none focus:ring-4 focus:ring-blue-200 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-65 ${className}`}
+      className={`group relative flex h-9.5 w-full items-center justify-center gap-2 overflow-hidden rounded-lg bg-blue-600 px-4 text-xs font-semibold text-white shadow-sm shadow-blue-500/25 transition-all duration-200 hover:bg-blue-700 hover:shadow-md hover:shadow-blue-500/30 focus:outline-none focus:ring-3 focus:ring-blue-500/20 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none ${className}`}
       {...props}
     >
       {children}

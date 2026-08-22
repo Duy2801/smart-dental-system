@@ -4,9 +4,7 @@ import { useState } from "react";
 import type { AppointmentItem, AppointmentStatus } from "../../api";
 import { DashboardIcon } from "../../../common/DashboardIcon";
 import { AppointmentRecordCard } from "./AppointmentRecordCard";
-import { AppointmentsEmptyState } from "./AppointmentsEmptyState";
 import { AppointmentHistoryList } from "./AppointmentHistoryList";
-import { T } from "../../../common/typography";
 import { useAppointmentWorkspaceView } from "../../hooks/useAppointmentWorkspaceView";
 import { AppointmentWorkspaceHeader } from "../AppointmentWorkspaceHeader";
 
@@ -40,97 +38,57 @@ export function ManageModeView({
     query,
     statusFilter,
   });
+
+  const filterTabs: { value: AppointmentStatus | "all"; label: string }[] = [
+    { value: "all", label: "Tất cả" },
+    { value: "pending", label: "Chờ xác nhận" },
+    { value: "confirmed", label: "Đã xác nhận" },
+    { value: "completed", label: "Hoàn thành" },
+    { value: "cancelled", label: "Đã hủy" },
+  ];
+
   return (
-    <main className="mx-auto w-full max-w-[1360px] px-4 py-6 sm:px-6 lg:px-8">
+    <main className="mx-auto w-full max-w-[1360px] px-4 py-6 sm:px-6 lg:px-8 space-y-6">
       <AppointmentWorkspaceHeader
         mode="manage"
         title="Quản lý lịch hẹn"
-        subtitle="Bố cục gọn, rõ thao tác, tối ưu để nhìn nhanh lịch sắp tới và xử lý ngay trên cả desktop lẫn mobile."
+        subtitle="Theo dõi lịch khám sắp tới, đổi lịch hoặc xem lịch sử các lần thăm khám nha khoa."
         onSelectManage={() => {}}
         onSelectBooking={onOpenBooking}
       />
 
-      <section className="rounded-[28px] border border-slate-200 bg-white px-5 py-5 shadow-[0_12px_34px_rgba(15,23,42,.04)] sm:px-6">
-        <div className="grid gap-3 sm:grid-cols-3">
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <p className={`${T.fieldLabel}`}>Tổng lịch</p>
-            <p className="mt-2 text-2xl font-bold text-slate-900">{appointments.length}</p>
+      {/* Main Container - Upcoming & Active Appointments */}
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm space-y-6">
+        <div className="border-b border-slate-100 pb-5">
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl font-extrabold text-slate-900">
+              Danh Sách Lịch Khám Nha Khoa Của Tôi
+            </h2>
+            <span className="rounded-full bg-blue-50 px-3 py-0.5 text-xs font-bold text-[#0058bc] border border-blue-100">
+              {filteredUpcoming.length} cuộc hẹn
+            </span>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <p className={`${T.fieldLabel}`}>Sắp tới</p>
-            <p className="mt-2 text-2xl font-bold text-slate-900">{upcoming.length}</p>
-          </div>
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <p className={`${T.fieldLabel}`}>Chờ xác nhận</p>
-            <p className="mt-2 text-2xl font-bold text-slate-900">
-              {appointments.filter((item) => item.status === "pending").length}
-            </p>
-          </div>
+          <p className="mt-1 text-xs text-slate-500">
+            Quản lý các cuộc hẹn khám trực tiếp tại phòng khám nha khoa
+          </p>
         </div>
-      </section>
 
-      <section className="mt-5 grid gap-5 xl:grid-cols-[300px_minmax(0,1fr)]">
-        <aside className="rounded-[26px] border border-slate-200 bg-white p-5 shadow-[0_12px_34px_rgba(15,23,42,.04)]">
-          <p className={`${T.fieldLabel}`}>Tìm kiếm</p>
-          <div className="relative mt-3">
-            <DashboardIcon
-              name="search"
-              className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
-            />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Tìm theo bác sĩ hoặc dịch vụ..."
-              className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-50"
-            />
-          </div>
-
-          <p className={`mt-4 ${T.fieldLabel}`}>Trạng thái</p>
-          <label className="relative mt-3 block">
-            <DashboardIcon
-              name="calendar"
-              className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
-            />
-            <DashboardIcon
-              name="chevron"
-              className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 rotate-90 text-slate-400"
-            />
-            <select
-              value={statusFilter}
-              onChange={(event) =>
-                setStatusFilter(event.target.value as AppointmentStatus | "all")
-              }
-              className="h-12 w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 pl-11 pr-10 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-50"
-            >
-              <option value="all">Tất cả trạng thái</option>
-              <option value="pending">Chờ xác nhận</option>
-              <option value="confirmed">Đã xác nhận</option>
-              <option value="completed">Hoàn thành</option>
-              <option value="cancelled">Đã hủy</option>
-              <option value="missed">Vắng mặt</option>
-              <option value="rescheduled">Đã đổi lịch</option>
-            </select>
-          </label>
-
-          <div className="mt-4 flex flex-wrap gap-2">
-            {[
-              { value: "all", label: "Tất cả" },
-              { value: "pending", label: "Chờ" },
-              { value: "confirmed", label: "Xác nhận" },
-              { value: "completed", label: "Xong" },
-              { value: "cancelled", label: "Hủy" },
-            ].map((item) => {
+        {/* Filters & Search Controls Bar */}
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between bg-slate-50/80 p-4 rounded-xl border border-slate-100">
+          {/* Status Filter Buttons */}
+          <div className="flex flex-wrap items-center gap-2">
+            {filterTabs.map((item) => {
               const active = statusFilter === item.value;
               return (
                 <button
                   key={item.value}
-                  onClick={() =>
-                    setStatusFilter(item.value as AppointmentStatus | "all")
-                  }
-                  className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${active
-                    ? "border-[#0058bc] bg-[#0058bc] text-white"
-                    : "border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-[#0058bc]"
-                    }`}
+                  type="button"
+                  onClick={() => setStatusFilter(item.value)}
+                  className={`rounded-xl px-3.5 py-2 text-xs font-bold transition ${
+                    active
+                      ? "bg-[#0058bc] text-white shadow-sm"
+                      : "bg-white text-slate-600 border border-slate-200 hover:border-blue-200 hover:bg-blue-50/50 hover:text-[#0058bc]"
+                  }`}
                 >
                   {item.label}
                 </button>
@@ -138,65 +96,71 @@ export function ManageModeView({
             })}
           </div>
 
-          <div className="mt-5 rounded-2xl bg-slate-50 px-4 py-4">
-            <p className={`${T.fieldLabel}`}>
-              Lịch gần nhất
-            </p>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              {upcoming[0]
-                ? `${upcoming[0].date} lúc ${upcoming[0].time} với ${upcoming[0].doctor}.`
-                : "Bạn chưa có lịch hẹn sắp tới."}
-            </p>
+          {/* Search Box */}
+          <div className="relative w-full lg:w-72">
+            <DashboardIcon
+              name="search"
+              className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+            />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Tìm theo bác sĩ, dịch vụ..."
+              className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-xs outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+              >
+                ✕
+              </button>
+            )}
           </div>
-        </aside>
-
-        <div className="space-y-5">
-          {loading ? (
-            <div className="grid gap-4 lg:grid-cols-2">
-              {Array.from({ length: 2 }).map((_, index) => (
-                <div key={index} className="h-56 animate-pulse rounded-[24px] bg-slate-100" />
-              ))}
-            </div>
-          ) : (
-            <>
-              <section>
-                <div className="mb-4 flex items-end justify-between gap-3">
-                  <div>
-                    <p className={`${T.fieldLabel}`}>
-                      Lịch sắp tới
-                    </p>
-                    <h2 className="mt-1 text-lg font-bold text-slate-900">
-                      Các cuộc hẹn gần nhất
-                    </h2>
-                  </div>
-                </div>
-
-                {filteredUpcoming.length ? (
-                  <div className="grid gap-4">
-                    {filteredUpcoming.map((item) => (
-                      <AppointmentRecordCard
-                        key={item.id}
-                        appointment={item}
-                        onReschedule={() => onReschedule(item)}
-                        onCancel={() => onCancelAppointment(item.id)}
-                        canCancel={
-                          item.status === "pending" || item.status === "confirmed"
-                        }
-                        isCancelling={cancellingAppointmentId === item.id}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <AppointmentsEmptyState text="Bạn chưa có lịch hẹn sắp tới." />
-                )}
-              </section>
-
-              <section>
-                <AppointmentHistoryList history={history} />
-              </section>
-            </>
-          )}
         </div>
+
+        {/* Appointments List */}
+        {loading ? (
+          <div className="space-y-4 py-4">
+            {Array.from({ length: 2 }).map((_, index) => (
+              <div key={index} className="h-36 animate-pulse rounded-2xl bg-slate-100" />
+            ))}
+          </div>
+        ) : filteredUpcoming.length > 0 ? (
+          <div className="space-y-4">
+            {filteredUpcoming.map((item) => (
+              <AppointmentRecordCard
+                key={item.id}
+                appointment={item}
+                onReschedule={() => onReschedule(item)}
+                onCancel={() => onCancelAppointment(item.id)}
+                canCancel={
+                  item.status === "pending" || item.status === "confirmed"
+                }
+                isCancelling={cancellingAppointmentId === item.id}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="py-12 text-center text-slate-400 space-y-3 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+            <DashboardIcon name="calendar" className="mx-auto h-10 w-10 text-slate-300" />
+            <p className="text-sm font-semibold text-slate-600">Bạn chưa có lịch hẹn sắp tới nào.</p>
+            <button
+              type="button"
+              onClick={onOpenBooking}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[#0058bc] text-white rounded-xl text-xs font-bold hover:bg-[#004899] transition shadow-xs"
+            >
+              <DashboardIcon name="calendar" className="h-3.5 w-3.5" />
+              Đặt Lịch Khám Ngay
+            </button>
+          </div>
+        )}
+      </section>
+
+      {/* History Section at Bottom */}
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm space-y-4">
+        <AppointmentHistoryList history={history} />
       </section>
     </main>
   );

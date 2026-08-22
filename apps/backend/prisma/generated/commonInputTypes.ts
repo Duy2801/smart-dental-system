@@ -453,6 +453,13 @@ export type EnumAvailabilityRecordTypeFilter<$PrismaModel = never> = {
   not?: Prisma.NestedEnumAvailabilityRecordTypeFilter<$PrismaModel> | $Enums.AvailabilityRecordType
 }
 
+export type EnumAvailabilityApprovalStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.AvailabilityApprovalStatus | Prisma.EnumAvailabilityApprovalStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.AvailabilityApprovalStatus[] | Prisma.ListEnumAvailabilityApprovalStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.AvailabilityApprovalStatus[] | Prisma.ListEnumAvailabilityApprovalStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumAvailabilityApprovalStatusFilter<$PrismaModel> | $Enums.AvailabilityApprovalStatus
+}
+
 export type EnumAvailabilityRecordTypeWithAggregatesFilter<$PrismaModel = never> = {
   equals?: $Enums.AvailabilityRecordType | Prisma.EnumAvailabilityRecordTypeFieldRefInput<$PrismaModel>
   in?: $Enums.AvailabilityRecordType[] | Prisma.ListEnumAvailabilityRecordTypeFieldRefInput<$PrismaModel>
@@ -461,6 +468,16 @@ export type EnumAvailabilityRecordTypeWithAggregatesFilter<$PrismaModel = never>
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumAvailabilityRecordTypeFilter<$PrismaModel>
   _max?: Prisma.NestedEnumAvailabilityRecordTypeFilter<$PrismaModel>
+}
+
+export type EnumAvailabilityApprovalStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.AvailabilityApprovalStatus | Prisma.EnumAvailabilityApprovalStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.AvailabilityApprovalStatus[] | Prisma.ListEnumAvailabilityApprovalStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.AvailabilityApprovalStatus[] | Prisma.ListEnumAvailabilityApprovalStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumAvailabilityApprovalStatusWithAggregatesFilter<$PrismaModel> | $Enums.AvailabilityApprovalStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumAvailabilityApprovalStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumAvailabilityApprovalStatusFilter<$PrismaModel>
 }
 
 export type EnumAppointmentStatusFilter<$PrismaModel = never> = {
@@ -1224,6 +1241,13 @@ export type NestedEnumAvailabilityRecordTypeFilter<$PrismaModel = never> = {
   not?: Prisma.NestedEnumAvailabilityRecordTypeFilter<$PrismaModel> | $Enums.AvailabilityRecordType
 }
 
+export type NestedEnumAvailabilityApprovalStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.AvailabilityApprovalStatus | Prisma.EnumAvailabilityApprovalStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.AvailabilityApprovalStatus[] | Prisma.ListEnumAvailabilityApprovalStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.AvailabilityApprovalStatus[] | Prisma.ListEnumAvailabilityApprovalStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumAvailabilityApprovalStatusFilter<$PrismaModel> | $Enums.AvailabilityApprovalStatus
+}
+
 export type NestedEnumAvailabilityRecordTypeWithAggregatesFilter<$PrismaModel = never> = {
   equals?: $Enums.AvailabilityRecordType | Prisma.EnumAvailabilityRecordTypeFieldRefInput<$PrismaModel>
   in?: $Enums.AvailabilityRecordType[] | Prisma.ListEnumAvailabilityRecordTypeFieldRefInput<$PrismaModel>
@@ -1232,6 +1256,16 @@ export type NestedEnumAvailabilityRecordTypeWithAggregatesFilter<$PrismaModel = 
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumAvailabilityRecordTypeFilter<$PrismaModel>
   _max?: Prisma.NestedEnumAvailabilityRecordTypeFilter<$PrismaModel>
+}
+
+export type NestedEnumAvailabilityApprovalStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.AvailabilityApprovalStatus | Prisma.EnumAvailabilityApprovalStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.AvailabilityApprovalStatus[] | Prisma.ListEnumAvailabilityApprovalStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.AvailabilityApprovalStatus[] | Prisma.ListEnumAvailabilityApprovalStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumAvailabilityApprovalStatusWithAggregatesFilter<$PrismaModel> | $Enums.AvailabilityApprovalStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumAvailabilityApprovalStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumAvailabilityApprovalStatusFilter<$PrismaModel>
 }
 
 export type NestedEnumAppointmentStatusFilter<$PrismaModel = never> = {

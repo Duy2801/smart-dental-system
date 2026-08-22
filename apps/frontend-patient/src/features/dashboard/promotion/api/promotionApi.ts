@@ -52,8 +52,9 @@ export async function fetchServicesForPromotions(): Promise<ServiceOption[]> {
       const options: ServiceOption[] = [];
 
       for (const service of response.data.data) {
-        if (service.treatmentMethods && service.treatmentMethods.length > 0) {
-          for (const tm of service.treatmentMethods) {
+        const methods = service.treatmentMethods || (service as unknown as { treatment_methods?: TreatmentMethodDto[] }).treatment_methods;
+        if (methods && methods.length > 0) {
+          for (const tm of methods) {
             options.push({
               id: tm.id,
               serviceId: service.id,

@@ -32,7 +32,7 @@ export function HomeHeroSearchSlideshow() {
   const [isFocused, setIsFocused] = useState(false);
 
   const activeBanners = useMemo(() => {
-    return banners.filter((b) => b.isActive !== false);
+    return Array.isArray(banners) ? banners.filter((b) => b && b.isActive !== false) : [];
   }, [banners]);
 
   useEffect(() => {
@@ -44,7 +44,7 @@ export function HomeHeroSearchSlideshow() {
   }, [activeBanners.length]);
 
   const slides = useMemo(() => {
-    if (!services.length) return [];
+    if (!Array.isArray(services) || !services.length) return [];
     return services.map((service) => ({
       id: service.id,
       title: service.title,
@@ -106,15 +106,19 @@ export function HomeHeroSearchSlideshow() {
 
     const norm = normalizeText(trimmed);
 
-    const docMatches = doctors.filter((doc) => {
-      const haystack = normalizeText(`${doc.name} ${doc.specialization} ${doc.position || ""}`);
-      return haystack.includes(norm);
-    });
+    const docMatches = Array.isArray(doctors)
+      ? doctors.filter((doc) => {
+          const haystack = normalizeText(`${doc.name} ${doc.specialization} ${doc.position || ""}`);
+          return haystack.includes(norm);
+        })
+      : [];
 
-    const svcMatches = services.filter((svc) => {
-      const haystack = normalizeText(`${svc.title} ${svc.description || ""}`);
-      return haystack.includes(norm);
-    });
+    const svcMatches = Array.isArray(services)
+      ? services.filter((svc) => {
+          const haystack = normalizeText(`${svc.title} ${svc.description || ""}`);
+          return haystack.includes(norm);
+        })
+      : [];
 
     return {
       doctorMatches: docMatches.slice(0, 4),

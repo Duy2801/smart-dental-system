@@ -1,28 +1,34 @@
 import apiClient from "@/src/lib/api/client";
-import type { Promotion } from "./types";
+import type { Promotion, SavePromotionPayload } from "./types";
 
-export type CreatePromotionPayload = Omit<
-  Promotion,
-  "id" | "used_count" | "is_active"
-> & {
-  is_active?: boolean;
-};
+export type { SavePromotionPayload };
 
 export async function getPromotions(search?: string) {
   const response = await apiClient.get<Promotion[]>("/promotions", {
-    params: search ? { search } : undefined,
+    params: { search: search?.trim() || undefined },
   });
-
   return response.data;
 }
 
-export async function createPromotion(payload: CreatePromotionPayload) {
+export async function createPromotion(payload: SavePromotionPayload) {
   const response = await apiClient.post<Promotion>("/promotions", payload);
+  return response.data;
+}
+
+export async function updatePromotion(id: string, payload: SavePromotionPayload) {
+  const response = await apiClient.put<Promotion>(`/promotions/${id}`, payload);
   return response.data;
 }
 
 export async function updatePromotionStatus(id: string, isActive: boolean) {
   await apiClient.patch(`/promotions/${id}/status`, { is_active: isActive });
+}
+
+export async function broadcastPromotionNotification(id: string) {
+  const response = await apiClient.post<{ broadcast_count: number; message: string }>(
+    `/promotions/${id}/broadcast`
+  );
+  return response.data;
 }
 
 export async function deletePromotion(id: string) {

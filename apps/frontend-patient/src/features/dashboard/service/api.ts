@@ -37,7 +37,8 @@ export function formatServicePrice(value: string | number) {
 }
 
 function mapService(item: ServiceDto): DentalService {
-  const treatmentMethods = (item.treatmentMethods ?? []).map((method) => ({
+  const rawMethods = item.treatmentMethods ?? (item as unknown as { treatment_methods?: TreatmentMethod[] }).treatment_methods ?? [];
+  const treatmentMethods = rawMethods.map((method) => ({
     ...method,
     bookingCount: method.bookingCount ?? method._count?.appointments ?? 0,
   }));

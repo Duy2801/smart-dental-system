@@ -10,9 +10,17 @@ export const weekDays = [
   { label: "Chu nhat", index: 0 },
 ];
 
+export const DEFAULT_SHIFT_TEMPLATES = [
+  { id: "SHIFT_1", label: "Ca Sáng (08:00 - 12:00)", startTime: "08:00", endTime: "12:00" },
+  { id: "SHIFT_2", label: "Ca Chiều (13:30 - 17:30)", startTime: "13:30", endTime: "17:30" },
+  { id: "SHIFT_3", label: "Ca Tối (18:00 - 21:00)", startTime: "18:00", endTime: "21:00" },
+  { id: "SHIFT_FULL", label: "Cả Ngày (08:00 - 17:30)", startTime: "08:00", endTime: "17:30" },
+];
+
 export const defaultScheduleForm: ScheduleFormState = {
   recordType: "WEEKLY",
   dayOfWeek: 1,
+  specificDate: new Date().toISOString().slice(0, 10),
   startTime: "08:00",
   endTime: "12:00",
   reason: "",
@@ -24,3 +32,4 @@ export const defaultScheduleForm: ScheduleFormState = {
     { startTime: "13:30", endTime: "17:30" },
   ],
 };
+

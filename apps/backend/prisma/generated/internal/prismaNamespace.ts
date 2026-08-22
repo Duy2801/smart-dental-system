@@ -3451,6 +3451,7 @@ export const DoctorAvailabilityScalarFieldEnum = {
   startTime: 'startTime',
   endTime: 'endTime',
   reason: 'reason',
+  approvalStatus: 'approvalStatus',
   isActive: 'isActive'
 } as const
 
@@ -3954,6 +3955,20 @@ export type EnumAvailabilityRecordTypeFieldRefInput<$PrismaModel> = FieldRefInpu
  * Reference to a field of type 'AvailabilityRecordType[]'
  */
 export type ListEnumAvailabilityRecordTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AvailabilityRecordType[]'>
+    
+
+
+/**
+ * Reference to a field of type 'AvailabilityApprovalStatus'
+ */
+export type EnumAvailabilityApprovalStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AvailabilityApprovalStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'AvailabilityApprovalStatus[]'
+ */
+export type ListEnumAvailabilityApprovalStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AvailabilityApprovalStatus[]'>
     
 
 

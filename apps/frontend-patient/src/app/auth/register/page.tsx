@@ -48,21 +48,20 @@ function OtpVerificationCard({
   onResend: () => void;
 }) {
   return (
-    <section className="auth-card w-full max-w-[500px] rounded-xl border border-slate-200 bg-white p-6 shadow-[0_16px_50px_rgba(15,23,42,0.09)] sm:p-7">
-      <div className="mb-6 text-center">
-        <span className="inline-flex rounded-full bg-blue-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[#0863c5]">
+    <section className="auth-card w-full max-w-[400px] rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xl shadow-slate-900/5">
+      <div className="mb-4 text-center">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200/60 bg-blue-50 px-3 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-blue-700">
           Xác thực email
         </span>
-        <h1 className="mt-3 text-2xl font-bold tracking-[-0.03em] text-slate-900">
+        <h1 className="mt-2 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
           Nhập mã OTP
         </h1>
-        <p className="mx-auto mt-2 max-w-sm text-sm leading-5 text-slate-500">
-          Mã xác thực đã được gửi tới <strong>{email}</strong>. Mã có hiệu lực
-          trong 3 phút.
+        <p className="mx-auto mt-1 max-w-xs text-xs text-slate-500">
+          Mã xác thực 6 chữ số đã được gửi tới <strong className="font-semibold text-slate-800">{email}</strong>.
         </p>
       </div>
 
-      <form className="space-y-4" onSubmit={onSubmit}>
+      <form className="space-y-3.5" onSubmit={onSubmit}>
         <FormField
           label="Mã OTP"
           icon="lock"
@@ -75,29 +74,52 @@ function OtpVerificationCard({
         />
 
         {error && (
-          <p role="alert" className="text-xs font-medium text-red-600">
-            {error}
-          </p>
+          <div
+            role="alert"
+            className="flex items-center gap-2 rounded-lg border border-red-200/80 bg-red-50 p-2.5 text-xs font-medium text-red-700"
+          >
+            <svg
+              className="h-3.5 w-3.5 shrink-0 text-red-500"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <span>{error}</span>
+          </div>
         )}
-        {info && <p className="text-xs font-medium text-emerald-600">{info}</p>}
+
+        {info && (
+          <div className="flex items-center gap-2 rounded-lg border border-emerald-200/80 bg-emerald-50 p-2.5 text-xs font-medium text-emerald-700">
+            <svg className="h-3.5 w-3.5 shrink-0 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+            <span>{info}</span>
+          </div>
+        )}
 
         <PrimaryButton disabled={submitting}>
-          {submitting ? "Đang xác thực..." : "Xác thực và đăng nhập"}
+          {submitting ? "Đang xác thực..." : "Xác thực và đăng nhập →"}
         </PrimaryButton>
       </form>
 
-      <div className="mt-5 flex flex-col items-center gap-3 border-t border-slate-100 pt-5 text-sm text-slate-500">
+      <div className="mt-4 flex flex-col items-center gap-2 border-t border-slate-100 pt-3 text-xs text-slate-500">
         <button
           type="button"
           onClick={onResend}
           disabled={resending}
-          className="font-semibold text-[#0863c5] hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+          className="font-semibold text-blue-600 hover:underline disabled:cursor-not-allowed disabled:opacity-60"
         >
           {resending ? "Đang gửi lại..." : "Gửi lại mã OTP"}
         </button>
         <Link
           href="/auth/login"
-          className="font-semibold text-[#0863c5] hover:underline"
+          className="font-semibold text-slate-600 hover:underline"
         >
           Quay lại đăng nhập
         </Link>
@@ -178,7 +200,7 @@ export default function RegisterPage() {
           accessToken: response.data.accessToken,
         }),
       );
-      router.replace("/home");
+      window.location.href = "/home";
     } catch (verifyError) {
       setError(getErrorMessage(verifyError));
     } finally {

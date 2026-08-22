@@ -9,6 +9,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { AvailabilityApprovalStatus } from '../../../prisma/generated/client';
 import { AutoWeeklyAvailabilityDto } from './dto/auto-weekly-availability.dto';
 import { CreateDoctorAvailabilityDto } from './dto/create-doctor-availability.dto';
 import { UpdateDoctorAvailabilityDto } from './dto/update-doctor-availability.dto';
@@ -26,14 +27,50 @@ export class DoctorAvailabilityController {
     return this.doctorAvailabilityService.findByDoctor(doctorId);
   }
 
+  @Get('matrix')
+  getMatrix() {
+    return this.doctorAvailabilityService.getMatrixForAllDoctors();
+  }
+
+  @Get('check-conflicts')
+  checkConflicts(
+    @Query('doctorId') doctorId: string,
+    @Query('specificDate') specificDate?: string,
+    @Query('dayOfWeek') dayOfWeek?: string,
+    @Query('startTime') startTime?: string,
+    @Query('endTime') endTime?: string,
+  ) {
+    return this.doctorAvailabilityService.checkConflicts({
+      doctorId,
+      specificDate,
+      dayOfWeek: dayOfWeek !== undefined ? Number(dayOfWeek) : undefined,
+      startTime: startTime ?? '00:00',
+      endTime: endTime ?? '23:59',
+    });
+  }
+
   @Post()
-  create(@Body() dto: CreateDoctorAvailabilityDto) {
-    return this.doctorAvailabilityService.create(dto);
+  create(
+    @Body() dto: CreateDoctorAvailabilityDto,
+    @Query('force') force?: string,
+  ) {
+    return this.doctorAvailabilityService.create(dto, force === 'true');
   }
 
   @Post('auto-weekly')
   autoCreateWeekly(@Body() dto: AutoWeeklyAvailabilityDto) {
     return this.doctorAvailabilityService.autoCreateWeekly(dto);
+  }
+
+  @Patch(':id/approval')
+  updateApproval(
+    @Param('id') id: string,
+    @Body('approvalStatus') approvalStatus: AvailabilityApprovalStatus,
+  ) {
+    return this.doctorAvailabilityService.updateApprovalStatus(
+      id,
+      approvalStatus,
+    );
   }
 
   @Patch(':id')
@@ -42,7 +79,8 @@ export class DoctorAvailabilityController {
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.doctorAvailabilityService.remove(id);
+  remove(@Param('id') id: string, @Query('force') force?: string) {
+    return this.doctorAvailabilityService.remove(id, force === 'true');
   }
 }
+

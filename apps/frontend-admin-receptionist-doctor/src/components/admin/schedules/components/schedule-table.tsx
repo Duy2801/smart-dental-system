@@ -1,7 +1,7 @@
 import { SkeletonRows } from "@/src/components/admin/common";
 import { weekDays } from "../constants";
 import { ScheduleChip } from "./schedule-chip";
-import type { AvailabilityResponse } from "../types";
+import type { AvailabilityApprovalStatus, AvailabilityResponse } from "../types";
 import type { BusinessHour } from "../../setting/types";
 
 type ScheduleTableProps = {
@@ -9,6 +9,7 @@ type ScheduleTableProps = {
   loading: boolean;
   onAddDay: (dayOfWeek: number) => void;
   onRemove: (id: string) => void;
+  onApprove?: (id: string, status: AvailabilityApprovalStatus) => void;
   schedule: AvailabilityResponse | null;
 };
 
@@ -17,6 +18,7 @@ export function ScheduleTable({
   loading,
   onAddDay,
   onRemove,
+  onApprove,
   schedule,
 }: ScheduleTableProps) {
   return (
@@ -33,6 +35,7 @@ export function ScheduleTable({
           );
           const canAddShift = Boolean(businessHour?.isOpen);
           const shifts = daySchedule?.shifts ?? [];
+          const dateOverrides = daySchedule?.dateOverrides ?? [];
           const timeOff = daySchedule?.timeOff ?? [];
 
           return (
@@ -51,21 +54,21 @@ export function ScheduleTable({
                   className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-brand disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <span className="text-base leading-none">+</span>
-                  Them ca
+                  Thêm ca
                 </button>
                 {businessHour ? (
                   <span className="mt-1 block text-xs text-muted-foreground">
                     {businessHour.isOpen
                       ? `${businessHour.start} - ${businessHour.end}`
-                      : "Phong kham nghi"}
+                      : "Phòng khám nghỉ"}
                   </span>
                 ) : null}
               </div>
 
               <div className="flex flex-1 flex-wrap gap-2">
-                {shifts.length === 0 && timeOff.length === 0 ? (
+                {shifts.length === 0 && dateOverrides.length === 0 && timeOff.length === 0 ? (
                   <span className="py-1 text-sm text-muted-foreground">
-                    Khong co lich lam viec
+                    Không có lịch làm việc
                   </span>
                 ) : null}
 
@@ -74,6 +77,16 @@ export function ScheduleTable({
                     key={record.id}
                     record={record}
                     onRemove={onRemove}
+                    onApprove={onApprove}
+                  />
+                ))}
+
+                {dateOverrides.map((record) => (
+                  <ScheduleChip
+                    key={record.id}
+                    record={record}
+                    onRemove={onRemove}
+                    onApprove={onApprove}
                   />
                 ))}
 
@@ -82,6 +95,7 @@ export function ScheduleTable({
                     key={record.id}
                     record={record}
                     onRemove={onRemove}
+                    onApprove={onApprove}
                   />
                 ))}
               </div>
@@ -92,3 +106,4 @@ export function ScheduleTable({
     </div>
   );
 }
+

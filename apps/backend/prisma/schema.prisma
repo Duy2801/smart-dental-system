@@ -40,6 +40,12 @@ enum AvailabilityRecordType {
   TIME_OFF
 }
 
+enum AvailabilityApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum AppointmentStatus {
   PENDING
   CONFIRMED
@@ -576,8 +582,9 @@ model DoctorAvailability {
   specificDate DateTime?              @map("specific_date") @db.Date
   startTime    String                 @map("start_time")
   endTime      String                 @map("end_time")
-  reason       String?                @db.Text
-  isActive     Boolean                @default(true) @map("is_active")
+  reason       String?                    @db.Text
+  approvalStatus AvailabilityApprovalStatus @default(APPROVED) @map("approval_status")
+  isActive     Boolean                    @default(true) @map("is_active")
 
   doctor Doctor @relation(fields: [doctorId], references: [id], onDelete: Cascade)
 

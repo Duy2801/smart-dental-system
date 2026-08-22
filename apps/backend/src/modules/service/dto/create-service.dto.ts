@@ -177,9 +177,20 @@ export class CreateServiceDto {
   depositValue?: number;
 
   @IsOptional()
+  @IsNumber()
+  @Min(0)
+  basePrice?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  durationMinutes?: number;
+
+  @IsOptional()
   @IsInt()
   @Min(0)
   displayOrder?: number;
+
 
   @IsOptional()
   @IsArray()
