@@ -27,7 +27,8 @@ Docs: http://127.0.0.1:8001/docs
 
 | Provider | Biến cần điền | Lấy key |
 |----------|---------------|---------|
-| Groq (mặc định) | `LLM_PROVIDER=groq` + `GROQ_API_KEY=` | https://console.groq.com/keys |
+| OpenRouter (mặc định) | `LLM_PROVIDER=openrouter` + `OPENROUTER_API_KEY=` + `OPENROUTER_MODEL=` | https://openrouter.ai/keys |
+| Groq | `LLM_PROVIDER=groq` + `GROQ_API_KEY=` | https://console.groq.com/keys |
 | OpenAI | `LLM_PROVIDER=openai` + `OPENAI_API_KEY=` | https://platform.openai.com/api-keys |
 | Gemini | `LLM_PROVIDER=gemini` + `GEMINI_API_KEY=` | https://aistudio.google.com/apikey |
 
