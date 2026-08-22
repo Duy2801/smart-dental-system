@@ -183,7 +183,7 @@ function NewAppointmentForm() {
     try {
       const res = await apiClient.post<{ id: string }>("/appointments/staff", {
         patientId,
-        serviceId,
+        treatmentMethodId,
         doctorId: selectedDoctor,
         scheduledAt,
         notes: notes.trim() || undefined,

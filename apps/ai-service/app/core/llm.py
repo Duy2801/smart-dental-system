@@ -7,6 +7,14 @@ async def complete(system: str, user: str) -> str:
     settings = get_settings()
     provider = settings.llm_provider.lower()
 
+    if provider == "openrouter" and settings.openrouter_api_key:
+        return await _openai_compatible(
+            "https://openrouter.ai/api/v1/chat/completions",
+            settings.openrouter_api_key,
+            settings.openrouter_model,
+            system,
+            user,
+        )
     if provider == "groq" and settings.groq_api_key:
         return await _openai_compatible(
             "https://api.groq.com/openai/v1/chat/completions",
