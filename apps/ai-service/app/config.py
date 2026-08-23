@@ -43,6 +43,12 @@ class Settings(BaseSettings):
     openai_model: str = "gpt-4o-mini"
     gemini_api_key: str = ""
     gemini_model: str = "gemini-2.0-flash"
+    # Cấu hình kết nối trực tiếp bộ dữ liệu / model online (Cloud Vision API - Không cần tải dataset về máy)
+    roboflow_api_key: str = ""
+    roboflow_model_id: str = "panoramic-dental-xrays/1"
+    huggingface_api_key: str = ""
+    huggingface_model_id: str = "dental-ai/panoramic-caries-detector"
+    remote_vision_endpoint: str = ""
     node_env: str = "development"
     ai_service_api_key: str = "dev-local-key"
     cors_origins: str = (

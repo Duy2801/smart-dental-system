@@ -40,6 +40,8 @@ import {
 } from "./_components/MedicalRecordImages";
 import { ClinicalScribeReview } from "@/src/components/doctor/clinical-scribe-review";
 import { AftercareDraft } from "@/src/components/doctor/aftercare-draft";
+import { DentalXrayAnalyzer } from "@/src/components/doctor/dental-xray-analyzer";
+
 
 type RecordSummary = {
   id: string;
@@ -81,7 +83,14 @@ type RecordDetail = RecordSummary & {
   dentalChart: DentalChartData;
 };
 
-type TabKey = "OVERVIEW" | "CHART" | "IMAGES" | "PRESCRIPTIONS" | "AFTERCARE";
+type TabKey =
+  | "OVERVIEW"
+  | "CHART"
+  | "IMAGES"
+  | "XRAY_AI"
+  | "PRESCRIPTIONS"
+  | "AFTERCARE";
+
 
 function formatDate(iso: string | null) {
   if (!iso) return "-";
@@ -507,6 +516,10 @@ function MedicalRecordsContent() {
                         label: `Ảnh (${form.images.length})`,
                       },
                       {
+                        key: "XRAY_AI" as TabKey,
+                        label: "Chẩn đoán X-Quang (AI)",
+                      },
+                      {
                         key: "PRESCRIPTIONS" as TabKey,
                         label: `Đơn thuốc (${detail.prescriptions.length})`,
                       },
@@ -516,6 +529,7 @@ function MedicalRecordsContent() {
                       },
                     ] as { key: TabKey; label: string }[]
                   ).map((tab) => (
+
                     <button
                       key={tab.key}
                       type="button"
@@ -766,6 +780,68 @@ function MedicalRecordsContent() {
                       </div>
                     </div>
                   )}
+
+                  {activeTab === "XRAY_AI" && (
+                    <DentalXrayAnalyzer
+                      patientId={detail.patientId}
+                      patientImages={(form.images || []).map((img, i) => ({
+                        id: `img-${i}`,
+                        url: img.url,
+                        title:
+                          img.caption ||
+                          (img.type === "xray"
+                            ? `Phim X-quang ${i + 1}`
+                            : img.type === "intraoral"
+                              ? `Ảnh nội khoa ${i + 1}`
+                              : `Ảnh ${i + 1}`),
+                        type: img.type || "xray",
+                        date: "Từ hồ sơ bệnh án",
+                      }))}
+                      onApplyToMedicalRecord={(summaryText) => {
+
+                        setForm((prev) => ({
+                          ...prev,
+                          treatmentNotes: prev.treatmentNotes
+                            ? `${prev.treatmentNotes}\n\n[Kết quả Vision AI]:\n${summaryText}`
+                            : `[Kết quả Vision AI]:\n${summaryText}`,
+                        }));
+                      }}
+                      onApplyToDentalChart={(findings) => {
+                        const AI_STATUS_MAP: Record<string, ToothStatus> = {
+                          Caries: "caries",
+                          "Periapical radiolucency": "root_canal",
+                          Implant: "implant",
+                          "Root canal filling": "root_canal",
+                          "Crown / Bridge": "crown",
+                          Filling: "filled",
+                          "Missing tooth": "missing",
+                          "Residual root": "caries",
+                        };
+
+                        const existingTeeth = form.dentalChart?.teeth || [];
+                        const teethMap = new Map(existingTeeth.map((t) => [t.number, t.status]));
+
+                        findings.forEach((f) => {
+                          const status = AI_STATUS_MAP[f.findingType] || "caries";
+                          teethMap.set(f.fdiToothNumber, status);
+                        });
+
+                        const updatedTeeth = Array.from(teethMap.entries()).map(
+                          ([number, status]) => ({
+                            number,
+                            status,
+                          })
+                        );
+
+                        setForm((prev) => ({
+                          ...prev,
+                          dentalChart: { teeth: updatedTeeth },
+                        }));
+                      }}
+                    />
+                  )}
+
+
 
                   {activeTab === "PRESCRIPTIONS" && (
                     <div className="space-y-4">

@@ -70,3 +70,22 @@ export class ExplainTreatmentPlanDto {
   @IsUUID()
   treatmentPlanId!: string;
 }
+
+export class AnalyzeXrayDto {
+  @IsOptional()
+  @IsString()
+  imageUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  imageBase64?: string;
+
+  @IsOptional()
+  @IsUUID()
+  patientId?: string;
+
+  @IsOptional()
+  @IsString()
+  clinicalNoteHint?: string;
+}
+

@@ -11,6 +11,7 @@ import { DraftMedicalRecordDto } from './dto/draft-medical-record.dto';
 import { DraftPrescriptionDto } from './dto/draft-prescription.dto';
 import { DraftTreatmentPlanDto } from './dto/draft-treatment-plan.dto';
 import {
+  AnalyzeXrayDto,
   ExplainTreatmentPlanDto,
   GenerateAftercareDto,
   PrescriptionReviewItemDto,
@@ -923,6 +924,48 @@ export class AiService {
         'Bản giải thích chỉ hỗ trợ trao đổi. Bác sĩ xác nhận nội dung trước khi gửi cho bệnh nhân.',
     };
   }
+
+  async analyzeXray(user: AuthenticatedUser, dto: AnalyzeXrayDto) {
+    if (dto.patientId) {
+      await this.assertDoctorCanAccessPatient(user, dto.patientId);
+    }
+
+    const raw = await this.aiClient.post<{
+      findings: Array<{
+        fdi_tooth_number: number;
+        finding_type: string;
+        confidence: number;
+        bounding_box: { x: number; y: number; width: number; height: number };
+        severity: string;
+      }>;
+      total_findings: number;
+      summary: string;
+      annotated_image_url?: string | null;
+      disclaimer: string;
+    }>('/api/v1/doctor/analyze-xray', {
+      image_url: dto.imageUrl ?? null,
+      image_base64: dto.imageBase64 ?? null,
+      patient_id: dto.patientId ?? null,
+      clinical_note_hint: dto.clinicalNoteHint ?? null,
+    });
+
+    return {
+      findings: (raw.findings ?? []).map((f) => ({
+        fdiToothNumber: f.fdi_tooth_number,
+        findingType: f.finding_type,
+        confidence: f.confidence,
+        boundingBox: f.bounding_box,
+        severity: f.severity,
+      })),
+      totalFindings: raw.total_findings ?? 0,
+      summary: raw.summary ?? '',
+      annotatedImageUrl: raw.annotated_image_url ?? null,
+      disclaimer:
+        raw.disclaimer ||
+        'Kết quả phân tích X-quang bởi Dental Vision AI (mô hình dental-pano-ai). Bác sĩ cần đối chiếu lâm sàng.',
+    };
+  }
+
 
   /** Catalog ngắn từ DB để AI bám giá và thời lượng thật của phòng khám. */
   private async buildServiceCatalog(serviceHint?: string | null) {
