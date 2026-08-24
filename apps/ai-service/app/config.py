@@ -7,7 +7,7 @@ _ENV_FILE = Path(__file__).resolve().parent.parent / ".env"
 
 
 def _apply_env_file() -> None:
-    """Ghi đè os.environ từ .env — tránh biến shell cũ (LLM_PROVIDER=openai) thắng file."""
+    """Ghi đè os.environ từ .env để cấu hình local luôn được ưu tiên."""
     if not _ENV_FILE.is_file():
         return
     for raw in _ENV_FILE.read_text(encoding="utf-8").splitlines():
@@ -31,7 +31,12 @@ class Settings(BaseSettings):
 
     ai_service_name: str = "smart-dental-ai"
     ai_service_port: int = 8000
-    llm_provider: str = "groq"
+    llm_provider: str = "openrouter"
+    openrouter_api_key: str = ""
+    openrouter_model: str = ""
+    nvidia_api_key: str = ""
+    nvidia_model: str = "meta/llama-3.3-70b-instruct"
+    nvidia_base_url: str = "https://integrate.api.nvidia.com/v1/chat/completions"
     groq_api_key: str = ""
     groq_model: str = "llama-3.3-70b-versatile"
     openai_api_key: str = ""

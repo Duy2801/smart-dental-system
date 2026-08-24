@@ -1847,17 +1847,69 @@ async function seedRelatedData(
 
   // Hàng đợi lễ tân: ưu tiên hôm nay với đủ trạng thái thao tác
   const receptionistAppointments = [
-    { day: 0, hour: 8, minute: 0, status: 'PENDING' as const, patient: 0, doctor: 0, serviceSlug: 'trong-rang-implant', methodSlug: 'implant-single' },
-    { day: 0, hour: 8, minute: 30, status: 'CONFIRMED' as const, patient: 1, doctor: 1, serviceSlug: 'boc-rang-su', methodSlug: 'crown-zirconia' },
-    { day: 0, hour: 9, minute: 0, status: 'CHECKED_IN' as const, patient: 2, doctor: 0, serviceSlug: 'dan-su-veneer', methodSlug: 'veneer-emax' },
-    { day: 0, hour: 10, minute: 0, status: 'IN_PROGRESS' as const, patient: 3, doctor: 1, serviceSlug: 'nieng-rang', methodSlug: 'clear-aligner-full' },
-    { day: 0, hour: 11, minute: 0, status: 'COMPLETED' as const, patient: 4, doctor: 0, serviceSlug: 'nieng-rang-mac-cai', methodSlug: 'braces-metal' },
-    { day: 0, hour: 14, minute: 0, status: 'CONFIRMED' as const, patient: 5, doctor: 1, serviceSlug: 'nho-rang-khon', methodSlug: 'wisdom-tooth-lower' },
-    { day: 0, hour: 15, minute: 0, status: 'PENDING' as const, patient: 6, doctor: 0, serviceSlug: 'nha-khoa-tong-quat', methodSlug: 'cleaning-ultrasonic-standard' },
-    { day: -1, hour: 9, minute: 0, status: 'COMPLETED' as const, patient: 7, doctor: 1, serviceSlug: 'nha-khoa-tre-em', methodSlug: 'kids-fluoride-varnish' },
-    { day: 1, hour: 9, minute: 30, status: 'CONFIRMED' as const, patient: 8, doctor: 0, serviceSlug: 'trong-rang-implant', methodSlug: 'implant-multiple' },
-    { day: 2, hour: 10, minute: 0, status: 'PENDING' as const, patient: 9, doctor: 1, serviceSlug: 'boc-rang-su', methodSlug: 'crown-emax' },
+    // ── Hôm nay (day 0) ─────────────────────────────────────────────────
+    { day: 0, hour: 8,  minute: 0,  status: 'PENDING'    as const, patient: 0, doctor: 0, serviceSlug: 'trong-rang-implant',  methodSlug: 'implant-single' },
+    { day: 0, hour: 8,  minute: 30, status: 'CONFIRMED'  as const, patient: 1, doctor: 1, serviceSlug: 'boc-rang-su',         methodSlug: 'crown-zirconia' },
+    { day: 0, hour: 9,  minute: 0,  status: 'CHECKED_IN' as const, patient: 2, doctor: 0, serviceSlug: 'dan-su-veneer',       methodSlug: 'veneer-emax' },
+    { day: 0, hour: 10, minute: 0,  status: 'IN_PROGRESS'as const, patient: 3, doctor: 1, serviceSlug: 'nieng-rang',          methodSlug: 'clear-aligner-full' },
+    { day: 0, hour: 11, minute: 0,  status: 'COMPLETED'  as const, patient: 4, doctor: 0, serviceSlug: 'nieng-rang-mac-cai',  methodSlug: 'braces-metal' },
+    { day: 0, hour: 14, minute: 0,  status: 'CONFIRMED'  as const, patient: 5, doctor: 1, serviceSlug: 'nho-rang-khon',       methodSlug: 'wisdom-tooth-lower' },
+    { day: 0, hour: 15, minute: 0,  status: 'PENDING'    as const, patient: 6, doctor: 0, serviceSlug: 'nha-khoa-tong-quat', methodSlug: 'cleaning-ultrasonic-standard' },
+
+    // ── Hôm qua (day -1) – hoàn tất ─────────────────────────────────────
+    { day: -1, hour: 9,  minute: 0,  status: 'COMPLETED' as const, patient: 7, doctor: 1, serviceSlug: 'nha-khoa-tre-em',     methodSlug: 'kids-fluoride-varnish' },
+
+    // ── Ngày 1 (23/08) ──────────────────────────────────────────────────
+    { day: 1, hour: 8,  minute: 0,  status: 'CONFIRMED'  as const, patient: 0, doctor: 2, serviceSlug: 'dan-su-veneer',       methodSlug: 'veneer-emax' },
+    { day: 1, hour: 8,  minute: 30, status: 'PENDING'    as const, patient: 1, doctor: 3, serviceSlug: 'nha-khoa-tong-quat', methodSlug: 'checkup-standard' },
+    { day: 1, hour: 9,  minute: 0,  status: 'CONFIRMED'  as const, patient: 2, doctor: 4, serviceSlug: 'nho-rang-khon',       methodSlug: 'wisdom-tooth-upper' },
+    { day: 1, hour: 9,  minute: 30, status: 'CONFIRMED'  as const, patient: 8, doctor: 0, serviceSlug: 'trong-rang-implant',  methodSlug: 'implant-multiple' },
+    { day: 1, hour: 10, minute: 0,  status: 'PENDING'    as const, patient: 3, doctor: 5, serviceSlug: 'nieng-rang',          methodSlug: 'clear-aligner-lite' },
+    { day: 1, hour: 14, minute: 0,  status: 'CONFIRMED'  as const, patient: 4, doctor: 6, serviceSlug: 'nha-khoa-tre-em',     methodSlug: 'kids-fluoride-varnish' },
+    { day: 1, hour: 15, minute: 30, status: 'PENDING'    as const, patient: 5, doctor: 7, serviceSlug: 'boc-rang-su',         methodSlug: 'crown-cercon' },
+
+    // ── Ngày 2 (24/08) ──────────────────────────────────────────────────
+    { day: 2, hour: 8,  minute: 0,  status: 'CONFIRMED'  as const, patient: 6, doctor: 2, serviceSlug: 'boc-rang-su',         methodSlug: 'crown-emax' },
+    { day: 2, hour: 9,  minute: 0,  status: 'PENDING'    as const, patient: 7, doctor: 3, serviceSlug: 'nieng-rang-mac-cai',  methodSlug: 'braces-ceramic' },
+    { day: 2, hour: 10, minute: 0,  status: 'PENDING'    as const, patient: 9, doctor: 1, serviceSlug: 'boc-rang-su',         methodSlug: 'crown-emax' },
+    { day: 2, hour: 13, minute: 30, status: 'CONFIRMED'  as const, patient: 0, doctor: 4, serviceSlug: 'nha-khoa-tong-quat', methodSlug: 'filling-composite' },
+    { day: 2, hour: 15, minute: 0,  status: 'PENDING'    as const, patient: 1, doctor: 5, serviceSlug: 'nho-rang-khon',       methodSlug: 'wisdom-tooth-piezotome' },
+
+    // ── Ngày 3 (25/08) ──────────────────────────────────────────────────
+    { day: 3, hour: 8,  minute: 0,  status: 'PENDING'    as const, patient: 2, doctor: 0, serviceSlug: 'trong-rang-implant',  methodSlug: 'implant-bone-graft' },
+    { day: 3, hour: 9,  minute: 0,  status: 'CONFIRMED'  as const, patient: 3, doctor: 6, serviceSlug: 'nieng-rang',          methodSlug: 'clear-aligner-full' },
+    { day: 3, hour: 10, minute: 30, status: 'PENDING'    as const, patient: 4, doctor: 7, serviceSlug: 'boc-rang-su',         methodSlug: 'crown-zirconia' },
+    { day: 3, hour: 14, minute: 0,  status: 'CONFIRMED'  as const, patient: 5, doctor: 2, serviceSlug: 'dan-su-veneer',       methodSlug: 'veneer-emax' },
+    { day: 3, hour: 16, minute: 0,  status: 'PENDING'    as const, patient: 7, doctor: 3, serviceSlug: 'nha-khoa-tre-em',     methodSlug: 'kids-fluoride-varnish' },
+
+    // ── Ngày 4 (26/08) ──────────────────────────────────────────────────
+    { day: 4, hour: 8,  minute: 30, status: 'CONFIRMED'  as const, patient: 6, doctor: 1, serviceSlug: 'nieng-rang-mac-cai',  methodSlug: 'braces-metal' },
+    { day: 4, hour: 9,  minute: 0,  status: 'PENDING'    as const, patient: 8, doctor: 4, serviceSlug: 'nho-rang-khon',       methodSlug: 'wisdom-tooth-lower' },
+    { day: 4, hour: 10, minute: 0,  status: 'CONFIRMED'  as const, patient: 9, doctor: 5, serviceSlug: 'nha-khoa-tong-quat', methodSlug: 'root-canal-general' },
+    { day: 4, hour: 14, minute: 0,  status: 'PENDING'    as const, patient: 0, doctor: 6, serviceSlug: 'boc-rang-su',         methodSlug: 'crown-titan' },
+    { day: 4, hour: 15, minute: 30, status: 'CONFIRMED'  as const, patient: 1, doctor: 7, serviceSlug: 'trong-rang-implant',  methodSlug: 'implant-single' },
+
+    // ── Ngày 5 (27/08) ──────────────────────────────────────────────────
+    { day: 5, hour: 8,  minute: 0,  status: 'PENDING'    as const, patient: 2, doctor: 0, serviceSlug: 'dan-su-veneer',       methodSlug: 'veneer-emax' },
+    { day: 5, hour: 9,  minute: 30, status: 'CONFIRMED'  as const, patient: 3, doctor: 1, serviceSlug: 'nieng-rang',          methodSlug: 'clear-aligner-lite' },
+    { day: 5, hour: 10, minute: 0,  status: 'PENDING'    as const, patient: 4, doctor: 2, serviceSlug: 'nha-khoa-tong-quat', methodSlug: 'checkup-standard' },
+    { day: 5, hour: 14, minute: 0,  status: 'CONFIRMED'  as const, patient: 5, doctor: 3, serviceSlug: 'nho-rang-khon',       methodSlug: 'wisdom-tooth-piezotome' },
+
+    // ── Ngày 6 (28/08) ──────────────────────────────────────────────────
+    { day: 6, hour: 8,  minute: 0,  status: 'PENDING'    as const, patient: 6, doctor: 4, serviceSlug: 'trong-rang-implant',  methodSlug: 'implant-multiple' },
+    { day: 6, hour: 9,  minute: 0,  status: 'CONFIRMED'  as const, patient: 7, doctor: 5, serviceSlug: 'boc-rang-su',         methodSlug: 'crown-zirconia' },
+    { day: 6, hour: 10, minute: 30, status: 'PENDING'    as const, patient: 8, doctor: 6, serviceSlug: 'nieng-rang-mac-cai',  methodSlug: 'braces-ceramic' },
+    { day: 6, hour: 14, minute: 0,  status: 'CONFIRMED'  as const, patient: 9, doctor: 7, serviceSlug: 'nha-khoa-tre-em',     methodSlug: 'kids-fluoride-varnish' },
+    { day: 6, hour: 15, minute: 0,  status: 'PENDING'    as const, patient: 0, doctor: 0, serviceSlug: 'nha-khoa-tong-quat', methodSlug: 'filling-composite' },
+
+    // ── Ngày 7 (29/08) ──────────────────────────────────────────────────
+    { day: 7, hour: 8,  minute: 0,  status: 'PENDING'    as const, patient: 1, doctor: 2, serviceSlug: 'dan-su-veneer',       methodSlug: 'veneer-emax' },
+    { day: 7, hour: 9,  minute: 0,  status: 'CONFIRMED'  as const, patient: 2, doctor: 3, serviceSlug: 'trong-rang-implant',  methodSlug: 'implant-full-arch' },
+    { day: 7, hour: 10, minute: 0,  status: 'PENDING'    as const, patient: 3, doctor: 4, serviceSlug: 'boc-rang-su',         methodSlug: 'crown-cercon' },
+    { day: 7, hour: 14, minute: 30, status: 'CONFIRMED'  as const, patient: 4, doctor: 5, serviceSlug: 'nho-rang-khon',       methodSlug: 'wisdom-tooth-upper' },
+    { day: 7, hour: 15, minute: 0,  status: 'PENDING'    as const, patient: 5, doctor: 1, serviceSlug: 'nieng-rang',          methodSlug: 'clear-aligner-full' },
   ];
+
 
   const bookingSources = [
     'PATIENT_APP',
