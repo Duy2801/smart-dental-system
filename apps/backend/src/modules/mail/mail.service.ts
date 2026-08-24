@@ -568,4 +568,221 @@ export class MailService {
       ),
     });
   }
+
+  sendRequestRescheduleApproved(data: {
+    name: string;
+    email: string;
+    requestCode: string;
+    serviceName: string;
+    doctorName: string;
+    newScheduledAt: string;
+    note?: string;
+  }) {
+    return this.transporter.sendMail({
+      from: this.config.from,
+      to: data.email,
+      subject: `[Smart Dental] Yêu Cầu Đổi Lịch #${data.requestCode} Đã Được Duyệt`,
+      text: `Xin chào ${data.name}, yêu cầu đổi lịch #${data.requestCode} đã được phê duyệt. Thời gian mới: ${data.newScheduledAt}.`,
+      html: this.wrapHtmlTemplate(
+        'Phê duyệt đổi lịch hẹn',
+        `
+          <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 12px; padding: 16px; margin-bottom: 24px; text-align: center;">
+            <h2 style="color: #047857; margin: 0; font-size: 18px;">✅ YÊU CẦU ĐỔI LỊCH ĐÃ ĐƯỢC PHÊ DUYỆT</h2>
+            <p style="margin: 4px 0 0 0; color: #065f46; font-size: 13px;">Mã yêu cầu: <strong>#${data.requestCode}</strong></p>
+          </div>
+
+          <p style="font-size: 14px; color: #334155; line-height: 1.6;">
+            Kính gửi <strong>${data.name}</strong>, Lễ tân Smart Dental đã xử lý và chấp thuận yêu cầu thay đổi lịch khám của Quý khách:
+          </p>
+
+          <table width="100%" cellpadding="8" cellspacing="0" style="background-color: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; margin: 16px 0; font-size: 13px;">
+            <tr>
+              <td style="color: #64748b; width: 35%;">🩺 Dịch vụ:</td>
+              <td style="color: #0f172a; font-weight: 700;">${data.serviceName}</td>
+            </tr>
+            <tr style="border-top: 1px solid #e2e8f0;">
+              <td style="color: #64748b;">👨‍⚕️ Bác sĩ:</td>
+              <td style="color: #0f172a; font-weight: 700;">${data.doctorName}</td>
+            </tr>
+            <tr style="border-top: 2px solid #cbd5e1;">
+              <td style="color: #059669; font-weight: bold;">⏰ THỜI GIAN MỚI:</td>
+              <td style="color: #059669; font-weight: 800; font-size: 15px;">${data.newScheduledAt}</td>
+            </tr>
+          </table>
+
+          ${
+            data.note
+              ? `
+              <div style="background-color: #f0fdf4; border-left: 4px solid #10b981; padding: 12px 16px; margin: 16px 0; font-size: 12px; color: #166534;">
+                <strong>Ghi chú lễ tân:</strong> ${data.note}
+              </div>
+              `
+              : ''
+          }
+
+          <p style="font-size: 13px; color: #64748b;">
+            Quý khách vui lòng đến trước giờ khám 10-15 phút để làm thủ tục tiếp đón.
+          </p>
+        `,
+      ),
+    });
+  }
+
+  sendRequestRefundApproved(data: {
+    name: string;
+    email: string;
+    requestCode: string;
+    serviceName: string;
+    refundAmount: number;
+    refundPercent: number;
+    note?: string;
+  }) {
+    const formattedAmount = new Intl.NumberFormat('vi-VN').format(data.refundAmount);
+
+    return this.transporter.sendMail({
+      from: this.config.from,
+      to: data.email,
+      subject: `[Smart Dental] Xác Nhận Hoàn Phí #${data.requestCode}`,
+      text: `Xin chào ${data.name}, yêu cầu hoàn phí #${data.requestCode} (${formattedAmount}đ) đã được phê duyệt.`,
+      html: this.wrapHtmlTemplate(
+        'Phê duyệt hoàn phí',
+        `
+          <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 12px; padding: 16px; margin-bottom: 24px; text-align: center;">
+            <h2 style="color: #047857; margin: 0; font-size: 18px;">💰 YÊU CẦU HOÀN TIỀN ĐÃ ĐƯỢC CHẤP THUẬN</h2>
+            <p style="margin: 4px 0 0 0; color: #065f46; font-size: 13px;">Mã yêu cầu: <strong>#${data.requestCode}</strong></p>
+          </div>
+
+          <p style="font-size: 14px; color: #334155; line-height: 1.6;">
+            Kính gửi <strong>${data.name}</strong>, Smart Dental xin thông báo yêu cầu hoàn tiền phí tư vấn/đặt cọc của Quý khách đã được duyệt:
+          </p>
+
+          <table width="100%" cellpadding="8" cellspacing="0" style="background-color: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; margin: 16px 0; font-size: 13px;">
+            <tr>
+              <td style="color: #64748b; width: 45%;">Dịch vụ:</td>
+              <td style="color: #0f172a; font-weight: 700;">${data.serviceName}</td>
+            </tr>
+            <tr style="border-top: 1px solid #e2e8f0;">
+              <td style="color: #64748b;">Mức hoàn theo chính sách:</td>
+              <td style="color: #059669; font-weight: 700;">${data.refundPercent}%</td>
+            </tr>
+            <tr style="border-top: 2px solid #cbd5e1;">
+              <td style="color: #059669; font-weight: bold; font-size: 14px;">SỐ TIỀN HOÀN LẠI:</td>
+              <td style="color: #059669; font-weight: 800; font-size: 16px;">${formattedAmount}đ</td>
+            </tr>
+          </table>
+
+          <div style="background-color: #eff6ff; border: 1px solid #bfdbfe; padding: 12px 16px; border-radius: 8px; font-size: 12px; color: #1e40af; margin: 16px 0;">
+            ℹ️ Khoản tiền hoàn sẽ được chuyển về tài khoản ngân hàng của Quý khách trong vòng <strong>1-3 ngày làm việc</strong>.
+          </div>
+
+          ${
+            data.note
+              ? `
+              <p style="font-size: 12px; color: #475569;">
+                <strong>Ghi chú xử lý:</strong> ${data.note}
+              </p>
+              `
+              : ''
+          }
+        `,
+      ),
+    });
+  }
+
+  sendRequestRejected(data: {
+    name: string;
+    email: string;
+    requestCode: string;
+    requestTypeLabel: string;
+    reason: string;
+  }) {
+    return this.transporter.sendMail({
+      from: this.config.from,
+      to: data.email,
+      subject: `[Smart Dental] Thông Báo Xử Lý Yêu Cầu #${data.requestCode}`,
+      text: `Xin chào ${data.name}, yêu cầu ${data.requestTypeLabel} #${data.requestCode} chưa được chấp thuận. Lý do: ${data.reason}.`,
+      html: this.wrapHtmlTemplate(
+        'Thông báo xử lý yêu cầu',
+        `
+          <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; padding: 16px; margin-bottom: 24px; text-align: center;">
+            <h2 style="color: #b91c1c; margin: 0; font-size: 18px;">❌ YÊU CẦU CHƯA ĐƯỢC CHẤP THUẬN</h2>
+            <p style="margin: 4px 0 0 0; color: #991b1b; font-size: 13px;">Mã yêu cầu: <strong>#${data.requestCode}</strong></p>
+          </div>
+
+          <p style="font-size: 14px; color: #334155; line-height: 1.6;">
+            Kính gửi <strong>${data.name}</strong>, Smart Dental rất tiếc phải thông báo yêu cầu <em>"${data.requestTypeLabel}"</em> của Quý khách không thể phê duyệt tại thời điểm này.
+          </p>
+
+          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 16px; margin: 16px 0; font-size: 13px; color: #475569;">
+            <strong style="color: #0f172a;">Lý do phản hồi từ phòng khám:</strong><br />
+            <span style="color: #b91c1c; font-style: italic; margin-top: 4px; display: inline-block;">"${data.reason}"</span>
+          </div>
+
+          <p style="font-size: 13px; color: #64748b;">
+            Nếu có bất kỳ thắc mắc hoặc cần giải trình thêm, Quý khách vui lòng liên hệ hotline <strong>1900 8888</strong> để được bộ phận chăm sóc khách hàng hỗ trợ trực tiếp.
+          </p>
+        `,
+      ),
+    });
+  }
+
+  sendCheckInWelcome(data: {
+    name: string;
+    email: string;
+    appointmentCode: string;
+    queueNumber?: string;
+    doctorName: string;
+    roomName?: string;
+    serviceName: string;
+    checkedInAt?: string;
+  }) {
+    const timeFormatted = new Intl.DateTimeFormat('vi-VN', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+      timeZone: 'Asia/Ho_Chi_Minh',
+    }).format(data.checkedInAt ? new Date(data.checkedInAt) : new Date());
+
+    const queueNum = data.queueNumber || `#${data.appointmentCode.slice(-4)}`;
+    const room = data.roomName || 'Phòng khám Chuyên khoa Nha';
+
+    return this.transporter.sendMail({
+      from: this.config.from,
+      to: data.email,
+      subject: `[Smart Dental] Tiếp Nhận Thành Công - Số Thứ Tự ${queueNum}`,
+      text: `Xin chào ${data.name}, bạn đã check-in thành công tại quầy tiếp đón. Số thứ tự: ${queueNum}. Bác sĩ: ${data.doctorName}.`,
+      html: this.wrapHtmlTemplate(
+        'Phiếu tiếp đón khám bệnh',
+        `
+          <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 12px; padding: 20px; margin-bottom: 24px; text-align: center;">
+            <p style="margin: 0; color: #065f46; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">SỐ THỨ TỰ LƯỢT KHÁM</p>
+            <h1 style="color: #047857; margin: 6px 0; font-size: 36px; font-family: monospace; font-weight: 900;">${queueNum}</h1>
+            <p style="margin: 0; color: #065f46; font-size: 13px;">Mã hẹn: <strong>#${data.appointmentCode}</strong> • ${timeFormatted}</p>
+          </div>
+
+          <p style="font-size: 14px; color: #334155; line-height: 1.6;">
+            Kính chào <strong>${data.name}</strong>, quý khách đã hoàn tất thủ tục check-in tiếp đón tại quầy lễ tân:
+          </p>
+
+          <table width="100%" cellpadding="8" cellspacing="0" style="background-color: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; margin: 16px 0; font-size: 13px;">
+            <tr>
+              <td style="color: #64748b; width: 35%;">🩺 Dịch vụ khám:</td>
+              <td style="color: #0f172a; font-weight: 700;">${data.serviceName}</td>
+            </tr>
+            <tr style="border-top: 1px solid #e2e8f0;">
+              <td style="color: #64748b;">👨‍⚕️ Bác sĩ điều trị:</td>
+              <td style="color: #0f172a; font-weight: 700;">${data.doctorName}</td>
+            </tr>
+            <tr style="border-top: 1px solid #e2e8f0;">
+              <td style="color: #64748b;">📍 Khu vực khám:</td>
+              <td style="color: #2563eb; font-weight: 700;">${room}</td>
+            </tr>
+          </table>
+
+          <div style="background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px 16px; margin: 16px 0; font-size: 12px; color: #1e40af;">
+            🪑 <strong>Hướng dẫn:</strong> Quý khách vui lòng nghỉ ngơi tại sảnh chờ tầng 1. Điều dưỡng sẽ gọi tên hoặc số thứ tự khi ghế nha khoa đã sẵn sàng.
+          </div>
+        `,
+      ),
+    });
+  }
 }

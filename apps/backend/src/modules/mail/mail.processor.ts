@@ -125,4 +125,55 @@ export class MailProcessor {
       bankName: job.data.bankName,
     });
   }
+
+  @Process('send-request-reschedule-approved')
+  sendRequestRescheduleApproved(job: Job<any>) {
+    return this.mailService.sendRequestRescheduleApproved({
+      name: job.data.name,
+      email: job.data.email,
+      requestCode: job.data.requestCode,
+      serviceName: job.data.serviceName,
+      doctorName: job.data.doctorName,
+      newScheduledAt: job.data.newScheduledAt,
+      note: job.data.note,
+    });
+  }
+
+  @Process('send-request-refund-approved')
+  sendRequestRefundApproved(job: Job<any>) {
+    return this.mailService.sendRequestRefundApproved({
+      name: job.data.name,
+      email: job.data.email,
+      requestCode: job.data.requestCode,
+      serviceName: job.data.serviceName,
+      refundAmount: job.data.refundAmount,
+      refundPercent: job.data.refundPercent,
+      note: job.data.note,
+    });
+  }
+
+  @Process('send-request-rejected')
+  sendRequestRejected(job: Job<any>) {
+    return this.mailService.sendRequestRejected({
+      name: job.data.name,
+      email: job.data.email,
+      requestCode: job.data.requestCode,
+      requestTypeLabel: job.data.requestTypeLabel,
+      reason: job.data.reason,
+    });
+  }
+
+  @Process('send-check-in-welcome')
+  sendCheckInWelcome(job: Job<any>) {
+    return this.mailService.sendCheckInWelcome({
+      name: job.data.name,
+      email: job.data.email,
+      appointmentCode: job.data.appointmentCode,
+      queueNumber: job.data.queueNumber,
+      doctorName: job.data.doctorName,
+      roomName: job.data.roomName,
+      serviceName: job.data.serviceName,
+      checkedInAt: job.data.checkedInAt,
+    });
+  }
 }

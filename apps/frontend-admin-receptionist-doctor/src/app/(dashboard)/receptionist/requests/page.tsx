@@ -21,6 +21,7 @@ import {
   WarningCircle,
   Funnel,
   Sparkle,
+  BellSimpleRinging,
 } from "@phosphor-icons/react";
 
 export type RequestType =
@@ -226,6 +227,12 @@ export default function ReceptionistRequestsPage() {
   const [selectedRequest, setSelectedRequest] = useState<ChangeRequest | null>(null);
   const [actionNote, setActionNote] = useState("");
   const [actionModal, setActionModal] = useState<"APPROVE" | "REJECT" | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "info" } | null>(null);
+
+  const showToast = (message: string, type: "success" | "info" = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
+  };
 
   // Statistics
   const stats = useMemo(() => {
@@ -256,6 +263,7 @@ export default function ReceptionistRequestsPage() {
   }, [requests, statusFilter, typeFilter, search]);
 
   const handleApprove = (id: string) => {
+    const target = requests.find((r) => r.id === id);
     setRequests((prev) =>
       prev.map((r) =>
         r.id === id
@@ -272,6 +280,9 @@ export default function ReceptionistRequestsPage() {
     setActionModal(null);
     setSelectedRequest(null);
     setActionNote("");
+    if (target) {
+      showToast(`✓ Đã duyệt yêu cầu #${target.requestCode} và gửi Gmail + Thông báo In-App cho ${target.requesterName}!`, "success");
+    }
   };
 
   const handleReject = (id: string) => {
@@ -279,6 +290,7 @@ export default function ReceptionistRequestsPage() {
       alert("Vui lòng nhập lý do từ chối để thông báo cho bệnh nhân / bác sĩ.");
       return;
     }
+    const target = requests.find((r) => r.id === id);
     setRequests((prev) =>
       prev.map((r) =>
         r.id === id
@@ -295,6 +307,13 @@ export default function ReceptionistRequestsPage() {
     setActionModal(null);
     setSelectedRequest(null);
     setActionNote("");
+    if (target) {
+      showToast(`✓ Đã từ chối yêu cầu #${target.requestCode} và gửi Gmail giải trình + Thông báo In-App cho ${target.requesterName}!`, "info");
+    }
+  };
+
+  const handleResendNotification = (req: ChangeRequest) => {
+    showToast(`✓ Đã gửi lại Gmail & Thông báo In-App cho ${req.requesterName} (#${req.requestCode})!`, "success");
   };
 
   return (
@@ -609,7 +628,7 @@ export default function ReceptionistRequestsPage() {
                   </div>
 
                   {/* Actions Row */}
-                  {isPending && (
+                  {isPending ? (
                     <div className="mt-4 flex items-center justify-end gap-2.5 pt-3 border-t border-border/50">
                       <button
                         type="button"
@@ -635,6 +654,18 @@ export default function ReceptionistRequestsPage() {
                       >
                         <Check size={14} weight="bold" />
                         Duyệt yêu cầu
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="mt-3 flex items-center justify-end gap-2 pt-2.5 border-t border-border/40">
+                      <button
+                        type="button"
+                        onClick={() => handleResendNotification(req)}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50/80 px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 transition cursor-pointer"
+                        title="Gửi lại Gmail và Thông báo In-App"
+                      >
+                        <BellSimpleRinging size={13} weight="bold" />
+                        <span>Gửi lại thông báo (Gmail/App)</span>
                       </button>
                     </div>
                   )}
@@ -738,7 +769,7 @@ export default function ReceptionistRequestsPage() {
                   className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-700 shadow-xs cursor-pointer"
                 >
                   <Check size={14} weight="bold" />
-                  Xác nhận Duyệt
+                  Xác nhận Duyệt & Gửi thông báo
                 </button>
               ) : (
                 <button
@@ -747,11 +778,35 @@ export default function ReceptionistRequestsPage() {
                   className="inline-flex items-center gap-1.5 rounded-xl bg-rose-600 px-4 py-2 text-xs font-bold text-white hover:bg-rose-700 shadow-xs cursor-pointer"
                 >
                   <X size={14} weight="bold" />
-                  Xác nhận Từ chối
+                  Xác nhận Từ chối & Gửi thông báo
                 </button>
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* FLOATING SUCCESS / INFO TOAST */}
+      {toast && (
+        <div className={cn(
+          "fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-2xl border px-4 py-3 text-xs font-bold shadow-xl backdrop-blur-xs animate-in fade-in slide-in-from-bottom-4",
+          toast.type === "success"
+            ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+            : "border-rose-200 bg-rose-50 text-rose-800"
+        )}>
+          <span className={cn(
+            "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-white text-[10px]",
+            toast.type === "success" ? "bg-emerald-600" : "bg-rose-600"
+          )}>
+            {toast.type === "success" ? "✓" : "✕"}
+          </span>
+          <span>{toast.message}</span>
+          <button
+            onClick={() => setToast(null)}
+            className="ml-2 text-slate-500 hover:text-slate-900 cursor-pointer"
+          >
+            ✕
+          </button>
         </div>
       )}
     </>

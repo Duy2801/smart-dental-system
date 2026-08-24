@@ -404,6 +404,12 @@ export default function ReceptionistAppointmentsPage() {
       if (status === "CONFIRMED") {
         setSuccessToast("Đã xác nhận lịch hẹn và gửi Gmail/In-App cho bệnh nhân!");
         setTimeout(() => setSuccessToast(null), 4000);
+      } else if (status === "CHECKED_IN") {
+        setSuccessToast("Đã tiếp nhận check-in và gửi Phiếu tiếp đón/Số thứ tự qua Gmail & App!");
+        setTimeout(() => setSuccessToast(null), 4000);
+      } else if (status === "IN_PROGRESS") {
+        setSuccessToast("Đã chuyển ca khám sang Đang điều trị và gửi thông báo mời vào phòng khám!");
+        setTimeout(() => setSuccessToast(null), 4000);
       }
       await fetchAppointments();
     } catch (err) {
