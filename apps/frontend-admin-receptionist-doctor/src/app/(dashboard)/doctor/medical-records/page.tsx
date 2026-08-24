@@ -24,6 +24,8 @@ import {
   Check,
   Plus,
   PencilSimple,
+  ClockCounterClockwise,
+  Copy,
 } from "@phosphor-icons/react";
 import axios from "axios";
 import apiClient from "@/src/lib/api/client";
@@ -89,7 +91,8 @@ type TabKey =
   | "IMAGES"
   | "XRAY_AI"
   | "PRESCRIPTIONS"
-  | "AFTERCARE";
+  | "AFTERCARE"
+  | "HISTORY";
 
 
 function formatDate(iso: string | null) {
@@ -130,6 +133,9 @@ function MedicalRecordsContent() {
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<TabKey>("OVERVIEW");
 
+  const [pastRecords, setPastRecords] = useState<RecordSummary[]>([]);
+  const [loadingPastRecords, setLoadingPastRecords] = useState(false);
+
   const [form, setForm] = useState({
     chiefComplaint: "",
     diagnosis: "",
@@ -169,6 +175,24 @@ function MedicalRecordsContent() {
           : [],
       },
     });
+
+    // Fetch past records of this patient
+    if (data.patientId && doctorId) {
+      setLoadingPastRecords(true);
+      apiClient
+        .get<RecordSummary[]>(
+          `/medical-records?doctorId=${doctorId}&patientId=${data.patientId}`
+        )
+        .then((res) => {
+          const list = Array.isArray(res.data)
+            ? res.data.filter((r) => r.id !== data.id)
+            : [];
+          setPastRecords(list);
+        })
+        .catch(() => setPastRecords([]))
+        .finally(() => setLoadingPastRecords(false));
+    }
+
     setRecords((prev) => {
       if (prev.some((r) => r.id === data.id)) return prev;
       return [
@@ -188,7 +212,7 @@ function MedicalRecordsContent() {
         ...prev,
       ];
     });
-  }, []);
+  }, [doctorId]);
 
   const loadDetail = useCallback(
     async (id: string, opts?: { keepTab?: boolean }) => {
@@ -526,6 +550,10 @@ function MedicalRecordsContent() {
                       {
                         key: "AFTERCARE" as TabKey,
                         label: "Hướng dẫn sau điều trị",
+                      },
+                      {
+                        key: "HISTORY" as TabKey,
+                        label: `Lịch sử khám cũ (${pastRecords.length})`,
                       },
                     ] as { key: TabKey; label: string }[]
                   ).map((tab) => (
@@ -951,6 +979,108 @@ function MedicalRecordsContent() {
                       key={detail.id}
                       medicalRecordId={detail.id}
                     />
+                  )}
+
+                  {activeTab === "HISTORY" && (
+                    <div className="space-y-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
+                        <div>
+                          <h3 className="text-base font-bold text-slate-900">
+                            Lịch sử các lần khám cũ của {detail.patientName}
+                          </h3>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Bác sĩ có thể xem lại chẩn đoán, thuốc và diễn biến điều trị của các lần khám trước
+                          </p>
+                        </div>
+                        <span className="rounded-full bg-brand/10 px-3 py-1 font-mono text-xs font-bold text-brand">
+                          {pastRecords.length} lần khám
+                        </span>
+                      </div>
+
+                      {loadingPastRecords ? (
+                        <div className="flex h-32 items-center justify-center">
+                          <SpinnerGap size={24} className="animate-spin text-brand" />
+                        </div>
+                      ) : pastRecords.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground">
+                          <ClockCounterClockwise size={40} className="mb-2 text-slate-300" weight="duotone" />
+                          <p className="text-sm font-medium">Bệnh nhân chưa có lần khám cũ nào khác</p>
+                          <p className="text-xs text-slate-400 mt-1">Đây là hồ sơ bệnh án đầu tiên của bệnh nhân này.</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {pastRecords.map((pastRec) => (
+                            <div
+                              key={pastRec.id}
+                              className="rounded-2xl border border-border/80 bg-slate-50/70 p-4 transition hover:border-brand/30 hover:bg-white hover:shadow-sm"
+                            >
+                              <div className="flex flex-wrap items-start justify-between gap-3">
+                                <div className="space-y-1.5 flex-1 min-w-[240px]">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className="flex items-center gap-1 text-xs font-bold text-slate-900">
+                                      <CalendarBlank size={13} className="text-brand" />
+                                      {formatDateTime(pastRec.scheduledAt || pastRec.createdAt)}
+                                    </span>
+                                    {pastRec.serviceName && (
+                                      <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-bold text-blue-700">
+                                        {pastRec.serviceName}
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {pastRec.diagnosis && (
+                                    <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                                      <p className="font-mono text-xs font-bold text-brand-dark">
+                                        Chẩn đoán: {pastRec.diagnosis}
+                                      </p>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setForm((f) => ({
+                                            ...f,
+                                            diagnosis: pastRec.diagnosis || f.diagnosis,
+                                          }));
+                                          alert("Đã sao chép chẩn đoán sang bệnh án hiện tại!");
+                                        }}
+                                        className="inline-flex items-center gap-1 rounded-md bg-white px-2 py-0.5 text-[10px] font-bold text-brand shadow-2xs border border-brand/20 hover:bg-brand/5 cursor-pointer"
+                                        title="Sao chép chẩn đoán sang ca này"
+                                      >
+                                        <Copy size={10} /> Sao chép
+                                      </button>
+                                    </div>
+                                  )}
+
+                                  {pastRec.chiefComplaint && (
+                                    <p className="text-xs text-slate-600">
+                                      <span className="font-medium text-slate-700">Lý do khám:</span> {pastRec.chiefComplaint}
+                                    </p>
+                                  )}
+
+                                  <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground pt-1">
+                                    {pastRec.followUpDate && (
+                                      <span>Tái khám: {formatDate(pastRec.followUpDate)}</span>
+                                    )}
+                                    {pastRec.prescriptionCount > 0 && (
+                                      <span className="flex items-center gap-1 font-medium text-blue-600">
+                                        <Pill size={12} /> {pastRec.prescriptionCount} đơn thuốc
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  onClick={() => loadDetail(pastRec.id)}
+                                  className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs transition hover:border-brand/40 hover:bg-brand/5 hover:text-brand cursor-pointer shrink-0"
+                                >
+                                  Mở bệnh án này <ArrowRight size={12} />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               </>

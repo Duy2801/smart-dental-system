@@ -123,10 +123,12 @@ function statusEndpoint(status: AppointmentStatus): string | null {
 function ActionMenu({
   apt,
   onStatusChange,
+  onSendReminder,
   disabled,
 }: {
   apt: Appointment;
   onStatusChange: (id: string, status: AppointmentStatus) => void;
+  onSendReminder?: (id: string, patientName: string) => void;
   disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -154,7 +156,7 @@ function ActionMenu({
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-1 w-44 rounded-xl border border-border bg-white py-1.5 shadow-xl">
+        <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-xl border border-border bg-white py-1.5 shadow-xl">
           <Link
             href={`/receptionist/appointments/${apt.id}`}
             className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-muted hover:text-brand-dark"
@@ -171,6 +173,19 @@ function ActionMenu({
               <Eye size={13} /> Hồ sơ bệnh nhân
             </Link>
           )}
+
+          {(apt.status === "PENDING" || apt.status === "CONFIRMED") && onSendReminder && (
+            <button
+              onClick={() => {
+                onSendReminder(apt.id, apt.patient?.fullName ?? "Bệnh nhân");
+                setOpen(false);
+              }}
+              className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold text-blue-600 transition-colors hover:bg-blue-50 cursor-pointer"
+            >
+              <BellSimpleRinging size={13} weight="bold" /> Gửi nhắc lịch (Gmail/App)
+            </button>
+          )}
+
           {(apt.status === "PENDING" || apt.status === "CONFIRMED") && (
             <>
               <div className="my-1 mx-2 h-px bg-slate-100" />
@@ -306,6 +321,7 @@ export default function ReceptionistAppointmentsPage() {
   const [doctors, setDoctors] = useState<{ id: string; fullName: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [successToast, setSuccessToast] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   useEffect(() => {
@@ -324,17 +340,16 @@ export default function ReceptionistAppointmentsPage() {
   }, []);
 
   const fetchAppointments = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      setError(null);
       const dateStr = toDateStr(selectedDate);
-      const params = new URLSearchParams({ date: dateStr });
-      if (doctorFilter) params.append("doctorId", doctorFilter);
-      const res = await apiClient.get(`/appointments?${params.toString()}`);
+      const params: Record<string, string> = { date: dateStr };
+      if (doctorFilter) params.doctorId = doctorFilter;
+      const res = await apiClient.get<any[]>("/appointments", { params });
       setAppointments(mapAppointments(res.data));
     } catch (err) {
-      setError(getApiErrorMessage(err, "Không tải được lịch hẹn từ máy chủ."));
-      setAppointments([]);
+      setError(getApiErrorMessage(err, "Không tải được danh sách lịch hẹn."));
     } finally {
       setLoading(false);
     }
@@ -386,9 +401,27 @@ export default function ReceptionistAppointmentsPage() {
     setError(null);
     try {
       await apiClient.patch(`/appointments/${id}/${endpoint}`);
+      if (status === "CONFIRMED") {
+        setSuccessToast("Đã xác nhận lịch hẹn và gửi Gmail/In-App cho bệnh nhân!");
+        setTimeout(() => setSuccessToast(null), 4000);
+      }
       await fetchAppointments();
     } catch (err) {
       setError(getApiErrorMessage(err, "Cập nhật trạng thái thất bại."));
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleSendReminder = async (id: string, patientName: string) => {
+    setActionLoading(id);
+    setError(null);
+    try {
+      await apiClient.post(`/appointments/${id}/remind`);
+      setSuccessToast(`Đã gửi Gmail & Thông báo nhắc lịch đến bệnh nhân ${patientName}!`);
+      setTimeout(() => setSuccessToast(null), 4000);
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Không thể gửi nhắc lịch. Thử lại sau."));
     } finally {
       setActionLoading(null);
     }
@@ -758,10 +791,29 @@ export default function ReceptionistAppointmentsPage() {
                               </Link>
                             )}
 
+                            {/* Quick Reminder button */}
+                            {(apt.status === "PENDING" || apt.status === "CONFIRMED") && (
+                              <button
+                                type="button"
+                                disabled={busy}
+                                onClick={() => void handleSendReminder(apt.id, name)}
+                                className="inline-flex h-8 items-center gap-1 rounded-lg border border-blue-200 bg-blue-50/80 px-2.5 text-xs font-bold text-blue-700 shadow-2xs transition-all hover:bg-blue-100 hover:text-blue-800 active:scale-[0.98] disabled:opacity-60 cursor-pointer"
+                                title="Gửi Gmail & Thông báo nhắc lịch cho bệnh nhân"
+                              >
+                                {busy ? (
+                                  <CircleNotch size={12} className="animate-spin" />
+                                ) : (
+                                  <BellSimpleRinging size={13} weight="bold" />
+                                )}
+                                <span>Nhắc lịch</span>
+                              </button>
+                            )}
+
                             {/* 3-dot menu */}
                             <ActionMenu
                               apt={apt}
                               onStatusChange={(id, status) => void handleStatusChange(id, status)}
+                              onSendReminder={handleSendReminder}
                               disabled={busy}
                             />
                           </div>
@@ -819,6 +871,22 @@ export default function ReceptionistAppointmentsPage() {
         </div>
 
       </div>
+
+      {/* SUCCESS TOAST */}
+      {successToast && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-bold text-emerald-800 shadow-xl backdrop-blur-xs animate-in fade-in slide-in-from-bottom-4">
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white text-[10px]">
+            ✓
+          </span>
+          <span>{successToast}</span>
+          <button
+            onClick={() => setSuccessToast(null)}
+            className="ml-2 text-emerald-600 hover:text-emerald-900 cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+      )}
     </>
   );
 }

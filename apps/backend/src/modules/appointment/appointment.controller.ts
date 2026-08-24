@@ -110,6 +110,13 @@ export class AppointmentController {
     return this.appointmentService.confirmAppointment(id);
   }
 
+  @Post(':id/remind')
+  @Roles('DOCTOR', 'ADMIN', 'RECEPTIONIST')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  remindAppointment(@Param('id') id: string) {
+    return this.appointmentService.sendManualReminder(id);
+  }
+
   @Patch(':id/check-in')
   @Roles('DOCTOR', 'ADMIN', 'RECEPTIONIST')
   @UseGuards(JwtAuthGuard, RolesGuard)

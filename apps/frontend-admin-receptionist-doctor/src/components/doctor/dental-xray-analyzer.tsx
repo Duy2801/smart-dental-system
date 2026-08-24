@@ -1,32 +1,33 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-
+import React, { useState, useRef, useMemo } from "react";
 import {
-  ArrowsCounterClockwise,
   Brain,
-  CheckCircle,
+  Sparkle,
+  FileArrowUp,
+  MagnifyingGlassPlus,
+  MagnifyingGlassMinus,
   CircleHalf,
-  Columns,
+  Sliders,
+  ArrowsCounterClockwise,
   Eye,
   EyeSlash,
-  FileArrowUp,
+  Plus,
+  Trash,
+  CheckCircle,
+  Warning,
+  Printer,
   FloppyDisk,
   Lightning,
-  MagnifyingGlassMinus,
-  MagnifyingGlassPlus,
-  Plus,
-  Printer,
-  Sliders,
-  Sparkle,
-  Sun,
-  Trash,
-  Warning,
+  FirstAid,
+  Info,
+  X,
+  Heartbeat,
+  ShieldCheck,
+  Check,
+  PencilSimple,
   XCircle,
 } from "@phosphor-icons/react";
-
-
-
 import apiClient from "@/src/lib/api/client";
 import axios from "axios";
 
@@ -35,12 +36,14 @@ export interface DentalFinding {
   findingType: string;
   confidence: number;
   boundingBox: {
-    x: number; // percentage
-    y: number; // percentage
-    width: number; // percentage
-    height: number; // percentage
+    x: number; // percentage (0..100)
+    y: number; // percentage (0..100)
+    width: number; // percentage (0..100)
+    height: number; // percentage (0..100)
   };
   severity: "LOW" | "MEDIUM" | "HIGH";
+  doctorStatus?: "ACCEPTED" | "REJECTED";
+  doctorNote?: string;
 }
 
 export interface AnalyzeXrayResponse {
@@ -67,459 +70,245 @@ interface DentalXrayAnalyzerProps {
   patientId?: string;
   patientName?: string;
   patientImages?: PatientXrayItem[];
-  onApplyToMedicalRecord?: (summaryText: string) => void;
+  onApplyToMedicalRecord?: (findingsSummary: string) => void;
   onApplyToDentalChart?: (findings: DentalFinding[]) => void;
 }
 
-export const PATIENT_EXPLANATIONS_VI: Record<string, string> = {
-  Caries: "Sâu răng - vi khuẩn ăn mòn men răng, cần trám sớm để tránh ăn vào tủy.",
-  "Periapical radiolucency": "Viêm quanh chóp - có ổ nhiễm trùng cuống răng, cần chữa tủy để hết đau.",
-  Implant: "Cấy ghép Implant - răng nhân tạo đã được phục hình định hình tốt.",
-  "Root canal filling": "Đã chữa tủy - ống tủy đã được xử lý và bít kín an toàn.",
-  "Crown / Bridge": "Mão / Cầu răng sứ - răng giả bọc ngoài bảo vệ cấu trúc răng thật.",
-  Filling: "Vết trám răng - miếng trám cũ đang bảo vệ men răng.",
-  "Missing tooth": "Răng thiếu / đã mất - khuyến nghị trồng răng để tránh xô lệch hàm.",
-  "Residual root": "Chân răng còn sót - chân răng cũ trong xương hàm, cần tiểu phẫu nhổ bỏ.",
-};
-
 const DEFAULT_PATIENT_XRAYS: PatientXrayItem[] = [
-
   {
-    url: "https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&q=80&w=1200",
-    title: "Phim Panorama toàn cảnh",
+    url: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Panoramic_dental_X-ray.jpg/1280px-Panoramic_dental_X-ray.jpg",
+    title: "Phim Panorama OPG toàn cảnh",
     date: "23/08/2026",
     type: "xray",
   },
   {
-    url: "https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&q=80&w=1200",
+    url: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/Orthopantomogram.jpg/1280px-Orthopantomogram.jpg",
     title: "Phim Cánh bướm Bitewing R36-R38",
     date: "15/06/2026",
-    type: "xray",
-  },
-  {
-    url: "https://images.unsplash.com/photo-1606811841689-23dfddce3e95?auto=format&fit=crop&q=80&w=1200",
-    title: "Phim Cận chóp Periapical R26",
-    date: "10/01/2026",
     type: "xray",
   },
 ];
 
 const DEFAULT_PANO_IMAGE = DEFAULT_PATIENT_XRAYS[0].url;
 
-
-const FINDING_COLORS: Record<string, { border: string; bg: string; text: string }> = {
-  Caries: { border: "border-red-500", bg: "bg-red-500/20", text: "text-red-700 bg-red-50" },
-  "Periapical radiolucency": { border: "border-amber-500", bg: "bg-amber-500/20", text: "text-amber-700 bg-amber-50" },
-  Implant: { border: "border-emerald-500", bg: "bg-emerald-500/20", text: "text-emerald-700 bg-emerald-50" },
-  "Root canal filling": { border: "border-blue-500", bg: "bg-blue-500/20", text: "text-blue-700 bg-blue-50" },
-  "Crown / Bridge": { border: "border-purple-500", bg: "bg-purple-500/20", text: "text-purple-700 bg-purple-50" },
-  Filling: { border: "border-cyan-500", bg: "bg-cyan-500/20", text: "text-cyan-700 bg-cyan-50" },
-  "Missing tooth": { border: "border-slate-400", bg: "bg-slate-400/20", text: "text-slate-700 bg-slate-100" },
-  "Residual root": { border: "border-orange-500", bg: "bg-orange-500/20", text: "text-orange-700 bg-orange-50" },
+const FINDING_CONFIG: Record<
+  string,
+  { label: string; border: string; bg: string; text: string; badge: string; icon: string }
+> = {
+  Caries: {
+    label: "Sâu răng",
+    border: "border-rose-500",
+    bg: "bg-rose-500/20",
+    text: "text-rose-700 bg-rose-50 border-rose-200",
+    badge: "bg-rose-500 text-white",
+    icon: "🔴",
+  },
+  "Periapical radiolucency": {
+    label: "Viêm quanh chóp",
+    border: "border-purple-500",
+    bg: "bg-purple-500/20",
+    text: "text-purple-700 bg-purple-50 border-purple-200",
+    badge: "bg-purple-600 text-white",
+    icon: "🟣",
+  },
+  Impacted: {
+    label: "Răng ngầm / kẹt",
+    border: "border-amber-500",
+    bg: "bg-amber-500/20",
+    text: "text-amber-700 bg-amber-50 border-amber-200",
+    badge: "bg-amber-500 text-slate-950",
+    icon: "🟠",
+  },
+  Filling: {
+    label: "Vết trám răng",
+    border: "border-sky-500",
+    bg: "bg-sky-500/20",
+    text: "text-sky-700 bg-sky-50 border-sky-200",
+    badge: "bg-sky-500 text-white",
+    icon: "🔵",
+  },
+  "Crown / Bridge": {
+    label: "Mão / Cầu răng",
+    border: "border-amber-600",
+    bg: "bg-amber-600/20",
+    text: "text-amber-800 bg-amber-50 border-amber-300",
+    badge: "bg-amber-600 text-white",
+    icon: "🟡",
+  },
+  "Root canal filling": {
+    label: "Chữa tủy (Nội nha)",
+    border: "border-indigo-500",
+    bg: "bg-indigo-500/20",
+    text: "text-indigo-700 bg-indigo-50 border-indigo-200",
+    badge: "bg-indigo-500 text-white",
+    icon: "🔷",
+  },
+  Implant: {
+    label: "Cấy ghép Implant",
+    border: "border-emerald-500",
+    bg: "bg-emerald-500/20",
+    text: "text-emerald-700 bg-emerald-50 border-emerald-200",
+    badge: "bg-emerald-500 text-white",
+    icon: "🟢",
+  },
+  "Missing tooth": {
+    label: "Răng đã mất",
+    border: "border-slate-400",
+    bg: "bg-slate-400/20",
+    text: "text-slate-700 bg-slate-100 border-slate-300",
+    badge: "bg-slate-500 text-white",
+    icon: "⚪",
+  },
+  "Residual root": {
+    label: "Chân răng sót",
+    border: "border-pink-500",
+    bg: "bg-pink-500/20",
+    text: "text-pink-700 bg-pink-50 border-pink-200",
+    badge: "bg-pink-600 text-white",
+    icon: "🌸",
+  },
 };
 
-const FINDING_LABELS_VI: Record<string, string> = {
-  Caries: "Sâu răng",
-  "Periapical radiolucency": "Viêm quanh chóp",
-  Implant: "Cấy ghép Implant",
-  "Root canal filling": "Chữa tủy",
-  "Crown / Bridge": "Mão / Cầu răng",
-  Filling: "Vết trám răng",
-  "Missing tooth": "Răng thiếu / mất",
-  "Residual root": "Chân răng còn sót",
-};
-
-// Oral Health Risk Assessment Helper
 export function calculateOralHealthRisk(findings: DentalFinding[]) {
-  if (!findings || findings.length === 0) {
+  const activeFindings = findings.filter((f) => f.doctorStatus !== "REJECTED");
+
+  if (!activeFindings || activeFindings.length === 0) {
     return {
       score: 100,
       riskLevel: "LOW" as const,
-      riskLabel: "An Toàn / Sức Khoẻ Tốt",
+      riskLabel: "Sức Khỏe Tốt (100%)",
       colorClass: "text-emerald-700 bg-emerald-50 border-emerald-200",
-      badgeColor: "bg-emerald-500",
+      badgeColor: "bg-emerald-500 text-white",
+      recommendation: "Không phát hiện tổn thương bất thường. Khám định kỳ 6 tháng/lần.",
       urgentTeeth: [],
-      recommendation: "Không phát hiện tổn thương bất thường. Khuyên dùng vệ sinh răng định kỳ 6 tháng/lần.",
     };
   }
 
   let penalty = 0;
   const urgentTeeth: { fdi: number; reason: string }[] = [];
 
-  findings.forEach((f) => {
-    let itemPenalty = 10;
+  activeFindings.forEach((f) => {
+    let p = 8;
+    const cfg = FINDING_CONFIG[f.findingType];
+    const lbl = cfg?.label || f.findingType;
+
     if (f.findingType === "Periapical radiolucency" || f.findingType === "Residual root") {
-      itemPenalty = 15;
-      urgentTeeth.push({
-        fdi: f.fdiToothNumber,
-        reason: FINDING_LABELS_VI[f.findingType] || f.findingType,
-      });
-    } else if (f.findingType === "Caries" || f.findingType === "Missing tooth") {
-      itemPenalty = 10;
-      if (f.severity === "HIGH") {
-        urgentTeeth.push({
-          fdi: f.fdiToothNumber,
-          reason: `Sâu răng Nặng R${f.fdiToothNumber}`,
-        });
-      }
+      p = 15;
+      urgentTeeth.push({ fdi: f.fdiToothNumber, reason: lbl });
+    } else if (f.findingType === "Impacted" || (f.findingType === "Caries" && f.severity === "HIGH")) {
+      p = 12;
+      urgentTeeth.push({ fdi: f.fdiToothNumber, reason: lbl });
+    } else if (f.findingType === "Caries") {
+      p = 8;
     } else {
-      itemPenalty = 5;
+      p = 4;
     }
 
-    if (f.severity === "HIGH") itemPenalty += 5;
-    penalty += itemPenalty;
+    if (f.severity === "HIGH") p += 4;
+    penalty += p;
   });
 
-  const score = Math.max(15, Math.min(100, 100 - penalty));
-
+  const score = Math.max(20, Math.min(100, 100 - penalty));
   let riskLevel: "LOW" | "MEDIUM" | "HIGH" = "LOW";
-  let riskLabel = "An Toàn / Rủi ro Thấp";
+  let riskLabel = "Rủi ro Thấp (An Toàn)";
   let colorClass = "text-emerald-700 bg-emerald-50 border-emerald-200";
-  let badgeColor = "bg-emerald-500";
-  let recommendation = "Tình trạng răng miệng tương đối ổn định. Theo dõi thêm vệ sinh hàng ngày.";
+  let badgeColor = "bg-emerald-500 text-white";
+  let recommendation = "Tình trạng cung hàm tương đối ổn định. Chăm sóc vệ sinh định kỳ.";
 
   if (score < 50) {
     riskLevel = "HIGH";
-    riskLabel = "NGHIÊM TRỌNG / Can thiệp Gấp";
+    riskLabel = "RỦI RO CAO / Cần can thiệp gấp";
     colorClass = "text-rose-700 bg-rose-50 border-rose-200";
-    badgeColor = "bg-rose-600";
-    recommendation = "Cần ưu tiên điều trị nội nha / nhổ chân răng tồn tại để tránh tiêu xương và nhiễm trùng.";
+    badgeColor = "bg-rose-600 text-white";
+    recommendation = "Cần ưu tiên tiểu phẫu răng khôn mọc kẹt và nội nha viêm quanh chóp tránh tiêu xương.";
   } else if (score < 80) {
     riskLevel = "MEDIUM";
-    riskLabel = "TRUNG BÌNH / Cần Phác đồ";
+    riskLabel = "RỦI RO VỪA / Cần phác đồ";
     colorClass = "text-amber-700 bg-amber-50 border-amber-200";
-    badgeColor = "bg-amber-500";
-    recommendation = "Có tổn thương tiến triển. Cần lập phác đồ chữa tủy và bọc mão bảo vệ cấu trúc răng.";
+    badgeColor = "bg-amber-500 text-slate-950 font-bold";
+    recommendation = "Có tổn thương sâu răng tiến triển hoặc thấu quang. Cần làm sạch xoang và trám thẩm mỹ sớm.";
   }
 
-  return {
-    score,
-    riskLevel,
-    riskLabel,
-    colorClass,
-    badgeColor,
-    urgentTeeth,
-    recommendation,
-  };
+  return { score, riskLevel, riskLabel, colorClass, badgeColor, recommendation, urgentTeeth };
 }
 
-export function DentalXrayAnalyzer({
+export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
   patientId,
   patientName,
-  patientImages,
+  patientImages = [],
   onApplyToMedicalRecord,
   onApplyToDentalChart,
-}: DentalXrayAnalyzerProps) {
-  const [showReportModal, setShowReportModal] = useState<boolean>(false);
-  const effectivePatientImages =
-    patientImages !== undefined ? patientImages : DEFAULT_PATIENT_XRAYS;
+}) => {
+  const effectivePatientImages = patientImages.length > 0 ? patientImages : DEFAULT_PATIENT_XRAYS;
 
-  const [imageUrl, setImageUrl] = useState<string>(
-    effectivePatientImages[0]?.url || DEFAULT_PANO_IMAGE
-  );
+  const [imageUrl, setImageUrl] = useState<string>(effectivePatientImages[0]?.url || DEFAULT_PANO_IMAGE);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
-  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalyzeXrayResponse | null>(null);
+  const [activeTab, setActiveTab] = useState<"findings" | "diagnosis" | "treatment">("findings");
 
-  /** Kiểm tra qua Canvas xem ảnh có phải ảnh đơn sắc/grayscale (phim X-quang) hay ảnh chụp màu/giao diện */
-  const checkImageIsRadiograph = (src: string): Promise<boolean> => {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => {
-        try {
-          const canvas = document.createElement("canvas");
-          const size = 40;
-          canvas.width = size;
-          canvas.height = size;
-          const ctx = canvas.getContext("2d");
-          if (!ctx) return resolve(true);
-          ctx.drawImage(img, 0, 0, size, size);
-          const data = ctx.getImageData(0, 0, size, size).data;
-          let colorDiffSum = 0;
-          let pixelCount = 0;
-          for (let i = 0; i < data.length; i += 4) {
-            const r = data[i];
-            const g = data[i + 1];
-            const b = data[i + 2];
-            const diff = Math.max(Math.abs(r - g), Math.abs(g - b), Math.abs(r - b));
-            colorDiffSum += diff;
-            pixelCount++;
-          }
-          const avgColorDiff = colorDiffSum / pixelCount;
-          // Phim X-quang răng là ảnh xám (monochrome), độ lệch màu giữa R, G, B cực nhỏ (< 10).
-          // Ảnh màn hình/giao diện macOS/Windows/ảnh màu thường có avgColorDiff > 15-60.
-          if (avgColorDiff > 12) {
-            resolve(false);
-          } else {
-            resolve(true);
-          }
-        } catch {
-          resolve(true);
-        }
-      };
-      img.onerror = () => resolve(true);
-      img.src = src;
-    });
-  };
-
-  const isDentalXrayImage = (url: string, fileName?: string | null): boolean => {
-    if (!url) return false;
-    const urlLower = url.toLowerCase();
-    const nameLower = (fileName || "").toLowerCase();
-
-    const nonDentalKeywords = [
-      "macos", "vpn", "screenshot", "screen", "desktop", "laptop", "apple",
-      "windows", "tutorial", "guide", "ui", "mockup", "login", "step",
-      "document", "pdf", "avatar", "profile", "banner", "logo", "chart", "diagram", "code", "app"
-    ];
-
-    if (nonDentalKeywords.some((kw) => urlLower.includes(kw) || nameLower.includes(kw))) {
-      return false;
-    }
-
-    const isDefaultXray = DEFAULT_PATIENT_XRAYS.some((item) => item.url === url);
-    if (isDefaultXray) return true;
-
-    return true;
-  };
-
-  const [selectedTypes, setSelectedTypes] = useState<Record<string, boolean>>({
-    Caries: true,
-    "Periapical radiolucency": true,
-    Implant: true,
-    "Root canal filling": true,
-    "Crown / Bridge": true,
-    Filling: true,
-    "Missing tooth": true,
-    "Residual root": true,
-  });
+  // DICOM Viewer Tools
+  const [zoomLevel, setZoomLevel] = useState(1.0);
+  const [isInverted, setIsInverted] = useState(false);
+  const [brightness, setBrightness] = useState(100);
+  const [contrast, setContrast] = useState(100);
+  const [showSliders, setShowSliders] = useState(false);
   const [hoveredFinding, setHoveredFinding] = useState<DentalFinding | null>(null);
-  const [applied, setApplied] = useState(false);
-  const [chartSynced, setChartSynced] = useState(false);
+  const [selectedTypes, setSelectedTypes] = useState<Record<string, boolean>>({});
 
-
-  // DICOM Viewer Image Tool States
-  const [zoomLevel, setZoomLevel] = useState<number>(1.0);
-  const [brightness, setBrightness] = useState<number>(100);
-  const [contrast, setContrast] = useState<number>(100);
-  const [isInverted, setIsInverted] = useState<boolean>(false);
-  const [showSliders, setShowSliders] = useState<boolean>(false);
-
-  // Dual Comparison Mode State (Before vs After)
-  const [compareMode, setCompareMode] = useState<boolean>(false);
-  const [compareImageUrl, setCompareImageUrl] = useState<string>(
-    effectivePatientImages[1]?.url || effectivePatientImages[0]?.url || DEFAULT_PANO_IMAGE
-  );
-
-  // Manual Bounding Box Drawing Mode State
-  const [isDrawingMode, setIsDrawingMode] = useState<boolean>(false);
-  const [isDragging, setIsDragging] = useState<boolean>(false);
-  const [startPos, setStartPos] = useState<{ x: number; y: number } | null>(null);
-  const [currentBox, setCurrentBox] = useState<{
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  } | null>(null);
-
-  // Option 3 Modals
-  const [showTreatmentPlanModal, setShowTreatmentPlanModal] = useState<boolean>(false);
-  const [showPrescriptionModal, setShowPrescriptionModal] = useState<boolean>(false);
-
-  // Helper for Treatment Plan Items
-  const treatmentPlanItems = useMemo(() => {
-    if (!result?.findings) return [];
-    return result.findings.map((f) => {
-      let procedure = "Trám răng thẩm mỹ Composite";
-      let cost = 400000;
-      if (f.findingType === "Periapical radiolucency") {
-        procedure = "Chữa tủy (Nội nha) + Trám bọc bảo vệ";
-        cost = 1500000;
-      } else if (f.findingType === "Missing tooth") {
-        procedure = "Cấy ghép Implant nha khoa Straumann";
-        cost = 12000000;
-      } else if (f.findingType === "Residual root") {
-        procedure = "Tiểu phẫu nhổ chân răng tồn tại";
-        cost = 800000;
-      } else if (f.findingType === "Crown / Bridge") {
-        procedure = "Bảo dưỡng & Gắn lại mão răng sứ";
-        cost = 300000;
-      } else if (f.severity === "HIGH") {
-        procedure = "Trám răng sâu độ 3 + Lót sinh học";
-        cost = 600000;
-      }
-
-      return {
-        toothFdi: f.fdiToothNumber,
-        findingLabel: FINDING_LABELS_VI[f.findingType] || f.findingType,
-        procedure,
-        cost,
-        severity: f.severity,
-      };
-    });
-  }, [result]);
-
-  const totalTreatmentCost = useMemo(() => {
-    return treatmentPlanItems.reduce((acc, item) => acc + item.cost, 0);
-  }, [treatmentPlanItems]);
-
-  // Helper for Prescription Items
-  const prescriptionItems = useMemo(() => {
-    if (!result?.findings) return [];
-    return [
-      {
-        name: "Amoxicillin 500mg",
-        type: "Kháng sinh",
-        dosage: "10 viên",
-        usage: "Uống 1 viên x 2 lần/ngày sau ăn (Sáng / Tối)",
-      },
-      {
-        name: "Ibuprofen 400mg",
-        type: "Giảm đau, Chống viêm",
-        dosage: "10 viên",
-        usage: "Uống 1 viên x 2 lần/ngày khi đau (Sau ăn)",
-      },
-      {
-        name: "Chlorhexidine Kin 0.12%",
-        type: "Nước súc miệng diệt khuẩn",
-        dosage: "1 chai (250ml)",
-        usage: "Súc miệng 15ml x 2-3 lần/ngày sau khi đánh răng",
-      },
-    ];
-  }, [result]);
-
-  // New Finding Modal State
-  const [showAddModal, setShowAddModal] = useState<boolean>(false);
+  // Manual Annotation Drawing
+  const [isDrawingMode, setIsDrawingMode] = useState(false);
+  const [drawStart, setDrawStart] = useState<{ x: number; y: number } | null>(null);
+  const [currentBox, setCurrentBox] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
   const [newFdiNumber, setNewFdiNumber] = useState<number>(48);
   const [newFindingType, setNewFindingType] = useState<string>("Caries");
   const [newSeverity, setNewSeverity] = useState<"LOW" | "MEDIUM" | "HIGH">("MEDIUM");
 
+  // Doctor Edit Modal
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editFdiNumber, setEditFdiNumber] = useState<number>(48);
+  const [editFindingType, setEditFindingType] = useState<string>("Caries");
+  const [editSeverity, setEditSeverity] = useState<"LOW" | "MEDIUM" | "HIGH">("MEDIUM");
+  const [editDoctorNote, setEditDoctorNote] = useState<string>("");
 
-  const handleCanvasMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isDrawingMode) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
-    setStartPos({ x, y });
-    setIsDragging(true);
-    setCurrentBox({ x, y, width: 0, height: 0 });
-  };
+  // Actions
+  const [applied, setApplied] = useState(false);
+  const [chartSynced, setChartSynced] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
 
-  const handleCanvasMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isDrawingMode || !isDragging || !startPos) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const currentX = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
-    const currentY = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
+  const containerRef = useRef<HTMLDivElement>(null);
 
-    const x = Math.min(startPos.x, currentX);
-    const y = Math.min(startPos.y, currentY);
-    const width = Math.abs(currentX - startPos.x);
-    const height = Math.abs(currentY - startPos.y);
-
-    setCurrentBox({ x, y, width, height });
-  };
-
-  const handleCanvasMouseUp = () => {
-    if (!isDrawingMode || !isDragging || !currentBox) return;
-    setIsDragging(false);
-    if (currentBox.width > 1 && currentBox.height > 1) {
-      setShowAddModal(true);
-    } else {
-      setCurrentBox(null);
-    }
-  };
-
-  const handleSaveManualFinding = () => {
-    if (!currentBox) return;
-    const newFinding: DentalFinding = {
-      fdiToothNumber: Number(newFdiNumber),
-      findingType: newFindingType,
-      confidence: 1.0,
-      boundingBox: currentBox,
-      severity: newSeverity,
-    };
-
-    if (!result) {
-      setResult({
-        findings: [newFinding],
-        totalFindings: 1,
-        summary: `R${newFdiNumber}: ${FINDING_LABELS_VI[newFindingType] || newFindingType}`,
-        disclaimer: "Kết quả hỗ trợ chẩn đoán bởi Dental Vision AI & Bác sĩ.",
-      });
-    } else {
-      const updatedFindings = [...result.findings, newFinding];
-      const updatedSummary = `${result.summary}\nR${newFdiNumber}: ${
-        FINDING_LABELS_VI[newFindingType] || newFindingType
-      }`;
-      setResult({
-        ...result,
-        findings: updatedFindings,
-        totalFindings: updatedFindings.length,
-        summary: updatedSummary,
-        disclaimer: result.disclaimer || "Kết quả hỗ trợ chẩn đoán bởi Dental Vision AI & Bác sĩ.",
-      });
-    }
-
-    setShowAddModal(false);
-    setCurrentBox(null);
-    setIsDrawingMode(false);
-  };
-
-
-  // Sync state when patientImages changes dynamically
-  useEffect(() => {
-    if (effectivePatientImages.length > 0) {
-      if (!imageUrl || !effectivePatientImages.some((img) => img.url === imageUrl)) {
-        setImageUrl(effectivePatientImages[0].url);
-      }
-      if (
-        !compareImageUrl ||
-        !effectivePatientImages.some((img) => img.url === compareImageUrl)
-      ) {
-        setCompareImageUrl(
-          effectivePatientImages[1]?.url || effectivePatientImages[0].url
-        );
-      }
-    }
-  }, [patientImages]);
-
-
-  const handleResetViewer = () => {
-    setZoomLevel(1.0);
-    setBrightness(100);
-    setContrast(100);
-    setIsInverted(false);
-  };
-
+  // Sync image selection
   const handleSelectPatientImage = (url: string) => {
     setImageUrl(url);
-    setUploadedFileName(null);
+    setImageBase64(null);
     setResult(null);
     setApplied(false);
-    handleResetViewer();
+    setChartSynced(false);
   };
 
   const handleUploadImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setUploadedFileName(file.name);
       const reader = new FileReader();
       reader.onload = (ev) => {
         const b64 = ev.target?.result as string;
         setImageUrl(b64);
         setImageBase64(b64);
+        setResult(null);
+        setApplied(false);
+        setChartSynced(false);
       };
       reader.readAsDataURL(file);
-      setResult(null);
-      setApplied(false);
     }
   };
 
+  // Main Analyze Function
   const handleAnalyze = async () => {
     setLoading(true);
     setApplied(false);
+    setChartSynced(false);
 
     try {
       const res = await apiClient.post<AnalyzeXrayResponse>(
@@ -532,9 +321,7 @@ export function DentalXrayAnalyzer({
         { timeout: 60000 }
       );
 
-      // Safely unpack payload across Axios interceptor wrappers
-      const payload: AnalyzeXrayResponse =
-        (res as any)?.data?.data ?? (res as any)?.data ?? res;
+      const payload: AnalyzeXrayResponse = (res as any)?.data?.data ?? (res as any)?.data ?? res;
 
       const isInvalid =
         payload?.isRadiograph === false ||
@@ -548,17 +335,17 @@ export function DentalXrayAnalyzer({
           isRadiograph: false,
           status: "INVALID_IMAGE",
           totalFindings: 0,
-          disclaimer:
-            payload?.disclaimer ||
-            "Hệ thống tự động phát hiện và chặn các ảnh không phải X-quang răng.",
-          summary:
-            payload?.summary ||
-            "CẢNH BÁO Y KHOA: Hình ảnh tải lên không phải là phim chụp X-quang răng nha khoa hợp lệ.",
+          disclaimer: payload?.disclaimer || "Hệ thống tự động phát hiện và chặn các ảnh không phải X-quang răng.",
+          summary: payload?.summary || "CẢNH BÁO Y KHOA: Hình ảnh tải lên không phải là phim chụp X-quang răng nha khoa hợp lệ.",
           findings: [],
           annotatedImageUrl: imageUrl,
         });
       } else {
-        const rawFindings = payload?.findings || [];
+        const rawFindings = (payload?.findings || []).map((f) => ({
+          ...f,
+          doctorStatus: f.doctorStatus || "ACCEPTED",
+        }));
+
         setResult({
           isRadiograph: true,
           status: payload?.status || (rawFindings.length > 0 ? "PATHOLOGY_DETECTED" : "HEALTHY"),
@@ -572,17 +359,15 @@ export function DentalXrayAnalyzer({
           diagnosisSuggestion: payload?.diagnosisSuggestion,
           treatmentRecommendations: payload?.treatmentRecommendations || [],
           annotatedImageUrl: payload?.annotatedImageUrl || imageUrl,
-          disclaimer:
-            payload?.disclaimer ||
-            "Kết quả phân tích X-quang bởi Dental Vision AI (Hybrid Cloud Pipeline).",
+          disclaimer: payload?.disclaimer || "Kết quả phân tích X-quang bởi Dental Vision AI (Hybrid Cloud Pipeline).",
         });
       }
     } catch (err: unknown) {
       const errorMsg =
         axios.isAxiosError(err) && err.response?.data?.message
-          ? (Array.isArray(err.response.data.message)
-              ? err.response.data.message.join(", ")
-              : String(err.response.data.message))
+          ? Array.isArray(err.response.data.message)
+            ? err.response.data.message.join(", ")
+            : String(err.response.data.message)
           : "Không thể kết nối đến dịch vụ Vision AI. Vui lòng kiểm tra lại dịch vụ.";
       setResult({
         isRadiograph: false,
@@ -597,360 +382,298 @@ export function DentalXrayAnalyzer({
     }
   };
 
-  const toggleTypeFilter = (type: string) => {
-    setSelectedTypes((prev) => ({ ...prev, [type]: !prev[type] }));
-  };
-
-  const handleDeleteFinding = (indexToDelete: number) => {
+  // DOCTOR REVIEW WORKFLOW ACTIONS (Accept / Reject / Edit)
+  const handleAcceptFinding = (index: number) => {
     if (!result) return;
-    const updatedFindings = result.findings.filter((_, idx) => idx !== indexToDelete);
-    const updatedSummary = `Phân tích X-quang Panorama (Mô hình dental-pano-ai):\n` +
-      updatedFindings.map((f) => `- Răng ${f.fdiToothNumber}: ${FINDING_LABELS_VI[f.findingType] || f.findingType} (${f.findingType}), độ tin cậy ${(f.confidence * 100).toFixed(1)}%.`).join("\n");
-
-    setResult({
-      ...result,
-      findings: updatedFindings,
-      totalFindings: updatedFindings.length,
-      summary: updatedSummary,
-    });
+    const updated = [...result.findings];
+    updated[index] = { ...updated[index], doctorStatus: "ACCEPTED" };
+    setResult({ ...result, findings: updated });
   };
 
-  const handleUpdateToothNumber = (index: number, newTooth: number) => {
-    if (!result || isNaN(newTooth)) return;
-    const updatedFindings = [...result.findings];
-    updatedFindings[index] = { ...updatedFindings[index], fdiToothNumber: newTooth };
-    const updatedSummary = `Phân tích X-quang Panorama (Mô hình dental-pano-ai):\n` +
-      updatedFindings.map((f) => `- Răng ${f.fdiToothNumber}: ${FINDING_LABELS_VI[f.findingType] || f.findingType} (${f.findingType}), độ tin cậy ${(f.confidence * 100).toFixed(1)}%.`).join("\n");
-
-    setResult({
-      ...result,
-      findings: updatedFindings,
-      summary: updatedSummary,
-    });
-  };
-
-  const handleUpdateFindingType = (index: number, newType: string) => {
+  const handleRejectFinding = (index: number) => {
     if (!result) return;
-    const updatedFindings = [...result.findings];
-    updatedFindings[index] = { ...updatedFindings[index], findingType: newType };
-    const updatedSummary = `Phân tích X-quang Panorama (Mô hình dental-pano-ai):\n` +
-      updatedFindings.map((f) => `- Răng ${f.fdiToothNumber}: ${FINDING_LABELS_VI[f.findingType] || f.findingType} (${f.findingType}), độ tin cậy ${(f.confidence * 100).toFixed(1)}%.`).join("\n");
-
-    setResult({
-      ...result,
-      findings: updatedFindings,
-      summary: updatedSummary,
-    });
+    const updated = [...result.findings];
+    updated[index] = { ...updated[index], doctorStatus: "REJECTED" };
+    setResult({ ...result, findings: updated });
   };
 
-  const handleToggleSeverity = (index: number) => {
+  const handleOpenEditModal = (index: number) => {
     if (!result) return;
-    const nextSeverity: Record<DentalFinding["severity"], DentalFinding["severity"]> = {
-      LOW: "MEDIUM",
-      MEDIUM: "HIGH",
-      HIGH: "LOW",
+    const item = result.findings[index];
+    setEditingIndex(index);
+    setEditFdiNumber(item.fdiToothNumber);
+    setEditFindingType(item.findingType);
+    setEditSeverity(item.severity);
+    setEditDoctorNote(item.doctorNote || "");
+  };
+
+  const handleSaveEditFinding = () => {
+    if (!result || editingIndex === null) return;
+    const updated = [...result.findings];
+    updated[editingIndex] = {
+      ...updated[editingIndex],
+      fdiToothNumber: editFdiNumber,
+      findingType: editFindingType,
+      severity: editSeverity,
+      doctorNote: editDoctorNote,
+      doctorStatus: "ACCEPTED",
     };
-    const updatedFindings = [...result.findings];
-    updatedFindings[index] = {
-      ...updatedFindings[index],
-      severity: nextSeverity[updatedFindings[index].severity] || "LOW",
-    };
-
-    setResult({
-      ...result,
-      findings: updatedFindings,
-    });
+    setResult({ ...result, findings: updated });
+    setEditingIndex(null);
   };
 
-  const handleAddFinding = () => {
+  // Manual Bounding Box Drawing Handlers
+  const handleCanvasMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isDrawingMode || !containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    setDrawStart({ x, y });
+    setCurrentBox({ x, y, width: 0, height: 0 });
+  };
+
+  const handleCanvasMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isDrawingMode || !drawStart || !containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const curX = ((e.clientX - rect.left) / rect.width) * 100;
+    const curY = ((e.clientY - rect.top) / rect.height) * 100;
+    const x = Math.min(drawStart.x, curX);
+    const y = Math.min(drawStart.y, curY);
+    const width = Math.abs(curX - drawStart.x);
+    const height = Math.abs(curY - drawStart.y);
+    setCurrentBox({ x, y, width, height });
+  };
+
+  const handleCanvasMouseUp = () => {
+    if (!isDrawingMode || !drawStart || !currentBox) return;
+    if (currentBox.width > 2 && currentBox.height > 2) {
+      setShowAddModal(true);
+    }
+    setDrawStart(null);
+    setIsDrawingMode(false);
+  };
+
+  const handleSaveManualFinding = () => {
+    if (!currentBox || !result) return;
     const newFinding: DentalFinding = {
-      fdiToothNumber: 11,
-      findingType: "Caries",
+      fdiToothNumber: newFdiNumber,
+      findingType: newFindingType,
       confidence: 1.0,
-      boundingBox: { x: 50, y: 50, width: 8, height: 12 },
-      severity: "MEDIUM",
+      boundingBox: currentBox,
+      severity: newSeverity,
+      doctorStatus: "ACCEPTED",
     };
-
-    const currentFindings = result?.findings ?? [];
-    const updatedFindings = [newFinding, ...currentFindings];
-    const updatedSummary =
-      `Phân tích X-quang Panorama (Mô hình dental-pano-ai):\n` +
-      updatedFindings
-        .map(
-          (f) =>
-            `- Răng ${f.fdiToothNumber}: ${
-              FINDING_LABELS_VI[f.findingType] || f.findingType
-            } (${f.findingType}), độ tin cậy ${(f.confidence * 100).toFixed(1)}%.`
-        )
-        .join("\n");
-
     setResult({
-      totalFindings: updatedFindings.length,
-      disclaimer:
-        result?.disclaimer ||
-        "Kết quả phân tích X-quang bởi Dental Vision AI. Bác sĩ cần đối chiếu lâm sàng.",
-      summary: updatedSummary,
-      findings: updatedFindings,
+      ...result,
+      findings: [newFinding, ...result.findings],
+      totalFindings: result.findings.length + 1,
+    });
+    setShowAddModal(false);
+    setCurrentBox(null);
+  };
+
+  const handleDeleteFinding = (index: number) => {
+    if (!result) return;
+    const updated = result.findings.filter((_, idx) => idx !== index);
+    setResult({
+      ...result,
+      findings: updated,
+      totalFindings: updated.length,
     });
   };
 
+  const visibleFindings = useMemo(() => {
+    return result?.findings.filter((f) => selectedTypes[f.findingType] !== false) || [];
+  }, [result, selectedTypes]);
 
+  const acceptedFindings = useMemo(() => {
+    return result?.findings.filter((f) => f.doctorStatus !== "REJECTED") || [];
+  }, [result]);
 
-  const visibleFindings =
-
-    result?.findings.filter((f) => selectedTypes[f.findingType] !== false) ?? [];
+  const riskAssessment = useMemo(() => {
+    return calculateOralHealthRisk(result?.findings || []);
+  }, [result]);
 
   return (
-    <div className="flex flex-col gap-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-sky-400 shadow-md shadow-slate-900/10 border border-slate-800">
-            <Brain size={22} weight="duotone" />
+    <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
+      {/* 1. TOP HEADER & WORKFLOW BAR */}
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-slate-900 to-indigo-950 text-sky-400 shadow-md border border-slate-800">
+            <Brain size={24} weight="duotone" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-base font-bold text-slate-900">
-                Dental Vision AI (Chẩn đoán X-Quang Panorama)
-              </h3>
-              <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700 ring-1 ring-inset ring-blue-200">
-                dental-pano-ai (AUC 96.2%)
+              <h2 className="text-base font-bold text-slate-900">
+                Dental Vision AI <span className="text-slate-400 font-normal text-xs">| Kính Soi & Chẩn Đoán X-Quang</span>
+              </h2>
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 border border-emerald-200">
+                <ShieldCheck size={13} weight="fill" /> Bác sĩ phê duyệt (CDSS)
               </span>
             </div>
-            <p className="text-xs text-slate-500">
-              Tự động nhận diện 8 loại tổn thương & nhãn số răng FDI chuẩn quốc tế
+            <p className="text-xs text-slate-500 mt-0.5">
+              Phân tích cấu trúc 32 răng FDI, hỗ trợ Bác sĩ phê duyệt, từ chối hoặc chỉnh sửa tổn thương y khoa
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100">
-            <FileArrowUp size={16} />
-            Tải phim X-quang
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleUploadImage}
-            />
+        {/* Action Controls */}
+        <div className="flex items-center gap-2.5">
+          <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-slate-900 cursor-pointer shadow-2xs">
+            <FileArrowUp size={16} className="text-slate-600" />
+            Tải ảnh khác
+            <input type="file" accept="image/*" className="hidden" onChange={handleUploadImage} />
           </label>
 
           <button
             type="button"
             onClick={handleAnalyze}
             disabled={loading}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-xs font-bold text-white shadow-md shadow-blue-500/20 transition-all hover:bg-blue-700 active:scale-98 disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-2 text-xs font-bold text-white shadow-md shadow-blue-500/20 transition-all hover:from-blue-700 hover:to-indigo-700 active:scale-98 disabled:opacity-60 cursor-pointer"
           >
-            <Sparkle size={16} weight="fill" className="text-sky-300" />
-            {loading ? "Đang phân tích..." : "Phân tích phim AI"}
+            {loading ? (
+              <>
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                <span>Đang quét phim...</span>
+              </>
+            ) : (
+              <>
+                <Sparkle size={16} weight="fill" className="text-amber-300" />
+                <span>Phân tích X-quang AI</span>
+              </>
+            )}
           </button>
         </div>
       </div>
 
-      {/* Patient X-Ray Album Thumbnail Selector */}
-      <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-3 shadow-2xs">
-        <div className="flex items-center justify-between text-xs font-bold text-slate-700">
-          <span>Album Phim X-Quang Bệnh Nhân ({effectivePatientImages.length})</span>
-          <span className="text-[11px] font-normal text-slate-500">
-            Nhấp chọn ảnh phim để AI phân tích
-          </span>
-        </div>
-
-        {effectivePatientImages.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-xs text-slate-500">
-            Chưa có ảnh phim X-quang nào trong hồ sơ này. Vui lòng bấm <b>&quot;Tải phim X-quang&quot;</b> hoặc thêm ảnh ở tab <b>&quot;Ảnh&quot;</b>.
-          </div>
-        ) : (
-          <div className="flex items-center gap-3 overflow-x-auto pb-1 scrollbar-thin">
-            {effectivePatientImages.map((imgItem, idx) => {
-              const isSelected = imageUrl === imgItem.url;
-              return (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => handleSelectPatientImage(imgItem.url)}
-                  className={`group relative flex shrink-0 items-center gap-2.5 rounded-lg border p-1.5 transition-all ${
-                    isSelected
-                      ? "border-blue-500 bg-blue-50/70 ring-2 ring-blue-500/20 shadow-xs"
-                      : "border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-slate-100"
-                  }`}
-                >
-                  <div className="relative h-12 w-16 overflow-hidden rounded bg-slate-900">
-                    <img
-                      src={imgItem.url}
-                      alt={imgItem.title || "X-ray film"}
-                      className="h-full w-full object-cover opacity-90 transition-transform group-hover:scale-105"
-                    />
-                  </div>
-                  <div className="pr-1 text-left">
-                    <p
-                      className={`text-xs font-bold ${
-                        isSelected ? "text-blue-900" : "text-slate-800"
-                      }`}
-                    >
-                      {imgItem.title || `Phim X-quang ${idx + 1}`}
-                    </p>
-                    {imgItem.date && (
-                      <p className="text-[10px] text-slate-500">{imgItem.date}</p>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        )}
+      {/* 2. ALBUM SELECTOR PILLS */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
+        <span className="shrink-0 font-bold text-slate-500 text-[11px] uppercase tracking-wider">Chọn phim:</span>
+        {effectivePatientImages.map((imgItem, idx) => {
+          const isSelected = imageUrl === imgItem.url;
+          return (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => handleSelectPatientImage(imgItem.url)}
+              className={`inline-flex shrink-0 items-center gap-2 rounded-xl border px-3 py-1.5 font-medium transition cursor-pointer ${
+                isSelected
+                  ? "border-blue-600 bg-blue-50/80 text-blue-900 font-bold shadow-2xs ring-1 ring-blue-500"
+                  : "border-slate-200 bg-slate-50/70 text-slate-700 hover:bg-slate-100"
+              }`}
+            >
+              <span className="h-2 w-2 rounded-full bg-blue-500" />
+              <span>{imgItem.title || `Phim X-quang #${idx + 1}`}</span>
+              {imgItem.date && <span className="text-[10px] opacity-60">({imgItem.date})</span>}
+            </button>
+          );
+        })}
       </div>
 
-
-
-      {/* Layer Filter Buttons */}
-      {result && (
-        <div className="flex flex-wrap items-center gap-2 rounded-xl bg-slate-50 p-2.5 ring-1 ring-inset ring-slate-200/60">
-          <span className="text-xs font-semibold text-slate-500">Lọc tổn thương:</span>
-          {Object.keys(FINDING_COLORS).map((type) => {
-            const active = selectedTypes[type] !== false;
-            const count = result.findings.filter((f) => f.findingType === type).length;
-            if (count === 0) return null;
-            return (
-              <button
-                key={type}
-                type="button"
-                onClick={() => toggleTypeFilter(type)}
-                className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${
-                  active
-                    ? `${FINDING_COLORS[type].text} ring-1 ring-inset ring-current`
-                    : "bg-slate-200/70 text-slate-500 line-through"
-                }`}
-              >
-                {active ? <Eye size={12} /> : <EyeSlash size={12} />}
-                {FINDING_LABELS_VI[type] || type} ({count})
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Interactive Radiography Viewer */}
+      {/* 3. MAIN WORKSPACE (2-COLUMN PACS WORKSTATION) */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
-        <div className="relative min-h-[360px] overflow-hidden rounded-xl border border-slate-800 bg-slate-950 shadow-inner lg:col-span-8 flex flex-col justify-between">
-          {/* DICOM Control Bar */}
-          <div className="z-30 flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 bg-slate-900/90 px-3 py-2 text-white backdrop-blur-sm">
+        {/* === LEFT COLUMN: DICOM PACS VIEWER (7 COLS) === */}
+        <div className="flex flex-col overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 shadow-xl lg:col-span-7">
+          {/* Viewer Toolbar */}
+          <div className="flex flex-wrap items-center justify-between border-b border-slate-800/80 bg-slate-900/90 px-3.5 py-2 text-white backdrop-blur-xs">
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400">
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-sky-400">
                 Kính soi DICOM
               </span>
               <span className="h-3 w-px bg-slate-700" />
               <span className="text-[11px] font-semibold text-slate-300">
-                Tỉ lệ: {Math.round(zoomLevel * 100)}%
+                {Math.round(zoomLevel * 100)}%
               </span>
             </div>
 
-            <div className="flex items-center gap-1.5">
-              {/* Zoom Out */}
+            {/* Quick Tools */}
+            <div className="flex items-center gap-1">
               <button
                 type="button"
                 onClick={() => setZoomLevel((z) => Math.max(1.0, z - 0.25))}
                 disabled={zoomLevel <= 1.0}
-                title="Thu nhỏ (-)"
-                className="rounded p-1.5 text-slate-300 transition-colors hover:bg-slate-800 hover:text-white disabled:opacity-40"
+                title="Thu nhỏ"
+                className="rounded-lg p-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-white disabled:opacity-30 cursor-pointer"
               >
                 <MagnifyingGlassMinus size={16} />
               </button>
-
-              {/* Zoom In */}
               <button
                 type="button"
                 onClick={() => setZoomLevel((z) => Math.min(3.0, z + 0.25))}
                 disabled={zoomLevel >= 3.0}
-                title="Phóng to (+)"
-                className="rounded p-1.5 text-slate-300 transition-colors hover:bg-slate-800 hover:text-white disabled:opacity-40"
+                title="Phóng to"
+                className="rounded-lg p-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-white disabled:opacity-30 cursor-pointer"
               >
                 <MagnifyingGlassPlus size={16} />
               </button>
 
-              <span className="h-3 w-px bg-slate-700" />
+              <span className="h-3 w-px bg-slate-700 mx-1" />
 
-              {/* Invert Color */}
               <button
                 type="button"
-                onClick={() => setIsInverted((inv) => !inv)}
-                title="Đảo màu âm bản (Invert X-ray)"
-                className={`rounded p-1.5 text-slate-300 transition-colors hover:bg-slate-800 ${
-                  isInverted ? "bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500" : ""
+                onClick={() => setIsInverted((v) => !v)}
+                title="Đảo màu âm bản (Invert PACS)"
+                className={`rounded-lg p-1.5 transition cursor-pointer ${
+                  isInverted ? "bg-sky-500/20 text-sky-400 ring-1 ring-sky-400" : "text-slate-300 hover:bg-slate-800"
                 }`}
               >
                 <CircleHalf size={16} />
               </button>
 
-              {/* Brightness & Contrast Toggle */}
               <button
                 type="button"
                 onClick={() => setShowSliders((s) => !s)}
-                title="Chỉnh độ sáng / Độ tương phản"
-                className={`rounded p-1.5 text-slate-300 transition-colors hover:bg-slate-800 ${
+                title="Độ sáng & Độ tương phản"
+                className={`rounded-lg p-1.5 transition cursor-pointer ${
                   showSliders || brightness !== 100 || contrast !== 100
-                    ? "bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500"
-                    : ""
+                    ? "bg-sky-500/20 text-sky-400 ring-1 ring-sky-400"
+                    : "text-slate-300 hover:bg-slate-800"
                 }`}
               >
                 <Sliders size={16} />
               </button>
 
-              {/* Reset Controls */}
               <button
                 type="button"
-                onClick={handleResetViewer}
-                title="Đặt lại cài đặt kính soi"
-                className="rounded p-1.5 text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+                onClick={() => {
+                  setZoomLevel(1.0);
+                  setIsInverted(false);
+                  setBrightness(100);
+                  setContrast(100);
+                  setShowSliders(false);
+                }}
+                title="Đặt lại kính soi"
+                className="rounded-lg p-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-white cursor-pointer"
               >
                 <ArrowsCounterClockwise size={16} />
               </button>
 
-              <span className="h-3 w-px bg-slate-700" />
+              <span className="h-3 w-px bg-slate-700 mx-1" />
 
-              {/* Manual Bounding Box Drawing Button */}
+              {/* Manual Annotation Tool */}
               <button
                 type="button"
                 onClick={() => {
                   setIsDrawingMode((prev) => !prev);
                   setCurrentBox(null);
                 }}
-                title="Vẽ khoanh vùng tổn thương thủ công trên ảnh X-quang"
-                className={`flex items-center gap-1 rounded px-2 py-1 text-xs transition-colors ${
+                title="Kéo chuột để khoanh vùng thêm tổn thương thủ công"
+                className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold transition cursor-pointer ${
                   isDrawingMode
-                    ? "bg-amber-500 font-bold text-slate-950 shadow ring-2 ring-amber-400"
+                    ? "bg-amber-500 text-slate-950 shadow-sm ring-2 ring-amber-400"
                     : "text-slate-300 hover:bg-slate-800 hover:text-white"
                 }`}
               >
-                <Plus size={15} weight="bold" />
-                <span>{isDrawingMode ? "Đang vẽ (Kéo chuột)" : "Vẽ khoanh vùng"}</span>
+                <Plus size={14} weight="bold" />
+                <span>{isDrawingMode ? "Đang vẽ..." : "Khoanh vùng"}</span>
               </button>
-
-              <span className="h-3 w-px bg-slate-700" />
-
-              {/* Dual Compare Mode Toggle */}
-              <button
-                type="button"
-                onClick={() => setCompareMode((c) => !c)}
-                title="Bật/Tắt Chế độ So sánh 2 phim (Cũ vs Mới)"
-                className={`flex items-center gap-1 rounded px-2 py-1 text-xs transition-colors ${
-                  compareMode
-                    ? "bg-emerald-500 font-bold text-slate-950 shadow"
-                    : "text-slate-300 hover:bg-slate-800 hover:text-white"
-                }`}
-              >
-                <Columns size={15} />
-                <span>{compareMode ? "Đang so sánh" : "So sánh 2 phim"}</span>
-              </button>
-
             </div>
           </div>
 
           {/* Sliders Panel */}
           {showSliders && (
-            <div className="z-30 flex items-center justify-around border-b border-slate-800 bg-slate-900/95 p-3 text-xs text-slate-200 backdrop-blur">
+            <div className="flex items-center justify-around border-b border-slate-800 bg-slate-900/95 px-4 py-2 text-xs text-slate-200">
               <div className="flex items-center gap-2">
-                <Sun size={14} className="text-amber-400" />
                 <span>Độ sáng ({brightness}%):</span>
                 <input
                   type="range"
@@ -958,949 +681,852 @@ export function DentalXrayAnalyzer({
                   max={150}
                   value={brightness}
                   onChange={(e) => setBrightness(Number(e.target.value))}
-                  className="h-1 w-24 cursor-pointer accent-emerald-500"
+                  className="h-1 w-24 cursor-pointer accent-sky-500"
                 />
               </div>
-
               <div className="flex items-center gap-2">
-                <Sliders size={14} className="text-blue-400" />
-                <span>Độ tương phản ({contrast}%):</span>
+                <span>Tương phản ({contrast}%):</span>
                 <input
                   type="range"
                   min={50}
                   max={200}
                   value={contrast}
                   onChange={(e) => setContrast(Number(e.target.value))}
-                  className="h-1 w-24 cursor-pointer accent-emerald-500"
+                  className="h-1 w-24 cursor-pointer accent-sky-500"
                 />
               </div>
             </div>
           )}
 
-          {/* Canvas Wrapper with Dual Split Screen */}
-          <div className="relative flex-1 overflow-hidden bg-slate-950 p-2">
-            {compareMode ? (
-              <div className="grid h-full w-full grid-cols-1 gap-2 md:grid-cols-2">
-                {/* Left Pane: Baseline Historical Film */}
-                <div className="relative flex flex-col overflow-hidden rounded-lg border border-slate-800 bg-slate-900/80 p-2">
-                  <div className="mb-2 flex items-center justify-between gap-2 border-b border-slate-800 pb-1.5 text-xs text-slate-300">
-                    <span className="font-bold text-amber-400">
-                      1. Phim Trước Điều Trị (Gốc/Cũ)
-                    </span>
-                    <select
-                      value={compareImageUrl}
-                      onChange={(e) => setCompareImageUrl(e.target.value)}
-                      className="rounded border border-slate-700 bg-slate-800 px-2 py-0.5 text-[11px] text-white focus:outline-none"
-                    >
-                      {effectivePatientImages.map((imgItem, idx) => (
-                        <option key={idx} value={imgItem.url}>
-                          {imgItem.title || `Phim ${idx + 1}`} ({imgItem.date || "Cũ"})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="relative flex flex-1 items-center justify-center overflow-hidden">
-                    <img
-                      src={compareImageUrl}
-                      alt="Baseline X-ray"
-                      style={{
-                        filter: `brightness(${brightness}%) contrast(${contrast}%) ${
-                          isInverted ? "invert(100%)" : ""
-                        }`,
-                        transform: `scale(${zoomLevel})`,
-                      }}
-                      className="max-h-[420px] w-auto max-w-full rounded object-contain opacity-90 transition-all"
-                    />
-                  </div>
-                </div>
-
-                {/* Right Pane: Current AI Analyzed Film */}
-                <div className="relative flex flex-col overflow-hidden rounded-lg border border-emerald-900/60 bg-slate-900/80 p-2">
-                  <div className="mb-2 flex items-center justify-between border-b border-slate-800 pb-1.5 text-xs text-slate-300">
-                    <span className="font-bold text-emerald-400">
-                      2. Phim Hiện Tại (AI Phân Tích)
-                    </span>
-                    <span className="text-[10px] text-slate-400">
-                      {visibleFindings.length} tổn thương
-                    </span>
-                  </div>
-                  <div className="relative flex flex-1 items-center justify-center overflow-hidden">
-                    <div
-                      style={{
-                        filter: `brightness(${brightness}%) contrast(${contrast}%) ${
-                          isInverted ? "invert(100%)" : ""
-                        }`,
-                        transform: `scale(${zoomLevel})`,
-                        transformOrigin: "center center",
-                        transition: "transform 0.2s ease-out, filter 0.15s ease-out",
-                      }}
-                      className="relative flex items-center justify-center"
-                    >
-                      <div className="relative inline-block max-w-full max-h-[420px]">
-                        <img
-                          src={imageUrl}
-                          alt="Current X-Ray"
-                          className="max-h-[420px] w-auto max-w-full rounded object-contain opacity-90 shadow-md block"
-                        />
-                        {visibleFindings.map((finding, idx) => {
-                          const color = FINDING_COLORS[finding.findingType] || {
-                            border: "border-emerald-400",
-                            bg: "bg-emerald-400/20",
-                            text: "text-white bg-emerald-600",
-                          };
-                          return (
-                            <div
-                              key={idx}
-                              style={{
-                                left: `${finding.boundingBox.x}%`,
-                                top: `${finding.boundingBox.y}%`,
-                                width: `${finding.boundingBox.width}%`,
-                                height: `${finding.boundingBox.height}%`,
-                              }}
-                              className={`absolute rounded border-2 ${color.border} ${color.bg}`}
-                            >
-                              <div className="absolute -top-4 left-0 rounded bg-slate-900/90 px-1 py-0.5 text-[9px] font-bold text-white shadow">
-                                R{finding.fdiToothNumber}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : (
+          {/* Image Screen */}
+          <div className="relative flex min-h-[420px] flex-1 items-center justify-center overflow-hidden bg-slate-950 p-3">
+            <div
+              style={{
+                filter: `brightness(${brightness}%) contrast(${contrast}%) ${isInverted ? "invert(100%)" : ""}`,
+                transform: `scale(${zoomLevel})`,
+                transformOrigin: "center center",
+                transition: "transform 0.2s ease-out, filter 0.15s ease-out",
+              }}
+              className="relative flex items-center justify-center max-w-full"
+            >
               <div
-                style={{
-                  filter: `brightness(${brightness}%) contrast(${contrast}%) ${
-                    isInverted ? "invert(100%)" : ""
-                  }`,
-                  transform: `scale(${zoomLevel})`,
-                  transformOrigin: "center center",
-                  transition: "transform 0.2s ease-out, filter 0.15s ease-out",
-                }}
-                className="relative flex h-full w-full items-center justify-center"
+                ref={containerRef}
+                onMouseDown={handleCanvasMouseDown}
+                onMouseMove={handleCanvasMouseMove}
+                onMouseUp={handleCanvasMouseUp}
+                className={`relative inline-block max-w-full select-none ${isDrawingMode ? "cursor-crosshair" : ""}`}
               >
-                <div
-                  onMouseDown={handleCanvasMouseDown}
-                  onMouseMove={handleCanvasMouseMove}
-                  onMouseUp={handleCanvasMouseUp}
-                  className={`relative inline-block max-w-full max-h-[480px] select-none ${
-                    isDrawingMode ? "cursor-crosshair" : ""
-                  }`}
-                >
-                  <img
-                    src={imageUrl}
-                    alt="Panoramic X-Ray"
-                    draggable={false}
-                    className="block max-h-[480px] w-auto max-w-full rounded object-contain opacity-90 shadow-md"
-                  />
+                <img
+                  src={imageUrl}
+                  alt="Dental Radiograph"
+                  draggable={false}
+                  className="max-h-[460px] w-auto max-w-full rounded-xl object-contain shadow-2xl block"
+                />
 
-                  {/* Live Drawing Bounding Box */}
-                  {currentBox && (
-                    <div
-                      style={{
-                        left: `${currentBox.x}%`,
-                        top: `${currentBox.y}%`,
-                        width: `${currentBox.width}%`,
-                        height: `${currentBox.height}%`,
-                      }}
-                      className="absolute z-30 rounded border-2 border-dashed border-amber-400 bg-amber-400/25 pointer-events-none"
-                    >
-                      <div className="absolute -top-5 left-0 rounded bg-amber-500 px-1.5 py-0.5 text-[9px] font-bold text-slate-950 shadow">
-                        Kéo thả để khoanh vùng...
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Bounding Box Overlays */}
-                  {visibleFindings.map((finding, idx) => {
-                    const color = FINDING_COLORS[finding.findingType] || {
-                      border: "border-emerald-400",
-                      bg: "bg-emerald-400/20",
-                      text: "text-white bg-emerald-600",
-                    };
-                    const isHovered = hoveredFinding === finding;
-
-                    return (
-                      <div
-                        key={idx}
-                        onMouseEnter={() => setHoveredFinding(finding)}
-                        onMouseLeave={() => setHoveredFinding(null)}
-                        style={{
-                          left: `${finding.boundingBox.x}%`,
-                          top: `${finding.boundingBox.y}%`,
-                          width: `${finding.boundingBox.width}%`,
-                          height: `${finding.boundingBox.height}%`,
-                        }}
-                        className={`absolute cursor-pointer rounded border-2 transition-all ${
-                          color.border
-                        } ${color.bg} ${
-                          isHovered ? "z-20 scale-105 ring-4 ring-emerald-400/60" : "z-10"
-                        }`}
-                      >
-                        {/* Tooth FDI Tag */}
-                        <div className="absolute -top-5 left-0 flex items-center gap-1 rounded bg-slate-900/90 px-1.5 py-0.5 text-[10px] font-bold text-white shadow">
-                          <span>R{finding.fdiToothNumber}</span>
-                          <span className="opacity-70">
-                            ({Math.round(finding.confidence * 100)}%)
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Modal / Dialog Thêm tổn thương thủ công */}
-          {showAddModal && currentBox && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-xs">
-              <div className="w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-900 p-5 text-white shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-                <div className="mb-3 flex items-center justify-between border-b border-slate-800 pb-2.5">
-                  <h3 className="flex items-center gap-1.5 text-xs font-bold text-amber-400">
-                    <Plus size={16} weight="bold" />
-                    Thêm tổn thương thủ công (Bác sĩ chọn)
-                  </h3>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowAddModal(false);
-                      setCurrentBox(null);
-                    }}
-                    className="rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-white"
-                  >
-                    ✕
-                  </button>
-                </div>
-
-                <div className="space-y-3 text-xs">
-                  <div>
-                    <label className="mb-1 block font-bold text-slate-300">Răng số (Chuẩn FDI):</label>
-                    <input
-                      type="number"
-                      min={11}
-                      max={48}
-                      value={newFdiNumber}
-                      onChange={(e) => setNewFdiNumber(Number(e.target.value))}
-                      className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm font-bold text-white focus:border-amber-400 focus:outline-none"
-                      placeholder="Ví dụ: 18, 36, 48..."
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-1 block font-bold text-slate-300">Loại tổn thương / Tình trạng:</label>
-                    <select
-                      value={newFindingType}
-                      onChange={(e) => setNewFindingType(e.target.value)}
-                      className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-white focus:border-amber-400 focus:outline-none"
-                    >
-                      {Object.keys(FINDING_LABELS_VI).map((key) => (
-                        <option key={key} value={key}>
-                          {FINDING_LABELS_VI[key]} ({key})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="mb-1 block font-bold text-slate-300">Mức độ nghiêm trọng:</label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {(["LOW", "MEDIUM", "HIGH"] as const).map((sev) => {
-                        const labels = { LOW: "Nhẹ", MEDIUM: "Vừa", HIGH: "Nặng" };
-                        const active = newSeverity === sev;
-                        return (
-                          <button
-                            key={sev}
-                            type="button"
-                            onClick={() => setNewSeverity(sev)}
-                            className={`rounded-xl py-1.5 text-xs font-bold transition-all ${
-                              active
-                                ? "bg-amber-500 text-slate-950 shadow-md"
-                                : "bg-slate-800 text-slate-300 hover:bg-slate-700"
-                            }`}
-                          >
-                            {labels[sev]}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-5 flex justify-end gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowAddModal(false);
-                      setCurrentBox(null);
-                    }}
-                    className="rounded-xl border border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:bg-slate-800"
-                  >
-                    Hủy bỏ
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSaveManualFinding}
-                    className="rounded-xl bg-amber-500 px-4 py-1.5 text-xs font-bold text-slate-950 shadow hover:bg-amber-400"
-                  >
-                    Lưu tổn thương
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Modal 1-Click Kế hoạch Điều trị AI */}
-          {showTreatmentPlanModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-xs">
-              <div className="w-full max-w-lg rounded-2xl border border-purple-900/50 bg-slate-900 p-6 text-white shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-                <div className="mb-4 flex items-center justify-between border-b border-slate-800 pb-3">
-                  <h3 className="flex items-center gap-2 text-sm font-bold text-purple-400">
-                    <Sparkle size={18} className="text-purple-400" />
-                    Kế Hoạch Điều Trị AI Đề Xuất (Tự động từ X-quang)
-                  </h3>
-                  <button
-                    type="button"
-                    onClick={() => setShowTreatmentPlanModal(false)}
-                    className="rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-white"
-                  >
-                    ✕
-                  </button>
-                </div>
-
-                <div className="max-h-[360px] space-y-3 overflow-y-auto pr-1 text-xs">
-                  {treatmentPlanItems.map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-800/60 p-3"
-                    >
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="rounded bg-purple-900/60 px-1.5 py-0.5 text-[10px] font-bold text-purple-300 border border-purple-700">
-                            Răng {item.toothFdi}
-                          </span>
-                          <span className="font-bold text-white">{item.procedure}</span>
-                        </div>
-                        <p className="text-[11px] text-slate-400">
-                          Chẩn đoán AI: {item.findingLabel} ({item.severity})
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <span className="font-bold text-purple-300">
-                          {item.cost.toLocaleString("vi-VN")} đ
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-
-                  <div className="mt-4 flex items-center justify-between rounded-xl border border-purple-500/30 bg-purple-950/40 p-3 text-xs font-bold text-purple-200">
-                    <span>TỔNG CHI PHÍ DỰ TOÁN ĐIỀU TRỊ:</span>
-                    <span className="text-base text-purple-300">
-                      {totalTreatmentCost.toLocaleString("vi-VN")} đ
-                    </span>
-                  </div>
-                </div>
-
-                <div className="mt-6 flex justify-end gap-2 pt-2 border-t border-slate-800">
-                  <button
-                    type="button"
-                    onClick={() => setShowTreatmentPlanModal(false)}
-                    className="rounded-xl border border-slate-700 px-4 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800"
-                  >
-                    Đóng
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (onApplyToMedicalRecord) {
-                        const planSummary = treatmentPlanItems
-                          .map((i) => `• R${i.toothFdi}: ${i.procedure} (${i.cost.toLocaleString("vi-VN")}đ)`)
-                          .join("\n");
-                        onApplyToMedicalRecord(`\n--- PHÁC ĐỒ ĐIỀU TRỊ AI NHA KHOA ---\n${planSummary}\nTổng dự toán: ${totalTreatmentCost.toLocaleString("vi-VN")}đ`);
-                      }
-                      setShowTreatmentPlanModal(false);
-                    }}
-                    className="rounded-xl bg-purple-600 px-5 py-2 text-xs font-bold text-white shadow hover:bg-purple-500"
-                  >
-                    Duyệt & Chèn vào Bệnh án EMR
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Modal 1-Click Đề xuất Đơn thuốc AI */}
-          {showPrescriptionModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-xs">
-              <div className="w-full max-w-md rounded-2xl border border-blue-900/50 bg-slate-900 p-6 text-white shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-                <div className="mb-4 flex items-center justify-between border-b border-slate-800 pb-3">
-                  <h3 className="flex items-center gap-2 text-sm font-bold text-blue-400">
-                    <Sparkle size={18} className="text-blue-400" />
-                    Đơn Thuốc Khuyên Dùng AI (Y Khoa Nha Khoa)
-                  </h3>
-                  <button
-                    type="button"
-                    onClick={() => setShowPrescriptionModal(false)}
-                    className="rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-white"
-                  >
-                    ✕
-                  </button>
-                </div>
-
-                <div className="space-y-3 text-xs">
-                  {prescriptionItems.map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="rounded-xl border border-slate-800 bg-slate-800/60 p-3 space-y-1"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-blue-300">{item.name}</span>
-                        <span className="rounded bg-blue-900/60 px-2 py-0.5 text-[10px] text-blue-200 border border-blue-700">
-                          {item.dosage}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-slate-300 font-medium">Hướng dẫn: {item.usage}</p>
-                      <p className="text-[10px] text-slate-400">Phân loại: {item.type}</p>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-6 flex justify-end gap-2 pt-2 border-t border-slate-800">
-                  <button
-                    type="button"
-                    onClick={() => setShowPrescriptionModal(false)}
-                    className="rounded-xl border border-slate-700 px-4 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800"
-                  >
-                    Đóng
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (onApplyToMedicalRecord) {
-                        const rxSummary = prescriptionItems
-                          .map((rx) => `• ${rx.name} (${rx.dosage}) - ${rx.usage}`)
-                          .join("\n");
-                        onApplyToMedicalRecord(`\n--- ĐƠN THUỐC AI ĐỀ XUẤT ---\n${rxSummary}`);
-                      }
-                      setShowPrescriptionModal(false);
-                    }}
-                    className="rounded-xl bg-blue-600 px-5 py-2 text-xs font-bold text-white shadow hover:bg-blue-500"
-                  >
-                    Duyệt & Kê đơn vào Bệnh án
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-
-
-
-
-
-          {!result && !loading && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/60 p-6 text-center text-white backdrop-blur-[2px]">
-              <Lightning size={32} className="mb-2 text-emerald-400" />
-              <p className="text-sm font-bold">Chưa phân tích phim này</p>
-              <p className="mt-1 max-w-sm text-xs text-slate-300">
-                Nhấp nút &quot;Phân tích phim AI&quot; để khoanh vùng tự động 8 loại tổn thương theo chuỗi răng FDI.
-              </p>
-            </div>
-          )}
-        </div>
-        {/* Findings Summary Table */}
-        <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50/50 p-4 lg:col-span-4">
-          <div className="flex items-center justify-between">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-              Kết quả chẩn đoán ({result?.totalFindings ?? 0})
-            </h4>
-
-            <div className="flex items-center gap-1.5">
-              {result && (
-                <button
-                  type="button"
-                  onClick={() => setShowReportModal(true)}
-                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-bold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 hover:text-emerald-700"
-                  title="In báo cáo chẩn đoán X-quang cho Bệnh nhân"
-                >
-                  <Printer size={13} weight="bold" />
-                  <span>Xuất PDF / In</span>
-                </button>
-              )}
-
-              <button
-                type="button"
-                onClick={handleAddFinding}
-                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-bold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 hover:text-emerald-600"
-              >
-                <Plus size={13} weight="bold" />
-                Thêm chẩn đoán
-              </button>
-            </div>
-
-          </div>
-
-          {result ? (
-            <div className="flex flex-1 flex-col justify-between gap-4">
-              {result.findings.length === 0 ? (
-                (() => {
-                  const summaryLower = (result.summary || "").toLowerCase();
-                  const isNonRadiograph =
-                    result.isRadiograph === false ||
-                    result.status === "INVALID_IMAGE" ||
-                    summaryLower.includes("không phải là phim") ||
-                    summaryLower.includes("không phải phim") ||
-                    summaryLower.includes("cảnh báo y khoa") ||
-                    summaryLower.includes("chụp màn hình") ||
-                    summaryLower.includes("màu sắc");
-                  const isRateLimitOrError =
-                    summaryLower.includes("429") ||
-                    summaryLower.includes("rate limit") ||
-                    summaryLower.includes("lỗi kết nối") ||
-                    summaryLower.includes("too many requests");
-
-                  if (isNonRadiograph) {
-                    return (
-                      <div className="flex flex-col items-center justify-center rounded-xl border border-rose-200 bg-rose-50/90 p-5 text-center text-rose-900 shadow-xs">
-                        <Warning size={36} className="mb-2 text-rose-600" />
-                        <h5 className="text-sm font-bold text-rose-900">Ảnh không phải phim X-quang răng</h5>
-                        <p className="mt-1.5 text-xs text-rose-700 leading-relaxed max-w-xs">
-                          Hệ thống AI phát hiện hình ảnh được chọn không phải là phim X-quang nha khoa hợp lệ. AI đã ngắt khoanh vùng để tránh chẩn đoán sai lệch.
-                        </p>
-                        <p className="mt-3 rounded-lg bg-rose-100/80 border border-rose-200 px-3 py-1.5 text-[11px] font-semibold text-rose-800">
-                          Vui lòng tải lên phim X-quang Panorama, Bitewing hoặc Cận chóp hợp lệ.
-                        </p>
-                      </div>
-                    );
-                  }
-
-                  if (isRateLimitOrError) {
-                    return (
-                      <div className="flex flex-col items-center justify-center rounded-xl border border-amber-200 bg-amber-50/90 p-5 text-center text-amber-900 shadow-xs">
-                        <Warning size={36} className="mb-2 text-amber-600" />
-                        <h5 className="text-sm font-bold text-amber-900">Dịch vụ AI đang bận (429 Rate Limit)</h5>
-                        <p className="mt-1.5 text-xs text-amber-700 leading-relaxed max-w-xs">
-                          Máy chủ AI miễn phí đang quá tải lượt gọi cùng lúc. Vui lòng bấm nút phân tích lại sau vài giây.
-                        </p>
-                        <button
-                          onClick={handleAnalyze}
-                          className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-amber-700 cursor-pointer"
-                        >
-                          <ArrowsCounterClockwise size={14} /> Thử phân tích lại
-                        </button>
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <div className="flex flex-col items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50/90 p-5 text-center text-emerald-900 shadow-xs">
-                      <CheckCircle size={36} className="mb-2 text-emerald-600" />
-                      <h5 className="text-sm font-bold text-emerald-900">Không ghi nhận bất thường bệnh lý</h5>
-                      <p className="mt-1.5 text-xs text-emerald-700 leading-relaxed max-w-xs">
-                        Phim X-quang răng không phát hiện sâu răng, răng khôn kẹt hay viêm quanh chóp. Tình trạng cung hàm ổn định.
-                      </p>
-                      <div className="mt-3 rounded-lg bg-emerald-100/80 border border-emerald-200 px-3 py-1 text-[11px] font-bold text-emerald-800">
-                        Chỉ số sức khỏe răng: 100% (An Toàn)
-                      </div>
-                    </div>
-                  );
-                })()
-              ) : (
-
-                <>
-                  {/* Clinical Oral Health Risk Scorecard (Option 2) */}
-              {(() => {
-                const risk = calculateOralHealthRisk(result.findings);
-                return (
+                {/* Drawing Box */}
+                {currentBox && (
                   <div
-                    className={`flex flex-col gap-2 rounded-xl border p-3 shadow-xs ${risk.colorClass}`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold uppercase tracking-wider">
-                        Chỉ số Sức khỏe Răng
-                      </span>
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] font-bold text-white ${risk.badgeColor}`}
-                      >
-                        {risk.riskLabel}
-                      </span>
-                    </div>
+                    style={{
+                      left: `${currentBox.x}%`,
+                      top: `${currentBox.y}%`,
+                      width: `${currentBox.width}%`,
+                      height: `${currentBox.height}%`,
+                    }}
+                    className="absolute z-30 rounded-sm border-2 border-dashed border-amber-400 bg-amber-400/25 pointer-events-none"
+                  />
+                )}
 
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-2xl font-black">{risk.score}%</span>
-                      <span className="text-[11px] font-medium opacity-80">
-                        ({result.findings.length} tổn thương ghi nhận)
-                      </span>
-                    </div>
-
-                    {/* Progress Bar */}
-                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200/80">
-                      <div
-                        style={{ width: `${risk.score}%` }}
-                        className={`h-full rounded-full transition-all duration-500 ${risk.badgeColor}`}
-                      />
-                    </div>
-
-                    {/* Urgent Priority Teeth */}
-                    {risk.urgentTeeth.length > 0 && (
-                      <div className="mt-1 flex flex-wrap items-center gap-1">
-                        <span className="text-[10px] font-bold text-rose-800">
-                          Ưu tiên can thiệp:
-                        </span>
-                        {risk.urgentTeeth.map((u, idx) => (
-                          <span
-                            key={idx}
-                            className="inline-flex items-center rounded-md bg-rose-100 px-1.5 py-0.5 text-[10px] font-bold text-rose-900 border border-rose-300"
-                          >
-                            R{u.fdi} ({u.reason})
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    <p className="text-[11px] font-medium leading-relaxed opacity-90">
-                      💡 <b>Khuyến nghị AI:</b> {risk.recommendation}
-                    </p>
-                  </div>
-                );
-              })()}
-
-              <div className="max-h-[320px] space-y-2.5 overflow-y-auto pr-1">
-
-                {result.findings.map((item, i) => {
-                  const style = FINDING_COLORS[item.findingType] || {
-                    text: "text-slate-800 bg-slate-100",
+                {/* Bounding Boxes */}
+                {visibleFindings.map((f, idx) => {
+                  const isRejected = f.doctorStatus === "REJECTED";
+                  const cfg = FINDING_CONFIG[f.findingType] || {
+                    border: "border-sky-400",
+                    bg: "bg-sky-400/20",
+                    badge: "bg-sky-500 text-white",
                   };
+                  const isHovered = hoveredFinding === f;
+
                   return (
                     <div
-                      key={i}
-                      onMouseEnter={() => setHoveredFinding(item)}
+                      key={idx}
+                      onMouseEnter={() => setHoveredFinding(f)}
                       onMouseLeave={() => setHoveredFinding(null)}
-                      className={`group flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-3 shadow-2xs transition-all ${
-                        hoveredFinding === item ? "ring-2 ring-emerald-500 shadow-sm" : ""
+                      onClick={() => handleOpenEditModal(idx)}
+                      style={{
+                        left: `${f.boundingBox.x}%`,
+                        top: `${f.boundingBox.y}%`,
+                        width: `${f.boundingBox.width}%`,
+                        height: `${f.boundingBox.height}%`,
+                      }}
+                      className={`absolute cursor-pointer rounded-sm border-2 transition-all ${
+                        isRejected
+                          ? "border-dashed border-slate-500 bg-slate-500/10 opacity-30"
+                          : `${cfg.border} ${cfg.bg} ${
+                              isHovered ? "z-30 scale-105 ring-4 ring-sky-400 shadow-lg" : "z-10"
+                            }`
                       }`}
                     >
-                      {/* Header Row: Tooth FDI Badge + Severity Badge + Delete Action */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1 rounded bg-slate-900 px-2 py-0.5 text-xs font-extrabold text-white">
-                          <span className="text-[10px] text-slate-400">R</span>
-                          <input
-                            type="number"
-                            min={11}
-                            max={48}
-                            value={item.fdiToothNumber}
-                            onChange={(e) =>
-                              handleUpdateToothNumber(i, parseInt(e.target.value, 10))
-                            }
-                            className="w-7 rounded bg-transparent text-center font-mono text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-emerald-400"
-                          />
-                        </div>
-
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => handleToggleSeverity(i)}
-                            title="Nhấp để đổi mức độ nghiêm trọng (LOW -> MEDIUM -> HIGH)"
-                            className={`cursor-pointer rounded px-2 py-0.5 text-[10px] font-extrabold uppercase transition-transform active:scale-95 ${
-                              item.severity === "HIGH"
-                                ? "bg-red-100 text-red-700 hover:bg-red-200"
-                                : item.severity === "MEDIUM"
-                                  ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
-                                  : "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
-                            }`}
-                          >
-                            {item.severity}
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteFinding(i);
-                            }}
-                            title="Xóa phát hiện này"
-                            className="rounded p-1 text-slate-400 transition-all hover:bg-red-50 hover:text-red-600"
-                          >
-                            <Trash size={14} />
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Content Row: Free Text Diagnosis Input */}
-                      <input
-                        type="text"
-                        value={FINDING_LABELS_VI[item.findingType] || item.findingType}
-                        onChange={(e) => handleUpdateFindingType(i, e.target.value)}
-                        placeholder="Nhập chẩn đoán lâm sàng..."
-                        className={`w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-bold transition-colors focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500 ${style.text}`}
-                      />
-
-                      {/* Footer Row: Confidence Score */}
-                      <div className="flex items-center justify-between text-[11px] text-slate-400">
-                        <span>Độ tin cậy AI:</span>
-                        <span className="font-semibold text-slate-600">
-                          {(item.confidence * 100).toFixed(1)}%
-                        </span>
+                      <div
+                        className={`absolute -top-5 left-0 flex items-center gap-1 rounded px-1.5 py-0.2 text-[9px] font-extrabold shadow ${
+                          isRejected ? "bg-slate-600 text-slate-300 line-through" : cfg.badge
+                        }`}
+                      >
+                        <span>R{f.fdiToothNumber}</span>
+                        {isRejected ? (
+                          <span>(Từ chối)</span>
+                        ) : (
+                          <span className="opacity-80">{Math.round(f.confidence * 100)}%</span>
+                        )}
                       </div>
                     </div>
                   );
                 })}
               </div>
+            </div>
 
+            {/* Empty / Not analyzed Overlay */}
+            {!result && !loading && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/60 p-6 text-center text-white backdrop-blur-[2px]">
+                <Lightning size={32} className="mb-2 text-sky-400 animate-pulse" />
+                <p className="text-sm font-bold">Sẵn Sàng Phân Tích</p>
+                <p className="mt-1 max-w-sm text-xs text-slate-300">
+                  Nhấp vào nút <b className="text-sky-400">&quot;Phân tích X-quang AI&quot;</b> ở góc phải trên để tự động định vị 32 răng FDI và phát hiện bệnh lý.
+                </p>
+              </div>
+            )}
+          </div>
 
+          {/* Filter Chips Bar */}
+          {result && result.findings.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 border-t border-slate-800 bg-slate-900/90 px-3.5 py-2 text-xs">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Lọc:</span>
+              {Object.keys(FINDING_CONFIG).map((type) => {
+                const count = result.findings.filter((f) => f.findingType === type).length;
+                if (count === 0) return null;
+                const active = selectedTypes[type] !== false;
+                const cfg = FINDING_CONFIG[type];
 
-              {/* Option 3: 1-Click AI Action Buttons */}
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowTreatmentPlanModal(true)}
-                  className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 px-3 py-2 text-xs font-bold text-purple-900 shadow-2xs transition-colors hover:bg-purple-100"
-                >
-                  <Sparkle size={14} className="text-purple-600" />
-                  <span>1-Click Lập Phác đồ</span>
-                </button>
+                return (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => setSelectedTypes((prev) => ({ ...prev, [type]: !active }))}
+                    className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-bold transition cursor-pointer ${
+                      active ? cfg.text : "bg-slate-800 text-slate-500 line-through"
+                    }`}
+                  >
+                    {active ? <Eye size={12} /> : <EyeSlash size={12} />}
+                    <span>
+                      {cfg.label} ({count})
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
-                <button
-                  type="button"
-                  onClick={() => setShowPrescriptionModal(true)}
-                  className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-900 shadow-2xs transition-colors hover:bg-blue-100"
-                >
-                  <Sparkle size={14} className="text-blue-600" />
-                  <span>1-Click Đề xuất Đơn thuốc</span>
-                </button>
+        {/* === RIGHT COLUMN: CLINICAL DASHBOARD (5 COLS) === */}
+        <div className="flex flex-col gap-4 lg:col-span-5">
+          {/* Card 1: Oral Health Scorecard */}
+          {!result ? (
+            /* STATE 1: CHƯA PHÂN TÍCH (NEUTRAL SLATE) */
+            <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 shadow-xs text-slate-700">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-slate-700">
+                  <Heartbeat size={18} weight="bold" className="text-slate-400" />
+                  <span className="text-xs font-black uppercase tracking-wider">Chỉ Số Sức Khỏe Răng</span>
+                </div>
+                <span className="rounded-full bg-slate-200 px-2.5 py-0.5 text-xs font-bold text-slate-600">
+                  Chờ quét AI
+                </span>
               </div>
 
-              <div className="flex flex-col gap-2">
-                {onApplyToDentalChart && (
+              <div className="mt-2.5 flex items-baseline gap-2">
+                <span className="text-3xl font-black text-slate-400">--%</span>
+                <span className="text-xs font-semibold text-slate-500">(Chưa phân tích)</span>
+              </div>
+
+              {/* Progress Bar (Empty) */}
+              <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-200">
+                <div className="h-full w-0 rounded-full bg-slate-300" />
+              </div>
+
+              <p className="mt-2.5 text-[11px] font-medium text-slate-500 leading-relaxed">
+                💡 Nhấp vào nút <b className="text-blue-600">&quot;Phân tích X-quang AI&quot;</b> để hệ thống quét và chấm điểm sức khỏe răng.
+              </p>
+            </div>
+          ) : result.isRadiograph === false || result.status === "INVALID_IMAGE" ? (
+            /* STATE 2: ẢNH KHÔNG PHẢI X-QUANG (ROSE ALERT) */
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 shadow-xs text-rose-900">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-rose-800">
+                  <Warning size={18} weight="bold" className="text-rose-600" />
+                  <span className="text-xs font-black uppercase tracking-wider">Chỉ Số Sức Khỏe Răng</span>
+                </div>
+                <span className="rounded-full bg-rose-200 px-2.5 py-0.5 text-xs font-bold text-rose-800">
+                  Không khả dụng
+                </span>
+              </div>
+
+              <div className="mt-2.5 flex items-baseline gap-2">
+                <span className="text-3xl font-black text-rose-700">N/A</span>
+                <span className="text-xs font-semibold text-rose-600">(Ảnh không phải X-quang)</span>
+              </div>
+
+              <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-rose-200">
+                <div className="h-full w-0" />
+              </div>
+
+              <p className="mt-2.5 text-[11px] font-medium text-rose-700 leading-relaxed">
+                ⚠️ Không thể đánh giá điểm sức khỏe do tệp hình ảnh không phải là phim X-quang răng y tế.
+              </p>
+            </div>
+          ) : (
+            /* STATE 3: ĐÃ PHÂN TÍCH THÀNH CÔNG */
+            <div className={`rounded-2xl border p-4 shadow-xs transition-all ${riskAssessment.colorClass}`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Heartbeat size={18} weight="bold" />
+                  <span className="text-xs font-black uppercase tracking-wider">Chỉ Số Sức Khỏe Răng</span>
+                </div>
+                <span className={`rounded-full px-2.5 py-0.5 text-xs font-extrabold ${riskAssessment.badgeColor}`}>
+                  {riskAssessment.riskLabel}
+                </span>
+              </div>
+
+              <div className="mt-2.5 flex items-baseline gap-2">
+                <span className="text-3xl font-black">{riskAssessment.score}%</span>
+                <span className="text-xs font-semibold opacity-75">
+                  ({acceptedFindings.length > 0 ? `${acceptedFindings.length} vị trí đã duyệt` : "Không có bệnh lý"})
+                </span>
+              </div>
+
+              {/* Gauge Progress Bar */}
+              <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-200">
+                <div
+                  style={{ width: `${riskAssessment.score}%` }}
+                  className={`h-full rounded-full transition-all duration-700 ${
+                    riskAssessment.score >= 80 ? "bg-emerald-500" : riskAssessment.score >= 50 ? "bg-amber-500" : "bg-rose-500"
+                  }`}
+                />
+              </div>
+
+              {/* Urgent Warning */}
+              {riskAssessment.urgentTeeth.length > 0 && (
+                <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                  <span className="text-[11px] font-bold text-rose-800">Ưu tiên điều trị:</span>
+                  {riskAssessment.urgentTeeth.map((u, idx) => (
+                    <span
+                      key={idx}
+                      className="inline-flex items-center rounded-md bg-rose-100 px-2 py-0.5 text-[10px] font-extrabold text-rose-900 border border-rose-300"
+                    >
+                      R{u.fdi} ({u.reason})
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Card 2: Results Tabs (Findings / Diagnosis / Treatment) */}
+          <div className="flex flex-1 flex-col rounded-2xl border border-slate-200 bg-slate-50/50 p-4 shadow-xs">
+            {/* Segmented Control Tabs */}
+            <div className="flex rounded-xl bg-slate-200/70 p-1 text-xs font-bold text-slate-600">
+              <button
+                type="button"
+                onClick={() => setActiveTab("findings")}
+                className={`flex-1 rounded-lg py-1.5 text-center transition cursor-pointer ${
+                  activeTab === "findings" ? "bg-white text-blue-900 shadow-xs font-extrabold" : "hover:text-slate-900"
+                }`}
+              >
+                🦷 Răng Bệnh Lý ({result?.findings.length || 0})
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("diagnosis")}
+                className={`flex-1 rounded-lg py-1.5 text-center transition cursor-pointer ${
+                  activeTab === "diagnosis" ? "bg-white text-blue-900 shadow-xs font-extrabold" : "hover:text-slate-900"
+                }`}
+              >
+                📋 Chẩn Đoán ICD
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("treatment")}
+                className={`flex-1 rounded-lg py-1.5 text-center transition cursor-pointer ${
+                  activeTab === "treatment" ? "bg-white text-blue-900 shadow-xs font-extrabold" : "hover:text-slate-900"
+                }`}
+              >
+                💉 Phác Đồ Đề Xuất
+              </button>
+            </div>
+
+            {/* TAB CONTENT */}
+            <div className="mt-3.5 flex-1 overflow-y-auto max-h-[290px] pr-1">
+              {!result ? (
+                <div className="flex h-44 flex-col items-center justify-center text-center text-slate-400">
+                  <Info size={28} className="mb-1 text-slate-300" />
+                  <p className="text-xs font-medium">Chưa có dữ liệu phân tích</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Bấm nút &quot;Phân tích X-quang AI&quot; để bắt đầu</p>
+                </div>
+              ) : result.isRadiograph === false || result.status === "INVALID_IMAGE" ? (
+                /* RED WARNING CARD FOR INVALID NON-DENTAL IMAGES */
+                <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-rose-900">
+                  <div className="flex items-center gap-2 font-bold text-rose-800 text-xs">
+                    <Warning size={18} className="text-rose-600 shrink-0" />
+                    <span>ẢNH KHÔNG PHẢI PHIM X-QUANG RĂNG</span>
+                  </div>
+                  <p className="mt-1.5 text-xs leading-relaxed text-rose-700">
+                    {result.summary}
+                  </p>
+                </div>
+              ) : activeTab === "findings" ? (
+                /* TAB 1: FINDINGS LIST WITH DOCTOR ACCEPT / REJECT / EDIT */
+                result.findings.length === 0 ? (
+                  <div className="flex h-44 flex-col items-center justify-center text-center text-emerald-700 bg-emerald-50 rounded-xl p-4 border border-emerald-200">
+                    <CheckCircle size={32} className="mb-1 text-emerald-600" />
+                    <p className="text-xs font-bold">Không phát hiện tổn thương bệnh lý</p>
+                    <p className="text-[11px] text-emerald-600 mt-0.5">Cung hàm và cấu trúc răng ổn định 100%.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    {result.findings.map((item, idx) => {
+                      const isRejected = item.doctorStatus === "REJECTED";
+                      const cfg = FINDING_CONFIG[item.findingType] || {
+                        label: item.findingType,
+                        text: "text-slate-800 bg-white border-slate-200",
+                        badge: "bg-slate-600 text-white",
+                        icon: "🔍",
+                      };
+                      const isHovered = hoveredFinding === item;
+
+                      return (
+                        <div
+                          key={idx}
+                          onMouseEnter={() => setHoveredFinding(item)}
+                          onMouseLeave={() => setHoveredFinding(null)}
+                          className={`flex flex-col gap-2 rounded-xl border p-3 transition shadow-2xs ${
+                            isRejected
+                              ? "bg-slate-100/80 border-slate-200 opacity-60"
+                              : isHovered
+                              ? "bg-white border-blue-500 ring-2 ring-blue-500/20"
+                              : "bg-white border-slate-200"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2.5">
+                              <span
+                                className={`flex h-8 w-8 items-center justify-center rounded-lg font-extrabold text-xs text-white ${
+                                  isRejected ? "bg-slate-500 line-through" : "bg-slate-900"
+                                }`}
+                              >
+                                R{item.fdiToothNumber}
+                              </span>
+                              <div>
+                                <div className="flex items-center gap-1.5">
+                                  <span className={`text-xs font-bold ${isRejected ? "line-through text-slate-500" : "text-slate-900"}`}>
+                                    {cfg.label}
+                                  </span>
+                                  <span className="text-[10px] text-slate-400">({item.findingType})</span>
+                                </div>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  <span className="text-[10px] text-slate-500">Độ tin cậy:</span>
+                                  <span className="text-[10px] font-bold text-slate-700">
+                                    {(item.confidence * 100).toFixed(1)}%
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Severity & Review Status Badge */}
+                            <div className="flex items-center gap-1.5">
+                              <span
+                                className={`rounded-md px-2 py-0.5 text-[10px] font-extrabold uppercase ${
+                                  isRejected
+                                    ? "bg-slate-200 text-slate-600"
+                                    : item.severity === "HIGH"
+                                    ? "bg-rose-100 text-rose-700"
+                                    : item.severity === "MEDIUM"
+                                    ? "bg-amber-100 text-amber-700"
+                                    : "bg-emerald-100 text-emerald-700"
+                                }`}
+                              >
+                                {item.severity === "HIGH" ? "Nặng" : item.severity === "MEDIUM" ? "Vừa" : "Nhẹ"}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Doctor Clinical Note if any */}
+                          {item.doctorNote && (
+                            <p className="text-[11px] italic text-blue-800 bg-blue-50/70 p-1.5 rounded-lg border border-blue-100">
+                              💬 <b>BS ghi chú:</b> {item.doctorNote}
+                            </p>
+                          )}
+
+                          {/* DOCTOR REVIEW ACTION BUTTONS (ACCEPT / REJECT / EDIT / DELETE) */}
+                          <div className="flex items-center justify-between border-t border-slate-100 pt-2 text-xs">
+                            <div className="flex items-center gap-1">
+                              {/* 1. Nút Duyệt / Chấp nhận */}
+                              <button
+                                type="button"
+                                onClick={() => handleAcceptFinding(idx)}
+                                title="Bác sĩ xác nhận tổn thương này"
+                                className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-bold transition cursor-pointer ${
+                                  !isRejected
+                                    ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-300"
+                                    : "text-slate-500 hover:bg-emerald-50 hover:text-emerald-700"
+                                }`}
+                              >
+                                <Check size={13} weight="bold" />
+                                <span>{isRejected ? "Duyệt lại" : "Đã duyệt"}</span>
+                              </button>
+
+                              {/* 2. Nút Từ chối / Bác bỏ */}
+                              <button
+                                type="button"
+                                onClick={() => handleRejectFinding(idx)}
+                                title="Bác sĩ bác bỏ tổn thương này (Dương tính giả)"
+                                className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-bold transition cursor-pointer ${
+                                  isRejected
+                                    ? "bg-rose-100 text-rose-800 ring-1 ring-rose-300"
+                                    : "text-slate-500 hover:bg-rose-50 hover:text-rose-700"
+                                }`}
+                              >
+                                <XCircle size={13} weight="bold" />
+                                <span>{isRejected ? "Đã từ chối" : "Từ chối"}</span>
+                              </button>
+
+                              {/* 3. Nút Chỉnh sửa */}
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEditModal(idx)}
+                                title="Chỉnh sửa số răng, chẩn đoán, mức độ"
+                                className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-semibold text-blue-700 hover:bg-blue-50 transition cursor-pointer"
+                              >
+                                <PencilSimple size={13} />
+                                <span>Sửa</span>
+                              </button>
+                            </div>
+
+                            {/* 4. Nút Xóa hẳn */}
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteFinding(idx)}
+                              className="rounded p-1 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 cursor-pointer"
+                              title="Xóa hẳn khỏi danh sách"
+                            >
+                              <Trash size={13} />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )
+              ) : activeTab === "diagnosis" ? (
+                /* TAB 2: CLINICAL SUMMARY & ICD */
+                <div className="space-y-3">
+                  <div className="rounded-xl border border-slate-200 bg-white p-3.5">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                      Tóm tắt chuyên môn X-quang:
+                    </p>
+                    <p className="text-xs text-slate-800 leading-relaxed whitespace-pre-line font-medium">
+                      {result.summary}
+                    </p>
+                  </div>
+
+                  {result.diagnosisSuggestion && (
+                    <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3.5">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-blue-800 mb-1">
+                        Gợi ý chẩn đoán ICD-10:
+                      </p>
+                      <p className="text-xs text-blue-950 font-bold leading-relaxed whitespace-pre-line">
+                        {result.diagnosisSuggestion}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* TAB 3: TREATMENT RECOMMENDATIONS */
+                <div className="space-y-2.5">
+                  {result.treatmentRecommendations && result.treatmentRecommendations.length > 0 ? (
+                    result.treatmentRecommendations.map((rec, i) => (
+                      <div key={i} className="flex items-start gap-2.5 rounded-xl border border-slate-200 bg-white p-3">
+                        <FirstAid size={16} className="mt-0.5 text-blue-600 shrink-0" />
+                        <p className="text-xs text-slate-800 font-medium leading-relaxed">{rec}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-4 text-center text-xs text-slate-500">
+                      Không có chỉ định điều trị đặc biệt.
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Bottom Actions Bar (Applies ONLY accepted findings) */}
+            {result && result.findings.length > 0 && (
+              <div className="mt-3.5 pt-3 border-t border-slate-200 flex flex-col gap-2">
+                <div className="grid grid-cols-2 gap-2">
+                  {onApplyToDentalChart && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onApplyToDentalChart(acceptedFindings);
+                        setChartSynced(true);
+                      }}
+                      className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-900 transition hover:bg-blue-100 cursor-pointer shadow-2xs"
+                    >
+                      {chartSynced ? (
+                        <>
+                          <CheckCircle size={15} weight="fill" className="text-blue-600" />
+                          <span>Đã Đồng Bộ Răng</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkle size={15} className="text-blue-600" />
+                          <span>Đồng bộ Sơ đồ răng ({acceptedFindings.length})</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+
                   <button
                     type="button"
-                    onClick={() => {
-                      if (!result) return;
-                      onApplyToDentalChart(result.findings);
-                      setChartSynced(true);
-                    }}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-800 shadow-2xs transition-colors hover:bg-slate-50 hover:text-emerald-700"
+                    onClick={() => setShowReportModal(true)}
+                    className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-100 cursor-pointer shadow-2xs"
                   >
-                    {chartSynced ? (
-                      <>
-                        <CheckCircle size={15} weight="fill" className="text-emerald-600" />
-                        Đã đồng bộ sang Sơ đồ răng 2D
-                      </>
-                    ) : (
-                      <>
-                        <Sparkle size={15} className="text-emerald-600" />
-                        Cập nhật tự động Sơ đồ răng (FDI)
-                      </>
-                    )}
+                    <Printer size={15} />
+                    <span>Xuất PDF / In</span>
                   </button>
-                )}
+                </div>
 
                 {onApplyToMedicalRecord && (
                   <button
                     type="button"
                     onClick={() => {
-                      onApplyToMedicalRecord(result.summary);
+                      const doctorApprovedSummary =
+                        `\n--- KẾT QUẢ X-QUANG (BÁC SĨ ĐÃ PHÊ DUYỆT ${acceptedFindings.length} TỔN THƯƠNG) ---\n` +
+                        acceptedFindings
+                          .map(
+                            (f) =>
+                              `• Răng ${f.fdiToothNumber}: ${FINDING_CONFIG[f.findingType]?.label || f.findingType} (Mức độ: ${f.severity})${
+                                f.doctorNote ? ` - BS Ghi chú: ${f.doctorNote}` : ""
+                              }`
+                          )
+                          .join("\n") +
+                        `\nChỉ số sức khỏe: ${riskAssessment.score}% (${riskAssessment.riskLabel})`;
+
+                      onApplyToMedicalRecord(doctorApprovedSummary);
                       setApplied(true);
                     }}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-emerald-700"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-emerald-500/20 transition hover:from-emerald-700 hover:to-teal-700 cursor-pointer"
                   >
                     {applied ? (
                       <>
                         <CheckCircle size={16} weight="fill" />
-                        Đã chèn vào Bệnh án EMR
+                        <span>Đã chèn vào Bệnh án EMR</span>
                       </>
                     ) : (
                       <>
                         <FloppyDisk size={16} />
-                        Chèn kết quả AI vào Bệnh án (EMR)
+                        <span>Chèn {acceptedFindings.length} tổn thương đã duyệt vào Bệnh án</span>
                       </>
                     )}
                   </button>
                 )}
               </div>
-            </>
-          )}
-        </div>
-          ) : (
-            <div className="flex flex-1 items-center justify-center py-10 text-center text-xs text-slate-400">
-              <p>Chưa có dữ liệu phân tích</p>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Modal Option 4: Xuất Báo cáo PDF / In cho Bệnh nhân */}
+      {/* MODAL: DOCTOR EDIT FINDING */}
+      {editingIndex !== null && result && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-900 p-5 text-white shadow-2xl">
+            <div className="mb-3 flex items-center justify-between border-b border-slate-800 pb-2.5">
+              <h3 className="flex items-center gap-1.5 text-xs font-bold text-sky-400">
+                <PencilSimple size={16} weight="bold" /> Bác sĩ chỉnh sửa tổn thương
+              </h3>
+              <button
+                type="button"
+                onClick={() => setEditingIndex(null)}
+                className="rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-white cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="mb-1 block font-bold text-slate-300">Răng số (Chuẩn FDI 11-48):</label>
+                <input
+                  type="number"
+                  min={11}
+                  max={48}
+                  value={editFdiNumber}
+                  onChange={(e) => setEditFdiNumber(Number(e.target.value))}
+                  className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm font-bold text-white focus:border-sky-400 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block font-bold text-slate-300">Loại tổn thương / Bệnh lý:</label>
+                <select
+                  value={editFindingType}
+                  onChange={(e) => setEditFindingType(e.target.value)}
+                  className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-white focus:border-sky-400 focus:outline-none"
+                >
+                  {Object.keys(FINDING_CONFIG).map((key) => (
+                    <option key={key} value={key}>
+                      {FINDING_CONFIG[key].label} ({key})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1 block font-bold text-slate-300">Mức độ lâm sàng:</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(["LOW", "MEDIUM", "HIGH"] as const).map((sev) => {
+                    const active = editSeverity === sev;
+                    return (
+                      <button
+                        key={sev}
+                        type="button"
+                        onClick={() => setEditSeverity(sev)}
+                        className={`rounded-xl py-1.5 text-xs font-bold transition cursor-pointer ${
+                          active ? "bg-sky-500 text-slate-950 font-black shadow" : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                        }`}
+                      >
+                        {sev === "LOW" ? "Nhẹ" : sev === "MEDIUM" ? "Vừa" : "Nặng"}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1 block font-bold text-slate-300">Ghi chú chuyên môn của Bác sĩ:</label>
+                <textarea
+                  rows={2}
+                  value={editDoctorNote}
+                  onChange={(e) => setEditDoctorNote(e.target.value)}
+                  placeholder="Nhập ghi chú thêm cho răng này (VD: Sâu mặt nhai sát tủy...)"
+                  className="w-full rounded-xl border border-slate-700 bg-slate-800 p-2.5 text-xs text-white focus:border-sky-400 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setEditingIndex(null)}
+                className="rounded-xl border border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:bg-slate-800 cursor-pointer"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveEditFinding}
+                className="rounded-xl bg-sky-500 px-4 py-1.5 text-xs font-bold text-slate-950 shadow hover:bg-sky-400 cursor-pointer"
+              >
+                Lưu & Duyệt
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: MANUAL ADD FINDING */}
+      {showAddModal && currentBox && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-900 p-5 text-white shadow-2xl">
+            <div className="mb-3 flex items-center justify-between border-b border-slate-800 pb-2.5">
+              <h3 className="flex items-center gap-1.5 text-xs font-bold text-amber-400">
+                <Plus size={16} weight="bold" /> Thêm tổn thương thủ công
+              </h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAddModal(false);
+                  setCurrentBox(null);
+                }}
+                className="rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-white"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="mb-1 block font-bold text-slate-300">Răng số (Chuẩn FDI):</label>
+                <input
+                  type="number"
+                  min={11}
+                  max={48}
+                  value={newFdiNumber}
+                  onChange={(e) => setNewFdiNumber(Number(e.target.value))}
+                  className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm font-bold text-white focus:border-amber-400 focus:outline-none"
+                  placeholder="Ví dụ: 18, 48, 36..."
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block font-bold text-slate-300">Loại tổn thương:</label>
+                <select
+                  value={newFindingType}
+                  onChange={(e) => setNewFindingType(e.target.value)}
+                  className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs text-white focus:border-amber-400 focus:outline-none"
+                >
+                  {Object.keys(FINDING_CONFIG).map((key) => (
+                    <option key={key} value={key}>
+                      {FINDING_CONFIG[key].label} ({key})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1 block font-bold text-slate-300">Mức độ:</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(["LOW", "MEDIUM", "HIGH"] as const).map((sev) => {
+                    const active = newSeverity === sev;
+                    return (
+                      <button
+                        key={sev}
+                        type="button"
+                        onClick={() => setNewSeverity(sev)}
+                        className={`rounded-xl py-1.5 text-xs font-bold transition ${
+                          active ? "bg-amber-500 text-slate-950 font-black" : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                        }`}
+                      >
+                        {sev === "LOW" ? "Nhẹ" : sev === "MEDIUM" ? "Vừa" : "Nặng"}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAddModal(false);
+                  setCurrentBox(null);
+                }}
+                className="rounded-xl border border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:bg-slate-800"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveManualFinding}
+                className="rounded-xl bg-amber-500 px-4 py-1.5 text-xs font-bold text-slate-950 shadow hover:bg-amber-400"
+              >
+                Lưu vào danh sách
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: PRINTABLE REPORT */}
       {showReportModal && result && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm overflow-y-auto">
-          <div className="my-8 w-full max-w-3xl rounded-2xl border border-slate-700 bg-white p-8 text-slate-900 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-            
-            {/* Print Controls Header (Hidden during print) */}
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-xs overflow-y-auto">
+          <div className="my-8 w-full max-w-3xl rounded-2xl border border-slate-700 bg-white p-8 text-slate-900 shadow-2xl">
             <div className="mb-6 flex items-center justify-between border-b border-slate-200 pb-4 print:hidden">
               <div className="flex items-center gap-2">
-                <Printer size={20} className="text-emerald-600" />
-                <h3 className="text-base font-bold text-slate-800">
-                  Báo Cáo Phân Tích X-Quang Dental Vision (Bệnh Nhân)
-                </h3>
+                <Printer size={20} className="text-blue-600" />
+                <h3 className="text-base font-bold text-slate-800">Báo Cáo Phân Tích X-Quang Dental Vision AI</h3>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => window.print()}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow transition-all hover:bg-emerald-700"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white shadow hover:bg-blue-700 cursor-pointer"
                 >
-                  <Printer size={16} weight="bold" />
-                  In Báo Cáo / Lưu PDF
+                  <Printer size={16} weight="bold" /> In Báo Cáo / Lưu PDF
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowReportModal(false)}
-                  className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100"
+                  className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
                 >
                   Đóng
                 </button>
               </div>
             </div>
 
-            {/* Printable Document Area */}
+            {/* Printable Document */}
             <div className="space-y-6 text-left">
-              {/* Clinic Header */}
-              <div className="flex items-start justify-between border-b-2 border-emerald-600 pb-4">
+              <div className="flex items-start justify-between border-b-2 border-blue-600 pb-4">
                 <div>
-                  <h1 className="text-lg font-black tracking-tight text-emerald-800 uppercase">
-                    NHA KHOA QUỐC TẾ SMART DENTAL SYSTEM
+                  <h1 className="text-lg font-black tracking-tight text-blue-900 uppercase">
+                    PHÒNG KHÁM NHA KHOA SMART DENTAL
                   </h1>
-                  <p className="text-xs text-slate-600 font-medium">
-                    Địa chỉ: 123 Nguyễn Văn Cừ, Quận 5, TP. Hồ Chí Minh
-                  </p>
-                  <p className="text-xs text-slate-600 font-medium">
-                    Hotline: 1900 6868 | Website: www.smartdentalsystem.vn
-                  </p>
+                  <p className="text-xs text-slate-600">Địa chỉ: 123 Nguyễn Văn Cừ, Quận 5, TP.HCM</p>
+                  <p className="text-xs text-slate-600">Hotline: 1900 6868 | Website: smartdental.vn</p>
                 </div>
                 <div className="text-right">
-                  <span className="inline-block rounded-lg bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800">
-                    BÁO CÁO KẾT QUẢ X-QUANG
+                  <span className="inline-block rounded-lg bg-blue-100 px-3 py-1 text-xs font-bold text-blue-900">
+                    PHIẾU KẾT QUẢ X-QUANG (ĐÃ PHÊ DUYỆT)
                   </span>
                   <p className="mt-1 text-[11px] text-slate-500">
-                    Ngày tạo: {new Date().toLocaleDateString("vi-VN")}
+                    Ngày khám: {new Date().toLocaleDateString("vi-VN")}
                   </p>
                 </div>
               </div>
 
-              {/* Patient Info Table */}
               <div className="grid grid-cols-2 gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs">
                 <div>
-                  <p className="text-slate-500">Họ và tên Bệnh nhân:</p>
-                  <p className="text-sm font-bold text-slate-900">{patientName || "Bệnh nhân (Hồ sơ EMR)"}</p>
+                  <p className="text-slate-500">Bệnh nhân:</p>
+                  <p className="text-sm font-bold text-slate-900">{patientName || "Bệnh nhân"}</p>
                 </div>
                 <div>
-                  <p className="text-slate-500">Mã Bệnh nhân (EMR ID):</p>
-                  <p className="text-sm font-bold text-slate-900">{patientId || "P-2026-0888"}</p>
-                </div>
-                <div>
-                  <p className="text-slate-500">Bác sĩ Chẩn đoán:</p>
-                  <p className="font-bold text-slate-800">BS. Nguyễn Văn A (Khoa Chẩn đoán Hình ảnh)</p>
-                </div>
-                <div>
-                  <p className="text-slate-500">Chỉ số Sức khỏe Răng:</p>
-                  <p className="font-bold text-emerald-700">
-                    {calculateOralHealthRisk(result.findings).score}% ({calculateOralHealthRisk(result.findings).riskLabel})
-                  </p>
+                  <p className="text-slate-500">Mã bệnh án (EMR):</p>
+                  <p className="text-sm font-bold text-slate-900">{patientId || "P-2026"}</p>
                 </div>
               </div>
 
-              {/* X-Ray Image Preview with Findings */}
               <div>
-                <h4 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-700">
-                  1. Hình ảnh X-quang & Bounding Box Khoanh Vùng AI
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                  Danh sách tổn thương Bác sĩ đã xác nhận ({acceptedFindings.length}):
                 </h4>
-                <div className="relative overflow-hidden rounded-xl border border-slate-300 bg-slate-950 p-2 flex justify-center">
-                  <div className="relative inline-block max-w-full max-h-[360px]">
-                    <img
-                      src={imageUrl}
-                      alt="X-ray Film"
-                      className="max-h-[360px] w-auto max-w-full rounded object-contain opacity-90 block"
-                    />
-                    {result.findings.map((finding, idx) => (
-                      <div
-                        key={idx}
-                        style={{
-                          left: `${finding.boundingBox.x}%`,
-                          top: `${finding.boundingBox.y}%`,
-                          width: `${finding.boundingBox.width}%`,
-                          height: `${finding.boundingBox.height}%`,
-                        }}
-                        className="absolute rounded border-2 border-emerald-400 bg-emerald-400/20"
-                      >
-                        <div className="absolute -top-4 left-0 rounded bg-slate-900 px-1 py-0.5 text-[9px] font-bold text-white shadow">
-                          R{finding.fdiToothNumber}
-                        </div>
-                      </div>
+                <table className="w-full text-left text-xs border border-slate-200">
+                  <thead className="bg-slate-100 text-slate-700">
+                    <tr>
+                      <th className="p-2 border">Răng FDI</th>
+                      <th className="p-2 border">Loại tổn thương</th>
+                      <th className="p-2 border">Mức độ</th>
+                      <th className="p-2 border">Ghi chú BS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {acceptedFindings.map((f, i) => (
+                      <tr key={i} className="border-b">
+                        <td className="p-2 border font-bold">Răng #{f.fdiToothNumber}</td>
+                        <td className="p-2 border">{FINDING_CONFIG[f.findingType]?.label || f.findingType}</td>
+                        <td className="p-2 border font-semibold">{f.severity}</td>
+                        <td className="p-2 border text-slate-600">{f.doctorNote || "—"}</td>
+                      </tr>
                     ))}
-                  </div>
-                </div>
+                  </tbody>
+                </table>
               </div>
 
-              {/* Detailed Findings & Patient Explanations */}
-              <div>
-                <h4 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-700">
-                  2. Danh sách Tổn thương Răng & Lời Giải Thích Dễ Hiểu
-                </h4>
-                <div className="space-y-2">
-                  {result.findings.map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-start justify-between rounded-xl border border-slate-200 bg-white p-3 text-xs shadow-2xs"
-                    >
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="rounded-md bg-slate-900 px-2 py-0.5 text-xs font-bold text-white">
-                            Răng {item.fdiToothNumber}
-                          </span>
-                          <span className="font-bold text-slate-900">
-                            {FINDING_LABELS_VI[item.findingType] || item.findingType}
-                          </span>
-                          <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
-                            Mức độ: {item.severity}
-                          </span>
-                        </div>
-                        <p className="text-slate-600">
-                          <b>Giải thích cho bệnh nhân:</b>{" "}
-                          {PATIENT_EXPLANATIONS_VI[item.findingType] || "Cần theo dõi vệ sinh kỹ hàng ngày."}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Doctor Signature Block */}
-              <div className="mt-8 flex justify-between pt-6 border-t border-slate-200 text-xs">
-                <div>
-                  <p className="font-bold text-slate-700">XÁC NHẬN CỦA PHÒNG KHÁM</p>
-                  <p className="text-[11px] text-slate-500">(Ký & Đóng dấu)</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-bold text-slate-700">BÁC SĨ CHẨN ĐOÁN HÌNH ẢNH</p>
-                  <p className="text-[11px] text-slate-500">(Ký & Ghi rõ họ tên)</p>
-                  <div className="h-16" />
-                  <p className="font-bold text-slate-900">BS. Nguyễn Văn A</p>
-                </div>
+              <div className="rounded-xl bg-slate-50 p-4 border border-slate-200 text-xs">
+                <p className="font-bold text-slate-800 mb-1">Tóm tắt & Phác đồ điều trị:</p>
+                <p className="text-slate-700 leading-relaxed whitespace-pre-line">{result.summary}</p>
               </div>
             </div>
-
           </div>
-        </div>
-      )}
-
-      {result?.disclaimer && (
-        <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50/70 p-3 text-xs text-amber-900">
-          <Warning size={16} className="mt-0.5 shrink-0 text-amber-700" />
-          <p>{result.disclaimer}</p>
         </div>
       )}
     </div>
   );
-}
+};
