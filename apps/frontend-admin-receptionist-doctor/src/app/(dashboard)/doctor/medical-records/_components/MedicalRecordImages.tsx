@@ -1,9 +1,10 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Image as ImageIcon, Plus, Trash, SpinnerGap } from "@phosphor-icons/react";
+import { Image as ImageIcon, Plus, Trash, SpinnerGap, Sparkle } from "@phosphor-icons/react";
 import axios from "axios";
 import apiClient from "@/src/lib/api/client";
+import { DoctorXrayAnalysisModal } from "./DoctorXrayAnalysisModal";
 
 export type RecordImage = {
   url: string;
@@ -19,16 +20,22 @@ const TYPE_LABEL = {
 
 type Props = {
   recordId: string;
+  patientId?: string;
+  patientName?: string;
   value: RecordImage[];
   onChange: (next: RecordImage[]) => void;
   onUploaded?: (detailImages: RecordImage[]) => void;
+  onApplyAiDiagnosis?: (diagnosis: string, treatmentNotes: string) => void;
 };
 
 export function MedicalRecordImages({
   recordId,
+  patientId,
+  patientName,
   value,
   onChange,
   onUploaded,
+  onApplyAiDiagnosis,
 }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [urlInput, setUrlInput] = useState("");
@@ -36,6 +43,8 @@ export function MedicalRecordImages({
   const [type, setType] = useState<"xray" | "intraoral" | "other">("xray");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [analyzingImage, setAnalyzingImage] = useState<RecordImage | null>(null);
+
 
   const addUrl = () => {
     const url = urlInput.trim();
@@ -200,18 +209,39 @@ export function MedicalRecordImages({
                     {img.caption || "Không chú thích"}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => onChange(value.filter((_, j) => j !== i))}
-                  className="rounded-md p-1.5 text-red-500 hover:bg-red-50"
-                  aria-label="Xóa ảnh"
-                >
-                  <Trash size={14} />
-                </button>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setAnalyzingImage(img)}
+                    className="inline-flex items-center gap-1 rounded-lg border border-brand/20 bg-brand/5 px-2 py-1 text-[11px] font-bold text-brand hover:bg-brand/10"
+                    title="Phân tích X-quang bằng AI"
+                  >
+                    <Sparkle size={12} weight="fill" /> Phân tích AI
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onChange(value.filter((_, j) => j !== i))}
+                    className="rounded-md p-1.5 text-red-500 hover:bg-red-50"
+                    aria-label="Xóa ảnh"
+                  >
+                    <Trash size={14} />
+                  </button>
+                </div>
               </div>
             </li>
           ))}
         </ul>
+      )}
+
+      {analyzingImage && (
+        <DoctorXrayAnalysisModal
+          imageUrl={analyzingImage.url}
+          imageCaption={analyzingImage.caption}
+          patientId={patientId}
+          patientName={patientName}
+          onClose={() => setAnalyzingImage(null)}
+          onApplyToRecord={onApplyAiDiagnosis}
+        />
       )}
     </div>
   );

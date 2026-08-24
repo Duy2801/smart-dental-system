@@ -758,10 +758,24 @@ function MedicalRecordsContent() {
                       </div>
                       <MedicalRecordImages
                         recordId={selectedId}
+                        patientId={detail?.patientId}
+                        patientName={detail?.patientName}
                         value={form.images}
                         onChange={(images) =>
                           setForm((f) => ({ ...f, images }))
                         }
+                        onApplyAiDiagnosis={(diagnosis, treatmentNotes) => {
+                          setForm((f) => ({
+                            ...f,
+                            diagnosis: f.diagnosis
+                              ? `${f.diagnosis}\n[X-quang AI]: ${diagnosis}`
+                              : diagnosis,
+                            treatmentNotes: f.treatmentNotes
+                              ? `${f.treatmentNotes}\n\n${treatmentNotes}`
+                              : treatmentNotes,
+                          }));
+                          setActiveTab("OVERVIEW");
+                        }}
                       />
                       <div className="flex justify-end border-t border-border pt-4">
                         <button

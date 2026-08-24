@@ -931,6 +931,8 @@ export class AiService {
     }
 
     const raw = await this.aiClient.post<{
+      is_radiograph?: boolean;
+      status?: string;
       findings: Array<{
         fdi_tooth_number: number;
         finding_type: string;
@@ -940,6 +942,8 @@ export class AiService {
       }>;
       total_findings: number;
       summary: string;
+      diagnosis_suggestion?: string | null;
+      treatment_recommendations?: string[];
       annotated_image_url?: string | null;
       disclaimer: string;
     }>('/api/v1/doctor/analyze-xray', {
@@ -949,7 +953,12 @@ export class AiService {
       clinical_note_hint: dto.clinicalNoteHint ?? null,
     });
 
+    const isRadiograph = raw.is_radiograph !== false;
+    const status = raw.status || (isRadiograph ? 'PATHOLOGY_DETECTED' : 'INVALID_IMAGE');
+
     return {
+      isRadiograph,
+      status,
       findings: (raw.findings ?? []).map((f) => ({
         fdiToothNumber: f.fdi_tooth_number,
         findingType: f.finding_type,
@@ -957,12 +966,14 @@ export class AiService {
         boundingBox: f.bounding_box,
         severity: f.severity,
       })),
-      totalFindings: raw.total_findings ?? 0,
+      totalFindings: raw.total_findings ?? (raw.findings ?? []).length,
       summary: raw.summary ?? '',
+      diagnosisSuggestion: raw.diagnosis_suggestion ?? null,
+      treatmentRecommendations: raw.treatment_recommendations ?? [],
       annotatedImageUrl: raw.annotated_image_url ?? null,
       disclaimer:
         raw.disclaimer ||
-        'Kết quả phân tích X-quang bởi Dental Vision AI (mô hình dental-pano-ai). Bác sĩ cần đối chiếu lâm sàng.',
+        'Kết quả phân tích X-quang bởi Dental Vision AI (Hybrid Cloud Pipeline). Bác sĩ cần đối chiếu lâm sàng.',
     };
   }
 

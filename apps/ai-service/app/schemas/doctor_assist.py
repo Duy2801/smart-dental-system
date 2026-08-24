@@ -198,12 +198,17 @@ class AnalyzeXrayRequest(BaseModel):
 
 
 class AnalyzeXrayResponse(BaseModel):
+    is_radiograph: bool = True
+    status: str = "PATHOLOGY_DETECTED"  # INVALID_IMAGE | HEALTHY | PATHOLOGY_DETECTED
     findings: list[DentalFinding] = Field(default_factory=list)
     total_findings: int = 0
     summary: str = ""
+    diagnosis_suggestion: str | None = None
+    treatment_recommendations: list[str] = Field(default_factory=list)
     annotated_image_url: str | None = None
     disclaimer: str = (
-        "Kết quả phân tích X-quang bởi Dental Vision AI (mô hình dental-pano-ai). "
+        "Kết quả phân tích X-quang bởi Dental Vision AI (Hybrid Cloud Pipeline). "
         "Bác sĩ cần đối chiếu lâm sàng trước khi đưa vào bệnh án."
     )
+
 

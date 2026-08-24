@@ -44,9 +44,13 @@ export interface DentalFinding {
 }
 
 export interface AnalyzeXrayResponse {
+  isRadiograph?: boolean;
+  status?: string;
   findings: DentalFinding[];
   totalFindings: number;
   summary: string;
+  diagnosisSuggestion?: string | null;
+  treatmentRecommendations?: string[];
   annotatedImageUrl?: string | null;
   disclaimer: string;
 }
@@ -518,26 +522,60 @@ export function DentalXrayAnalyzer({
     setApplied(false);
 
     try {
-      const res = await apiClient.post<AnalyzeXrayResponse>("/ai/doctor/analyze-xray", {
-        imageUrl: imageUrl.startsWith("data:") ? null : imageUrl,
-        imageBase64: imageUrl.startsWith("data:") ? imageUrl : imageBase64,
-        patientId,
-      });
+      const res = await apiClient.post<AnalyzeXrayResponse>(
+        "/ai/doctor/analyze-xray",
+        {
+          imageUrl: imageUrl.startsWith("data:") ? null : imageUrl,
+          imageBase64: imageUrl.startsWith("data:") ? imageUrl : imageBase64,
+          patientId,
+        },
+        { timeout: 60000 }
+      );
 
-      if (!res.data || !res.data.findings || res.data.totalFindings === 0) {
+      // Safely unpack payload across Axios interceptor wrappers
+      const payload: AnalyzeXrayResponse =
+        (res as any)?.data?.data ?? (res as any)?.data ?? res;
+
+      const isInvalid =
+        payload?.isRadiograph === false ||
+        payload?.status === "INVALID_IMAGE" ||
+        (payload?.summary || "").toLowerCase().includes("cảnh báo y khoa") ||
+        (payload?.summary || "").toLowerCase().includes("không phải là phim") ||
+        (payload?.summary || "").toLowerCase().includes("không phải phim");
+
+      if (isInvalid) {
         setResult({
+          isRadiograph: false,
+          status: "INVALID_IMAGE",
           totalFindings: 0,
           disclaimer:
-            res.data?.disclaimer ||
-            "Cảnh báo: Ảnh được chọn không chứa cấu trúc X-quang răng hợp lệ.",
+            payload?.disclaimer ||
+            "Hệ thống tự động phát hiện và chặn các ảnh không phải X-quang răng.",
           summary:
-            res.data?.summary ||
-            "Không thể phân tích: Hình ảnh không chứa cấu trúc X-quang răng hợp lệ.",
+            payload?.summary ||
+            "CẢNH BÁO Y KHOA: Hình ảnh tải lên không phải là phim chụp X-quang răng nha khoa hợp lệ.",
           findings: [],
-          annotatedImageUrl: res.data?.annotatedImageUrl,
+          annotatedImageUrl: imageUrl,
         });
       } else {
-        setResult(res.data);
+        const rawFindings = payload?.findings || [];
+        setResult({
+          isRadiograph: true,
+          status: payload?.status || (rawFindings.length > 0 ? "PATHOLOGY_DETECTED" : "HEALTHY"),
+          findings: rawFindings,
+          totalFindings: payload?.totalFindings ?? rawFindings.length,
+          summary:
+            payload?.summary ||
+            (rawFindings.length > 0
+              ? `Phát hiện ${rawFindings.length} tổn thương trên phim X-quang.`
+              : "Hình ảnh X-quang răng không phát hiện bất thường rõ rệt."),
+          diagnosisSuggestion: payload?.diagnosisSuggestion,
+          treatmentRecommendations: payload?.treatmentRecommendations || [],
+          annotatedImageUrl: payload?.annotatedImageUrl || imageUrl,
+          disclaimer:
+            payload?.disclaimer ||
+            "Kết quả phân tích X-quang bởi Dental Vision AI (Hybrid Cloud Pipeline).",
+        });
       }
     } catch (err: unknown) {
       const errorMsg =
@@ -547,6 +585,8 @@ export function DentalXrayAnalyzer({
               : String(err.response.data.message))
           : "Không thể kết nối đến dịch vụ Vision AI. Vui lòng kiểm tra lại dịch vụ.";
       setResult({
+        isRadiograph: false,
+        status: "INVALID_IMAGE",
         totalFindings: 0,
         disclaimer: "Lỗi kết nối hoặc xử lý phân tích hình ảnh.",
         summary: errorMsg,
@@ -1406,17 +1446,70 @@ export function DentalXrayAnalyzer({
           {result ? (
             <div className="flex flex-1 flex-col justify-between gap-4">
               {result.findings.length === 0 ? (
-                <div className="flex flex-col items-center justify-center rounded-xl border border-rose-200 bg-rose-50/90 p-5 text-center text-rose-900 shadow-sm">
-                  <Warning size={36} className="mb-2 text-rose-600" />
-                  <h5 className="text-sm font-bold text-rose-900">Ảnh không phải phim X-quang răng</h5>
-                  <p className="mt-1.5 text-xs text-rose-700 leading-relaxed max-w-xs">
-                    Hệ thống AI không phát hiện được cấu trúc hàm hay răng trên hình ảnh này. AI đã ngắt khoanh vùng tự động để tránh chẩn đoán sai lệch.
-                  </p>
-                  <p className="mt-3 rounded-lg bg-rose-100/80 border border-rose-200 px-3 py-1.5 text-[11px] font-semibold text-rose-800">
-                    Vui lòng tải lên phim X-quang Panorama, Bitewing hoặc Cận chóp hợp lệ.
-                  </p>
-                </div>
+                (() => {
+                  const summaryLower = (result.summary || "").toLowerCase();
+                  const isNonRadiograph =
+                    result.isRadiograph === false ||
+                    result.status === "INVALID_IMAGE" ||
+                    summaryLower.includes("không phải là phim") ||
+                    summaryLower.includes("không phải phim") ||
+                    summaryLower.includes("cảnh báo y khoa") ||
+                    summaryLower.includes("chụp màn hình") ||
+                    summaryLower.includes("màu sắc");
+                  const isRateLimitOrError =
+                    summaryLower.includes("429") ||
+                    summaryLower.includes("rate limit") ||
+                    summaryLower.includes("lỗi kết nối") ||
+                    summaryLower.includes("too many requests");
+
+                  if (isNonRadiograph) {
+                    return (
+                      <div className="flex flex-col items-center justify-center rounded-xl border border-rose-200 bg-rose-50/90 p-5 text-center text-rose-900 shadow-xs">
+                        <Warning size={36} className="mb-2 text-rose-600" />
+                        <h5 className="text-sm font-bold text-rose-900">Ảnh không phải phim X-quang răng</h5>
+                        <p className="mt-1.5 text-xs text-rose-700 leading-relaxed max-w-xs">
+                          Hệ thống AI phát hiện hình ảnh được chọn không phải là phim X-quang nha khoa hợp lệ. AI đã ngắt khoanh vùng để tránh chẩn đoán sai lệch.
+                        </p>
+                        <p className="mt-3 rounded-lg bg-rose-100/80 border border-rose-200 px-3 py-1.5 text-[11px] font-semibold text-rose-800">
+                          Vui lòng tải lên phim X-quang Panorama, Bitewing hoặc Cận chóp hợp lệ.
+                        </p>
+                      </div>
+                    );
+                  }
+
+                  if (isRateLimitOrError) {
+                    return (
+                      <div className="flex flex-col items-center justify-center rounded-xl border border-amber-200 bg-amber-50/90 p-5 text-center text-amber-900 shadow-xs">
+                        <Warning size={36} className="mb-2 text-amber-600" />
+                        <h5 className="text-sm font-bold text-amber-900">Dịch vụ AI đang bận (429 Rate Limit)</h5>
+                        <p className="mt-1.5 text-xs text-amber-700 leading-relaxed max-w-xs">
+                          Máy chủ AI miễn phí đang quá tải lượt gọi cùng lúc. Vui lòng bấm nút phân tích lại sau vài giây.
+                        </p>
+                        <button
+                          onClick={handleAnalyze}
+                          className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-amber-700 cursor-pointer"
+                        >
+                          <ArrowsCounterClockwise size={14} /> Thử phân tích lại
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="flex flex-col items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50/90 p-5 text-center text-emerald-900 shadow-xs">
+                      <CheckCircle size={36} className="mb-2 text-emerald-600" />
+                      <h5 className="text-sm font-bold text-emerald-900">Không ghi nhận bất thường bệnh lý</h5>
+                      <p className="mt-1.5 text-xs text-emerald-700 leading-relaxed max-w-xs">
+                        Phim X-quang răng không phát hiện sâu răng, răng khôn kẹt hay viêm quanh chóp. Tình trạng cung hàm ổn định.
+                      </p>
+                      <div className="mt-3 rounded-lg bg-emerald-100/80 border border-emerald-200 px-3 py-1 text-[11px] font-bold text-emerald-800">
+                        Chỉ số sức khỏe răng: 100% (An Toàn)
+                      </div>
+                    </div>
+                  );
+                })()
               ) : (
+
                 <>
                   {/* Clinical Oral Health Risk Scorecard (Option 2) */}
               {(() => {

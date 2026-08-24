@@ -42,7 +42,10 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     openai_model: str = "gpt-4o-mini"
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-2.0-flash"
+    gemini_model: str = "gemini-3.6-flash"
+    # Cấu hình riêng cho Vision (Phân tích ảnh X-quang): openrouter | gemini | openai
+    vision_provider: str = "openrouter"
+    openrouter_vision_model: str = "nvidia/nemotron-nano-12b-v2-vl:free"
     # Cấu hình kết nối trực tiếp bộ dữ liệu / model online (Cloud Vision API - Không cần tải dataset về máy)
     roboflow_api_key: str = ""
     roboflow_model_id: str = "panoramic-dental-xrays/1"
