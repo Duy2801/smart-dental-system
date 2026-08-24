@@ -28,6 +28,8 @@ import { VideoConsultationModule } from './modules/video-consultation/video-cons
 import { PrescriptionModule } from './modules/prescription/prescription.module';
 import { BannerModule } from './modules/banner/banner.module';
 import { AiModule } from './modules/ai/ai.module';
+import { SocketModule } from './modules/socket/socket.module';
+import { RefundModule } from './modules/refund/refund.module';
 
 @Module({
   imports: [
@@ -35,6 +37,7 @@ import { AiModule } from './modules/ai/ai.module';
     PrismaModule,
     RedisModule,
     AuthModule,
+    SocketModule,
     UserModule,
     ClinicalCaseModule,
     ClinicConfigModule,
@@ -58,6 +61,7 @@ import { AiModule } from './modules/ai/ai.module';
     PrescriptionModule,
     BannerModule,
     AiModule,
+    RefundModule,
   ],
   controllers: [AppController],
   providers: [AppService],

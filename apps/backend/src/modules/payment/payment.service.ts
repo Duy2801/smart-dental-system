@@ -13,6 +13,7 @@ import {
   PaymentStatus,
 } from 'prisma/generated/enums';
 import { PrismaService } from '../prisma/prisma.service';
+import { EventsGateway } from '../socket/events.gateway';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { SepayWebhookDto } from './dto/sepay-webhook.dto';
 
@@ -21,6 +22,7 @@ export class PaymentService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    private readonly eventsGateway: EventsGateway,
   ) {}
 
   async createPayment(userId: string, dto: CreatePaymentDto) {
@@ -413,6 +415,17 @@ export class PaymentService {
         });
       }
 
+      if (fullyPaid && (invoice.invoiceCode.startsWith('INV-VC-') || invoice.invoiceCode.startsWith('SEVQR'))) {
+        await tx.videoConsultation.updateMany({
+          where: {
+            patientId: invoice.patientId,
+            isPaid: false,
+            status: 'SCHEDULED',
+          },
+          data: { isPaid: true },
+        });
+      }
+
       return {
         paymentId: input.existingPaymentId,
         payAmount,
@@ -422,7 +435,7 @@ export class PaymentService {
       };
     });
 
-    return {
+    const res = {
       id: result.paymentId,
       invoiceId: input.invoiceId,
       amount: result.payAmount,
@@ -432,6 +445,17 @@ export class PaymentService {
       status: PaymentStatus.SUCCESS,
       invoiceStatus: result.invoiceStatus,
     };
+
+    // Emit real-time WebSocket events to frontend
+    try {
+      this.eventsGateway.broadcast('payment_updated', res);
+      this.eventsGateway.broadcast('consultation_updated', { invoiceId: input.invoiceId });
+      this.eventsGateway.broadcast('appointment_updated', { invoiceId: input.invoiceId });
+    } catch {
+      // Ignore socket emission errors
+    }
+
+    return res;
   }
 
   private async sumSuccessfulPayments(invoiceId: string) {

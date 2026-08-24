@@ -213,6 +213,7 @@ model User {
   receivedPayments    Payment[]      @relation("PaymentReceiver")
   notifications       Notification[]
   patientAccounts     PatientAccount[]
+  processedRefunds    RefundRequest[] @relation("RefundProcessor")
 
   @@index([fullName])
   @@map("users")
@@ -467,6 +468,7 @@ model Patient {
   reviews              Review[]
   chatbotConversations ChatbotConversation[]
   videoConsultations   VideoConsultation[]
+  refundRequests       RefundRequest[]
 
   @@map("patients")
 }
@@ -632,6 +634,7 @@ model Appointment {
   invoices          Invoice[]
   reviews           Review[]
   notifications     Notification[]
+  refundRequests    RefundRequest[]
 
   @@index([patientId, scheduledAt])
   @@index([doctorId, scheduledAt])
@@ -801,6 +804,7 @@ model Invoice {
   promotion         Promotion?         @relation(fields: [promotionId], references: [id], onDelete: SetNull)
   creator           User               @relation("InvoiceCreator", fields: [createdBy], references: [id], onDelete: Restrict)
   payments          Payment[]
+  refundRequests    RefundRequest[]
 
   @@index([patientId])
   @@index([appointmentId])
@@ -920,6 +924,7 @@ model VideoConsultation {
 
   patient Patient @relation(fields: [patientId], references: [id], onDelete: Restrict)
   doctor  Doctor  @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  refundRequests RefundRequest[]
 
   @@index([patientId, scheduledAt])
   @@index([doctorId, scheduledAt])
@@ -989,4 +994,51 @@ model ConsultationPackage {
   @@index([isActive, displayOrder])
   @@map("consultation_packages")
 }
+
+enum RefundStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  REJECTED
+}
+
+model RefundRequest {
+  id                  String       @id @default(uuid()) @db.Uuid
+  refundCode          String       @unique @map("refund_code")
+  patientId           String       @map("patient_id") @db.Uuid
+  videoConsultationId String?      @map("video_consultation_id") @db.Uuid
+  appointmentId       String?      @map("appointment_id") @db.Uuid
+  invoiceId           String?      @map("invoice_id") @db.Uuid
+  
+  bankName            String       @map("bank_name")
+  accountNumber       String       @map("account_number")
+  accountHolder       String       @map("account_holder")
+  qrCodeUrl           String?      @map("qr_code_url") @db.Text
+  
+  requestedAmount     Decimal      @map("requested_amount") @db.Decimal(12, 2)
+  refundPercent       Int          @default(100) @map("refund_percent")
+  reason              String?      @db.Text
+  
+  status              RefundStatus @default(PENDING)
+  rejectReason        String?      @map("reject_reason") @db.Text
+  proofImageUrl       String?      @map("proof_image_url") @db.Text
+  processedBy         String?      @map("processed_by") @db.Uuid
+  processedAt         DateTime?    @map("processed_at")
+  createdAt           DateTime     @default(now()) @map("created_at")
+  updatedAt           DateTime     @updatedAt @map("updated_at")
+
+  patient           Patient            @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  videoConsultation VideoConsultation? @relation(fields: [videoConsultationId], references: [id], onDelete: SetNull)
+  appointment       Appointment?       @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  invoice           Invoice?           @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  processor         User?              @relation("RefundProcessor", fields: [processedBy], references: [id], onDelete: SetNull)
+
+  @@index([patientId])
+  @@index([status])
+  @@index([videoConsultationId])
+  @@index([appointmentId])
+  @@index([invoiceId])
+  @@map("refund_requests")
+}
+
 

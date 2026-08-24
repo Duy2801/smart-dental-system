@@ -10,7 +10,8 @@ import {
 export const appointmentQueryKeys = {
   all: ["patient", "appointments"] as const,
   patientProfiles: () => ["patient", "profiles"] as const,
-  optionsBase: () => ["patient", "appointment-options", "base"] as const,
+  optionsBase: (params?: BookingOptionsQuery) =>
+    ["patient", "appointment-options", "base", params ?? {}] as const,
   optionsSchedule: (params: BookingOptionsQuery) =>
     ["patient", "appointment-options", "schedule", params] as const,
   optionsAvailability: (params: BookingOptionsQuery) =>
@@ -51,10 +52,12 @@ export function usePatientAppointmentsQuery(isLoggedIn: boolean) {
 /**
  * Hook to fetch base appointment options (Services & Initial Dates) with 5m caching.
  */
-export function useAppointmentOptionsBaseQuery() {
+export function useAppointmentOptionsBaseQuery(
+  params: BookingOptionsQuery = {},
+) {
   return useQuery({
-    queryKey: appointmentQueryKeys.optionsBase(),
-    queryFn: () => getAppointmentOptions(),
+    queryKey: appointmentQueryKeys.optionsBase(params),
+    queryFn: () => getAppointmentOptions(params),
     staleTime: 5 * 60 * 1000,
     gcTime: 60 * 60 * 1000,
     refetchOnWindowFocus: false,
@@ -68,7 +71,7 @@ export function useAppointmentScheduleQuery(params: BookingOptionsQuery) {
   return useQuery({
     queryKey: appointmentQueryKeys.optionsSchedule(params),
     queryFn: () => getAppointmentOptions(params),
-    enabled: Boolean(params.serviceId),
+    enabled: Boolean(params.serviceId && params.treatmentMethodId),
     staleTime: 15 * 1000,
     gcTime: 10 * 60 * 1000,
     placeholderData: (previousData) => previousData,

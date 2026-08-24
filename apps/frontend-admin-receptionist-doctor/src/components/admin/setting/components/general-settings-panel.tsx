@@ -22,7 +22,7 @@ export function GeneralSettingsPanel({
     if (!file) return;
 
     if (file.size > 2 * 1024 * 1024) {
-      window.alert("Anh logo toi da 2MB.");
+      window.alert("Ảnh logo tối đa 2MB.");
       event.target.value = "";
       return;
     }
@@ -30,42 +30,40 @@ export function GeneralSettingsPanel({
     try {
       const logoUrl = await resizeLogo(file);
       if (logoUrl.length > 80_000) {
-        window.alert("Anh logo sau khi nen van qua lon. Hay chon anh nho hon.");
+        window.alert("Ảnh logo sau khi nén vẫn quá lớn. Hãy chọn ảnh nhỏ hơn.");
         event.target.value = "";
         return;
       }
 
       updateField("logoUrl", logoUrl);
     } catch {
-      window.alert("Khong doc duoc anh logo. Vui long chon anh khac.");
+      window.alert("Không đọc được ảnh logo. Vui lòng chọn ảnh khác.");
     }
   };
 
   return (
     <div className="max-w-4xl space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
       <div>
-        <h3 className="text-lg font-semibold text-brand-dark">Cai dat chung</h3>
+        <h3 className="text-lg font-bold text-brand-dark">Cài đặt chung</h3>
         <p className="text-sm text-muted-foreground">
-          Thong tin nay se hien thi dong bo tren cac trang admin, bac si va le
-          tan.
+          Thông tin này sẽ hiển thị đồng bộ trên toàn bộ trang quản trị, giao diện bác sĩ và lễ tân.
         </p>
       </div>
 
-      <div className="space-y-8 rounded-2xl border border-border bg-white p-6 shadow-sm md:p-8">
-        <div className="flex flex-col gap-5 rounded-xl border border-border bg-muted/20 p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="space-y-8 rounded-2xl border border-border bg-white p-6 shadow-xs md:p-8">
+        <div className="flex flex-col gap-5 rounded-2xl border border-border bg-slate-50/50 p-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
             <ClinicLogo
               name={config.name}
               logoUrl={config.logoUrl}
-              className="h-20 w-20 rounded-2xl"
+              className="h-20 w-20 rounded-2xl shadow-xs"
             />
             <div>
-              <h4 className="text-sm font-medium text-brand-dark">
-                Logo phong kham
+              <h4 className="text-sm font-bold text-brand-dark">
+                Logo phòng khám
               </h4>
               <p className="mt-1 max-w-md text-xs leading-relaxed text-muted-foreground">
-                Nen dung anh vuong PNG/JPG. Anh se duoc hien o goc phai Header
-                cua cac role.
+                Nên dùng ảnh vuông dạng PNG/JPG/WEBP. Logo sẽ được hiển thị ở góc thanh công cụ hệ thống.
               </p>
             </div>
           </div>
@@ -81,17 +79,17 @@ export function GeneralSettingsPanel({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="rounded-lg border border-border bg-white px-3 py-2 text-xs font-medium text-brand-dark transition-colors hover:bg-muted"
+              className="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-brand-dark transition-colors hover:bg-slate-100 shadow-xs"
             >
-              Tai anh len
+              Tải ảnh lên
             </button>
             {config.logoUrl ? (
               <button
                 type="button"
                 onClick={() => updateField("logoUrl", "")}
-                className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700 transition-colors hover:bg-red-100"
+                className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-100"
               >
-                Xoa logo
+                Xóa logo
               </button>
             ) : null}
           </div>
@@ -99,23 +97,23 @@ export function GeneralSettingsPanel({
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <SettingsInput
-            label="Ten phong kham"
+            label="Tên phòng khám"
             value={config.name}
             onChange={(value) => updateField("name", value)}
           />
           <SettingsInput
-            label="Hotline / So dien thoai"
+            label="Hotline / Số điện thoại"
             value={config.phone}
             onChange={(value) => updateField("phone", value)}
           />
           <SettingsInput
-            label="Email lien he"
+            label="Email liên hệ"
             type="email"
             value={config.email}
             onChange={(value) => updateField("email", value)}
           />
           <SettingsInput
-            label="Dia chi phong kham"
+            label="Địa chỉ phòng khám"
             value={config.address}
             onChange={(value) => updateField("address", value)}
           />
@@ -179,12 +177,12 @@ function SettingsInput({
 }: SettingsInputProps) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-sm font-medium text-brand-dark">{label}</label>
+      <label className="text-sm font-semibold text-brand-dark">{label}</label>
       <input
         value={value}
         type={type}
         onChange={(event) => onChange(event.target.value)}
-        className="rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand"
+        className="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 font-medium"
       />
     </div>
   );

@@ -7,6 +7,7 @@ import { Header } from "@/src/components/layout/header";
 import apiClient from "@/src/lib/api/client";
 import { getApiErrorMessage } from "@/src/lib/utils/api-error";
 import { formatDoctorName } from "@/src/lib/utils/format";
+import { RefundManagementModal } from "@/src/components/admin/finance/components/refund-management-modal";
 import {
   MagnifyingGlass,
   Receipt,
@@ -237,6 +238,7 @@ export default function BillingPage() {
   const [submitting, setSubmitting] = useState(false);
   const [transfer, setTransfer] = useState<TransferSession | null>(null);
   const [transferLoading, setTransferLoading] = useState(false);
+  const [showRefundModal, setShowRefundModal] = useState(false);
   const [toast, setToast] = useState<{
     message: string;
     type: "success" | "error";
@@ -610,19 +612,29 @@ export default function BillingPage() {
         title="Thanh toán"
         description="Thu tiền khách hàng — tiền mặt hoặc chuyển khoản SePay."
       >
-        <button
-          type="button"
-          onClick={() => void fetchInvoices()}
-          disabled={loading}
-          className="inline-flex items-center gap-2 rounded-lg border border-border bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-sm hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {loading ? (
-            <CircleNotch size={14} className="animate-spin" />
-          ) : (
-            <ArrowClockwise size={14} />
-          )}
-          Làm mới
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowRefundModal(true)}
+            className="inline-flex items-center gap-2 rounded-lg bg-rose-50 border border-rose-200 px-4 py-2 text-xs font-bold text-rose-700 shadow-sm hover:bg-rose-100 transition-all cursor-pointer"
+          >
+            💸 Yêu cầu hoàn tiền
+          </button>
+
+          <button
+            type="button"
+            onClick={() => void fetchInvoices()}
+            disabled={loading}
+            className="inline-flex items-center gap-2 rounded-lg border border-border bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-sm hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {loading ? (
+              <CircleNotch size={14} className="animate-spin" />
+            ) : (
+              <ArrowClockwise size={14} />
+            )}
+            Làm mới
+          </button>
+        </div>
       </Header>
 
       <div className="bg-muted p-6">
@@ -1130,6 +1142,10 @@ export default function BillingPage() {
           type={toast.type}
           onClose={() => setToast(null)}
         />
+      )}
+
+      {showRefundModal && (
+        <RefundManagementModal onClose={() => setShowRefundModal(false)} />
       )}
     </>
   );

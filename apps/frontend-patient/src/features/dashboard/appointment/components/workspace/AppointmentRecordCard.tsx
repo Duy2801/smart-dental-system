@@ -1,5 +1,6 @@
 import type { AppointmentItem, AppointmentStatus } from "../../api";
 import { DashboardIcon } from "../../../common/DashboardIcon";
+import { formatTimeRange } from "@/utils/helpers";
 
 const statusInfo: Record<
   AppointmentStatus,
@@ -44,8 +45,9 @@ const statusInfo: Record<
 
 type AppointmentRecordCardProps = {
   appointment: AppointmentItem;
-  onReschedule: () => void;
+  onReschedule?: () => void;
   onCancel?: () => void;
+  onViewDetail?: () => void;
   canCancel?: boolean;
   isCancelling?: boolean;
 };
@@ -54,6 +56,7 @@ export function AppointmentRecordCard({
   appointment,
   onReschedule,
   onCancel,
+  onViewDetail,
   canCancel = false,
   isCancelling = false,
 }: AppointmentRecordCardProps) {
@@ -84,7 +87,7 @@ export function AppointmentRecordCard({
           <DashboardIcon name="clock" className="h-3.5 w-3.5 text-slate-400" />
           <span>Thời gian hẹn:</span>
           <strong className="text-slate-800 font-bold">
-            {appointment.time} - {appointment.date}
+            {formatTimeRange(appointment.time, appointment.durationMinutes || 30)} - {appointment.date}
           </strong>
         </p>
 
@@ -106,19 +109,51 @@ export function AppointmentRecordCard({
 
       {/* Action Buttons */}
       <div className="flex items-center gap-2 shrink-0">
-        <button
-          type="button"
-          onClick={onReschedule}
-          className="px-4 py-2 bg-white hover:bg-blue-50 border border-blue-200 text-[#0058bc] font-bold rounded-xl text-xs transition-all shadow-2xs"
-        >
-          Đổi lịch
-        </button>
+        {onViewDetail ? (
+          <button
+            type="button"
+            onClick={onViewDetail}
+            className="px-3.5 py-2 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+          >
+            <svg
+              className="w-3.5 h-3.5 text-slate-500"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+              />
+            </svg>
+            <span>Xem chi tiết</span>
+          </button>
+        ) : null}
+
+        {onReschedule ? (
+          <button
+            type="button"
+            onClick={onReschedule}
+            className="px-4 py-2 bg-white hover:bg-blue-50 border border-blue-200 text-[#0058bc] font-bold rounded-xl text-xs transition-all shadow-2xs cursor-pointer"
+          >
+            Đổi lịch
+          </button>
+        ) : null}
+
         {canCancel && onCancel ? (
           <button
             type="button"
             onClick={onCancel}
             disabled={isCancelling}
-            className="px-4 py-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 font-bold rounded-xl text-xs transition-all disabled:opacity-60"
+            className="px-4 py-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 font-bold rounded-xl text-xs transition-all disabled:opacity-60 cursor-pointer"
           >
             {isCancelling ? "Đang hủy..." : "Hủy"}
           </button>

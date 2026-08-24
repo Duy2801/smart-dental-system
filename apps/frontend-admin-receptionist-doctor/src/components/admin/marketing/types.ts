@@ -1,14 +1,18 @@
-export type Channel = "EMAIL" | "IN_APP";
-export type ChannelFilter = Channel | "ALL";
-export type CampaignStatus = "PENDING" | "SENT" | "FAILED";
+export type TargetType = "SERVICE" | "PROMOTION" | "EXTERNAL";
 
-export type Campaign = {
+export type Banner = {
   id: string;
   title: string;
-  content: string;
-  channel: Channel;
-  status: CampaignStatus;
-  scheduled_at: string;
-  sent_count: number;
-  read_count: number;
+  description?: string | null;
+  imageUrl: string;
+  linkUrl?: string | null;
+  targetType?: TargetType | string | null;
+  targetId?: string | null;
+  displayOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 };
+
+export type BannerStatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
+export type TargetTypeFilter = "ALL" | "SERVICE" | "PROMOTION" | "EXTERNAL";

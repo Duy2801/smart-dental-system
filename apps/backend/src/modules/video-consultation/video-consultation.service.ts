@@ -15,6 +15,7 @@ import type { AuthenticatedUser } from 'src/common/interfaces/authenticated-user
 import { ClinicConfigService } from '../clinic-config/clinic-config.service';
 import { PaymentService } from '../payment/payment.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { EventsGateway } from '../socket/events.gateway';
 import { CreateVideoConsultationDto } from './dto/create-video-consultation.dto';
 
 const consultInclude = {
@@ -26,6 +27,14 @@ const consultInclude = {
       phone: true,
       medicalHistory: true,
       user: { select: { id: true, fullName: true, phone: true } },
+    },
+  },
+  doctor: {
+    select: {
+      id: true,
+      specialization: true,
+      avatarUrl: true,
+      user: { select: { fullName: true } },
     },
   },
 } as const;
@@ -48,6 +57,12 @@ type ConsultRow = {
     phone?: string | null;
     medicalHistory?: string | null;
     user: { id: string; fullName: string; phone: string | null } | null;
+  };
+  doctor: {
+    id: string;
+    specialization: string;
+    avatarUrl: string | null;
+    user: { fullName: string };
   };
 };
 
@@ -74,6 +89,7 @@ export class VideoConsultationService {
     private prisma: PrismaService,
     private paymentService: PaymentService,
     private clinicConfigService: ClinicConfigService,
+    private eventsGateway: EventsGateway,
   ) {}
 
   /** Lấy danh sách các gói tư vấn (ConsultationPackage) từ DB */
@@ -472,7 +488,7 @@ export class VideoConsultationService {
             userId: doctor.userId,
             type: 'APPOINTMENT_REMINDER',
             title: '⏰ Lịch tư vấn bệnh nhân sắp bắt đầu trong 10 phút',
-            content: `Bạn có buổi tư vấn trực tuyến với bệnh nhân ${patient.fullName ?? patient.user?.fullName ?? 'Benh nhan'} lúc ${scheduledAt.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}.`,
+            content: `Bạn có buổi tư vấn trực tuyến với bệnh nhân ${patient.fullName ?? patient.user?.fullName ?? 'Bệnh nhân'} lúc ${scheduledAt.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}.`,
             channel: 'IN_APP',
             scheduledAt: reminderTime,
             status: 'PENDING',
@@ -569,6 +585,85 @@ export class VideoConsultationService {
     };
   }
 
+  /** Lấy thông tin thanh toán (VietQR) cho lịch tư vấn chưa thanh toán */
+  async getConsultationPaymentInfo(user: AuthenticatedUser, id: string) {
+    const patient = await this.prisma.patient.findUnique({
+      where: { userId: user.userId },
+      select: { id: true },
+    });
+    if (!patient) {
+      throw new NotFoundException('Không tìm thấy bệnh nhân');
+    }
+
+    const consultation = await this.prisma.videoConsultation.findUnique({
+      where: { id },
+      include: {
+        doctor: { select: { user: { select: { fullName: true } } } },
+      },
+    });
+
+    if (!consultation || consultation.patientId !== patient.id) {
+      throw new NotFoundException('Không tìm thấy lịch tư vấn này');
+    }
+
+    if (consultation.isPaid) {
+      return { isPaid: true, status: consultation.status };
+    }
+
+    const fee = Number(consultation.fee);
+
+    let invoice = await this.prisma.invoice.findFirst({
+      where: {
+        patientId: patient.id,
+        invoiceType: InvoiceType.SERVICE,
+        status: { in: [InvoiceStatus.DRAFT, InvoiceStatus.ISSUED, InvoiceStatus.PARTIALLY_PAID] },
+        finalAmount: fee,
+      },
+      orderBy: { issuedAt: 'desc' },
+    });
+
+    if (!invoice) {
+      const invoiceCode = `INV-VC-${Date.now().toString().slice(-6)}`;
+      invoice = await this.prisma.invoice.create({
+        data: {
+          invoiceCode,
+          patientId: patient.id,
+          invoiceType: InvoiceType.SERVICE,
+          subtotal: fee,
+          discountAmount: 0,
+          finalAmount: fee,
+          status: InvoiceStatus.DRAFT,
+          createdBy: user.userId,
+          items: [
+            {
+              title: `Tư vấn trực tuyến (${consultation.durationMinutes} phút) - Bác sĩ ${consultation.doctor.user.fullName}`,
+              price: fee,
+              quantity: 1,
+            },
+          ],
+        },
+      });
+    }
+
+    const paymentDetails = await this.paymentService.createPayment(user.userId, {
+      invoiceId: invoice.id,
+      amount: fee,
+      method: PaymentMethod.BANK_TRANSFER,
+    });
+
+    return {
+      consultationId: consultation.id,
+      isPaid: false,
+      fee,
+      invoice: {
+        id: invoice.id,
+        invoiceCode: invoice.invoiceCode,
+        finalAmount: Number(invoice.finalAmount),
+      },
+      payment: paymentDetails,
+    };
+  }
+
   /** Lấy danh sách buổi tư vấn cá nhân của bệnh nhân */
   async findByPatient(user: AuthenticatedUser) {
     const patient = await this.prisma.patient.findUnique({
@@ -595,17 +690,39 @@ export class VideoConsultationService {
             user: { select: { fullName: true } },
           },
         },
+        refundRequests: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
       },
       orderBy: { scheduledAt: 'desc' },
     });
 
     return rows.map((row) => {
       const summary = this.toSummary(row as unknown as ConsultRow, true);
+      const latestRefund = row.refundRequests?.[0];
       return {
         ...summary,
         doctorName: row.doctor.user.fullName,
         doctorSpecialization: row.doctor.specialization,
         doctorAvatarUrl: row.doctor.avatarUrl,
+        refundRequest: latestRefund
+          ? {
+              id: latestRefund.id,
+              refundCode: latestRefund.refundCode,
+              bankName: latestRefund.bankName,
+              accountNumber: latestRefund.accountNumber,
+              accountHolder: latestRefund.accountHolder,
+              qrCodeUrl: latestRefund.qrCodeUrl,
+              requestedAmount: Number(latestRefund.requestedAmount),
+              refundPercent: latestRefund.refundPercent,
+              reason: latestRefund.reason,
+              status: latestRefund.status,
+              rejectReason: latestRefund.rejectReason,
+              proofImageUrl: latestRefund.proofImageUrl,
+              createdAt: latestRefund.createdAt.toISOString(),
+            }
+          : null,
       };
     });
   }
@@ -673,20 +790,31 @@ export class VideoConsultationService {
       include: consultInclude,
     });
 
-    // Thông báo cuộc gọi đã bắt đầu — gửi đến bệnh nhân
+    // Thông báo cuộc gọi đã bắt đầu — gửi đến bệnh nhân + bắn Real-time Socket
     const patientUserId = updated.patient.user?.id;
     if (patientUserId) {
-      await this.prisma.notification.create({
+      const notif = await this.prisma.notification.create({
         data: {
           userId: patientUserId,
           type: 'SYSTEM',
           title: '📞 Bác sĩ đã mở phòng tư vấn!',
-          content: 'Bác sĩ đã sẵn sàng. Vui lòng vào mục "Lịch tư vấn của tôi" và bấm "Vào Phòng Video Call" để bắt đầu.',
+          content:
+            'Bác sĩ đã sẵn sàng. Vui lòng vào mục "Lịch tư vấn của tôi" và bấm "Tham Gia Tư Vấn" để bắt đầu.',
           channel: 'IN_APP',
           status: 'SENT',
           sentAt: new Date(),
         },
       });
+
+      try {
+        this.eventsGateway.emitToUser(patientUserId, 'consultation_updated', {
+          id: updated.id,
+          status: updated.status,
+        });
+        this.eventsGateway.emitToUser(patientUserId, 'notification', notif);
+      } catch (err) {
+        console.error('Socket emit error:', err);
+      }
     }
 
     return this.toSummary(updated, true);
@@ -709,6 +837,17 @@ export class VideoConsultationService {
       },
       include: consultInclude,
     });
+
+    const patientUserId = updated.patient.user?.id;
+    if (patientUserId) {
+      try {
+        this.eventsGateway.emitToUser(patientUserId, 'consultation_updated', {
+          id: updated.id,
+          status: updated.status,
+        });
+      } catch {}
+    }
+
     return this.toSummary(updated, true);
   }
 
@@ -732,6 +871,17 @@ export class VideoConsultationService {
       },
       include: consultInclude,
     });
+
+    const patientUserId = updated.patient.user?.id;
+    if (patientUserId) {
+      try {
+        this.eventsGateway.emitToUser(patientUserId, 'consultation_updated', {
+          id: updated.id,
+          status: updated.status,
+        });
+      } catch {}
+    }
+
     return this.toSummary(updated, true);
   }
 
@@ -820,17 +970,69 @@ export class VideoConsultationService {
     throw new ForbiddenException('Bạn không có quyền truy cập buổi tư vấn này');
   }
 
+  /** Bệnh nhân tham gia phòng tư vấn do Bác sĩ mở */
+  async joinPatientRoom(user: AuthenticatedUser, id: string) {
+    const patient = await this.prisma.patient.findUnique({
+      where: { userId: user.userId },
+      select: { id: true },
+    });
+    if (!patient) {
+      throw new NotFoundException('Không tìm thấy bệnh nhân');
+    }
+
+    const consultation = await this.prisma.videoConsultation.findUnique({
+      where: { id },
+      include: consultInclude,
+    });
+
+    if (!consultation || consultation.patientId !== patient.id) {
+      throw new NotFoundException('Không tìm thấy lịch tư vấn này');
+    }
+
+    if (!consultation.isPaid) {
+      throw new BadRequestException('Buổi tư vấn chưa được thanh toán');
+    }
+
+    if (consultation.status === VideoConsultationStatus.CANCELLED) {
+      throw new BadRequestException('Buổi tư vấn đã bị hủy');
+    }
+
+    if (consultation.status === VideoConsultationStatus.COMPLETED) {
+      throw new BadRequestException('Buổi tư vấn đã hoàn thành');
+    }
+
+    if (!consultation.meetingUrl || consultation.status !== VideoConsultationStatus.IN_PROGRESS) {
+      throw new BadRequestException(
+        'Bác sĩ chưa mở phòng tư vấn. Vui lòng chờ Bác sĩ bấm bắt đầu cuộc gọi!',
+      );
+    }
+
+    const secrets = unpackMeeting(consultation.meetingUrl);
+
+    return {
+      id: consultation.id,
+      meetingUrl: secrets.meetingUrl,
+      roomPin: secrets.roomPin,
+      doctorName: consultation.doctor.user.fullName,
+      scheduledAt: consultation.scheduledAt,
+      durationMinutes: consultation.durationMinutes,
+      status: consultation.status,
+    };
+  }
+
   private toSummary(row: ConsultRow, includeSecrets: boolean) {
-    const active = row.status === VideoConsultationStatus.IN_PROGRESS;
+    const active =
+      row.status === VideoConsultationStatus.IN_PROGRESS ||
+      (row.status === VideoConsultationStatus.SCHEDULED && Boolean(row.meetingUrl));
     const secrets =
-      includeSecrets && active
+      includeSecrets && (active || row.isPaid)
         ? unpackMeeting(row.meetingUrl)
         : { meetingUrl: null, roomPin: null };
 
     return {
       id: row.id,
       patientId: row.patientId,
-      patientName: row.patient.fullName ?? row.patient.user?.fullName ?? 'Benh nhan',
+      patientName: row.patient.fullName ?? row.patient.user?.fullName ?? 'Bệnh nhân',
       patientCode: row.patient.patientCode,
       patientPhone: row.patient.phone ?? row.patient.user?.phone ?? null,
       scheduledAt: row.scheduledAt,

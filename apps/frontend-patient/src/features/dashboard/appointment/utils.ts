@@ -44,6 +44,8 @@ export function getCreateAppointmentErrorMessage(error: unknown) {
     const rawMessage = error.response?.data?.message;
     const message = Array.isArray(rawMessage) ? rawMessage[0] : rawMessage;
     const messageMap: Record<string, string> = {
+      "doctor.service_not_supported":
+        "Bac si nay khong phu trach dich vu da chon. Vui long chon dich vu khac.",
       "appointment.time_in_past":
         "Khung giờ đã qua. Vui lòng chọn thời gian khác.",
       "appointment.patient_time_conflict":

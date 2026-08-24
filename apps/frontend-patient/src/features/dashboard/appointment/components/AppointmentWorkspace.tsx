@@ -13,8 +13,10 @@ import type { AppointmentItem } from "../api";
 
 export function AppointmentWorkspace({
   initialMode = "booking",
+  dedicatedDoctorId = "",
 }: {
   initialMode?: "manage" | "booking";
+  dedicatedDoctorId?: string;
 }) {
   const { isAuthenticated, accessToken } = useAppSelector(
     (state) => state.login,
@@ -27,8 +29,7 @@ export function AppointmentWorkspace({
   const { ensureLoggedInBeforeBooking } = useBookingAuthGuard({ isLoggedIn });
   const { upcoming, historyItems, appointments, patientAppointmentsQuery } =
     usePatientAppointments(isLoggedIn);
-  const { cancelAppointment, cancellingAppointmentId } =
-    useCancelAppointment();
+  const { cancelAppointment, cancellingAppointmentId } = useCancelAppointment();
 
   const openBookingMode = useCallback(async () => {
     const canBook = await ensureLoggedInBeforeBooking();
@@ -42,7 +43,11 @@ export function AppointmentWorkspace({
         title="Đặt lịch khám nha khoa"
         description="Đăng nhập để chọn người khám, dịch vụ, bác sĩ và khung giờ phù hợp. Tài khoản giúp phòng khám lưu đúng hồ sơ bệnh nhân và gửi thông báo lịch hẹn cho bạn."
         loginLabel="Đăng nhập để đặt lịch"
-        redirectTo="/appointment"
+        redirectTo={
+          dedicatedDoctorId
+            ? `/appointment?intent=booking&doctorId=${encodeURIComponent(dedicatedDoctorId)}`
+            : "/appointment"
+        }
         secondaryHref="/service"
         secondaryLabel="Xem dịch vụ"
         icon="calendar"
@@ -53,6 +58,8 @@ export function AppointmentWorkspace({
   if (mode === "booking") {
     return (
       <BookingModeView
+        key={dedicatedDoctorId || "general-booking"}
+        dedicatedDoctorId={dedicatedDoctorId}
         isLoggedIn={isLoggedIn}
         ensureLoggedInBeforeBooking={ensureLoggedInBeforeBooking}
         upcomingAppointments={upcoming}

@@ -435,7 +435,7 @@ export class PatientService {
     user?: { fullName: string; phone: string | null; email: string | null } | null;
   }) {
     return {
-      fullName: patient.fullName ?? patient.user?.fullName ?? 'Benh nhan',
+      fullName: patient.fullName ?? patient.user?.fullName ?? 'Bệnh nhân',
       phone: patient.phone ?? patient.user?.phone ?? null,
       email: patient.email ?? patient.user?.email ?? null,
     };
@@ -1006,7 +1006,7 @@ export class PatientService {
           appointmentId: appointment.id,
           doctorId: doctor.id,
           treatmentPlanStepId: step1.id,
-          chiefComplaint: 'Benh nhan dat lich va can duoc theo doi dieu tri.',
+          chiefComplaint: 'Bệnh nhân đặt lịch và cần được theo dõi điều trị.',
           diagnosis: 'Tinh trang rang mieng can dieu tri theo ke hoach.',
           treatmentNotes:
             'Da hoan thanh buoc kham dau tien, lap ke hoach va hen buoc tiep theo.',
@@ -1330,10 +1330,24 @@ export class PatientService {
         id: record.id,
         createdAt: record.createdAt.toISOString(),
         doctor: record.doctor.user.fullName,
-        service: record.appointment.service.name,
+        service: record.appointment?.service?.name ?? 'Khám nha khoa',
+        chiefComplaint: record.chiefComplaint,
         diagnosis: record.diagnosis,
         treatmentNotes: record.treatmentNotes,
         followUpDate: record.followUpDate?.toISOString() ?? null,
+        dentalChart: record.dentalChart,
+        images: record.images,
+        prescriptions: record.prescriptionRecords.map((prescription) => ({
+          id: prescription.id,
+          notes: prescription.notes,
+          items: prescription.items.map((item) => ({
+            medicineName: item.medicineName,
+            dosage: item.dosage,
+            frequency: item.frequency,
+            duration: item.duration,
+            instruction: item.instruction,
+          })),
+        })),
       })),
     };
   }

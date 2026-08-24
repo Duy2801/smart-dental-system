@@ -12,12 +12,12 @@ export function TopServicesCard({ onViewAll, services }: TopServicesCardProps) {
   return (
     <div className="flex flex-col rounded-xl border border-border bg-white p-6 shadow-sm">
       <h3 className="mb-4 text-base font-semibold text-brand-dark">
-        Top dich vu pho bien
+        Top dịch vụ phổ biến
       </h3>
       <div className="flex flex-1 flex-col gap-4">
         {previewServices.length === 0 ? (
           <div className="rounded-lg bg-muted/30 p-4 text-sm text-muted-foreground">
-            Chua co du lieu dich vu.
+            Chưa có dữ liệu dịch vụ.
           </div>
         ) : null}
         {previewServices.map((service, index) => (
@@ -45,7 +45,7 @@ export function TopServicesCard({ onViewAll, services }: TopServicesCardProps) {
         disabled={services.length === 0}
         className="mt-4 w-full rounded-lg border border-border py-2 text-sm font-medium text-brand-dark transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
       >
-        Xem tat ca
+        Xem tất cả
       </button>
     </div>
   );

@@ -71,35 +71,7 @@ export function toServiceFormState(service: DentalService): ServiceFormState {
             sortOrder: f.sortOrder ?? idx + 1,
           })),
         }))
-      : [
-          {
-            name: service.name || "",
-            slug: service.slug ?? "",
-            description: service.description ?? "",
-            imageUrl: service.thumbnailUrl ?? "",
-            basePrice,
-            durationMinutes,
-            displayOrder: 1,
-            isActive: service.isActive ?? true,
-            media: mediaList.map((m, idx) => ({
-              url: m.url,
-              alt: m.alt ?? "",
-              type: m.type ?? "BANNER",
-              sortOrder: m.sortOrder ?? idx + 1,
-            })),
-            procedureSteps: procedureStepList.map((s, idx) => ({
-              stepOrder: s.stepOrder ?? idx + 1,
-              title: s.title,
-              description: s.description,
-              durationMinutes: s.durationMinutes ?? "",
-            })),
-            faqs: faqList.map((f, idx) => ({
-              question: f.question,
-              answer: f.answer,
-              sortOrder: f.sortOrder ?? idx + 1,
-            })),
-          },
-        ];
+      : [];
 
   return {
     category: service.category,

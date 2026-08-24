@@ -8,12 +8,12 @@ export function PopularServices({ services }: PopularServicesProps) {
   return (
     <div className="rounded-xl border border-border bg-white p-6">
       <h3 className="text-base font-semibold text-brand-dark">
-        Top dich vu pho bien
+        Top dịch vụ phổ biến
       </h3>
-      <p className="mt-1 text-sm text-muted-foreground">Thang nay</p>
+      <p className="mt-1 text-sm text-muted-foreground">Tháng này</p>
       <ul className="mt-4 space-y-3">
         {services.length === 0 ? (
-          <li className="text-sm text-muted-foreground">Chua co du lieu.</li>
+          <li className="text-sm text-muted-foreground">Chưa có dữ liệu.</li>
         ) : null}
         {services.map((service, index) => (
           <li key={service.name} className="flex items-center gap-3">
@@ -25,7 +25,7 @@ export function PopularServices({ services }: PopularServicesProps) {
                 {service.name}
               </p>
               <p className="text-xs text-muted-foreground">
-                {service.count} luot - {service.percent}%
+                {service.count} lượt - {service.percent}%
               </p>
             </div>
             <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">

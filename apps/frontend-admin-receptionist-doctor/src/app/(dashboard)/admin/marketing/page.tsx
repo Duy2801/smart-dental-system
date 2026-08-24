@@ -5,8 +5,8 @@ export default function AdminMarketingPage() {
   return (
     <>
       <Header
-        title="Truyền thông & Marketing"
-        description="Gửi thông báo ưu đãi qua email cho bệnh nhân"
+        title="Truyền thông & Banner Quảng cáo"
+        description="Quản lý chiến dịch quảng cáo và banner truyền thông hiển thị trên hệ thống nha khoa"
       />
       <MarketingPageContent />
     </>

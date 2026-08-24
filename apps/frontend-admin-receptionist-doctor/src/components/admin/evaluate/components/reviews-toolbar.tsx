@@ -37,7 +37,7 @@ export function ReviewsToolbar({
         </svg>
         <input
           type="text"
-          placeholder="Tim theo ten benh nhan hoac noi dung..."
+          placeholder="Tìm theo tên bệnh nhân hoặc nội dung..."
           value={search}
           onChange={(event) => onSearchChange(event.target.value)}
           className="w-full rounded-lg border border-border bg-white py-2 pl-9 pr-4 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand"
@@ -51,10 +51,10 @@ export function ReviewsToolbar({
           }
           className="rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand"
         >
-          <option value="ALL">Moi so sao</option>
+          <option value="ALL">Mọi số sao</option>
           <option value="5">5 sao</option>
           <option value="4">4 sao</option>
-          <option value="3">Tu 3 sao tro xuong</option>
+          <option value="3">Từ 3 sao trở xuống</option>
         </select>
         <select
           value={visibilityFilter}
@@ -63,9 +63,9 @@ export function ReviewsToolbar({
           }
           className="rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand"
         >
-          <option value="ALL">Tat ca trang thai</option>
-          <option value="VISIBLE">Dang hien thi</option>
-          <option value="HIDDEN">Da an</option>
+          <option value="ALL">Tất cả trạng thái</option>
+          <option value="VISIBLE">Đang hiển thị</option>
+          <option value="HIDDEN">Đã ẩn</option>
         </select>
       </div>
     </div>

@@ -6,6 +6,8 @@ import { useEffect } from "react";
 import type { ReactNode } from "react";
 import { apiMe, apiRefresh } from "@/features/auth/api";
 import { ToastProvider } from "@/features/dashboard/common/toast";
+import { SocketProvider } from "@/service/ws/useSocket";
+import { useAppSelector } from "./hooks";
 import { login, logout, updateAccessToken } from "./loginSlice";
 import store from "./store";
 
@@ -45,13 +47,21 @@ function AuthHydrator() {
   return null;
 }
 
+function SocketAppWrapper({ children }: { children: ReactNode }) {
+  const accessToken = useAppSelector((state) => state.login.accessToken);
+
+  return <SocketProvider token={accessToken}>{children}</SocketProvider>;
+}
+
 export function AppProvider({ children }: { children: ReactNode }) {
   return (
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
         <AuthHydrator />
-        {children}
-        <ToastProvider />
+        <SocketAppWrapper>
+          {children}
+          <ToastProvider />
+        </SocketAppWrapper>
       </QueryClientProvider>
     </Provider>
   );

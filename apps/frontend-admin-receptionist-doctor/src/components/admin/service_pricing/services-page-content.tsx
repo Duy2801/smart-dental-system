@@ -7,9 +7,11 @@ import { queryKeys } from "@/src/lib/query/query-keys";
 import {
   createService,
   deleteService,
+  deleteTreatmentMethod,
   getServices,
   updateService,
   updateServiceStatus,
+  updateTreatmentMethod,
 } from "./service-pricing-api";
 import {
   emptyServiceForm,
@@ -21,6 +23,7 @@ import { ServiceFormModal } from "./components/service-form-modal";
 import { TreatmentMethodFormModal } from "./components/treatment-method-form-modal";
 import { ServiceGroupList } from "./components/service-group-list";
 import { ServicePricingToolbar } from "./components/service-pricing-toolbar";
+import { DeleteConfirmationModal } from "./components/delete-confirmation-modal";
 import type {
   DentalService,
   ServiceFormState,
@@ -28,11 +31,21 @@ import type {
   TreatmentMethodFormItem,
 } from "./types";
 
+type DeleteTarget =
+  | { kind: "service"; service: DentalService }
+  | {
+      kind: "method";
+      service: DentalService;
+      methodIndex: number;
+      methodName: string;
+    };
+
 export function ServicesPageContent() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const [editingService, setEditingService] = useState<DentalService | null>(
     null
   );
@@ -94,6 +107,10 @@ export function ServicesPageContent() {
       methodForm: TreatmentMethodFormItem;
       methodIndex?: number;
     }) => {
+      if (methodForm.id) {
+        return updateTreatmentMethod(service.id, methodForm.id, methodForm);
+      }
+
       const formState = toServiceFormState(service);
       const updatedMethods = [...formState.treatmentMethods];
 
@@ -129,6 +146,15 @@ export function ServicesPageContent() {
       methodIndex: number;
     }) => {
       const formState = toServiceFormState(service);
+      const targetMethod = formState.treatmentMethods[methodIndex];
+
+      if (targetMethod?.id) {
+        return updateTreatmentMethod(service.id, targetMethod.id, {
+          ...targetMethod,
+          isActive: !targetMethod.isActive,
+        });
+      }
+
       const updatedMethods = formState.treatmentMethods.map((m, idx) =>
         idx === methodIndex ? { ...m, isActive: !m.isActive } : m
       );
@@ -158,6 +184,12 @@ export function ServicesPageContent() {
       methodIndex: number;
     }) => {
       const formState = toServiceFormState(service);
+      const targetMethod = formState.treatmentMethods[methodIndex];
+
+      if (targetMethod?.id) {
+        return deleteTreatmentMethod(service.id, targetMethod.id);
+      }
+
       const updatedMethods = formState.treatmentMethods.filter(
         (_, idx) => idx !== methodIndex
       );
@@ -214,18 +246,8 @@ export function ServicesPageContent() {
     }
   };
 
-  const removeService = async (service: DentalService) => {
-    const confirmed = window.confirm(
-      "Bạn chắc chắn muốn ngừng dịch vụ này?"
-    );
-    if (!confirmed) return;
-
-    setError(null);
-    try {
-      await deleteMutation.mutateAsync(service);
-    } catch {
-      // Error handled by mutation onError
-    }
+  const removeService = (service: DentalService) => {
+    setDeleteTarget({ kind: "service", service });
   };
 
   // Treatment Method Handler Functions
@@ -256,25 +278,36 @@ export function ServicesPageContent() {
     }
   };
 
-  const handleRemoveTreatmentMethod = async (
+  const handleRemoveTreatmentMethod = (
     service: DentalService,
     index: number
   ) => {
     const targetName =
       service.treatmentMethods?.[index]?.name || "phương pháp này";
-    const confirmed = window.confirm(
-      `Bạn có chắc chắn muốn xóa phương pháp "${targetName}"?`
-    );
-    if (!confirmed) return;
+    setDeleteTarget({
+      kind: "method",
+      service,
+      methodIndex: index,
+      methodName: targetName,
+    });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
 
     setError(null);
     try {
-      await removeTreatmentMethodMutation.mutateAsync({
-        service,
-        methodIndex: index,
-      });
+      if (deleteTarget.kind === "service") {
+        await deleteMutation.mutateAsync(deleteTarget.service);
+      } else {
+        await removeTreatmentMethodMutation.mutateAsync({
+          service: deleteTarget.service,
+          methodIndex: deleteTarget.methodIndex,
+        });
+      }
+      setDeleteTarget(null);
     } catch {
-      // Error handled by mutation onError
+      // Error handled by mutation onError; keep the modal open for context.
     }
   };
 
@@ -310,15 +343,13 @@ export function ServicesPageContent() {
           groupedServices={groupedServices}
           onEdit={openEditModal}
           onToggleStatus={(service) => void toggleStatus(service)}
-          onRemove={(service) => void removeService(service)}
+          onRemove={removeService}
           onEditTreatmentMethod={handleEditTreatmentMethod}
           onCreateTreatmentMethod={handleCreateTreatmentMethod}
           onToggleTreatmentMethodStatus={(service, idx) =>
             void handleToggleTreatmentMethodStatus(service, idx)
           }
-          onRemoveTreatmentMethod={(service, idx) =>
-            void handleRemoveTreatmentMethod(service, idx)
-          }
+          onRemoveTreatmentMethod={handleRemoveTreatmentMethod}
         />
       </div>
 
@@ -355,6 +386,32 @@ export function ServicesPageContent() {
           onSubmit={(methodForm) =>
             void handleTreatmentMethodSubmit(methodForm)
           }
+        />
+      ) : null}
+
+      {deleteTarget ? (
+        <DeleteConfirmationModal
+          title={
+            deleteTarget.kind === "service"
+              ? "Xóa dịch vụ?"
+              : "Xóa phương pháp điều trị?"
+          }
+          itemName={
+            deleteTarget.kind === "service"
+              ? deleteTarget.service.name
+              : deleteTarget.methodName
+          }
+          description={
+            deleteTarget.kind === "service"
+              ? "Dịch vụ đã phát sinh lịch hẹn hoặc hồ sơ điều trị sẽ được hệ thống bảo vệ và không thể xóa."
+              : "Phương pháp đã phát sinh lịch hẹn sẽ được hệ thống bảo vệ và không thể xóa."
+          }
+          pending={
+            deleteMutation.isPending ||
+            removeTreatmentMethodMutation.isPending
+          }
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={() => void confirmDelete()}
         />
       ) : null}
     </>

@@ -1,52 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import type { AppointmentItem, AppointmentStatus } from "../../api";
-import { DashboardIcon } from "../../../common/DashboardIcon";
+import type { AppointmentItem } from "../../api";
+import { AppointmentRecordCard } from "./AppointmentRecordCard";
 import { AppointmentDetailModal } from "./AppointmentDetailModal";
 
 const ITEMS_PER_PAGE = 4;
-
-const statusInfo: Record<
-  AppointmentStatus,
-  { label: string; dotColor: string; className: string }
-> = {
-  confirmed: {
-    label: "Đã xác nhận",
-    dotColor: "bg-emerald-500",
-    className: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  },
-  pending: {
-    label: "Chờ xác nhận",
-    dotColor: "bg-amber-500",
-    className: "border-amber-200 bg-amber-50 text-amber-700",
-  },
-  completed: {
-    label: "Hoàn thành",
-    dotColor: "bg-blue-500",
-    className: "border-blue-200 bg-blue-50 text-blue-700",
-  },
-  cancelled: {
-    label: "Đã hủy",
-    dotColor: "bg-rose-500",
-    className: "border-rose-200 bg-rose-50 text-rose-700",
-  },
-  missed: {
-    label: "Vắng mặt",
-    dotColor: "bg-slate-400",
-    className: "border-slate-200 bg-slate-100 text-slate-600",
-  },
-  in_progress: {
-    label: "Đang khám",
-    dotColor: "bg-cyan-500",
-    className: "border-cyan-200 bg-cyan-50 text-cyan-700",
-  },
-  rescheduled: {
-    label: "Đã đổi lịch",
-    dotColor: "bg-violet-500",
-    className: "border-violet-200 bg-violet-50 text-violet-700",
-  },
-};
 
 type AppointmentHistoryListProps = {
   history: AppointmentItem[];
@@ -92,67 +51,15 @@ export function AppointmentHistoryList({
           </span>
         </div>
 
-        {/* History Item Cards */}
+        {/* History Item Cards (Render using AppointmentRecordCard component) */}
         <div className="space-y-3">
-          {pagedHistory.map((appointment) => {
-            const status = statusInfo[appointment.status] ?? statusInfo.completed;
-            const notes = appointment.preparation ?? [];
-
-            return (
-              <article
-                key={appointment.id}
-                onClick={() => setSelectedAppointment(appointment)}
-                className="p-5 rounded-2xl border border-slate-200 bg-slate-50/40 hover:border-blue-200 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer group"
-              >
-                <div className="space-y-2 min-w-0">
-                  {/* Doctor + Service + Status */}
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h4 className="font-extrabold text-slate-900 text-base group-hover:text-[#0058bc] transition-colors">
-                      {appointment.doctor}
-                    </h4>
-                    <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
-                      {appointment.service}
-                    </span>
-                    <span
-                      className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-0.5 rounded-full border ${status.className}`}
-                    >
-                      <span className={`h-1.5 w-1.5 rounded-full ${status.dotColor}`} />
-                      {status.label}
-                    </span>
-                  </div>
-
-                  {/* Time & Date */}
-                  <p className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
-                    <DashboardIcon name="clock" className="h-3.5 w-3.5 text-slate-400" />
-                    <span>Thời gian khám:</span>
-                    <strong className="text-slate-800 font-bold">
-                      {appointment.time} - {appointment.date}
-                    </strong>
-                  </p>
-
-                  {notes.length ? (
-                    <p className="text-[11px] text-slate-500">
-                      {notes.length} ghi chú chuẩn bị
-                    </p>
-                  ) : null}
-                </div>
-
-                {/* Detail CTA Button */}
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedAppointment(appointment);
-                    }}
-                    className="px-4 py-2 bg-white hover:bg-blue-50 border border-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-all shadow-2xs group-hover:border-blue-200 group-hover:text-[#0058bc]"
-                  >
-                    Xem chi tiết
-                  </button>
-                </div>
-              </article>
-            );
-          })}
+          {pagedHistory.map((appointment) => (
+            <AppointmentRecordCard
+              key={appointment.id}
+              appointment={appointment}
+              onViewDetail={() => setSelectedAppointment(appointment)}
+            />
+          ))}
         </div>
 
         {/* Pagination Controls */}
@@ -166,7 +73,7 @@ export function AppointmentHistoryList({
                 type="button"
                 onClick={() => setPage((c) => Math.max(1, c - 1))}
                 disabled={currentPage === 1}
-                className="px-3 py-1.5 text-xs font-bold rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+                className="px-3 py-1.5 text-xs font-bold rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 cursor-pointer"
               >
                 Trước
               </button>
@@ -177,7 +84,7 @@ export function AppointmentHistoryList({
                     key={pageNumber}
                     type="button"
                     onClick={() => setPage(pageNumber)}
-                    className={`h-7 w-7 text-xs font-bold rounded-lg transition ${
+                    className={`h-7 w-7 text-xs font-bold rounded-lg transition cursor-pointer ${
                       pageNumber === currentPage
                         ? "bg-[#0058bc] text-white"
                         : "border border-slate-200 text-slate-600 hover:bg-slate-50"
@@ -191,7 +98,7 @@ export function AppointmentHistoryList({
                 type="button"
                 onClick={() => setPage((c) => Math.min(totalPages, c + 1))}
                 disabled={currentPage === totalPages}
-                className="px-3 py-1.5 text-xs font-bold rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+                className="px-3 py-1.5 text-xs font-bold rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 cursor-pointer"
               >
                 Sau
               </button>

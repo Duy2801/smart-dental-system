@@ -16,8 +16,8 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
 
   app.use(cookieParser());
-  app.use(json({ limit: '2mb' }));
-  app.use(urlencoded({ extended: true, limit: '2mb' }));
+  app.use(json({ limit: '50mb' }));
+  app.use(urlencoded({ extended: true, limit: '50mb' }));
   app.useStaticAssets(join(process.cwd(), 'uploads'), {
     prefix: '/uploads/',
   });
@@ -59,4 +59,4 @@ async function bootstrap() {
   SwaggerModule.setup('api', app, document);
   await app.listen(configService.get<number>('PORT', 3000));
 }
-void bootstrap();
+bootstrap();

@@ -16,6 +16,29 @@ export function useAppointmentWorkspaceView({
   query,
   statusFilter,
 }: UseAppointmentWorkspaceViewParams) {
+  // Deduplicate and combine all appointments (upcoming + history)
+  const allAppointments = useMemo(() => {
+    const map = new Map<string, AppointmentItem>();
+    [...upcoming, ...historyItems].forEach((item) => {
+      map.set(item.id, item);
+    });
+    return Array.from(map.values());
+  }, [upcoming, historyItems]);
+
+  const filteredAppointments = useMemo(
+    () =>
+      allAppointments
+        .filter(
+          (item) => statusFilter === "all" || item.status === statusFilter,
+        )
+        .filter((item) =>
+          `${item.doctor} ${item.service} ${item.patientName || ""}`
+            .toLowerCase()
+            .includes(query.toLowerCase()),
+        ),
+    [allAppointments, query, statusFilter],
+  );
+
   const filteredUpcoming = useMemo(
     () =>
       upcoming
@@ -59,6 +82,7 @@ export function useAppointmentWorkspaceView({
   );
 
   return {
+    filteredAppointments,
     filteredUpcoming,
     history,
     current,

@@ -1410,34 +1410,34 @@ async function seedBaseData() {
     });
 
     const patient = await prisma.patient.upsert({
-        where: { patientCode: patientSeed.patientCode },
-        update: {
-          userId: user.id,
-          fullName: patientSeed.fullName,
-          phone: patientSeed.phone,
-          email: patientSeed.email,
-          dateOfBirth: patientSeed.dateOfBirth,
-          gender: patientSeed.gender,
-          address: patientSeed.address,
-          emergencyContactName: patientSeed.emergencyContactName,
-          emergencyContactPhone: patientSeed.emergencyContactPhone,
-          medicalHistory: patientSeed.medicalHistory,
-        },
-        create: {
-          userId: user.id,
-          patientCode: patientSeed.patientCode,
-          fullName: patientSeed.fullName,
-          phone: patientSeed.phone,
-          email: patientSeed.email,
-          dateOfBirth: patientSeed.dateOfBirth,
-          gender: patientSeed.gender,
-          address: patientSeed.address,
-          emergencyContactName: patientSeed.emergencyContactName,
-          emergencyContactPhone: patientSeed.emergencyContactPhone,
-          medicalHistory: patientSeed.medicalHistory,
-        },
-        select: { id: true, userId: true },
-      });
+      where: { patientCode: patientSeed.patientCode },
+      update: {
+        userId: user.id,
+        fullName: patientSeed.fullName,
+        phone: patientSeed.phone,
+        email: patientSeed.email,
+        dateOfBirth: patientSeed.dateOfBirth,
+        gender: patientSeed.gender,
+        address: patientSeed.address,
+        emergencyContactName: patientSeed.emergencyContactName,
+        emergencyContactPhone: patientSeed.emergencyContactPhone,
+        medicalHistory: patientSeed.medicalHistory,
+      },
+      create: {
+        userId: user.id,
+        patientCode: patientSeed.patientCode,
+        fullName: patientSeed.fullName,
+        phone: patientSeed.phone,
+        email: patientSeed.email,
+        dateOfBirth: patientSeed.dateOfBirth,
+        gender: patientSeed.gender,
+        address: patientSeed.address,
+        emergencyContactName: patientSeed.emergencyContactName,
+        emergencyContactPhone: patientSeed.emergencyContactPhone,
+        medicalHistory: patientSeed.medicalHistory,
+      },
+      select: { id: true, userId: true },
+    });
 
     await prisma.patientAccount.upsert({
       where: { userId_patientId: { userId: user.id, patientId: patient.id } },

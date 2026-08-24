@@ -14,12 +14,13 @@ import {
   getShiftMatrix,
   updateTimeOffApproval,
 } from "./schedule-api";
+import { ConfirmReplaceModal } from "./components/confirm-replace-modal";
 import { ScheduleFormModal } from "./components/schedule-form-modal";
 import { ScheduleTable } from "./components/schedule-table";
 import { ScheduleToolbar } from "./components/schedule-toolbar";
 import { ShiftMatrixTable } from "./components/shift-matrix-table";
 import { ConflictModal } from "./components/conflict-modal";
-import { getErrorMessage } from "./schedule-utils";
+import { getErrorMessage, getScheduleValidationError } from "./schedule-utils";
 import type { AppointmentConflictItem, AvailabilityApprovalStatus, ScheduleFormState } from "./types";
 import type { BusinessHour } from "../setting/types";
 
@@ -31,6 +32,10 @@ export function SchedulesPageContent() {
   const [error, setError] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [form, setForm] = useState<ScheduleFormState>(defaultScheduleForm);
+
+  // Replace confirm modal state
+  const [confirmReplaceOpen, setConfirmReplaceOpen] = useState(false);
+  const [pendingSubmitForm, setPendingSubmitForm] = useState<ScheduleFormState | null>(null);
 
   // Conflict handling state
   const [conflictModalOpen, setConflictModalOpen] = useState(false);
@@ -145,17 +150,18 @@ export function SchedulesPageContent() {
     });
   };
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>, force = false) => {
-    if (event) event.preventDefault();
+  const executeSave = async (formToSave: ScheduleFormState, force = false) => {
     if (!selectedDoctorId) return;
 
     setSubmitting(true);
     setError(null);
 
     try {
-      await createDoctorAvailability(selectedDoctorId, form, businessHours, force);
+      await createDoctorAvailability(selectedDoctorId, formToSave, businessHours, force);
       setIsAddModalOpen(false);
+      setConfirmReplaceOpen(false);
       setConflictModalOpen(false);
+      setPendingSubmitForm(null);
       await invalidateSchedule();
     } catch (err: any) {
       const respData = err?.response?.data;
@@ -169,6 +175,56 @@ export function SchedulesPageContent() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleSubmit = async (event?: React.FormEvent<HTMLFormElement>, force = false) => {
+    if (event) event.preventDefault();
+    if (!selectedDoctorId) return;
+
+    const valError = getScheduleValidationError(form, businessHours);
+    if (valError) {
+      setError(valError);
+      return;
+    }
+
+    // Check if target day(s) already have existing weekly shifts
+    const targetDays = form.autoSchedule
+      ? form.selectedDays
+      : [form.dayOfWeek];
+
+    const hasExistingSchedule = targetDays.some((dayOfWeek) => {
+      const dayItem = schedule?.weekly.find((item) => item.dayOfWeek === dayOfWeek);
+      return (dayItem?.shifts?.length ?? 0) > 0;
+    });
+
+    if (hasExistingSchedule && !force) {
+      const replaceForm: ScheduleFormState = {
+        ...form,
+        autoSchedule: true,
+        selectedDays: targetDays,
+        autoMode: "REPLACE",
+        autoShifts: [
+          {
+            startTime: form.startTime,
+            endTime: form.endTime,
+          },
+        ],
+      };
+      setPendingSubmitForm(replaceForm);
+      setConfirmReplaceOpen(true);
+      return;
+    }
+
+    const appendForm: ScheduleFormState = {
+      ...form,
+      autoMode: "APPEND",
+    };
+    await executeSave(appendForm, force);
+  };
+
+  const handleConfirmReplace = async () => {
+    if (!pendingSubmitForm) return;
+    await executeSave(pendingSubmitForm, false);
   };
 
   const handleApproveStatus = async (id: string, approvalStatus: AvailabilityApprovalStatus) => {
@@ -294,6 +350,15 @@ export function SchedulesPageContent() {
           onClose={closeModal}
           onSubmit={(e) => handleSubmit(e, false)}
           toggleSelectedDay={toggleSelectedDay}
+        />
+      ) : null}
+
+      {confirmReplaceOpen ? (
+        <ConfirmReplaceModal
+          isOpen={confirmReplaceOpen}
+          onClose={() => setConfirmReplaceOpen(false)}
+          onConfirm={handleConfirmReplace}
+          doctorName={selectedDoctor?.user?.fullName}
         />
       ) : null}
 

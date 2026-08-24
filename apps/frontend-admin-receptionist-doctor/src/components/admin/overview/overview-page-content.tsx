@@ -21,35 +21,35 @@ const statusConfig: Record<
   { label: string; color: string }
 > = {
   PENDING: {
-    label: "Cho xac nhan",
+    label: "Chờ xác nhận",
     color: "bg-amber-100 text-amber-700 border-amber-200",
   },
   CONFIRMED: {
-    label: "Da xac nhan",
+    label: "Đã xác nhận",
     color: "bg-blue-100 text-blue-700 border-blue-200",
   },
   CHECKED_IN: {
-    label: "Da check-in",
+    label: "Đã Check-in",
     color: "bg-cyan-100 text-cyan-700 border-cyan-200",
   },
   IN_PROGRESS: {
-    label: "Dang kham",
+    label: "Đang khám",
     color: "bg-indigo-100 text-indigo-700 border-indigo-200",
   },
   COMPLETED: {
-    label: "Da hoan thanh",
-    color: "bg-green-100 text-green-700 border-green-200",
+    label: "Đã hoàn thành",
+    color: "bg-emerald-100 text-emerald-700 border-emerald-200",
   },
   CANCELLED: {
-    label: "Da huy",
+    label: "Đã hủy",
     color: "bg-red-100 text-red-700 border-red-200",
   },
   NO_SHOW: {
-    label: "Khong den",
-    color: "bg-gray-100 text-gray-700 border-gray-200",
+    label: "Không đến",
+    color: "bg-slate-100 text-slate-700 border-slate-200",
   },
   RESCHEDULED: {
-    label: "Doi lich",
+    label: "Dời lịch",
     color: "bg-purple-100 text-purple-700 border-purple-200",
   },
 };
@@ -73,8 +73,7 @@ export function OverviewPageContent() {
 
   return (
     <>
-      <Header title="Tong quan Quan ly" description={currentDate}>
-      </Header>
+      <Header title="Tổng quan quản lý" description={currentDate} />
 
       <div className="space-y-6 p-6 md:p-8">
         {isLoading ? (
@@ -84,7 +83,7 @@ export function OverviewPageContent() {
               <div className="lg:col-span-2">
                 <SkeletonChart />
               </div>
-              <div className="rounded-2xl border border-border bg-white shadow-sm">
+              <div className="rounded-2xl border border-border bg-white shadow-xs">
                 <div className="border-b border-border p-5">
                   <SkeletonRows count={1} />
                 </div>
@@ -95,8 +94,8 @@ export function OverviewPageContent() {
         ) : null}
 
         {isError ? (
-          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
-            Khong tai duoc du lieu tong quan.
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+            Không tải được dữ liệu tổng quan phòng khám.
           </div>
         ) : null}
 
@@ -132,16 +131,16 @@ function OverviewStat({ stat }: { stat: OverviewStatCard }) {
   const isPositive = stat.trend >= 0;
 
   return (
-    <div className="rounded-2xl border border-border bg-white p-5 shadow-sm transition-all hover:shadow-md">
-      <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
+    <div className="rounded-2xl border border-border bg-white p-5 shadow-xs transition-all hover:shadow-md">
+      <p className="text-sm font-semibold text-muted-foreground">{stat.label}</p>
       <div className="mt-2 flex items-baseline gap-1.5">
         <p className="font-mono text-3xl font-bold text-brand-dark">
           {formatStatValue(stat)}
         </p>
         <span
           className={cn(
-            "text-base font-semibold",
-            stat.isStar ? "text-yellow-500" : "text-muted-foreground",
+            "text-base font-bold",
+            stat.isStar ? "text-amber-500" : "text-muted-foreground",
           )}
         >
           {stat.suffix}
@@ -150,14 +149,14 @@ function OverviewStat({ stat }: { stat: OverviewStatCard }) {
       <div className="mt-3 flex items-center text-xs">
         <span
           className={cn(
-            "rounded-full bg-opacity-10 px-1.5 py-0.5 font-medium",
-            isPositive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700",
+            "rounded-full px-2 py-0.5 font-bold",
+            isPositive ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700",
           )}
         >
           {isPositive ? "+" : ""}
           {stat.trend}%
         </span>
-        <span className="ml-2 text-muted-foreground">{stat.trendLabel}</span>
+        <span className="ml-2 text-muted-foreground font-medium">{stat.trendLabel}</span>
       </div>
     </div>
   );
@@ -169,11 +168,11 @@ function ActionItems({
   items: OverviewDashboard["actionItems"];
 }) {
   return (
-    <div className="flex max-h-[400px] flex-col rounded-2xl border border-border bg-white shadow-sm">
+    <div className="flex max-h-[400px] flex-col rounded-2xl border border-border bg-white shadow-xs">
       <div className="shrink-0 border-b border-border p-5">
-        <h3 className="flex items-center gap-2 text-base font-semibold text-brand-dark">
-          Thong tin can theo doi
-          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-light text-[10px] font-bold text-brand">
+        <h3 className="flex items-center gap-2 text-base font-bold text-brand-dark">
+          Thông tin cần theo dõi
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-light text-[10px] font-extrabold text-brand">
             {items.length}
           </span>
         </h3>
@@ -181,30 +180,30 @@ function ActionItems({
       <div className="flex-1 overflow-y-auto p-2">
         <div className="divide-y divide-border">
           {items.length === 0 ? (
-            <div className="p-4 text-sm text-muted-foreground">
-              Chua co thong tin can theo doi.
+            <div className="p-4 text-sm font-medium text-muted-foreground">
+              Chưa có thông tin cần theo dõi.
             </div>
           ) : null}
           {items.map((item) => (
             <div
               key={item.id}
-              className="flex flex-col gap-2 rounded-xl p-4 transition-colors hover:bg-muted/10"
+              className="flex flex-col gap-2 rounded-xl p-4 transition-colors hover:bg-slate-50"
             >
               <div className="flex items-start justify-between gap-2">
-                <h4 className="line-clamp-1 text-sm font-semibold text-brand-dark">
+                <h4 className="line-clamp-1 text-sm font-bold text-brand-dark">
                   {item.title}
                 </h4>
-                <span className="shrink-0 whitespace-nowrap text-[10px] text-muted-foreground">
+                <span className="shrink-0 whitespace-nowrap text-[10px] font-medium text-muted-foreground">
                   {formatRelativeTime(item.time)}
                 </span>
               </div>
-              <p className="line-clamp-2 text-sm leading-relaxed text-muted-foreground">
+              <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground font-medium">
                 {item.desc}
               </p>
               <div className="mt-1 flex justify-end">
                 <Link
                   href={item.href}
-                  className="rounded-lg bg-brand/10 px-3 py-1.5 text-xs font-medium text-brand transition-colors hover:bg-brand hover:text-white"
+                  className="rounded-xl bg-brand/10 px-3.5 py-1.5 text-xs font-bold text-brand transition-colors hover:bg-brand hover:text-white"
                 >
                   {item.action}
                 </Link>
@@ -223,48 +222,48 @@ function TodaySchedule({
   appointments: OverviewAppointment[];
 }) {
   return (
-    <div className="flex flex-col rounded-2xl border border-border bg-white shadow-sm">
+    <div className="flex flex-col rounded-2xl border border-border bg-white shadow-xs">
       <div className="flex items-center justify-between border-b border-border p-5">
-        <h3 className="text-base font-semibold text-brand-dark">
-          Lich trinh hom nay
+        <h3 className="text-base font-bold text-brand-dark">
+          Lịch trình hôm nay
         </h3>
         <Link
           href="/admin/schedules"
-          className="text-sm font-medium text-brand hover:underline"
+          className="text-xs font-bold text-brand hover:underline"
         >
-          Tat ca lich
+          Xem tất cả lịch
         </Link>
       </div>
       <div className="flex-1 p-5">
         {appointments.length === 0 ? (
-          <div className="rounded-xl bg-muted/30 p-6 text-sm text-muted-foreground">
-            Hom nay chua co lich hen.
+          <div className="rounded-xl bg-slate-50 p-6 text-sm font-medium text-muted-foreground text-center">
+            Hôm nay chưa có lịch hẹn nào.
           </div>
         ) : null}
-        <div className="relative ml-3 space-y-6 border-l-2 border-muted/50 pb-2 md:ml-4">
+        <div className="relative ml-3 space-y-6 border-l-2 border-slate-100 pb-2 md:ml-4">
           {appointments.map((item) => (
             <div key={item.id} className="group relative pl-6 sm:pl-8">
               <span className="absolute -left-[5px] top-1.5 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-brand ring-4 ring-white" />
-              <div className="flex flex-col gap-3 rounded-xl border border-transparent p-4 transition-colors hover:border-border hover:bg-muted/10 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex flex-col gap-3 rounded-2xl border border-transparent p-4 transition-colors hover:border-border hover:bg-slate-50 sm:flex-row sm:items-start sm:justify-between">
                 <div className="flex flex-col gap-1.5">
                   <span className="font-mono text-sm font-bold text-brand">
                     {item.start_time} - {item.end_time}
                   </span>
-                  <span className="text-base font-semibold text-brand-dark">
+                  <span className="text-base font-bold text-brand-dark">
                     {item.patient_name}
                   </span>
                   <div className="mt-1 flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-xs font-medium text-muted-foreground">
                       {item.service_name}
                     </span>
-                    <span className="h-1 w-1 rounded-full bg-muted-foreground/30" />
-                    <span className="text-sm text-brand">{item.doctor_name}</span>
+                    <span className="h-1 w-1 rounded-full bg-slate-300" />
+                    <span className="text-xs font-bold text-brand">{item.doctor_name}</span>
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center">
                   <span
                     className={cn(
-                      "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium",
+                      "inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold",
                       statusConfig[item.status].color,
                     )}
                   >
@@ -297,13 +296,13 @@ function formatRelativeTime(value: string) {
   const diffMinutes = Math.max(0, Math.round(diffMs / 60_000));
 
   if (diffMinutes < 60) {
-    return `${diffMinutes} phut truoc`;
+    return `${diffMinutes} phút trước`;
   }
 
   const diffHours = Math.round(diffMinutes / 60);
   if (diffHours < 24) {
-    return `${diffHours} gio truoc`;
+    return `${diffHours} giờ trước`;
   }
 
-  return `${Math.round(diffHours / 24)} ngay truoc`;
+  return `${Math.round(diffHours / 24)} ngày trước`;
 }

@@ -167,19 +167,17 @@ export function BookingPanel({
                   type="button"
                   disabled={!isClickable}
                   onClick={() => handleStepClick(stepNum)}
-                  className={`group flex flex-col items-center sm:flex-row sm:gap-3 transition text-left ${
-                    isClickable ? "cursor-pointer" : "cursor-not-allowed opacity-40"
-                  }`}
+                  className={`group flex flex-col items-center sm:flex-row sm:gap-3 transition text-left ${isClickable ? "cursor-pointer" : "cursor-not-allowed opacity-40"
+                    }`}
                 >
                   {/* Step Pill / Badge */}
                   <div
-                    className={`flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl font-extrabold text-xs sm:text-sm transition-all ${
-                      isActive
+                    className={`flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl font-extrabold text-xs sm:text-sm transition-all ${isActive
                         ? "bg-[#0863c5] text-white shadow-md shadow-blue-500/20 ring-4 ring-blue-100 scale-105"
                         : isCompleted
-                        ? "bg-emerald-500 text-white shadow-xs"
-                        : "bg-slate-100 border border-slate-200 text-slate-400"
-                    }`}
+                          ? "bg-emerald-500 text-white shadow-xs"
+                          : "bg-slate-100 border border-slate-200 text-slate-400"
+                      }`}
                   >
                     {isCompleted && !isActive ? (
                       <svg className="h-5 w-5 stroke-current stroke-[3]" fill="none" viewBox="0 0 24 24">
@@ -193,13 +191,12 @@ export function BookingPanel({
                   {/* Label */}
                   <div className="mt-1 text-center sm:mt-0 sm:text-left">
                     <span
-                      className={`block text-[10px] sm:text-xs font-extrabold uppercase tracking-wider transition ${
-                        isActive
+                      className={`block text-[10px] sm:text-xs font-extrabold uppercase tracking-wider transition ${isActive
                           ? "text-[#0863c5]"
                           : isCompleted
-                          ? "text-slate-800"
-                          : "text-slate-400"
-                      }`}
+                            ? "text-slate-800"
+                            : "text-slate-400"
+                        }`}
                     >
                       {step.label}
                     </span>
@@ -213,9 +210,8 @@ export function BookingPanel({
                 {idx < stepsConfig.length - 1 && (
                   <div className="mx-2 sm:mx-3 h-[2px] flex-1 rounded-full bg-slate-200">
                     <div
-                      className={`h-full rounded-full transition-all duration-300 ${
-                        completedSteps[idx] ? "bg-emerald-500" : "bg-transparent"
-                      }`}
+                      className={`h-full rounded-full transition-all duration-300 ${completedSteps[idx] ? "bg-emerald-500" : "bg-transparent"
+                        }`}
                     />
                   </div>
                 )}

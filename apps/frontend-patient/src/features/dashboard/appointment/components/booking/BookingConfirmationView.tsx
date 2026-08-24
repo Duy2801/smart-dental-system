@@ -8,7 +8,7 @@ import type {
   TreatmentMethodItem,
 } from "../../types";
 import type { PatientProfile } from "../../api";
-import { formatCurrency } from "@/utils/helpers";
+import { formatCurrency, formatTimeRange } from "@/utils/helpers";
 import { usePromotions } from "../../../promotion/hooks/usePromotions";
 import { calculateDiscount } from "../../../promotion/utils/promotionUtils";
 import type { PromotionDto } from "../../../promotion/types";
@@ -237,7 +237,7 @@ export function BookingConfirmationView({
                 {selectedDate ? `${selectedDate.weekday} ${selectedDate.day} ${formattedMonth}` : "--/--"}
               </p>
               <p className="truncate text-xs font-semibold text-[#0863c5]">
-                Khung giờ: {selectedTime || "--:--"}
+                Khung giờ: {formatTimeRange(selectedTime, selectedTreatmentMethod?.durationMinutes || 30)}
               </p>
             </div>
           </div>

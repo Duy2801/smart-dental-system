@@ -112,7 +112,18 @@ export class PromotionService {
   }
 
   async update(id: string, dto: UpdatePromotionDto) {
-    await this.ensureExists(id);
+    const existing = await this.prisma.promotion.findUnique({
+      where: { id },
+    });
+    if (!existing) {
+      throw new NotFoundException('promotion.not_found');
+    }
+
+    if (dto.max_uses !== undefined && dto.max_uses < existing.usedCount) {
+      throw new BadRequestException(
+        `Giới hạn số lượt dùng (${dto.max_uses}) không được nhỏ hơn số lượt đã sử dụng (${existing.usedCount})`,
+      );
+    }
 
     const data: any = {};
     if (dto.name !== undefined) data.name = dto.name.trim();

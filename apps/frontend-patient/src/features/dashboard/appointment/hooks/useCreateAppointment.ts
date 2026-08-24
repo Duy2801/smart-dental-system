@@ -1,9 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/features/dashboard/common/toast";
-import {
-  createPatientAppointment,
-  getAppointmentOptions,
-} from "../api";
+import { createPatientAppointment, getAppointmentOptions } from "../api";
 import { getCreateAppointmentErrorMessage } from "../utils";
 import type { BookingDate } from "../types";
 import { appointmentQueryKeys } from "./useAppointmentQueries";
@@ -83,10 +80,7 @@ export function useCreateAppointment({
     }
 
     if (!availableTimes.includes(selectedTime)) {
-      toast.error(
-        "Khung giờ không hợp lệ",
-        "Vui lòng chọn khung giờ khác.",
-      );
+      toast.error("Khung giờ không hợp lệ", "Vui lòng chọn khung giờ khác.");
       return;
     }
 
@@ -94,6 +88,7 @@ export function useCreateAppointment({
       const confirmedOptions = await getAppointmentOptions({
         serviceId: selectedServiceId,
         treatmentMethodId: selectedTreatmentMethodId,
+        doctorId: selectedDoctorId,
         date: selectedDateId,
         time: selectedTime,
       });
