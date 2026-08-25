@@ -7,13 +7,15 @@ type MailLocale = 'en' | 'vi';
 
 @Injectable()
 export class MailService {
-  private readonly transporter: Transporter;
+  private readonly systemTransporter: Transporter;
+  private readonly staffTransporter: Transporter;
 
   constructor(
     @Inject(mailConfig.KEY)
     private readonly config: ConfigType<typeof mailConfig>,
   ) {
-    this.transporter = nodemailer.createTransport(this.config.transport);
+    this.systemTransporter = nodemailer.createTransport(this.config.systemTransport);
+    this.staffTransporter = nodemailer.createTransport(this.config.staffTransport);
   }
 
   private wrapHtmlTemplate(title: string, bodyContent: string): string {
@@ -74,8 +76,8 @@ export class MailService {
     locale: MailLocale;
   }) {
     const vietnamese = data.locale === 'vi';
-    return this.transporter.sendMail({
-      from: this.config.from,
+    return this.systemTransporter.sendMail({
+      from: this.config.systemFrom,
       to: data.email,
       subject: vietnamese
         ? 'Mã xác thực tài khoản Smart Dental'
@@ -111,8 +113,8 @@ export class MailService {
   }) {
     const resetUrl = `${this.config.frontendUrl}/reset-password?token=${encodeURIComponent(data.token)}`;
     const vietnamese = data.locale === 'vi';
-    return this.transporter.sendMail({
-      from: this.config.from,
+    return this.systemTransporter.sendMail({
+      from: this.config.systemFrom,
       to: data.email,
       subject: vietnamese ? 'Yêu cầu đặt lại mật khẩu' : 'Reset your password',
       text: vietnamese
@@ -162,8 +164,8 @@ export class MailService {
 
     const code = data.appointmentCode || 'SD-' + Math.floor(100000 + Math.random() * 900000);
 
-    return this.transporter.sendMail({
-      from: this.config.from,
+    return this.staffTransporter.sendMail({
+      from: this.config.receptionistFrom,
       to: data.email,
       subject: `[Smart Dental] Xác nhận Lịch hẹn khám #${code}`,
       text: `Xin chào ${data.name}, lịch hẹn khám ${data.serviceName} với ${data.doctorName} vào lúc ${timeFormatted} đã được xác nhận thành công. Mã lịch hẹn: ${code}.`,
@@ -222,8 +224,8 @@ export class MailService {
 
     const code = data.appointmentCode || 'SD-APT';
 
-    return this.transporter.sendMail({
-      from: this.config.from,
+    return this.staffTransporter.sendMail({
+      from: this.config.receptionistFrom,
       to: data.email,
       subject: `[Nhắc Lịch Khám] Quý khách có lịch hẹn tại Smart Dental #${code}`,
       text: `Xin chào ${data.name}, Smart Dental xin nhắc nhở lịch hẹn khám ${data.serviceName} với ${data.doctorName} vào lúc ${timeFormatted}.`,
@@ -285,8 +287,8 @@ export class MailService {
 
     const code = data.appointmentCode || 'SD-APT';
 
-    return this.transporter.sendMail({
-      from: this.config.from,
+    return this.staffTransporter.sendMail({
+      from: this.config.receptionistFrom,
       to: data.email,
       subject: `[Smart Dental] Thông báo Đổi Lịch Hẹn Khám #${code}`,
       text: `Xin chào ${data.name}, lịch hẹn khám của bạn đã được dời từ ${oldTime} sang thời gian mới: ${newTime}.`,
@@ -338,8 +340,8 @@ export class MailService {
 
     const code = data.appointmentCode || 'SD-APT';
 
-    return this.transporter.sendMail({
-      from: this.config.from,
+    return this.staffTransporter.sendMail({
+      from: this.config.receptionistFrom,
       to: data.email,
       subject: `[Smart Dental] Xác nhận Hủy Lịch Hẹn #${code}`,
       text: `Xin chào ${data.name}, lịch hẹn khám vào lúc ${timeFormatted} đã được hủy. Lý do: ${data.reason || 'Theo yêu cầu'}.`,
@@ -418,8 +420,8 @@ export class MailService {
           </tr>
         `;
 
-    return this.transporter.sendMail({
-      from: this.config.from,
+    return this.staffTransporter.sendMail({
+      from: this.config.receptionistFrom,
       to: data.email,
       subject: `[Smart Dental] Biên lai thu tiền điện tử #${data.invoiceCode}`,
       text: `Xin chào ${data.name}, bạn đã thanh toán thành công ${new Intl.NumberFormat('vi-VN').format(data.amountPaid)}đ cho hóa đơn #${data.invoiceCode}.`,
@@ -510,8 +512,8 @@ export class MailService {
   }) {
     const formattedRemaining = new Intl.NumberFormat('vi-VN').format(data.remainingAmount);
 
-    return this.transporter.sendMail({
-      from: this.config.from,
+    return this.staffTransporter.sendMail({
+      from: this.config.receptionistFrom,
       to: data.email,
       subject: `[Smart Dental] Thông báo Thanh toán & Hướng dẫn chuyển khoản #${data.invoiceCode}`,
       text: `Xin chào ${data.name}, hóa đơn #${data.invoiceCode} của bạn còn số dư nợ ${formattedRemaining}đ. Vui lòng thanh toán theo hướng dẫn.`,
@@ -578,8 +580,8 @@ export class MailService {
     newScheduledAt: string;
     note?: string;
   }) {
-    return this.transporter.sendMail({
-      from: this.config.from,
+    return this.staffTransporter.sendMail({
+      from: this.config.receptionistFrom,
       to: data.email,
       subject: `[Smart Dental] Yêu Cầu Đổi Lịch #${data.requestCode} Đã Được Duyệt`,
       text: `Xin chào ${data.name}, yêu cầu đổi lịch #${data.requestCode} đã được phê duyệt. Thời gian mới: ${data.newScheduledAt}.`,
@@ -639,8 +641,8 @@ export class MailService {
   }) {
     const formattedAmount = new Intl.NumberFormat('vi-VN').format(data.refundAmount);
 
-    return this.transporter.sendMail({
-      from: this.config.from,
+    return this.staffTransporter.sendMail({
+      from: this.config.receptionistFrom,
       to: data.email,
       subject: `[Smart Dental] Xác Nhận Hoàn Phí #${data.requestCode}`,
       text: `Xin chào ${data.name}, yêu cầu hoàn phí #${data.requestCode} (${formattedAmount}đ) đã được phê duyệt.`,
@@ -696,8 +698,8 @@ export class MailService {
     requestTypeLabel: string;
     reason: string;
   }) {
-    return this.transporter.sendMail({
-      from: this.config.from,
+    return this.staffTransporter.sendMail({
+      from: this.config.receptionistFrom,
       to: data.email,
       subject: `[Smart Dental] Thông Báo Xử Lý Yêu Cầu #${data.requestCode}`,
       text: `Xin chào ${data.name}, yêu cầu ${data.requestTypeLabel} #${data.requestCode} chưa được chấp thuận. Lý do: ${data.reason}.`,
@@ -745,8 +747,8 @@ export class MailService {
     const queueNum = data.queueNumber || `#${data.appointmentCode.slice(-4)}`;
     const room = data.roomName || 'Phòng khám Chuyên khoa Nha';
 
-    return this.transporter.sendMail({
-      from: this.config.from,
+    return this.staffTransporter.sendMail({
+      from: this.config.receptionistFrom,
       to: data.email,
       subject: `[Smart Dental] Tiếp Nhận Thành Công - Số Thứ Tự ${queueNum}`,
       text: `Xin chào ${data.name}, bạn đã check-in thành công tại quầy tiếp đón. Số thứ tự: ${queueNum}. Bác sĩ: ${data.doctorName}.`,

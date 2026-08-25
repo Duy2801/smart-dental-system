@@ -7,7 +7,12 @@ function required(name: string): string {
 }
 
 export default registerAs('mail', () => {
-  const user = required('EMAIL_EMAIL_PASSUSER');
+  const systemUser = required('EMAIL_EMAIL_PASSUSER');
+  const systemPass = required('EMAIL_EMAIL_PASSWORD');
+
+  const staffUser = process.env.STAFF_MAIL_USER?.trim() || 'duchaunguyen131@gmail.com';
+  const staffPass = process.env.STAFF_MAIL_PASSWORD?.trim() || systemPass;
+
   const frontendUrl = required('FRONTEND_URL');
   const parsedUrl = new URL(frontendUrl);
 
@@ -16,14 +21,23 @@ export default registerAs('mail', () => {
   }
 
   return {
-    transport: {
+    systemTransport: {
       service: 'gmail',
       auth: {
-        user,
-        pass: required('EMAIL_EMAIL_PASSWORD'),
+        user: systemUser,
+        pass: systemPass,
       },
     },
-    from: process.env.MAIL_FROM?.trim() || user,
+    staffTransport: {
+      service: 'gmail',
+      auth: {
+        user: staffUser,
+        pass: staffPass,
+      },
+    },
+    systemFrom: `Smart Dental System <${systemUser}>`,
+    receptionistFrom: `Lễ Tân Smart Dental - Nguyễn Đức Hậu <${staffUser}>`,
+    doctorFrom: `BS. Nguyễn Đức Hậu - Smart Dental <${staffUser}>`,
     frontendUrl: frontendUrl.replace(/\/$/, ''),
   };
 });
