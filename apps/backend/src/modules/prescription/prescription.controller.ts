@@ -78,4 +78,14 @@ export class PrescriptionController {
   ) {
     return this.service.remove(id, user);
   }
+
+  @Post(':id/send-email')
+  @Roles('DOCTOR', 'ADMIN')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  sendEmail(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ) {
+    return this.service.sendPrescriptionToPatient(id, user);
+  }
 }

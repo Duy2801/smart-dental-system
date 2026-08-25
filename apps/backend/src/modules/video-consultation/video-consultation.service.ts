@@ -4,6 +4,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bull';
+import type { Queue } from 'bull';
 import { randomInt, randomUUID } from 'crypto';
 import {
   InvoiceStatus,
@@ -66,7 +68,7 @@ type ConsultRow = {
   };
 };
 
-function packMeeting(roomSlug: string, pin: string) {
+function packMeeting(roomSlug: string, pin: string): string {
   return `https://meet.jit.si/${roomSlug}#sdsPin=${pin}`;
 }
 
@@ -90,6 +92,8 @@ export class VideoConsultationService {
     private paymentService: PaymentService,
     private clinicConfigService: ClinicConfigService,
     private eventsGateway: EventsGateway,
+    @InjectQueue('mail-queue')
+    private readonly mailQueue: Queue,
   ) {}
 
   /** Lấy danh sách các gói tư vấn (ConsultationPackage) từ DB */
@@ -1062,5 +1066,96 @@ export class VideoConsultationService {
         return { role, content };
       })
       .filter((m): m is { role: string; content: string } => m !== null);
+  }
+
+  /** Gửi Link phòng Video Call & Lời nhắc qua Gmail & Thông báo In-App cho bệnh nhân */
+  async sendConsultationReminderToPatient(id: string, user: AuthenticatedUser) {
+    const row = await this.getAuthorizedRow(id, user, { doctorOnly: true });
+
+    const patient = await this.prisma.patient.findUnique({
+      where: { id: row.patientId },
+      include: {
+        user: { select: { id: true, fullName: true, email: true, phone: true } },
+      },
+    });
+
+    const doctor = await this.prisma.doctor.findUnique({
+      where: { id: row.doctorId },
+      include: {
+        user: { select: { fullName: true } },
+      },
+    });
+
+    const email = patient?.user?.email || patient?.email;
+    const patientName = (patient as any)?.fullName || patient?.user?.fullName || 'Quý khách';
+    const patientCode = patient?.patientCode || 'PAT-0000';
+    const doctorName = doctor?.user?.fullName || 'BS. Nguyễn Đức Hậu';
+
+    if (!email || email.endsWith('@clinic.local')) {
+      throw new BadRequestException('Bệnh nhân chưa có địa chỉ email hợp lệ để nhận lời nhắc phòng tư vấn');
+    }
+
+    let meetingUrl = row.meetingUrl;
+    let roomPin: string | null = null;
+    if (!meetingUrl) {
+      const roomSlug = `SmartDental${randomUUID().replace(/-/g, '')}`;
+      const pin = String(randomInt(100000, 1000000));
+      meetingUrl = packMeeting(roomSlug, pin);
+      await this.prisma.videoConsultation.update({
+        where: { id },
+        data: { meetingUrl },
+      });
+      roomPin = pin;
+    } else {
+      const unpacked = unpackMeeting(meetingUrl);
+      roomPin = unpacked.roomPin;
+    }
+
+    const { meetingUrl: baseMeetingUrl } = unpackMeeting(meetingUrl);
+    const directUrl = baseMeetingUrl || `http://localhost:3000/dashboard/consultations`;
+
+    const d = new Date(row.scheduledAt);
+    const timeFormatted = new Intl.DateTimeFormat('vi-VN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      day: '2-digit',
+      month: '2-digit',
+    }).format(d);
+
+    await this.mailQueue.add('send-consultation-reminder', {
+      name: patientName,
+      email,
+      patientCode,
+      doctorName,
+      scheduledAt: row.scheduledAt.toISOString(),
+      durationMinutes: row.durationMinutes,
+      meetingUrl: directUrl,
+      roomPin,
+    });
+
+    if (patient?.user?.id) {
+      const notif = await this.prisma.notification.create({
+        data: {
+          userId: patient.user.id,
+          type: 'SYSTEM',
+          title: '📹 Lời nhắc vào phòng tư vấn Video Call',
+          content: `${doctorName} nhắc bạn lịch hẹn tư vấn trực tuyến lúc ${timeFormatted}. Vui lòng chuẩn bị Camera/Micro để vào phòng đúng giờ.`,
+          channel: 'IN_APP',
+          status: 'SENT',
+          sentAt: new Date(),
+        },
+      });
+
+      try {
+        this.eventsGateway.emitToUser(patient.user.id, 'notification', notif);
+      } catch (err) {
+        console.error('Socket notification emit error:', err);
+      }
+    }
+
+    return {
+      success: true,
+      message: `Đã gửi link phòng tư vấn & lời nhắc thành công đến ${email}`,
+    };
   }
 }

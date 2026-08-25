@@ -36,8 +36,9 @@ export default registerAs('mail', () => {
       },
     },
     systemFrom: `Smart Dental System <${systemUser}>`,
-    receptionistFrom: `Lễ Tân Smart Dental - Nguyễn Đức Hậu <${staffUser}>`,
-    doctorFrom: `BS. Nguyễn Đức Hậu - Smart Dental <${staffUser}>`,
+    clinicFrom: `Nha Khoa Smart Dental <${staffUser}>`,
+    receptionistFrom: `Lễ Tân Nha Khoa Smart Dental <${staffUser}>`,
+    doctorFrom: `Phòng Khám Nha Khoa Smart Dental <${staffUser}>`,
     frontendUrl: frontendUrl.replace(/\/$/, ''),
   };
 });

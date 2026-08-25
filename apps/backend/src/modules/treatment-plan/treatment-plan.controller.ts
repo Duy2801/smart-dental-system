@@ -91,4 +91,14 @@ export class TreatmentPlanController {
   ) {
     return this.service.updateStep(id, stepId, dto, user);
   }
+
+  @Post(':id/send-email')
+  @Roles('DOCTOR', 'ADMIN')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  sendEmail(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ) {
+    return this.service.sendTreatmentPlanEmail(id, user);
+  }
 }

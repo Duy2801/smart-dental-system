@@ -4,6 +4,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bull';
+import type { Queue } from 'bull';
 import {
   InvoiceStatus,
   InvoiceType,
@@ -11,6 +13,7 @@ import {
 } from '../../../prisma/generated/enums';
 import type { AuthenticatedUser } from 'src/common/interfaces/authenticated-user.interface';
 import { PrismaService } from '../prisma/prisma.service';
+import { EventsGateway } from '../socket/events.gateway';
 import { CreateTreatmentPlanDto } from './dto/create-treatment-plan.dto';
 import { UpdateTreatmentPlanDto } from './dto/update-treatment-plan.dto';
 import { UpdateTreatmentPlanStepDto } from './dto/update-treatment-plan-step.dto';
@@ -35,6 +38,13 @@ const planInclude = {
       id: true,
       patientCode: true,
       fullName: true,
+      user: { select: { id: true, fullName: true, email: true, phone: true } },
+    },
+  },
+  doctor: {
+    select: {
+      id: true,
+      specialization: true,
       user: { select: { fullName: true } },
     },
   },
@@ -46,7 +56,12 @@ const planInclude = {
 
 @Injectable()
 export class TreatmentPlanService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private eventsGateway: EventsGateway,
+    @InjectQueue('mail-queue')
+    private readonly mailQueue: Queue,
+  ) {}
 
   async resolveDoctorIdByUserId(userId: string) {
     const doctor = await this.prisma.doctor.findUnique({
@@ -431,6 +446,86 @@ export class TreatmentPlanService {
     return {
       ...this.toSummary(p),
       steps: p.steps ?? [],
+    };
+  }
+
+  /** Gửi Phác đồ điều trị & Dự toán chi phí qua Gmail & Thông báo In-App cho bệnh nhân */
+  async sendTreatmentPlanEmail(id: string, user: AuthenticatedUser) {
+    const plan = await this.findPlanOrThrow(id);
+    await this.ensureCanAccess(plan.doctorId, user);
+
+    const email =
+      (plan.patient as any)?.user?.email || (plan.patient as any)?.email;
+    const patientName =
+      plan.patient?.fullName ??
+      (plan.patient as any)?.user?.fullName ??
+      'Quý khách';
+    const patientCode = plan.patient?.patientCode ?? 'PAT-0000';
+    const doctorName =
+      (plan as any)?.doctor?.user?.fullName ?? 'Bác sĩ Nha Khoa Smart Dental';
+
+    if (!email || email.endsWith('@clinic.local')) {
+      throw new BadRequestException(
+        'Bệnh nhân chưa có địa chỉ email hợp lệ để nhận phác đồ điều trị',
+      );
+    }
+
+    const steps = (plan.steps || []).map((s: any) => ({
+      stepOrder: s.stepOrder,
+      title: s.title,
+      description: s.description ?? null,
+      targetTooth: s.targetTooth ?? null,
+      estimatedCost: s.estimatedCost ? Number(s.estimatedCost) : null,
+      paymentAmount: s.paymentAmount ? Number(s.paymentAmount) : null,
+      expectedDate: s.expectedDate ? s.expectedDate.toISOString() : null,
+      status: s.status,
+    }));
+
+    const totalEstimatedCost = steps.reduce(
+      (sum, s) => sum + (s.estimatedCost || s.paymentAmount || 0),
+      0,
+    );
+
+    await this.mailQueue.add('send-treatment-plan', {
+      name: patientName,
+      email,
+      patientCode,
+      doctorName,
+      title: plan.title,
+      description: plan.description,
+      status: plan.status,
+      startDate: plan.startDate ? plan.startDate.toISOString() : null,
+      expectedEndDate: plan.expectedEndDate
+        ? plan.expectedEndDate.toISOString()
+        : null,
+      totalEstimatedCost,
+      steps,
+    });
+
+    const patientUserId = (plan.patient as any)?.user?.id;
+    if (patientUserId) {
+      const notif = await this.prisma.notification.create({
+        data: {
+          userId: patientUserId,
+          type: 'SYSTEM',
+          title: '📑 Kế hoạch điều trị & Dự toán chi phí',
+          content: `${doctorName} đã gửi Bản phác đồ điều trị "${plan.title}" và dự toán chi phí. Vui lòng kiểm tra email để duyệt lộ trình.`,
+          channel: 'IN_APP',
+          status: 'SENT',
+          sentAt: new Date(),
+        },
+      });
+
+      try {
+        this.eventsGateway.emitToUser(patientUserId, 'notification', notif);
+      } catch (err) {
+        console.error('Socket notification emit error:', err);
+      }
+    }
+
+    return {
+      success: true,
+      message: `Đã gửi phác đồ điều trị & bảng dự toán chi phí thành công đến ${email}`,
     };
   }
 }

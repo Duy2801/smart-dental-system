@@ -176,4 +176,82 @@ export class MailProcessor {
       checkedInAt: job.data.checkedInAt,
     });
   }
+
+  @Process('send-patient-welcome')
+  sendPatientWelcome(job: Job<any>) {
+    return this.mailService.sendPatientWelcome({
+      name: job.data.name,
+      email: job.data.email,
+      patientCode: job.data.patientCode,
+      phone: job.data.phone,
+    });
+  }
+
+  @Process('send-periodic-checkup-reminder')
+  sendPeriodicCheckupReminder(job: Job<any>) {
+    return this.mailService.sendPeriodicCheckupReminder({
+      name: job.data.name,
+      email: job.data.email,
+      patientCode: job.data.patientCode,
+      lastVisitDate: job.data.lastVisitDate,
+    });
+  }
+
+  @Process('send-prescription')
+  sendPrescription(job: Job<any>) {
+    return this.mailService.sendPrescription({
+      name: job.data.name,
+      email: job.data.email,
+      patientCode: job.data.patientCode,
+      doctorName: job.data.doctorName,
+      diagnosis: job.data.diagnosis,
+      notes: job.data.notes,
+      items: job.data.items,
+      createdAt: job.data.createdAt,
+    });
+  }
+
+  @Process('send-consultation-reminder')
+  sendConsultationReminder(job: Job<any>) {
+    return this.mailService.sendConsultationReminder({
+      name: job.data.name,
+      email: job.data.email,
+      patientCode: job.data.patientCode,
+      doctorName: job.data.doctorName,
+      scheduledAt: job.data.scheduledAt,
+      durationMinutes: job.data.durationMinutes,
+      meetingUrl: job.data.meetingUrl,
+      roomPin: job.data.roomPin,
+    });
+  }
+
+  @Process('send-treatment-plan')
+  sendTreatmentPlan(job: Job<any>) {
+    return this.mailService.sendTreatmentPlan({
+      name: job.data.name,
+      email: job.data.email,
+      patientCode: job.data.patientCode,
+      doctorName: job.data.doctorName,
+      title: job.data.title,
+      description: job.data.description,
+      status: job.data.status,
+      startDate: job.data.startDate,
+      expectedEndDate: job.data.expectedEndDate,
+      totalEstimatedCost: job.data.totalEstimatedCost,
+      steps: job.data.steps,
+    });
+  }
+
+  @Process('send-aftercare')
+  sendAftercare(job: Job<any>) {
+    return this.mailService.sendAftercare({
+      name: job.data.name,
+      email: job.data.email,
+      patientCode: job.data.patientCode,
+      doctorName: job.data.doctorName,
+      diagnosis: job.data.diagnosis,
+      serviceName: job.data.serviceName,
+      content: job.data.content,
+    });
+  }
 }

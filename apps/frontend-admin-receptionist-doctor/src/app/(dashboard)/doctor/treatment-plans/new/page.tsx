@@ -66,6 +66,7 @@ function NewTreatmentPlanContent() {
     { key: 1, title: "", targetTooth: "", estimatedCost: "", expectedDate: "", description: "" },
   ]);
   const [submitting, setSubmitting] = useState(false);
+  const [autoSendEmail, setAutoSendEmail] = useState(true);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiNote, setAiNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -231,7 +232,7 @@ function NewTreatmentPlanContent() {
     setSubmitting(true);
     setError(null);
     try {
-      await apiClient.post(`/treatment-plans?doctorId=${doctorId}`, {
+      const res = await apiClient.post<any>(`/treatment-plans?doctorId=${doctorId}`, {
         patientId,
         title: title.trim(),
         description: description.trim() || undefined,
@@ -245,6 +246,15 @@ function NewTreatmentPlanContent() {
           expectedDate: s.expectedDate || undefined,
         })),
       });
+
+      if (autoSendEmail && res.data?.id) {
+        try {
+          await apiClient.post(`/treatment-plans/${res.data.id}/send-email`);
+        } catch (emailErr) {
+          console.error("Auto send treatment plan email error:", emailErr);
+        }
+      }
+
       setSuccess(true);
       setTimeout(() => router.push("/doctor/treatment-plans"), 1500);
     } catch {
@@ -260,7 +270,7 @@ function NewTreatmentPlanContent() {
         <div className="mb-6 space-y-4">
           <Link
             href="/doctor/treatment-plans"
-            className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-brand-dark"
+            className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-brand-dark cursor-pointer"
           >
             <ArrowLeft size={16} />
             Quay lại danh sách
@@ -280,7 +290,7 @@ function NewTreatmentPlanContent() {
                 type="button"
                 onClick={handleAiDraft}
                 disabled={aiLoading || submitting || success || !patientId}
-                className="inline-flex items-center gap-2 rounded-xl border border-brand/30 bg-brand-light/50 px-4 py-2.5 text-sm font-medium text-brand-dark transition-all hover:bg-brand-light disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-xl border border-brand/30 bg-brand-light/50 px-4 py-2.5 text-sm font-medium text-brand-dark transition-all hover:bg-brand-light disabled:opacity-60 cursor-pointer"
               >
                 {aiLoading ? (
                   <SpinnerGap size={15} className="animate-spin" />
@@ -292,7 +302,7 @@ function NewTreatmentPlanContent() {
               <button
                 onClick={handleSubmit}
                 disabled={submitting || success}
-                className="inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-brand-dark hover:shadow active:scale-[0.98] disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-brand-dark hover:shadow active:scale-[0.98] disabled:opacity-60 cursor-pointer"
               >
               {submitting ? (
                 <SpinnerGap size={15} className="animate-spin" />
@@ -393,6 +403,21 @@ function NewTreatmentPlanContent() {
                   className="w-full resize-y rounded-xl border border-border bg-slate-50 px-4 py-2.5 text-sm text-brand-dark outline-none transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand"
                 />
               </div>
+
+              <div className="md:col-span-2">
+                <div className="flex items-center gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50/70 p-3.5 text-xs text-emerald-900">
+                  <input
+                    type="checkbox"
+                    id="autoSendEmail"
+                    checked={autoSendEmail}
+                    onChange={(e) => setAutoSendEmail(e.target.checked)}
+                    className="h-4 w-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                  />
+                  <label htmlFor="autoSendEmail" className="font-semibold cursor-pointer">
+                    ✉️ Tự động gửi Phác đồ điều trị & Bảng dự toán chi phí qua Gmail cho bệnh nhân sau khi lưu
+                  </label>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -425,7 +450,7 @@ function NewTreatmentPlanContent() {
                             onClick={() => moveUp(index)}
                             disabled={index === 0}
                             className={cn(
-                              "rounded p-1 text-muted-foreground transition-opacity hover:bg-muted",
+                              "rounded p-1 text-muted-foreground transition-opacity hover:bg-muted cursor-pointer",
                               index === 0 ? "opacity-0 pointer-events-none" : "opacity-0 group-hover:opacity-100",
                             )}
                           >
@@ -435,7 +460,7 @@ function NewTreatmentPlanContent() {
                             onClick={() => moveDown(index)}
                             disabled={index === steps.length - 1}
                             className={cn(
-                              "rounded p-1 text-muted-foreground transition-opacity hover:bg-muted",
+                              "rounded p-1 text-muted-foreground transition-opacity hover:bg-muted cursor-pointer",
                               index === steps.length - 1 ? "opacity-0 pointer-events-none" : "opacity-0 group-hover:opacity-100",
                             )}
                           >
@@ -444,7 +469,7 @@ function NewTreatmentPlanContent() {
                           <button
                             onClick={() => removeStep(step.key)}
                             disabled={steps.length === 1}
-                            className="rounded p-1 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-red-600 disabled:hidden"
+                            className="rounded p-1 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-red-600 disabled:hidden cursor-pointer"
                           >
                             <Trash size={14} />
                           </button>
@@ -524,7 +549,7 @@ function NewTreatmentPlanContent() {
                 <div className="relative pl-8 pt-2">
                   <button
                     onClick={addStep}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border py-4 text-sm font-medium text-muted-foreground transition-all hover:border-brand hover:bg-brand/5 hover:text-brand active:scale-[0.99]"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border py-4 text-sm font-medium text-muted-foreground transition-all hover:border-brand hover:bg-brand/5 hover:text-brand active:scale-[0.99] cursor-pointer"
                   >
                     <Plus size={18} weight="bold" />
                     Thêm bước điều trị mới

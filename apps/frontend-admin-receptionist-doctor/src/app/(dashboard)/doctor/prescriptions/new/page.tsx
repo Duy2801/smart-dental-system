@@ -87,6 +87,7 @@ function NewPrescriptionContent() {
     },
   ]);
   const [submitting, setSubmitting] = useState(false);
+  const [sendEmailAfterSave, setSendEmailAfterSave] = useState(true);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiNote, setAiNote] = useState<string | null>(null);
   const [allergyWarnings, setAllergyWarnings] = useState<string[]>([]);
@@ -252,18 +253,24 @@ function NewPrescriptionContent() {
     }
     setSubmitting(true);
     try {
-      await apiClient.post(`/prescriptions?doctorId=${doctorId}`, {
-        patientId: selectedPatientId,
-        medicalRecordId: selectedRecordId,
-        notes: notes.trim() || undefined,
-        items: filled.map((m) => ({
-          medicineName: m.medicineName.trim(),
-          dosage: m.dosage.trim(),
-          frequency: m.frequency.trim() || undefined,
-          duration: m.duration.trim() || undefined,
-          instruction: m.instruction.trim() || undefined,
-        })),
-      });
+      const res = await apiClient.post<{ id: string }>(
+        `/prescriptions?doctorId=${doctorId}`,
+        {
+          patientId: selectedPatientId,
+          medicalRecordId: selectedRecordId,
+          notes: notes.trim() || undefined,
+          items: filled.map((m) => ({
+            medicineName: m.medicineName.trim(),
+            dosage: m.dosage.trim(),
+            frequency: m.frequency.trim() || undefined,
+            duration: m.duration.trim() || undefined,
+            instruction: m.instruction.trim() || undefined,
+          })),
+        },
+      );
+      if (sendEmailAfterSave && res.data?.id) {
+        await apiClient.post(`/prescriptions/${res.data.id}/send-email`).catch(() => {});
+      }
       setSuccess(true);
       setTimeout(() => router.push("/doctor/prescriptions"), 1500);
     } catch {
@@ -437,6 +444,15 @@ function NewPrescriptionContent() {
                   placeholder="Lời dặn thêm cho bệnh nhân..."
                   className="w-full resize-none rounded-xl border border-border bg-white px-3 py-2.5 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand"
                 />
+                <label className="mt-2 flex items-center gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50/70 p-3 text-xs font-semibold text-emerald-900 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={sendEmailAfterSave}
+                    onChange={(e) => setSendEmailAfterSave(e.target.checked)}
+                    className="h-4 w-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                  />
+                  <span>✉️ Tự động gửi Toa thuốc điện tử & Hướng dẫn an toàn qua Gmail cho bệnh nhân sau khi lưu</span>
+                </label>
               </div>
             </div>
           </div>
