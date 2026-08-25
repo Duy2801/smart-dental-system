@@ -31,11 +31,11 @@ export function ReportsPageContent() {
     if (!report) return;
 
     const rows = [
-      ["Bao cao", getTimeFilterLabel(timeFilter)],
-      ["Tu ngay", formatDate(report.period.start)],
-      ["Den ngay", formatDate(report.period.end)],
+      ["Báo cáo", getTimeFilterLabel(timeFilter)],
+      ["Từ ngày", formatDate(report.period.start)],
+      ["Đến ngày", formatDate(report.period.end)],
       [],
-      ["Chi so", "Gia tri", "Loai", "Xu huong", "Mo ta xu huong"],
+      ["Chỉ số", "Giá trị", "Loại", "Xu hướng", "Mô tả xu hướng"],
       ...report.statCards.map((stat) => [
         stat.label,
         String(stat.value),
@@ -44,21 +44,21 @@ export function ReportsPageContent() {
         stat.trendLabel,
       ]),
       [],
-      ["Doanh thu theo thang", "Trieu VND"],
+      ["Doanh thu theo tháng", "Triệu VNĐ"],
       ...report.revenueChartData.map((item) => [
         item.label,
         String(item.value),
       ]),
       [],
-      ["Dich vu", "Doanh thu"],
+      ["Dịch vụ", "Doanh thu"],
       ...report.topServices.map((service) => [
         service.name,
         String(service.revenue),
       ]),
       [],
-      ["Nguon lich hen", "So luong", "Ty le"],
+      ["Nguồn lịch hẹn", "Số lượng", "Tỷ lệ"],
       ["Online", String(report.bookingSources.online.count), `${report.bookingSources.online.percentage}%`],
-      ["Truc tiep", String(report.bookingSources.walkIn.count), `${report.bookingSources.walkIn.percentage}%`],
+      ["Trực tiếp", String(report.bookingSources.walkIn.count), `${report.bookingSources.walkIn.percentage}%`],
       ["AI Chatbot", String(report.bookingSources.aiChatbot.count), `${report.bookingSources.aiChatbot.percentage}%`],
     ];
 
@@ -90,7 +90,7 @@ export function ReportsPageContent() {
             <div className="lg:col-span-2">
               <SkeletonChart />
             </div>
-            <div className="rounded-2xl border border-border bg-white shadow-sm">
+            <div className="rounded-2xl border border-border bg-white shadow-xs">
               <SkeletonRows count={5} />
             </div>
           </div>
@@ -98,8 +98,8 @@ export function ReportsPageContent() {
       ) : null}
 
       {isError ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
-          Khong tai duoc du lieu bao cao.
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+          Không tải được dữ liệu báo cáo thống kê.
         </div>
       ) : null}
 
@@ -143,40 +143,40 @@ function AllServicesModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button
         type="button"
-        aria-label="Dong danh sach dich vu"
-        className="absolute inset-0 bg-slate-950/45 backdrop-blur-sm"
+        aria-label="Đóng danh sách dịch vụ"
+        className="absolute inset-0 bg-slate-950/40 backdrop-blur-xs"
         onClick={onClose}
       />
-      <div className="relative max-h-[88vh] w-full max-w-2xl overflow-hidden rounded-2xl border border-border bg-white shadow-xl">
+      <div className="relative max-h-[88vh] w-full max-w-2xl overflow-hidden rounded-2xl border border-border bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
-          <h3 className="text-lg font-semibold text-brand-dark">
-            Tat ca dich vu theo doanh thu
+          <h3 className="text-lg font-bold text-brand-dark">
+            Tất cả dịch vụ theo doanh thu
           </h3>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-brand-dark hover:bg-muted"
+            className="rounded-xl border border-slate-200 px-3.5 py-1.5 text-xs font-semibold text-brand-dark hover:bg-slate-100 transition-colors"
           >
-            Dong
+            Đóng
           </button>
         </div>
         <div className="max-h-[70vh] overflow-y-auto p-6">
-          <div className="divide-y divide-border rounded-xl border border-border">
+          <div className="divide-y divide-slate-100 rounded-xl border border-slate-200">
             {services.map((service, index) => (
               <div
                 key={service.name}
                 className="flex items-center justify-between gap-4 px-4 py-3"
               >
                 <div className="flex min-w-0 items-center gap-3">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-light text-xs font-semibold text-brand-dark">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand/10 text-xs font-bold text-brand">
                     {index + 1}
                   </span>
-                  <span className="truncate text-sm font-medium text-brand-dark">
+                  <span className="truncate text-sm font-semibold text-brand-dark">
                     {service.name}
                   </span>
                 </div>
-                <span className="shrink-0 font-mono text-sm font-semibold text-brand-dark">
-                  {new Intl.NumberFormat("vi-VN").format(service.revenue)}d
+                <span className="shrink-0 font-mono text-sm font-bold text-brand-dark">
+                  {new Intl.NumberFormat("vi-VN").format(service.revenue)}đ
                 </span>
               </div>
             ))}
@@ -206,10 +206,10 @@ function formatDate(value: string) {
 
 function getTimeFilterLabel(timeFilter: ReportTimeFilter) {
   const labels: Record<ReportTimeFilter, string> = {
-    this_month: "Thang nay",
-    last_month: "Thang truoc",
-    this_quarter: "Quy nay",
-    this_year: "Nam nay",
+    this_month: "Tháng này",
+    last_month: "Tháng trước",
+    this_quarter: "Quý này",
+    this_year: "Năm nay",
   };
 
   return labels[timeFilter];

@@ -7,17 +7,17 @@ type BookingSourcesCardProps = {
 export function BookingSourcesCard({ sources }: BookingSourcesCardProps) {
   const sourceItems = [
     {
-      label: "Dat qua Web/App (Online)",
+      label: "Đặt qua Web/App (Online)",
       color: "bg-brand",
       value: sources.online,
     },
     {
-      label: "Den truc tiep (Walk-in)",
+      label: "Đến trực tiếp (Walk-in)",
       color: "bg-orange-400",
       value: sources.walkIn,
     },
     {
-      label: "AI Chatbot goi y",
+      label: "AI Chatbot gợi ý",
       color: "bg-purple-500",
       value: sources.aiChatbot,
     },
@@ -26,10 +26,10 @@ export function BookingSourcesCard({ sources }: BookingSourcesCardProps) {
   return (
     <div className="rounded-xl border border-border bg-white p-6 shadow-sm">
       <h3 className="mb-6 text-base font-semibold text-brand-dark">
-        Nguon khach hang (Lich hen)
+        Nguồn khách hàng (Lịch hẹn)
       </h3>
       <p className="mb-4 text-sm text-muted-foreground">
-        Tong {sources.total} lich hen
+        Tổng {sources.total} lịch hẹn
       </p>
       <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted">
         {sourceItems.map((item) => (

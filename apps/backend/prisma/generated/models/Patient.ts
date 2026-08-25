@@ -265,6 +265,7 @@ export type PatientWhereInput = {
   reviews?: Prisma.ReviewListRelationFilter
   chatbotConversations?: Prisma.ChatbotConversationListRelationFilter
   videoConsultations?: Prisma.VideoConsultationListRelationFilter
+  refundRequests?: Prisma.RefundRequestListRelationFilter
 }
 
 export type PatientOrderByWithRelationInput = {
@@ -293,6 +294,7 @@ export type PatientOrderByWithRelationInput = {
   reviews?: Prisma.ReviewOrderByRelationAggregateInput
   chatbotConversations?: Prisma.ChatbotConversationOrderByRelationAggregateInput
   videoConsultations?: Prisma.VideoConsultationOrderByRelationAggregateInput
+  refundRequests?: Prisma.RefundRequestOrderByRelationAggregateInput
 }
 
 export type PatientWhereUniqueInput = Prisma.AtLeast<{
@@ -324,6 +326,7 @@ export type PatientWhereUniqueInput = Prisma.AtLeast<{
   reviews?: Prisma.ReviewListRelationFilter
   chatbotConversations?: Prisma.ChatbotConversationListRelationFilter
   videoConsultations?: Prisma.VideoConsultationListRelationFilter
+  refundRequests?: Prisma.RefundRequestListRelationFilter
 }, "id" | "userId" | "patientCode">
 
 export type PatientOrderByWithAggregationInput = {
@@ -391,6 +394,7 @@ export type PatientCreateInput = {
   reviews?: Prisma.ReviewCreateNestedManyWithoutPatientInput
   chatbotConversations?: Prisma.ChatbotConversationCreateNestedManyWithoutPatientInput
   videoConsultations?: Prisma.VideoConsultationCreateNestedManyWithoutPatientInput
+  refundRequests?: Prisma.RefundRequestCreateNestedManyWithoutPatientInput
 }
 
 export type PatientUncheckedCreateInput = {
@@ -418,6 +422,7 @@ export type PatientUncheckedCreateInput = {
   reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutPatientInput
   chatbotConversations?: Prisma.ChatbotConversationUncheckedCreateNestedManyWithoutPatientInput
   videoConsultations?: Prisma.VideoConsultationUncheckedCreateNestedManyWithoutPatientInput
+  refundRequests?: Prisma.RefundRequestUncheckedCreateNestedManyWithoutPatientInput
 }
 
 export type PatientUpdateInput = {
@@ -445,6 +450,7 @@ export type PatientUpdateInput = {
   reviews?: Prisma.ReviewUpdateManyWithoutPatientNestedInput
   chatbotConversations?: Prisma.ChatbotConversationUpdateManyWithoutPatientNestedInput
   videoConsultations?: Prisma.VideoConsultationUpdateManyWithoutPatientNestedInput
+  refundRequests?: Prisma.RefundRequestUpdateManyWithoutPatientNestedInput
 }
 
 export type PatientUncheckedUpdateInput = {
@@ -472,6 +478,7 @@ export type PatientUncheckedUpdateInput = {
   reviews?: Prisma.ReviewUncheckedUpdateManyWithoutPatientNestedInput
   chatbotConversations?: Prisma.ChatbotConversationUncheckedUpdateManyWithoutPatientNestedInput
   videoConsultations?: Prisma.VideoConsultationUncheckedUpdateManyWithoutPatientNestedInput
+  refundRequests?: Prisma.RefundRequestUncheckedUpdateManyWithoutPatientNestedInput
 }
 
 export type PatientCreateManyInput = {
@@ -763,6 +770,20 @@ export type PatientUpdateOneRequiredWithoutVideoConsultationsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.PatientUpdateToOneWithWhereWithoutVideoConsultationsInput, Prisma.PatientUpdateWithoutVideoConsultationsInput>, Prisma.PatientUncheckedUpdateWithoutVideoConsultationsInput>
 }
 
+export type PatientCreateNestedOneWithoutRefundRequestsInput = {
+  create?: Prisma.XOR<Prisma.PatientCreateWithoutRefundRequestsInput, Prisma.PatientUncheckedCreateWithoutRefundRequestsInput>
+  connectOrCreate?: Prisma.PatientCreateOrConnectWithoutRefundRequestsInput
+  connect?: Prisma.PatientWhereUniqueInput
+}
+
+export type PatientUpdateOneRequiredWithoutRefundRequestsNestedInput = {
+  create?: Prisma.XOR<Prisma.PatientCreateWithoutRefundRequestsInput, Prisma.PatientUncheckedCreateWithoutRefundRequestsInput>
+  connectOrCreate?: Prisma.PatientCreateOrConnectWithoutRefundRequestsInput
+  upsert?: Prisma.PatientUpsertWithoutRefundRequestsInput
+  connect?: Prisma.PatientWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.PatientUpdateToOneWithWhereWithoutRefundRequestsInput, Prisma.PatientUpdateWithoutRefundRequestsInput>, Prisma.PatientUncheckedUpdateWithoutRefundRequestsInput>
+}
+
 export type PatientCreateWithoutUserInput = {
   id?: string
   patientCode: string
@@ -787,6 +808,7 @@ export type PatientCreateWithoutUserInput = {
   reviews?: Prisma.ReviewCreateNestedManyWithoutPatientInput
   chatbotConversations?: Prisma.ChatbotConversationCreateNestedManyWithoutPatientInput
   videoConsultations?: Prisma.VideoConsultationCreateNestedManyWithoutPatientInput
+  refundRequests?: Prisma.RefundRequestCreateNestedManyWithoutPatientInput
 }
 
 export type PatientUncheckedCreateWithoutUserInput = {
@@ -813,6 +835,7 @@ export type PatientUncheckedCreateWithoutUserInput = {
   reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutPatientInput
   chatbotConversations?: Prisma.ChatbotConversationUncheckedCreateNestedManyWithoutPatientInput
   videoConsultations?: Prisma.VideoConsultationUncheckedCreateNestedManyWithoutPatientInput
+  refundRequests?: Prisma.RefundRequestUncheckedCreateNestedManyWithoutPatientInput
 }
 
 export type PatientCreateOrConnectWithoutUserInput = {
@@ -855,6 +878,7 @@ export type PatientUpdateWithoutUserInput = {
   reviews?: Prisma.ReviewUpdateManyWithoutPatientNestedInput
   chatbotConversations?: Prisma.ChatbotConversationUpdateManyWithoutPatientNestedInput
   videoConsultations?: Prisma.VideoConsultationUpdateManyWithoutPatientNestedInput
+  refundRequests?: Prisma.RefundRequestUpdateManyWithoutPatientNestedInput
 }
 
 export type PatientUncheckedUpdateWithoutUserInput = {
@@ -881,6 +905,7 @@ export type PatientUncheckedUpdateWithoutUserInput = {
   reviews?: Prisma.ReviewUncheckedUpdateManyWithoutPatientNestedInput
   chatbotConversations?: Prisma.ChatbotConversationUncheckedUpdateManyWithoutPatientNestedInput
   videoConsultations?: Prisma.VideoConsultationUncheckedUpdateManyWithoutPatientNestedInput
+  refundRequests?: Prisma.RefundRequestUncheckedUpdateManyWithoutPatientNestedInput
 }
 
 export type PatientCreateWithoutPatientAccountsInput = {
@@ -907,6 +932,7 @@ export type PatientCreateWithoutPatientAccountsInput = {
   reviews?: Prisma.ReviewCreateNestedManyWithoutPatientInput
   chatbotConversations?: Prisma.ChatbotConversationCreateNestedManyWithoutPatientInput
   videoConsultations?: Prisma.VideoConsultationCreateNestedManyWithoutPatientInput
+  refundRequests?: Prisma.RefundRequestCreateNestedManyWithoutPatientInput
 }
 
 export type PatientUncheckedCreateWithoutPatientAccountsInput = {
@@ -933,6 +959,7 @@ export type PatientUncheckedCreateWithoutPatientAccountsInput = {
   reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutPatientInput
   chatbotConversations?: Prisma.ChatbotConversationUncheckedCreateNestedManyWithoutPatientInput
   videoConsultations?: Prisma.VideoConsultationUncheckedCreateNestedManyWithoutPatientInput
+  refundRequests?: Prisma.RefundRequestUncheckedCreateNestedManyWithoutPatientInput
 }
 
 export type PatientCreateOrConnectWithoutPatientAccountsInput = {
@@ -975,6 +1002,7 @@ export type PatientUpdateWithoutPatientAccountsInput = {
   reviews?: Prisma.ReviewUpdateManyWithoutPatientNestedInput
   chatbotConversations?: Prisma.ChatbotConversationUpdateManyWithoutPatientNestedInput
   videoConsultations?: Prisma.VideoConsultationUpdateManyWithoutPatientNestedInput
+  refundRequests?: Prisma.RefundRequestUpdateManyWithoutPatientNestedInput
 }
 
 export type PatientUncheckedUpdateWithoutPatientAccountsInput = {
@@ -1001,6 +1029,7 @@ export type PatientUncheckedUpdateWithoutPatientAccountsInput = {
   reviews?: Prisma.ReviewUncheckedUpdateManyWithoutPatientNestedInput
   chatbotConversations?: Prisma.ChatbotConversationUncheckedUpdateManyWithoutPatientNestedInput
   videoConsultations?: Prisma.VideoConsultationUncheckedUpdateManyWithoutPatientNestedInput
+  refundRequests?: Prisma.RefundRequestUncheckedUpdateManyWithoutPatientNestedInput
 }
 
 export type PatientCreateWithoutAppointmentsInput = {
@@ -1027,6 +1056,7 @@ export type PatientCreateWithoutAppointmentsInput = {
   reviews?: Prisma.ReviewCreateNestedManyWithoutPatientInput
   chatbotConversations?: Prisma.ChatbotConversationCreateNestedManyWithoutPatientInput
   videoConsultations?: Prisma.VideoConsultationCreateNestedManyWithoutPatientInput
+  refundRequests?: Prisma.RefundRequestCreateNestedManyWithoutPatientInput
 }
 
 export type PatientUncheckedCreateWithoutAppointmentsInput = {
@@ -1053,6 +1083,7 @@ export type PatientUncheckedCreateWithoutAppointmentsInput = {
   reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutPatientInput
   chatbotConversations?: Prisma.ChatbotConversationUncheckedCreateNestedManyWithoutPatientInput
   videoConsultations?: Prisma.VideoConsultationUncheckedCreateNestedManyWithoutPatientInput
+  refundRequests?: Prisma.RefundRequestUncheckedCreateNestedManyWithoutPatientInput
 }
 
 export type PatientCreateOrConnectWithoutAppointmentsInput = {
@@ -1095,6 +1126,7 @@ export type PatientUpdateWithoutAppointmentsInput = {
   reviews?: Prisma.ReviewUpdateManyWithoutPatientNestedInput
   chatbotConversations?: Prisma.ChatbotConversationUpdateManyWithoutPatientNestedInput
   videoConsultations?: Prisma.VideoConsultationUpdateManyWithoutPatientNestedInput
+  refundRequests?: Prisma.RefundRequestUpdateManyWithoutPatientNestedInput
 }
 
 export type PatientUncheckedUpdateWithoutAppointmentsInput = {
@@ -1121,6 +1153,7 @@ export type PatientUncheckedUpdateWithoutAppointmentsInput = {
   reviews?: Prisma.ReviewUncheckedUpdateManyWithoutPatientNestedInput
   chatbotConversations?: Prisma.ChatbotConversationUncheckedUpdateManyWithoutPatientNestedInput
   videoConsultations?: Prisma.VideoConsultationUncheckedUpdateManyWithoutPatientNestedInput
+  refundRequests?: Prisma.RefundRequestUncheckedUpdateManyWithoutPatientNestedInput
 }
 
 export type PatientCreateWithoutMedicalRecordsInput = {
@@ -1147,6 +1180,7 @@ export type PatientCreateWithoutMedicalRecordsInput = {
   reviews?: Prisma.ReviewCreateNestedManyWithoutPatientInput
   chatbotConversations?: Prisma.ChatbotConversationCreateNestedManyWithoutPatientInput
   videoConsultations?: Prisma.VideoConsultationCreateNestedManyWithoutPatientInput
+  refundRequests?: Prisma.RefundRequestCreateNestedManyWithoutPatientInput
 }
 
 export type PatientUncheckedCreateWithoutMedicalRecordsInput = {
@@ -1173,6 +1207,7 @@ export type PatientUncheckedCreateWithoutMedicalRecordsInput = {
   reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutPatientInput
   chatbotConversations?: Prisma.ChatbotConversationUncheckedCreateNestedManyWithoutPatientInput
   videoConsultations?: Prisma.VideoConsultationUncheckedCreateNestedManyWithoutPatientInput
+  refundRequests?: Prisma.RefundRequestUncheckedCreateNestedManyWithoutPatientInput
 }
 
 export type PatientCreateOrConnectWithoutMedicalRecordsInput = {
@@ -1215,6 +1250,7 @@ export type PatientUpdateWithoutMedicalRecordsInput = {
   reviews?: Prisma.ReviewUpdateManyWithoutPatientNestedInput
   chatbotConversations?: Prisma.ChatbotConversationUpdateManyWithoutPatientNestedInput
   videoConsultations?: Prisma.VideoConsultationUpdateManyWithoutPatientNestedInput
+  refundRequests?: Prisma.RefundRequestUpdateManyWithoutPatientNestedInput
 }
 
 export type PatientUncheckedUpdateWithoutMedicalRecordsInput = {
@@ -1241,6 +1277,7 @@ export type PatientUncheckedUpdateWithoutMedicalRecordsInput = {
   reviews?: Prisma.ReviewUncheckedUpdateManyWithoutPatientNestedInput
   chatbotConversations?: Prisma.ChatbotConversationUncheckedUpdateManyWithoutPatientNestedInput
   videoConsultations?: Prisma.VideoConsultationUncheckedUpdateManyWithoutPatientNestedInput
+  refundRequests?: Prisma.RefundRequestUncheckedUpdateManyWithoutPatientNestedInput
 }
 
 export type PatientCreateWithoutTreatmentPlansInput = {
@@ -1267,6 +1304,7 @@ export type PatientCreateWithoutTreatmentPlansInput = {
   reviews?: Prisma.ReviewCreateNestedManyWithoutPatientInput
   chatbotConversations?: Prisma.ChatbotConversationCreateNestedManyWithoutPatientInput
   videoConsultations?: Prisma.VideoConsultationCreateNestedManyWithoutPatientInput
+  refundRequests?: Prisma.RefundRequestCreateNestedManyWithoutPatientInput
 }
 
 export type PatientUncheckedCreateWithoutTreatmentPlansInput = {
@@ -1293,6 +1331,7 @@ export type PatientUncheckedCreateWithoutTreatmentPlansInput = {
   reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutPatientInput
   chatbotConversations?: Prisma.ChatbotConversationUncheckedCreateNestedManyWithoutPatientInput
   videoConsultations?: Prisma.VideoConsultationUncheckedCreateNestedManyWithoutPatientInput
+  refundRequests?: Prisma.RefundRequestUncheckedCreateNestedManyWithoutPatientInput
 }
 
 export type PatientCreateOrConnectWithoutTreatmentPlansInput = {
@@ -1335,6 +1374,7 @@ export type PatientUpdateWithoutTreatmentPlansInput = {
   reviews?: Prisma.ReviewUpdateManyWithoutPatientNestedInput
   chatbotConversations?: Prisma.ChatbotConversationUpdateManyWithoutPatientNestedInput
   videoConsultations?: Prisma.VideoConsultationUpdateManyWithoutPatientNestedInput
+  refundRequests?: Prisma.RefundRequestUpdateManyWithoutPatientNestedInput
 }
 
 export type PatientUncheckedUpdateWithoutTreatmentPlansInput = {
@@ -1361,6 +1401,7 @@ export type PatientUncheckedUpdateWithoutTreatmentPlansInput = {
   reviews?: Prisma.ReviewUncheckedUpdateManyWithoutPatientNestedInput
   chatbotConversations?: Prisma.ChatbotConversationUncheckedUpdateManyWithoutPatientNestedInput
   videoConsultations?: Prisma.VideoConsultationUncheckedUpdateManyWithoutPatientNestedInput
+  refundRequests?: Prisma.RefundRequestUncheckedUpdateManyWithoutPatientNestedInput
 }
 
 export type PatientCreateWithoutClinicalCasesInput = {
@@ -1387,6 +1428,7 @@ export type PatientCreateWithoutClinicalCasesInput = {
   reviews?: Prisma.ReviewCreateNestedManyWithoutPatientInput
   chatbotConversations?: Prisma.ChatbotConversationCreateNestedManyWithoutPatientInput
   videoConsultations?: Prisma.VideoConsultationCreateNestedManyWithoutPatientInput
+  refundRequests?: Prisma.RefundRequestCreateNestedManyWithoutPatientInput
 }
 
 export type PatientUncheckedCreateWithoutClinicalCasesInput = {
@@ -1413,6 +1455,7 @@ export type PatientUncheckedCreateWithoutClinicalCasesInput = {
   reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutPatientInput
   chatbotConversations?: Prisma.ChatbotConversationUncheckedCreateNestedManyWithoutPatientInput
   videoConsultations?: Prisma.VideoConsultationUncheckedCreateNestedManyWithoutPatientInput
+  refundRequests?: Prisma.RefundRequestUncheckedCreateNestedManyWithoutPatientInput
 }
 
 export type PatientCreateOrConnectWithoutClinicalCasesInput = {
@@ -1455,6 +1498,7 @@ export type PatientUpdateWithoutClinicalCasesInput = {
   reviews?: Prisma.ReviewUpdateManyWithoutPatientNestedInput
   chatbotConversations?: Prisma.ChatbotConversationUpdateManyWithoutPatientNestedInput
   videoConsultations?: Prisma.VideoConsultationUpdateManyWithoutPatientNestedInput
+  refundRequests?: Prisma.RefundRequestUpdateManyWithoutPatientNestedInput
 }
 
 export type PatientUncheckedUpdateWithoutClinicalCasesInput = {
@@ -1481,6 +1525,7 @@ export type PatientUncheckedUpdateWithoutClinicalCasesInput = {
   reviews?: Prisma.ReviewUncheckedUpdateManyWithoutPatientNestedInput
   chatbotConversations?: Prisma.ChatbotConversationUncheckedUpdateManyWithoutPatientNestedInput
   videoConsultations?: Prisma.VideoConsultationUncheckedUpdateManyWithoutPatientNestedInput
+  refundRequests?: Prisma.RefundRequestUncheckedUpdateManyWithoutPatientNestedInput
 }
 
 export type PatientCreateWithoutInvoicesInput = {
@@ -1507,6 +1552,7 @@ export type PatientCreateWithoutInvoicesInput = {
   reviews?: Prisma.ReviewCreateNestedManyWithoutPatientInput
   chatbotConversations?: Prisma.ChatbotConversationCreateNestedManyWithoutPatientInput
   videoConsultations?: Prisma.VideoConsultationCreateNestedManyWithoutPatientInput
+  refundRequests?: Prisma.RefundRequestCreateNestedManyWithoutPatientInput
 }
 
 export type PatientUncheckedCreateWithoutInvoicesInput = {
@@ -1533,6 +1579,7 @@ export type PatientUncheckedCreateWithoutInvoicesInput = {
   reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutPatientInput
   chatbotConversations?: Prisma.ChatbotConversationUncheckedCreateNestedManyWithoutPatientInput
   videoConsultations?: Prisma.VideoConsultationUncheckedCreateNestedManyWithoutPatientInput
+  refundRequests?: Prisma.RefundRequestUncheckedCreateNestedManyWithoutPatientInput
 }
 
 export type PatientCreateOrConnectWithoutInvoicesInput = {
@@ -1575,6 +1622,7 @@ export type PatientUpdateWithoutInvoicesInput = {
   reviews?: Prisma.ReviewUpdateManyWithoutPatientNestedInput
   chatbotConversations?: Prisma.ChatbotConversationUpdateManyWithoutPatientNestedInput
   videoConsultations?: Prisma.VideoConsultationUpdateManyWithoutPatientNestedInput
+  refundRequests?: Prisma.RefundRequestUpdateManyWithoutPatientNestedInput
 }
 
 export type PatientUncheckedUpdateWithoutInvoicesInput = {
@@ -1601,6 +1649,7 @@ export type PatientUncheckedUpdateWithoutInvoicesInput = {
   reviews?: Prisma.ReviewUncheckedUpdateManyWithoutPatientNestedInput
   chatbotConversations?: Prisma.ChatbotConversationUncheckedUpdateManyWithoutPatientNestedInput
   videoConsultations?: Prisma.VideoConsultationUncheckedUpdateManyWithoutPatientNestedInput
+  refundRequests?: Prisma.RefundRequestUncheckedUpdateManyWithoutPatientNestedInput
 }
 
 export type PatientCreateWithoutPrescriptionsInput = {
@@ -1627,6 +1676,7 @@ export type PatientCreateWithoutPrescriptionsInput = {
   reviews?: Prisma.ReviewCreateNestedManyWithoutPatientInput
   chatbotConversations?: Prisma.ChatbotConversationCreateNestedManyWithoutPatientInput
   videoConsultations?: Prisma.VideoConsultationCreateNestedManyWithoutPatientInput
+  refundRequests?: Prisma.RefundRequestCreateNestedManyWithoutPatientInput
 }
 
 export type PatientUncheckedCreateWithoutPrescriptionsInput = {
@@ -1653,6 +1703,7 @@ export type PatientUncheckedCreateWithoutPrescriptionsInput = {
   reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutPatientInput
   chatbotConversations?: Prisma.ChatbotConversationUncheckedCreateNestedManyWithoutPatientInput
   videoConsultations?: Prisma.VideoConsultationUncheckedCreateNestedManyWithoutPatientInput
+  refundRequests?: Prisma.RefundRequestUncheckedCreateNestedManyWithoutPatientInput
 }
 
 export type PatientCreateOrConnectWithoutPrescriptionsInput = {
@@ -1695,6 +1746,7 @@ export type PatientUpdateWithoutPrescriptionsInput = {
   reviews?: Prisma.ReviewUpdateManyWithoutPatientNestedInput
   chatbotConversations?: Prisma.ChatbotConversationUpdateManyWithoutPatientNestedInput
   videoConsultations?: Prisma.VideoConsultationUpdateManyWithoutPatientNestedInput
+  refundRequests?: Prisma.RefundRequestUpdateManyWithoutPatientNestedInput
 }
 
 export type PatientUncheckedUpdateWithoutPrescriptionsInput = {
@@ -1721,6 +1773,7 @@ export type PatientUncheckedUpdateWithoutPrescriptionsInput = {
   reviews?: Prisma.ReviewUncheckedUpdateManyWithoutPatientNestedInput
   chatbotConversations?: Prisma.ChatbotConversationUncheckedUpdateManyWithoutPatientNestedInput
   videoConsultations?: Prisma.VideoConsultationUncheckedUpdateManyWithoutPatientNestedInput
+  refundRequests?: Prisma.RefundRequestUncheckedUpdateManyWithoutPatientNestedInput
 }
 
 export type PatientCreateWithoutReviewsInput = {
@@ -1747,6 +1800,7 @@ export type PatientCreateWithoutReviewsInput = {
   invoices?: Prisma.InvoiceCreateNestedManyWithoutPatientInput
   chatbotConversations?: Prisma.ChatbotConversationCreateNestedManyWithoutPatientInput
   videoConsultations?: Prisma.VideoConsultationCreateNestedManyWithoutPatientInput
+  refundRequests?: Prisma.RefundRequestCreateNestedManyWithoutPatientInput
 }
 
 export type PatientUncheckedCreateWithoutReviewsInput = {
@@ -1773,6 +1827,7 @@ export type PatientUncheckedCreateWithoutReviewsInput = {
   invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutPatientInput
   chatbotConversations?: Prisma.ChatbotConversationUncheckedCreateNestedManyWithoutPatientInput
   videoConsultations?: Prisma.VideoConsultationUncheckedCreateNestedManyWithoutPatientInput
+  refundRequests?: Prisma.RefundRequestUncheckedCreateNestedManyWithoutPatientInput
 }
 
 export type PatientCreateOrConnectWithoutReviewsInput = {
@@ -1815,6 +1870,7 @@ export type PatientUpdateWithoutReviewsInput = {
   invoices?: Prisma.InvoiceUpdateManyWithoutPatientNestedInput
   chatbotConversations?: Prisma.ChatbotConversationUpdateManyWithoutPatientNestedInput
   videoConsultations?: Prisma.VideoConsultationUpdateManyWithoutPatientNestedInput
+  refundRequests?: Prisma.RefundRequestUpdateManyWithoutPatientNestedInput
 }
 
 export type PatientUncheckedUpdateWithoutReviewsInput = {
@@ -1841,6 +1897,7 @@ export type PatientUncheckedUpdateWithoutReviewsInput = {
   invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutPatientNestedInput
   chatbotConversations?: Prisma.ChatbotConversationUncheckedUpdateManyWithoutPatientNestedInput
   videoConsultations?: Prisma.VideoConsultationUncheckedUpdateManyWithoutPatientNestedInput
+  refundRequests?: Prisma.RefundRequestUncheckedUpdateManyWithoutPatientNestedInput
 }
 
 export type PatientCreateWithoutChatbotConversationsInput = {
@@ -1867,6 +1924,7 @@ export type PatientCreateWithoutChatbotConversationsInput = {
   invoices?: Prisma.InvoiceCreateNestedManyWithoutPatientInput
   reviews?: Prisma.ReviewCreateNestedManyWithoutPatientInput
   videoConsultations?: Prisma.VideoConsultationCreateNestedManyWithoutPatientInput
+  refundRequests?: Prisma.RefundRequestCreateNestedManyWithoutPatientInput
 }
 
 export type PatientUncheckedCreateWithoutChatbotConversationsInput = {
@@ -1893,6 +1951,7 @@ export type PatientUncheckedCreateWithoutChatbotConversationsInput = {
   invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutPatientInput
   reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutPatientInput
   videoConsultations?: Prisma.VideoConsultationUncheckedCreateNestedManyWithoutPatientInput
+  refundRequests?: Prisma.RefundRequestUncheckedCreateNestedManyWithoutPatientInput
 }
 
 export type PatientCreateOrConnectWithoutChatbotConversationsInput = {
@@ -1935,6 +1994,7 @@ export type PatientUpdateWithoutChatbotConversationsInput = {
   invoices?: Prisma.InvoiceUpdateManyWithoutPatientNestedInput
   reviews?: Prisma.ReviewUpdateManyWithoutPatientNestedInput
   videoConsultations?: Prisma.VideoConsultationUpdateManyWithoutPatientNestedInput
+  refundRequests?: Prisma.RefundRequestUpdateManyWithoutPatientNestedInput
 }
 
 export type PatientUncheckedUpdateWithoutChatbotConversationsInput = {
@@ -1961,6 +2021,7 @@ export type PatientUncheckedUpdateWithoutChatbotConversationsInput = {
   invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutPatientNestedInput
   reviews?: Prisma.ReviewUncheckedUpdateManyWithoutPatientNestedInput
   videoConsultations?: Prisma.VideoConsultationUncheckedUpdateManyWithoutPatientNestedInput
+  refundRequests?: Prisma.RefundRequestUncheckedUpdateManyWithoutPatientNestedInput
 }
 
 export type PatientCreateWithoutVideoConsultationsInput = {
@@ -1987,6 +2048,7 @@ export type PatientCreateWithoutVideoConsultationsInput = {
   invoices?: Prisma.InvoiceCreateNestedManyWithoutPatientInput
   reviews?: Prisma.ReviewCreateNestedManyWithoutPatientInput
   chatbotConversations?: Prisma.ChatbotConversationCreateNestedManyWithoutPatientInput
+  refundRequests?: Prisma.RefundRequestCreateNestedManyWithoutPatientInput
 }
 
 export type PatientUncheckedCreateWithoutVideoConsultationsInput = {
@@ -2013,6 +2075,7 @@ export type PatientUncheckedCreateWithoutVideoConsultationsInput = {
   invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutPatientInput
   reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutPatientInput
   chatbotConversations?: Prisma.ChatbotConversationUncheckedCreateNestedManyWithoutPatientInput
+  refundRequests?: Prisma.RefundRequestUncheckedCreateNestedManyWithoutPatientInput
 }
 
 export type PatientCreateOrConnectWithoutVideoConsultationsInput = {
@@ -2055,6 +2118,7 @@ export type PatientUpdateWithoutVideoConsultationsInput = {
   invoices?: Prisma.InvoiceUpdateManyWithoutPatientNestedInput
   reviews?: Prisma.ReviewUpdateManyWithoutPatientNestedInput
   chatbotConversations?: Prisma.ChatbotConversationUpdateManyWithoutPatientNestedInput
+  refundRequests?: Prisma.RefundRequestUpdateManyWithoutPatientNestedInput
 }
 
 export type PatientUncheckedUpdateWithoutVideoConsultationsInput = {
@@ -2081,6 +2145,131 @@ export type PatientUncheckedUpdateWithoutVideoConsultationsInput = {
   invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutPatientNestedInput
   reviews?: Prisma.ReviewUncheckedUpdateManyWithoutPatientNestedInput
   chatbotConversations?: Prisma.ChatbotConversationUncheckedUpdateManyWithoutPatientNestedInput
+  refundRequests?: Prisma.RefundRequestUncheckedUpdateManyWithoutPatientNestedInput
+}
+
+export type PatientCreateWithoutRefundRequestsInput = {
+  id?: string
+  patientCode: string
+  fullName?: string | null
+  phone?: string | null
+  email?: string | null
+  dateOfBirth?: Date | string | null
+  gender?: $Enums.Gender
+  address?: string | null
+  emergencyContactName?: string | null
+  emergencyContactPhone?: string | null
+  medicalHistory?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  user?: Prisma.UserCreateNestedOneWithoutPatientProfileInput
+  patientAccounts?: Prisma.PatientAccountCreateNestedManyWithoutPatientInput
+  appointments?: Prisma.AppointmentCreateNestedManyWithoutPatientInput
+  clinicalCases?: Prisma.ClinicalCaseCreateNestedManyWithoutPatientInput
+  medicalRecords?: Prisma.MedicalRecordCreateNestedManyWithoutPatientInput
+  treatmentPlans?: Prisma.TreatmentPlanCreateNestedManyWithoutPatientInput
+  prescriptions?: Prisma.PrescriptionCreateNestedManyWithoutPatientInput
+  invoices?: Prisma.InvoiceCreateNestedManyWithoutPatientInput
+  reviews?: Prisma.ReviewCreateNestedManyWithoutPatientInput
+  chatbotConversations?: Prisma.ChatbotConversationCreateNestedManyWithoutPatientInput
+  videoConsultations?: Prisma.VideoConsultationCreateNestedManyWithoutPatientInput
+}
+
+export type PatientUncheckedCreateWithoutRefundRequestsInput = {
+  id?: string
+  userId?: string | null
+  patientCode: string
+  fullName?: string | null
+  phone?: string | null
+  email?: string | null
+  dateOfBirth?: Date | string | null
+  gender?: $Enums.Gender
+  address?: string | null
+  emergencyContactName?: string | null
+  emergencyContactPhone?: string | null
+  medicalHistory?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  patientAccounts?: Prisma.PatientAccountUncheckedCreateNestedManyWithoutPatientInput
+  appointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutPatientInput
+  clinicalCases?: Prisma.ClinicalCaseUncheckedCreateNestedManyWithoutPatientInput
+  medicalRecords?: Prisma.MedicalRecordUncheckedCreateNestedManyWithoutPatientInput
+  treatmentPlans?: Prisma.TreatmentPlanUncheckedCreateNestedManyWithoutPatientInput
+  prescriptions?: Prisma.PrescriptionUncheckedCreateNestedManyWithoutPatientInput
+  invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutPatientInput
+  reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutPatientInput
+  chatbotConversations?: Prisma.ChatbotConversationUncheckedCreateNestedManyWithoutPatientInput
+  videoConsultations?: Prisma.VideoConsultationUncheckedCreateNestedManyWithoutPatientInput
+}
+
+export type PatientCreateOrConnectWithoutRefundRequestsInput = {
+  where: Prisma.PatientWhereUniqueInput
+  create: Prisma.XOR<Prisma.PatientCreateWithoutRefundRequestsInput, Prisma.PatientUncheckedCreateWithoutRefundRequestsInput>
+}
+
+export type PatientUpsertWithoutRefundRequestsInput = {
+  update: Prisma.XOR<Prisma.PatientUpdateWithoutRefundRequestsInput, Prisma.PatientUncheckedUpdateWithoutRefundRequestsInput>
+  create: Prisma.XOR<Prisma.PatientCreateWithoutRefundRequestsInput, Prisma.PatientUncheckedCreateWithoutRefundRequestsInput>
+  where?: Prisma.PatientWhereInput
+}
+
+export type PatientUpdateToOneWithWhereWithoutRefundRequestsInput = {
+  where?: Prisma.PatientWhereInput
+  data: Prisma.XOR<Prisma.PatientUpdateWithoutRefundRequestsInput, Prisma.PatientUncheckedUpdateWithoutRefundRequestsInput>
+}
+
+export type PatientUpdateWithoutRefundRequestsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  patientCode?: Prisma.StringFieldUpdateOperationsInput | string
+  fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dateOfBirth?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gender?: Prisma.EnumGenderFieldUpdateOperationsInput | $Enums.Gender
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emergencyContactName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emergencyContactPhone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  medicalHistory?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  user?: Prisma.UserUpdateOneWithoutPatientProfileNestedInput
+  patientAccounts?: Prisma.PatientAccountUpdateManyWithoutPatientNestedInput
+  appointments?: Prisma.AppointmentUpdateManyWithoutPatientNestedInput
+  clinicalCases?: Prisma.ClinicalCaseUpdateManyWithoutPatientNestedInput
+  medicalRecords?: Prisma.MedicalRecordUpdateManyWithoutPatientNestedInput
+  treatmentPlans?: Prisma.TreatmentPlanUpdateManyWithoutPatientNestedInput
+  prescriptions?: Prisma.PrescriptionUpdateManyWithoutPatientNestedInput
+  invoices?: Prisma.InvoiceUpdateManyWithoutPatientNestedInput
+  reviews?: Prisma.ReviewUpdateManyWithoutPatientNestedInput
+  chatbotConversations?: Prisma.ChatbotConversationUpdateManyWithoutPatientNestedInput
+  videoConsultations?: Prisma.VideoConsultationUpdateManyWithoutPatientNestedInput
+}
+
+export type PatientUncheckedUpdateWithoutRefundRequestsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  patientCode?: Prisma.StringFieldUpdateOperationsInput | string
+  fullName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  dateOfBirth?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  gender?: Prisma.EnumGenderFieldUpdateOperationsInput | $Enums.Gender
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emergencyContactName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emergencyContactPhone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  medicalHistory?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  patientAccounts?: Prisma.PatientAccountUncheckedUpdateManyWithoutPatientNestedInput
+  appointments?: Prisma.AppointmentUncheckedUpdateManyWithoutPatientNestedInput
+  clinicalCases?: Prisma.ClinicalCaseUncheckedUpdateManyWithoutPatientNestedInput
+  medicalRecords?: Prisma.MedicalRecordUncheckedUpdateManyWithoutPatientNestedInput
+  treatmentPlans?: Prisma.TreatmentPlanUncheckedUpdateManyWithoutPatientNestedInput
+  prescriptions?: Prisma.PrescriptionUncheckedUpdateManyWithoutPatientNestedInput
+  invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutPatientNestedInput
+  reviews?: Prisma.ReviewUncheckedUpdateManyWithoutPatientNestedInput
+  chatbotConversations?: Prisma.ChatbotConversationUncheckedUpdateManyWithoutPatientNestedInput
+  videoConsultations?: Prisma.VideoConsultationUncheckedUpdateManyWithoutPatientNestedInput
 }
 
 
@@ -2099,6 +2288,7 @@ export type PatientCountOutputType = {
   reviews: number
   chatbotConversations: number
   videoConsultations: number
+  refundRequests: number
 }
 
 export type PatientCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2112,6 +2302,7 @@ export type PatientCountOutputTypeSelect<ExtArgs extends runtime.Types.Extension
   reviews?: boolean | PatientCountOutputTypeCountReviewsArgs
   chatbotConversations?: boolean | PatientCountOutputTypeCountChatbotConversationsArgs
   videoConsultations?: boolean | PatientCountOutputTypeCountVideoConsultationsArgs
+  refundRequests?: boolean | PatientCountOutputTypeCountRefundRequestsArgs
 }
 
 /**
@@ -2194,6 +2385,13 @@ export type PatientCountOutputTypeCountVideoConsultationsArgs<ExtArgs extends ru
   where?: Prisma.VideoConsultationWhereInput
 }
 
+/**
+ * PatientCountOutputType without action
+ */
+export type PatientCountOutputTypeCountRefundRequestsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.RefundRequestWhereInput
+}
+
 
 export type PatientSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -2221,6 +2419,7 @@ export type PatientSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   reviews?: boolean | Prisma.Patient$reviewsArgs<ExtArgs>
   chatbotConversations?: boolean | Prisma.Patient$chatbotConversationsArgs<ExtArgs>
   videoConsultations?: boolean | Prisma.Patient$videoConsultationsArgs<ExtArgs>
+  refundRequests?: boolean | Prisma.Patient$refundRequestsArgs<ExtArgs>
   _count?: boolean | Prisma.PatientCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["patient"]>
 
@@ -2290,6 +2489,7 @@ export type PatientInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs
   reviews?: boolean | Prisma.Patient$reviewsArgs<ExtArgs>
   chatbotConversations?: boolean | Prisma.Patient$chatbotConversationsArgs<ExtArgs>
   videoConsultations?: boolean | Prisma.Patient$videoConsultationsArgs<ExtArgs>
+  refundRequests?: boolean | Prisma.Patient$refundRequestsArgs<ExtArgs>
   _count?: boolean | Prisma.PatientCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type PatientIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2313,6 +2513,7 @@ export type $PatientPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     reviews: Prisma.$ReviewPayload<ExtArgs>[]
     chatbotConversations: Prisma.$ChatbotConversationPayload<ExtArgs>[]
     videoConsultations: Prisma.$VideoConsultationPayload<ExtArgs>[]
+    refundRequests: Prisma.$RefundRequestPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -2734,6 +2935,7 @@ export interface Prisma__PatientClient<T, Null = never, ExtArgs extends runtime.
   reviews<T extends Prisma.Patient$reviewsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Patient$reviewsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ReviewPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   chatbotConversations<T extends Prisma.Patient$chatbotConversationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Patient$chatbotConversationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ChatbotConversationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   videoConsultations<T extends Prisma.Patient$videoConsultationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Patient$videoConsultationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$VideoConsultationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  refundRequests<T extends Prisma.Patient$refundRequestsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Patient$refundRequestsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RefundRequestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -3434,6 +3636,30 @@ export type Patient$videoConsultationsArgs<ExtArgs extends runtime.Types.Extensi
   take?: number
   skip?: number
   distinct?: Prisma.VideoConsultationScalarFieldEnum | Prisma.VideoConsultationScalarFieldEnum[]
+}
+
+/**
+ * Patient.refundRequests
+ */
+export type Patient$refundRequestsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the RefundRequest
+   */
+  select?: Prisma.RefundRequestSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the RefundRequest
+   */
+  omit?: Prisma.RefundRequestOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.RefundRequestInclude<ExtArgs> | null
+  where?: Prisma.RefundRequestWhereInput
+  orderBy?: Prisma.RefundRequestOrderByWithRelationInput | Prisma.RefundRequestOrderByWithRelationInput[]
+  cursor?: Prisma.RefundRequestWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.RefundRequestScalarFieldEnum | Prisma.RefundRequestScalarFieldEnum[]
 }
 
 /**

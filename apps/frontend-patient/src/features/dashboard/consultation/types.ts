@@ -81,4 +81,19 @@ export type PatientConsultationItem = {
   doctorName?: string;
   doctorSpecialization?: string;
   doctorAvatarUrl?: string | null;
+  refundRequest?: {
+    id: string;
+    refundCode: string;
+    bankName: string;
+    accountNumber: string;
+    accountHolder: string;
+    qrCodeUrl?: string | null;
+    requestedAmount: number;
+    refundPercent: number;
+    reason?: string | null;
+    status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'REJECTED';
+    rejectReason?: string | null;
+    proofImageUrl?: string | null;
+    createdAt: string;
+  } | null;
 };

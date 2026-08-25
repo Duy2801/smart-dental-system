@@ -68,7 +68,7 @@ export function ServiceRow({
 
   return (
     <div className="group/row transition-colors">
-      <div className="group relative grid grid-cols-1 gap-4 p-5 transition-colors hover:bg-muted/20 lg:grid-cols-[minmax(0,1fr)_140px_180px_140px] lg:items-center">
+      <div className="grid grid-cols-1 gap-4 p-5 transition-colors hover:bg-muted/20 lg:grid-cols-[minmax(0,1fr)_140px_auto] lg:items-center">
         <div className="flex min-w-0 gap-4 pr-4">
           <div className="flex h-20 w-28 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-slate-100">
             {thumbnail ? (
@@ -113,53 +113,29 @@ export function ServiceRow({
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center text-sm text-muted-foreground">
+        <div className="flex shrink-0 items-center text-sm text-muted-foreground lg:justify-end">
           <ClockIcon />
           {duration} phút
         </div>
 
-        <div className="shrink-0 font-mono text-sm font-semibold text-brand-dark lg:text-right">
-          {priceDisplay}
-        </div>
-
-        <div className="flex shrink-0 lg:justify-end">
-          <span
-            className={cn(
-              "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium",
-              service.isActive
-                ? "border-green-200 bg-green-50 text-green-700"
-                : "border-gray-200 bg-gray-50 text-gray-500"
-            )}
-          >
-            {service.isActive ? "Đang cung cấp" : "Ngừng cung cấp"}
-          </span>
-        </div>
-
-        <div className="absolute right-4 top-4 flex items-center gap-1 rounded-lg border border-border bg-white p-1 opacity-0 shadow-sm transition-opacity group-hover:opacity-100">
+        <div className="flex items-center gap-2 lg:justify-end">
           <button
             type="button"
             title="Sửa nhóm dịch vụ"
             onClick={() => onEdit(service)}
-            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-brand-light hover:text-brand"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700 transition-colors hover:bg-blue-100"
           >
             <EditIcon />
+            <span>Sửa</span>
           </button>
-          <button
-            type="button"
-            title={service.isActive ? "Tạm ngưng dịch vụ" : "Bật lại dịch vụ"}
-            onClick={() => onToggleStatus(service)}
-            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-orange-50 hover:text-orange-600"
-          >
-            {service.isActive ? <PauseIcon /> : <EyeIcon />}
-          </button>
-          <div className="mx-1 h-4 w-px bg-border" />
           <button
             type="button"
             title="Xóa dịch vụ"
             onClick={() => onRemove(service)}
-            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-600 transition-colors hover:bg-red-100"
           >
             <TrashIcon />
+            <span>Xóa</span>
           </button>
         </div>
       </div>

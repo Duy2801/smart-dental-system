@@ -70,3 +70,29 @@ export function formatDateTime(
     return fallback;
   }
 }
+
+/**
+ * Format start time and duration into "HH:mm - HH:mm" string.
+ * Example: ("12:30", 30) -> "12:30 - 13:00"
+ */
+export function formatTimeRange(
+  startTime?: string | null,
+  durationMinutes: number = 30
+): string {
+  if (!startTime) return "--:--";
+  if (startTime.includes("-")) return startTime;
+
+  const match = startTime.trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) return startTime;
+
+  const hours = parseInt(match[1], 10);
+  const mins = parseInt(match[2], 10);
+  const totalMins = hours * 60 + mins;
+  const endTotalMins = totalMins + (durationMinutes || 30);
+
+  const endHours = Math.floor(endTotalMins / 60) % 24;
+  const endMins = endTotalMins % 60;
+
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return `${pad(hours)}:${pad(mins)} - ${pad(endHours)}:${pad(endMins)}`;
+}

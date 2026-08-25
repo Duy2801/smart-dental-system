@@ -17,6 +17,7 @@ import {
 } from 'prisma/generated/enums';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationService } from '../notification/notification.service';
+import { EventsGateway } from '../socket/events.gateway';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { SepayWebhookDto } from './dto/sepay-webhook.dto';
 
@@ -28,6 +29,7 @@ export class PaymentService {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     private readonly notificationService: NotificationService,
+    private readonly eventsGateway: EventsGateway,
     @InjectQueue('mail-queue') private readonly mailQueue: Queue,
   ) {}
 
@@ -421,6 +423,17 @@ export class PaymentService {
         });
       }
 
+      if (fullyPaid && (invoice.invoiceCode.startsWith('INV-VC-') || invoice.invoiceCode.startsWith('SEVQR'))) {
+        await tx.videoConsultation.updateMany({
+          where: {
+            patientId: invoice.patientId,
+            isPaid: false,
+            status: 'SCHEDULED',
+          },
+          data: { isPaid: true },
+        });
+      }
+
       return {
         paymentId: input.existingPaymentId,
         payAmount,
@@ -440,6 +453,15 @@ export class PaymentService {
       status: PaymentStatus.SUCCESS,
       invoiceStatus: result.invoiceStatus,
     };
+
+    // Emit real-time WebSocket events to frontend
+    try {
+      this.eventsGateway.broadcast('payment_updated', paymentResponse);
+      this.eventsGateway.broadcast('consultation_updated', { invoiceId: input.invoiceId });
+      this.eventsGateway.broadcast('appointment_updated', { invoiceId: input.invoiceId });
+    } catch {
+      // Ignore socket emission errors
+    }
 
     void this.dispatchPaymentSuccessNotification(
       input.invoiceId,

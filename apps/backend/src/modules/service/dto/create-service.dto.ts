@@ -13,6 +13,10 @@ import { Type } from 'class-transformer';
 import { DepositCalculationMode } from '../../../../prisma/generated/enums';
 
 export class ServiceMediaDto {
+  @IsOptional()
+  @IsString()
+  id?: string;
+
   @IsString()
   url: string;
 
@@ -31,6 +35,10 @@ export class ServiceMediaDto {
 
 export class ServiceProcedureStepDto {
   @IsOptional()
+  @IsString()
+  id?: string;
+
+  @IsOptional()
   @IsInt()
   @Min(1)
   stepOrder?: number;
@@ -48,6 +56,10 @@ export class ServiceProcedureStepDto {
 }
 
 export class ServiceFaqDto {
+  @IsOptional()
+  @IsString()
+  id?: string;
+
   @IsString()
   question: string;
 
@@ -61,6 +73,10 @@ export class ServiceFaqDto {
 }
 
 export class ServiceHighlightDto {
+  @IsOptional()
+  @IsString()
+  id?: string;
+
   @IsString()
   title: string;
 
@@ -72,6 +88,10 @@ export class ServiceHighlightDto {
 }
 
 export class CreateTreatmentMethodDto {
+  @IsOptional()
+  @IsString()
+  id?: string;
+
   @IsString()
   name: string;
 

@@ -24,7 +24,7 @@ export function PersonnelToolbar({
           <SearchIcon />
           <input
             type="text"
-            placeholder="Tim ten, email hoac so dien thoai..."
+            placeholder="Tìm tên, email hoặc số điện thoại..."
             value={search}
             onChange={(event) => onSearchChange(event.target.value)}
             className="w-full rounded-lg border border-border bg-white py-2 pl-9 pr-4 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand"
@@ -37,16 +37,16 @@ export function PersonnelToolbar({
           }
           className="rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand sm:max-w-[180px]"
         >
-          <option value="ALL">Tat ca vai tro</option>
-          <option value="ADMIN">Quan tri vien</option>
-          <option value="DOCTOR">Bac si</option>
-          <option value="RECEPTIONIST">Le tan</option>
+          <option value="ALL">Tất cả vai trò</option>
+          <option value="ADMIN">Quản trị viên</option>
+          <option value="DOCTOR">Bác sĩ</option>
+          <option value="RECEPTIONIST">Lễ tân</option>
         </select>
       </div>
 
       <AdminButton onClick={onCreate} className="gap-2">
         <UserPlusIcon />
-        Them nhan vien
+        Thêm nhân viên
       </AdminButton>
     </div>
   );

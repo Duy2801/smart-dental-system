@@ -1,29 +1,30 @@
-import type { ChannelFilter } from "../types";
+import type { BannerStatusFilter } from "../types";
 
-type MarketingToolbarProps = {
-  channelFilter: ChannelFilter;
-  search: string;
+type BannerToolbarProps = {
   onAddClick: () => void;
-  onChannelFilterChange: (value: ChannelFilter) => void;
   onSearchChange: (value: string) => void;
+  onStatusFilterChange: (value: BannerStatusFilter) => void;
+  search: string;
+  statusFilter: BannerStatusFilter;
 };
 
 export function MarketingToolbar({
-  channelFilter,
-  search,
   onAddClick,
-  onChannelFilterChange,
   onSearchChange,
-}: MarketingToolbarProps) {
+  onStatusFilterChange,
+  search,
+  statusFilter,
+}: BannerToolbarProps) {
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex flex-1 flex-col gap-3 sm:flex-row">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
+        {/* Search input */}
         <div className="relative w-full sm:max-w-md">
           <svg
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/70"
             xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
+            width="18"
+            height="18"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -36,30 +37,37 @@ export function MarketingToolbar({
           </svg>
           <input
             type="text"
-            placeholder="Tim ten chien dich..."
+            placeholder="Tìm kiếm theo tiêu đề hoặc nội dung banner..."
             value={search}
             onChange={(event) => onSearchChange(event.target.value)}
-            className="w-full rounded-lg border border-border bg-white py-2 pl-9 pr-4 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand"
+            className="w-full rounded-xl border border-border/80 bg-white py-2.5 pl-10 pr-4 text-sm outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand/20"
           />
         </div>
+
+        {/* Status Filter */}
         <select
-          value={channelFilter}
+          value={statusFilter}
           onChange={(event) =>
-            onChannelFilterChange(event.target.value as ChannelFilter)
+            onStatusFilterChange(event.target.value as BannerStatusFilter)
           }
-          className="rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand sm:max-w-[150px]"
+          className="rounded-xl border border-border/80 bg-white px-4 py-2.5 text-sm font-medium text-brand-dark outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand/20 min-w-[170px]"
         >
-          <option value="ALL">Moi kenh</option>
-          <option value="EMAIL">Email</option>
-          <option value="IN_APP">In-App</option>
+          <option value="ALL">Tất cả trạng thái</option>
+          <option value="ACTIVE">Đang hiển thị</option>
+          <option value="INACTIVE">Đã tạm ẩn</option>
         </select>
       </div>
+
+      {/* Add Banner Button */}
       <button
         type="button"
         onClick={onAddClick}
-        className="flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-dark active:scale-[0.98]"
+        className="flex shrink-0 items-center justify-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-semibold text-white shadow-xs transition-all hover:bg-brand-dark hover:shadow-md active:scale-[0.98]"
       >
-        + Tao chien dich
+        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+        </svg>
+        Thêm Banner Mới
       </button>
     </div>
   );

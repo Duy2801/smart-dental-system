@@ -22,7 +22,7 @@ export function ReviewSummaryCard({
           <StarRating rating={Math.round(Number(averageRating))} />
         </div>
         <span className="mt-1 text-sm text-muted-foreground">
-          Dua tren {totalReviews} danh gia
+          Dựa trên {totalReviews} đánh giá
         </span>
       </div>
 

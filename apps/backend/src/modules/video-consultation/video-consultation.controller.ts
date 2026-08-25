@@ -78,6 +78,26 @@ export class VideoConsultationController {
     return this.service.cancelBookingByPatient(user, id);
   }
 
+  @Get('patient/:id/payment-info')
+  @Roles('PATIENT', 'ADMIN')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  getPaymentInfo(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.service.getConsultationPaymentInfo(user, id);
+  }
+
+  @Post('patient/:id/join')
+  @Roles('PATIENT', 'ADMIN')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  joinPatientRoom(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.service.joinPatientRoom(user, id);
+  }
+
   @Get()
   @Roles('DOCTOR', 'ADMIN')
   @UseGuards(JwtAuthGuard, RolesGuard)

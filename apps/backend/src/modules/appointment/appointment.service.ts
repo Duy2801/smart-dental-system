@@ -1153,33 +1153,41 @@ export class AppointmentService {
   }
 
   async getBookingOptions(query: BookingOptionQuery) {
-    const [services, clinicConfig] = await Promise.all([
-      this.prisma.service.findMany({
-        where: { isActive: true },
-        include: {
-          treatmentMethods: {
-            where: { isActive: true },
-            orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
-          },
-        },
-        orderBy: [
-          { isFeatured: 'desc' },
-          { displayOrder: 'asc' },
-          { name: 'asc' },
-        ],
-      }),
-
-
-
-
-
-
-
-
-
+    const [doctorSpecializations, clinicConfig] = await Promise.all([
+      query.doctorId
+        ? this.prisma.doctorSpecialization.findMany({
+            where: {
+              doctorId: query.doctorId,
+              specialization: { isActive: true },
+            },
+            select: { specializationId: true },
+          })
+        : Promise.resolve([]),
       this.clinicConfigService.getClinicScheduleConfig(),
     ]);
+    const doctorSpecializationIds = doctorSpecializations.map(
+      (item) => item.specializationId,
+    );
 
+    const services = await this.prisma.service.findMany({
+      where: {
+        isActive: true,
+        ...(query.doctorId
+          ? { specializationId: { in: doctorSpecializationIds } }
+          : {}),
+      },
+      include: {
+        treatmentMethods: {
+          where: { isActive: true },
+          orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
+        },
+      },
+      orderBy: [
+        { isFeatured: 'desc' },
+        { displayOrder: 'asc' },
+        { name: 'asc' },
+      ],
+    });
     const selectedService =
       services.find((service) => service.id === query.serviceId) ?? services[0];
     const selectedTreatmentMethod =
@@ -1489,6 +1497,10 @@ export class AppointmentService {
     ) {
       throw new BadRequestException('service.unavailable');
     }
+    await this.ensureDoctorCanProvideTreatmentMethod(
+      input.doctorId,
+      treatmentMethod,
+    );
 
     const bookingPolicy = await this.getPatientBookingPolicy(
       input.patientId,
@@ -1896,6 +1908,31 @@ export class AppointmentService {
     }
 
     await this.ensureNoConflict(doctorId, scheduledAt, endAt, appointmentId);
+  }
+
+  private async ensureDoctorCanProvideTreatmentMethod(
+    doctorId: string,
+    treatmentMethod: {
+      service: { specializationId: string | null };
+    },
+  ) {
+    const specializationId = treatmentMethod.service.specializationId;
+    if (!specializationId) return;
+
+    const supportedSpecialization =
+      await this.prisma.doctorSpecialization.findUnique({
+        where: {
+          doctorId_specializationId: {
+            doctorId,
+            specializationId,
+          },
+        },
+        select: { doctorId: true },
+      });
+
+    if (!supportedSpecialization) {
+      throw new BadRequestException('doctor.service_not_supported');
+    }
   }
 
   private async ensureClinicOpen(scheduledAt: Date, endAt: Date) {

@@ -68,7 +68,7 @@ export async function updateStaffUser(user: StaffUser, form: StaffFormState) {
   };
 
   if (user.role === "DOCTOR") {
-    if (!user.doctorId) throw new Error("Khong tim thay ho so bac si");
+    if (!user.doctorId) throw new Error("Không tìm thấy hồ sơ bác sĩ");
 
     await apiClient.patch(`/doctors/${user.doctorId}`, {
       ...commonPayload,
@@ -81,7 +81,7 @@ export async function updateStaffUser(user: StaffUser, form: StaffFormState) {
   }
 
   if (form.role === "DOCTOR") {
-    throw new Error("Hay tao bac si moi bang nut Them nhan vien");
+    throw new Error("Hãy tạo bác sĩ mới bằng nút Thêm nhân viên");
   }
 
   await apiClient.patch(`/users/${user.id}`, {

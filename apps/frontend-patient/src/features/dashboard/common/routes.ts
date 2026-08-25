@@ -57,10 +57,24 @@ export const FOOTER_LINKS = [
  */
 export const buildRoute = {
   /** Trang đặt lịch với service & treatmentMethod được chọn sẵn */
-  appointmentBooking: (serviceId?: string | number, methodId?: string | number) => {
+  appointmentBooking: (
+    serviceId?: string | number,
+    methodId?: string | number,
+    doctorId?: string | number,
+  ) => {
     const params = new URLSearchParams({ intent: "booking" });
     if (serviceId) params.set("service", String(serviceId));
     if (methodId) params.set("treatmentMethod", String(methodId));
+    if (doctorId) params.set("doctorId", String(doctorId));
+    return `${ROUTES.appointment}?${params.toString()}`;
+  },
+
+  /** Trang dat lich rieng voi bac si duoc chon */
+  appointmentWithDoctor: (doctorId: string | number) => {
+    const params = new URLSearchParams({
+      intent: "booking",
+      doctorId: String(doctorId),
+    });
     return `${ROUTES.appointment}?${params.toString()}`;
   },
 
@@ -78,13 +92,18 @@ export const buildRoute = {
   doctorDetail: (doctorId: string | number) => `${ROUTES.doctor}/${doctorId}`,
 
   /** Chi tiết dịch vụ */
-  serviceDetail: (serviceId: string | number) => `${ROUTES.service}/${serviceId}`,
+  serviceDetail: (serviceId: string | number) =>
+    `${ROUTES.service}/${serviceId}`,
 
   /** Chi tiết ưu đãi */
-  promotionDetail: (promotionId: string | number) => `${ROUTES.promotions}/${promotionId}`,
+  promotionDetail: (promotionId: string | number) =>
+    `${ROUTES.promotions}/${promotionId}`,
 
   /** Đặt lịch kết hợp service + method */
-  appointmentWithService: (serviceId: string | number, methodId?: string | number) => {
+  appointmentWithService: (
+    serviceId: string | number,
+    methodId?: string | number,
+  ) => {
     const params = new URLSearchParams({ intent: "booking" });
     if (serviceId) params.set("service", String(serviceId));
     if (methodId) params.set("treatmentMethod", String(methodId));

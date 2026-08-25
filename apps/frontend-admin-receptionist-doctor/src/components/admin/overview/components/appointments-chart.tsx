@@ -14,15 +14,15 @@ export function AppointmentsChart({ data }: AppointmentsChartProps) {
   return (
     <div className="rounded-xl border border-border bg-white p-6">
       <h3 className="text-base font-semibold text-brand-dark">
-        Lich hen 7 ngay qua
+        Lịch hẹn 7 ngày qua
       </h3>
       <p className="mt-1 text-sm text-muted-foreground">
-        Tong {total} lich hen
+        Tổng {total} lịch hẹn
       </p>
 
       {total === 0 ? (
         <div className="mt-6 flex h-44 items-center justify-center rounded-lg bg-muted/30 text-sm text-muted-foreground">
-          Chua co lich hen trong 7 ngay gan nhat.
+          Chưa có lịch hẹn trong 7 ngày gần nhất.
         </div>
       ) : null}
 

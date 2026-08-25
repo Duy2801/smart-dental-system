@@ -18,13 +18,13 @@ export function StaffList({
   users,
 }: StaffListProps) {
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-white shadow-sm">
-      <div className="divide-y divide-border">
+    <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-xs">
+      <div className="divide-y divide-slate-100">
         {loading ? (
           <SkeletonRows count={5} hasAvatar />
         ) : users.length === 0 ? (
-          <div className="p-8 text-center text-sm text-muted-foreground">
-            Khong tim thay nhan vien nao phu hop.
+          <div className="p-8 text-center text-sm font-medium text-muted-foreground">
+            Không tìm thấy nhân viên nào phù hợp.
           </div>
         ) : (
           users.map((user) => (

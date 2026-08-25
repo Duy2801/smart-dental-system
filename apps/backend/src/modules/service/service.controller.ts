@@ -13,6 +13,7 @@ import { CreateServiceDto } from './dto/create-service.dto';
 import { ServiceQueryDto } from './dto/service-query.dto';
 import { UpdateServiceStatusDto } from './dto/update-service-status.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
+import { UpdateTreatmentMethodDto } from './dto/update-treatment-method.dto';
 import { ServiceService } from './service.service';
 
 @ApiTags('Service')
@@ -45,8 +46,29 @@ export class ServiceController {
     return this.serviceService.updateStatus(id, dto.isActive);
   }
 
+  @Patch(':serviceId/treatment-methods/:methodId')
+  updateTreatmentMethod(
+    @Param('serviceId') serviceId: string,
+    @Param('methodId') methodId: string,
+    @Body() dto: UpdateTreatmentMethodDto,
+  ) {
+    return this.serviceService.updateTreatmentMethod(
+      serviceId,
+      methodId,
+      dto,
+    );
+  }
+
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.serviceService.remove(id);
+  }
+
+  @Delete(':serviceId/treatment-methods/:methodId')
+  removeTreatmentMethod(
+    @Param('serviceId') serviceId: string,
+    @Param('methodId') methodId: string,
+  ) {
+    return this.serviceService.removeTreatmentMethod(serviceId, methodId);
   }
 }

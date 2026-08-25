@@ -219,3 +219,8 @@ export type Banner = Prisma.BannerModel
  * 
  */
 export type ConsultationPackage = Prisma.ConsultationPackageModel
+/**
+ * Model RefundRequest
+ * 
+ */
+export type RefundRequest = Prisma.RefundRequestModel

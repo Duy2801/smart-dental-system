@@ -23,12 +23,16 @@ export function ServiceSelector({
   onSelectService,
   onSelectMethod,
 }: ServiceSelectorProps) {
-  const currentService =
-    services.find((s) => s.id === selectedServiceId) ?? services[0];
+  const currentService = services.find((s) => s.id === selectedServiceId);
   const treatmentMethods = currentService?.treatmentMethods ?? [];
 
   return (
     <div className="space-y-6">
+      {services.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
+          Bac si nay chua co dich vu phu hop de dat lich truc tuyen.
+        </div>
+      ) : null}
       {/* 1. Chọn loại dịch vụ (Service Category) */}
       <fieldset>
         <legend className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">
@@ -48,12 +52,7 @@ export function ServiceSelector({
               >
                 <button
                   type="button"
-                  onClick={() => {
-                    onSelectService(service.id);
-                    if (service.treatmentMethods.length > 0) {
-                      onSelectMethod(service.treatmentMethods[0].id);
-                    }
-                  }}
+                  onClick={() => onSelectService(service.id)}
                   aria-pressed={selected}
                   className="flex flex-1 flex-col items-center justify-center"
                 >

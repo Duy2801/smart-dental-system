@@ -1,8 +1,13 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { ServiceQueryDto } from './dto/service-query.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
+import { UpdateTreatmentMethodDto } from './dto/update-treatment-method.dto';
 
 const serviceInclude = {
   treatmentMethods: {
@@ -43,7 +48,7 @@ function cleanHighlights(
 
 @Injectable()
 export class ServiceService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async findAll(query: ServiceQueryDto) {
     const page = query.page ?? 1;
@@ -56,22 +61,22 @@ export class ServiceService {
       AND: [
         search
           ? {
-              OR: [
-                { name: { contains: search, mode: 'insensitive' as const } },
-                {
-                  category: {
-                    contains: search,
-                    mode: 'insensitive' as const,
-                  },
+            OR: [
+              { name: { contains: search, mode: 'insensitive' as const } },
+              {
+                category: {
+                  contains: search,
+                  mode: 'insensitive' as const,
                 },
-                {
-                  description: {
-                    contains: search,
-                    mode: 'insensitive' as const,
-                  },
+              },
+              {
+                description: {
+                  contains: search,
+                  mode: 'insensitive' as const,
                 },
-              ],
-            }
+              },
+            ],
+          }
           : {},
         category ? { category } : {},
         query.isActive === undefined ? {} : { isActive: query.isActive },
@@ -147,88 +152,47 @@ export class ServiceService {
         durationMinutes: dto.durationMinutes,
         treatmentMethods: dto.treatmentMethods?.length
           ? {
-              create: dto.treatmentMethods.map((tm, tmIndex) => ({
-                name: tm.name.trim(),
-                slug: cleanOptionalText(tm.slug),
-                description: cleanOptionalText(tm.description),
-                imageUrl: cleanOptionalText(tm.imageUrl),
-                basePrice: tm.basePrice,
-                durationMinutes: tm.durationMinutes,
-                displayOrder: tm.displayOrder ?? tmIndex + 1,
-                isActive: tm.isActive ?? true,
-                media: tm.media?.length
-                  ? {
-                      create: tm.media.map((media, index) => ({
-                        url: media.url.trim(),
-                        alt: cleanOptionalText(media.alt),
-                        type: media.type.trim(),
-                        sortOrder: media.sortOrder ?? index + 1,
-                      })),
-                    }
-                  : undefined,
-                procedureSteps: tm.procedureSteps?.length
-                  ? {
-                      create: tm.procedureSteps.map((step, index) => ({
-                        stepOrder: step.stepOrder ?? index + 1,
-                        title: step.title.trim(),
-                        description: step.description.trim(),
-                        durationMinutes: step.durationMinutes,
-                      })),
-                    }
-                  : undefined,
-                faqs: tm.faqs?.length
-                  ? {
-                      create: tm.faqs.map((faq, index) => ({
-                        question: faq.question.trim(),
-                        answer: faq.answer.trim(),
-                        sortOrder: faq.sortOrder ?? index + 1,
-                      })),
-                    }
-                  : undefined,
-              })),
-            }
-          : {
-              create: [
-                {
-                  name: dto.name.trim(),
-                  slug: cleanOptionalText(dto.slug),
-                  description: cleanOptionalText(dto.description),
-                  basePrice: dto.basePrice ?? 0,
-                  durationMinutes: dto.durationMinutes ?? 30,
-                  displayOrder: 1,
-                  isActive: dto.isActive ?? true,
-                  media: dto.media?.length
-                    ? {
-                        create: dto.media.map((media, index) => ({
-                          url: media.url.trim(),
-                          alt: cleanOptionalText(media.alt),
-                          type: media.type.trim(),
-                          sortOrder: media.sortOrder ?? index + 1,
-                        })),
-                      }
-                    : undefined,
-                  procedureSteps: dto.procedureSteps?.length
-                    ? {
-                        create: dto.procedureSteps.map((step, index) => ({
-                          stepOrder: step.stepOrder ?? index + 1,
-                          title: step.title.trim(),
-                          description: step.description.trim(),
-                          durationMinutes: step.durationMinutes,
-                        })),
-                      }
-                    : undefined,
-                  faqs: dto.faqs?.length
-                    ? {
-                        create: dto.faqs.map((faq, index) => ({
-                          question: faq.question.trim(),
-                          answer: faq.answer.trim(),
-                          sortOrder: faq.sortOrder ?? index + 1,
-                        })),
-                      }
-                    : undefined,
-                },
-              ],
-            },
+            create: dto.treatmentMethods.map((tm, tmIndex) => ({
+              name: tm.name.trim(),
+              slug: cleanOptionalText(tm.slug),
+              description: cleanOptionalText(tm.description),
+              imageUrl: cleanOptionalText(tm.imageUrl),
+              basePrice: tm.basePrice,
+              durationMinutes: tm.durationMinutes,
+              displayOrder: tm.displayOrder ?? tmIndex + 1,
+              isActive: tm.isActive ?? true,
+              media: tm.media?.length
+                ? {
+                  create: tm.media.map((media, index) => ({
+                    url: media.url.trim(),
+                    alt: cleanOptionalText(media.alt),
+                    type: media.type.trim(),
+                    sortOrder: media.sortOrder ?? index + 1,
+                  })),
+                }
+                : undefined,
+              procedureSteps: tm.procedureSteps?.length
+                ? {
+                  create: tm.procedureSteps.map((step, index) => ({
+                    stepOrder: step.stepOrder ?? index + 1,
+                    title: step.title.trim(),
+                    description: step.description.trim(),
+                    durationMinutes: step.durationMinutes,
+                  })),
+                }
+                : undefined,
+              faqs: tm.faqs?.length
+                ? {
+                  create: tm.faqs.map((faq, index) => ({
+                    question: faq.question.trim(),
+                    answer: faq.answer.trim(),
+                    sortOrder: faq.sortOrder ?? index + 1,
+                  })),
+                }
+                : undefined,
+            })),
+          }
+          : undefined,
       },
       include: serviceInclude,
     });
@@ -301,81 +265,64 @@ export class ServiceService {
       });
 
       if (dto.treatmentMethods) {
-        await tx.treatmentMethod.deleteMany({ where: { serviceId: id } });
-        if (dto.treatmentMethods.length) {
-          for (const tm of dto.treatmentMethods) {
-            await tx.treatmentMethod.create({
-              data: {
-                serviceId: id,
-                name: tm.name.trim(),
-                slug: cleanOptionalText(tm.slug),
-                description: cleanOptionalText(tm.description),
-                imageUrl: cleanOptionalText(tm.imageUrl),
-                basePrice: tm.basePrice,
-                durationMinutes: tm.durationMinutes,
-                displayOrder: tm.displayOrder ?? 0,
-                isActive: tm.isActive ?? true,
-                media: tm.media?.length
-                  ? {
-                      create: tm.media.map((media, index) => ({
-                        url: media.url.trim(),
-                        alt: cleanOptionalText(media.alt),
-                        type: media.type.trim(),
-                        sortOrder: media.sortOrder ?? index + 1,
-                      })),
-                    }
-                  : undefined,
-                procedureSteps: tm.procedureSteps?.length
-                  ? {
-                      create: tm.procedureSteps.map((step, index) => ({
-                        stepOrder: step.stepOrder ?? index + 1,
-                        title: step.title.trim(),
-                        description: step.description.trim(),
-                        durationMinutes: step.durationMinutes,
-                      })),
-                    }
-                  : undefined,
-                faqs: tm.faqs?.length
-                  ? {
-                      create: tm.faqs.map((faq, index) => ({
-                        question: faq.question.trim(),
-                        answer: faq.answer.trim(),
-                        sortOrder: faq.sortOrder ?? index + 1,
-                      })),
-                    }
-                  : undefined,
-              },
-            });
-          }
-        }
-      } else {
-        // Sync single default treatment method if treatmentMethods was not explicitly supplied
         const existingMethods = await tx.treatmentMethod.findMany({
           where: { serviceId: id },
-          orderBy: { displayOrder: 'asc' },
+          select: { id: true },
+        });
+        const existingMethodIds = new Set(
+          existingMethods.map((method) => method.id),
+        );
+        const retainedMethodIds = dto.treatmentMethods
+          .map((method) => method.id)
+          .filter((methodId): methodId is string => Boolean(methodId));
+
+        if (
+          retainedMethodIds.some(
+            (methodId) => !existingMethodIds.has(methodId),
+          )
+        ) {
+          throw new NotFoundException('treatment_method.not_found');
+        }
+
+        await tx.treatmentMethod.deleteMany({
+          where: {
+            serviceId: id,
+            id: { notIn: retainedMethodIds },
+          },
         });
 
-        if (existingMethods.length > 0) {
-          const primaryMethod = existingMethods[0];
-          await tx.treatmentMethod.update({
-            where: { id: primaryMethod.id },
-            data: {
-              name: dto.name ? dto.name.trim() : primaryMethod.name,
-              basePrice: dto.basePrice ?? primaryMethod.basePrice,
-              durationMinutes: dto.durationMinutes ?? primaryMethod.durationMinutes,
-              description:
-                dto.description !== undefined
-                  ? cleanOptionalText(dto.description)
-                  : primaryMethod.description,
-            },
-          });
+        for (const tm of dto.treatmentMethods) {
+          const methodData = {
+            name: tm.name.trim(),
+            slug: cleanOptionalText(tm.slug),
+            description: cleanOptionalText(tm.description),
+            imageUrl: cleanOptionalText(tm.imageUrl),
+            basePrice: tm.basePrice,
+            durationMinutes: tm.durationMinutes,
+            displayOrder: tm.displayOrder ?? 0,
+            isActive: dto.isActive === false ? false : (tm.isActive ?? true),
+          };
 
-          if (dto.media !== undefined) {
-            await tx.serviceMedia.deleteMany({ where: { treatmentMethodId: primaryMethod.id } });
-            if (dto.media.length > 0) {
+          if (tm.id) {
+            await tx.treatmentMethod.update({
+              where: { id: tm.id },
+              data: methodData,
+            });
+
+            await tx.serviceMedia.deleteMany({
+              where: { treatmentMethodId: tm.id },
+            });
+            await tx.serviceProcedureStep.deleteMany({
+              where: { treatmentMethodId: tm.id },
+            });
+            await tx.serviceFaq.deleteMany({
+              where: { treatmentMethodId: tm.id },
+            });
+
+            if (tm.media?.length) {
               await tx.serviceMedia.createMany({
-                data: dto.media.map((media, index) => ({
-                  treatmentMethodId: primaryMethod.id,
+                data: tm.media.map((media, index) => ({
+                  treatmentMethodId: tm.id!,
                   url: media.url.trim(),
                   alt: cleanOptionalText(media.alt),
                   type: media.type.trim(),
@@ -383,14 +330,10 @@ export class ServiceService {
                 })),
               });
             }
-          }
-
-          if (dto.procedureSteps !== undefined) {
-            await tx.serviceProcedureStep.deleteMany({ where: { treatmentMethodId: primaryMethod.id } });
-            if (dto.procedureSteps.length > 0) {
+            if (tm.procedureSteps?.length) {
               await tx.serviceProcedureStep.createMany({
-                data: dto.procedureSteps.map((step, index) => ({
-                  treatmentMethodId: primaryMethod.id,
+                data: tm.procedureSteps.map((step, index) => ({
+                  treatmentMethodId: tm.id!,
                   stepOrder: step.stepOrder ?? index + 1,
                   title: step.title.trim(),
                   description: step.description.trim(),
@@ -398,63 +341,53 @@ export class ServiceService {
                 })),
               });
             }
-          }
-
-          if (dto.faqs !== undefined) {
-            await tx.serviceFaq.deleteMany({ where: { treatmentMethodId: primaryMethod.id } });
-            if (dto.faqs.length > 0) {
+            if (tm.faqs?.length) {
               await tx.serviceFaq.createMany({
-                data: dto.faqs.map((faq, index) => ({
-                  treatmentMethodId: primaryMethod.id,
+                data: tm.faqs.map((faq, index) => ({
+                  treatmentMethodId: tm.id!,
                   question: faq.question.trim(),
                   answer: faq.answer.trim(),
                   sortOrder: faq.sortOrder ?? index + 1,
                 })),
               });
             }
-          }
-        } else {
-          await tx.treatmentMethod.create({
-            data: {
-              serviceId: id,
-              name: (dto.name || service.name).trim(),
-              slug: cleanOptionalText(dto.slug || service.slug || undefined),
-              description: cleanOptionalText(dto.description || service.description || undefined),
-              basePrice: dto.basePrice ?? service.basePrice ?? 0,
-              durationMinutes: dto.durationMinutes ?? service.durationMinutes ?? 30,
-              displayOrder: 1,
-              isActive: dto.isActive ?? service.isActive,
-              media: dto.media?.length
-                ? {
-                    create: dto.media.map((media, index) => ({
+          } else {
+            await tx.treatmentMethod.create({
+              data: {
+                serviceId: id,
+                ...methodData,
+                media: tm.media?.length
+                  ? {
+                    create: tm.media.map((media, index) => ({
                       url: media.url.trim(),
                       alt: cleanOptionalText(media.alt),
                       type: media.type.trim(),
                       sortOrder: media.sortOrder ?? index + 1,
                     })),
                   }
-                : undefined,
-              procedureSteps: dto.procedureSteps?.length
-                ? {
-                    create: dto.procedureSteps.map((step, index) => ({
+                  : undefined,
+                procedureSteps: tm.procedureSteps?.length
+                  ? {
+                    create: tm.procedureSteps.map((step, index) => ({
                       stepOrder: step.stepOrder ?? index + 1,
                       title: step.title.trim(),
                       description: step.description.trim(),
                       durationMinutes: step.durationMinutes,
                     })),
                   }
-                : undefined,
-              faqs: dto.faqs?.length
-                ? {
-                    create: dto.faqs.map((faq, index) => ({
+                  : undefined,
+                faqs: tm.faqs?.length
+                  ? {
+                    create: tm.faqs.map((faq, index) => ({
                       question: faq.question.trim(),
                       answer: faq.answer.trim(),
                       sortOrder: faq.sortOrder ?? index + 1,
                     })),
                   }
-                : undefined,
-            },
-          });
+                  : undefined,
+              },
+            });
+          }
         }
       }
 
@@ -475,15 +408,83 @@ export class ServiceService {
     });
   }
 
-  async remove(id: string) {
-    await this.ensureServiceExists(id);
-
-    await this.prisma.service.update({
-      where: { id },
-      data: { isActive: false },
+  async updateTreatmentMethod(
+    serviceId: string,
+    methodId: string,
+    dto: UpdateTreatmentMethodDto,
+  ) {
+    const method = await this.prisma.treatmentMethod.findFirst({
+      where: { id: methodId, serviceId },
+      select: { id: true },
     });
 
-    return { message: 'service.deactivated' };
+    if (!method) {
+      throw new NotFoundException('treatment_method.not_found');
+    }
+
+    return this.prisma.treatmentMethod.update({
+      where: { id: methodId },
+      data: {
+        name: dto.name.trim(),
+        slug: cleanOptionalText(dto.slug),
+        description: cleanOptionalText(dto.description),
+        imageUrl: cleanOptionalText(dto.imageUrl),
+        basePrice: dto.basePrice,
+        durationMinutes: dto.durationMinutes,
+        displayOrder: dto.displayOrder,
+        isActive: dto.isActive,
+      },
+      include: {
+        media: { orderBy: { sortOrder: 'asc' } },
+        procedureSteps: { orderBy: { stepOrder: 'asc' } },
+        faqs: { orderBy: { sortOrder: 'asc' } },
+      },
+    });
+  }
+
+  async remove(id: string) {
+    const service = await this.prisma.service.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        _count: { select: { appointments: true, clinicalCases: true } },
+      },
+    });
+
+    if (!service) {
+      throw new NotFoundException('service.not_found');
+    }
+
+    if (
+      service._count.appointments > 0 ||
+      service._count.clinicalCases > 0
+    ) {
+      throw new BadRequestException('service.has_related_history');
+    }
+
+    await this.prisma.service.delete({
+      where: { id },
+    });
+
+    return { message: 'service.deleted' };
+  }
+
+  async removeTreatmentMethod(serviceId: string, methodId: string) {
+    const method = await this.prisma.treatmentMethod.findFirst({
+      where: { id: methodId, serviceId },
+      select: { id: true, _count: { select: { appointments: true } } },
+    });
+
+    if (!method) {
+      throw new NotFoundException('treatment_method.not_found');
+    }
+
+    if (method._count.appointments > 0) {
+      throw new BadRequestException('treatment_method.has_appointments');
+    }
+
+    await this.prisma.treatmentMethod.delete({ where: { id: methodId } });
+    return { message: 'treatment_method.deleted' };
   }
 
   private async ensureServiceExists(id: string) {

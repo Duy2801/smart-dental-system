@@ -48,7 +48,7 @@ export function UsersPageContent() {
       await invalidateUsers();
     },
     onError: (err) => {
-      setError(getErrorMessage(err, "Luu nhan vien that bai"));
+      setError(getErrorMessage(err, "Lưu nhân viên thất bại"));
     },
   });
 
@@ -57,7 +57,7 @@ export function UsersPageContent() {
       updateStaffStatus(user, status),
     onSuccess: invalidateUsers,
     onError: (err) => {
-      setError(getErrorMessage(err, "Cap nhat trang thai that bai"));
+      setError(getErrorMessage(err, "Cập nhật trạng thái thất bại"));
     },
   });
 
@@ -65,11 +65,11 @@ export function UsersPageContent() {
     mutationFn: deleteStaffUser,
     onSuccess: invalidateUsers,
     onError: (err) => {
-      setError(getErrorMessage(err, "Xoa nhan vien that bai"));
+      setError(getErrorMessage(err, "Xóa nhân viên thất bại"));
     },
   });
 
-  const modalTitle = editingUser ? "Sua nhan vien" : "Them nhan vien moi";
+  const modalTitle = editingUser ? "Sửa nhân viên" : "Thêm nhân viên mới";
 
   const visibleUsers = useMemo(
     () => users.filter((user) => user.role),
@@ -115,7 +115,7 @@ export function UsersPageContent() {
 
   const removeUser = async (user: StaffUser) => {
     const confirmed = window.confirm(
-      "Ban chac chan muon vo hieu hoa nhan vien nay?",
+      "Bạn chắc chắn muốn vô hiệu hóa nhân viên này?",
     );
     if (!confirmed) return;
 

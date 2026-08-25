@@ -21,6 +21,7 @@ type UseAppointmentWorkspaceSyncParams = {
   selectedDateId: string;
   selectedTime: string;
   selectedDoctorId: string;
+  fixedDoctorId?: string;
   onOpenBookingMode: () => Promise<void>;
   setSelectedServiceId: React.Dispatch<React.SetStateAction<string>>;
   setSelectedMethodId: React.Dispatch<React.SetStateAction<string>>;
@@ -41,6 +42,7 @@ export function useAppointmentWorkspaceSync({
   selectedDateId,
   selectedTime,
   selectedDoctorId,
+  fixedDoctorId,
   onOpenBookingMode,
   setSelectedServiceId,
   setSelectedMethodId,
@@ -66,7 +68,7 @@ export function useAppointmentWorkspaceSync({
       params.get("treatmentMethod") ||
       params.get("method") ||
       params.get("treatmentMethodId");
-    const requestedDoctorId = params.get("doctorId");
+    const requestedDoctorId = fixedDoctorId || params.get("doctorId");
 
     let initialService = bookingOptionsData.services.find(
       (service) => service.id === requestedServiceId,
@@ -86,7 +88,7 @@ export function useAppointmentWorkspaceSync({
       (requestedMethodId &&
       initialService?.treatmentMethods.some((m) => m.id === requestedMethodId)
         ? requestedMethodId
-        : initialService?.treatmentMethods[0]?.id) || "";
+        : "") || "";
 
     if (requestedServiceId || requestedMethodId || autoSelectDefaults) {
       if (initialService) {
@@ -99,10 +101,7 @@ export function useAppointmentWorkspaceSync({
       (doctor) => doctor.id === requestedDoctorId,
     );
     if (requestedDoctor) {
-      setSelectedDoctorId(
-        (current) =>
-          current || requestedDoctor.id,
-      );
+      setSelectedDoctorId((current) => current || requestedDoctor.id);
     }
 
     if (autoSelectDefaults) {
@@ -114,6 +113,7 @@ export function useAppointmentWorkspaceSync({
     bookingOptionsData,
     defaultSelectionKey,
     enabled,
+    fixedDoctorId,
     setSelectedDateId,
     setSelectedDoctorId,
     setSelectedMethodId,
@@ -158,10 +158,23 @@ export function useAppointmentWorkspaceSync({
 
   useEffect(() => {
     if (!enabled) return;
+    if (fixedDoctorId) {
+      if (selectedDoctorId !== fixedDoctorId) {
+        setSelectedDoctorId(fixedDoctorId);
+      }
+      return;
+    }
     if (!selectedDoctorId) return;
     if (doctors.some((doctor) => doctor.id === selectedDoctorId)) return;
     setSelectedDoctorId(autoSelectDefaults ? doctors[0]?.id || "" : "");
-  }, [autoSelectDefaults, doctors, enabled, selectedDoctorId, setSelectedDoctorId]);
+  }, [
+    autoSelectDefaults,
+    doctors,
+    enabled,
+    fixedDoctorId,
+    selectedDoctorId,
+    setSelectedDoctorId,
+  ]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;

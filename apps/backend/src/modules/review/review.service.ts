@@ -50,7 +50,7 @@ export class ReviewService {
 
     return reviews.map((review) => ({
       id: review.id,
-      patient_name: review.patient.fullName ?? review.patient.user?.fullName ?? 'Benh nhan',
+      patient_name: review.patient.fullName ?? review.patient.user?.fullName ?? 'Bệnh nhân',
       doctor_name: `${review.doctor.user.fullName} (${review.appointment?.treatmentMethod?.name ?? 'Dich vu'})`,
       rating: review.rating,
       comment: review.comment ?? '',

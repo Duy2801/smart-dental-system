@@ -19,5 +19,6 @@ export const queryKeys = {
       ["admin", "reviews", rating, visibility, search] as const,
     marketing: (channel: string, search: string) =>
       ["admin", "marketing", channel, search] as const,
+    banners: ["admin", "banners"] as const,
   },
 };

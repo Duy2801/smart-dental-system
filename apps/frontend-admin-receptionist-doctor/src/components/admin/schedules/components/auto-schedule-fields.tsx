@@ -25,7 +25,7 @@ export function AutoScheduleFields({
     <>
       <div className="flex flex-col gap-2">
         <label className="text-sm font-semibold text-brand-dark">
-          Ap dung cho
+          Áp dụng cho
         </label>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {weekDays.map((day) => {
@@ -44,7 +44,7 @@ export function AutoScheduleFields({
                 title={
                   businessHour?.isOpen
                     ? `${businessHour.start} - ${businessHour.end}`
-                    : "Phong kham nghi"
+                    : "Phòng khám nghỉ"
                 }
                 className={cn(
                   "h-10 rounded-lg border px-3 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40",
@@ -60,45 +60,14 @@ export function AutoScheduleFields({
         </div>
       </div>
 
-      <div className="flex flex-col gap-2">
-        <label className="text-sm font-semibold text-brand-dark">
-          Che do luu
-        </label>
-        <div className="grid grid-cols-2 gap-2">
-          {[
-            { value: "REPLACE", label: "Thay the" },
-            { value: "APPEND", label: "Them vao" },
-          ].map((mode) => (
-            <button
-              key={mode.value}
-              type="button"
-              onClick={() =>
-                setForm((current) => ({
-                  ...current,
-                  autoMode: mode.value as "REPLACE" | "APPEND",
-                }))
-              }
-              className={cn(
-                "h-10 rounded-lg border px-3 text-sm font-semibold transition-colors",
-                form.autoMode === mode.value
-                  ? "border-brand bg-brand-light text-brand-dark"
-                  : "border-border bg-white text-muted-foreground hover:bg-muted",
-              )}
-            >
-              {mode.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
       <div className="rounded-lg border border-border bg-muted/40 p-4">
         <p className="text-sm font-semibold text-brand-dark">
-          Ca se tao theo gio phong kham
+          Ca sẽ tạo theo giờ phòng khám
         </p>
         <div className="mt-3 space-y-2">
           {selectedOpenDays.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Chon it nhat mot ngay phong kham mo cua.
+              Chọn ít nhất một ngày phòng khám mở cửa.
             </p>
           ) : null}
           {selectedOpenDays.map((day) => (

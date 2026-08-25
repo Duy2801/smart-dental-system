@@ -11,6 +11,7 @@ type UseAppointmentBookingDataParams = {
   selectedServiceId: string;
   selectedTreatmentMethodId?: string;
   selectedDoctorId: string;
+  dedicatedDoctorId?: string;
   selectedDateId: string;
   selectedTime: string;
 };
@@ -19,18 +20,28 @@ export function useAppointmentBookingData({
   selectedServiceId,
   selectedTreatmentMethodId,
   selectedDoctorId,
+  dedicatedDoctorId,
   selectedDateId,
   selectedTime,
 }: UseAppointmentBookingDataParams) {
-  const baseOptionsQuery = useAppointmentOptionsBaseQuery();
+  const doctorIdForQuery = dedicatedDoctorId || selectedDoctorId || undefined;
+  const baseOptionsQuery = useAppointmentOptionsBaseQuery(
+    doctorIdForQuery ? { doctorId: doctorIdForQuery } : {},
+  );
 
   const scheduleQueryParams: BookingOptionsQuery = useMemo(
     () => ({
       serviceId: selectedServiceId,
       treatmentMethodId: selectedTreatmentMethodId,
+      doctorId: doctorIdForQuery,
       date: selectedDateId,
     }),
-    [selectedDateId, selectedServiceId, selectedTreatmentMethodId],
+    [
+      doctorIdForQuery,
+      selectedDateId,
+      selectedServiceId,
+      selectedTreatmentMethodId,
+    ],
   );
 
   const scheduleQuery = useAppointmentScheduleQuery(scheduleQueryParams);
@@ -39,10 +50,17 @@ export function useAppointmentBookingData({
     () => ({
       serviceId: selectedServiceId,
       treatmentMethodId: selectedTreatmentMethodId,
+      doctorId: doctorIdForQuery,
       date: selectedDateId,
       time: selectedTime,
     }),
-    [selectedDateId, selectedServiceId, selectedTime, selectedTreatmentMethodId],
+    [
+      doctorIdForQuery,
+      selectedDateId,
+      selectedServiceId,
+      selectedTime,
+      selectedTreatmentMethodId,
+    ],
   );
 
   const availabilityQuery = useAppointmentAvailabilityQuery(
@@ -58,6 +76,10 @@ export function useAppointmentBookingData({
     [scheduleQuery.data?.dates, baseOptionsQuery.data?.dates],
   );
   const doctors = useMemo(() => {
+    if (dedicatedDoctorId) {
+      return baseOptionsQuery.data?.doctors ?? [];
+    }
+
     if (selectedServiceId && selectedDateId && selectedTime) {
       return availabilityQuery.data?.doctors ?? [];
     }
@@ -66,13 +88,15 @@ export function useAppointmentBookingData({
   }, [
     availabilityQuery.data?.doctors,
     baseOptionsQuery.data?.doctors,
+    dedicatedDoctorId,
     scheduleQuery.data?.doctors,
     selectedDateId,
     selectedServiceId,
     selectedTime,
   ]);
   const timeSlots = useMemo(
-    () => scheduleQuery.data?.timeSlots ?? baseOptionsQuery.data?.timeSlots ?? [],
+    () =>
+      scheduleQuery.data?.timeSlots ?? baseOptionsQuery.data?.timeSlots ?? [],
     [scheduleQuery.data?.timeSlots, baseOptionsQuery.data?.timeSlots],
   );
   const availableTimes = useMemo(
@@ -87,7 +111,7 @@ export function useAppointmentBookingData({
     () =>
       selectedService?.treatmentMethods.find(
         (m) => m.id === selectedTreatmentMethodId,
-      ) ?? selectedService?.treatmentMethods[0],
+      ),
     [selectedService?.treatmentMethods, selectedTreatmentMethodId],
   );
   const selectedDoctor = useMemo(

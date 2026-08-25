@@ -20,6 +20,7 @@ export type PatientRecordsResponse = {
     createdAt: string;
     doctor: string;
     service: string;
+    chiefComplaint?: string | null;
     diagnosis: string | null;
     treatmentNotes: string | null;
     followUpDate: string | null;

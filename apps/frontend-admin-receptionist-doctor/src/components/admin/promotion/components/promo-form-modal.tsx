@@ -152,6 +152,7 @@ export function PromoFormModal({
   );
 
   const [broadcastNotification, setBroadcastNotification] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Flatten all treatment methods across services
   const allTreatmentMethods = services.flatMap((s) =>
@@ -162,8 +163,20 @@ export function PromoFormModal({
     }))
   );
 
+  const usedCount = initialValue?.used_count ?? 0;
+  const minAllowedUses = isEditing ? usedCount : 1;
+
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
+    setError(null);
+
+    const numericMaxUses = Number(maxUses);
+    if (isEditing && numericMaxUses < usedCount) {
+      setError(
+        `Giới hạn số lượt dùng (${numericMaxUses}) không được ít hơn số lượt đã sử dụng (${usedCount}).`
+      );
+      return;
+    }
 
     const payload: SavePromotionPayload = {
       code: code.trim().toUpperCase(),
@@ -172,7 +185,7 @@ export function PromoFormModal({
       discount_type: discountType,
       discount_value: Number(discountValue),
       min_order_amount: Number(minOrderAmount),
-      max_uses: Number(maxUses),
+      max_uses: numericMaxUses,
       start_date: startDate,
       end_date: endDate,
       image_url: imageUrl || undefined,
@@ -193,6 +206,12 @@ export function PromoFormModal({
       onClose={onClose}
     >
       <form className="mt-4 flex flex-col gap-4" onSubmit={handleSubmit}>
+        {error && (
+          <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-xs font-semibold text-red-700">
+            ⚠️ {error}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <AdminInput
             label="Mã Voucher Code *"
@@ -203,16 +222,27 @@ export function PromoFormModal({
             onChange={(e) => setCode(e.target.value.toUpperCase())}
             placeholder="VD: SUMMER2026"
           />
-          <AdminInput
-            label="Giới hạn số lượt dùng *"
-            type="number"
-            required
-            min={1}
-            value={maxUses}
-            onChange={(e) => setMaxUses(Number(e.target.value))}
-            className="font-mono"
-            placeholder="100"
-          />
+          <div>
+            <AdminInput
+              label={
+                isEditing
+                  ? `Giới hạn số lượt dùng * (Đã dùng: ${usedCount})`
+                  : "Giới hạn số lượt dùng *"
+              }
+              type="number"
+              required
+              min={minAllowedUses}
+              value={maxUses}
+              onChange={(e) => setMaxUses(Number(e.target.value))}
+              className="font-mono"
+              placeholder="100"
+            />
+            {isEditing && (
+              <p className="mt-1 text-[11px] font-medium text-slate-500">
+                Lưu ý: Không được nhập nhỏ hơn số lượt đã dùng ({usedCount}).
+              </p>
+            )}
+          </div>
         </div>
 
         <AdminInput

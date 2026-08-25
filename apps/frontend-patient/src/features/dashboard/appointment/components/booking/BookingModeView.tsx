@@ -23,6 +23,7 @@ import {
 } from "../../hooks/useAppointmentQueries";
 
 type BookingModeViewProps = {
+  dedicatedDoctorId?: string;
   isLoggedIn: boolean;
   ensureLoggedInBeforeBooking: () => Promise<boolean>;
   upcomingAppointments: AppointmentItem[];
@@ -31,6 +32,7 @@ type BookingModeViewProps = {
 };
 
 export function BookingModeView({
+  dedicatedDoctorId = "",
   isLoggedIn,
   ensureLoggedInBeforeBooking,
   upcomingAppointments,
@@ -41,7 +43,7 @@ export function BookingModeView({
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [selectedServiceId, setSelectedServiceId] = useState("");
   const [selectedMethodId, setSelectedMethodId] = useState("");
-  const [selectedDoctorId, setSelectedDoctorId] = useState("");
+  const [selectedDoctorId, setSelectedDoctorId] = useState(dedicatedDoctorId);
   const [selectedDateId, setSelectedDateId] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
   const [selectedPromotionCode, setSelectedPromotionCode] = useState("");
@@ -56,7 +58,7 @@ export function BookingModeView({
       setSelectedPatientId(profile.id);
       setSelectedServiceId("");
       setSelectedMethodId("");
-      setSelectedDoctorId("");
+      setSelectedDoctorId(dedicatedDoctorId);
       setSelectedDateId("");
       setSelectedTime("");
       setSelectedPromotionCode("");
@@ -83,6 +85,7 @@ export function BookingModeView({
     selectedServiceId,
     selectedTreatmentMethodId: selectedMethodId,
     selectedDoctorId,
+    dedicatedDoctorId,
     selectedDateId,
     selectedTime,
   });
@@ -95,12 +98,12 @@ export function BookingModeView({
   const resetBookingChoices = useCallback(() => {
     setSelectedServiceId("");
     setSelectedMethodId("");
-    setSelectedDoctorId("");
+    setSelectedDoctorId(dedicatedDoctorId);
     setSelectedDateId("");
     setSelectedTime("");
     setSelectedPromotionCode("");
     setAcceptedTerms(false);
-  }, []);
+  }, [dedicatedDoctorId]);
 
   const handleSelectPatient = useCallback(
     (patientId: string) => {
@@ -131,7 +134,10 @@ export function BookingModeView({
   ]);
 
   const selectableAvailableTimes = useMemo(
-    () => availableTimes.filter((time) => !blockedBookingTimes.times.includes(time)),
+    () =>
+      availableTimes.filter(
+        (time) => !blockedBookingTimes.times.includes(time),
+      ),
     [availableTimes, blockedBookingTimes.times],
   );
 
@@ -151,7 +157,9 @@ export function BookingModeView({
     selectedPatientId,
     ensureLoggedInBeforeBooking,
     onSelectedTimeChange: setSelectedTime,
-    onSelectedDoctorChange: setSelectedDoctorId,
+    onSelectedDoctorChange: (doctorId) => {
+      setSelectedDoctorId(dedicatedDoctorId || doctorId);
+    },
     onSuccess: () => onBookingComplete(),
   });
 
@@ -167,6 +175,7 @@ export function BookingModeView({
     selectedDateId,
     selectedTime: effectiveSelectedTime,
     selectedDoctorId,
+    fixedDoctorId: dedicatedDoctorId,
     onOpenBookingMode: async () => {},
     setSelectedServiceId,
     setSelectedMethodId,
@@ -251,31 +260,28 @@ export function BookingModeView({
             }}
             onSelectService={(serviceId) => {
               setSelectedServiceId(serviceId);
-              const targetService = services.find((s) => s.id === serviceId);
-              if (targetService && targetService.treatmentMethods.length > 0) {
-                setSelectedMethodId(targetService.treatmentMethods[0].id);
-              } else {
-                setSelectedMethodId("");
-              }
-              setSelectedDoctorId("");
+              setSelectedMethodId("");
+              setSelectedDoctorId(dedicatedDoctorId);
               setSelectedDateId("");
               setSelectedTime("");
             }}
             onSelectMethod={(methodId) => {
               setSelectedMethodId(methodId);
-              setSelectedDoctorId("");
+              setSelectedDoctorId(dedicatedDoctorId);
               setSelectedDateId("");
               setSelectedTime("");
             }}
-            onSelectDoctor={setSelectedDoctorId}
+            onSelectDoctor={(doctorId) => {
+              setSelectedDoctorId(dedicatedDoctorId || doctorId);
+            }}
             onSelectDate={(dateId) => {
               setSelectedDateId(dateId);
-              setSelectedDoctorId("");
+              setSelectedDoctorId(dedicatedDoctorId);
               setSelectedTime("");
             }}
             onSelectTime={(time) => {
               setSelectedTime(time);
-              setSelectedDoctorId("");
+              setSelectedDoctorId(dedicatedDoctorId);
             }}
             onOpenReview={() => setViewStep("confirmation")}
             onCancelBooking={onCancelBooking}
@@ -319,7 +325,9 @@ function collectBlockedTimeData(
 
   const times = candidateTimes.filter((time) => {
     const slotStart = new Date(`${dateId}T${time}:00`);
-    const slotEnd = new Date(slotStart.getTime() + serviceDurationMinutes * 60 * 1000);
+    const slotEnd = new Date(
+      slotStart.getTime() + serviceDurationMinutes * 60 * 1000,
+    );
 
     return appointmentsForDate.some((appointment) => {
       const bookedStart = new Date(appointment.scheduledAt);
@@ -328,8 +336,9 @@ function collectBlockedTimeData(
     });
   });
 
-  const ranges = appointmentsForDate.map((appointment) =>
-    `${toHourMinute(appointment.scheduledAt)} - ${toHourMinute(appointment.endAt)}`,
+  const ranges = appointmentsForDate.map(
+    (appointment) =>
+      `${toHourMinute(appointment.scheduledAt)} - ${toHourMinute(appointment.endAt)}`,
   );
 
   return { times, ranges };

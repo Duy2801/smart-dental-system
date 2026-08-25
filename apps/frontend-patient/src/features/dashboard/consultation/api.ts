@@ -73,3 +73,78 @@ export async function cancelMyConsultation(id: string): Promise<{
   }>(`/video-consultations/patient/${id}/cancel`);
   return response.data;
 }
+
+export async function getConsultationPaymentInfo(id: string): Promise<{
+  consultationId?: string;
+  isPaid: boolean;
+  fee?: number;
+  invoice?: {
+    id: string;
+    invoiceCode: string;
+    finalAmount: number;
+  };
+  payment?: {
+    id: string;
+    invoiceId: string;
+    invoiceCode: string;
+    amount: number;
+    method: string;
+    status: string;
+    transferContent: string;
+    bankAccountNo: string;
+    bankAccountName: string;
+    bankBin: string;
+    bankName: string;
+    qrImageUrl: string;
+    provider: string;
+  };
+}> {
+  const response = await apiClient.get<{
+    consultationId?: string;
+    isPaid: boolean;
+    fee?: number;
+    invoice?: {
+      id: string;
+      invoiceCode: string;
+      finalAmount: number;
+    };
+    payment?: {
+      id: string;
+      invoiceId: string;
+      invoiceCode: string;
+      amount: number;
+      method: string;
+      status: string;
+      transferContent: string;
+      bankAccountNo: string;
+      bankAccountName: string;
+      bankBin: string;
+      bankName: string;
+      qrImageUrl: string;
+      provider: string;
+    };
+  }>(`/video-consultations/patient/${id}/payment-info`);
+  return response.data;
+}
+
+export async function joinPatientConsultationRoom(id: string): Promise<{
+  id: string;
+  meetingUrl: string;
+  roomPin: string | null;
+  doctorName: string;
+  scheduledAt: string;
+  durationMinutes: number;
+  status: string;
+}> {
+  const response = await apiClient.post<{
+    id: string;
+    meetingUrl: string;
+    roomPin: string | null;
+    doctorName: string;
+    scheduledAt: string;
+    durationMinutes: number;
+    status: string;
+  }>(`/video-consultations/patient/${id}/join`);
+  return response.data;
+}
+

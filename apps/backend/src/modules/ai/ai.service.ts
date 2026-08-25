@@ -1206,7 +1206,7 @@ export class AiService {
       return {
         patientId: row.patientId,
         patientName:
-          row.patient.fullName ?? row.patient.user?.fullName ?? 'Benh nhan',
+          row.patient.fullName ?? row.patient.user?.fullName ?? 'Bệnh nhân',
         medicalHistory: row.patient.medicalHistory,
         chatbotMessages,
         recentDiagnoses,
@@ -1237,7 +1237,7 @@ export class AiService {
 
     return {
       patientId,
-      patientName: patient.fullName ?? patient.user?.fullName ?? 'Benh nhan',
+      patientName: patient.fullName ?? patient.user?.fullName ?? 'Bệnh nhân',
       medicalHistory: patient.medicalHistory,
       chatbotMessages,
       recentDiagnoses,

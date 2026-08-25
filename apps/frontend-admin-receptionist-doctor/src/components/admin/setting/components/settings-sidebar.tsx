@@ -52,7 +52,7 @@ export function SettingsSidebar({
   return (
     <div className="w-full shrink-0 lg:w-1/4">
       <h2 className="mb-6 text-lg font-semibold text-brand-dark">
-        Cai dat he thong
+        Cài đặt hệ thống
       </h2>
       <nav className="flex flex-col gap-1">
         {settingsMenuItems.map((item) => (

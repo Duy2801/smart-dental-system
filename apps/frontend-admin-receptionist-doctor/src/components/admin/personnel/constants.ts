@@ -14,15 +14,15 @@ export const emptyStaffForm: StaffFormState = {
 
 export const roleConfig: Record<Role, { label: string; color: string }> = {
   ADMIN: {
-    label: "Quan tri vien",
+    label: "Quản trị viên",
     color: "border-purple-200 bg-purple-50 text-purple-700",
   },
   DOCTOR: {
-    label: "Bac si",
+    label: "Bác sĩ",
     color: "border-blue-200 bg-blue-50 text-blue-700",
   },
   RECEPTIONIST: {
-    label: "Le tan",
-    color: "border-orange-200 bg-orange-50 text-orange-700",
+    label: "Lễ tân",
+    color: "border-amber-200 bg-amber-50 text-amber-700",
   },
 };

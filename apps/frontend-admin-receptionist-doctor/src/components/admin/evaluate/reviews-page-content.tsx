@@ -52,7 +52,7 @@ export function ReviewsPageContent() {
       updateReviewVisibility(id, isVisible),
     onSuccess: invalidateReviews,
     onError: () => {
-      setErrorMessage("Cap nhat danh gia that bai.");
+      setErrorMessage("Cập nhật trạng thái hiển thị đánh giá thất bại.");
     },
   });
 
@@ -60,7 +60,7 @@ export function ReviewsPageContent() {
     mutationFn: deleteReviewApi,
     onSuccess: invalidateReviews,
     onError: () => {
-      setErrorMessage("Xoa danh gia that bai.");
+      setErrorMessage("Xóa đánh giá thất bại. Vui lòng thử lại.");
     },
   });
 
@@ -118,8 +118,8 @@ export function ReviewsPageContent() {
         onToggleVisibility={toggleVisibility}
       />
       {isError || errorMessage ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
-          {errorMessage || "Khong tai duoc du lieu danh gia."}
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+          {errorMessage || "Không tải được dữ liệu đánh giá từ máy chủ."}
         </div>
       ) : null}
     </div>

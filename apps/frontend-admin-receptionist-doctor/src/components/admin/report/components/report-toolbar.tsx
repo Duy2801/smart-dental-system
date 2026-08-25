@@ -32,7 +32,7 @@ export function ReportToolbar({
           <path d="m19 9-5 5-4-4-3 3" />
         </svg>
         <h2 className="text-lg font-semibold text-brand-dark">
-          Tong quan thong ke
+          Tổng quan thống kê
         </h2>
       </div>
 
@@ -44,10 +44,10 @@ export function ReportToolbar({
           }
           className="rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand"
         >
-          <option value="this_month">Thang nay</option>
-          <option value="last_month">Thang truoc</option>
-          <option value="this_quarter">Quy nay</option>
-          <option value="this_year">Nam nay</option>
+          <option value="this_month">Tháng này</option>
+          <option value="last_month">Tháng trước</option>
+          <option value="this_quarter">Quý này</option>
+          <option value="this_year">Năm này</option>
         </select>
         <button
           type="button"
@@ -70,7 +70,7 @@ export function ReportToolbar({
             <polyline points="7 10 12 15 17 10" />
             <line x1="12" x2="12" y1="15" y2="3" />
           </svg>
-          Xuat bao cao
+          Xuất báo cáo
         </button>
       </div>
     </div>

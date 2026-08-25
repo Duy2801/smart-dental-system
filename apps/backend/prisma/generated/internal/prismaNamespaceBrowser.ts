@@ -86,7 +86,8 @@ export const ModelName = {
   VideoConsultation: 'VideoConsultation',
   Notification: 'Notification',
   Banner: 'Banner',
-  ConsultationPackage: 'ConsultationPackage'
+  ConsultationPackage: 'ConsultationPackage',
+  RefundRequest: 'RefundRequest'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -704,6 +705,32 @@ export const ConsultationPackageScalarFieldEnum = {
 } as const
 
 export type ConsultationPackageScalarFieldEnum = (typeof ConsultationPackageScalarFieldEnum)[keyof typeof ConsultationPackageScalarFieldEnum]
+
+
+export const RefundRequestScalarFieldEnum = {
+  id: 'id',
+  refundCode: 'refundCode',
+  patientId: 'patientId',
+  videoConsultationId: 'videoConsultationId',
+  appointmentId: 'appointmentId',
+  invoiceId: 'invoiceId',
+  bankName: 'bankName',
+  accountNumber: 'accountNumber',
+  accountHolder: 'accountHolder',
+  qrCodeUrl: 'qrCodeUrl',
+  requestedAmount: 'requestedAmount',
+  refundPercent: 'refundPercent',
+  reason: 'reason',
+  status: 'status',
+  rejectReason: 'rejectReason',
+  proofImageUrl: 'proofImageUrl',
+  processedBy: 'processedBy',
+  processedAt: 'processedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type RefundRequestScalarFieldEnum = (typeof RefundRequestScalarFieldEnum)[keyof typeof RefundRequestScalarFieldEnum]
 
 
 export const SortOrder = {

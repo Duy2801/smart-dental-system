@@ -112,7 +112,10 @@ export function PatientRecordsPageClient() {
             Không thể tải hồ sơ điều trị. Vui lòng đăng nhập lại hoặc thử lại sau.
           </div>
         ) : (
-          <RecordHistorySection treatments={treatments} />
+          <RecordHistorySection
+            treatments={treatments}
+            recordsData={recordsQuery.data}
+          />
         )}
       </section>
     </main>

@@ -5,8 +5,8 @@ export default function AdminUsersPage() {
   return (
     <>
       <Header
-        title="Nhan su"
-        description="Tao tai khoan va phan quyen (Admin, Bac si, Le tan)"
+        title="Nhân sự"
+        description="Tạo tài khoản và phân quyền (Admin, Bác sĩ, Lễ tân)"
       />
       <UsersPageContent />
     </>

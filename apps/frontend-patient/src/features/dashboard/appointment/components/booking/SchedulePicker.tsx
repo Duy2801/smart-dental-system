@@ -30,10 +30,10 @@ export function SchedulePicker({
   return (
     <fieldset>
       <legend className="sr-only">Chọn lịch trình và giờ khám</legend>
-      <div className="grid overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm md:grid-cols-[1.2fr_0.8fr]">
-        <div className="border-b border-slate-100 p-5 md:border-b-0 md:border-r">
+      <div className="grid overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm md:grid-cols-[1.1fr_0.9fr]">
+        <div className="border-b border-slate-100 p-3.5 sm:p-4 md:border-b-0 md:border-r">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-slate-800">
+            <h3 className="text-xs font-bold text-slate-800">
               15 ngày gần nhất
             </h3>
             <span className="text-[10px] font-semibold text-slate-400">
@@ -41,7 +41,7 @@ export function SchedulePicker({
             </span>
           </div>
 
-          <div className="mt-4 grid grid-cols-7 gap-1 text-center">
+          <div className="mt-3 grid grid-cols-7 gap-1 text-center">
             {dates.map((date) => {
               const selected = date.id === selectedDateId;
               return (
@@ -52,7 +52,7 @@ export function SchedulePicker({
                   onClick={() => onSelectDate(date.id)}
                   aria-pressed={selected}
                   title={date.isOpen ? "Có lịch làm việc" : "Phòng khám nghỉ"}
-                  className={`mx-auto grid h-14 w-11 place-items-center rounded-lg text-xs font-semibold transition ${
+                  className={`mx-auto grid h-12 w-full max-w-[40px] place-items-center rounded-lg text-xs font-semibold transition ${
                     selected
                       ? "bg-[#0863c5] text-white shadow-md shadow-blue-200"
                       : date.isOpen
@@ -71,29 +71,29 @@ export function SchedulePicker({
           </div>
         </div>
 
-        <div className="p-5">
-          <h3 className="text-xs font-bold uppercase tracking-[0.08em] text-slate-500">
+        <div className="p-3.5 sm:p-4 flex flex-col min-h-0">
+          <h3 className="text-[11px] font-bold uppercase tracking-[0.08em] text-slate-500">
             Khung giờ còn trống
           </h3>
-          <p className="mt-1 text-[10px] text-slate-400">
+          <p className="mt-0.5 text-[10px] text-slate-400">
             Giờ địa phương - {slotIntervalMinutes} phút/lượt
           </p>
           {(() => {
             const uniqueBlockedRanges = Array.from(new Set(blockedRanges));
             return uniqueBlockedRanges.length ? (
-              <div className="mt-3 rounded-xl border border-slate-200 bg-slate-100 px-3 py-2">
-                <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-500">
+              <div className="mt-2 rounded-lg border border-slate-200 bg-slate-100 px-2.5 py-1.5">
+                <p className="text-[9px] font-bold uppercase tracking-[0.08em] text-slate-500">
                   Bạn đã có lịch trong các khoảng:
                 </p>
-                <p className="mt-1 text-xs font-medium text-slate-700">
+                <p className="mt-0.5 text-[11px] font-medium text-slate-700">
                   {uniqueBlockedRanges.join(", ")}
                 </p>
               </div>
             ) : null;
           })()}
-          <div className="mt-4 grid grid-cols-2 gap-2.5">
+          <div className="mt-3 grid max-h-48 grid-cols-2 gap-2 overflow-y-auto pr-1">
             {visibleTimes.length === 0 ? (
-              <p className="col-span-2 rounded-lg bg-amber-50 px-3 py-3 text-center text-xs font-semibold text-amber-700">
+              <p className="col-span-2 rounded-lg bg-amber-50 px-3 py-2.5 text-center text-xs font-semibold text-amber-700">
                 Ngày này không còn khung giờ hợp lệ.
               </p>
             ) : null}
@@ -108,7 +108,7 @@ export function SchedulePicker({
                   onClick={() => onSelectTime(time)}
                   aria-pressed={selected}
                   title={blocked ? "Bạn đã có lịch ở khung giờ này" : undefined}
-                  className={`rounded-lg border px-2 py-3 text-xs font-semibold transition ${
+                  className={`rounded-lg border px-2 py-2 text-xs font-semibold transition ${
                     blocked
                       ? "cursor-not-allowed border-slate-300 bg-slate-200 text-slate-500"
                       : selected

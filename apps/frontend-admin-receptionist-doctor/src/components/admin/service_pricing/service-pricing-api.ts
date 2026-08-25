@@ -3,6 +3,8 @@ import type {
   DentalService,
   ServiceFormState,
   ServiceListResponse,
+  TreatmentMethod,
+  TreatmentMethodFormItem,
 } from "./types";
 
 type ServiceQuery = {
@@ -10,8 +12,7 @@ type ServiceQuery = {
 };
 
 function toPayload(form: ServiceFormState) {
-  const treatmentMethods = form.treatmentMethods?.length
-    ? form.treatmentMethods.map((tm, tmIndex) => ({
+  const treatmentMethods = form.treatmentMethods.map((tm, tmIndex) => ({
         id: tm.id || undefined,
         name: tm.name.trim(),
         slug: tm.slug.trim() || undefined,
@@ -45,8 +46,7 @@ function toPayload(form: ServiceFormState) {
             answer: f.answer.trim(),
             sortOrder: Number(f.sortOrder) || fIdx + 1,
           })),
-      }))
-    : undefined;
+      }));
 
   return {
     category: form.category,
@@ -55,10 +55,10 @@ function toPayload(form: ServiceFormState) {
     shortDescription: form.shortDescription || undefined,
     description: form.description || undefined,
     detailSummary: form.detailSummary || undefined,
-    thumbnailUrl: form.thumbnailUrl || undefined,
     durationMinutes: Number(form.durationMinutes),
     basePrice: Number(form.basePrice),
     displayOrder: Number(form.displayOrder),
+    isActive: form.isActive,
     treatmentMethods,
     highlights: form.highlights
       .filter((item) => item.title.trim() || item.description.trim())
@@ -144,6 +144,36 @@ export async function updateServiceStatus(id: string, isActive: boolean) {
     },
   );
   return response.data;
+}
+
+export async function updateTreatmentMethod(
+  serviceId: string,
+  methodId: string,
+  form: TreatmentMethodFormItem,
+) {
+  const response = await apiClient.patch<TreatmentMethod>(
+    `/services/${serviceId}/treatment-methods/${methodId}`,
+    {
+      name: form.name.trim(),
+      slug: form.slug.trim() || undefined,
+      description: form.description.trim() || undefined,
+      imageUrl: form.imageUrl.trim() || undefined,
+      basePrice: Number(form.basePrice),
+      durationMinutes: Number(form.durationMinutes),
+      displayOrder: Number(form.displayOrder),
+      isActive: form.isActive,
+    },
+  );
+  return response.data;
+}
+
+export async function deleteTreatmentMethod(
+  serviceId: string,
+  methodId: string,
+) {
+  await apiClient.delete(
+    `/services/${serviceId}/treatment-methods/${methodId}`,
+  );
 }
 
 export async function deleteService(id: string) {

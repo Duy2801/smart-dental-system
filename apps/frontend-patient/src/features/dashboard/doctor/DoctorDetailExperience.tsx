@@ -57,10 +57,11 @@ function ContactPanel({ doctor }: { doctor: DoctorDetail }) {
           Đặt lịch khám với bác sĩ
         </h2>
         <p className={`mt-2 ${T.bodySm}`}>
-          Hệ thống tự động ưu tiên chọn {doctor.name} làm bác sĩ điều trị chính khi bạn đăng ký.
+          Hệ thống tự động ưu tiên chọn {doctor.name} làm bác sĩ điều trị chính
+          khi bạn đăng ký.
         </p>
         <Link
-          href={buildRoute.appointmentBooking()}
+          href={buildRoute.appointmentWithDoctor(doctor.id)}
           className="mt-4 block rounded-xl bg-[#0058bc] px-5 py-3.5 text-center text-sm font-bold text-white shadow-lg shadow-blue-200 transition hover:bg-[#004ca3]"
         >
           Đặt lịch khám ngay
@@ -91,7 +92,8 @@ function ContactPanel({ doctor }: { doctor: DoctorDetail }) {
           </div>
         </div>
         <p className="text-xs text-slate-600 leading-relaxed">
-          Đăng ký lịch tư vấn trực tuyến từ xa với bác sĩ để nhận chẩn đoán sơ bộ và phương án điều trị.
+          Đăng ký lịch tư vấn trực tuyến từ xa với bác sĩ để nhận chẩn đoán sơ
+          bộ và phương án điều trị.
         </p>
         <Link
           href="/consultation"
@@ -187,7 +189,10 @@ export function DoctorDetailExperience({ doctorId }: { doctorId: string }) {
               <strong className="text-slate-900">Chức vụ:</strong>{" "}
               {doctor.position}
             </p>
-            <p className={`mt-5 max-w-3xl ${T.body}`} style={{ lineHeight: "1.75rem" }}>
+            <p
+              className={`mt-5 max-w-3xl ${T.body}`}
+              style={{ lineHeight: "1.75rem" }}
+            >
               {doctor.bio}
             </p>
 
@@ -222,7 +227,7 @@ export function DoctorDetailExperience({ doctorId }: { doctorId: string }) {
 
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
-                href={buildRoute.appointmentBooking()}
+                href={buildRoute.appointmentWithDoctor(doctor.id)}
                 className="rounded-xl bg-[#0058bc] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-blue-200"
               >
                 Đặt lịch hẹn
@@ -337,10 +342,12 @@ export function DoctorDetailExperience({ doctorId }: { doctorId: string }) {
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
                         <h3 className="font-bold text-slate-900">
-                          {review.patient?.user?.fullName || "Bệnh nhân ẩn danh"}
+                          {review.patient?.user?.fullName ||
+                            "Bệnh nhân ẩn danh"}
                         </h3>
                         <p className={`${T.bodySm}`}>
-                          {review.appointment?.service?.name || "Khám & Điều trị nha khoa"}
+                          {review.appointment?.service?.name ||
+                            "Khám & Điều trị nha khoa"}
                         </p>
                       </div>
                       <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-600">
