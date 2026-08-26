@@ -97,4 +97,12 @@ export class PaymentController {
   ) {
     return this.paymentService.confirmByStaff(user.userId, id);
   }
+
+  @Post('invoices/:invoiceId/remind')
+  @ApiBearerAuth()
+  @Roles('RECEPTIONIST', 'ADMIN')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  remindInvoicePayment(@Param('invoiceId') invoiceId: string) {
+    return this.paymentService.sendPaymentReminder(invoiceId);
+  }
 }

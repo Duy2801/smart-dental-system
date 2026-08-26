@@ -19,6 +19,8 @@ node_modules
 
 # Testing
 coverage
+__pycache__/
+*.py[cod]
 
 # Turbo
 .turbo
@@ -49,6 +51,9 @@ db.md
 
 # ai
 .agents/
+apps/ai-service/dental-pano-ai/models/**/*.pt
+apps/ai-service/dental-pano-ai/models/**/*.pth
+apps/ai-service/dental-pano-ai/models/**/*.part
 nghiepvu.md
 huongdanbacsi.md
 huongdanletan.md

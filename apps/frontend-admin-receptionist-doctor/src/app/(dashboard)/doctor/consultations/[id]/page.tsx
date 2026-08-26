@@ -17,6 +17,7 @@ import {
   CheckCircle,
   XCircle,
   Sparkle,
+  PaperPlaneTilt,
 } from "@phosphor-icons/react";
 import { ROUTES } from "@/src/constants/routes";
 import apiClient from "@/src/lib/api/client";
@@ -132,6 +133,8 @@ export default function ConsultationRoomPage() {
   const [savingNotes, setSavingNotes] = useState(false);
   const [notesSaved, setNotesSaved] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [sendingReminder, setSendingReminder] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [inCall, setInCall] = useState(false);
   const [callStartedAt, setCallStartedAt] = useState<number | null>(null);
   const [tick, setTick] = useState(0);
@@ -185,6 +188,27 @@ export default function ConsultationRoomPage() {
     () => buildSummary(detail?.chatbotSessions ?? []),
     [detail],
   );
+
+  const handleSendReminder = async () => {
+    setSendingReminder(true);
+    try {
+      await apiClient.post(`/video-consultations/${id}/send-reminder`);
+      setToast({
+        message: `✓ Đã gửi Link phòng Video Call & Lời nhắc qua Gmail & App cho ${detail?.patientName}!`,
+        type: "success",
+      });
+      setTimeout(() => setToast(null), 4500);
+    } catch (err: any) {
+      const msg = err.response?.data?.message || "Không thể gửi email lời nhắc phòng tư vấn.";
+      setToast({
+        message: Array.isArray(msg) ? msg[0] : msg,
+        type: "error",
+      });
+      setTimeout(() => setToast(null), 4500);
+    } finally {
+      setSendingReminder(false);
+    }
+  };
 
   const handleAiSummarize = async () => {
     setAiLoading(true);
@@ -353,7 +377,7 @@ export default function ConsultationRoomPage() {
             <button
               type="button"
               onClick={() => router.push(ROUTES.DOCTOR.CONSULTATIONS)}
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-brand"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-brand cursor-pointer"
             >
               <ArrowLeft size={12} />
               Tư vấn trực tuyến
@@ -408,7 +432,7 @@ export default function ConsultationRoomPage() {
                 <button
                   type="button"
                   onClick={handleCopyPin}
-                  className="inline-flex items-center gap-1 rounded-md bg-brand/10 px-2 py-0.5 text-xs font-semibold text-brand hover:bg-brand/15"
+                  className="inline-flex items-center gap-1 rounded-md bg-brand/10 px-2 py-0.5 text-xs font-semibold text-brand hover:bg-brand/15 cursor-pointer"
                 >
                   <Copy size={12} />
                   {pinCopied ? "Đã copy" : "Copy PIN"}
@@ -424,9 +448,21 @@ export default function ConsultationRoomPage() {
             {canStart && (
               <button
                 type="button"
+                onClick={handleSendReminder}
+                disabled={sendingReminder || actionLoading}
+                className="inline-flex items-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:opacity-60 cursor-pointer"
+                title="Gửi link phòng Video Call & Lời nhắc qua Gmail + App cho bệnh nhân"
+              >
+                <PaperPlaneTilt size={16} weight="bold" className={sendingReminder ? "animate-spin" : ""} />
+                {sendingReminder ? "Đang gửi..." : "Gửi link phòng (Gmail)"}
+              </button>
+            )}
+            {canStart && (
+              <button
+                type="button"
                 onClick={handleStart}
                 disabled={actionLoading}
-                className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-dark disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-dark disabled:opacity-60 cursor-pointer"
               >
                 <VideoCamera size={16} weight="bold" />
                 {actionLoading ? "Đang mở..." : "Bắt đầu tư vấn"}
@@ -437,7 +473,7 @@ export default function ConsultationRoomPage() {
                 type="button"
                 onClick={handleComplete}
                 disabled={actionLoading}
-                className="inline-flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-600 disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-600 disabled:opacity-60 cursor-pointer"
               >
                 <PhoneDisconnect size={16} weight="bold" />
                 Kết thúc
@@ -448,7 +484,7 @@ export default function ConsultationRoomPage() {
                 type="button"
                 onClick={handleCancel}
                 disabled={actionLoading}
-                className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-60 cursor-pointer"
               >
                 <XCircle size={16} />
                 Hủy buổi
@@ -502,7 +538,7 @@ export default function ConsultationRoomPage() {
                 type="button"
                 onClick={handleComplete}
                 disabled={actionLoading}
-                className="flex h-11 items-center gap-2 rounded-full bg-red-500 px-5 text-sm font-semibold text-white transition-colors hover:bg-red-600 disabled:opacity-60"
+                className="flex h-11 items-center gap-2 rounded-full bg-red-500 px-5 text-sm font-semibold text-white transition-colors hover:bg-red-600 disabled:opacity-60 cursor-pointer"
               >
                 <PhoneDisconnect size={18} weight="bold" />
                 Kết thúc
@@ -517,7 +553,7 @@ export default function ConsultationRoomPage() {
               type="button"
               onClick={() => setSideTab("chatbot")}
               className={cn(
-                "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-colors",
+                "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-colors cursor-pointer",
                 sideTab === "chatbot"
                   ? "bg-white text-brand-dark shadow-sm"
                   : "text-muted-foreground hover:text-brand-dark",
@@ -530,7 +566,7 @@ export default function ConsultationRoomPage() {
               type="button"
               onClick={() => setSideTab("patient")}
               className={cn(
-                "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-colors",
+                "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-colors cursor-pointer",
                 sideTab === "patient"
                   ? "bg-white text-brand-dark shadow-sm"
                   : "text-muted-foreground hover:text-brand-dark",
@@ -552,7 +588,7 @@ export default function ConsultationRoomPage() {
                     type="button"
                     onClick={handleAiSummarize}
                     disabled={aiLoading}
-                    className="inline-flex items-center gap-1 rounded-md bg-brand px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-brand-dark disabled:opacity-60"
+                    className="inline-flex items-center gap-1 rounded-md bg-brand px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-brand-dark disabled:opacity-60 cursor-pointer"
                   >
                     <Sparkle size={12} weight="fill" />
                     {aiLoading ? "Đang tạo…" : "Tóm tắt AI"}
@@ -703,7 +739,7 @@ export default function ConsultationRoomPage() {
                       type="button"
                       onClick={handleSaveNotes}
                       disabled={savingNotes || notes.length > NOTES_MAX}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-dark disabled:opacity-60"
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-dark disabled:opacity-60 cursor-pointer"
                     >
                       <FloppyDisk size={15} />
                       {savingNotes ? "Đang lưu..." : "Lưu ghi chú"}
@@ -715,6 +751,32 @@ export default function ConsultationRoomPage() {
           )}
         </section>
       </div>
+
+      {/* FLOATING SUCCESS / ERROR TOAST */}
+      {toast && (
+        <div
+          className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-2xl border px-4 py-3 text-xs font-bold shadow-xl backdrop-blur-xs animate-in fade-in slide-in-from-bottom-4 ${
+            toast.type === "success"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+              : "border-red-200 bg-red-50 text-red-800"
+          }`}
+        >
+          <span
+            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-white text-[10px] ${
+              toast.type === "success" ? "bg-emerald-600" : "bg-red-600"
+            }`}
+          >
+            {toast.type === "success" ? "✓" : "!"}
+          </span>
+          <span>{toast.message}</span>
+          <button
+            onClick={() => setToast(null)}
+            className="ml-2 text-slate-500 hover:text-slate-900 cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+      )}
     </div>
   );
 }

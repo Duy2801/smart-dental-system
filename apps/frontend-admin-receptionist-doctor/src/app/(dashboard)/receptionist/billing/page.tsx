@@ -24,6 +24,7 @@ import {
   Copy,
   CircleNotch,
   ArrowClockwise,
+  BellSimpleRinging,
 } from "@phosphor-icons/react";
 
 interface ServiceLine {
@@ -236,6 +237,7 @@ export default function BillingPage() {
   const [payAmountError, setPayAmountError] = useState("");
   const [discountCode, setDiscountCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [remindingId, setRemindingId] = useState<string | null>(null);
   const [transfer, setTransfer] = useState<TransferSession | null>(null);
   const [transferLoading, setTransferLoading] = useState(false);
   const [showRefundModal, setShowRefundModal] = useState(false);
@@ -522,14 +524,14 @@ export default function BillingPage() {
         if (left <= 0) markLocalPaid(selected.id);
         showToast(
           left > 0
-            ? `Đã thu ${formatVND(amount)}. Còn nợ ${formatVND(left)}.`
-            : "Đã thu tiền mặt thành công!",
+            ? `Đã thu ${formatVND(amount)} & gửi E-Receipt qua Gmail/App! Còn nợ ${formatVND(left)}.`
+            : "Đã thu tiền mặt & gửi E-Receipt qua Gmail/App thành công!",
           "success",
         );
         void fetchInvoices();
       } else if (transfer?.paymentId) {
         await apiClient.patch(`/payments/${transfer.paymentId}/confirm`);
-        showToast("Đã xác nhận chuyển khoản thành công!", "success");
+        showToast("Đã xác nhận chuyển khoản & gửi E-Receipt qua Gmail/App thành công!", "success");
         setTransfer(null);
         stopPoll();
         void fetchInvoices();
@@ -547,6 +549,24 @@ export default function BillingPage() {
       );
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleSendPaymentReminder = async (invoiceId: string, patientName: string) => {
+    setRemindingId(invoiceId);
+    try {
+      await apiClient.post(`/payments/invoices/${invoiceId}/remind`);
+      showToast(
+        `Đã gửi Gmail kèm mã VietQR & Thông báo nhắc nợ đến bệnh nhân ${patientName}!`,
+        "success",
+      );
+    } catch (err) {
+      showToast(
+        getApiErrorMessage(err, "Không thể gửi nhắc thanh toán. Thử lại sau."),
+        "error",
+      );
+    } finally {
+      setRemindingId(null);
     }
   };
 
@@ -1094,38 +1114,56 @@ export default function BillingPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-end gap-3 border-t border-border pt-5">
+                    <div className="flex flex-wrap items-center justify-end gap-3 border-t border-border pt-5">
                       <button
                         type="button"
                         onClick={() => window.print()}
-                        className="inline-flex items-center gap-2 rounded-lg border border-border bg-white px-5 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-muted"
+                        className="inline-flex items-center gap-2 rounded-lg border border-border bg-white px-5 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:bg-muted cursor-pointer"
                       >
                         <Printer size={15} />
                         In hóa đơn
                       </button>
+
                       {isOpenInvoice(selected.status) && (
-                        <button
-                          onClick={() => void handleConfirm()}
-                          disabled={
-                            submitting ||
-                            !!payAmountError ||
-                            (paymentMethod === "TRANSFER" &&
-                              !transfer &&
-                              transferLoading)
-                          }
-                          className="inline-flex items-center gap-2 rounded-lg bg-brand px-6 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          {submitting ? (
-                            <CircleNotch size={16} className="animate-spin" />
-                          ) : (
-                            <Receipt size={16} weight="fill" />
-                          )}
-                          {submitting
-                            ? "Đang xử lý..."
-                            : paymentMethod === "CASH"
-                              ? "Xác nhận thu tiền mặt"
-                              : "Xác nhận đã nhận CK"}
-                        </button>
+                        <>
+                          <button
+                            type="button"
+                            disabled={remindingId === selected.id}
+                            onClick={() => void handleSendPaymentReminder(selected.id, selected.patient)}
+                            className="inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-bold text-blue-700 shadow-sm hover:bg-blue-100 disabled:opacity-50 cursor-pointer"
+                            title="Gửi Gmail kèm mã VietQR & Thông báo In-App nhắc nợ"
+                          >
+                            {remindingId === selected.id ? (
+                              <CircleNotch size={15} className="animate-spin" />
+                            ) : (
+                              <BellSimpleRinging size={15} weight="bold" />
+                            )}
+                            <span>Nhắc nợ VietQR (Gmail/App)</span>
+                          </button>
+
+                          <button
+                            onClick={() => void handleConfirm()}
+                            disabled={
+                              submitting ||
+                              !!payAmountError ||
+                              (paymentMethod === "TRANSFER" &&
+                                !transfer &&
+                                transferLoading)
+                            }
+                            className="inline-flex items-center gap-2 rounded-lg bg-brand px-6 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+                          >
+                            {submitting ? (
+                              <CircleNotch size={16} className="animate-spin" />
+                            ) : (
+                              <Receipt size={16} weight="fill" />
+                            )}
+                            {submitting
+                              ? "Đang xử lý..."
+                              : paymentMethod === "CASH"
+                                ? "Xác nhận thu tiền mặt"
+                                : "Xác nhận đã nhận CK"}
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>

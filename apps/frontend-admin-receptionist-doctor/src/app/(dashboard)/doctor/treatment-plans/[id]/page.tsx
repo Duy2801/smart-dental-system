@@ -19,6 +19,7 @@ import {
   CalendarBlank,
   CaretDown,
   ArrowUpRight,
+  PaperPlaneTilt,
 } from "@phosphor-icons/react";
 import apiClient from "@/src/lib/api/client";
 import { TreatmentPlanExplanation } from "@/src/components/doctor/treatment-plan-explanation";
@@ -178,6 +179,33 @@ export default function TreatmentPlanDetailPage() {
   // expanded step detail
   const [expandedStep, setExpandedStep] = useState<string | null>(null);
 
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  const handleSendEmail = async () => {
+    if (!plan) return;
+    setSendingEmail(true);
+    try {
+      await apiClient.post(`/treatment-plans/${id}/send-email`);
+      setToast({
+        message: `✓ Đã gửi Phác đồ điều trị & Dự toán chi phí qua Gmail cho ${plan.patientName}!`,
+        type: "success",
+      });
+      setTimeout(() => setToast(null), 4500);
+    } catch (err: any) {
+      const msg =
+        err.response?.data?.message ||
+        "Không thể gửi email phác đồ điều trị.";
+      setToast({
+        message: Array.isArray(msg) ? msg[0] : msg,
+        type: "error",
+      });
+      setTimeout(() => setToast(null), 4500);
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
   useEffect(() => {
     apiClient
       .get<PlanDetail>(`/treatment-plans/${id}`)
@@ -317,10 +345,23 @@ export default function TreatmentPlanDetailPage() {
             {/* Actions */}
             <div className="flex shrink-0 items-center gap-2">
               <button
+                onClick={handleSendEmail}
+                disabled={sendingEmail}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3.5 py-2 text-sm font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:opacity-60 cursor-pointer"
+                title="Gửi phác đồ điều trị & bảng dự toán chi phí qua Gmail cho bệnh nhân"
+              >
+                <PaperPlaneTilt
+                  size={15}
+                  weight="bold"
+                  className={sendingEmail ? "animate-spin" : ""}
+                />
+                {sendingEmail ? "Đang gửi..." : "Gửi Phác Đồ (Gmail)"}
+              </button>
+              <button
                 onClick={() =>
                   router.push(`/doctor/treatment-plans/${id}/edit`)
                 }
-                className="inline-flex items-center gap-2 rounded-xl border border-border bg-white px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:border-brand hover:text-brand"
+                className="inline-flex items-center gap-2 rounded-xl border border-border bg-white px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:border-brand hover:text-brand cursor-pointer"
               >
                 <PencilSimple size={14} />
                 Sửa
@@ -594,6 +635,32 @@ export default function TreatmentPlanDetailPage() {
           Tạo lúc {formatDate(plan.createdAt)}
         </p>
       </div>
+
+      {/* FLOATING SUCCESS / ERROR TOAST */}
+      {toast && (
+        <div
+          className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-2xl border px-4 py-3 text-xs font-bold shadow-xl backdrop-blur-xs animate-in fade-in slide-in-from-bottom-4 ${
+            toast.type === "success"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+              : "border-red-200 bg-red-50 text-red-800"
+          }`}
+        >
+          <span
+            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-white text-[10px] ${
+              toast.type === "success" ? "bg-emerald-600" : "bg-red-600"
+            }`}
+          >
+            {toast.type === "success" ? "✓" : "!"}
+          </span>
+          <span>{toast.message}</span>
+          <button
+            onClick={() => setToast(null)}
+            className="ml-2 text-slate-500 hover:text-slate-900 cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+      )}
     </div>
   );
 }

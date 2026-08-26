@@ -6,6 +6,8 @@ from app.config import get_settings
 from app.schemas.doctor_assist import (
     AftercareRequest,
     AftercareResponse,
+    AnalyzeXrayRequest,
+    AnalyzeXrayResponse,
     MedicalRecordDraftRequest,
     MedicalRecordDraftResponse,
     PrescriptionDraftRequest,
@@ -66,3 +68,9 @@ async def generate_aftercare(body: AftercareRequest):
 async def explain_treatment_plan(body: TreatmentPlanExplanationRequest):
     """Giải thích kế hoạch đã lưu bằng dữ liệu giá và thời lượng thật."""
     return await service.explain_treatment_plan(body)
+
+
+@router.post("/analyze-xray", response_model=AnalyzeXrayResponse)
+async def analyze_xray(body: AnalyzeXrayRequest):
+    """Phân tích ảnh X-Quang Panorama phát hiện 8 loại tổn thương & răng FDI."""
+    return await service.analyze_xray(body)

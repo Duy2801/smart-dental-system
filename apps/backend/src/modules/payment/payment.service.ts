@@ -1,9 +1,12 @@
+import { InjectQueue } from '@nestjs/bull';
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import type { Queue } from 'bull';
 import {
   AppointmentPaymentStatus,
   DiscountType,
@@ -13,16 +16,21 @@ import {
   PaymentStatus,
 } from 'prisma/generated/enums';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationService } from '../notification/notification.service';
 import { EventsGateway } from '../socket/events.gateway';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { SepayWebhookDto } from './dto/sepay-webhook.dto';
 
 @Injectable()
 export class PaymentService {
+  private readonly logger = new Logger(PaymentService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    private readonly notificationService: NotificationService,
     private readonly eventsGateway: EventsGateway,
+    @InjectQueue('mail-queue') private readonly mailQueue: Queue,
   ) {}
 
   async createPayment(userId: string, dto: CreatePaymentDto) {
@@ -435,7 +443,7 @@ export class PaymentService {
       };
     });
 
-    const res = {
+    const paymentResponse = {
       id: result.paymentId,
       invoiceId: input.invoiceId,
       amount: result.payAmount,
@@ -448,14 +456,144 @@ export class PaymentService {
 
     // Emit real-time WebSocket events to frontend
     try {
-      this.eventsGateway.broadcast('payment_updated', res);
+      this.eventsGateway.broadcast('payment_updated', paymentResponse);
       this.eventsGateway.broadcast('consultation_updated', { invoiceId: input.invoiceId });
       this.eventsGateway.broadcast('appointment_updated', { invoiceId: input.invoiceId });
     } catch {
       // Ignore socket emission errors
     }
 
-    return res;
+    void this.dispatchPaymentSuccessNotification(
+      input.invoiceId,
+      result.payAmount,
+      input.method,
+      result.remaining,
+    );
+
+    return paymentResponse;
+  }
+
+  private async dispatchPaymentSuccessNotification(
+    invoiceId: string,
+    amountPaid: number,
+    method: PaymentMethod,
+    remainingAmount: number,
+  ) {
+    try {
+      const invoice = await this.prisma.invoice.findUnique({
+        where: { id: invoiceId },
+        include: {
+          patient: { include: { user: true } },
+          appointment: { include: { patient: { include: { user: true } } } },
+        },
+      });
+      if (!invoice) return;
+
+      const patient = invoice.patient || invoice.appointment?.patient;
+      const email = patient?.email || patient?.user?.email;
+      const name = patient?.fullName || patient?.user?.fullName || 'Quý khách';
+      const targetUserId = patient?.userId;
+
+      const rawItems = Array.isArray(invoice.items) ? invoice.items : [];
+      const items = rawItems.map((it: any) => ({
+        name: it.description || it.name || 'Dịch vụ nha khoa',
+        qty: Number(it.qty || it.quantity || 1),
+        price: Number(it.unitPrice || it.price || 0),
+      }));
+
+      if (email) {
+        await this.mailQueue.add('send-payment-receipt', {
+          email,
+          name,
+          invoiceCode: invoice.invoiceCode,
+          amountPaid,
+          totalAmount: Number(invoice.finalAmount),
+          remainingAmount,
+          paymentMethod: method,
+          items,
+          paidAt: new Date().toISOString(),
+        });
+      }
+
+      if (targetUserId) {
+        const formattedPaid = new Intl.NumberFormat('vi-VN').format(amountPaid);
+        const methodLabel = method === 'BANK_TRANSFER' ? 'Chuyển khoản SePay' : 'Tiền mặt';
+        await this.notificationService.createNotification({
+          userId: targetUserId,
+          type: 'PAYMENT_SUCCESS',
+          title: 'Thanh toán thành công',
+          content: `Hóa đơn #${invoice.invoiceCode} đã thanh toán thành công ${formattedPaid}đ (${methodLabel}).${remainingAmount > 0 ? ` Số dư nợ còn lại: ${new Intl.NumberFormat('vi-VN').format(remainingAmount)}đ.` : ' Đã hoàn tất 100%.'}`,
+        });
+      }
+    } catch (err) {
+      this.logger.warn(`Failed to dispatch payment success notification: ${err}`);
+    }
+  }
+
+  async sendPaymentReminder(invoiceId: string) {
+    const invoice = await this.prisma.invoice.findUnique({
+      where: { id: invoiceId },
+      include: {
+        patient: { include: { user: true } },
+        appointment: { include: { patient: { include: { user: true } } } },
+      },
+    });
+    if (!invoice) {
+      throw new NotFoundException('invoice.not_found');
+    }
+
+    const paidSoFar = await this.sumSuccessfulPayments(invoice.id);
+    const remaining = Number((Number(invoice.finalAmount) - paidSoFar).toFixed(2));
+    if (remaining <= 0) {
+      throw new BadRequestException('Hóa đơn này đã được thanh toán đủ, không cần gửi nhắc.');
+    }
+
+    const patient = invoice.patient || invoice.appointment?.patient;
+    const email = patient?.email || patient?.user?.email;
+    const name = patient?.fullName || patient?.user?.fullName || 'Quý khách';
+    const targetUserId = patient?.userId;
+
+    const bank = this.getBankConfig();
+    const transferCode = this.buildTransferCode(invoice.invoiceCode);
+    const qrImageUrl = this.buildVietQrUrl({
+      amount: remaining,
+      addInfo: transferCode,
+      accountNo: bank.accountNo,
+      accountName: bank.accountName,
+      bankBin: bank.bankBin,
+      template: bank.template,
+    });
+
+    if (email) {
+      await this.mailQueue.add('send-payment-reminder', {
+        email,
+        name,
+        invoiceCode: invoice.invoiceCode,
+        totalAmount: Number(invoice.finalAmount),
+        paidAmount: paidSoFar,
+        remainingAmount: remaining,
+        qrImageUrl,
+        transferContent: transferCode,
+        bankAccountNo: bank.accountNo,
+        bankAccountName: bank.accountName,
+        bankName: bank.bankName,
+      });
+    }
+
+    if (targetUserId) {
+      const formattedRemaining = new Intl.NumberFormat('vi-VN').format(remaining);
+      await this.notificationService.createNotification({
+        userId: targetUserId,
+        type: 'PAYMENT_REMINDER',
+        title: 'Nhắc thanh toán hóa đơn',
+        content: `Hóa đơn #${invoice.invoiceCode} còn số dư nợ ${formattedRemaining}đ. Quý khách có thể quét mã VietQR để thanh toán từ xa.`,
+      });
+    }
+
+    return {
+      success: true,
+      message: `Đã gửi Gmail kèm mã VietQR & Thông báo nhắc thanh toán đến bệnh nhân ${name}`,
+    };
   }
 
   private async sumSuccessfulPayments(invoiceId: string) {

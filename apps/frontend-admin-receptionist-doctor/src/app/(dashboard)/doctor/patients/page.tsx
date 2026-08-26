@@ -9,6 +9,8 @@ import {
   Users,
   SpinnerGap,
   Warning,
+  Stethoscope,
+  CalendarCheck,
 } from "@phosphor-icons/react";
 import apiClient from "@/src/lib/api/client";
 import {
@@ -64,15 +66,72 @@ export default function DoctorPatientsPage() {
     );
   }, [patients, search]);
 
+  // Statistics Summary
+  const stats = useMemo(() => {
+    const total = patients.length;
+    const active = patients.filter((p) => p.totalVisits > 1 || Boolean(p.medicalHistory)).length;
+    const now = new Date().getTime();
+    const recent = patients.filter((p) => {
+      if (!p.lastVisitDate) return false;
+      const t = new Date(p.lastVisitDate).getTime();
+      return now - t <= 7 * 24 * 60 * 60 * 1000;
+    }).length;
+
+    return { total, active, recent };
+  }, [patients]);
+
   return (
     <>
       <Header
         title="Bệnh nhân của tôi"
-        description="Danh sách bệnh nhân đã từng khám với bạn"
+        description="Danh sách và hồ sơ theo dõi bệnh nhân đã từng khám với bạn"
       />
 
-      <div className="p-6 md:p-8">
-        <div className="mb-6 flex items-center gap-4">
+      <div className="space-y-6 p-6 md:p-8">
+        {/* 1. TOP 3 STATS SUMMARY CARDS */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="flex items-center gap-4 rounded-2xl border border-border bg-white p-4 shadow-xs">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand/10 text-brand">
+              <Users size={24} weight="duotone" />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground">Tổng số bệnh nhân</p>
+              <div className="flex items-baseline gap-1 mt-0.5">
+                <span className="font-mono text-2xl font-extrabold text-brand-dark">{stats.total}</span>
+                <span className="text-xs text-muted-foreground font-medium">người</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 rounded-2xl border border-border bg-white p-4 shadow-xs">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+              <Stethoscope size={24} weight="duotone" />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground">Đang theo dõi điều trị</p>
+              <div className="flex items-baseline gap-1 mt-0.5">
+                <span className="font-mono text-2xl font-extrabold text-blue-700">{stats.active}</span>
+                <span className="text-xs text-muted-foreground font-medium">bệnh nhân</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 rounded-2xl border border-border bg-white p-4 shadow-xs">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+              <CalendarCheck size={24} weight="duotone" />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground">Đến khám trong tuần</p>
+              <div className="flex items-baseline gap-1 mt-0.5">
+                <span className="font-mono text-2xl font-extrabold text-emerald-700">{stats.recent}</span>
+                <span className="text-xs text-muted-foreground font-medium">lượt khám</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 2. SEARCH & LIST TABLE */}
+        <div className="flex items-center justify-between gap-4">
           <div className="relative w-full max-w-sm">
             <MagnifyingGlass
               size={16}
@@ -87,7 +146,7 @@ export default function DoctorPatientsPage() {
             />
           </div>
           {!loading && !error && (
-            <span className="shrink-0 text-sm text-muted-foreground">
+            <span className="shrink-0 text-sm font-medium text-muted-foreground">
               {filtered.length}/{patients.length} bệnh nhân
             </span>
           )}
@@ -188,7 +247,7 @@ export default function DoctorPatientsPage() {
                         <td className="whitespace-nowrap px-5 py-4 text-right">
                           <Link
                             href={`/doctor/patients/${pt.id}`}
-                            className="inline-flex items-center gap-1 whitespace-nowrap rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-medium text-brand-dark transition-colors hover:border-brand/40 hover:bg-brand/5 hover:text-brand"
+                            className="inline-flex items-center gap-1 whitespace-nowrap rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-medium text-brand-dark transition-colors hover:border-brand/40 hover:bg-brand/5 hover:text-brand cursor-pointer"
                           >
                             Xem hồ sơ
                             <ArrowRight size={12} className="shrink-0" />

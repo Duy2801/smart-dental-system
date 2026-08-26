@@ -16,6 +16,9 @@ import {
   Trash,
   Printer,
   X,
+  PaperPlaneTilt,
+  EnvelopeSimple,
+  CheckCircle,
 } from "@phosphor-icons/react";
 import apiClient from "@/src/lib/api/client";
 
@@ -187,9 +190,13 @@ function DeleteModal({
 function PrintModal({
   rx,
   onClose,
+  onSendEmail,
+  sendingEmail,
 }: {
   rx: Prescription;
   onClose: () => void;
+  onSendEmail?: (rx: Prescription) => void;
+  sendingEmail?: boolean;
 }) {
   const handlePrint = () => window.print();
 
@@ -200,16 +207,27 @@ function PrintModal({
         <div className="flex items-center justify-between border-b border-border px-6 py-4 print:hidden">
           <h3 className="font-semibold text-brand-dark">Xem trước đơn thuốc</h3>
           <div className="flex items-center gap-2">
+            {onSendEmail && (
+              <button
+                type="button"
+                disabled={sendingEmail}
+                onClick={() => onSendEmail(rx)}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50 cursor-pointer"
+              >
+                <PaperPlaneTilt size={15} weight="bold" />
+                {sendingEmail ? "Đang gửi..." : "Gửi Gmail cho BN"}
+              </button>
+            )}
             <button
               onClick={handlePrint}
-              className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-dark"
+              className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-dark cursor-pointer"
             >
               <Printer size={15} weight="bold" />
               In đơn
             </button>
             <button
               onClick={onClose}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-slate-100"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-slate-100 cursor-pointer"
             >
               <X size={16} />
             </button>
@@ -328,8 +346,31 @@ export default function PrescriptionsPage() {
   const [deleteTarget, setDeleteTarget] = useState<Prescription | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // Print
+  // Print & Send Email
   const [printTarget, setPrintTarget] = useState<Prescription | null>(null);
+  const [sendingId, setSendingId] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  const handleSendEmail = async (rx: Prescription) => {
+    setSendingId(rx.id);
+    try {
+      await apiClient.post(`/prescriptions/${rx.id}/send-email`);
+      setToast({
+        message: `✓ Đã gửi Toa thuốc điện tử & Hướng dẫn sử dụng qua Gmail cho bệnh nhân ${rx.patientName}!`,
+        type: "success",
+      });
+      setTimeout(() => setToast(null), 4500);
+    } catch (err: any) {
+      const msg = err.response?.data?.message || "Không thể gửi email đơn thuốc. Bệnh nhân có thể chưa có email hợp lệ.";
+      setToast({
+        message: Array.isArray(msg) ? msg[0] : msg,
+        type: "error",
+      });
+      setTimeout(() => setToast(null), 4500);
+    } finally {
+      setSendingId(null);
+    }
+  };
 
   useEffect(() => {
     if (!doctorId) return;
@@ -390,7 +431,12 @@ export default function PrescriptionsPage() {
         />
       )}
       {printTarget && (
-        <PrintModal rx={printTarget} onClose={() => setPrintTarget(null)} />
+        <PrintModal
+          rx={printTarget}
+          onClose={() => setPrintTarget(null)}
+          onSendEmail={handleSendEmail}
+          sendingEmail={sendingId === printTarget.id}
+        />
       )}
 
       <Header
@@ -550,27 +596,39 @@ export default function PrescriptionsPage() {
                               onClick={(e) => e.stopPropagation()}
                             >
                               <button
+                                onClick={() => handleSendEmail(rx)}
+                                disabled={sendingId === rx.id}
+                                title="Gửi Toa thuốc & Hướng dẫn qua Gmail cho bệnh nhân"
+                                className="flex h-8 w-8 items-center justify-center rounded-lg text-emerald-600 transition-colors hover:bg-emerald-50 hover:text-emerald-700 disabled:opacity-50 cursor-pointer"
+                              >
+                                <PaperPlaneTilt
+                                  size={14}
+                                  weight="bold"
+                                  className={sendingId === rx.id ? "animate-spin" : ""}
+                                />
+                              </button>
+                              <button
                                 onClick={() =>
                                   router.push(
                                     `/doctor/prescriptions/${rx.id}/edit`,
                                   )
                                 }
                                 title="Sửa đơn thuốc"
-                                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-brand/10 hover:text-brand"
+                                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-brand/10 hover:text-brand cursor-pointer"
                               >
                                 <PencilSimple size={14} />
                               </button>
                               <button
                                 onClick={() => setPrintTarget(rx)}
                                 title="In đơn thuốc"
-                                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-slate-100 hover:text-slate-700"
+                                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-slate-100 hover:text-slate-700 cursor-pointer"
                               >
                                 <Printer size={14} />
                               </button>
                               <button
                                 onClick={() => setDeleteTarget(rx)}
                                 title="Xóa đơn thuốc"
-                                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600"
+                                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600 cursor-pointer"
                               >
                                 <Trash size={14} />
                               </button>
@@ -582,7 +640,7 @@ export default function PrescriptionsPage() {
                           <tr className="border-b border-border/50 bg-slate-50/80">
                             <td />
                             <td colSpan={6} className="px-5 py-4">
-                              <div className="overflow-hidden rounded-xl border border-border bg-white">
+                              <div className="overflow-hidden rounded-xl border border-border bg-white p-4 space-y-3">
                                 <table className="w-full text-sm">
                                   <thead className="border-b border-border bg-slate-50 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                                     <tr>
@@ -619,6 +677,35 @@ export default function PrescriptionsPage() {
                                     ))}
                                   </tbody>
                                 </table>
+
+                                {/* Action bar inside expanded row */}
+                                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
+                                  <p className="text-xs text-muted-foreground italic">
+                                    💡 Email gửi từ BS. Nguyễn Đức Hậu kèm liều dùng và chỉ dẫn an toàn khi sử dụng thuốc.
+                                  </p>
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      type="button"
+                                      disabled={sendingId === rx.id}
+                                      onClick={() => handleSendEmail(rx)}
+                                      className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:opacity-50 cursor-pointer"
+                                    >
+                                      <PaperPlaneTilt
+                                        size={13}
+                                        weight="bold"
+                                        className={sendingId === rx.id ? "animate-spin" : ""}
+                                      />
+                                      {sendingId === rx.id ? "Đang gửi..." : "Gửi Toa thuốc qua Gmail cho BN"}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setPrintTarget(rx)}
+                                      className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-muted cursor-pointer"
+                                    >
+                                      <Printer size={13} /> In đơn
+                                    </button>
+                                  </div>
+                                </div>
                               </div>
                             </td>
                           </tr>
@@ -632,6 +719,32 @@ export default function PrescriptionsPage() {
           </>
         ) : null}
       </div>
+
+      {/* FLOATING SUCCESS / ERROR TOAST */}
+      {toast && (
+        <div
+          className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-2xl border px-4 py-3 text-xs font-bold shadow-xl backdrop-blur-xs animate-in fade-in slide-in-from-bottom-4 ${
+            toast.type === "success"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+              : "border-red-200 bg-red-50 text-red-800"
+          }`}
+        >
+          <span
+            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-white text-[10px] ${
+              toast.type === "success" ? "bg-emerald-600" : "bg-red-600"
+            }`}
+          >
+            {toast.type === "success" ? "✓" : "!"}
+          </span>
+          <span>{toast.message}</span>
+          <button
+            onClick={() => setToast(null)}
+            className="ml-2 text-slate-500 hover:text-slate-900 cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+      )}
     </>
   );
 }

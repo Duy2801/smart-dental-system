@@ -4,6 +4,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bull';
+import type { Queue } from 'bull';
 import type { AuthenticatedUser } from 'src/common/interfaces/authenticated-user.interface';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePrescriptionDto } from './dto/create-prescription.dto';
@@ -11,7 +13,11 @@ import { UpdatePrescriptionDto } from './dto/update-prescription.dto';
 
 @Injectable()
 export class PrescriptionService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @InjectQueue('mail-queue')
+    private readonly mailQueue: Queue,
+  ) {}
 
   async resolveDoctorIdByUserId(userId: string) {
     const doctor = await this.prisma.doctor.findUnique({
@@ -249,5 +255,89 @@ export class PrescriptionService {
     await this.ensureCanAccess(existing.doctorId, user);
     await this.prisma.prescription.delete({ where: { id } });
     return { success: true };
+  }
+
+  /** Gửi Toa thuốc điện tử & Hướng dẫn sử dụng qua Gmail cho bệnh nhân */
+  async sendPrescriptionToPatient(id: string, user: AuthenticatedUser) {
+    const rx = await this.prisma.prescription.findUnique({
+      where: { id },
+      include: {
+        items: true,
+        patient: {
+          include: {
+            user: { select: { id: true, fullName: true, email: true, phone: true } },
+          },
+        },
+        doctor: {
+          include: {
+            user: { select: { fullName: true } },
+          },
+        },
+        medicalRecord: {
+          select: {
+            diagnosis: true,
+            appointment: {
+              select: {
+                scheduledAt: true,
+                service: { select: { name: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!rx) {
+      throw new NotFoundException('Không tìm thấy đơn thuốc');
+    }
+
+    await this.ensureCanAccess(rx.doctorId, user);
+
+    const email = rx.patient?.user?.email || rx.patient?.email;
+    const patientName = (rx.patient as any)?.fullName || rx.patient?.user?.fullName || 'Quý khách';
+    const patientCode = rx.patient?.patientCode || 'PAT-0000';
+    const doctorName = rx.doctor?.user?.fullName || 'BS. Nguyễn Đức Hậu';
+    const diagnosis = rx.medicalRecord?.diagnosis || 'Khám & Điều trị nha khoa';
+    const notes = rx.notes;
+
+    if (!email || email.endsWith('@clinic.local')) {
+      throw new BadRequestException('Bệnh nhân chưa có địa chỉ email hợp lệ để nhận toa thuốc');
+    }
+
+    await this.mailQueue.add('send-prescription', {
+      name: patientName,
+      email,
+      patientCode,
+      doctorName,
+      diagnosis,
+      notes,
+      items: rx.items.map((item) => ({
+        medicineName: item.medicineName,
+        dosage: item.dosage,
+        frequency: item.frequency,
+        duration: item.duration,
+        instruction: item.instruction,
+      })),
+      createdAt: rx.createdAt.toISOString(),
+    });
+
+    if (rx.patient?.user?.id) {
+      await this.prisma.notification.create({
+        data: {
+          userId: rx.patient.user.id,
+          type: 'SYSTEM',
+          title: '💊 Toa thuốc điện tử từ Bác sĩ điều trị',
+          content: `${doctorName} đã gửi Toa thuốc điện tử cho bạn. Vui lòng kiểm tra email và làm theo hướng dẫn sử dụng thuốc an toàn.`,
+          channel: 'IN_APP',
+          status: 'SENT',
+          sentAt: new Date(),
+        },
+      });
+    }
+
+    return {
+      success: true,
+      message: `Đã gửi toa thuốc điện tử thành công đến ${email}`,
+    };
   }
 }

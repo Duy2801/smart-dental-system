@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { cn } from "@/src/lib/utils/cn";
-import { SpinnerGap, X } from "@phosphor-icons/react";
+import { SpinnerGap, X, VideoCamera, Storefront } from "@phosphor-icons/react";
 import type { ScheduleAppointment, AppointmentStatus, TimeOffRecord } from "./types";
 import { statusConfig } from "./types";
 import { AppointmentDetailPanel } from "./AppointmentDetailPanel";
@@ -47,6 +47,31 @@ export function WeekCalendar({
 }: Props) {
   const [selected, setSelected] = useState<ScheduleAppointment | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [currentTime, setCurrentTime] = useState<Date>(() => new Date());
+
+  // Update current time every minute for the red indicator line
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const todayIdx = useMemo(() => {
+    return weekDays.findIndex((d) => d.isToday);
+  }, [weekDays]);
+
+  const currentHours = useMemo(() => {
+    return currentTime.getHours() + currentTime.getMinutes() / 60;
+  }, [currentTime]);
+
+  const currentTimeLabel = useMemo(() => {
+    return currentTime.toLocaleTimeString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+  }, [currentTime]);
 
   async function handleDeleteTimeOff(id: string) {
     if (!confirm("Xóa đăng ký nghỉ này?")) return;
@@ -61,6 +86,7 @@ export function WeekCalendar({
   return (
     <div className="flex gap-4">
       <div className="flex-1 flex flex-col overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
+        {/* Header Days of Week */}
         <div className="grid grid-cols-8 border-b border-border bg-slate-50/50">
           <div className="flex items-center justify-center border-r border-border p-4">
             <span className="text-xs font-semibold text-muted-foreground">
@@ -70,11 +96,14 @@ export function WeekCalendar({
           {weekDays.map((day, i) => (
             <div
               key={i}
-              className="border-r border-border/40 p-4 text-center last:border-r-0"
+              className={cn(
+                "border-r border-border/40 p-4 text-center last:border-r-0 transition-colors",
+                day.isToday && "bg-brand/5",
+              )}
             >
               <span
                 className={cn(
-                  "text-[11px] font-medium uppercase tracking-wider",
+                  "text-[11px] font-bold uppercase tracking-wider",
                   day.isToday ? "text-brand" : "text-muted-foreground",
                 )}
               >
@@ -82,36 +111,43 @@ export function WeekCalendar({
               </span>
               <div
                 className={cn(
-                  "mt-1 text-sm font-bold",
+                  "mt-1 text-sm font-extrabold flex items-center justify-center gap-1.5",
                   day.isToday ? "text-brand" : "text-slate-900",
                 )}
               >
-                {day.date}
+                <span>{day.date}</span>
+                {day.isToday && (
+                  <span className="h-2 w-2 rounded-full bg-brand animate-pulse" />
+                )}
               </div>
             </div>
           ))}
         </div>
 
+        {/* Calendar Grid Canvas */}
         <div className="relative h-[620px] overflow-y-auto bg-white">
           {loading && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70">
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-2xs">
               <SpinnerGap size={28} className="animate-spin text-brand" />
             </div>
           )}
+
           <div
-            className="grid grid-cols-8"
+            className="grid grid-cols-8 relative"
             style={{ gridTemplateRows: `repeat(${hours.length * 2}, 72px)` }}
           >
+            {/* Hour Markers */}
             {hours.map((hour, idx) => (
               <div
                 key={hour}
-                className="col-start-1 border-r border-b border-border/30 bg-white pr-3 pt-1 text-right font-mono text-[11px] text-muted-foreground/60"
+                className="col-start-1 border-r border-b border-border/30 bg-white pr-3 pt-1 text-right font-mono text-[11px] text-muted-foreground/60 select-none"
                 style={{ gridRow: `${idx * 2 + 1} / span 2` }}
               >
                 {hour.toString().padStart(2, "0")}:00
               </div>
             ))}
 
+            {/* Day Columns */}
             {weekDays.map((day, dayIdx) => (
               <div
                 key={`col-${dayIdx}`}
@@ -130,9 +166,29 @@ export function WeekCalendar({
                     className="h-[144px] w-full border-b border-border/20"
                   />
                 ))}
+
+                {/* ELEGANT CURRENT TIME INDICATOR (CONFINED TO TODAY COLUMN ONLY) */}
+                {day.isToday && currentHours >= 7 && currentHours <= 19 && (
+                  <div
+                    style={{
+                      top: `${(currentHours - 7) * 144}px`,
+                    }}
+                    className="pointer-events-none absolute left-0 right-0 z-30 flex items-center"
+                  >
+                    {/* Small Pulsing Brand Dot */}
+                    <span className="h-2 w-2 -ml-1 rounded-full bg-blue-600 ring-2 ring-white shadow-xs" />
+                    {/* Thin subtle brand line */}
+                    <span className="h-[1.5px] flex-1 bg-blue-600/70" />
+                    {/* Tiny time pill badge at the right edge */}
+                    <span className="rounded bg-blue-600/90 px-1 py-0.2 text-[9px] font-mono font-bold text-white shadow-xs">
+                      {currentTimeLabel}
+                    </span>
+                  </div>
+                )}
               </div>
             ))}
 
+            {/* Time Off Blocks */}
             {timeOffs.map((off) => {
               const dayIdx = weekDays.findIndex((d) => d.iso === off.dayIso);
               if (dayIdx < 0) return null;
@@ -144,7 +200,7 @@ export function WeekCalendar({
               return (
                 <div
                   key={off.id}
-                  className="relative m-0.5 overflow-hidden rounded-xl border border-dashed border-slate-300 bg-slate-100/90 p-2 text-xs text-slate-600"
+                  className="relative m-0.5 overflow-hidden rounded-xl border border-dashed border-slate-300 bg-slate-100/90 p-2 text-xs text-slate-600 shadow-2xs"
                   style={{
                     gridColumn: dayIdx + 2,
                     gridRow: `${Math.max(1, Math.round(gridRow))} / span ${Math.max(1, Math.round(span))}`,
@@ -153,12 +209,12 @@ export function WeekCalendar({
                 >
                   <div className="flex items-start justify-between gap-1">
                     <div>
-                      <span className="block font-semibold leading-tight">Nghỉ</span>
-                      <span className="block font-mono text-[10px] opacity-70">
-                        {off.startTime}-{off.endTime}
+                      <span className="block font-bold leading-tight text-slate-800">Nghỉ phép</span>
+                      <span className="block font-mono text-[10px] text-slate-500 mt-0.5">
+                        {off.startTime} - {off.endTime}
                       </span>
                       {off.reason && (
-                        <span className="mt-0.5 block truncate text-[10px] opacity-80">
+                        <span className="mt-1 block truncate text-[10px] text-slate-600 italic">
                           {off.reason}
                         </span>
                       )}
@@ -170,7 +226,7 @@ export function WeekCalendar({
                         e.stopPropagation();
                         void handleDeleteTimeOff(off.id);
                       }}
-                      className="rounded p-0.5 text-slate-400 hover:bg-white hover:text-red-600 disabled:opacity-50"
+                      className="rounded p-0.5 text-slate-400 hover:bg-white hover:text-red-600 disabled:opacity-50 cursor-pointer"
                       title="Xóa nghỉ"
                     >
                       {deletingId === off.id ? (
@@ -184,6 +240,7 @@ export function WeekCalendar({
               );
             })}
 
+            {/* Appointment Blocks with Online / Offline Icon Badges */}
             {(() => {
               const placed: { dayIdx: number; start: number; end: number }[] = [];
               const sorted = [...appointments].sort(
@@ -197,7 +254,7 @@ export function WeekCalendar({
                 const gridRow = getGridRowFromIso(apt.scheduledAt);
                 const span = getDuration(apt.durationMinutes);
 
-                // Tính toán overlap
+                // Calculate overlap
                 const overlaps = placed.filter(
                   (p) => p.dayIdx === dayIdx && p.start < gridRow + span && p.end > gridRow
                 );
@@ -209,7 +266,7 @@ export function WeekCalendar({
                     key={apt.id}
                     onClick={() => setSelected(apt)}
                     className={cn(
-                      "cursor-pointer overflow-hidden rounded-xl p-1.5 px-2 text-xs shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md border-[1.5px] border-white",
+                      "cursor-pointer overflow-hidden rounded-xl p-2 text-xs shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md border-[1.5px] border-white flex flex-col justify-between",
                       config.color,
                       config.ring,
                       selected?.id === apt.id ? "ring-2 ring-brand z-30" : "z-10",
@@ -224,16 +281,37 @@ export function WeekCalendar({
                     }}
                     title={`${apt.patientName} - ${apt.serviceName}`}
                   >
-                    <span className="mb-1 block font-mono text-[10px] opacity-70 leading-none">
-                      {new Date(apt.scheduledAt).toLocaleTimeString("vi-VN", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
-                    <span className="block truncate font-semibold text-[13px] leading-tight text-slate-900">
-                      {apt.patientName}
-                    </span>
-                    <span className="block truncate text-[11px] leading-tight opacity-80 mt-0.5">
+                    <div>
+                      {/* Top Time Row & Icon Badge */}
+                      <div className="flex items-center justify-between gap-1 mb-1">
+                        <span className="font-mono text-[10px] font-bold opacity-75 leading-none">
+                          {new Date(apt.scheduledAt).toLocaleTimeString("vi-VN", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+
+                        {/* 2. ICON NHỎ TRÊN KHỐI LỊCH (ONLINE VIDEO / OFFLINE) */}
+                        {apt.type === "ONLINE" ? (
+                          <span className="inline-flex items-center gap-0.5 rounded bg-blue-600 px-1 py-0.2 text-[9px] font-extrabold text-white shadow-2xs">
+                            <VideoCamera size={10} weight="fill" />
+                            <span>Video</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold text-slate-500 opacity-80">
+                            <Storefront size={10} weight="fill" />
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Patient Name */}
+                      <span className="block truncate font-bold text-[12px] leading-tight text-slate-900">
+                        {apt.patientName}
+                      </span>
+                    </div>
+
+                    {/* Service Name */}
+                    <span className="block truncate text-[10px] font-medium leading-tight opacity-80 mt-1">
                       {apt.serviceName}
                     </span>
                   </div>
@@ -244,6 +322,7 @@ export function WeekCalendar({
         </div>
       </div>
 
+      {/* Appointment Detail Sliding Panel */}
       {selected && (
         <AppointmentDetailPanel
           appointment={selected}

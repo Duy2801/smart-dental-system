@@ -1,9 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import { cn } from "@/src/lib/utils/cn";
 import { Header } from "@/src/components/layout/header";
-import { Plus, CaretLeft, CaretRight, Warning } from "@phosphor-icons/react";
+import {
+  Plus,
+  CaretLeft,
+  CaretRight,
+  Warning,
+  CalendarCheck,
+  CheckCircle,
+  Clock,
+  VideoCamera,
+  Storefront,
+} from "@phosphor-icons/react";
 import apiClient from "@/src/lib/api/client";
 import { localDateStr } from "@/src/lib/receptionist/mappers";
 import { WeekCalendar } from "./_components/WeekCalendar";
@@ -214,6 +224,17 @@ export default function DoctorSchedulePage() {
     setRefDate(new Date());
   }
 
+  // Weekly Statistics Summary
+  const stats = useMemo(() => {
+    const total = appointments.length;
+    const offline = appointments.filter((a) => a.type === "OFFLINE").length;
+    const online = appointments.filter((a) => a.type === "ONLINE").length;
+    const completed = appointments.filter((a) => a.status === "COMPLETED").length;
+    const timeOffDays = new Set(timeOffs.map((t) => t.dayIso)).size;
+
+    return { total, offline, online, completed, timeOffDays };
+  }, [appointments, timeOffs]);
+
   return (
     <>
       <Header
@@ -222,7 +243,7 @@ export default function DoctorSchedulePage() {
       >
         <button
           onClick={() => setShowLeaveModal(true)}
-          className="ml-auto flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-dark active:scale-[0.98]"
+          className="ml-auto flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-dark active:scale-[0.98] cursor-pointer"
         >
           <Plus size={16} weight="bold" />
           Đăng ký ngày nghỉ
@@ -230,13 +251,69 @@ export default function DoctorSchedulePage() {
       </Header>
 
       <div className="space-y-6 p-6 md:p-8">
+        {/* 1. WEEKLY SUMMARY STATS COUNTER */}
+        <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-4">
+          <div className="flex items-center gap-3.5 rounded-2xl border border-border bg-white p-4 shadow-xs">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand/10 text-brand">
+              <CalendarCheck size={22} weight="duotone" />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground">Tổng ca tuần này</p>
+              <div className="flex items-baseline gap-1 mt-0.5">
+                <span className="font-mono text-xl font-extrabold text-brand-dark">{stats.total}</span>
+                <span className="text-xs text-muted-foreground font-medium">ca ({stats.offline} trực tiếp)</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3.5 rounded-2xl border border-border bg-white p-4 shadow-xs">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+              <VideoCamera size={22} weight="duotone" />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground">Tư vấn Video Online</p>
+              <div className="flex items-baseline gap-1 mt-0.5">
+                <span className="font-mono text-xl font-extrabold text-blue-700">{stats.online}</span>
+                <span className="text-xs text-muted-foreground font-medium">ca</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3.5 rounded-2xl border border-border bg-white p-4 shadow-xs">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+              <CheckCircle size={22} weight="duotone" />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground">Đã hoàn thành</p>
+              <div className="flex items-baseline gap-1 mt-0.5">
+                <span className="font-mono text-xl font-extrabold text-emerald-700">{stats.completed}</span>
+                <span className="text-xs text-muted-foreground font-medium">ca khám</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3.5 rounded-2xl border border-border bg-white p-4 shadow-xs">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+              <Clock size={22} weight="duotone" />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground">Đăng ký ngày nghỉ</p>
+              <div className="flex items-baseline gap-1 mt-0.5">
+                <span className="font-mono text-xl font-extrabold text-amber-700">{stats.timeOffDays}</span>
+                <span className="text-xs text-muted-foreground font-medium">ngày</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 2. CALENDAR CONTROLS & NAVIGATION */}
         <div className="flex flex-wrap items-center gap-3 justify-between">
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1 rounded-lg bg-muted/50 p-1">
               <button
                 onClick={() => setViewMode("week")}
                 className={cn(
-                  "rounded-md px-4 py-1.5 text-sm font-medium transition-colors",
+                  "rounded-md px-4 py-1.5 text-sm font-medium transition-colors cursor-pointer",
                   viewMode === "week"
                     ? "bg-white text-brand-dark shadow-sm"
                     : "text-muted-foreground hover:text-brand-dark",
@@ -247,7 +324,7 @@ export default function DoctorSchedulePage() {
               <button
                 onClick={() => setViewMode("list")}
                 className={cn(
-                  "rounded-md px-4 py-1.5 text-sm font-medium transition-colors",
+                  "rounded-md px-4 py-1.5 text-sm font-medium transition-colors cursor-pointer",
                   viewMode === "list"
                     ? "bg-white text-brand-dark shadow-sm"
                     : "text-muted-foreground hover:text-brand-dark",
@@ -258,7 +335,7 @@ export default function DoctorSchedulePage() {
             </div>
             <button
               onClick={goToday}
-              className="rounded-lg border border-border bg-white px-3 py-1.5 text-sm font-medium text-brand-dark transition-colors hover:bg-muted"
+              className="rounded-lg border border-border bg-white px-3 py-1.5 text-sm font-medium text-brand-dark transition-colors hover:bg-muted cursor-pointer"
             >
               Hôm nay
             </button>
@@ -267,14 +344,14 @@ export default function DoctorSchedulePage() {
           <div className="flex items-center gap-3 text-sm font-medium text-brand-dark">
             <button
               onClick={prevWeek}
-              className="rounded p-1.5 text-muted-foreground hover:bg-muted"
+              className="rounded p-1.5 text-muted-foreground hover:bg-muted cursor-pointer"
             >
               <CaretLeft size={16} />
             </button>
-            <span className="min-w-[160px] text-center">{weekLabel}</span>
+            <span className="min-w-[160px] text-center font-bold">{weekLabel}</span>
             <button
               onClick={nextWeek}
-              className="rounded p-1.5 text-muted-foreground hover:bg-muted"
+              className="rounded p-1.5 text-muted-foreground hover:bg-muted cursor-pointer"
             >
               <CaretRight size={16} />
             </button>
@@ -288,7 +365,7 @@ export default function DoctorSchedulePage() {
             {error && (
               <button
                 onClick={fetchSchedule}
-                className="ml-auto text-xs font-semibold underline underline-offset-2 hover:no-underline"
+                className="ml-auto text-xs font-semibold underline underline-offset-2 hover:no-underline cursor-pointer"
               >
                 Thử lại
               </button>
@@ -296,7 +373,7 @@ export default function DoctorSchedulePage() {
             {actionError && !error && (
               <button
                 onClick={() => setActionError(null)}
-                className="ml-auto text-xs font-semibold underline underline-offset-2 hover:no-underline"
+                className="ml-auto text-xs font-semibold underline underline-offset-2 hover:no-underline cursor-pointer"
               >
                 Đóng
               </button>
