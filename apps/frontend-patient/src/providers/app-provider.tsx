@@ -8,7 +8,7 @@ import { apiMe, apiRefresh } from "@/features/auth/api";
 import { ToastProvider } from "@/features/dashboard/common/toast";
 import { SocketProvider } from "@/service/ws/useSocket";
 import { useAppSelector } from "./hooks";
-import { login, logout, updateAccessToken } from "./loginSlice";
+import { finishHydration, login, logout, updateAccessToken } from "./loginSlice";
 import store from "./store";
 
 const queryClient = new QueryClient({
@@ -24,7 +24,10 @@ const queryClient = new QueryClient({
 
 function AuthHydrator() {
   useEffect(() => {
-    if (window.location.pathname.startsWith("/auth")) return;
+    if (window.location.pathname.startsWith("/auth")) {
+      store.dispatch(finishHydration());
+      return;
+    }
 
     void apiRefresh()
       .then(async (refreshResponse) => {

@@ -15,7 +15,7 @@ import {
 import { mapRecordTreatments } from "./recordMappers";
 import { usePatientRecordsQuery } from "../hooks/useRecordsQueries";
 import { RecordHistorySection } from "./RecordHistorySection";
-import { PatientPageSkeleton } from "../../common/PatientSkeleton";
+import { PatientPageSkeleton, PatientRecordsSkeleton } from "../../common/PatientSkeleton";
 import { LoginRequiredPanel } from "../../common/LoginRequiredPanel";
 
 const relationshipLabels: Record<string, string> = {
@@ -27,7 +27,7 @@ const relationshipLabels: Record<string, string> = {
 };
 
 export function PatientRecordsPageClient() {
-  const { isAuthenticated, accessToken } = useAppSelector(
+  const { isAuthenticated, accessToken, isHydrated } = useAppSelector(
     (state) => state.login,
   );
   const isLoggedIn = isAuthenticated && Boolean(accessToken);
@@ -66,10 +66,16 @@ export function PatientRecordsPageClient() {
     isLoggedIn && Boolean(activePatientId),
   );
 
-  if (profilesQuery.isLoading && !profiles.length) {
-    return <PatientPageSkeleton />;
+  // 1. Show skeleton while auth hydration is restoring (e.g. on F5 refresh)
+  if (!isHydrated || (profilesQuery.isLoading && !profiles.length)) {
+    return (
+      <main className="mx-auto w-full max-w-[1360px] space-y-5 px-4 py-7 sm:px-6 lg:px-8">
+        <PatientRecordsSkeleton />
+      </main>
+    );
   }
 
+  // 2. Show LoginRequiredPanel ONLY after auth hydration finishes and user is not logged in
   if (!isLoggedIn) {
     return (
       <LoginRequiredPanel
@@ -90,23 +96,9 @@ export function PatientRecordsPageClient() {
 
   return (
     <main className="mx-auto w-full max-w-[1360px] space-y-5 px-4 py-7 sm:px-6 lg:px-8">
-      <FamilyProfilePanel
-        profiles={profiles}
-        selectedPatientId={activePatientId}
-        loading={profilesQuery.isLoading}
-        creating={createProfileMutation.isPending}
-        onSelect={setSelectedPatientId}
-        onCreate={(payload) => createProfileMutation.mutateAsync(payload)}
-      />
-
       <section className="min-w-0 space-y-5">
         {recordsQuery.isLoading || !recordsQuery.data ? (
-          <div className="rounded-2xl border border-slate-200/80 bg-white p-6 text-center shadow-sm">
-            <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-[#0058bc] border-t-transparent" />
-            <p className="mt-2 text-xs font-semibold text-slate-500">
-              Đang tải phác đồ và lịch sử khám bệnh...
-            </p>
-          </div>
+          <PatientRecordsSkeleton />
         ) : recordsQuery.isError ? (
           <div className="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm font-semibold text-rose-700">
             Không thể tải hồ sơ điều trị. Vui lòng đăng nhập lại hoặc thử lại sau.
@@ -115,6 +107,9 @@ export function PatientRecordsPageClient() {
           <RecordHistorySection
             treatments={treatments}
             recordsData={recordsQuery.data}
+            profiles={profiles}
+            selectedPatientId={activePatientId}
+            onSelectPatient={setSelectedPatientId}
           />
         )}
       </section>

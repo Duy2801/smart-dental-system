@@ -18,7 +18,7 @@ export function AppointmentWorkspace({
   initialMode?: "manage" | "booking";
   dedicatedDoctorId?: string;
 }) {
-  const { isAuthenticated, accessToken } = useAppSelector(
+  const { isAuthenticated, accessToken, isHydrated } = useAppSelector(
     (state) => state.login,
   );
   const isLoggedIn = isAuthenticated && Boolean(accessToken);
@@ -36,6 +36,17 @@ export function AppointmentWorkspace({
     if (!canBook) return;
     setMode("booking");
   }, [ensureLoggedInBeforeBooking]);
+
+  if (!isHydrated) {
+    return (
+      <main className="mx-auto w-full max-w-[1360px] px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
+        <div className="space-y-6">
+          <div className="h-40 rounded-2xl bg-gradient-to-r from-slate-200/70 via-slate-100 to-slate-200/70 animate-pulse" />
+          <div className="h-96 rounded-2xl bg-gradient-to-r from-slate-200/70 via-slate-100 to-slate-200/70 animate-pulse" />
+        </div>
+      </main>
+    );
+  }
 
   if (!isLoggedIn) {
     return (

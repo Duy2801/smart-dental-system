@@ -16,6 +16,7 @@ type LoginState = {
   role: string;
   startDate: string | null;
   isAuthenticated: boolean;
+  isHydrated: boolean;
 };
 
 type LoginPayload = {
@@ -29,6 +30,7 @@ const initialState: LoginState = {
   role: "",
   startDate: null,
   isAuthenticated: false,
+  isHydrated: false,
 };
 
 export const loginSlice = createSlice({
@@ -41,15 +43,24 @@ export const loginSlice = createSlice({
       state.role = action.payload.user.roles?.[0] ?? "PATIENT";
       state.startDate = new Date().toISOString();
       state.isAuthenticated = true;
+      state.isHydrated = true;
     },
     updateAccessToken: (state, action: PayloadAction<string>) => {
       state.accessToken = action.payload;
       state.isAuthenticated = Boolean(state.user && action.payload);
     },
-    logout: () => initialState,
+    finishHydration: (state) => {
+      state.isHydrated = true;
+    },
+    logout: () => {
+      return {
+        ...initialState,
+        isHydrated: true,
+      };
+    },
   },
 });
 
-export const { login, logout, updateAccessToken } = loginSlice.actions;
+export const { login, logout, updateAccessToken, finishHydration } = loginSlice.actions;
 
 export default loginSlice.reducer;

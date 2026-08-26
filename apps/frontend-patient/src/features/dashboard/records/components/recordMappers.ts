@@ -126,8 +126,7 @@ function mapTreatmentPlan(
     treatmentPlan,
     prescriptions:
       prescriptions.length > 0 ? prescriptions : [NO_PRESCRIPTION],
-    richPrescriptions:
-      richPrescriptions.length > 0 ? richPrescriptions : [getDefaultRichPrescription(plan.doctor.name, plan.startDate)],
+    richPrescriptions: richPrescriptions,
     paidAmount,
     paymentStatusLabel: paidAmount > 0 ? "Thanh toán đủ" : "Chưa thanh toán",
     careInstructions: buildCareInstructions(firstRecord?.treatmentNotes),
@@ -192,11 +191,6 @@ function buildTimelineSteps(
         ? "current"
         : "upcoming";
 
-    const finalRichPrescriptions =
-      richPrescriptions.length > 0
-        ? richPrescriptions
-        : [getDefaultRichPrescription(doctorName, step.completedAt || step.expectedDate)];
-
     return {
       id: step.id,
       date: formatStepDate(step),
@@ -215,7 +209,7 @@ function buildTimelineSteps(
           : "Chưa thanh toán",
       prescriptions:
         prescriptions.length > 0 ? prescriptions : [NO_PRESCRIPTION],
-      richPrescriptions: finalRichPrescriptions,
+      richPrescriptions: richPrescriptions,
       careInstructions: buildCareInstructions(firstRecord?.treatmentNotes),
       images: pickClinicalImages(step.medicalRecords.flatMap((record) => record.images ?? [])),
       medicalRecordId: firstRecord?.id ?? null,

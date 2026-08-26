@@ -18,17 +18,18 @@ export function DashboardFooterClinicInfo() {
   if (isLoading) {
     return (
       <>
-        <div>
-          <p className="mb-2 font-bold text-slate-800">Địa chỉ phòng khám</p>
-          <p className="text-[11px] text-slate-500">Đang tải...</p>
+        <div className="space-y-2">
+          <p className="font-bold text-slate-800 text-xs">Địa chỉ phòng khám</p>
+          <div className="h-3.5 w-44 rounded-md bg-slate-200/80 animate-pulse" />
         </div>
-        <div>
-          <p className="mb-2 font-bold text-slate-800">Liên hệ & Hỗ trợ</p>
-          <p className="text-[11px] text-slate-500">Đang tải...</p>
+        <div className="space-y-2">
+          <p className="font-bold text-slate-800 text-xs">Liên hệ & Hỗ trợ</p>
+          <div className="h-3.5 w-36 rounded-md bg-slate-200/80 animate-pulse" />
+          <div className="h-3.5 w-40 rounded-md bg-slate-200/80 animate-pulse" />
         </div>
-        <div>
-          <p className="mb-2 font-bold text-slate-800">Giờ mở cửa</p>
-          <p className="text-[11px] text-slate-500">Đang tải...</p>
+        <div className="space-y-2">
+          <p className="font-bold text-slate-800 text-xs">Giờ mở cửa</p>
+          <div className="h-3.5 w-32 rounded-md bg-slate-200/80 animate-pulse" />
         </div>
       </>
     );

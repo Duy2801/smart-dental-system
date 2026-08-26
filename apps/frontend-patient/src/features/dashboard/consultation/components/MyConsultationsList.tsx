@@ -101,8 +101,19 @@ export function MyConsultationsList({ onBookNew }: MyConsultationsListProps) {
       )}
 
       {isLoading ? (
-        <div className="py-12 text-center text-slate-400">
-          Đang tải danh sách lịch tư vấn...
+        <div className="space-y-4">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <div
+              key={i}
+              className="p-5 rounded-2xl border border-slate-200 bg-white space-y-3 animate-pulse"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-5 w-44 bg-slate-200 rounded-md" />
+                <div className="h-5 w-20 bg-slate-200 rounded-full" />
+              </div>
+              <div className="h-4 w-64 bg-slate-200 rounded-md" />
+            </div>
+          ))}
         </div>
       ) : myConsultations.length === 0 ? (
         <div className="py-12 text-center text-slate-400 space-y-3">

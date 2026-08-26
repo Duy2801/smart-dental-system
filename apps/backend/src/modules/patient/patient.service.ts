@@ -755,6 +755,17 @@ export class PatientService {
         throw new ForbiddenException('patient.profile_forbidden');
       }
 
+      const recordCount = await this.prisma.medicalRecord.count({
+        where: { patientId: link.patientId },
+      });
+      const planCount = await this.prisma.treatmentPlan.count({
+        where: { patientId: link.patientId },
+      });
+
+      if (recordCount === 0 || planCount === 0) {
+        await this.createStarterTreatmentJourney(link.patientId, userId);
+      }
+
       return this.buildPatientRecordResponse(link.patientId);
     }
 
@@ -1023,23 +1034,73 @@ export class PatientService {
         },
       });
 
+      // Sinh đơn thuốc riêng biệt độc nhất theo từng mã bệnh nhân (patientId)
+      const rxVariants = [
+        [
+          {
+            medicineName: 'Paracetamol Extra',
+            dosage: '500mg',
+            frequency: '1 viên x 3 lần/ngày',
+            duration: '3 ngày',
+            instruction: 'Uống sau bữa ăn khi đau nhức.',
+          },
+          {
+            medicineName: 'Amoxicillin Kabi',
+            dosage: '500mg',
+            frequency: '1 viên x 2 lần/ngày',
+            duration: '5 ngày',
+            instruction: 'Uống kháng sinh đúng giờ sau bữa ăn.',
+          },
+        ],
+        [
+          {
+            medicineName: 'Ibuprofen Stada',
+            dosage: '400mg',
+            frequency: '1 viên x 2 lần/ngày',
+            duration: '3 ngày',
+            instruction: 'Uống giảm đau và chống viêm sau bữa ăn chín.',
+          },
+          {
+            medicineName: 'Nước súc miệng Chlorhexidine 0.12%',
+            dosage: '250ml',
+            frequency: 'Súc miệng 2 lần/ngày',
+            duration: '7 ngày',
+            instruction: 'Súc miệng giữ 30 giây sau khi vệ sinh răng.',
+          },
+        ],
+        [
+          {
+            medicineName: 'Augmentin (Amoxicillin/Clavulanate)',
+            dosage: '625mg',
+            frequency: '1 viên x 2 lần/ngày',
+            duration: '5 ngày',
+            instruction: 'Uống kháng sinh kết hợp trước hoặc sau ăn.',
+          },
+          {
+            medicineName: 'Efferalgan Paracetamol',
+            dosage: '500mg (sủi)',
+            frequency: '1 viên x 3 lần/ngày',
+            duration: '3 ngày',
+            instruction: 'Hòa tan 1 viên sủi trong 150ml nước lọc.',
+          },
+        ],
+      ];
+
+      const variantIndex = Math.abs(
+        patientId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0),
+      ) % rxVariants.length;
+
+      const prescriptionItems = rxVariants[variantIndex];
+
       const prescription = await tx.prescription.create({
         data: {
           medicalRecordId: medicalRecord.id,
           treatmentPlanStepId: step1.id,
           doctorId: doctor.id,
           patientId,
-          notes: 'Don thuoc sau buoc dieu tri dau tien.',
+          notes: 'Đơn thuốc sau bước khám & chẩn đoán đầu tiên.',
           items: {
-            create: [
-              {
-                medicineName: 'Paracetamol',
-                dosage: '500mg',
-                frequency: 'Khi dau',
-                duration: '3 ngay',
-                instruction: 'Uong sau an, khong qua lieu khuyen cao.',
-              },
-            ],
+            create: prescriptionItems,
           },
         },
       });

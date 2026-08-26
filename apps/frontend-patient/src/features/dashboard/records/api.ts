@@ -24,6 +24,7 @@ export type PatientRecordsResponse = {
     diagnosis: string | null;
     treatmentNotes: string | null;
     followUpDate: string | null;
+    images?: ClinicalImageRecord[] | null;
   }>;
 };
 
