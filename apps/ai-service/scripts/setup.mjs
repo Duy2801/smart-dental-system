@@ -31,6 +31,9 @@ if (!existsSync(venvPython)) {
 console.log("[ai-service] Cài requirements…");
 run(venvPip, ["install", "-r", "requirements.txt"]);
 
+console.log("[ai-service] Kiểm tra model Dental Pano…");
+run(venvPython, [path.resolve(root, "../../download_models.py")]);
+
 const envExample = path.join(root, ".env.example");
 const envFile = path.join(root, ".env");
 if (!existsSync(envFile) && existsSync(envExample)) {

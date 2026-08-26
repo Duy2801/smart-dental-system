@@ -11,6 +11,8 @@ import {
   Clock,
   ArrowRight,
   XCircle,
+  PaperPlaneTilt,
+  CheckCircle,
 } from "@phosphor-icons/react";
 import { Header } from "@/src/components/layout/header";
 import { ROUTES } from "@/src/constants/routes";
@@ -139,6 +141,29 @@ export default function DoctorConsultationsPage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterKey>("all");
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [sendingId, setSendingId] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  const handleSendReminder = async (item: Consultation) => {
+    setSendingId(item.id);
+    try {
+      await apiClient.post(`/video-consultations/${item.id}/send-reminder`);
+      setToast({
+        message: `✓ Đã gửi Link phòng Video Call & Lời nhắc qua Gmail & App cho ${item.patientName}!`,
+        type: "success",
+      });
+      setTimeout(() => setToast(null), 4500);
+    } catch (err: any) {
+      const msg = err.response?.data?.message || "Không thể gửi email lời nhắc phòng tư vấn.";
+      setToast({
+        message: Array.isArray(msg) ? msg[0] : msg,
+        type: "error",
+      });
+      setTimeout(() => setToast(null), 4500);
+    } finally {
+      setSendingId(null);
+    }
+  };
 
   useEffect(() => {
     const id = getUserInfo().doctorId;
@@ -314,12 +339,28 @@ export default function DoctorConsultationsPage() {
                     </div>
 
                     <div className="flex shrink-0 flex-wrap items-center gap-2">
+                      {item.status !== "CANCELLED" && item.status !== "COMPLETED" && (
+                        <button
+                          type="button"
+                          onClick={() => handleSendReminder(item)}
+                          disabled={sendingId === item.id}
+                          className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:opacity-50 cursor-pointer"
+                          title="Gửi link phòng Video Call & Lời nhắc qua Gmail + App cho bệnh nhân"
+                        >
+                          <PaperPlaneTilt
+                            size={14}
+                            weight="bold"
+                            className={sendingId === item.id ? "animate-spin" : ""}
+                          />
+                          {sendingId === item.id ? "Đang gửi..." : "Gửi link phòng"}
+                        </button>
+                      )}
                       {canCancel ? (
                         <button
                           type="button"
                           onClick={() => handleCancel(item.id, item.patientName)}
                           disabled={cancellingId === item.id}
-                          className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-60"
+                          className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-60 cursor-pointer"
                         >
                           <XCircle size={14} />
                           {cancellingId === item.id ? "Đang hủy..." : "Hủy"}
@@ -340,6 +381,32 @@ export default function DoctorConsultationsPage() {
           )}
         </div>
       </div>
+      )}
+
+      {/* FLOATING SUCCESS / ERROR TOAST */}
+      {toast && (
+        <div
+          className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-2xl border px-4 py-3 text-xs font-bold shadow-xl backdrop-blur-xs animate-in fade-in slide-in-from-bottom-4 ${
+            toast.type === "success"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+              : "border-red-200 bg-red-50 text-red-800"
+          }`}
+        >
+          <span
+            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-white text-[10px] ${
+              toast.type === "success" ? "bg-emerald-600" : "bg-red-600"
+            }`}
+          >
+            {toast.type === "success" ? "✓" : "!"}
+          </span>
+          <span>{toast.message}</span>
+          <button
+            onClick={() => setToast(null)}
+            className="ml-2 text-slate-500 hover:text-slate-900 cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
       )}
     </>
   );

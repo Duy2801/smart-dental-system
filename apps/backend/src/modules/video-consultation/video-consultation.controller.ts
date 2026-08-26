@@ -158,4 +158,14 @@ export class VideoConsultationController {
   ) {
     return this.service.updateNotes(id, user, body.notes ?? null);
   }
+
+  @Post(':id/send-reminder')
+  @Roles('DOCTOR', 'ADMIN')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  sendReminder(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.service.sendConsultationReminderToPatient(id, user);
+  }
 }

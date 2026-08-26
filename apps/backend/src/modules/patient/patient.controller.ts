@@ -100,6 +100,27 @@ export class PatientController {
     return this.patientService.updatePatient(id, dto);
   }
 
+  @Post(':id/send-welcome')
+  @Roles('RECEPTIONIST', 'ADMIN')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  sendWelcomeEmail(@Param('id') id: string) {
+    return this.patientService.sendWelcomeEmailToPatient(id);
+  }
+
+  @Post(':id/send-reminder')
+  @Roles('RECEPTIONIST', 'ADMIN')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  sendPeriodicReminder(@Param('id') id: string) {
+    return this.patientService.sendPeriodicCheckupReminder(id);
+  }
+
+  @Post('send-bulk-reminders')
+  @Roles('RECEPTIONIST', 'ADMIN')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  sendBulkPeriodicReminders() {
+    return this.patientService.sendBulkPeriodicCheckupReminders();
+  }
+
   @Get(':id')
   @Roles('DOCTOR', 'ADMIN', 'RECEPTIONIST')
   @UseGuards(JwtAuthGuard, RolesGuard)

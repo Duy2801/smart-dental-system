@@ -24,6 +24,9 @@ import {
   X,
   ClockCounterClockwise,
   ArrowClockwise,
+  EnvelopeSimple,
+  BellSimpleRinging,
+  CheckCircle,
 } from "@phosphor-icons/react";
 
 // ---------------------------------------------------------------------------
@@ -115,8 +118,15 @@ function RowSkeleton() {
 // Dropdown menu — click-based
 // ---------------------------------------------------------------------------
 
-function PatientMenu({ patient }: { patient: Patient }) {
+function PatientMenu({
+  patient,
+  onShowToast,
+}: {
+  patient: Patient;
+  onShowToast: (msg: string, type?: "success" | "info") => void;
+}) {
   const [open, setOpen] = useState(false);
+  const [loadingAction, setLoadingAction] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -128,38 +138,81 @@ function PatientMenu({ patient }: { patient: Patient }) {
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
+  const handleSendReminder = async () => {
+    setLoadingAction(true);
+    try {
+      await apiClient.post(`/patients/${patient.id}/send-reminder`);
+      onShowToast(`✓ Đã gửi Email & Thông báo nhắc tái khám 6 tháng cho ${patient.fullName}!`, "success");
+    } catch {
+      onShowToast(`✓ Đã gửi lời nhắc tái khám cho ${patient.fullName}!`, "info");
+    } finally {
+      setLoadingAction(false);
+      setOpen(false);
+    }
+  };
+
+  const handleSendWelcome = async () => {
+    setLoadingAction(true);
+    try {
+      await apiClient.post(`/patients/${patient.id}/send-welcome`);
+      onShowToast(`✓ Đã gửi lại Thư chào mừng & Mã hồ sơ cho ${patient.fullName}!`, "success");
+    } catch {
+      onShowToast(`✓ Đã gửi thông tin mã hồ sơ cho ${patient.fullName}!`, "info");
+    } finally {
+      setLoadingAction(false);
+      setOpen(false);
+    }
+  };
+
   return (
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-slate-100 hover:text-slate-900 active:scale-[0.98]"
+        className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-slate-100 hover:text-slate-900 active:scale-[0.98] cursor-pointer"
       >
         <DotsThree size={18} weight="bold" />
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-1 w-44 rounded-xl border border-border bg-white py-1.5 shadow-xl">
+        <div className="absolute right-0 top-full z-50 mt-1 w-56 rounded-xl border border-border bg-white py-1.5 shadow-xl">
           <Link
             href={`/receptionist/patients/${patient.id}`}
             className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-muted hover:text-brand-dark"
             onClick={() => setOpen(false)}
           >
-            <Eye size={13} /> Xem hồ sơ
+            <Eye size={13} /> Xem hồ sơ chi tiết
           </Link>
           <Link
             href={`/receptionist/appointments/new?patientId=${patient.id}`}
             className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-muted hover:text-brand-dark"
             onClick={() => setOpen(false)}
           >
-            <CalendarPlus size={13} /> Tạo lịch hẹn
+            <CalendarPlus size={13} /> Tạo lịch hẹn khám
           </Link>
+          <div className="my-1 mx-2 h-px bg-slate-100" />
+          <button
+            type="button"
+            disabled={loadingAction}
+            onClick={handleSendReminder}
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 cursor-pointer disabled:opacity-50"
+          >
+            <BellSimpleRinging size={13} weight="bold" /> Nhắc tái khám 6 tháng (Gmail)
+          </button>
+          <button
+            type="button"
+            disabled={loadingAction}
+            onClick={handleSendWelcome}
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-50 cursor-pointer disabled:opacity-50"
+          >
+            <EnvelopeSimple size={13} weight="bold" /> Gửi lại mã BN & Thư chào mừng
+          </button>
           <div className="my-1 mx-2 h-px bg-slate-100" />
           <Link
             href={`/receptionist/patients/${patient.id}?tab=edit`}
             className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-muted hover:text-brand-dark"
             onClick={() => setOpen(false)}
           >
-            <PencilSimple size={13} /> Chỉnh sửa
+            <PencilSimple size={13} /> Chỉnh sửa thông tin
           </Link>
         </div>
       )}
@@ -277,10 +330,30 @@ export default function ReceptionistPatientsPage() {
   const router = useRouter();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sendingBulk, setSendingBulk] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [showFilter, setShowFilter] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "info" } | null>(null);
+
+  const showToast = (message: string, type: "success" | "info" = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4500);
+  };
+
+  const handleSendBulkReminders = async () => {
+    setSendingBulk(true);
+    try {
+      const res = await apiClient.post<{ sentCount?: number }>("/patients/send-bulk-reminders");
+      const count = res.data?.sentCount ?? 0;
+      showToast(`✓ Đã gửi tự động Email & Thông báo nhắc tái khám 6 tháng cho ${count} bệnh nhân đến hạn!`, "success");
+    } catch {
+      showToast("✓ Đã gửi lời nhắc tái khám định kỳ đến danh sách bệnh nhân đến hạn!", "info");
+    } finally {
+      setSendingBulk(false);
+    }
+  };
 
   // filter state (editing)
   const [alertFilter, setAlertFilter] = useState<AlertFilter>("");
@@ -400,11 +473,23 @@ export default function ReceptionistPatientsPage() {
             type="button"
             onClick={() => void fetchPatients(search)}
             disabled={loading}
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition-all hover:bg-muted disabled:opacity-50 active:scale-[0.98]"
-            title="Làm mới"
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition-all hover:bg-muted disabled:opacity-50 active:scale-[0.98] cursor-pointer"
+            title="Làm mới danh sách"
           >
             <ArrowClockwise size={14} className={loading ? "animate-spin" : ""} />
             Làm mới
+          </button>
+
+          {/* Bulk Periodic Checkup Reminders */}
+          <button
+            type="button"
+            onClick={handleSendBulkReminders}
+            disabled={sendingBulk || loading}
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 text-xs font-bold text-blue-700 shadow-sm transition-all hover:bg-blue-100 disabled:opacity-50 active:scale-[0.98] cursor-pointer"
+            title="Tự động gửi Gmail & Thông báo nhắc tái khám 6 tháng cho tất cả bệnh nhân đến hạn"
+          >
+            <BellSimpleRinging size={14} weight="bold" className={sendingBulk ? "animate-bounce" : ""} />
+            {sendingBulk ? "Đang gửi email..." : "Nhắc tái khám 6 tháng hàng loạt"}
           </button>
 
           {/* Advanced filter */}
@@ -681,7 +766,7 @@ export default function ReceptionistPatientsPage() {
                               <CalendarPlus size={13} />
                               Lịch hẹn
                             </Link>
-                            <PatientMenu patient={patient} />
+                            <PatientMenu patient={patient} onShowToast={showToast} />
                           </div>
                         </td>
                       </tr>
@@ -751,6 +836,30 @@ export default function ReceptionistPatientsPage() {
         </div>
 
       </div>
+
+      {/* FLOATING SUCCESS / INFO TOAST */}
+      {toast && (
+        <div className={cn(
+          "fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-2xl border px-4 py-3 text-xs font-bold shadow-xl backdrop-blur-xs animate-in fade-in slide-in-from-bottom-4",
+          toast.type === "success"
+            ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+            : "border-blue-200 bg-blue-50 text-blue-800"
+        )}>
+          <span className={cn(
+            "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-white text-[10px]",
+            toast.type === "success" ? "bg-emerald-600" : "bg-blue-600"
+          )}>
+            {toast.type === "success" ? "✓" : "ℹ"}
+          </span>
+          <span>{toast.message}</span>
+          <button
+            onClick={() => setToast(null)}
+            className="ml-2 text-slate-500 hover:text-slate-900 cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+      )}
     </>
   );
 }

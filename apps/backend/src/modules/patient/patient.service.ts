@@ -5,6 +5,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bull';
+import type { Queue } from 'bull';
 import { randomBytes } from 'crypto';
 import {
   AppointmentPaymentOption,
@@ -28,7 +30,11 @@ import { UpdatePatientDto } from './dto/update-patient.dto';
 
 @Injectable()
 export class PatientService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @InjectQueue('mail-queue')
+    private readonly mailQueue: Queue,
+  ) {}
 
   async getManagedPatientProfiles(userId: string) {
     await this.findOrCreatePatientProfile(userId);
@@ -258,6 +264,38 @@ export class PatientService {
 
     const patient = user.patientProfile!;
     await this.ensurePatientAccountLink(user.id, patient.id, true);
+
+    // 1. Tự động gửi Email Chào mừng thành viên mới & Cấp mã hồ sơ y tế
+    if (user.email && !user.email.endsWith('@clinic.local')) {
+      try {
+        await this.mailQueue.add('send-patient-welcome', {
+          name: user.fullName,
+          email: user.email,
+          patientCode: patient.patientCode,
+          phone: user.phone,
+        });
+      } catch {
+        // non-blocking
+      }
+    }
+
+    // 2. Gửi thông báo In-App
+    try {
+      await this.prisma.notification.create({
+        data: {
+          userId: user.id,
+          type: 'SYSTEM',
+          title: '🎉 Chào mừng bạn đến với Nha khoa Smart Dental!',
+          content: `Mã hồ sơ bệnh nhân kỹ thuật số của bạn là ${patient.patientCode}. Bạn có thể theo dõi lịch khám, bệnh án và đơn thuốc tại đây.`,
+          channel: 'IN_APP',
+          status: 'SENT',
+          sentAt: new Date(),
+        },
+      });
+    } catch {
+      // non-blocking
+    }
+
     return {
       id: patient.id,
       patientCode: patient.patientCode,
@@ -270,6 +308,149 @@ export class PatientService {
       medicalHistory: patient.medicalHistory,
       allergies: dto.allergies ?? [],
     };
+  }
+
+  /** Gửi lại thư chào mừng & mã hồ sơ cho bệnh nhân */
+  async sendWelcomeEmailToPatient(patientId: string) {
+    const patient = await this.prisma.patient.findUnique({
+      where: { id: patientId },
+      include: {
+        user: { select: { id: true, fullName: true, email: true, phone: true } },
+      },
+    });
+    if (!patient) throw new NotFoundException('Không tìm thấy thông tin bệnh nhân');
+
+    const email = patient.user?.email || patient.email;
+    const name = patient.user?.fullName || patient.fullName;
+    const phone = patient.user?.phone || patient.phone;
+
+    if (!email || email.endsWith('@clinic.local')) {
+      throw new BadRequestException('Bệnh nhân chưa đăng ký địa chỉ email hợp lệ');
+    }
+
+    await this.mailQueue.add('send-patient-welcome', {
+      name,
+      email,
+      patientCode: patient.patientCode,
+      phone,
+    });
+
+    if (patient.user?.id) {
+      await this.prisma.notification.create({
+        data: {
+          userId: patient.user.id,
+          type: 'SYSTEM',
+          title: '🎉 Chào mừng bạn đến với Nha khoa Smart Dental!',
+          content: `Mã hồ sơ bệnh nhân kỹ thuật số của bạn là ${patient.patientCode}.`,
+          channel: 'IN_APP',
+          status: 'SENT',
+          sentAt: new Date(),
+        },
+      });
+    }
+
+    return { success: true, message: `Đã gửi thư chào mừng đến ${email}` };
+  }
+
+  /** Gửi thông báo nhắc tái khám & chăm sóc răng định kỳ 6 tháng */
+  async sendPeriodicCheckupReminder(patientId: string) {
+    const patient = await this.prisma.patient.findUnique({
+      where: { id: patientId },
+      include: {
+        user: { select: { id: true, fullName: true, email: true } },
+        appointments: {
+          orderBy: { scheduledAt: 'desc' },
+          take: 1,
+          select: { scheduledAt: true },
+        },
+      },
+    });
+    if (!patient) throw new NotFoundException('Không tìm thấy thông tin bệnh nhân');
+
+    const email = patient.user?.email || patient.email;
+    const name = patient.user?.fullName || patient.fullName;
+    const lastVisitDate = patient.appointments[0]?.scheduledAt
+      ? patient.appointments[0].scheduledAt.toISOString()
+      : undefined;
+
+    if (!email || email.endsWith('@clinic.local')) {
+      throw new BadRequestException('Bệnh nhân chưa đăng ký địa chỉ email hợp lệ để gửi thông báo');
+    }
+
+    await this.mailQueue.add('send-periodic-checkup-reminder', {
+      name,
+      email,
+      patientCode: patient.patientCode,
+      lastVisitDate,
+    });
+
+    if (patient.user?.id) {
+      await this.prisma.notification.create({
+        data: {
+          userId: patient.user.id,
+          type: 'SYSTEM',
+          title: '🦷 Nhắc lịch chăm sóc răng & cạo vôi định kỳ 6 tháng',
+          content: `Đã đến thời gian kiểm tra răng và cạo vôi định kỳ. Hãy đặt lịch hẹn để bảo vệ nụ cười khỏe đẹp nhé!`,
+          channel: 'IN_APP',
+          status: 'SENT',
+          sentAt: new Date(),
+        },
+      });
+    }
+
+    return { success: true, message: `Đã gửi lời nhắc tái khám định kỳ đến ${email}` };
+  }
+
+  /** Gửi hàng loạt thông báo nhắc tái khám cho tất cả bệnh nhân đến hạn */
+  async sendBulkPeriodicCheckupReminders() {
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+    const patients = await this.prisma.patient.findMany({
+      include: {
+        user: { select: { id: true, fullName: true, email: true } },
+        appointments: {
+          orderBy: { scheduledAt: 'desc' },
+          take: 1,
+          select: { scheduledAt: true },
+        },
+      },
+    });
+
+    let sentCount = 0;
+    for (const patient of patients) {
+      const email = patient.user?.email || patient.email;
+      if (!email || email.endsWith('@clinic.local')) continue;
+
+      const lastVisit = patient.appointments[0]?.scheduledAt;
+      // Bệnh nhân chưa từng khám hoặc lần khám gần nhất đã quá 6 tháng
+      if (!lastVisit || lastVisit < sixMonthsAgo) {
+        const name = patient.user?.fullName || patient.fullName;
+        await this.mailQueue.add('send-periodic-checkup-reminder', {
+          name,
+          email,
+          patientCode: patient.patientCode,
+          lastVisitDate: lastVisit?.toISOString(),
+        });
+
+        if (patient.user?.id) {
+          await this.prisma.notification.create({
+            data: {
+              userId: patient.user.id,
+              type: 'SYSTEM',
+              title: '🦷 Nhắc lịch chăm sóc răng & cạo vôi định kỳ 6 tháng',
+              content: `Đã đến thời gian kiểm tra răng và cạo vôi định kỳ. Hãy đặt lịch hẹn để bảo vệ nụ cười khỏe đẹp nhé!`,
+              channel: 'IN_APP',
+              status: 'SENT',
+              sentAt: new Date(),
+            },
+          });
+        }
+        sentCount++;
+      }
+    }
+
+    return { success: true, sentCount, message: `Đã gửi lời nhắc tái khám định kỳ đến ${sentCount} bệnh nhân` };
   }
 
   async updatePatient(patientId: string, dto: UpdatePatientDto) {

@@ -10,6 +10,7 @@ import { DraftMedicalRecordDto } from './dto/draft-medical-record.dto';
 import { DraftPrescriptionDto } from './dto/draft-prescription.dto';
 import { DraftTreatmentPlanDto } from './dto/draft-treatment-plan.dto';
 import {
+  AnalyzeXrayDto,
   ExplainTreatmentPlanDto,
   GenerateAftercareDto,
   ReviewPrescriptionDto,
@@ -88,4 +89,13 @@ export class AiController {
   ) {
     return this.aiService.explainTreatmentPlan(user, dto);
   }
+
+  @Post('analyze-xray')
+  analyzeXray(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: AnalyzeXrayDto,
+  ) {
+    return this.aiService.analyzeXray(user, dto);
+  }
 }
+

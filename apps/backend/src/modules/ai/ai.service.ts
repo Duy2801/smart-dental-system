@@ -4,6 +4,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bull';
+import type { Queue } from 'bull';
 import type { AuthenticatedUser } from 'src/common/interfaces/authenticated-user.interface';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiClientService } from './ai-client.service';
@@ -11,6 +13,7 @@ import { DraftMedicalRecordDto } from './dto/draft-medical-record.dto';
 import { DraftPrescriptionDto } from './dto/draft-prescription.dto';
 import { DraftTreatmentPlanDto } from './dto/draft-treatment-plan.dto';
 import {
+  AnalyzeXrayDto,
   ExplainTreatmentPlanDto,
   GenerateAftercareDto,
   PrescriptionReviewItemDto,
@@ -53,11 +56,11 @@ type AiTreatmentPlanDraftResponse = {
   expected_end_date: string | null;
   steps: Array<{
     title: string;
-    description?: string | null;
-    target_tooth?: string | null;
-    estimated_cost?: number | null;
-    expected_date?: string | null;
-    duration_hint?: string | null;
+    description: string | null;
+    target_tooth: string | null;
+    estimated_cost: number | null;
+    expected_date: string | null;
+    duration_hint: string | null;
   }>;
   disclaimer: string;
 };
@@ -107,95 +110,111 @@ const MEDICINE_ALIASES = {
   ibuprofen: ['ibuprofen', 'brufen'],
   diclofenac: ['diclofenac', 'voltaren'],
   naproxen: ['naproxen'],
-  aspirin: ['aspirin', 'acetylsalicylic'],
-  amoxicillin: ['amoxicillin', 'amoxycillin', 'augmentin'],
+  aspirin: ['aspirin', 'acetylsalicylic acid'],
+  amoxicillin: ['amoxicillin', 'amox'],
   ampicillin: ['ampicillin'],
-  penicillin: ['penicillin'],
-  cephalosporin: ['cephalexin', 'cefuroxime', 'cefixime', 'cefaclor'],
-  metronidazole: ['metronidazole', 'flagyl'],
-  clindamycin: ['clindamycin'],
+  augmentin: ['augmentin', 'amoxicillin clavulanate', 'amoxicillin/clavulanic acid'],
+  cephalexin: ['cephalexin', 'cefalexin'],
+  cefuroxime: ['cefuroxime', 'zinnat'],
+  cefixime: ['cefixime'],
+  azithromycin: ['azithromycin', 'zithromax'],
+  clarithromycin: ['clarithromycin', 'klacid'],
+  erythromycin: ['erythromycin'],
+  metronidazole: ['metronidazole', 'flagyl', 'rodogyl'],
+  ciprofloxacin: ['ciprofloxacin', 'cipro'],
+  levofloxacin: ['levofloxacin', 'tavanic'],
+  doxycycline: ['doxycycline'],
+  tetracycline: ['tetracycline'],
+  clindamycin: ['clindamycin', 'dalacin'],
+  prednisolone: ['prednisolone', 'solupred'],
+  methylprednisolone: ['methylprednisolone', 'medrol'],
+  dexamethasone: ['dexamethasone'],
+  omeprazole: ['omeprazole'],
+  esomeprazole: ['esomeprazole', 'nexium'],
+  pantoprazole: ['pantoprazole', 'pantoloc'],
+  chlorhexidine: ['chlorhexidine', 'kin', 'eludril'],
+  lidocaine: ['lidocaine', 'xylocaine'],
+  articaine: ['articaine', 'septanest'],
 } as const;
 
 type MedicineKey = keyof typeof MEDICINE_ALIASES;
 
-const NSAIDS: MedicineKey[] = [
-  'ibuprofen',
-  'diclofenac',
-  'naproxen',
-  'aspirin',
-];
-const PENICILLINS: MedicineKey[] = ['amoxicillin', 'ampicillin', 'penicillin'];
-const ANTIBIOTICS: MedicineKey[] = [
-  ...PENICILLINS,
-  'cephalosporin',
-  'metronidazole',
-  'clindamycin',
-];
+const PENICILLINS: MedicineKey[] = ['amoxicillin', 'ampicillin', 'augmentin'];
+const NSAIDS: MedicineKey[] = ['ibuprofen', 'diclofenac', 'naproxen', 'aspirin'];
 
-const normalizeForRules = (value?: string | null) =>
-  (value ?? '')
+function normalizeText(text: string): string {
+  return text
     .toLowerCase()
     .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .replaceAll('đ', 'd')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
 
-const hasAny = (text: string, terms: readonly string[]) =>
-  terms.some((term) => text.includes(normalizeForRules(term)));
+function detectMedicineKeys(name: string): MedicineKey[] {
+  const norm = normalizeText(name);
+  const keys: MedicineKey[] = [];
+  for (const [key, aliases] of Object.entries(MEDICINE_ALIASES) as Array<[
+    MedicineKey,
+    readonly string[],
+  ]>) {
+    if (aliases.some((alias) => norm.includes(normalizeText(alias)))) {
+      keys.push(key);
+    }
+  }
+  return keys;
+}
 
-const medicineKeys = (name: string) => {
-  const normalized = normalizeForRules(name);
-  const keys = (
-    Object.entries(MEDICINE_ALIASES) as Array<[MedicineKey, readonly string[]]>
+function hasAny(text: string, terms: string[]): boolean {
+  const norm = normalizeText(text);
+  return terms.some((term) => norm.includes(normalizeText(term)));
+}
+
+function dosesPerDay(frequency?: string | null): number | null {
+  if (!frequency) return null;
+  const norm = normalizeText(frequency);
+  if (norm.includes('1 lan') || norm.includes('mot lan') || norm.includes('sang'))
+    return 1;
+  if (
+    norm.includes('2 lan') ||
+    norm.includes('hai lan') ||
+    norm.includes('sang toi') ||
+    norm.includes('sang chieu')
   )
-    .filter(([, aliases]) => hasAny(normalized, aliases))
-    .map(([key]) => key);
-  if (keys.length) return keys;
-  const generic = normalized
-    .replace(/\b\d+(?:[.,]\d+)?\s*(?:mg|g|mcg|ml|%)\b/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-  return generic ? [`name:${generic}`] : [];
-};
+    return 2;
+  if (
+    norm.includes('3 lan') ||
+    norm.includes('ba lan') ||
+    norm.includes('sang trua toi')
+  )
+    return 3;
+  if (norm.includes('4 lan') || norm.includes('bon lan')) return 4;
+  const digit = /(\d+)\s*lan/.exec(norm);
+  if (digit?.[1]) return Number(digit[1]);
+  return null;
+}
 
-const doseInMg = (dosage?: string) => {
-  const normalized = normalizeForRules(dosage).replace(',', '.');
-  const match = normalized.match(/(\d+(?:\.\d+)?)\s*(mcg|mg|g)\b/);
-  if (!match) return null;
-  const amount = Number(match[1]);
-  if (!Number.isFinite(amount)) return null;
-  if (match[2] === 'g') return amount * 1000;
-  if (match[2] === 'mcg') return amount / 1000;
-  return amount;
-};
+function doseInMg(dosage?: string | null): number | null {
+  if (!dosage) return null;
+  const norm = dosage.toLowerCase().replace(/\s+/g, ' ').trim();
+  const mg = /(\d+(?:[.,]\d+)?)\s*mg\b/.exec(norm);
+  if (mg?.[1]) return Number(mg[1].replace(',', '.'));
+  const g = /(\d+(?:[.,]\d+)?)\s*g\b/.exec(norm);
+  if (g?.[1]) return Number(g[1].replace(',', '.')) * 1000;
+  return null;
+}
 
-const dosesPerDay = (frequency?: string) => {
-  const normalized = normalizeForRules(frequency).replace(',', '.');
-  const explicit =
-    normalized.match(/(\d+(?:\.\d+)?)\s*lan\s*\/?\s*ngay/) ??
-    normalized.match(/ngay\s*(\d+(?:\.\d+)?)\s*lan/);
-  if (explicit) return Number(explicit[1]);
-  const intervalHours = normalized.match(/moi\s*(\d+(?:\.\d+)?)\s*gio/);
-  if (!intervalHours) return null;
-  const hours = Number(intervalHours[1]);
-  return hours > 0 ? 24 / hours : null;
-};
-
-// FDA acetaminophen reference: max 1,000 mg per adult dose and 4,000 mg/24h.
-// https://www.fda.gov/drugs/safe-use-over-counter-pain-relievers-and-fever-reducers/acetaminophen
-// https://www.accessdata.fda.gov/drugsatfda_docs/label/2010/022450lbl.pdf
-
-/** Deterministic checks only. The LLM is deliberately not part of medication safety. */
 export function reviewPrescriptionSafety(
   items: PrescriptionReviewItemDto[],
-  medicalHistory?: string | null,
+  medicalHistoryText?: string | null,
 ) {
-  const history = normalizeForRules(medicalHistory);
-  const allergyHistory = history.replace(/\bkhong(?: co)? di ung[^\n.;]*/g, '');
-  const keyed = items.map((item) => ({
-    name: item.medicineName.trim() || 'Thuốc chưa có tên',
-    keys: medicineKeys(item.medicineName),
+  const history = medicalHistoryText ?? '';
+  const keyed = items.map((item, index) => ({
+    index,
+    item,
+    name: item.medicineName.trim() || `Thuốc #${index + 1}`,
+    keys: detectMedicineKeys(item.medicineName),
   }));
   const warnings: SafetyWarning[] = [];
   const warningKeys = new Set<string>();
@@ -206,86 +225,50 @@ export function reviewPrescriptionSafety(
       warnings.push(warning);
     }
   };
-  const namesFor = (keys: string[]) =>
+  const namesFor = (keys: MedicineKey[]) =>
     keyed
       .filter((item) => item.keys.some((key) => keys.includes(key)))
       .map((item) => item.name);
 
-  const unnamedMedicines = items
-    .map((item, index) =>
-      !item.medicineName.trim() ? keyed[index].name : null,
-    )
-    .filter((name): name is string => name !== null);
-  if (unnamedMedicines.length) {
-    addWarning({
-      severity: 'MEDIUM',
-      title: 'Thiếu tên thuốc',
-      detail: 'Có mục chưa ghi tên thuốc nên chưa thể kiểm tra an toàn.',
-      medicineNames: unnamedMedicines,
-    });
-  }
-
   const byIngredient = new Map<string, string[]>();
   for (const item of keyed) {
     for (const key of item.keys) {
-      const names = byIngredient.get(key) ?? [];
-      names.push(item.name);
-      byIngredient.set(key, names);
+      const list = byIngredient.get(key) ?? [];
+      list.push(item.name);
+      byIngredient.set(key, list);
     }
   }
-  for (const [ingredient, names] of byIngredient) {
-    if (names.length < 2) continue;
+  for (const [key, names] of byIngredient.entries()) {
+    if (names.length > 1) {
+      addWarning({
+        severity: 'HIGH',
+        title: 'Trùng nhóm hoạt chất',
+        detail: `Đơn có ${names.length} thuốc cùng chứa hoặc thuộc nhóm ${key}. Nguy cơ quá liều hoặc tăng độc tính.`,
+        medicineNames: names,
+      });
+    }
+  }
+
+  const nsaidNames = namesFor(NSAIDS);
+  if (nsaidNames.length > 1) {
     addWarning({
       severity: 'HIGH',
-      title: 'Trùng hoạt chất',
-      detail: `Có ${names.length} mục cùng hoạt chất ${ingredient.replace('name:', '')}. Cần kiểm tra tổng liều trước khi kê.`,
-      medicineNames: names,
+      title: 'Dùng nhiều hơn một thuốc NSAID',
+      detail:
+        'Kết hợp nhiều thuốc chống viêm không steroid làm tăng nguy cơ tổn thương dạ dày và suy thận.',
+      medicineNames: nsaidNames,
     });
   }
 
-  const medicinesOutsideCatalog = keyed
-    .filter((item) => item.keys.some((key) => key.startsWith('name:')))
-    .map((item) => item.name);
-  if (medicinesOutsideCatalog.length) {
-    addWarning({
-      severity: 'MEDIUM',
-      title: 'Hoạt chất ngoài danh mục quy tắc',
-      detail:
-        'Bộ quy tắc hiện chưa kiểm tra đầy đủ dị ứng, chống chỉ định và tương tác cho các thuốc này. Cần đối chiếu nguồn dược lâm sàng trước khi kê.',
-      medicineNames: medicinesOutsideCatalog,
-    });
-  }
-  if (!history) {
-    addWarning({
-      severity: 'MEDIUM',
-      title: 'Thiếu tiền sử y khoa',
-      detail:
-        'Hồ sơ chưa có tiền sử dị ứng, bệnh nền hoặc thuốc đang dùng để đối chiếu. Cần hỏi và cập nhật trước khi kê.',
-      medicineNames: keyed.map((item) => item.name),
-    });
-  }
-
-  const allergyTerms = ['dị ứng', 'quá mẫn', 'phản vệ'];
-  const allergyStatements = [
-    ...allergyHistory.matchAll(/(?:di ung|qua man|phan ve)[^\n.;]*/g),
-  ]
-    .map((match) => match[0])
-    .join(' ');
-  const allergyDeclared = hasAny(allergyStatements, allergyTerms);
-  if (allergyDeclared) {
+  if (history.trim()) {
+    const normHistory = normalizeText(history);
     for (const item of keyed) {
-      const exactMatch = item.keys.some((key) => {
-        if (key.startsWith('name:')) {
-          const genericName = key.slice('name:'.length);
-          return (
-            genericName.length >= 4 && allergyStatements.includes(genericName)
-          );
-        }
-        return hasAny(
-          allergyStatements,
-          MEDICINE_ALIASES[key as MedicineKey] ?? [],
-        );
-      });
+      const normItem = normalizeText(item.name);
+      if (!normItem) continue;
+      const exactMatch =
+        normHistory.includes(`di ung ${normItem}`) ||
+        normHistory.includes(`allergy ${normItem}`) ||
+        (normHistory.includes('di ung') && normHistory.includes(normItem));
       if (exactMatch) {
         addWarning({
           severity: 'HIGH',
@@ -314,7 +297,7 @@ export function reviewPrescriptionSafety(
       },
       {
         terms: ['cephalosporin', 'cephalexin', 'cefuroxime', 'cefixime'],
-        keys: ['cephalosporin'],
+        keys: ['cephalexin', 'cefuroxime', 'cefixime'],
         label: 'nhóm cephalosporin',
       },
       {
@@ -327,143 +310,125 @@ export function reviewPrescriptionSafety(
           'naproxen',
         ],
         keys: NSAIDS,
-        label: 'nhóm chống viêm không steroid',
+        label: 'nhóm NSAID',
       },
       {
-        terms: ['paracetamol', 'acetaminophen'],
-        keys: ['paracetamol'],
-        label: 'paracetamol',
+        terms: ['macrolide', 'azithromycin', 'clarithromycin', 'erythromycin'],
+        keys: ['azithromycin', 'clarithromycin', 'erythromycin'],
+        label: 'nhóm macrolide',
       },
       {
-        terms: ['metronidazole'],
-        keys: ['metronidazole'],
-        label: 'metronidazole',
-      },
-      {
-        terms: ['clindamycin'],
-        keys: ['clindamycin'],
-        label: 'clindamycin',
-      },
-      {
-        terms: ['kháng sinh'],
-        keys: ANTIBIOTICS,
-        label: 'kháng sinh',
+        terms: ['sulfonamide', 'bactrim', 'cotrimoxazole'],
+        keys: [],
+        label: 'nhóm sulfonamide',
       },
     ];
+
     for (const group of allergyGroups) {
-      if (!hasAny(allergyStatements, group.terms)) continue;
+      if (!hasAny(history, group.terms)) continue;
       const names = namesFor(group.keys);
       if (!names.length) continue;
       addWarning({
         severity: 'HIGH',
-        title: 'Nguy cơ dị ứng thuốc',
-        detail: `Tiền sử có từ khóa dị ứng ${group.label}. Cần xác minh trước khi kê.`,
+        title: `Tiền sử dị ứng ${group.label}`,
+        detail: `Bệnh nhân có ghi nhận dị ứng ${group.label}. Đơn có thuốc thuộc nhóm này.`,
         medicineNames: names,
       });
     }
-  }
 
-  const contraindications: Array<{
-    historyTerms: string[];
-    medicineKeys: MedicineKey[];
-    severity: SafetySeverity;
-    title: string;
-    detail: string;
-  }> = [
-    {
-      historyTerms: ['mang thai', 'thai kỳ', 'thai nhi'],
-      medicineKeys: NSAIDS,
-      severity: 'HIGH',
-      title: 'Cần kiểm tra khi mang thai',
-      detail:
-        'Tiền sử nhắc đến thai kỳ và đơn có thuốc chống viêm không steroid.',
-    },
-    {
-      historyTerms: ['loét dạ dày', 'xuất huyết tiêu hóa', 'viêm loét dạ dày'],
-      medicineKeys: NSAIDS,
-      severity: 'MEDIUM',
-      title: 'Nguy cơ trên dạ dày',
-      detail:
-        'Tiền sử tiêu hóa có thể không phù hợp với thuốc chống viêm không steroid.',
-    },
-    {
-      historyTerms: ['suy thận', 'bệnh thận', 'lọc máu'],
-      medicineKeys: NSAIDS,
-      severity: 'HIGH',
-      title: 'Cần kiểm tra chức năng thận',
-      detail: 'Tiền sử bệnh thận và đơn có thuốc chống viêm không steroid.',
-    },
-    {
-      historyTerms: ['suy gan', 'bệnh gan', 'xơ gan', 'viêm gan'],
-      medicineKeys: ['paracetamol'],
-      severity: 'MEDIUM',
-      title: 'Cần kiểm tra chức năng gan',
-      detail: 'Tiền sử bệnh gan và đơn có paracetamol. Cần xác minh tổng liều.',
-    },
-  ];
-  for (const rule of contraindications) {
-    if (!hasAny(history, rule.historyTerms)) continue;
-    const names = namesFor(rule.medicineKeys);
-    if (!names.length) continue;
-    addWarning({
-      severity: rule.severity,
-      title: rule.title,
-      detail: rule.detail,
-      medicineNames: names,
-    });
-  }
+    const contraindications: Array<{
+      historyTerms: string[];
+      medicineKeys: MedicineKey[];
+      severity: SafetySeverity;
+      title: string;
+      detail: string;
+    }> = [
+      {
+        historyTerms: ['mang thai', 'có thai', 'thai kỳ', 'tam cá nguyệt'],
+        medicineKeys: NSAIDS,
+        severity: 'HIGH',
+        title: 'Thận trọng trong thai kỳ (NSAID)',
+        detail:
+          'Tiền sử nhắc đến thai kỳ và đơn có thuốc chống viêm không steroid.',
+      },
+      {
+        historyTerms: ['loét dạ dày', 'xuất huyết tiêu hóa', 'viêm loét dạ dày'],
+        medicineKeys: NSAIDS,
+        severity: 'MEDIUM',
+        title: 'Nguy cơ trên dạ dày',
+        detail:
+          'Tiền sử tiêu hóa có thể không phù hợp với thuốc chống viêm không steroid.',
+      },
+      {
+        historyTerms: ['suy thận', 'bệnh thận', 'lọc máu'],
+        medicineKeys: NSAIDS,
+        severity: 'HIGH',
+        title: 'Cần kiểm tra chức năng thận',
+        detail: 'Tiền sử bệnh thận và đơn có thuốc chống viêm không steroid.',
+      },
+      {
+        historyTerms: ['suy gan', 'bệnh gan', 'xơ gan', 'viêm gan'],
+        medicineKeys: ['paracetamol'],
+        severity: 'MEDIUM',
+        title: 'Cần kiểm tra chức năng gan',
+        detail: 'Tiền sử bệnh gan và đơn có paracetamol. Cần xác minh tổng liều.',
+      },
+    ];
+    for (const rule of contraindications) {
+      if (!hasAny(history, rule.historyTerms)) continue;
+      const names = namesFor(rule.medicineKeys);
+      if (!names.length) continue;
+      addWarning({
+        severity: rule.severity,
+        title: rule.title,
+        detail: rule.detail,
+        medicineNames: names,
+      });
+    }
 
-  const interactions: Array<{
-    historyTerms: string[];
-    medicineKeys: MedicineKey[];
-    title: string;
-    detail: string;
-  }> = [
-    {
-      historyTerms: [
-        'thuốc chống đông',
-        'warfarin',
-        'rivaroxaban',
-        'apixaban',
-        'dabigatran',
-        'heparin',
-      ],
-      medicineKeys: [...NSAIDS, 'metronidazole'],
-      title: 'Tương tác với thuốc chống đông',
-      detail:
-        'Tiền sử nhắc đến thuốc chống đông. Cần kiểm tra nguy cơ chảy máu hoặc thay đổi tác dụng thuốc.',
-    },
-    {
-      historyTerms: ['methotrexate'],
-      medicineKeys: [...NSAIDS, 'amoxicillin'],
-      title: 'Tương tác với methotrexate',
-      detail: 'Cần kiểm tra tương tác và điều chỉnh theo chức năng gan thận.',
-    },
-    {
-      historyTerms: ['lithium'],
-      medicineKeys: NSAIDS,
-      title: 'Tương tác với lithium',
-      detail:
-        'Thuốc chống viêm không steroid có thể làm thay đổi nồng độ lithium.',
-    },
-    {
-      historyTerms: ['disulfiram', 'đang uống rượu', 'sử dụng rượu'],
-      medicineKeys: ['metronidazole'],
-      title: 'Tương tác với metronidazole',
-      detail:
-        'Tiền sử có từ khóa disulfiram hoặc rượu. Cần xác minh trước khi kê.',
-    },
-  ];
-  for (const rule of interactions) {
-    if (!hasAny(history, rule.historyTerms)) continue;
-    const names = namesFor(rule.medicineKeys);
-    if (!names.length) continue;
-    addWarning({
-      severity: 'HIGH',
-      title: rule.title,
-      detail: rule.detail,
-      medicineNames: names,
-    });
+    const interactions: Array<{
+      historyTerms: string[];
+      medicineKeys: MedicineKey[];
+      title: string;
+      detail: string;
+    }> = [
+      {
+        historyTerms: [
+          'warfarin',
+          'sintrom',
+          'thuốc chống đông',
+          'kháng đông',
+        ],
+        medicineKeys: NSAIDS,
+        title: 'Tương tác thuốc chống đông và NSAID',
+        detail:
+          'Dùng NSAID cùng thuốc chống đông làm tăng nguy cơ xuất huyết tiêu hóa.',
+      },
+      {
+        historyTerms: ['methotrexate'],
+        medicineKeys: NSAIDS,
+        title: 'Tương tác Methotrexate và NSAID',
+        detail: 'NSAID có thể làm giảm thải trừ và tăng độc tính Methotrexate.',
+      },
+      {
+        historyTerms: ['disulfiram', 'đang uống rượu', 'sử dụng rượu'],
+        medicineKeys: ['metronidazole'],
+        title: 'Tương tác với metronidazole',
+        detail:
+          'Tiền sử có từ khóa disulfiram hoặc rượu. Cần xác minh trước khi kê.',
+      },
+    ];
+    for (const rule of interactions) {
+      if (!hasAny(history, rule.historyTerms)) continue;
+      const names = namesFor(rule.medicineKeys);
+      if (!names.length) continue;
+      addWarning({
+        severity: 'HIGH',
+        title: rule.title,
+        detail: rule.detail,
+        medicineNames: names,
+      });
+    }
   }
 
   for (const [index, item] of items.entries()) {
@@ -512,6 +477,8 @@ export class AiService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly aiClient: AiClientService,
+    @InjectQueue('mail-queue')
+    private readonly mailQueue: Queue,
   ) {}
 
   async summarizePatient(user: AuthenticatedUser, dto: SummarizePatientDto) {
@@ -803,9 +770,30 @@ export class AiService {
       },
     });
 
+    const email = (record.patient as any)?.user?.email;
+    if (email && !email.endsWith('@clinic.local')) {
+      const patientName =
+        (record.patient as any)?.fullName ||
+        (record.patient as any)?.user?.fullName ||
+        'Quý khách';
+      const patientCode = (record.patient as any)?.patientCode || 'PAT-0000';
+      const doctorName =
+        (record as any)?.doctor?.user?.fullName ||
+        'Bác sĩ Nha Khoa Smart Dental';
+      await this.mailQueue.add('send-aftercare', {
+        name: patientName,
+        email,
+        patientCode,
+        doctorName,
+        diagnosis: record.diagnosis,
+        serviceName: record.appointment?.service?.name,
+        content,
+      });
+    }
+
     return {
       sent: true,
-      message: 'Đã gửi hướng dẫn chăm sóc cho bệnh nhân.',
+      message: 'Đã gửi hướng dẫn chăm sóc cho bệnh nhân qua Thông báo & Gmail.',
     };
   }
 
@@ -924,6 +912,59 @@ export class AiService {
     };
   }
 
+  async analyzeXray(user: AuthenticatedUser, dto: AnalyzeXrayDto) {
+    if (dto.patientId) {
+      await this.assertDoctorCanAccessPatient(user, dto.patientId);
+    }
+
+    const raw = await this.aiClient.post<{
+      is_radiograph?: boolean;
+      status?: string;
+      findings: Array<{
+        fdi_tooth_number: number;
+        finding_type: string;
+        confidence: number;
+        bounding_box: { x: number; y: number; width: number; height: number };
+        severity: string;
+      }>;
+      total_findings: number;
+      summary: string;
+      diagnosis_suggestion?: string | null;
+      treatment_recommendations?: string[];
+      annotated_image_url?: string | null;
+      disclaimer: string;
+    }>('/api/v1/doctor/analyze-xray', {
+      image_url: dto.imageUrl ?? null,
+      image_base64: dto.imageBase64 ?? null,
+      patient_id: dto.patientId ?? null,
+      clinical_note_hint: dto.clinicalNoteHint ?? null,
+    });
+
+    const isRadiograph = raw.is_radiograph !== false;
+    const status = raw.status || (isRadiograph ? 'PATHOLOGY_DETECTED' : 'INVALID_IMAGE');
+
+    return {
+      isRadiograph,
+      status,
+      findings: (raw.findings ?? []).map((f) => ({
+        fdiToothNumber: f.fdi_tooth_number,
+        findingType: f.finding_type,
+        confidence: f.confidence,
+        boundingBox: f.bounding_box,
+        severity: f.severity,
+      })),
+      totalFindings: raw.total_findings ?? (raw.findings ?? []).length,
+      summary: raw.summary ?? '',
+      diagnosisSuggestion: raw.diagnosis_suggestion ?? null,
+      treatmentRecommendations: raw.treatment_recommendations ?? [],
+      annotatedImageUrl: raw.annotated_image_url ?? null,
+      disclaimer:
+        raw.disclaimer ||
+        'Kết quả phân tích X-quang bởi Dental Vision AI (Hybrid Cloud Pipeline). Bác sĩ cần đối chiếu lâm sàng.',
+    };
+  }
+
+
   /** Catalog ngắn từ DB để AI bám giá và thời lượng thật của phòng khám. */
   private async buildServiceCatalog(serviceHint?: string | null) {
     const methods = await this.prisma.treatmentMethod.findMany({
@@ -977,9 +1018,26 @@ export class AiService {
         diagnosis: true,
         treatmentNotes: true,
         followUpDate: true,
+        doctor: {
+          select: {
+            user: {
+              select: {
+                fullName: true,
+              },
+            },
+          },
+        },
         patient: {
           select: {
+            fullName: true,
+            patientCode: true,
             userId: true,
+            user: {
+              select: {
+                email: true,
+                fullName: true,
+              },
+            },
             patientAccounts: {
               orderBy: { isPrimary: 'desc' },
               take: 1,

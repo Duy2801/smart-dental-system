@@ -13,6 +13,9 @@ from app.core.rag import build_rag_block
 from app.schemas.doctor_assist import (
     AftercareRequest,
     AftercareResponse,
+    AnalyzeXrayRequest,
+    AnalyzeXrayResponse,
+    DentalFinding,
     MedicalRecordDraftRequest,
     MedicalRecordDraftResponse,
     PrescriptionDraftRequest,
@@ -27,6 +30,7 @@ from app.schemas.doctor_assist import (
     TreatmentPlanExplanationStep,
     TreatmentPlanStepDraft,
 )
+
 
 
 def _extract_json(text: str) -> dict:
@@ -387,3 +391,13 @@ class DoctorAssistService:
             timeline=timeline,
             draft_text="\n\n".join(lines),
         )
+
+    async def analyze_xray(
+        self, body: AnalyzeXrayRequest
+    ) -> AnalyzeXrayResponse:
+        """Phân tích ảnh X-quang Panorama qua Hybrid Cloud Vision (Gemini + Roboflow)."""
+        from app.services.vision_service import vision_service
+
+        return await vision_service.analyze_xray_hybrid(body)
+
+

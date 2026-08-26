@@ -153,7 +153,9 @@ export class AppointmentService {
       },
       include: appointmentInclude,
     });
-    return this.withDerivedService(updated);
+    const result = this.withDerivedService(updated);
+    void this.dispatchAppointmentConfirmationNotification(result);
+    return result;
   }
 
   async createAppointmentForPatient(userId: string, dto: CreateAppointmentDto) {
@@ -270,7 +272,9 @@ export class AppointmentService {
       },
       include: appointmentInclude,
     });
-    return this.withDerivedService(updated);
+    const result = this.withDerivedService(updated);
+    void this.dispatchAppointmentRescheduledNotification(result, previousSchedule.scheduledAt, scheduledAt);
+    return result;
   }
 
   async cancelAppointmentForPatient(userId: string, appointmentId: string) {
@@ -298,7 +302,9 @@ export class AppointmentService {
       },
       include: appointmentInclude,
     });
-    return this.withDerivedService(updated);
+    const result = this.withDerivedService(updated);
+    void this.dispatchAppointmentCancelledNotification(result, 'Bệnh nhân đã hủy qua ứng dụng');
+    return result;
   }
 
   async restoreAppointmentForPatient(userId: string, appointmentId: string) {
@@ -469,7 +475,7 @@ export class AppointmentService {
   }
 
   async confirmAppointment(appointmentId: string) {
-    return this.transitionAppointment(
+    const updated = await this.transitionAppointment(
       appointmentId,
       [AppointmentStatus.PENDING],
       {
@@ -478,6 +484,8 @@ export class AppointmentService {
       },
       'appointment.must_be_pending_to_confirm',
     );
+    void this.dispatchAppointmentConfirmationNotification(updated);
+    return updated;
   }
 
   async checkInAppointment(appointmentId: string, notes?: string) {
@@ -494,7 +502,7 @@ export class AppointmentService {
       ? [current.notes, `[Check-in] ${staffNote}`].filter(Boolean).join('\n')
       : undefined;
 
-    return this.transitionAppointment(
+    const updated = await this.transitionAppointment(
       appointmentId,
       [AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED],
       {
@@ -504,6 +512,8 @@ export class AppointmentService {
       },
       'appointment.must_be_confirmed_to_check_in',
     );
+    void this.dispatchAppointmentCheckInNotification(updated);
+    return updated;
   }
 
   async markNoShow(appointmentId: string) {
@@ -515,16 +525,19 @@ export class AppointmentService {
     );
   }
 
-  async cancelByStaff(appointmentId: string) {
-    return this.transitionAppointment(
+  async cancelByStaff(appointmentId: string, reason?: string) {
+    const updated = await this.transitionAppointment(
       appointmentId,
       [AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED],
       {
         status: AppointmentStatus.CANCELLED,
         cancelledAt: new Date(),
+        cancellationReason: reason || 'Cancelled by staff',
       },
       'appointment.cannot_cancel',
     );
+    void this.dispatchAppointmentCancelledNotification(updated, reason || 'Phòng khám hủy lịch theo yêu cầu');
+    return updated;
   }
 
   /** Lễ tân/admin đổi giờ — không áp hạn mức/notice của bệnh nhân. */
@@ -601,7 +614,266 @@ export class AppointmentService {
       },
       include: appointmentInclude,
     });
-    return this.withDerivedService(updated);
+    const result = this.withDerivedService(updated);
+    void this.dispatchAppointmentRescheduledNotification(result, previousSchedule.scheduledAt, scheduledAt);
+    return result;
+  }
+
+  async sendManualReminder(appointmentId: string) {
+    const appointment = await this.prisma.appointment.findUnique({
+      where: { id: appointmentId },
+      include: appointmentInclude,
+    });
+    if (!appointment) {
+      throw new BadRequestException('appointment.not_found');
+    }
+
+    const patient = appointment.patient;
+    const email = patient?.email || patient?.user?.email;
+    const name = patient?.fullName || patient?.user?.fullName || 'Quý khách';
+    const doctorName = appointment.doctor?.user?.fullName || 'Bác sĩ chuyên khoa';
+    const service = (appointment as any).service ?? appointment.treatmentMethod?.service;
+    const serviceName = (service && typeof service === 'object' && 'name' in service) ? service.name : 'Khám nha khoa';
+    const scheduledAt = appointment.scheduledAt;
+    const code = appointment.appointmentCode;
+
+    if (email) {
+      await this.mailQueue.add('send-appointment-reminder', {
+        email,
+        name,
+        appointmentCode: code,
+        serviceName,
+        doctorName,
+        scheduledAt: new Date(scheduledAt).toISOString(),
+        locale: 'vi',
+      });
+    }
+
+    const targetUserId = patient?.userId || appointment.createdBy;
+    if (targetUserId) {
+      const timeStr = new Intl.DateTimeFormat('vi-VN', {
+        dateStyle: 'full',
+        timeStyle: 'short',
+        timeZone: 'Asia/Ho_Chi_Minh',
+      }).format(new Date(scheduledAt));
+
+      await this.notificationService.createNotification({
+        userId: targetUserId,
+        type: 'APPOINTMENT_REMINDER',
+        title: 'Nhắc lịch hẹn khám sắp tới',
+        content: `Quý khách có lịch hẹn #${code} (${serviceName} với ${doctorName}) lúc ${timeStr}. Vui lòng đến trước 15 phút.`,
+        appointmentId: appointment.id,
+      });
+    }
+
+    return {
+      success: true,
+      message: `Đã gửi Gmail & Thông báo nhắc lịch đến bệnh nhân ${name}`,
+    };
+  }
+
+  private async dispatchAppointmentConfirmationNotification(appointment: any) {
+    try {
+      const patient = appointment.patient;
+      const email = patient?.email || patient?.user?.email;
+      const name = patient?.fullName || patient?.user?.fullName || 'Quý khách';
+      const doctorName = appointment.doctor?.user?.fullName || 'Bác sĩ chuyên khoa';
+      const service = appointment.service ?? appointment.treatmentMethod?.service;
+      const serviceName = (service && typeof service === 'object' && 'name' in service) ? service.name : 'Khám nha khoa';
+      const scheduledAt = appointment.scheduledAt;
+      const code = appointment.appointmentCode;
+
+      if (email) {
+        await this.mailQueue.add('send-appointment-confirmation', {
+          email,
+          name,
+          appointmentCode: code,
+          serviceName,
+          doctorName,
+          scheduledAt: new Date(scheduledAt).toISOString(),
+          locale: 'vi',
+        });
+      }
+
+      const targetUserId = patient?.userId || appointment.createdBy;
+      if (targetUserId) {
+        const timeStr = new Intl.DateTimeFormat('vi-VN', {
+          dateStyle: 'short',
+          timeStyle: 'short',
+          timeZone: 'Asia/Ho_Chi_Minh',
+        }).format(new Date(scheduledAt));
+
+        await this.notificationService.createNotification({
+          userId: targetUserId,
+          type: 'APPOINTMENT_CONFIRMED',
+          title: 'Lịch hẹn đã được xác nhận',
+          content: `Lịch hẹn khám #${code} (${serviceName} - ${doctorName}) lúc ${timeStr} đã được xác nhận.`,
+          appointmentId: appointment.id,
+        });
+      }
+    } catch (err) {
+      this.logger.warn(`Failed to dispatch appointment confirmation notification: ${err}`);
+    }
+  }
+
+  private async dispatchAppointmentRescheduledNotification(
+    appointment: any,
+    oldScheduledAt: Date,
+    newScheduledAt: Date,
+  ) {
+    try {
+      const patient = appointment.patient;
+      const email = patient?.email || patient?.user?.email;
+      const name = patient?.fullName || patient?.user?.fullName || 'Quý khách';
+      const doctorName = appointment.doctor?.user?.fullName || 'Bác sĩ chuyên khoa';
+      const service = appointment.service ?? appointment.treatmentMethod?.service;
+      const serviceName = (service && typeof service === 'object' && 'name' in service) ? service.name : 'Khám nha khoa';
+      const code = appointment.appointmentCode;
+
+      if (email) {
+        await this.mailQueue.add('send-appointment-rescheduled', {
+          email,
+          name,
+          appointmentCode: code,
+          serviceName,
+          doctorName,
+          oldScheduledAt: new Date(oldScheduledAt).toISOString(),
+          newScheduledAt: new Date(newScheduledAt).toISOString(),
+          locale: 'vi',
+        });
+      }
+
+      const targetUserId = patient?.userId || appointment.createdBy;
+      if (targetUserId) {
+        const newTimeStr = new Intl.DateTimeFormat('vi-VN', {
+          dateStyle: 'short',
+          timeStyle: 'short',
+          timeZone: 'Asia/Ho_Chi_Minh',
+        }).format(new Date(newScheduledAt));
+
+        await this.notificationService.createNotification({
+          userId: targetUserId,
+          type: 'APPOINTMENT_RESCHEDULED',
+          title: 'Lịch hẹn đã được dời',
+          content: `Lịch hẹn khám #${code} (${serviceName}) đã được dời sang ${newTimeStr}.`,
+          appointmentId: appointment.id,
+        });
+      }
+    } catch (err) {
+      this.logger.warn(`Failed to dispatch appointment rescheduled notification: ${err}`);
+    }
+  }
+
+  private async dispatchAppointmentCancelledNotification(appointment: any, reason?: string) {
+    try {
+      const patient = appointment.patient;
+      const email = patient?.email || patient?.user?.email;
+      const name = patient?.fullName || patient?.user?.fullName || 'Quý khách';
+      const doctorName = appointment.doctor?.user?.fullName || 'Bác sĩ chuyên khoa';
+      const service = appointment.service ?? appointment.treatmentMethod?.service;
+      const serviceName = (service && typeof service === 'object' && 'name' in service) ? service.name : 'Khám nha khoa';
+      const scheduledAt = appointment.scheduledAt;
+      const code = appointment.appointmentCode;
+
+      if (email) {
+        await this.mailQueue.add('send-appointment-cancelled', {
+          email,
+          name,
+          appointmentCode: code,
+          serviceName,
+          doctorName,
+          scheduledAt: new Date(scheduledAt).toISOString(),
+          reason,
+          locale: 'vi',
+        });
+      }
+
+      const targetUserId = patient?.userId || appointment.createdBy;
+      if (targetUserId) {
+        await this.notificationService.createNotification({
+          userId: targetUserId,
+          type: 'APPOINTMENT_CANCELLED',
+          title: 'Lịch hẹn đã bị hủy',
+          content: `Lịch hẹn khám #${code} (${serviceName}) đã được hủy. Lý do: ${reason || 'Theo yêu cầu'}.`,
+          appointmentId: appointment.id,
+        });
+      }
+    } catch (err) {
+      this.logger.warn(`Failed to dispatch appointment cancelled notification: ${err}`);
+    }
+  }
+
+  private async dispatchAppointmentCheckInNotification(appointment: any) {
+    try {
+      const patient = appointment.patient;
+      const email = patient?.email || patient?.user?.email;
+      const name = patient?.fullName || patient?.user?.fullName || 'Quý khách';
+      const doctorName = appointment.doctor?.user?.fullName || 'Bác sĩ chuyên khoa';
+      const doctorUserId = appointment.doctor?.userId;
+      const service = (appointment as any).service ?? appointment.treatmentMethod?.service;
+      const serviceName = (service && typeof service === 'object' && 'name' in service) ? service.name : 'Khám nha khoa';
+      const code = appointment.appointmentCode;
+      const queueNumber = `#${code.slice(-4)}`;
+
+      if (email) {
+        await this.mailQueue.add('send-check-in-welcome', {
+          email,
+          name,
+          appointmentCode: code,
+          queueNumber,
+          doctorName,
+          roomName: 'Phòng khám Smart Dental - Tầng 1',
+          serviceName,
+          checkedInAt: new Date().toISOString(),
+        });
+      }
+
+      // In-App for Patient
+      const patientUserId = patient?.userId || appointment.createdBy;
+      if (patientUserId) {
+        await this.notificationService.createNotification({
+          userId: patientUserId,
+          type: 'APPOINTMENT_CHECKED_IN',
+          title: 'Tiếp nhận khám thành công',
+          content: `Bạn đã check-in thành công. Số thứ tự: ${queueNumber} (${serviceName} - ${doctorName}). Vui lòng theo dõi thông báo tại sảnh chờ.`,
+          appointmentId: appointment.id,
+        });
+      }
+
+      // In-App for Doctor
+      if (doctorUserId) {
+        await this.notificationService.createNotification({
+          userId: doctorUserId,
+          type: 'PATIENT_WAITING',
+          title: 'Bệnh nhân đã đến phòng khám',
+          content: `Bệnh nhân ${name} (${serviceName}, STT ${queueNumber}) đã check-in tại quầy và đang chờ tại sảnh.`,
+          appointmentId: appointment.id,
+        });
+      }
+    } catch (err) {
+      this.logger.warn(`Failed to dispatch check-in notification: ${err}`);
+    }
+  }
+
+  private async dispatchAppointmentInProgressNotification(appointment: any) {
+    try {
+      const patient = appointment.patient;
+      const doctorName = appointment.doctor?.user?.fullName || 'Bác sĩ chuyên khoa';
+      const patientUserId = patient?.userId || appointment.createdBy;
+      const code = appointment.appointmentCode;
+
+      if (patientUserId) {
+        await this.notificationService.createNotification({
+          userId: patientUserId,
+          type: 'APPOINTMENT_IN_PROGRESS',
+          title: 'Đến lượt vào phòng khám',
+          content: `Lịch hẹn #${code}: Mời bạn di chuyển vào phòng khám / ghế nha khoa gặp ${doctorName}.`,
+          appointmentId: appointment.id,
+        });
+      }
+    } catch (err) {
+      this.logger.warn(`Failed to dispatch in-progress notification: ${err}`);
+    }
   }
 
   private async transitionAppointment(
@@ -645,7 +917,9 @@ export class AppointmentService {
       data: { status: AppointmentStatus.IN_PROGRESS },
       include: appointmentInclude,
     });
-    return this.withDerivedService(updated);
+    const result = this.withDerivedService(updated);
+    void this.dispatchAppointmentInProgressNotification(result);
+    return result;
   }
 
   async completeAppointment(appointmentId: string) {

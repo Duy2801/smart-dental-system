@@ -3,6 +3,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bull';
+import type { Queue } from 'bull';
 import { RefundStatus } from '../../../prisma/generated/enums';
 import { AuthenticatedUser } from 'src/common/interfaces/authenticated-user.interface';
 import { PrismaService } from '../prisma/prisma.service';
@@ -11,7 +13,11 @@ import { ProcessRefundDto } from './dto/process-refund.dto';
 
 @Injectable()
 export class RefundService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @InjectQueue('mail-queue')
+    private readonly mailQueue: Queue,
+  ) {}
 
   /** Bệnh nhân gửi yêu cầu hoàn tiền */
   async createRefundRequest(
@@ -203,7 +209,17 @@ export class RefundService {
     const refundRequest = await this.prisma.refundRequest.findUnique({
       where: { id },
       include: {
-        patient: { select: { userId: true, user: { select: { fullName: true } } } },
+        patient: {
+          include: {
+            user: { select: { fullName: true, email: true, phone: true } },
+          },
+        },
+        videoConsultation: true,
+        appointment: {
+          include: {
+            service: { select: { name: true } },
+          },
+        },
       },
     });
 
@@ -226,15 +242,49 @@ export class RefundService {
       },
     });
 
-    // Gửi thông báo đến Bệnh nhân khi Lễ tân chuyển tiền xong hoặc từ chối
-    if (refundRequest.patient.userId) {
-      const amountStr = Number(refundRequest.requestedAmount).toLocaleString('vi-VN');
+    const patientEmail = refundRequest.patient?.user?.email;
+    const patientName = refundRequest.patient?.user?.fullName || 'Quý khách';
+    const amountNum = Number(refundRequest.requestedAmount);
+    const serviceName = refundRequest.videoConsultation
+      ? 'Tư vấn trực tuyến (Video Call)'
+      : refundRequest.appointment?.service?.name || 'Khám & Điều trị nha khoa';
+
+    // 1. Gửi Gmail thông báo chính thức đến bệnh nhân
+    if (patientEmail) {
+      try {
+        if (dto.status === RefundStatus.COMPLETED) {
+          await this.mailQueue.add('send-request-refund-approved', {
+            name: patientName,
+            email: patientEmail,
+            requestCode: refundRequest.refundCode,
+            serviceName,
+            refundAmount: amountNum,
+            refundPercent: refundRequest.refundPercent,
+            note: `Đã hoàn tiền thành công vào tài khoản ${refundRequest.bankName} - STK ${refundRequest.accountNumber} (Chủ TK: ${refundRequest.accountHolder}).`,
+          });
+        } else if (dto.status === RefundStatus.REJECTED) {
+          await this.mailQueue.add('send-request-rejected', {
+            name: patientName,
+            email: patientEmail,
+            requestCode: refundRequest.refundCode,
+            requestTypeLabel: 'Hoàn phí dịch vụ',
+            reason: dto.rejectReason || 'Không đáp ứng điều kiện hoàn tiền theo quy định.',
+          });
+        }
+      } catch (err) {
+        // non-blocking
+      }
+    }
+
+    // 2. Gửi thông báo In-App thời gian thực
+    if (refundRequest.patient?.userId) {
+      const amountStr = amountNum.toLocaleString('vi-VN');
       const isCompleted = dto.status === RefundStatus.COMPLETED;
-      
+
       const title = isCompleted
         ? '✅ Hoàn tiền thành công!'
         : '❌ Yêu cầu hoàn tiền bị từ chối';
-      
+
       const content = isCompleted
         ? `Lễ tân đã hoàn số tiền ${amountStr} VNĐ cho mã yêu cầu ${refundRequest.refundCode} vào tài khoản ${refundRequest.bankName} - ${refundRequest.accountNumber}. Vui lòng kiểm tra tài khoản.`
         : `Yêu cầu hoàn tiền ${refundRequest.refundCode} bị từ chối. Lý do: ${dto.rejectReason || 'Không đáp ứng điều kiện'}.`;
