@@ -21,11 +21,25 @@ function run(cmd, args) {
   if (r.status !== 0) process.exit(r.status ?? 1);
 }
 
-const systemPython = isWin ? "python" : "python3";
+const systemPython = isWin ? "py" : "python3.12";
+const systemPythonArgs = isWin ? ["-3.12"] : [];
 
 if (!existsSync(venvPython)) {
-  console.log("[ai-service] Tạo .venv…");
-  run(systemPython, ["-m", "venv", ".venv"]);
+  console.log("[ai-service] Tạo .venv bằng Python 3.12…");
+  run(systemPython, [...systemPythonArgs, "-m", "venv", ".venv"]);
+}
+
+const versionCheck = spawnSync(
+  venvPython,
+  ["-c", "import sys; raise SystemExit(0 if (3, 11) <= sys.version_info[:2] <= (3, 13) else 1)"],
+  { cwd: root, stdio: "ignore" },
+);
+if (versionCheck.status !== 0) {
+  console.error(
+    "[ai-service] YOLO + DeepLab yêu cầu Python 3.11 đến 3.13. " +
+      "Hãy xóa apps/ai-service/.venv, cài Python 3.12 rồi chạy setup lại.",
+  );
+  process.exit(1);
 }
 
 console.log("[ai-service] Cài requirements…");

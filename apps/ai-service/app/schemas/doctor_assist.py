@@ -199,7 +199,7 @@ class AnalyzeXrayRequest(BaseModel):
 
 class AnalyzeXrayResponse(BaseModel):
     is_radiograph: bool = True
-    status: str = "PATHOLOGY_DETECTED"  # INVALID_IMAGE | HEALTHY | PATHOLOGY_DETECTED
+    status: str = "PATHOLOGY_DETECTED"  # INVALID_IMAGE | MODEL_UNAVAILABLE | HEALTHY | PATHOLOGY_DETECTED
     findings: list[DentalFinding] = Field(default_factory=list)
     total_findings: int = 0
     summary: str = ""
@@ -207,8 +207,7 @@ class AnalyzeXrayResponse(BaseModel):
     treatment_recommendations: list[str] = Field(default_factory=list)
     annotated_image_url: str | None = None
     disclaimer: str = (
-        "Kết quả phân tích X-quang bởi Dental Vision AI (Hybrid Cloud Pipeline). "
+        "YOLO và DeepLab local tạo phát hiện; Gemini chỉ diễn giải kết quả. "
         "Bác sĩ cần đối chiếu lâm sàng trước khi đưa vào bệnh án."
     )
-
 
