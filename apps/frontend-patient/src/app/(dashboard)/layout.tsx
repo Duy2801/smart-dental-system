@@ -9,6 +9,7 @@ import { ScrollRevealProvider } from "@/features/dashboard/common/ScrollReveal";
 import { PatientBottomNav } from "@/features/dashboard/common/PatientBottomNav";
 import { ChatbotWidget } from "@/features/dashboard/chatbot/ChatbotWidget";
 import { NotificationNavbarBadge } from "@/features/dashboard/notification/components/NotificationNavbarBadge";
+import { HeaderAccountDropdown } from "@/features/dashboard/common/HeaderAccountDropdown";
 import { ROUTES, FOOTER_LINKS } from "@/features/dashboard/common/routes";
 import { T } from "@/features/dashboard/common/typography";
 
@@ -38,13 +39,7 @@ function DashboardHeader() {
 
         <div className="flex shrink-0 items-center justify-end gap-2 sm:gap-3">
           <NotificationNavbarBadge />
-          <Link
-            href={ROUTES.profile}
-            aria-label="Hồ sơ cá nhân"
-            className="grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br from-blue-500 to-cyan-600 text-xs font-extrabold text-white shadow-xs ring-2 ring-white transition hover:opacity-90 hover:scale-105"
-          >
-            AN
-          </Link>
+          <HeaderAccountDropdown />
         </div>
       </div>
     </header>

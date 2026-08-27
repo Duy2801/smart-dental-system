@@ -957,33 +957,33 @@ export function RecordTreatmentCard({
                 ) : (
                   <>
                     {/* Table Danh Mục Thuốc */}
-                    <div className="overflow-x-auto rounded-2xl border border-slate-200">
-                      <table className="w-full text-left text-xs">
-                        <thead className="bg-slate-50 text-slate-700 font-bold uppercase tracking-wider text-[10px] border-b border-slate-200">
+                    <div className="overflow-x-auto rounded-2xl border border-slate-200/90 shadow-2xs bg-white">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead className="bg-slate-50/90 text-slate-600 font-extrabold uppercase tracking-wider text-[10px] border-b border-slate-200">
                           <tr>
-                            <th className="p-3">#</th>
-                            <th className="p-3">Tên Thuốc & Hoạt Chất</th>
-                            <th className="p-3">Liều Dùng</th>
-                            <th className="p-3">Tần Suất & Thời Gian</th>
-                            <th className="p-3">Hướng Dẫn Uống</th>
+                            <th className="p-3.5 w-12 text-center font-mono">#</th>
+                            <th className="p-3.5 min-w-[200px]">Tên Thuốc & Hoạt Chất</th>
+                            <th className="p-3.5 whitespace-nowrap">Liều Dùng</th>
+                            <th className="p-3.5 min-w-[180px]">Tần Suất & Thời Gian</th>
+                            <th className="p-3.5">Hướng Dẫn Uống</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                           {presc.items.map((item, idx) => (
-                            <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
-                              <td className="p-3 font-mono font-bold text-slate-400">{idx + 1}</td>
-                              <td className="p-3">
-                                <strong className="text-slate-900 text-sm block">{item.medicineName}</strong>
+                            <tr key={idx} className="hover:bg-blue-50/20 transition-colors">
+                              <td className="p-3.5 text-center font-mono font-extrabold text-slate-400">{idx + 1}</td>
+                              <td className="p-3.5">
+                                <strong className="text-slate-900 text-xs sm:text-sm font-bold block">{item.medicineName}</strong>
                               </td>
-                              <td className="p-3">
-                                <span className="font-mono font-bold text-[#1996e0] bg-blue-50 px-2 py-1 rounded-md border border-blue-100">
+                              <td className="p-3.5 whitespace-nowrap">
+                                <span className="inline-flex items-center whitespace-nowrap font-mono font-bold text-[#0863c5] bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100/90 shadow-2xs text-xs">
                                   {item.dosage}
                                 </span>
                               </td>
-                              <td className="p-3 text-slate-700 font-medium">
-                                {item.frequency} ({item.duration})
+                              <td className="p-3.5 text-slate-700 font-medium text-xs leading-relaxed">
+                                {item.frequency} <span className="text-slate-400 font-normal">({item.duration})</span>
                               </td>
-                              <td className="p-3 text-slate-600">
+                              <td className="p-3.5 text-slate-600 text-xs leading-relaxed">
                                 {item.instruction}
                               </td>
                             </tr>
