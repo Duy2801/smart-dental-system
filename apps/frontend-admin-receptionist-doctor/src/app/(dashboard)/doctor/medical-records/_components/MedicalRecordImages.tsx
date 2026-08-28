@@ -7,6 +7,7 @@ import apiClient from "@/src/lib/api/client";
 import { DoctorXrayAnalysisModal } from "./DoctorXrayAnalysisModal";
 
 export type RecordImage = {
+  id?: string;
   url: string;
   caption?: string | null;
   type?: "xray" | "intraoral" | "other";
@@ -205,9 +206,10 @@ export function MedicalRecordImages({
                 <div className="flex items-center gap-1.5 shrink-0">
                   <button
                     type="button"
-                    onClick={() => setAnalyzingImage(img)}
+                    onClick={() => img.id && setAnalyzingImage(img)}
+                    disabled={!img.id}
                     className="inline-flex items-center gap-1 rounded-lg border border-brand/20 bg-brand/5 px-2.5 py-1.5 text-xs font-bold text-brand hover:bg-brand/10 transition cursor-pointer"
-                    title="Phân tích X-quang bằng AI"
+                    title={img.id ? "Phân tích X-quang bằng AI" : "Ảnh cũ cần tải lại để phân tích an toàn"}
                   >
                     <Sparkle size={13} weight="fill" /> Phân tích AI
                   </button>
@@ -229,6 +231,7 @@ export function MedicalRecordImages({
       {/* 3. MODAL KÍNH SOI AI */}
       {analyzingImage && (
         <DoctorXrayAnalysisModal
+          imageId={analyzingImage.id!}
           imageUrl={analyzingImage.url}
           imageCaption={analyzingImage.caption}
           patientId={patientId}

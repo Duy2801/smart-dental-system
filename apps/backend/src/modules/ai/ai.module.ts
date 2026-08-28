@@ -6,6 +6,7 @@ import { SocketModule } from '../socket/socket.module';
 import { AiClientService } from './ai-client.service';
 import { AiController } from './ai.controller';
 import { AiService } from './ai.service';
+import { AiRateLimitService } from './ai-rate-limit.service';
 
 @Module({
   imports: [
@@ -15,7 +16,7 @@ import { AiService } from './ai.service';
     BullModule.registerQueue({ name: 'mail-queue' }),
   ],
   controllers: [AiController],
-  providers: [AiClientService, AiService],
+  providers: [AiClientService, AiRateLimitService, AiService],
   exports: [AiService, AiClientService],
 })
 export class AiModule {}

@@ -72,20 +72,11 @@ export class ExplainTreatmentPlanDto {
 }
 
 export class AnalyzeXrayDto {
-  @IsOptional()
-  @IsString()
-  imageUrl?: string;
-
-  @IsOptional()
-  @IsString()
-  imageBase64?: string;
-
-  @IsOptional()
   @IsUUID()
-  patientId?: string;
+  imageId!: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(2000)
   clinicalNoteHint?: string;
 }
-

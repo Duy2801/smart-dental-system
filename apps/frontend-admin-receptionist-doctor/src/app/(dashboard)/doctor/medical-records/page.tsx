@@ -36,6 +36,7 @@ import {
   type DentalChartData,
   type ToothStatus,
 } from "./_components/DentalChartEditor";
+import { applyXrayFindingsToDentalChart } from "./_components/xray-dental-chart-mapper";
 import {
   MedicalRecordImages,
   type RecordImage,
@@ -849,30 +850,10 @@ function MedicalRecordsContent() {
                         }));
                       }}
                       onApplyToDentalChart={(findings) => {
-                        const AI_STATUS_MAP: Record<string, ToothStatus> = {
-                          Caries: "caries",
-                          "Periapical radiolucency": "root_canal",
-                          Implant: "implant",
-                          "Root canal filling": "root_canal",
-                          "Crown / Bridge": "crown",
-                          Filling: "filled",
-                          "Missing tooth": "missing",
-                          "Residual root": "caries",
-                        };
-
                         const existingTeeth = form.dentalChart?.teeth || [];
-                        const teethMap = new Map(existingTeeth.map((t) => [t.number, t.status]));
-
-                        findings.forEach((f) => {
-                          const status = AI_STATUS_MAP[f.findingType] || "caries";
-                          teethMap.set(f.fdiToothNumber, status);
-                        });
-
-                        const updatedTeeth = Array.from(teethMap.entries()).map(
-                          ([number, status]) => ({
-                            number,
-                            status,
-                          })
+                        const updatedTeeth = applyXrayFindingsToDentalChart(
+                          existingTeeth,
+                          findings
                         );
 
                         setForm((prev) => ({

@@ -13,6 +13,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { UpdateMedicalRecordDto } from './dto/update-medical-record.dto';
 
 type RecordImage = {
+  id?: string;
   url: string;
   caption?: string | null;
   type?: 'xray' | 'intraoral' | 'other';
@@ -111,10 +112,14 @@ export class MedicalRecordService {
     return this.toDetail(r);
   }
 
-  async update(id: string, dto: UpdateMedicalRecordDto, user: AuthenticatedUser) {
+  async update(
+    id: string,
+    dto: UpdateMedicalRecordDto,
+    user: AuthenticatedUser,
+  ) {
     const exists = await this.prisma.medicalRecord.findUnique({
       where: { id },
-      select: { id: true, doctorId: true },
+      select: { id: true, doctorId: true, images: true },
     });
     if (!exists) throw new NotFoundException('Không tìm thấy hồ sơ bệnh án');
     await this.ensureCanAccess(exists.doctorId, user);
@@ -133,13 +138,28 @@ export class MedicalRecordService {
       data.internalNotes = dto.internalNotes?.trim() || null;
     }
     if (dto.followUpDate !== undefined) {
-      data.followUpDate = dto.followUpDate
-        ? new Date(dto.followUpDate)
-        : null;
+      data.followUpDate = dto.followUpDate ? new Date(dto.followUpDate) : null;
     }
     if (dto.images !== undefined) {
+      const storedImages = Array.isArray(exists.images)
+        ? (exists.images as RecordImage[])
+        : [];
+      const requestedImages = dto.images === null ? [] : dto.images;
+      const containsUntrustedImage = requestedImages.some((requested) => {
+        const stored = requested.id
+          ? storedImages.find((image) => image.id === requested.id)
+          : storedImages.find(
+              (image) => !image.id && image.url === requested.url,
+            );
+        return !stored || stored.url !== requested.url;
+      });
+      if (containsUntrustedImage) {
+        throw new BadRequestException(
+          'Ảnh bệnh án mới phải được thêm qua chức năng tải ảnh lên',
+        );
+      }
       data.images = JSON.parse(
-        JSON.stringify(dto.images === null ? [] : dto.images),
+        JSON.stringify(requestedImages),
       ) as Prisma.InputJsonValue;
     }
     if (dto.dentalChart !== undefined) {
@@ -197,6 +217,7 @@ export class MedicalRecordService {
     const nextImages = [
       ...current,
       {
+        id: randomUUID(),
         url,
         caption: meta.caption?.trim() || file.originalname || null,
         type: meta.type ?? 'xray',
@@ -230,7 +251,8 @@ export class MedicalRecordService {
     return {
       id: r.id,
       patientId: r.patientId,
-      patientName: r.patient?.fullName ?? r.patient?.user?.fullName ?? 'Bệnh nhân',
+      patientName:
+        r.patient?.fullName ?? r.patient?.user?.fullName ?? 'Bệnh nhân',
       patientCode: r.patient?.patientCode ?? '—',
       diagnosis: r.diagnosis ?? null,
       chiefComplaint: r.chiefComplaint ?? null,

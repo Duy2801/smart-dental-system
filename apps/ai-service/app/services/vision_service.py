@@ -2,11 +2,16 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import ipaddress
 import io
 import json
 import logging
+import os
 import re
+import socket
 from typing import Any
+from urllib.parse import urlsplit
+from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 try:
     from PIL import Image, ImageDraw, ImageFont, ImageStat
@@ -31,10 +36,65 @@ from app.schemas.vision import (
 )
 from app.services.local_panoramic_model import (
     LocalModelUnavailableError,
+    NonDentalImageError,
     local_panoramic_model,
 )
 
 logger = logging.getLogger(__name__)
+
+MAX_IMAGE_BYTES = 10 * 1024 * 1024
+MAX_BASE64_LENGTH = ((MAX_IMAGE_BYTES + 2) // 3) * 4 + 128
+MAX_IMAGE_PIXELS = 25_000_000
+MIN_IMAGE_WIDTH = 256
+MIN_IMAGE_HEIGHT = 128
+ALLOWED_IMAGE_HOSTS = {
+    host.strip().lower()
+    for host in os.getenv("VISION_ALLOWED_IMAGE_HOSTS", "res.cloudinary.com").split(",")
+    if host.strip()
+}
+XRAY_MODEL_VERSION = os.getenv(
+    "XRAY_MODEL_VERSION", "Hau1122/smart-dental-pano-ai@unversioned"
+)
+
+
+def _is_public_ip(address: str) -> bool:
+    return ipaddress.ip_address(address).is_global
+
+
+def _validate_remote_image_url(url: str) -> None:
+    parsed = urlsplit(url)
+    if parsed.scheme not in {"http", "https"}:
+        raise ValueError("Chỉ hỗ trợ URL ảnh HTTP hoặc HTTPS.")
+    if not parsed.hostname or parsed.username or parsed.password:
+        raise ValueError("URL ảnh không hợp lệ.")
+    hostname = parsed.hostname.lower().rstrip(".")
+    if not any(
+        hostname == allowed or hostname.endswith(f".{allowed}")
+        for allowed in ALLOWED_IMAGE_HOSTS
+    ):
+        raise ValueError("Máy chủ ảnh không nằm trong danh sách được phép.")
+
+    try:
+        addresses = [str(ipaddress.ip_address(hostname))]
+    except ValueError:
+        port = parsed.port or (443 if parsed.scheme == "https" else 80)
+        addresses = list(
+            {
+                item[4][0]
+                for item in socket.getaddrinfo(
+                    hostname, port, type=socket.SOCK_STREAM
+                )
+            }
+        )
+
+    if not addresses or any(not _is_public_ip(address) for address in addresses):
+        raise ValueError("URL ảnh trỏ đến địa chỉ mạng không được phép.")
+
+
+class _SafeImageRedirectHandler(HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        _validate_remote_image_url(newurl)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 # Tên giải phẫu của 32 răng vĩnh viễn theo hệ FDI quốc tế
 FDI_TOOTH_NAMES: dict[int, str] = {
@@ -219,6 +279,15 @@ class PanoramicVisionService:
                 "Không thể đọc dữ liệu hình ảnh hoặc tệp ảnh bị hỏng/không tồn tại.",
             )
 
+        width, height = pil_image.size
+        if width < MIN_IMAGE_WIDTH or height < MIN_IMAGE_HEIGHT:
+            return False, (
+                f"Kích thước ảnh quá nhỏ ({width}x{height}); không đủ dữ liệu để xác thực phim X-quang."
+            )
+
+        if width * height > MAX_IMAGE_PIXELS:
+            return False, "Kích thước điểm ảnh vượt giới hạn xử lý an toàn."
+
         url_lower = (url_or_name or "").lower()
         non_dental_keywords = [
             "macos",
@@ -283,10 +352,65 @@ class PanoramicVisionService:
                     f"Độ lệch sắc độ trung bình cao ({avg_diff:.1f}), ảnh không phải phim X-quang đơn sắc y tế",
                 )
 
+            grayscale = pil_image.copy().resize((256, 128)).convert("L")
+            contrast = ImageStat.Stat(grayscale).stddev[0]
+            dynamic_range = grayscale.getextrema()[1] - grayscale.getextrema()[0]
+            if contrast < 10 or dynamic_range < 35:
+                return False, (
+                    "Ảnh xám không có đủ tương phản và cấu trúc giải phẫu để xác thực là phim X-quang nha khoa."
+                )
+
         except Exception as e:
             logger.warning(f"Lỗi kiểm tra sắc độ ảnh: {e}")
+            return False, "Không thể xác thực cấu trúc hình ảnh một cách an toàn."
 
         return True, "Ảnh X-quang hợp lệ"
+
+    @staticmethod
+    def _decode_image(data: bytes) -> Image.Image:
+        if len(data) > MAX_IMAGE_BYTES:
+            raise ValueError("Dung lượng ảnh vượt quá 10 MB.")
+
+        with Image.open(io.BytesIO(data)) as source:
+            width, height = source.size
+            if width * height > MAX_IMAGE_PIXELS:
+                raise ValueError("Kích thước điểm ảnh vượt giới hạn xử lý an toàn.")
+            source.verify()
+
+        with Image.open(io.BytesIO(data)) as source:
+            return source.convert("RGB")
+
+    @staticmethod
+    def _decode_base64_image(value: str) -> Image.Image:
+        raw_base64 = value.split(",", 1)[1] if "," in value else value
+        if len(raw_base64) > MAX_BASE64_LENGTH:
+            raise ValueError("Dữ liệu ảnh base64 vượt quá 10 MB.")
+        data = base64.b64decode(raw_base64, validate=True)
+        return PanoramicVisionService._decode_image(data)
+
+    @staticmethod
+    def _download_remote_image(image_url: str) -> Image.Image:
+        _validate_remote_image_url(image_url)
+        request = Request(image_url, headers={"User-Agent": "SmartDentalVision/1.0"})
+        opener = build_opener(_SafeImageRedirectHandler())
+
+        with opener.open(request, timeout=10) as response:
+            final_url = response.geturl()
+            _validate_remote_image_url(final_url)
+
+            content_type = response.headers.get_content_type()
+            if not content_type.startswith("image/"):
+                raise ValueError("URL không trả về nội dung hình ảnh.")
+
+            content_length = response.headers.get("Content-Length")
+            if content_length and int(content_length) > MAX_IMAGE_BYTES:
+                raise ValueError("Dung lượng ảnh từ URL vượt quá 10 MB.")
+
+            data = response.read(MAX_IMAGE_BYTES + 1)
+            if len(data) > MAX_IMAGE_BYTES:
+                raise ValueError("Dung lượng ảnh từ URL vượt quá 10 MB.")
+
+        return PanoramicVisionService._decode_image(data)
 
     def _load_image(self, req: Any) -> Image.Image | None:
         """Đọc PIL Image từ base64 hoặc URL."""
@@ -297,20 +421,11 @@ class PanoramicVisionService:
             image_url = getattr(req, "image_url", None)
 
             if image_b64:
-                raw_b64 = image_b64.split(",")[1] if "," in image_b64 else image_b64
-                data = base64.b64decode(raw_b64)
-                return Image.open(io.BytesIO(data)).convert("RGB")
+                return self._decode_base64_image(image_b64)
             elif image_url:
                 if image_url.startswith("data:image"):
-                    raw_b64 = image_url.split(",")[1]
-                    data = base64.b64decode(raw_b64)
-                    return Image.open(io.BytesIO(data)).convert("RGB")
-                import urllib.request
-
-                req_headers = {"User-Agent": "Mozilla/5.0"}
-                request = urllib.request.Request(image_url, headers=req_headers)
-                with urllib.request.urlopen(request, timeout=10) as response:
-                    return Image.open(io.BytesIO(response.read())).convert("RGB")
+                    return self._decode_base64_image(image_url)
+                return self._download_remote_image(image_url)
         except Exception as e:
             logger.warning(f"Không thể nạp ảnh X-quang: {e}")
         return None
@@ -327,6 +442,8 @@ class PanoramicVisionService:
             return AnalyzeXrayResponse(
                 is_radiograph=False,
                 status="INVALID_IMAGE",
+                error_status="INVALID_IMAGE",
+                model_version=XRAY_MODEL_VERSION,
                 findings=[],
                 total_findings=0,
                 summary=(
@@ -347,11 +464,30 @@ class PanoramicVisionService:
                 local_panoramic_model.analyze,
                 pil_image,
             )
+        except NonDentalImageError as exc:
+            logger.info("[Gatekeeper] Model từ chối ảnh không có cấu trúc răng: %s", exc)
+            return AnalyzeXrayResponse(
+                is_radiograph=False,
+                status="INVALID_IMAGE",
+                error_status="INVALID_IMAGE",
+                model_version=XRAY_MODEL_VERSION,
+                findings=[],
+                total_findings=0,
+                summary=f"CẢNH BÁO Y KHOA: {exc}",
+                diagnosis_suggestion=None,
+                treatment_recommendations=[],
+                annotated_image_url=body.image_url,
+                disclaimer=(
+                    "Model giải phẫu không nhận diện được răng nên hệ thống từ chối phân tích."
+                ),
+            )
         except LocalModelUnavailableError as exc:
             logger.error("Model X-quang local chưa sẵn sàng: %s", exc)
             return AnalyzeXrayResponse(
                 is_radiograph=True,
                 status="MODEL_UNAVAILABLE",
+                error_status="MODEL_UNAVAILABLE",
+                model_version=XRAY_MODEL_VERSION,
                 findings=[],
                 total_findings=0,
                 summary=str(exc),
@@ -407,6 +543,7 @@ class PanoramicVisionService:
         return AnalyzeXrayResponse(
             is_radiograph=True,
             status="PATHOLOGY_DETECTED" if findings else "HEALTHY",
+            model_version=XRAY_MODEL_VERSION,
             findings=findings,
             total_findings=len(findings),
             summary=summary,

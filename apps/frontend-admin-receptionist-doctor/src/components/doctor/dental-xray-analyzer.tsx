@@ -30,6 +30,13 @@ import {
 } from "@phosphor-icons/react";
 import apiClient from "@/src/lib/api/client";
 import axios from "axios";
+import {
+  getVisibleFindings,
+  readImageDimensions,
+  validateXrayDimensions,
+  validateXrayFile,
+  validateXraySignature,
+} from "./dental-xray-analysis-utils";
 
 export interface DentalFinding {
   fdiToothNumber: number;
@@ -41,14 +48,15 @@ export interface DentalFinding {
     width: number; // percentage (0..100)
     height: number; // percentage (0..100)
   };
-  severity: "LOW" | "MEDIUM" | "HIGH";
+  severity: "UNASSESSED" | "LOW" | "MEDIUM" | "HIGH";
   doctorStatus?: "ACCEPTED" | "REJECTED";
   doctorNote?: string;
 }
 
 export interface AnalyzeXrayResponse {
   isRadiograph?: boolean;
-  status?: string;
+  status: "INVALID_IMAGE" | "MODEL_UNAVAILABLE" | "HEALTHY" | "PATHOLOGY_DETECTED" | "ANALYSIS_FAILED";
+  errorStatus?: "INVALID_IMAGE" | "MODEL_UNAVAILABLE" | "ANALYSIS_FAILED" | null;
   findings: DentalFinding[];
   totalFindings: number;
   summary: string;
@@ -56,6 +64,9 @@ export interface AnalyzeXrayResponse {
   treatmentRecommendations?: string[];
   annotatedImageUrl?: string | null;
   disclaimer: string;
+  analysisId: string;
+  modelVersion: string;
+  analyzedAt: string;
 }
 
 export interface PatientXrayItem {
@@ -73,23 +84,6 @@ interface DentalXrayAnalyzerProps {
   onApplyToMedicalRecord?: (findingsSummary: string) => void;
   onApplyToDentalChart?: (findings: DentalFinding[]) => void;
 }
-
-const DEFAULT_PATIENT_XRAYS: PatientXrayItem[] = [
-  {
-    url: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Panoramic_dental_X-ray.jpg/1280px-Panoramic_dental_X-ray.jpg",
-    title: "Phim Panorama OPG toàn cảnh",
-    date: "23/08/2026",
-    type: "xray",
-  },
-  {
-    url: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/Orthopantomogram.jpg/1280px-Orthopantomogram.jpg",
-    title: "Phim Cánh bướm Bitewing R36-R38",
-    date: "15/06/2026",
-    type: "xray",
-  },
-];
-
-const DEFAULT_PANO_IMAGE = DEFAULT_PATIENT_XRAYS[0].url;
 
 const FINDING_CONFIG: Record<
   string,
@@ -174,12 +168,13 @@ export function calculateOralHealthRisk(findings: DentalFinding[]) {
 
   if (!activeFindings || activeFindings.length === 0) {
     return {
-      score: 100,
-      riskLevel: "LOW" as const,
-      riskLabel: "Sức Khỏe Tốt (100%)",
-      colorClass: "text-emerald-700 bg-emerald-50 border-emerald-200",
-      badgeColor: "bg-emerald-500 text-white",
-      recommendation: "Không phát hiện tổn thương bất thường. Khám định kỳ 6 tháng/lần.",
+      score: null,
+      riskLevel: "UNASSESSED" as const,
+      riskLabel: "Chưa chấm điểm",
+      colorClass: "text-brand-dark bg-brand-light/40 border-brand/20",
+      badgeColor: "bg-brand-light text-brand-dark",
+      recommendation:
+        "Model chưa phát hiện bất thường vượt ngưỡng. Kết quả này không loại trừ bệnh lý; bác sĩ cần tiếp tục đối chiếu lâm sàng.",
       urgentTeeth: [],
     };
   }
@@ -239,12 +234,13 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
   onApplyToMedicalRecord,
   onApplyToDentalChart,
 }) => {
-  const effectivePatientImages = patientImages.length > 0 ? patientImages : DEFAULT_PATIENT_XRAYS;
+  const effectivePatientImages = patientImages;
 
-  const [imageUrl, setImageUrl] = useState<string>(effectivePatientImages[0]?.url || DEFAULT_PANO_IMAGE);
-  const [imageBase64, setImageBase64] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string>(effectivePatientImages[0]?.url || "");
+  const [imageId, setImageId] = useState<string | null>(effectivePatientImages[0]?.id ?? null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalyzeXrayResponse | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"findings" | "diagnosis" | "treatment">("findings");
 
   // DICOM Viewer Tools
@@ -269,7 +265,7 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editFdiNumber, setEditFdiNumber] = useState<number>(48);
   const [editFindingType, setEditFindingType] = useState<string>("Caries");
-  const [editSeverity, setEditSeverity] = useState<"LOW" | "MEDIUM" | "HIGH">("MEDIUM");
+  const [editSeverity, setEditSeverity] = useState<"UNASSESSED" | "LOW" | "MEDIUM" | "HIGH">("MEDIUM");
   const [editDoctorNote, setEditDoctorNote] = useState<string>("");
 
   // Actions
@@ -280,32 +276,65 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Sync image selection
-  const handleSelectPatientImage = (url: string) => {
-    setImageUrl(url);
-    setImageBase64(null);
+  const handleSelectPatientImage = (image: PatientXrayItem) => {
+    setImageUrl(image.url);
+    setImageId(image.id ?? null);
     setResult(null);
     setApplied(false);
     setChartSynced(false);
   };
 
-  const handleUploadImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
+    e.target.value = "";
+    if (!file) return;
+
+    setUploadError(null);
+
+    const fileError = validateXrayFile(file);
+    if (fileError) {
+      setUploadError(fileError);
+      return;
+    }
+
+    try {
+      const signature = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+      const signatureError = validateXraySignature(signature, file.type);
+      if (signatureError) {
+        setUploadError(signatureError);
+        return;
+      }
+
+      const { width, height } = await readImageDimensions(file);
+      const dimensionError = validateXrayDimensions(width, height);
+      if (dimensionError) {
+        setUploadError(dimensionError);
+        return;
+      }
+
       const reader = new FileReader();
       reader.onload = (ev) => {
         const b64 = ev.target?.result as string;
         setImageUrl(b64);
-        setImageBase64(b64);
+        setImageId(null);
         setResult(null);
         setApplied(false);
         setChartSynced(false);
       };
+      reader.onerror = () => setUploadError("Không thể đọc nội dung ảnh. Vui lòng chọn ảnh khác.");
       reader.readAsDataURL(file);
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : "Không thể đọc nội dung ảnh.");
     }
   };
 
   // Main Analyze Function
   const handleAnalyze = async () => {
+    if (!imageId) {
+      setUploadError("Ảnh phải được lưu vào bệnh án trước khi phân tích AI.");
+      return;
+    }
+
     setLoading(true);
     setApplied(false);
     setChartSynced(false);
@@ -314,15 +343,14 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
       const res = await apiClient.post<AnalyzeXrayResponse>(
         "/ai/doctor/analyze-xray",
         {
-          imageUrl: imageUrl.startsWith("data:") ? null : imageUrl,
-          imageBase64: imageUrl.startsWith("data:") ? imageUrl : imageBase64,
-          patientId,
+          imageId,
         },
         { timeout: 60000 }
       );
 
-      const payload: AnalyzeXrayResponse = (res as any)?.data?.data ?? (res as any)?.data ?? res;
+      const payload = res.data;
 
+      const isModelUnavailable = payload?.status === "MODEL_UNAVAILABLE";
       const isInvalid =
         payload?.isRadiograph === false ||
         payload?.status === "INVALID_IMAGE" ||
@@ -330,8 +358,26 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
         (payload?.summary || "").toLowerCase().includes("không phải là phim") ||
         (payload?.summary || "").toLowerCase().includes("không phải phim");
 
-      if (isInvalid) {
+      if (isModelUnavailable) {
         setResult({
+          analysisId: payload.analysisId,
+          modelVersion: payload.modelVersion,
+          analyzedAt: payload.analyzedAt,
+          isRadiograph: true,
+          status: "MODEL_UNAVAILABLE",
+          totalFindings: 0,
+          disclaimer:
+            payload?.disclaimer ||
+            "Model phân tích X-quang hiện chưa sẵn sàng. Không sử dụng phản hồi này để đưa ra quyết định lâm sàng.",
+          summary: payload?.summary || "Model phân tích X-quang hiện chưa sẵn sàng.",
+          findings: [],
+          annotatedImageUrl: imageUrl,
+        });
+      } else if (isInvalid) {
+        setResult({
+          analysisId: payload.analysisId,
+          modelVersion: payload.modelVersion,
+          analyzedAt: payload.analyzedAt,
           isRadiograph: false,
           status: "INVALID_IMAGE",
           totalFindings: 0,
@@ -347,6 +393,9 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
         }));
 
         setResult({
+          analysisId: payload.analysisId,
+          modelVersion: payload.modelVersion,
+          analyzedAt: payload.analyzedAt,
           isRadiograph: true,
           status: payload?.status || (rawFindings.length > 0 ? "PATHOLOGY_DETECTED" : "HEALTHY"),
           findings: rawFindings,
@@ -370,8 +419,10 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
             : String(err.response.data.message)
           : "Không thể kết nối đến dịch vụ Vision AI. Vui lòng kiểm tra lại dịch vụ.";
       setResult({
-        isRadiograph: false,
-        status: "INVALID_IMAGE",
+        analysisId: "client-error",
+        modelVersion: "unknown",
+        analyzedAt: new Date().toISOString(),
+        status: "ANALYSIS_FAILED",
         totalFindings: 0,
         disclaimer: "Lỗi kết nối hoặc xử lý phân tích hình ảnh.",
         summary: errorMsg,
@@ -483,7 +534,7 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
   };
 
   const visibleFindings = useMemo(() => {
-    return result?.findings.filter((f) => selectedTypes[f.findingType] !== false) || [];
+    return getVisibleFindings(result?.findings || [], selectedTypes);
   }, [result, selectedTypes]);
 
   const acceptedFindings = useMemo(() => {
@@ -494,42 +545,44 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
     return calculateOralHealthRisk(result?.findings || []);
   }, [result]);
 
+  const workflowStep = !imageUrl ? 1 : loading || !result ? 2 : 3;
+
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
+    <section className="flex flex-col gap-5 overflow-hidden rounded-3xl border border-brand/15 bg-white p-4 shadow-[0_18px_50px_-32px_rgba(0,39,141,0.35)] sm:p-5">
       {/* 1. TOP HEADER & WORKFLOW BAR */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border/70 pb-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-slate-900 to-indigo-950 text-sky-400 shadow-md border border-slate-800">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-light text-brand ring-1 ring-brand/15">
             <Brain size={24} weight="duotone" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-base font-bold text-slate-900">
-                Dental Vision AI <span className="text-slate-400 font-normal text-xs">| Kính Soi & Chẩn Đoán X-Quang</span>
+              <h2 className="text-base font-bold tracking-tight text-brand-dark">
+                Dental Vision AI <span className="text-xs font-medium text-muted-foreground">· Hỗ trợ đọc phim X-quang</span>
               </h2>
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 border border-emerald-200">
-                <ShieldCheck size={13} weight="fill" /> Bác sĩ phê duyệt (CDSS)
+              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700">
+                <ShieldCheck size={13} weight="fill" /> Bác sĩ kiểm duyệt
               </span>
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Phân tích cấu trúc 32 răng FDI, hỗ trợ Bác sĩ phê duyệt, từ chối hoặc chỉnh sửa tổn thương y khoa
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              Định vị răng FDI, rà soát tổn thương và chuẩn hóa kết quả trước khi ghi bệnh án.
             </p>
           </div>
         </div>
 
         {/* Action Controls */}
         <div className="flex items-center gap-2.5">
-          <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-slate-900 cursor-pointer shadow-2xs">
-            <FileArrowUp size={16} className="text-slate-600" />
+          <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-border bg-white px-3 py-2 text-xs font-semibold text-brand-dark shadow-xs transition-all hover:border-brand/40 hover:bg-brand-light/40 active:scale-[0.98]">
+            <FileArrowUp size={16} className="text-brand" />
             Tải ảnh khác
-            <input type="file" accept="image/*" className="hidden" onChange={handleUploadImage} />
+            <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleUploadImage} />
           </label>
 
           <button
             type="button"
             onClick={handleAnalyze}
-            disabled={loading}
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-2 text-xs font-bold text-white shadow-md shadow-blue-500/20 transition-all hover:from-blue-700 hover:to-indigo-700 active:scale-98 disabled:opacity-60 cursor-pointer"
+            disabled={loading || !imageId}
+            className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-brand px-5 py-2 text-xs font-bold text-white shadow-sm transition-all hover:bg-brand-dark hover:shadow-md active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? (
               <>
@@ -538,7 +591,7 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
               </>
             ) : (
               <>
-                <Sparkle size={16} weight="fill" className="text-amber-300" />
+                <Sparkle size={16} weight="fill" />
                 <span>Phân tích X-quang AI</span>
               </>
             )}
@@ -546,23 +599,51 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
         </div>
       </div>
 
+      <div aria-label="Tiến trình phân tích" className="grid grid-cols-3 overflow-hidden rounded-2xl border border-border/80 bg-brand-light/25 p-1">
+        {[
+          { step: 1, label: "Chọn phim" },
+          { step: 2, label: "Phân tích AI" },
+          { step: 3, label: "Bác sĩ duyệt" },
+        ].map(({ step, label }) => {
+          const isActive = workflowStep === step;
+          const isComplete = workflowStep > step;
+          return (
+            <div key={step} className={`flex items-center justify-center gap-2 rounded-xl px-2 py-2 text-[11px] font-bold transition-colors ${isActive ? "bg-white text-brand-dark shadow-xs" : isComplete ? "text-emerald-700" : "text-muted-foreground"}`}>
+              <span className={`grid h-5 w-5 place-items-center rounded-full font-mono text-[10px] ${isActive ? "bg-brand text-white" : isComplete ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                {isComplete ? <Check size={12} weight="bold" /> : step}
+              </span>
+              <span className="hidden sm:inline">{label}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      {uploadError && (
+        <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">
+          {uploadError}
+        </div>
+      )}
+
       {/* 2. ALBUM SELECTOR PILLS */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
-        <span className="shrink-0 font-bold text-slate-500 text-[11px] uppercase tracking-wider">Chọn phim:</span>
+        <span className="shrink-0 text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">Phim bệnh nhân</span>
+        {effectivePatientImages.length === 0 && (
+          <span className="text-[11px] font-medium text-slate-400">Bệnh nhân chưa có phim X-quang</span>
+        )}
         {effectivePatientImages.map((imgItem, idx) => {
           const isSelected = imageUrl === imgItem.url;
           return (
             <button
               key={idx}
               type="button"
-              onClick={() => handleSelectPatientImage(imgItem.url)}
+              onClick={() => handleSelectPatientImage(imgItem)}
               className={`inline-flex shrink-0 items-center gap-2 rounded-xl border px-3 py-1.5 font-medium transition cursor-pointer ${
                 isSelected
-                  ? "border-blue-600 bg-blue-50/80 text-blue-900 font-bold shadow-2xs ring-1 ring-blue-500"
-                  : "border-slate-200 bg-slate-50/70 text-slate-700 hover:bg-slate-100"
+                  ? "border-brand/40 bg-brand-light text-brand-dark font-bold shadow-xs ring-1 ring-brand/20"
+                  : "border-border bg-white text-slate-600 hover:border-brand/30 hover:bg-brand-light/30"
               }`}
             >
-              <span className="h-2 w-2 rounded-full bg-blue-500" />
+              <span className={`h-2 w-2 rounded-full ${isSelected ? "bg-brand" : "bg-slate-300"}`} />
               <span>{imgItem.title || `Phim X-quang #${idx + 1}`}</span>
               {imgItem.date && <span className="text-[10px] opacity-60">({imgItem.date})</span>}
             </button>
@@ -584,6 +665,14 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
               <span className="text-[11px] font-semibold text-slate-300">
                 {Math.round(zoomLevel * 100)}%
               </span>
+              {result && result.findings.length > 0 && (
+                <>
+                  <span className="h-3 w-px bg-slate-700" />
+                  <span className="text-[10px] font-semibold text-slate-300">
+                    Vùng răng AI đề nghị kiểm tra
+                  </span>
+                </>
+              )}
             </div>
 
             {/* Quick Tools */}
@@ -716,12 +805,15 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
                 onMouseUp={handleCanvasMouseUp}
                 className={`relative inline-block max-w-full select-none ${isDrawingMode ? "cursor-crosshair" : ""}`}
               >
-                <img
-                  src={imageUrl}
-                  alt="Dental Radiograph"
-                  draggable={false}
-                  className="max-h-[460px] w-auto max-w-full rounded-xl object-contain shadow-2xl block"
-                />
+                {imageUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={imageUrl}
+                    alt="Dental Radiograph"
+                    draggable={false}
+                    className="max-h-[460px] w-auto max-w-full rounded-xl object-contain shadow-2xl block"
+                  />
+                )}
 
                 {/* Drawing Box */}
                 {currentBox && (
@@ -737,7 +829,7 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
                 )}
 
                 {/* Bounding Boxes */}
-                {visibleFindings.map((f, idx) => {
+                {visibleFindings.map(({ finding: f, originalIndex }) => {
                   const isRejected = f.doctorStatus === "REJECTED";
                   const cfg = FINDING_CONFIG[f.findingType] || {
                     border: "border-sky-400",
@@ -748,10 +840,11 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
 
                   return (
                     <div
-                      key={idx}
+                      key={`${f.fdiToothNumber}-${f.findingType}-${originalIndex}`}
+                      title={`Vùng răng ${f.fdiToothNumber} AI đề nghị kiểm tra; khung này không phải biên tổn thương.`}
                       onMouseEnter={() => setHoveredFinding(f)}
                       onMouseLeave={() => setHoveredFinding(null)}
-                      onClick={() => handleOpenEditModal(idx)}
+                      onClick={() => handleOpenEditModal(originalIndex)}
                       style={{
                         left: `${f.boundingBox.x}%`,
                         top: `${f.boundingBox.y}%`,
@@ -785,7 +878,20 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
             </div>
 
             {/* Empty / Not analyzed Overlay */}
-            {!result && !loading && (
+            {!imageUrl && !loading ? (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 p-6 text-center text-white">
+                <FileArrowUp size={32} className="mb-2 text-sky-400" />
+                <p className="text-sm font-bold">Chưa có phim X-quang</p>
+                <p className="mt-1 max-w-sm text-xs text-slate-300">
+                  Tải phim của bệnh nhân lên để bắt đầu phân tích. Hệ thống không sử dụng ảnh mẫu thay thế.
+                </p>
+                <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-xl bg-brand px-4 py-2 text-xs font-bold text-white transition-all hover:bg-brand-dark active:scale-[0.98]">
+                  <FileArrowUp size={16} />
+                  Tải ảnh lên
+                  <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleUploadImage} />
+                </label>
+              </div>
+            ) : !result && !loading ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/60 p-6 text-center text-white backdrop-blur-[2px]">
                 <Lightning size={32} className="mb-2 text-sky-400 animate-pulse" />
                 <p className="text-sm font-bold">Sẵn Sàng Phân Tích</p>
@@ -793,7 +899,7 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
                   Nhấp vào nút <b className="text-sky-400">&quot;Phân tích X-quang AI&quot;</b> ở góc phải trên để tự động định vị 32 răng FDI và phát hiện bệnh lý.
                 </p>
               </div>
-            )}
+            ) : null}
           </div>
 
           {/* Filter Chips Bar */}
@@ -853,7 +959,42 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
               </div>
 
               <p className="mt-2.5 text-[11px] font-medium text-slate-500 leading-relaxed">
-                💡 Nhấp vào nút <b className="text-blue-600">&quot;Phân tích X-quang AI&quot;</b> để hệ thống quét và chấm điểm sức khỏe răng.
+                Nhấp vào <b className="text-brand">&quot;Phân tích X-quang AI&quot;</b> để bắt đầu quy trình hỗ trợ đọc phim.
+              </p>
+            </div>
+          ) : result.status === "ANALYSIS_FAILED" ? (
+            <div className="rounded-2xl border border-orange-200 bg-orange-50 p-4 text-orange-900 shadow-xs">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Warning size={18} weight="bold" className="text-orange-600" />
+                  <span className="text-xs font-black uppercase tracking-wider">Lỗi dịch vụ Vision AI</span>
+                </div>
+                <button type="button" onClick={handleAnalyze} disabled={loading} className="rounded-lg bg-orange-600 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-60">
+                  Thử lại
+                </button>
+              </div>
+              <p className="mt-2 text-xs leading-relaxed text-orange-800">{result.summary}</p>
+              <p className="mt-1 text-[11px] font-semibold text-orange-700">Ảnh chưa được đánh giá; lỗi này không có nghĩa ảnh không phải X-quang.</p>
+            </div>
+          ) : result.status === "MODEL_UNAVAILABLE" ? (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-900 shadow-xs">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Warning size={18} weight="bold" className="text-amber-600" />
+                  <span className="text-xs font-black uppercase tracking-wider">Model AI chưa sẵn sàng</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleAnalyze}
+                  disabled={loading}
+                  className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-amber-700 disabled:opacity-60"
+                >
+                  Thử lại
+                </button>
+              </div>
+              <p className="mt-2 text-xs leading-relaxed text-amber-800">{result.summary}</p>
+              <p className="mt-1 text-[11px] font-semibold text-amber-700">
+                Chưa có kết quả phân tích. Không thể tính điểm hoặc ghi dữ liệu vào bệnh án.
               </p>
             </div>
           ) : result.isRadiograph === false || result.status === "INVALID_IMAGE" ? (
@@ -880,6 +1021,24 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
 
               <p className="mt-2.5 text-[11px] font-medium text-rose-700 leading-relaxed">
                 ⚠️ Không thể đánh giá điểm sức khỏe do tệp hình ảnh không phải là phim X-quang răng y tế.
+              </p>
+            </div>
+          ) : riskAssessment.score === null ? (
+            <div className="rounded-2xl border border-brand/20 bg-brand-light/40 p-4 text-brand-dark shadow-xs">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Heartbeat size={18} weight="bold" className="text-brand" />
+                  <span className="text-xs font-black uppercase tracking-wider">Kết quả rà soát AI</span>
+                </div>
+                <span className="rounded-full bg-white px-2.5 py-0.5 text-xs font-bold text-brand-dark ring-1 ring-brand/15">
+                  Chưa chấm điểm
+                </span>
+              </div>
+              <div className="mt-3 flex items-baseline gap-2">
+                <span className="font-mono text-2xl font-black">Không phát hiện bất thường vượt ngưỡng</span>
+              </div>
+              <p className="mt-2 text-[11px] font-medium leading-relaxed text-slate-600">
+                Kết quả này không đồng nghĩa phim hoàn toàn bình thường và không loại trừ bệnh lý. Bác sĩ cần tiếp tục đối chiếu phim và khám lâm sàng.
               </p>
             </div>
           ) : (
@@ -930,14 +1089,14 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
           )}
 
           {/* Card 2: Results Tabs (Findings / Diagnosis / Treatment) */}
-          <div className="flex flex-1 flex-col rounded-2xl border border-slate-200 bg-slate-50/50 p-4 shadow-xs">
+          <div className="flex flex-1 flex-col rounded-2xl border border-border/80 bg-white p-4 shadow-xs">
             {/* Segmented Control Tabs */}
-            <div className="flex rounded-xl bg-slate-200/70 p-1 text-xs font-bold text-slate-600">
+            <div className="flex rounded-xl bg-brand-light/55 p-1 text-xs font-bold text-slate-600">
               <button
                 type="button"
                 onClick={() => setActiveTab("findings")}
                 className={`flex-1 rounded-lg py-1.5 text-center transition cursor-pointer ${
-                  activeTab === "findings" ? "bg-white text-blue-900 shadow-xs font-extrabold" : "hover:text-slate-900"
+                  activeTab === "findings" ? "bg-white text-brand-dark shadow-xs font-extrabold" : "hover:text-brand-dark"
                 }`}
               >
                 🦷 Răng Bệnh Lý ({result?.findings.length || 0})
@@ -946,7 +1105,7 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
                 type="button"
                 onClick={() => setActiveTab("diagnosis")}
                 className={`flex-1 rounded-lg py-1.5 text-center transition cursor-pointer ${
-                  activeTab === "diagnosis" ? "bg-white text-blue-900 shadow-xs font-extrabold" : "hover:text-slate-900"
+                  activeTab === "diagnosis" ? "bg-white text-brand-dark shadow-xs font-extrabold" : "hover:text-brand-dark"
                 }`}
               >
                 📋 Chẩn Đoán ICD
@@ -955,7 +1114,7 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
                 type="button"
                 onClick={() => setActiveTab("treatment")}
                 className={`flex-1 rounded-lg py-1.5 text-center transition cursor-pointer ${
-                  activeTab === "treatment" ? "bg-white text-blue-900 shadow-xs font-extrabold" : "hover:text-slate-900"
+                  activeTab === "treatment" ? "bg-white text-brand-dark shadow-xs font-extrabold" : "hover:text-brand-dark"
                 }`}
               >
                 💉 Phác Đồ Đề Xuất
@@ -969,6 +1128,33 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
                   <Info size={28} className="mb-1 text-slate-300" />
                   <p className="text-xs font-medium">Chưa có dữ liệu phân tích</p>
                   <p className="text-[11px] text-slate-400 mt-0.5">Bấm nút &quot;Phân tích X-quang AI&quot; để bắt đầu</p>
+                </div>
+              ) : result.status === "ANALYSIS_FAILED" ? (
+                <div className="rounded-xl border border-orange-200 bg-orange-50 p-4 text-orange-900">
+                  <div className="flex items-center gap-2 text-xs font-bold text-orange-800">
+                    <Warning size={18} className="shrink-0 text-orange-600" />
+                    <span>KHÔNG THỂ KẾT NỐI DỊCH VỤ VISION AI</span>
+                  </div>
+                  <p className="mt-1.5 text-xs leading-relaxed text-orange-700">{result.summary}</p>
+                  <button type="button" onClick={handleAnalyze} disabled={loading} className="mt-3 rounded-lg bg-orange-600 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-60">
+                    Thử lại
+                  </button>
+                </div>
+              ) : result.status === "MODEL_UNAVAILABLE" ? (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900">
+                  <div className="flex items-center gap-2 text-xs font-bold text-amber-800">
+                    <Warning size={18} className="shrink-0 text-amber-600" />
+                    <span>MODEL PHÂN TÍCH CHƯA SẴN SÀNG</span>
+                  </div>
+                  <p className="mt-1.5 text-xs leading-relaxed text-amber-700">{result.summary}</p>
+                  <button
+                    type="button"
+                    onClick={handleAnalyze}
+                    disabled={loading}
+                    className="mt-3 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-amber-700 disabled:opacity-60"
+                  >
+                    Thử lại
+                  </button>
                 </div>
               ) : result.isRadiograph === false || result.status === "INVALID_IMAGE" ? (
                 /* RED WARNING CARD FOR INVALID NON-DENTAL IMAGES */
@@ -1043,7 +1229,7 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
                             <div className="flex items-center gap-1.5">
                               <span
                                 className={`rounded-md px-2 py-0.5 text-[10px] font-extrabold uppercase ${
-                                  isRejected
+                                  isRejected || item.severity === "UNASSESSED"
                                     ? "bg-slate-200 text-slate-600"
                                     : item.severity === "HIGH"
                                     ? "bg-rose-100 text-rose-700"
@@ -1052,14 +1238,20 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
                                     : "bg-emerald-100 text-emerald-700"
                                 }`}
                               >
-                                {item.severity === "HIGH" ? "Nặng" : item.severity === "MEDIUM" ? "Vừa" : "Nhẹ"}
+                                {item.severity === "UNASSESSED"
+                                  ? "Chưa đánh giá"
+                                  : item.severity === "HIGH"
+                                    ? "Nặng"
+                                    : item.severity === "MEDIUM"
+                                      ? "Vừa"
+                                      : "Nhẹ"}
                               </span>
                             </div>
                           </div>
 
                           {/* Doctor Clinical Note if any */}
                           {item.doctorNote && (
-                            <p className="text-[11px] italic text-blue-800 bg-blue-50/70 p-1.5 rounded-lg border border-blue-100">
+                            <p className="rounded-lg border border-brand/15 bg-brand-light/45 p-2 text-[11px] italic text-brand-dark">
                               💬 <b>BS ghi chú:</b> {item.doctorNote}
                             </p>
                           )}
@@ -1102,7 +1294,7 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
                                 type="button"
                                 onClick={() => handleOpenEditModal(idx)}
                                 title="Chỉnh sửa số răng, chẩn đoán, mức độ"
-                                className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-semibold text-blue-700 hover:bg-blue-50 transition cursor-pointer"
+                                className="inline-flex cursor-pointer items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-semibold text-brand-dark transition hover:bg-brand-light"
                               >
                                 <PencilSimple size={13} />
                                 <span>Sửa</span>
@@ -1137,11 +1329,11 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
                   </div>
 
                   {result.diagnosisSuggestion && (
-                    <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3.5">
-                      <p className="text-[11px] font-bold uppercase tracking-wider text-blue-800 mb-1">
+                    <div className="rounded-xl border border-brand/20 bg-brand-light/45 p-3.5">
+                      <p className="mb-1 text-[11px] font-bold uppercase tracking-wider text-brand-dark">
                         Gợi ý chẩn đoán ICD-10:
                       </p>
-                      <p className="text-xs text-blue-950 font-bold leading-relaxed whitespace-pre-line">
+                      <p className="whitespace-pre-line text-xs font-bold leading-relaxed text-brand-dark">
                         {result.diagnosisSuggestion}
                       </p>
                     </div>
@@ -1167,7 +1359,12 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
             </div>
 
             {/* Bottom Actions Bar (Applies ONLY accepted findings) */}
-            {result && result.findings.length > 0 && (
+            {result &&
+              result.status !== "MODEL_UNAVAILABLE" &&
+              result.status !== "INVALID_IMAGE" &&
+              result.status !== "ANALYSIS_FAILED" &&
+              result.isRadiograph !== false &&
+              result.findings.length > 0 && (
               <div className="mt-3.5 pt-3 border-t border-slate-200 flex flex-col gap-2">
                 <div className="grid grid-cols-2 gap-2">
                   {onApplyToDentalChart && (
@@ -1212,12 +1409,16 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
                         acceptedFindings
                           .map(
                             (f) =>
-                              `• Răng ${f.fdiToothNumber}: ${FINDING_CONFIG[f.findingType]?.label || f.findingType} (Mức độ: ${f.severity})${
+                              `• Răng ${f.fdiToothNumber}: ${FINDING_CONFIG[f.findingType]?.label || f.findingType}${
+                                f.severity === "UNASSESSED" ? " (Mức độ: bác sĩ chưa đánh giá)" : ` (Mức độ: ${f.severity})`
+                              }${
                                 f.doctorNote ? ` - BS Ghi chú: ${f.doctorNote}` : ""
                               }`
                           )
                           .join("\n") +
-                        `\nChỉ số sức khỏe: ${riskAssessment.score}% (${riskAssessment.riskLabel})`;
+                        (riskAssessment.score === null
+                          ? "\nAI chưa chấm điểm sức khỏe; kết quả không loại trừ bệnh lý."
+                          : `\nChỉ số sức khỏe: ${riskAssessment.score}% (${riskAssessment.riskLabel})`);
 
                       onApplyToMedicalRecord(doctorApprovedSummary);
                       setApplied(true);
@@ -1227,12 +1428,12 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
                     {applied ? (
                       <>
                         <CheckCircle size={16} weight="fill" />
-                        <span>Đã chèn vào Bệnh án EMR</span>
+                        <span>Đã thêm vào bản nháp</span>
                       </>
                     ) : (
                       <>
                         <FloppyDisk size={16} />
-                        <span>Chèn {acceptedFindings.length} tổn thương đã duyệt vào Bệnh án</span>
+                        <span>Thêm {acceptedFindings.length} kết quả đã duyệt vào bản nháp bệnh án</span>
                       </>
                     )}
                   </button>
@@ -1290,8 +1491,8 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
 
               <div>
                 <label className="mb-1 block font-bold text-slate-300">Mức độ lâm sàng:</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(["LOW", "MEDIUM", "HIGH"] as const).map((sev) => {
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {(["UNASSESSED", "LOW", "MEDIUM", "HIGH"] as const).map((sev) => {
                     const active = editSeverity === sev;
                     return (
                       <button
@@ -1302,7 +1503,7 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
                           active ? "bg-sky-500 text-slate-950 font-black shadow" : "bg-slate-800 text-slate-300 hover:bg-slate-700"
                         }`}
                       >
-                        {sev === "LOW" ? "Nhẹ" : sev === "MEDIUM" ? "Vừa" : "Nặng"}
+                        {sev === "UNASSESSED" ? "Chưa đánh giá" : sev === "LOW" ? "Nhẹ" : sev === "MEDIUM" ? "Vừa" : "Nặng"}
                       </button>
                     );
                   })}
@@ -1511,7 +1712,7 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
                       <tr key={i} className="border-b">
                         <td className="p-2 border font-bold">Răng #{f.fdiToothNumber}</td>
                         <td className="p-2 border">{FINDING_CONFIG[f.findingType]?.label || f.findingType}</td>
-                        <td className="p-2 border font-semibold">{f.severity}</td>
+                        <td className="p-2 border font-semibold">{f.severity === "UNASSESSED" ? "Chưa đánh giá" : f.severity}</td>
                         <td className="p-2 border text-slate-600">{f.doctorNote || "—"}</td>
                       </tr>
                     ))}
@@ -1527,6 +1728,6 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
           </div>
         </div>
       )}
-    </div>
+    </section>
   );
 };

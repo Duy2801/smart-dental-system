@@ -34,6 +34,10 @@ class LocalModelUnavailableError(RuntimeError):
     pass
 
 
+class NonDentalImageError(ValueError):
+    pass
+
+
 @dataclass(frozen=True)
 class LocalDentalFinding:
     fdi_tooth_number: int
@@ -61,6 +65,16 @@ class LocalPanoramicModel:
         with self._inference_lock:
             semantic_prediction = self._semantic_model(image_array, MODEL_ROOT)
             instance_prediction = self._instance_model(image_array, MODEL_ROOT)
+            detected_teeth = [
+                instance
+                for instance in instance_prediction.instances
+                if str(instance.category_name).upper().startswith("TOOTH")
+                and float(instance.score) >= 0.25
+            ]
+            if not detected_teeth:
+                raise NonDentalImageError(
+                    "Model không nhận diện được cấu trúc răng trên hình ảnh."
+                )
             entries = self._postprocessor(semantic_prediction, instance_prediction)
 
         width, height = image.size
@@ -155,7 +169,7 @@ class LocalPanoramicModel:
             finding_type=finding_type,
             confidence=confidence,
             bounding_box=bbox,
-            severity=self._severity(finding_type, confidence),
+            severity="UNASSESSED",
         )
 
     @staticmethod
@@ -178,15 +192,5 @@ class LocalPanoramicModel:
                 "height": round((y2 - y1) / height * 100, 2),
             }
         return {"x": 0.0, "y": 0.0, "width": 0.0, "height": 0.0}
-
-    @staticmethod
-    def _severity(finding_type: str, confidence: float) -> str:
-        urgent_types = {"Caries", "Periapical radiolucency", "Residual root"}
-        if finding_type in urgent_types and confidence >= 0.75:
-            return "HIGH"
-        if confidence >= 0.65:
-            return "MEDIUM"
-        return "LOW"
-
 
 local_panoramic_model = LocalPanoramicModel()
