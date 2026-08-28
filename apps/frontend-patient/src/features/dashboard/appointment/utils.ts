@@ -28,7 +28,9 @@ export function getAvailableTimes(dateId: string, timeSlots: string[]) {
 }
 
 export function pickFirstBookableDate(dates: BookingDate[]) {
-  return dates.find((date) => date.isOpen);
+  const openDates = dates.filter((date) => date.isOpen);
+  if (openDates.length === 0) return undefined;
+  return [...openDates].sort((a, b) => a.id.localeCompare(b.id))[0];
 }
 
 export function getCreateAppointmentErrorMessage(error: unknown) {

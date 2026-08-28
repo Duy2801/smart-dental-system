@@ -50,6 +50,12 @@ export function RefundRequestModal({
   const bankDropdownRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [submittedSuccess, setSubmittedSuccess] = useState(false);
+  const [submittedBankInfo, setSubmittedBankInfo] = useState<{
+    bankName: string;
+    accountNumber: string;
+  } | null>(null);
+
   // Khóa thanh cuộn trình duyệt (cả html & body) khi mở Form Modal
   useEffect(() => {
     const origBodyOverflow = document.body.style.overflow;
@@ -123,7 +129,7 @@ export function RefundRequestModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (refundPercent === 0) {
-      alert("Đơn tư vấn hủy sát giờ (<4 tiếng) nên không thuộc diện áp dụng hoàn tiền.");
+      setErrorMsg("Đơn tư vấn hủy sát giờ (<4 tiếng) nên không thuộc diện áp dụng hoàn tiền.");
       return;
     }
 
@@ -172,14 +178,11 @@ export function RefundRequestModal({
         reason: reason.trim() || undefined,
       });
 
-      alert(
-        `Đã gửi yêu cầu hoàn tiền thành công!\nSố tiền hoàn dự kiến: ${new Intl.NumberFormat(
-          "vi-VN",
-          { style: "currency", currency: "VND" }
-        ).format(expectedRefundAmount)}\nBộ phận Lễ tân sẽ xác nhận & chuyển khoản cho bạn.`
-      );
-      onSuccess();
-      onClose();
+      setSubmittedBankInfo({
+        bankName: finalBankName,
+        accountNumber: finalAccountNumber,
+      });
+      setSubmittedSuccess(true);
     } catch (err: unknown) {
       const msg =
         err && typeof err === "object" && "response" in err
@@ -190,6 +193,64 @@ export function RefundRequestModal({
       setSubmitting(false);
     }
   };
+
+  if (submittedSuccess) {
+    return (
+      <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
+        <div className="bg-white rounded-3xl max-w-md w-full p-6 text-center space-y-5 shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-200">
+          <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto text-3xl shadow-inner border border-emerald-200">
+            ✓
+          </div>
+
+          <div className="space-y-1.5">
+            <h3 className="text-xl font-black text-slate-800">
+              Gửi Yêu Cầu Hoàn Tiền Thành Công!
+            </h3>
+            <p className="text-xs text-slate-500 font-medium leading-relaxed">
+              Bộ phận Lễ tân đã ghi nhận thông tin và sẽ tiến hành kiểm tra & chuyển khoản cho bạn trong thời gian sớm nhất.
+            </p>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs space-y-2.5 text-left">
+            <div className="flex justify-between items-center pb-2 border-b border-slate-200/60">
+              <span className="text-slate-500 font-medium">Số tiền hoàn dự kiến:</span>
+              <strong className="text-rose-600 font-mono font-extrabold text-sm">
+                {new Intl.NumberFormat("vi-VN", {
+                  style: "currency",
+                  currency: "VND",
+                }).format(expectedRefundAmount)}
+              </strong>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-500 font-medium">Nhận qua:</span>
+              <strong className="text-slate-800 font-semibold">{submittedBankInfo?.bankName}</strong>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-500 font-medium">Số tài khoản:</span>
+              <strong className="text-slate-800 font-mono font-bold">{submittedBankInfo?.accountNumber}</strong>
+            </div>
+            <div className="flex justify-between items-center pt-2 border-t border-slate-200/60">
+              <span className="text-slate-500 font-medium">Trạng thái xử lý:</span>
+              <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold border border-amber-200">
+                ⏳ Đang chờ Lễ tân xác nhận
+              </span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              onSuccess();
+              onClose();
+            }}
+            className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-md transition-all text-xs cursor-pointer"
+          >
+            Hoàn Tất & Xem Danh Sách Hẹn
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-hidden animate-in fade-in duration-200">

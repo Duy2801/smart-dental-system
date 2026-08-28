@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { apiRefresh } from "@/features/auth/api";
 import { LoginRequiredPanel } from "@/features/dashboard/common/LoginRequiredPanel";
 import { PatientPageSkeleton } from "@/features/dashboard/common/PatientSkeleton";
-import { PatientAccountSidebar } from "@/features/dashboard/common/PatientAccountSidebar";
+import { clearClientAuth } from "@/features/auth/useLogout";
 import {
   apiGetPatientProfile,
   apiUpdatePatientProfile,
@@ -85,6 +85,7 @@ export default function ProfilePage() {
         return meResponse.data;
       } catch (error) {
         dispatch(logout());
+        clearClientAuth();
         throw error;
       }
     },
@@ -179,22 +180,18 @@ export default function ProfilePage() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-[1160px] px-4 py-7 sm:px-6 lg:px-8">
+    <main className="mx-auto w-full max-w-[800px] px-4 py-7 sm:px-6 lg:px-8">
       {/* Breadcrumb */}
       <div className="mb-5 flex items-center gap-2 text-xs font-medium text-slate-500">
         <Link href="/home" className="hover:text-[#0863c5]">
           Trang chủ
         </Link>
         <span>/</span>
-        <span className="text-slate-900 font-semibold">Tài khoản & Thông tin cá nhân</span>
+        <span className="text-slate-900 font-semibold">Thông tin cá nhân</span>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-6 items-start">
-        {/* Left Sidebar matching Image 2 */}
-        <PatientAccountSidebar activeTab="profile" />
-
-        {/* Right Main Form Card matching Image 3 */}
-        <div className="flex-1 w-full overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-6 sm:p-8 shadow-xs">
+      {/* Main Form Card */}
+      <div className="w-full overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-6 sm:p-8 shadow-xs">
           {/* Card Header Title matching Image 3 */}
           <h1 className="text-lg sm:text-xl font-bold text-slate-900">
             Thông tin cá nhân
@@ -376,7 +373,6 @@ export default function ProfilePage() {
             </div>
           </form>
         </div>
-      </div>
 
       {/* Change Password Modal */}
       {isPasswordModalOpen && (

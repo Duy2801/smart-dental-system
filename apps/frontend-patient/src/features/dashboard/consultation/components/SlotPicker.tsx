@@ -25,8 +25,8 @@ export function SlotPicker({
     useConsultationSlotsQuery(doctorId, selectedDate, selectedDuration);
 
   useEffect(() => {
-    if (availableSlots.length > 0 && !availableSlots.includes(selectedSlot)) {
-      onSelectSlot(availableSlots[0]);
+    if (selectedSlot && !availableSlots.includes(selectedSlot)) {
+      onSelectSlot("");
     }
   }, [availableSlots, selectedSlot, onSelectSlot]);
 
@@ -44,9 +44,14 @@ export function SlotPicker({
         <input
           type="date"
           value={selectedDate}
-          min={new Date().toISOString().split("T")[0]}
+          min={new Date().toLocaleDateString("sv-SE")}
+          onClick={(e) => {
+            try {
+              e.currentTarget.showPicker?.();
+            } catch {}
+          }}
           onChange={(e) => onChangeDate(e.target.value)}
-          className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
         />
       </div>
 
@@ -55,8 +60,23 @@ export function SlotPicker({
           Đang tính toán các khung giờ rảnh theo lịch phòng khám...
         </div>
       ) : availableSlots.length === 0 ? (
-        <div className="bg-slate-50 border border-dashed rounded-xl p-6 text-center text-slate-500 text-sm">
-          Phòng khám hoặc Bác sĩ không có slot rảnh vào ngày này. Vui lòng chọn ngày làm việc khác.
+        <div className="bg-slate-50 border border-dashed rounded-xl p-6 text-center text-slate-500 text-sm space-y-3">
+          <p>
+            {selectedDate === new Date().toLocaleDateString("sv-SE")
+              ? "Hôm nay đã hết khung giờ tư vấn rảnh (Giờ làm việc: 08:00 - 17:00). Vui lòng chọn ngày tiếp theo."
+              : "Phòng khám hoặc Bác sĩ không có slot rảnh vào ngày này. Vui lòng chọn ngày làm việc khác."}
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              const current = selectedDate ? new Date(selectedDate) : new Date();
+              current.setDate(current.getDate() + 1);
+              onChangeDate(current.toLocaleDateString("sv-SE"));
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-xs font-semibold transition cursor-pointer"
+          >
+            <span>📅 Chọn ngày tiếp theo</span>
+          </button>
         </div>
       ) : (
         <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2.5">

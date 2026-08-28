@@ -60,6 +60,7 @@ export function useAppointmentOptionsBaseQuery(
     queryFn: () => getAppointmentOptions(params),
     staleTime: 5 * 60 * 1000,
     gcTime: 60 * 60 * 1000,
+    placeholderData: (previousData) => previousData,
     refetchOnWindowFocus: false,
   });
 }

@@ -22,15 +22,22 @@ export function useCancelAppointment() {
         );
 
       if (previousData) {
+        const cancelledItem = previousData.upcoming.find(
+          (item) => item.id === appointmentId,
+        );
         queryClient.setQueryData<PatientAppointmentsData>(
           appointmentQueryKeys.all,
           {
             ...previousData,
-            upcoming: previousData.upcoming.map((item: AppointmentItem) =>
-              item.id === appointmentId
-                ? { ...item, status: "cancelled" as const }
-                : item,
+            upcoming: previousData.upcoming.filter(
+              (item) => item.id !== appointmentId,
             ),
+            history: cancelledItem
+              ? [
+                  { ...cancelledItem, status: "cancelled" as const },
+                  ...(previousData.history ?? []),
+                ]
+              : previousData.history,
           },
         );
       }

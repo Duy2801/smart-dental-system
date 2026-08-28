@@ -37,8 +37,6 @@ export class PatientService {
   ) {}
 
   async getManagedPatientProfiles(userId: string) {
-    await this.findOrCreatePatientProfile(userId);
-
     const links = await this.prisma.patientAccount.findMany({
       where: { userId },
       include: {
@@ -87,11 +85,29 @@ export class PatientService {
     const email = this.cleanText(dto.email)?.toLowerCase();
     const dateOfBirth = dto.dateOfBirth ? new Date(dto.dateOfBirth) : null;
 
+    const duplicateConditions: any[] = [];
+    if (phone) {
+      duplicateConditions.push({ phone });
+    }
+    if (email) {
+      duplicateConditions.push({ email });
+    }
+    if (fullName && dateOfBirth) {
+      duplicateConditions.push({
+        fullName: { equals: fullName, mode: 'insensitive' },
+        dateOfBirth,
+      });
+    } else if (fullName && !phone && !email) {
+      duplicateConditions.push({
+        fullName: { equals: fullName, mode: 'insensitive' },
+        dateOfBirth: null,
+      });
+    }
+
     const duplicate = await this.prisma.patient.findFirst({
       where: {
-        fullName: { equals: fullName, mode: 'insensitive' },
-        ...(dateOfBirth ? { dateOfBirth } : {}),
         patientAccounts: { some: { userId } },
+        OR: duplicateConditions,
       },
       select: { id: true },
     });
@@ -212,12 +228,20 @@ export class PatientService {
       dto.email?.trim().toLowerCase() ||
       `walkin.${phone.replace(/\D/g, '')}@clinic.local`;
 
-    const [phoneExists, emailExists] = await Promise.all([
-      this.prisma.user.findUnique({ where: { phone }, select: { id: true } }),
-      this.prisma.user.findUnique({ where: { email }, select: { id: true } }),
-    ]);
-    if (phoneExists) throw new ConflictException('auth.phone_exists');
-    if (emailExists) throw new ConflictException('auth.email_exists');
+    const [userPhone, userEmail, patientPhone, patientEmail] =
+      await Promise.all([
+        this.prisma.user.findUnique({ where: { phone }, select: { id: true } }),
+        this.prisma.user.findUnique({ where: { email }, select: { id: true } }),
+        this.prisma.patient.findFirst({ where: { phone }, select: { id: true } }),
+        this.prisma.patient.findFirst({ where: { email }, select: { id: true } }),
+      ]);
+
+    if (userPhone || patientPhone) {
+      throw new ConflictException('auth.phone_exists');
+    }
+    if (userEmail || patientEmail) {
+      throw new ConflictException('auth.email_exists');
+    }
 
     const role = await this.prisma.role.upsert({
       where: { code: 'PATIENT' },
@@ -406,7 +430,36 @@ export class PatientService {
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-    const patients = await this.prisma.patient.findMany({
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    // 1. Deduplicate: Lấy danh sách user IDs đã nhận thông báo nhắc tái khám trong 30 ngày qua
+    const recentNotifiedUserIds = new Set(
+      (
+        await this.prisma.notification.findMany({
+          where: {
+            type: 'SYSTEM',
+            title: { contains: 'định kỳ' },
+            createdAt: { gte: thirtyDaysAgo },
+          },
+          select: { userId: true },
+        })
+      ).map((n) => n.userId),
+    );
+
+    // 2. DB-level filtering: Chỉ lọc bệnh nhân không có lịch hẹn nào trong 6 tháng qua
+    const eligiblePatients = await this.prisma.patient.findMany({
+      where: {
+        appointments: {
+          none: {
+            scheduledAt: { gte: sixMonthsAgo },
+          },
+        },
+        OR: [
+          { email: { not: null } },
+          { user: { isNot: null } },
+        ],
+      },
       include: {
         user: { select: { id: true, fullName: true, email: true } },
         appointments: {
@@ -418,47 +471,110 @@ export class PatientService {
     });
 
     let sentCount = 0;
-    for (const patient of patients) {
+    const notificationsToCreate: Array<{
+      userId: string;
+      type: 'SYSTEM';
+      title: string;
+      content: string;
+      channel: 'IN_APP';
+      status: 'SENT';
+      sentAt: Date;
+    }> = [];
+    const mailJobs: Array<Promise<any>> = [];
+
+    for (const patient of eligiblePatients) {
       const email = patient.user?.email || patient.email;
       if (!email || email.endsWith('@clinic.local')) continue;
 
+      // Nếu có userId và đã nhận thông báo trong 30 ngày qua thì skip để tránh spam
+      if (patient.user?.id && recentNotifiedUserIds.has(patient.user.id)) {
+        continue;
+      }
+
+      const name = patient.user?.fullName || patient.fullName;
       const lastVisit = patient.appointments[0]?.scheduledAt;
-      // Bệnh nhân chưa từng khám hoặc lần khám gần nhất đã quá 6 tháng
-      if (!lastVisit || lastVisit < sixMonthsAgo) {
-        const name = patient.user?.fullName || patient.fullName;
-        await this.mailQueue.add('send-periodic-checkup-reminder', {
+
+      mailJobs.push(
+        this.mailQueue.add('send-periodic-checkup-reminder', {
           name,
           email,
           patientCode: patient.patientCode,
           lastVisitDate: lastVisit?.toISOString(),
-        });
+        }),
+      );
 
-        if (patient.user?.id) {
-          await this.prisma.notification.create({
-            data: {
-              userId: patient.user.id,
-              type: 'SYSTEM',
-              title: '🦷 Nhắc lịch chăm sóc răng & cạo vôi định kỳ 6 tháng',
-              content: `Đã đến thời gian kiểm tra răng và cạo vôi định kỳ. Hãy đặt lịch hẹn để bảo vệ nụ cười khỏe đẹp nhé!`,
-              channel: 'IN_APP',
-              status: 'SENT',
-              sentAt: new Date(),
-            },
-          });
-        }
-        sentCount++;
+      if (patient.user?.id) {
+        recentNotifiedUserIds.add(patient.user.id);
+        notificationsToCreate.push({
+          userId: patient.user.id,
+          type: 'SYSTEM',
+          title: '🦷 Nhắc lịch chăm sóc răng & cạo vôi định kỳ 6 tháng',
+          content: `Đã đến thời gian kiểm tra răng và cạo vôi định kỳ. Hãy đặt lịch hẹn để bảo vệ nụ cười khỏe đẹp nhé!`,
+          channel: 'IN_APP',
+          status: 'SENT',
+          sentAt: new Date(),
+        });
       }
+
+      sentCount++;
     }
 
-    return { success: true, sentCount, message: `Đã gửi lời nhắc tái khám định kỳ đến ${sentCount} bệnh nhân` };
+    if (notificationsToCreate.length > 0) {
+      await this.prisma.notification.createMany({
+        data: notificationsToCreate,
+      });
+    }
+
+    await Promise.all(mailJobs);
+
+    return {
+      success: true,
+      sentCount,
+      message: `Đã gửi lời nhắc tái khám định kỳ đến ${sentCount} bệnh nhân`,
+    };
   }
 
   async updatePatient(patientId: string, dto: UpdatePatientDto) {
     const patient = await this.prisma.patient.findUnique({
       where: { id: patientId },
-      select: { id: true, userId: true, medicalHistory: true },
+      select: { id: true, userId: true, medicalHistory: true, phone: true, email: true },
     });
     if (!patient) throw new BadRequestException('patient.not_found');
+
+    const newPhone = dto.phone !== undefined ? dto.phone?.trim() || null : undefined;
+    const newEmail = dto.email !== undefined ? dto.email?.trim().toLowerCase() || null : undefined;
+
+    if (newPhone) {
+      const [existingUserPhone, existingPatientPhone] = await Promise.all([
+        this.prisma.user.findFirst({
+          where: { phone: newPhone, ...(patient.userId ? { id: { not: patient.userId } } : {}) },
+          select: { id: true },
+        }),
+        this.prisma.patient.findFirst({
+          where: { phone: newPhone, id: { not: patientId } },
+          select: { id: true },
+        }),
+      ]);
+      if (existingUserPhone || existingPatientPhone) {
+        throw new ConflictException('auth.phone_exists');
+      }
+    }
+
+    if (newEmail) {
+      const [existingUserEmail, existingPatientEmail] = await Promise.all([
+        this.prisma.user.findFirst({
+          where: { email: newEmail, ...(patient.userId ? { id: { not: patient.userId } } : {}) },
+          select: { id: true },
+        }),
+        this.prisma.patient.findFirst({
+          where: { email: newEmail, id: { not: patientId } },
+          select: { id: true },
+        }),
+      ]);
+      if (existingUserEmail || existingPatientEmail) {
+        throw new ConflictException('auth.email_exists');
+      }
+    }
 
     const allergies =
       dto.allergies !== undefined
@@ -471,33 +587,26 @@ export class PatientService {
     const medicalHistory =
       this.mergeMedicalHistory(historyOnly || undefined, allergies) ?? null;
 
-    await this.prisma.$transaction([
-      ...(patient.userId
-        ? [
-            this.prisma.user.update({
-              where: { id: patient.userId },
-              data: {
-                ...(dto.fullName ? { fullName: dto.fullName.trim() } : {}),
-                ...(dto.phone ? { phone: dto.phone.trim() } : {}),
-                ...(dto.email?.trim()
-                  ? { email: dto.email.trim().toLowerCase() }
-                  : {}),
-              },
-            }),
-          ]
-        : []),
-      this.prisma.patient.update({
+    await this.prisma.$transaction(async (tx) => {
+      if (patient.userId) {
+        await tx.user.update({
+          where: { id: patient.userId },
+          data: {
+            ...(dto.fullName ? { fullName: dto.fullName.trim() } : {}),
+            ...(newPhone !== undefined ? { phone: newPhone ?? undefined } : {}),
+            ...(newEmail !== undefined ? { email: newEmail ?? undefined } : {}),
+          },
+        });
+      }
+
+      await tx.patient.update({
         where: { id: patientId },
         data: {
           ...(dto.fullName ? { fullName: dto.fullName.trim() } : {}),
-          ...(dto.phone !== undefined
-            ? { phone: dto.phone.trim() || null }
-            : {}),
-          ...(dto.email !== undefined
-            ? { email: dto.email?.trim().toLowerCase() || null }
-            : {}),
+          ...(newPhone !== undefined ? { phone: newPhone } : {}),
+          ...(newEmail !== undefined ? { email: newEmail } : {}),
           ...(dto.address !== undefined
-            ? { address: dto.address.trim() || null }
+            ? { address: dto.address?.trim() || null }
             : {}),
           medicalHistory,
           ...(dto.dateOfBirth !== undefined
@@ -511,67 +620,113 @@ export class PatientService {
           ...(dto.emergencyContactName !== undefined
             ? {
                 emergencyContactName:
-                  dto.emergencyContactName.trim() || null,
+                  dto.emergencyContactName?.trim() || null,
               }
             : {}),
           ...(dto.emergencyContactPhone !== undefined
             ? {
                 emergencyContactPhone:
-                  dto.emergencyContactPhone.trim() || null,
+                  dto.emergencyContactPhone?.trim() || null,
               }
             : {}),
         },
-      }),
-    ]);
+      });
+    });
 
     return this.findPatientDetail(patientId);
   }
 
   async updateMyProfile(userId: string, dto: UpdatePatientDto) {
     const patient = await this.findOrCreatePatientProfile(userId);
+    const newPhone =
+      dto.phone !== undefined
+        ? (this.cleanText(dto.phone) ?? null)
+        : undefined;
+    const newEmail =
+      dto.email !== undefined
+        ? (this.cleanText(dto.email)?.toLowerCase() ?? null)
+        : undefined;
+
+    if (newPhone) {
+      const [existingUserPhone, existingPatientPhone] = await Promise.all([
+        this.prisma.user.findFirst({
+          where: { phone: newPhone, id: { not: userId } },
+          select: { id: true },
+        }),
+        this.prisma.patient.findFirst({
+          where: { phone: newPhone, id: { not: patient.id } },
+          select: { id: true },
+        }),
+      ]);
+      if (existingUserPhone || existingPatientPhone) {
+        throw new ConflictException('auth.phone_exists');
+      }
+    }
+
+    if (newEmail) {
+      const [existingUserEmail, existingPatientEmail] = await Promise.all([
+        this.prisma.user.findFirst({
+          where: { email: newEmail, id: { not: userId } },
+          select: { id: true },
+        }),
+        this.prisma.patient.findFirst({
+          where: { email: newEmail, id: { not: patient.id } },
+          select: { id: true },
+        }),
+      ]);
+      if (existingUserEmail || existingPatientEmail) {
+        throw new ConflictException('auth.email_exists');
+      }
+    }
+
+    const currentPatient = await this.prisma.patient.findUnique({
+      where: { id: patient.id },
+      select: { medicalHistory: true },
+    });
+
     const allergies =
       dto.allergies !== undefined
         ? dto.allergies.map((s) => s.trim()).filter(Boolean)
-        : undefined;
+        : this.parseAllergies(currentPatient?.medicalHistory);
     const historyOnly =
       dto.medicalHistory !== undefined
-        ? this.stripAllergyLine(dto.medicalHistory ?? undefined)
-        : undefined;
+        ? this.stripAllergyLine(dto.medicalHistory)
+        : this.stripAllergyLine(currentPatient?.medicalHistory);
     const medicalHistory =
       this.mergeMedicalHistory(historyOnly || undefined, allergies) ?? null;
+
     const fullName = this.cleanText(dto.fullName);
-    const phone = this.cleanText(dto.phone);
-    const email = this.cleanText(dto.email)?.toLowerCase();
     const address = this.cleanText(dto.address);
 
-    await this.prisma.$transaction([
-      this.prisma.user.update({
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({
         where: { id: userId },
         data: {
           ...(fullName ? { fullName } : {}),
-          ...(phone ? { phone } : {}),
-          ...(email ? { email } : {}),
+          ...(newPhone !== undefined ? { phone: newPhone } : {}),
+          ...(newEmail ? { email: newEmail } : {}),
         },
-      }),
-      this.prisma.patient.update({
+      });
+
+      await tx.patient.update({
         where: { id: patient.id },
         data: {
           ...(fullName ? { fullName } : {}),
-          ...(phone ? { phone } : {}),
-          ...(email ? { email } : {}),
+          ...(newPhone !== undefined ? { phone: newPhone } : {}),
+          ...(newEmail !== undefined ? { email: newEmail } : {}),
           ...(dto.address !== undefined ? { address: address || null } : {}),
-          ...(medicalHistory !== null ? { medicalHistory } : {}),
+          medicalHistory,
           ...(dto.dateOfBirth !== undefined
             ? {
                 dateOfBirth: dto.dateOfBirth
                   ? new Date(dto.dateOfBirth)
                   : null,
-            }
+              }
             : {}),
           ...(dto.gender ? { gender: dto.gender } : {}),
         },
-      }),
-    ]);
+      });
+    });
 
     return this.getProfileSummary(userId);
   }
@@ -936,38 +1091,25 @@ export class PatientService {
         throw new ForbiddenException('patient.profile_forbidden');
       }
 
-      const recordCount = await this.prisma.medicalRecord.count({
-        where: { patientId: link.patientId },
-      });
-      const planCount = await this.prisma.treatmentPlan.count({
-        where: { patientId: link.patientId },
-      });
-
-      if (recordCount === 0 || planCount === 0) {
-        await this.createStarterTreatmentJourney(link.patientId, userId);
-      }
-
       return this.buildPatientRecordResponse(link.patientId);
     }
 
-    const patient = await this.ensurePatientWithRecordData(userId);
-    return this.buildPatientRecordResponse(patient.id);
-  }
-
-  private async ensurePatientWithRecordData(userId: string) {
-    const patient = await this.findOrCreatePatientProfile(userId);
-    const recordCount = await this.prisma.medicalRecord.count({
-      where: { patientId: patient.id },
-    });
-    const planCount = await this.prisma.treatmentPlan.count({
-      where: { patientId: patient.id },
+    const patient = await this.prisma.patient.findUnique({
+      where: { userId },
+      select: { id: true },
     });
 
-    if (recordCount === 0 || planCount === 0) {
-      await this.createStarterTreatmentJourney(patient.id, userId);
+    if (!patient) {
+      return {
+        patient: null,
+        activePlan: null,
+        treatmentPlans: [],
+        medicalRecords: [],
+        timeline: [],
+      };
     }
 
-    return patient;
+    return this.buildPatientRecordResponse(patient.id);
   }
 
   private async findOrCreatePatientProfile(userId: string) {
@@ -1062,380 +1204,7 @@ export class PatientService {
     };
   }
 
-  private async createStarterTreatmentJourney(patientId: string, userId: string) {
-    const [patient, existingDoctor, existingService] = await Promise.all([
-      this.prisma.patient.findUniqueOrThrow({
-        where: { id: patientId },
-        include: { user: true },
-      }),
-      this.prisma.doctor.findFirst({
-        where: { isActive: true, user: { status: 'ACTIVE' } },
-        include: { user: true },
-        orderBy: { createdAt: 'asc' },
-      }),
-      this.prisma.service.findFirst({
-        where: { isActive: true },
-        orderBy: [{ isFeatured: 'desc' }, { displayOrder: 'asc' }],
-      }),
-    ]);
 
-    const [doctor, service] = await Promise.all([
-      existingDoctor ?? this.createFallbackDoctor(),
-      existingService ?? this.createFallbackService(),
-    ]);
-
-    const receptionist =
-      (await this.prisma.user.findFirst({
-        where: { roles: { some: { role: { code: 'RECEPTIONIST' } } } },
-        select: { id: true },
-      })) ?? { id: userId };
-
-    const now = new Date();
-    const firstVisit = this.addDays(now, -14);
-    const secondVisit = this.addDays(now, 14);
-    const servicePrice = Number(service.basePrice);
-    const depositAmount = Number((servicePrice * 0.3).toFixed(2));
-
-    await this.prisma.$transaction(async (tx) => {
-      const plan = await tx.treatmentPlan.create({
-        data: {
-          patientId,
-          doctorId: doctor.id,
-          title: service.name,
-          description:
-            'Ke hoach dieu tri duoc bac si lap sau lan kham dau tien. Moi buoc se duoc hen lich, hoan thanh ho so va thanh toan rieng.',
-          status: TreatmentPlanStatus.IN_PROGRESS,
-          startDate: firstVisit,
-          expectedEndDate: this.addDays(now, 45),
-          schedulePaymentOption: 'DEPOSIT_30_PERCENT',
-          schedulePaymentStatus: 'DEPOSIT_PAID',
-          depositPercent: 30,
-          depositAmount,
-          scheduleConfirmedAt: firstVisit,
-        },
-      });
-
-      const step1 = await tx.treatmentPlanStep.create({
-        data: {
-          treatmentPlanId: plan.id,
-          doctorId: doctor.id,
-          stepOrder: 1,
-          title: 'Kham, chan doan va lap ke hoach',
-          description:
-            'Bac si kham tong quat, ghi nhan tinh trang rang mieng va lap ke hoach dieu tri.',
-          targetTooth: 'Tong quat',
-          status: TreatmentStepStatus.COMPLETED,
-          estimatedCost: servicePrice,
-          paymentAmount: servicePrice,
-          paymentStatus: TreatmentStepPaymentStatus.PAID,
-          expectedDate: firstVisit,
-          completedAt: firstVisit,
-          paidAt: firstVisit,
-        },
-      });
-
-      const step2 = await tx.treatmentPlanStep.create({
-        data: {
-          treatmentPlanId: plan.id,
-          doctorId: doctor.id,
-          stepOrder: 2,
-          title: 'Tai kham va thuc hien buoc tiep theo',
-          description:
-            'Le tan se lien he de xac nhan lich. Neu lich khong phu hop, benh nhan co the yeu cau doi lich.',
-          targetTooth: 'Theo chi dinh',
-          status: TreatmentStepStatus.SCHEDULED,
-          estimatedCost: servicePrice,
-          paymentAmount: servicePrice,
-          paymentStatus: TreatmentStepPaymentStatus.UNBILLED,
-          expectedDate: secondVisit,
-        },
-      });
-
-      const appointment = await tx.appointment.create({
-        data: {
-          appointmentCode: await this.generateAppointmentCode(tx),
-          patientId,
-          doctorId: doctor.id,
-          serviceId: service.id,
-          treatmentPlanStepId: step1.id,
-          scheduledAt: firstVisit,
-          endAt: new Date(firstVisit.getTime() + (service.durationMinutes ?? 30) * 60_000),
-          status: AppointmentStatus.COMPLETED,
-          bookingSource: BookingSource.PATIENT_APP,
-          paymentOption: AppointmentPaymentOption.DEPOSIT_30_PERCENT,
-          paymentStatus: AppointmentPaymentStatus.DEPOSIT_PAID,
-          depositPercent: 30,
-          depositAmount,
-          scheduleConfirmedAt: firstVisit,
-          completedAt: firstVisit,
-          notes: 'Du lieu ho so that duoc tao tu luong dat lich benh nhan.',
-          createdBy: userId,
-        },
-      });
-
-      const followUpAppointment = await tx.appointment.create({
-        data: {
-          appointmentCode: await this.generateAppointmentCode(tx),
-          patientId,
-          doctorId: doctor.id,
-          serviceId: service.id,
-          treatmentPlanStepId: step2.id,
-          scheduledAt: secondVisit,
-          endAt: new Date(secondVisit.getTime() + (service.durationMinutes ?? 30) * 60_000),
-          status: AppointmentStatus.CONFIRMED,
-          bookingSource: BookingSource.RECEPTIONIST,
-          paymentOption: AppointmentPaymentOption.PAY_AT_COUNTER,
-          paymentStatus: AppointmentPaymentStatus.PAY_AT_COUNTER_SELECTED,
-          scheduleConfirmedAt: now,
-          notes: 'Lich tai kham cho buoc dieu tri tiep theo.',
-          createdBy: receptionist.id,
-        },
-      });
-
-      const medicalRecord = await tx.medicalRecord.create({
-        data: {
-          patientId,
-          appointmentId: appointment.id,
-          doctorId: doctor.id,
-          treatmentPlanStepId: step1.id,
-          chiefComplaint: 'Bệnh nhân đặt lịch và cần được theo dõi điều trị.',
-          diagnosis: 'Tinh trang rang mieng can dieu tri theo ke hoach.',
-          treatmentNotes:
-            'Da hoan thanh buoc kham dau tien, lap ke hoach va hen buoc tiep theo.',
-          followUpDate: secondVisit,
-          dentalChart: {
-            teeth: [{ number: 14, status: 'planned_treatment' }],
-          },
-          images: [
-            { id: 'xray-1', type: 'XRAY', title: 'X-Ray', url: null },
-            { id: 'clinical-1', type: 'CLINICAL', title: 'Clinical', url: null },
-          ],
-          prescriptions: [],
-          exportPdfUrl: null,
-        },
-      });
-
-      // Sinh đơn thuốc riêng biệt độc nhất theo từng mã bệnh nhân (patientId)
-      const rxVariants = [
-        [
-          {
-            medicineName: 'Paracetamol Extra',
-            dosage: '500mg',
-            frequency: '1 viên x 3 lần/ngày',
-            duration: '3 ngày',
-            instruction: 'Uống sau bữa ăn khi đau nhức.',
-          },
-          {
-            medicineName: 'Amoxicillin Kabi',
-            dosage: '500mg',
-            frequency: '1 viên x 2 lần/ngày',
-            duration: '5 ngày',
-            instruction: 'Uống kháng sinh đúng giờ sau bữa ăn.',
-          },
-        ],
-        [
-          {
-            medicineName: 'Ibuprofen Stada',
-            dosage: '400mg',
-            frequency: '1 viên x 2 lần/ngày',
-            duration: '3 ngày',
-            instruction: 'Uống giảm đau và chống viêm sau bữa ăn chín.',
-          },
-          {
-            medicineName: 'Nước súc miệng Chlorhexidine 0.12%',
-            dosage: '250ml',
-            frequency: 'Súc miệng 2 lần/ngày',
-            duration: '7 ngày',
-            instruction: 'Súc miệng giữ 30 giây sau khi vệ sinh răng.',
-          },
-        ],
-        [
-          {
-            medicineName: 'Augmentin (Amoxicillin/Clavulanate)',
-            dosage: '625mg',
-            frequency: '1 viên x 2 lần/ngày',
-            duration: '5 ngày',
-            instruction: 'Uống kháng sinh kết hợp trước hoặc sau ăn.',
-          },
-          {
-            medicineName: 'Efferalgan Paracetamol',
-            dosage: '500mg (sủi)',
-            frequency: '1 viên x 3 lần/ngày',
-            duration: '3 ngày',
-            instruction: 'Hòa tan 1 viên sủi trong 150ml nước lọc.',
-          },
-        ],
-      ];
-
-      const variantIndex = Math.abs(
-        patientId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0),
-      ) % rxVariants.length;
-
-      const prescriptionItems = rxVariants[variantIndex];
-
-      const prescription = await tx.prescription.create({
-        data: {
-          medicalRecordId: medicalRecord.id,
-          treatmentPlanStepId: step1.id,
-          doctorId: doctor.id,
-          patientId,
-          notes: 'Đơn thuốc sau bước khám & chẩn đoán đầu tiên.',
-          items: {
-            create: prescriptionItems,
-          },
-        },
-      });
-
-      const depositInvoice = await tx.invoice.create({
-        data: {
-          invoiceCode: await this.generateInvoiceCode(tx),
-          patientId,
-          appointmentId: appointment.id,
-          treatmentPlanId: plan.id,
-          invoiceType: InvoiceType.DEPOSIT,
-          items: [
-            {
-              serviceId: service.id,
-              description: `Coc 30% cho ${service.name}`,
-              qty: 1,
-              unitPrice: depositAmount,
-              amount: depositAmount,
-            },
-          ],
-          subtotal: depositAmount,
-          finalAmount: depositAmount,
-          status: InvoiceStatus.PAID,
-          issuedAt: firstVisit,
-          createdBy: receptionist.id,
-        },
-      });
-
-      const stepInvoice = await tx.invoice.create({
-        data: {
-          invoiceCode: await this.generateInvoiceCode(tx),
-          patientId,
-          appointmentId: appointment.id,
-          treatmentPlanId: plan.id,
-          treatmentPlanStepId: step1.id,
-          invoiceType: InvoiceType.STEP_PAYMENT,
-          items: [
-            {
-              serviceId: service.id,
-              description: `Thanh toan buoc 1 - ${service.name}`,
-              qty: 1,
-              unitPrice: servicePrice,
-              amount: servicePrice,
-            },
-          ],
-          subtotal: servicePrice,
-          finalAmount: servicePrice,
-          status: InvoiceStatus.PAID,
-          issuedAt: firstVisit,
-          createdBy: receptionist.id,
-        },
-      });
-
-      await tx.payment.createMany({
-        data: [
-          {
-            invoiceId: depositInvoice.id,
-            amount: depositAmount,
-            paymentMethod: PaymentMethod.ONLINE_GATEWAY,
-            status: PaymentStatus.SUCCESS,
-            paidAt: firstVisit,
-            receivedBy: receptionist.id,
-          },
-          {
-            invoiceId: stepInvoice.id,
-            amount: servicePrice,
-            paymentMethod: PaymentMethod.CASH,
-            status: PaymentStatus.SUCCESS,
-            paidAt: firstVisit,
-            receivedBy: receptionist.id,
-          },
-        ],
-      });
-
-      if (patient.userId) {
-        await tx.notification.create({
-          data: {
-            userId: patient.userId,
-            type: 'FOLLOW_UP',
-            title: 'Lich tai kham da duoc xac nhan',
-            content: `Lich tai kham cua ban vao ${secondVisit.toISOString()}.`,
-            channel: 'IN_APP',
-            status: 'PENDING',
-            scheduledAt: secondVisit,
-            appointmentId: followUpAppointment.id,
-            treatmentPlanId: plan.id,
-          },
-        });
-      }
-
-      void prescription;
-    });
-  }
-
-  private async createFallbackDoctor() {
-    const existingUser = await this.prisma.user.findUnique({
-      where: { email: 'doctor.records@smartdental.local' },
-      include: { doctorProfile: { include: { user: true } } },
-    });
-
-    if (existingUser?.doctorProfile) return existingUser.doctorProfile;
-
-    const user =
-      existingUser ??
-      (await this.prisma.user.create({
-        data: {
-          email: 'doctor.records@smartdental.local',
-          fullName: 'BS. Lê Hoàng Nam',
-          phone: `09${randomBytes(4).toString('hex').slice(0, 8)}`,
-          status: 'ACTIVE',
-          emailVerified: true,
-        },
-      }));
-
-    return this.prisma.doctor.create({
-      data: {
-        userId: user.id,
-        doctorCode: await this.generateDoctorCode(),
-        specialization: 'Chuyên gia Implant & Phẫu thuật hàm mặt',
-        licenseNumber: `AUTO-${randomBytes(5).toString('hex').toUpperCase()}`,
-        position: 'Bác sĩ điều trị',
-        workplace: 'Smart Dental System',
-        yearsExperience: 8,
-        isActive: true,
-      },
-      include: { user: true },
-    });
-  }
-
-  private async createFallbackService() {
-    const existing = await this.prisma.service.findUnique({
-      where: { slug: 'cay-ghep-implant-straumann' },
-    });
-
-    if (existing) return existing;
-
-    return this.prisma.service.create({
-      data: {
-        category: 'IMPLANT',
-        name: 'Cấy ghép Implant Straumann',
-        slug: 'cay-ghep-implant-straumann',
-        shortDescription:
-          'Cấy ghép Implant và lập kế hoạch phục hình theo từng bước.',
-        description:
-          'Cấy ghép trụ Implant Straumann Roxolid SLActive cao cấp, theo dõi lịch tái khám và thanh toán theo từng bước điều trị.',
-        durationMinutes: 60,
-        basePrice: 32500000,
-        highlights: ['Bác sĩ lập kế hoạch', 'Lễ tân xác nhận lịch'],
-        isFeatured: true,
-        displayOrder: 1,
-        isActive: true,
-      },
-    });
-  }
 
   private async buildPatientRecordResponse(patientId: string) {
     const patient = await this.prisma.patient.findUniqueOrThrow({

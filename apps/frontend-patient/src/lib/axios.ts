@@ -55,16 +55,33 @@ export interface CustomAxiosInstance extends Omit<
 
 const removeCookie = (name: string) => {
   if (typeof document === "undefined") return;
-  document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+  const expires = "expires=Thu, 01 Jan 1970 00:00:00 GMT";
+  const paths = ["/", "/api/v1", "/api/v1/auth"];
+  paths.forEach((path) => {
+    document.cookie = `${name}=; path=${path}; ${expires}`;
+    document.cookie = `${name}=; path=${path}; ${expires}; domain=${window.location.hostname}`;
+  });
 };
 
 const getAccessToken = () => store.getState().login.accessToken;
 
 const clearAuthState = () => {
-  removeCookie("access_token");
-  removeCookie("role");
-  removeCookie("session");
-  removeCookie("user_info");
+  const authKeys = [
+    "access_token",
+    "refreshToken",
+    "refresh_token",
+    "role",
+    "session",
+    "user_info",
+    "patient_auth",
+  ];
+  authKeys.forEach(removeCookie);
+  if (typeof window !== "undefined") {
+    authKeys.forEach((key) => {
+      window.localStorage.removeItem(key);
+      window.sessionStorage.removeItem(key);
+    });
+  }
   store.dispatch(logout());
 };
 

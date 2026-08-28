@@ -25,6 +25,10 @@ import { PatientService } from './patient.service';
 export class PatientController {
   constructor(private readonly patientService: PatientService) {}
 
+  // ---------------------------------------------------------------------------
+  // 1. Static Routes (Must be declared before any parameterized :id routes)
+  // ---------------------------------------------------------------------------
+
   @Get('me/profiles')
   @Roles('PATIENT')
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -62,6 +66,13 @@ export class PatientController {
     return this.patientService.updateMyProfile(user.userId, dto);
   }
 
+  @Post('send-bulk-reminders')
+  @Roles('RECEPTIONIST', 'ADMIN')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  sendBulkPeriodicReminders() {
+    return this.patientService.sendBulkPeriodicCheckupReminders();
+  }
+
   @Get()
   @Roles('DOCTOR', 'ADMIN', 'RECEPTIONIST')
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -93,12 +104,9 @@ export class PatientController {
     return this.patientService.createPatient(dto);
   }
 
-  @Patch(':id')
-  @Roles('RECEPTIONIST', 'ADMIN')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  update(@Param('id') id: string, @Body() dto: UpdatePatientDto) {
-    return this.patientService.updatePatient(id, dto);
-  }
+  // ---------------------------------------------------------------------------
+  // 2. Parameterized Routes (Declared at the end to prevent route shadowing)
+  // ---------------------------------------------------------------------------
 
   @Post(':id/send-welcome')
   @Roles('RECEPTIONIST', 'ADMIN')
@@ -114,11 +122,11 @@ export class PatientController {
     return this.patientService.sendPeriodicCheckupReminder(id);
   }
 
-  @Post('send-bulk-reminders')
+  @Patch(':id')
   @Roles('RECEPTIONIST', 'ADMIN')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  sendBulkPeriodicReminders() {
-    return this.patientService.sendBulkPeriodicCheckupReminders();
+  update(@Param('id') id: string, @Body() dto: UpdatePatientDto) {
+    return this.patientService.updatePatient(id, dto);
   }
 
   @Get(':id')

@@ -642,6 +642,7 @@ export const VideoConsultationScalarFieldEnum = {
   scheduledAt: 'scheduledAt',
   durationMinutes: 'durationMinutes',
   status: 'status',
+  expiresAt: 'expiresAt',
   meetingUrl: 'meetingUrl',
   fee: 'fee',
   isPaid: 'isPaid',

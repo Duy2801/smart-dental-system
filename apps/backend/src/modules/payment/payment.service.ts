@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Queue } from 'bull';
+import { Prisma } from 'prisma/generated/client';
 import {
   AppointmentPaymentStatus,
   DiscountType,
@@ -14,6 +15,7 @@ import {
   InvoiceType,
   PaymentMethod,
   PaymentStatus,
+  VideoConsultationStatus,
 } from 'prisma/generated/enums';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationService } from '../notification/notification.service';
@@ -33,8 +35,12 @@ export class PaymentService {
     @InjectQueue('mail-queue') private readonly mailQueue: Queue,
   ) {}
 
-  async createPayment(userId: string, dto: CreatePaymentDto) {
-    const invoice = await this.prisma.invoice.findUnique({
+  async createPayment(
+    userId: string,
+    dto: CreatePaymentDto,
+    db: Prisma.TransactionClient | PrismaService = this.prisma,
+  ) {
+    const invoice = await db.invoice.findUnique({
       where: { id: dto.invoiceId },
     });
 
@@ -66,7 +72,7 @@ export class PaymentService {
         Number((Number(invoice.subtotal) - discountAmount).toFixed(2)),
       );
 
-      await this.prisma.invoice.update({
+      await db.invoice.update({
         where: { id: invoice.id },
         data: {
           discountAmount,
@@ -76,7 +82,7 @@ export class PaymentService {
       });
     }
 
-    const paidSoFar = await this.sumSuccessfulPayments(invoice.id);
+    const paidSoFar = await this.sumSuccessfulPayments(invoice.id, db);
     const remaining = Number((finalAmount - paidSoFar).toFixed(2));
     if (remaining <= 0) {
       throw new BadRequestException('invoice.already_paid');
@@ -102,7 +108,7 @@ export class PaymentService {
     }
 
     // BANK_TRANSFER — tạo / tái sử dụng payment PENDING + QR VietQR (SePay)
-    const existing = await this.prisma.payment.findFirst({
+    const existing = await db.payment.findFirst({
       where: {
         invoiceId: invoice.id,
         paymentMethod: PaymentMethod.BANK_TRANSFER,
@@ -119,7 +125,7 @@ export class PaymentService {
         !existing.transactionRef?.toUpperCase().includes('SEVQR') ||
         Number(existing.amount) !== amount
       ) {
-        payment = await this.prisma.payment.update({
+        payment = await db.payment.update({
           where: { id: existing.id },
           data: {
             transactionRef: transferCode,
@@ -129,7 +135,7 @@ export class PaymentService {
         });
       }
     } else {
-      payment = await this.prisma.payment.create({
+      payment = await db.payment.create({
         data: {
           invoiceId: invoice.id,
           amount,
@@ -423,15 +429,26 @@ export class PaymentService {
         });
       }
 
-      if (fullyPaid && (invoice.invoiceCode.startsWith('INV-VC-') || invoice.invoiceCode.startsWith('SEVQR'))) {
-        await tx.videoConsultation.updateMany({
-          where: {
-            patientId: invoice.patientId,
-            isPaid: false,
-            status: 'SCHEDULED',
-          },
-          data: { isPaid: true },
-        });
+      if (
+        fullyPaid &&
+        (invoice.invoiceCode.startsWith('INV-VC-') ||
+          invoice.invoiceCode.startsWith('SEVQR'))
+      ) {
+        const items = Array.isArray(invoice.items)
+          ? (invoice.items as Array<Record<string, any>>)
+          : [];
+        const targetVcId = items.find((it) => it?.videoConsultationId)
+          ?.videoConsultationId;
+
+        if (targetVcId) {
+          await tx.videoConsultation.update({
+            where: { id: targetVcId },
+            data: {
+              isPaid: true,
+              status: VideoConsultationStatus.SCHEDULED,
+            },
+          });
+        }
       }
 
       return {
@@ -596,8 +613,11 @@ export class PaymentService {
     };
   }
 
-  private async sumSuccessfulPayments(invoiceId: string) {
-    const agg = await this.prisma.payment.aggregate({
+  private async sumSuccessfulPayments(
+    invoiceId: string,
+    db: Prisma.TransactionClient | PrismaService = this.prisma,
+  ) {
+    const agg = await db.payment.aggregate({
       where: { invoiceId, status: PaymentStatus.SUCCESS },
       _sum: { amount: true },
     });
@@ -630,10 +650,23 @@ export class PaymentService {
         ? Number(((subtotal * value) / 100).toFixed(2))
         : Math.min(value, subtotal);
 
-    await this.prisma.promotion.update({
-      where: { id: promo.id },
-      data: { usedCount: { increment: 1 } },
-    });
+    if (promo.maxUses != null) {
+      const updated = await this.prisma.promotion.updateMany({
+        where: {
+          id: promo.id,
+          usedCount: { lt: promo.maxUses },
+        },
+        data: { usedCount: { increment: 1 } },
+      });
+      if (updated.count === 0) {
+        throw new BadRequestException('promotion.exhausted');
+      }
+    } else {
+      await this.prisma.promotion.update({
+        where: { id: promo.id },
+        data: { usedCount: { increment: 1 } },
+      });
+    }
 
     return { promotionId: promo.id, discountAmount };
   }

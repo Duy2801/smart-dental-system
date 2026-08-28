@@ -17,6 +17,7 @@ import {
   InvoiceType,
 } from 'prisma/generated/enums';
 import { PrismaService } from '../prisma/prisma.service';
+import { Prisma } from 'prisma/generated/client';
 import { ClinicConfigService } from '../clinic-config/clinic-config.service';
 import { NotificationService } from '../notification/notification.service';
 import {
@@ -91,7 +92,7 @@ export class AppointmentService {
     private clinicConfigService: ClinicConfigService,
     private notificationService: NotificationService,
     @InjectQueue('mail-queue') private readonly mailQueue: Queue,
-  ) {}
+  ) { }
 
   private withDerivedService<T extends Record<string, any>>(
     appointment: T,
@@ -197,6 +198,10 @@ export class AppointmentService {
       throw new BadRequestException('appointment.not_found');
     }
 
+    if (appointment.patientId) {
+      await this.ensureUserCanBookPatient(userId, appointment.patientId);
+    }
+
     this.ensurePatientRescheduleAllowed(appointment);
     this.ensureOnlineBookingAllowed(
       await this.getPatientBookingPolicy(
@@ -230,7 +235,7 @@ export class AppointmentService {
 
     const endAt = new Date(
       scheduledAt.getTime() +
-        (appointment.treatmentMethod?.durationMinutes ?? 30) * 60 * 1000,
+      (appointment.treatmentMethod?.durationMinutes ?? 30) * 60 * 1000,
     );
 
     if (
@@ -291,6 +296,10 @@ export class AppointmentService {
       throw new BadRequestException('appointment.not_found');
     }
 
+    if (appointment.patientId) {
+      await this.ensureUserCanBookPatient(userId, appointment.patientId);
+    }
+
     this.ensurePatientCancellationAllowed(appointment);
 
     const updated = await this.prisma.appointment.update({
@@ -305,58 +314,6 @@ export class AppointmentService {
     const result = this.withDerivedService(updated);
     void this.dispatchAppointmentCancelledNotification(result, 'Bệnh nhân đã hủy qua ứng dụng');
     return result;
-  }
-
-  async restoreAppointmentForPatient(userId: string, appointmentId: string) {
-    const patient = await this.prisma.patient.findUnique({
-      where: { userId },
-      select: { id: true },
-    });
-    const appointment = await this.prisma.appointment.findFirst({
-      where: {
-        id: appointmentId,
-        OR: [
-          { createdBy: userId },
-          ...(patient ? [{ patientId: patient.id }] : []),
-          ...(patient
-            ? [
-                {
-                  treatmentPlanStep: {
-                    treatmentPlan: {
-                      patientId: patient.id,
-                    },
-                  },
-                },
-              ]
-            : []),
-        ],
-      },
-      include: appointmentInclude,
-    });
-
-    if (!appointment) {
-      throw new BadRequestException('appointment.not_found');
-    }
-
-    if (appointment.status !== AppointmentStatus.CANCELLED) {
-      throw new ConflictException('appointment.must_be_cancelled_to_restore');
-    }
-
-    if (appointment.scheduledAt <= new Date()) {
-      throw new ConflictException('appointment.restore_deadline_passed');
-    }
-
-    const updated = await this.prisma.appointment.update({
-      where: { id: appointment.id },
-      data: {
-        status: AppointmentStatus.CONFIRMED,
-        cancelledAt: null,
-        cancellationReason: null,
-        scheduleConfirmedAt: null,
-      },
-      include: appointmentInclude,
-    });
-    return this.withDerivedService(updated);
   }
 
   async findByDoctorAndWeek(doctorId: string, from: string, to: string) {
@@ -421,40 +378,40 @@ export class AppointmentService {
         scheduledAt: { gte: fromDate, lte: toDate },
         ...(search
           ? {
-              OR: [
-                {
-                  appointmentCode: {
-                    contains: search,
-                    mode: 'insensitive',
-                  },
+            OR: [
+              {
+                appointmentCode: {
+                  contains: search,
+                  mode: 'insensitive',
                 },
-                {
-                  patient: {
-                    is: {
-                      OR: [
-                        { fullName: { contains: search, mode: 'insensitive' } },
-                        { phone: { contains: search } },
-                        {
-                          user: {
-                            is: {
-                              OR: [
-                                {
-                                  fullName: {
-                                    contains: search,
-                                    mode: 'insensitive',
-                                  },
+              },
+              {
+                patient: {
+                  is: {
+                    OR: [
+                      { fullName: { contains: search, mode: 'insensitive' } },
+                      { phone: { contains: search } },
+                      {
+                        user: {
+                          is: {
+                            OR: [
+                              {
+                                fullName: {
+                                  contains: search,
+                                  mode: 'insensitive',
                                 },
-                                { phone: { contains: search } },
-                              ],
-                            },
+                              },
+                              { phone: { contains: search } },
+                            ],
                           },
                         },
-                      ],
-                    },
+                      },
+                    ],
                   },
                 },
-              ],
-            }
+              },
+            ],
+          }
           : {}),
       },
       include: appointmentInclude,
@@ -569,7 +526,7 @@ export class AppointmentService {
 
     const endAt = new Date(
       scheduledAt.getTime() +
-        (appointment.treatmentMethod?.durationMinutes ?? 30) * 60 * 1000,
+      (appointment.treatmentMethod?.durationMinutes ?? 30) * 60 * 1000,
     );
 
     const previousSchedule = {
@@ -1156,12 +1113,12 @@ export class AppointmentService {
     const [doctorSpecializations, clinicConfig] = await Promise.all([
       query.doctorId
         ? this.prisma.doctorSpecialization.findMany({
-            where: {
-              doctorId: query.doctorId,
-              specialization: { isActive: true },
-            },
-            select: { specializationId: true },
-          })
+          where: {
+            doctorId: query.doctorId,
+            specialization: { isActive: true },
+          },
+          select: { specializationId: true },
+        })
         : Promise.resolve([]),
       this.clinicConfigService.getClinicScheduleConfig(),
     ]);
@@ -1241,24 +1198,24 @@ export class AppointmentService {
       selectedTreatmentMethod?.durationMinutes ?? 30,
       clinicConfig.specialDates,
       clinicConfig.slotIntervalMinutes,
-      bookingWindow.availabilityRecords,
-      bookingWindow.activeAppointments,
+      bookingWindow.recordsByDoctor,
+      bookingWindow.appointmentsByDoctor,
     );
     const selectedDateId =
       query.date ?? dates.find((date) => date.isOpen)?.id ?? null;
     const timeSlots =
       selectedDateId && selectedService
         ? await this.buildTimeSlots({
-            dateId: selectedDateId,
-            serviceDurationMinutes:
-              selectedTreatmentMethod?.durationMinutes ?? 30,
-            doctors,
-            businessHours: clinicConfig.businessHours,
-            specialDates: clinicConfig.specialDates,
-            slotIntervalMinutes: clinicConfig.slotIntervalMinutes,
-            availabilityRecords: bookingWindow.availabilityRecords,
-            activeAppointments: bookingWindow.activeAppointments,
-          })
+          dateId: selectedDateId,
+          serviceDurationMinutes:
+            selectedTreatmentMethod?.durationMinutes ?? 30,
+          doctors,
+          businessHours: clinicConfig.businessHours,
+          specialDates: clinicConfig.specialDates,
+          slotIntervalMinutes: clinicConfig.slotIntervalMinutes,
+          recordsByDoctor: bookingWindow.recordsByDoctor,
+          appointmentsByDoctor: bookingWindow.appointmentsByDoctor,
+        })
         : [];
     const startAt =
       query.date && query.time
@@ -1267,38 +1224,37 @@ export class AppointmentService {
     const endAt =
       startAt && selectedTreatmentMethod
         ? new Date(
-            startAt.getTime() +
-              (selectedTreatmentMethod.durationMinutes ?? 30) * 60 * 1000,
-          )
+          startAt.getTime() +
+          (selectedTreatmentMethod.durationMinutes ?? 30) * 60 * 1000,
+        )
         : null;
     const selectedBusinessHour = startAt
       ? this.getBusinessHourForDate(
-          startAt,
-          clinicConfig.businessHours,
-          clinicConfig.specialDates,
-        )
+        startAt,
+        clinicConfig.businessHours,
+        clinicConfig.specialDates,
+      )
       : null;
 
+    const queryDateStr = query.date ? query.date : (startAt ? this.formatDateId(startAt) : '');
     const availableDoctors =
       startAt && endAt
-        ? (
-            await Promise.all(
-              doctors.map(async (doctor) => ({
-                doctor,
-                available: this.isDoctorBookableFromSnapshot(
-                  doctor.id,
-                  startAt,
-                  endAt,
-                  bookingWindow.availabilityRecords,
-                  bookingWindow.activeAppointments,
-                  selectedBusinessHour?.start,
-                  selectedBusinessHour?.end,
-                ),
-              })),
-            )
-          )
-            .filter((item) => item.available)
-            .map((item) => item.doctor)
+        ? doctors
+          .map((doctor) => ({
+            doctor,
+            available: this.isDoctorBookableFromSnapshot(
+              doctor.id,
+              startAt,
+              endAt,
+              bookingWindow.recordsByDoctor,
+              bookingWindow.appointmentsByDoctor,
+              queryDateStr,
+              selectedBusinessHour?.start,
+              selectedBusinessHour?.end,
+            ),
+          }))
+          .filter((item) => item.available)
+          .map((item) => item.doctor)
         : doctors;
 
     return {
@@ -1359,7 +1315,6 @@ export class AppointmentService {
   }
 
   private async buildPatientAppointmentOwnerWhere(userId: string) {
-    await this.findOrCreatePatientProfile(userId);
     const managedPatients = await this.prisma.patientAccount.findMany({
       where: { userId },
       select: { patientId: true },
@@ -1521,53 +1476,76 @@ export class AppointmentService {
 
     const endAt = new Date(
       scheduledAt.getTime() +
-        (treatmentMethod.durationMinutes ?? 30) * 60 * 1000,
+      (treatmentMethod.durationMinutes ?? 30) * 60 * 1000,
     );
 
     await this.ensureClinicOpen(scheduledAt, endAt);
-    await this.ensureDoctorAvailable(input.doctorId, scheduledAt, endAt);
-    await this.ensurePatientHasNoOverlappingAppointment(
-      input.patientId,
-      input.createdBy,
-      scheduledAt,
-      endAt,
-    );
-    await this.ensureNoConflict(input.doctorId, scheduledAt, endAt);
-    await this.ensurePatientHasNoIncompleteTreatmentMethodAppointment(
-      input.patientId,
-      input.createdBy,
-      input.treatmentMethodId,
-    );
-    await this.ensurePendingAppointmentLimit(input.patientId, input.createdBy);
-    await this.ensureSevenDayAppointmentLimit(
-      input.patientId,
-      input.createdBy,
-      scheduledAt,
-    );
 
-    const paymentStatus = AppointmentPaymentStatus.PAY_AT_COUNTER_SELECTED;
+    let appointment;
+    try {
+      appointment = await this.prisma.$transaction(
+        async (tx) => {
+          await this.ensureDoctorAvailable(input.doctorId, scheduledAt, endAt);
+          await this.ensurePatientHasNoOverlappingAppointment(
+            input.patientId,
+            input.createdBy,
+            scheduledAt,
+            endAt,
+            undefined,
+            tx,
+          );
+          await this.ensureNoConflict(input.doctorId, scheduledAt, endAt, undefined, tx);
+          await this.ensurePatientHasNoIncompleteTreatmentMethodAppointment(
+            input.patientId,
+            input.createdBy,
+            input.treatmentMethodId,
+            tx,
+          );
+          await this.ensurePendingAppointmentLimit(input.patientId, input.createdBy, tx);
+          await this.ensureSevenDayAppointmentLimit(
+            input.patientId,
+            input.createdBy,
+            scheduledAt,
+            tx,
+          );
 
-    const appointment = await this.prisma.appointment.create({
-      data: {
-        appointmentCode: await this.generateAppointmentCode(),
-        patientId: input.patientId,
-        doctorId: input.doctorId,
-        serviceId: treatmentMethod.service.id,
-        treatmentMethodId: input.treatmentMethodId,
-        scheduledAt,
-        endAt,
-        status: AppointmentStatus.PENDING,
-        bookingSource: input.bookingSource,
-        paymentOption,
-        paymentStatus,
-        depositPercent: 0,
-        depositAmount: null,
-        scheduleConfirmedAt: new Date(),
-        notes: input.notes,
-        createdBy: input.createdBy,
-      },
-      include: appointmentInclude,
-    });
+          const paymentStatus = AppointmentPaymentStatus.PAY_AT_COUNTER_SELECTED;
+
+          return await tx.appointment.create({
+            data: {
+              appointmentCode: await this.generateAppointmentCode(),
+              patientId: input.patientId,
+              doctorId: input.doctorId,
+              serviceId: treatmentMethod.service.id,
+              treatmentMethodId: input.treatmentMethodId,
+              scheduledAt,
+              endAt,
+              status: AppointmentStatus.PENDING,
+              bookingSource: input.bookingSource,
+              paymentOption,
+              paymentStatus,
+              depositPercent: 0,
+              depositAmount: null,
+              scheduleConfirmedAt: new Date(),
+              notes: input.notes,
+              createdBy: input.createdBy,
+            },
+            include: appointmentInclude,
+          });
+        },
+        {
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        },
+      );
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2034'
+      ) {
+        throw new ConflictException('appointment.doctor_time_conflict');
+      }
+      throw error;
+    }
 
     await this.queueAppointmentConfirmationEmail(appointment);
 
@@ -1622,8 +1600,7 @@ export class AppointmentService {
       });
     } catch (error) {
       this.logger.warn(
-        `Could not queue appointment confirmation email: ${
-          error instanceof Error ? error.message : String(error)
+        `Could not queue appointment confirmation email: ${error instanceof Error ? error.message : String(error)
         }`,
       );
     }
@@ -1642,10 +1619,13 @@ export class AppointmentService {
     scheduledAt: Date,
     endAt: Date,
     excludeAppointmentId?: string,
+    db: Prisma.TransactionClient | PrismaService = this.prisma,
   ) {
-    const overlap = await this.prisma.appointment.findFirst({
+    if (!patientId) return;
+
+    const overlap = await db.appointment.findFirst({
       where: {
-        ...this.buildAppointmentOwnerWhere(patientId, createdBy),
+        patientId,
         ...(excludeAppointmentId ? { id: { not: excludeAppointmentId } } : {}),
         status: { in: activeAppointmentStatuses },
         scheduledAt: { lt: endAt },
@@ -1664,8 +1644,9 @@ export class AppointmentService {
     scheduledAt: Date,
     endAt: Date,
     excludeAppointmentId?: string,
+    db: Prisma.TransactionClient | PrismaService = this.prisma,
   ) {
-    const conflict = await this.prisma.appointment.findFirst({
+    const conflict = await db.appointment.findFirst({
       where: {
         doctorId,
         ...(excludeAppointmentId ? { id: { not: excludeAppointmentId } } : {}),
@@ -1684,7 +1665,7 @@ export class AppointmentService {
     const endOfDay = new Date(scheduledAt);
     endOfDay.setHours(23, 59, 59, 999);
 
-    const existingConsultations = await this.prisma.videoConsultation.findMany({
+    const existingConsultations = await db.videoConsultation.findMany({
       where: {
         doctorId,
         scheduledAt: { gte: startOfDay, lte: endOfDay },
@@ -1708,8 +1689,9 @@ export class AppointmentService {
     patientId: string | null,
     createdBy: string,
     treatmentMethodId: string,
+    db: Prisma.TransactionClient | PrismaService = this.prisma,
   ) {
-    const existing = await this.prisma.appointment.findFirst({
+    const existing = await db.appointment.findFirst({
       where: {
         ...this.buildAppointmentOwnerWhere(patientId, createdBy),
         treatmentMethodId,
@@ -1726,8 +1708,9 @@ export class AppointmentService {
   private async ensurePendingAppointmentLimit(
     patientId: string | null,
     createdBy: string,
+    db: Prisma.TransactionClient | PrismaService = this.prisma,
   ) {
-    const pendingCount = await this.prisma.appointment.count({
+    const pendingCount = await db.appointment.count({
       where: {
         ...this.buildAppointmentOwnerWhere(patientId, createdBy),
         status: AppointmentStatus.PENDING,
@@ -1744,6 +1727,7 @@ export class AppointmentService {
     patientId: string | null,
     createdBy: string,
     scheduledAt: Date,
+    db: Prisma.TransactionClient | PrismaService = this.prisma,
   ) {
     const windowStart = new Date(scheduledAt);
     windowStart.setHours(0, 0, 0, 0);
@@ -1751,7 +1735,7 @@ export class AppointmentService {
     const windowEnd = new Date(windowStart);
     windowEnd.setDate(windowEnd.getDate() + 7);
 
-    const appointmentCount = await this.prisma.appointment.count({
+    const appointmentCount = await db.appointment.count({
       where: {
         ...this.buildAppointmentOwnerWhere(patientId, createdBy),
         status: { in: activeAppointmentStatuses },
@@ -2020,7 +2004,36 @@ export class AppointmentService {
       endAt: new Date(vc.scheduledAt.getTime() + vc.durationMinutes * 60 * 1000),
     }));
 
+    const recordsByDoctor = new Map<string, Array<{ recordType: string; dayOfWeek: number | null; specificDateStr: string | null; startMin: number; endMin: number }>>();
+    for (const rec of availabilityRecords) {
+      const prepared = {
+        recordType: rec.recordType,
+        dayOfWeek: rec.dayOfWeek,
+        specificDateStr: rec.specificDate ? this.formatDateId(new Date(rec.specificDate)) : null,
+        startMin: this.timeToMinutes(rec.startTime),
+        endMin: this.timeToMinutes(rec.endTime),
+      };
+      let list = recordsByDoctor.get(rec.doctorId);
+      if (!list) {
+        list = [];
+        recordsByDoctor.set(rec.doctorId, list);
+      }
+      list.push(prepared);
+    }
+
+    const appointmentsByDoctor = new Map<string, AppointmentSlotSnapshot[]>();
+    for (const app of [...activeAppointments, ...activeVcSlots]) {
+      let list = appointmentsByDoctor.get(app.doctorId);
+      if (!list) {
+        list = [];
+        appointmentsByDoctor.set(app.doctorId, list);
+      }
+      list.push(app);
+    }
+
     return {
+      recordsByDoctor,
+      appointmentsByDoctor,
       availabilityRecords: availabilityRecords as AvailabilityRecordSnapshot[],
       activeAppointments: [...activeAppointments, ...activeVcSlots] as AppointmentSlotSnapshot[],
     };
@@ -2030,27 +2043,62 @@ export class AppointmentService {
     doctorId: string,
     startAt: Date,
     endAt: Date,
-    availabilityRecords: AvailabilityRecordSnapshot[],
-    activeAppointments: AppointmentSlotSnapshot[],
+    recordsByDoctor: Map<string, any[]>,
+    appointmentsByDoctor: Map<string, AppointmentSlotSnapshot[]>,
+    dateStr: string,
     businessHourStart?: string,
     businessHourEnd?: string,
   ) {
-    const working = this.isDoctorWorkingFromSnapshot(
-      doctorId,
-      startAt,
-      endAt,
-      availabilityRecords,
-      businessHourStart,
-      businessHourEnd,
+    const docRecords = recordsByDoctor.get(doctorId) || [];
+    const docApps = appointmentsByDoctor.get(doctorId) || [];
+    const startMinutes = this.dateToMinutes(startAt);
+    const endMinutes = this.dateToMinutes(endAt);
+
+    const hasTimeOff = docRecords.some(
+      (r) =>
+        r.recordType === 'TIME_OFF' &&
+        r.specificDateStr === dateStr &&
+        this.timeRangesOverlap(startMinutes, endMinutes, r.startMin, r.endMin),
     );
-    const conflict = activeAppointments.some(
+    if (hasTimeOff) return false;
+
+    const dayOfWeek = startAt.getDay();
+    const dateOverrides = docRecords.filter(
+      (r) => r.recordType === 'DATE_OVERRIDE' && r.specificDateStr === dateStr,
+    );
+    let isWorking = false;
+
+    if (dateOverrides.length > 0) {
+      isWorking = dateOverrides.some(
+        (r) => startMinutes >= r.startMin && endMinutes <= r.endMin,
+      );
+    } else {
+      const weekly = docRecords.filter(
+        (r) =>
+          r.recordType === 'WEEKLY' &&
+          (r.dayOfWeek === dayOfWeek || (dayOfWeek === 0 && r.dayOfWeek === 7)),
+      );
+      if (weekly.length > 0) {
+        isWorking = weekly.some(
+          (r) => startMinutes >= r.startMin && endMinutes <= r.endMin,
+        );
+      } else if (businessHourStart && businessHourEnd) {
+        isWorking =
+          startMinutes >= this.timeToMinutes(businessHourStart) &&
+          endMinutes <= this.timeToMinutes(businessHourEnd);
+      } else {
+        isWorking = true;
+      }
+    }
+
+    if (!isWorking) return false;
+
+    const conflict = docApps.some(
       (appointment) =>
-        appointment.doctorId === doctorId &&
-        appointment.scheduledAt < endAt &&
-        appointment.endAt > startAt,
+        appointment.scheduledAt < endAt && appointment.endAt > startAt,
     );
 
-    return working && !conflict;
+    return !conflict;
   }
 
   private isDoctorWorkingFromSnapshot(
@@ -2127,7 +2175,7 @@ export class AppointmentService {
       return (
         Boolean(record.specificDate) &&
         this.formatDateId(record.specificDate as Date) ===
-          this.formatDateId(date)
+        this.formatDateId(date)
       );
     });
   }
@@ -2157,6 +2205,21 @@ export class AppointmentService {
       : records.filter((record) => record.recordType === 'WEEKLY');
 
     if (!workingRecords.length) {
+      const clinicScheduleConfig =
+        await this.clinicConfigService.getClinicScheduleConfig();
+      const businessHour = this.getBusinessHourForDate(
+        startAt,
+        clinicScheduleConfig.businessHours,
+        clinicScheduleConfig.specialDates,
+      );
+
+      if (businessHour && businessHour.isOpen) {
+        return (
+          startMinutes >= this.timeToMinutes(businessHour.start) &&
+          endMinutes <= this.timeToMinutes(businessHour.end)
+        );
+      }
+
       return true;
     }
 
@@ -2196,8 +2259,8 @@ export class AppointmentService {
     serviceDurationMinutes: number,
     specialDates: ClinicSpecialDateDto[],
     slotIntervalMinutes: number,
-    availabilityRecords: AvailabilityRecordSnapshot[],
-    activeAppointments: AppointmentSlotSnapshot[],
+    recordsByDoctor: Map<string, any[]>,
+    appointmentsByDoctor: Map<string, AppointmentSlotSnapshot[]>,
   ) {
     const dates: Array<{
       id: string;
@@ -2206,10 +2269,15 @@ export class AppointmentService {
       month: string;
       isOpen: boolean;
     }> = [];
+    const now = new Date();
+    const step = Math.max(1, slotIntervalMinutes || 30);
+
     for (let index = 0; index < 15; index += 1) {
       const date = new Date();
       date.setDate(date.getDate() + index);
       date.setHours(0, 0, 0, 0);
+      const dateStr = this.formatDateId(date);
+
       const businessHour = this.getBusinessHourForDate(
         date,
         businessHours,
@@ -2218,18 +2286,20 @@ export class AppointmentService {
 
       const isOpen =
         Boolean(businessHour?.isOpen) &&
-        (await this.hasAnyBookableSlot({
+        this.hasAnyBookableSlotSync({
           date,
+          dateStr,
           doctorIds,
           businessHour: businessHour!,
           serviceDurationMinutes,
-          slotIntervalMinutes,
-          availabilityRecords,
-          activeAppointments,
-        }));
+          slotStep: step,
+          recordsByDoctor,
+          appointmentsByDoctor,
+          now,
+        });
 
       dates.push({
-        id: this.formatDateId(date),
+        id: dateStr,
         weekday: new Intl.DateTimeFormat('vi-VN', { weekday: 'short' }).format(
           date,
         ),
@@ -2249,8 +2319,8 @@ export class AppointmentService {
     businessHours,
     specialDates,
     slotIntervalMinutes,
-    availabilityRecords,
-    activeAppointments,
+    recordsByDoctor,
+    appointmentsByDoctor,
   }: {
     dateId: string;
     serviceDurationMinutes: number;
@@ -2258,10 +2328,11 @@ export class AppointmentService {
     businessHours: BusinessHourDto[];
     specialDates: ClinicSpecialDateDto[];
     slotIntervalMinutes: number;
-    availabilityRecords: AvailabilityRecordSnapshot[];
-    activeAppointments: AppointmentSlotSnapshot[];
+    recordsByDoctor: Map<string, any[]>;
+    appointmentsByDoctor: Map<string, AppointmentSlotSnapshot[]>;
   }) {
     const date = this.parseDateId(dateId);
+    const dateStr = this.formatDateId(date);
     const businessHour = this.getBusinessHourForDate(
       date,
       businessHours,
@@ -2273,14 +2344,16 @@ export class AppointmentService {
     const closeMinutes = this.timeToMinutes(businessHour.end);
     const latestStart = closeMinutes - serviceDurationMinutes;
     const slots: string[] = [];
+    const step = Math.max(1, slotIntervalMinutes || 30);
+    const now = new Date();
 
     for (
       let minutes = openMinutes;
       minutes <= latestStart;
-      minutes += slotIntervalMinutes
+      minutes += step
     ) {
       const startAt = this.dateWithMinutes(date, minutes);
-      if (startAt <= new Date()) continue;
+      if (startAt <= now) continue;
 
       const endAt = new Date(
         startAt.getTime() + serviceDurationMinutes * 60 * 1000,
@@ -2291,8 +2364,9 @@ export class AppointmentService {
             doctor.id,
             startAt,
             endAt,
-            availabilityRecords,
-            activeAppointments,
+            recordsByDoctor,
+            appointmentsByDoctor,
+            dateStr,
             businessHour.start,
             businessHour.end,
           ),
@@ -2305,22 +2379,26 @@ export class AppointmentService {
     return slots;
   }
 
-  private async hasAnyBookableSlot({
+  private hasAnyBookableSlotSync({
     date,
+    dateStr,
     doctorIds,
     businessHour,
     serviceDurationMinutes,
-    slotIntervalMinutes,
-    availabilityRecords,
-    activeAppointments,
+    slotStep,
+    recordsByDoctor,
+    appointmentsByDoctor,
+    now,
   }: {
     date: Date;
+    dateStr: string;
     doctorIds: string[];
     businessHour: BusinessHourDto;
     serviceDurationMinutes: number;
-    slotIntervalMinutes: number;
-    availabilityRecords: AvailabilityRecordSnapshot[];
-    activeAppointments: AppointmentSlotSnapshot[];
+    slotStep: number;
+    recordsByDoctor: Map<string, any[]>;
+    appointmentsByDoctor: Map<string, AppointmentSlotSnapshot[]>;
+    now: Date;
   }) {
     const openMinutes = this.timeToMinutes(businessHour.start);
     const closeMinutes = this.timeToMinutes(businessHour.end);
@@ -2329,10 +2407,10 @@ export class AppointmentService {
     for (
       let minutes = openMinutes;
       minutes <= latestStart;
-      minutes += slotIntervalMinutes
+      minutes += slotStep
     ) {
       const startAt = this.dateWithMinutes(date, minutes);
-      if (startAt <= new Date()) continue;
+      if (startAt <= now) continue;
 
       const endAt = new Date(
         startAt.getTime() + serviceDurationMinutes * 60 * 1000,
@@ -2343,8 +2421,9 @@ export class AppointmentService {
             doctorId,
             startAt,
             endAt,
-            availabilityRecords,
-            activeAppointments,
+            recordsByDoctor,
+            appointmentsByDoctor,
+            dateStr,
             businessHour.start,
             businessHour.end,
           ),
@@ -2415,7 +2494,7 @@ export class AppointmentService {
   }
 
   private buildDateTime(date: string, time: string) {
-    const value = new Date(`${date}T${time}:00`);
+    const value = new Date(`${date}T${time}:00+07:00`);
     if (Number.isNaN(value.getTime())) {
       throw new BadRequestException('appointment.invalid_time');
     }

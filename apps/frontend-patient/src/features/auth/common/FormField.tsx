@@ -53,24 +53,25 @@ export function FormField({
   type = "text",
   passwordVisible = false,
   onTogglePassword,
+  className = "",
   ...inputProps
 }: FormFieldProps) {
   const isPassword = type === "password";
 
   return (
     <label className="group block">
-      <span className="mb-1 flex items-center justify-between gap-2 text-[11px] font-semibold uppercase tracking-wider text-slate-600 group-focus-within:text-blue-600 transition-colors">
+      <span className="mb-1 flex items-center justify-between gap-2 text-[11px] font-bold text-slate-700 group-focus-within:text-[#0863c5] transition-colors">
         <span>{label}</span>
         {hint}
       </span>
       <span className="relative block">
-        <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 group-focus-within:text-blue-600 transition-colors duration-200">
+        <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 group-focus-within:text-[#0863c5] transition-colors duration-200">
           <FieldIcon name={icon} />
         </span>
         <input
           {...inputProps}
           type={isPassword && passwordVisible ? "text" : type}
-          className="h-9.5 w-full rounded-lg border border-slate-200 bg-slate-50/60 pl-9 pr-9 text-xs text-slate-900 outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-300 hover:bg-white focus:border-blue-600 focus:bg-white focus:ring-3 focus:ring-blue-500/15"
+          className={`h-9.5 w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-9 pr-9 text-xs font-medium text-slate-900 outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-300 hover:bg-white focus:border-[#0863c5] focus:bg-white focus:ring-3 focus:ring-blue-500/12 shadow-2xs ${className}`}
         />
         {isPassword && onTogglePassword && (
           <button
@@ -78,7 +79,7 @@ export function FormField({
             aria-label={passwordVisible ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
             aria-pressed={passwordVisible}
             onClick={onTogglePassword}
-            className="absolute inset-y-0 right-0 flex w-8 items-center justify-center text-slate-400 transition hover:text-blue-600 rounded-r-lg"
+            className="absolute inset-y-0 right-0 flex w-9 items-center justify-center text-slate-400 transition hover:text-[#0863c5] rounded-r-xl"
           >
             <svg
               aria-hidden="true"

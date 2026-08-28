@@ -43,8 +43,13 @@ export function ConsultationWorkspace() {
   const [errorMessage, setErrorMessage] = useState<string>("");
 
   useEffect(() => {
-    const today = new Date().toISOString().split("T")[0];
-    setSelectedDate(today);
+    const now = new Date();
+    // Nếu quá 17h00 (kết thúc giờ làm việc tư vấn hôm nay), mặc định chọn ngày mai
+    if (now.getHours() >= 17) {
+      now.setDate(now.getDate() + 1);
+    }
+    const defaultDate = now.toLocaleDateString("sv-SE");
+    setSelectedDate(defaultDate);
   }, []);
 
   if (!isLoggedIn) {
@@ -72,7 +77,9 @@ export function ConsultationWorkspace() {
     setIsSubmitting(true);
 
     try {
-      const scheduledAt = `${selectedDate}T${selectedSlot}:00.000Z`;
+      const scheduledAt = new Date(
+        `${selectedDate}T${selectedSlot}:00.000+07:00`,
+      ).toISOString();
       const result = await createConsultationBooking({
         doctorId: selectedDoctorId,
         scheduledAt,
@@ -84,12 +91,12 @@ export function ConsultationWorkspace() {
         queryKey: consultationQueryKeys.all,
       });
       setBookingResult(result);
-    } catch (err: unknown) {
-      const msg =
-        err instanceof Error
-          ? err.message
-          : "Có lỗi xảy ra khi tạo đơn đặt tư vấn. Vui lòng thử lại.";
-      setErrorMessage(msg);
+    } catch (err: any) {
+      const serverMsg =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Có lỗi xảy ra khi tạo đơn đặt tư vấn. Vui lòng thử lại.";
+      setErrorMessage(Array.isArray(serverMsg) ? serverMsg.join(", ") : serverMsg);
     } finally {
       setIsSubmitting(false);
     }

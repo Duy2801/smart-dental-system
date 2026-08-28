@@ -159,10 +159,13 @@ enum ConversationStatus {
 }
 
 enum VideoConsultationStatus {
+  PENDING_PAYMENT
   SCHEDULED
   IN_PROGRESS
   COMPLETED
   CANCELLED
+  EXPIRED
+  DOCTOR_MISSED
 }
 
 enum NotificationChannel {
@@ -916,6 +919,7 @@ model VideoConsultation {
   scheduledAt     DateTime                @map("scheduled_at")
   durationMinutes Int                     @map("duration_minutes")
   status          VideoConsultationStatus @default(SCHEDULED)
+  expiresAt       DateTime?               @map("expires_at")
   meetingUrl      String?                 @map("meeting_url")
   fee             Decimal                 @db.Decimal(12, 2)
   isPaid          Boolean                 @default(false) @map("is_paid")

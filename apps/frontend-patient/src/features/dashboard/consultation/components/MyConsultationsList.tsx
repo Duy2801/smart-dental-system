@@ -60,10 +60,10 @@ export function MyConsultationsList({ onBookNew }: MyConsultationsListProps) {
 
     try {
       await cancelMutation.mutateAsync(id);
-      setCancelNotice("Đã hủy đơn tư vấn thành công.");
+      setCancelNotice("Đã hủy đơn tư vấn chưa thanh toán thành công.");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Hủy không thành công.";
-      alert(msg);
+      setCancelNotice(`Lỗi: ${msg}`);
     } finally {
       setCancellingId(null);
     }
@@ -160,6 +160,8 @@ export function MyConsultationsList({ onBookNew }: MyConsultationsListProps) {
             const schedTime = dateObj.getTime();
             const endTime = schedTime + durationMs;
             const fiveMinsBefore = schedTime - 5 * 60 * 1000;
+            const isPast = now > endTime;
+            const canCancelOrRefund = !isCancelled && !isCompleted && !isPast;
 
             const isWithinTimeWindow =
               now >= fiveMinsBefore && now <= endTime + 15 * 60 * 1000;
@@ -245,62 +247,88 @@ export function MyConsultationsList({ onBookNew }: MyConsultationsListProps) {
                   </button>
 
                   {canJoinRoom ? (
-                    <button
-                      onClick={() => setSelectedForVideoRoom(item)}
-                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-md transition-all animate-pulse flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-                        />
-                      </svg>
-                      Vào Video Call
-                    </button>
-                  ) : isScheduled ? (
                     <div className="flex items-center gap-2">
-                      {!item.isPaid ? (
-                        <button
-                          onClick={() => setSelectedForPayment(item)}
-                          className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                      <button
+                        onClick={() => setSelectedForVideoRoom(item)}
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-md transition-all animate-pulse flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
                         >
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
-                            />
-                          </svg>
-                          Thanh Toán QR
-                        </button>
-                      ) : (
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                          />
+                        </svg>
+                        Vào Video Call
+                      </button>
+                      {canCancelOrRefund && (
                         <button
-                          disabled
-                          className="px-3.5 py-2 bg-slate-100 text-slate-500 font-semibold rounded-xl text-xs border border-slate-200 cursor-not-allowed"
+                          onClick={() => handleCancelClick(item)}
+                          disabled={cancellingId === item.id}
+                          className="px-3 py-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 font-semibold rounded-xl text-xs transition-all cursor-pointer"
                         >
-                          Mở phòng trước 5p ({formatCountdownText(fiveMinsBefore - now)})
+                          {cancellingId === item.id ? "Đang xử lý..." : item.isPaid ? "Hủy & Hoàn Tiền" : "Hủy đơn"}
                         </button>
                       )}
-                      <button
-                        onClick={() => handleCancelClick(item)}
-                        disabled={cancellingId === item.id}
-                        className="px-3 py-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 font-semibold rounded-xl text-xs transition-all cursor-pointer"
-                      >
-                        {cancellingId === item.id ? "Đang hủy..." : "Hủy đơn"}
-                      </button>
+                    </div>
+                  ) : !isCancelled && !isCompleted ? (
+                    <div className="flex items-center gap-2">
+                      {isPast ? (
+                        <span className="px-3 py-1.5 bg-slate-100 text-slate-500 font-semibold rounded-xl text-xs border border-slate-200">
+                          {item.isPaid ? "Đã qua giờ hẹn" : "Đã quá hạn thanh toán"}
+                        </span>
+                      ) : !item.isPaid ? (
+                        <>
+                          <button
+                            onClick={() => setSelectedForPayment(item)}
+                            className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
+                              />
+                            </svg>
+                            Thanh Toán QR
+                          </button>
+                          <button
+                            onClick={() => handleCancelClick(item)}
+                            disabled={cancellingId === item.id}
+                            className="px-3 py-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 font-semibold rounded-xl text-xs transition-all cursor-pointer"
+                          >
+                            {cancellingId === item.id ? "Đang hủy..." : "Hủy đơn"}
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            disabled
+                            className="px-3.5 py-2 bg-slate-100 text-slate-500 font-semibold rounded-xl text-xs border border-slate-200 cursor-not-allowed"
+                          >
+                            Mở phòng trước 5p ({formatCountdownText(fiveMinsBefore - now)})
+                          </button>
+                          <button
+                            onClick={() => handleCancelClick(item)}
+                            disabled={cancellingId === item.id}
+                            className="px-3 py-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 font-semibold rounded-xl text-xs transition-all cursor-pointer"
+                          >
+                            {cancellingId === item.id ? "Đang xử lý..." : "Hủy & Hoàn Tiền"}
+                          </button>
+                        </>
+                      )}
                     </div>
                   ) : null}
                 </div>

@@ -97,21 +97,19 @@ export function useCreateAppointment({
       );
 
       if (!confirmedOptions.timeSlots.includes(selectedTime)) {
-        onSelectedTimeChange(confirmedOptions.timeSlots[0] ?? "");
+        onSelectedTimeChange("");
         toast.error(
-          "Khung giờ vừa chọn không còn hợp lệ",
-          "Vui lòng chọn lại khung giờ.",
+          "Khung giờ vừa chọn không còn trống",
+          "Vui lòng chủ động chọn khung giờ khám khác.",
         );
         return;
       }
 
       if (!selectedDoctorIsStillAvailable) {
-        onSelectedDoctorChange(confirmedOptions.doctors[0]?.id ?? "");
+        onSelectedDoctorChange("");
         toast.error(
           "Bác sĩ vừa chọn không còn trống",
-          confirmedOptions.doctors.length
-            ? "Hệ thống đã gợi ý bác sĩ còn trống, vui lòng xác nhận lại."
-            : "Vui lòng chọn khung giờ khác.",
+          "Vui lòng chủ động chọn bác sĩ khác hoặc chọn khung giờ khác.",
         );
         return;
       }

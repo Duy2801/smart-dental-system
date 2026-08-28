@@ -48,83 +48,102 @@ function OtpVerificationCard({
   onResend: () => void;
 }) {
   return (
-    <section className="auth-card w-full max-w-[400px] rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xl shadow-slate-900/5">
-      <div className="mb-4 text-center">
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200/60 bg-blue-50 px-3 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-blue-700">
-          Xác thực email
-        </span>
-        <h1 className="mt-2 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
-          Nhập mã OTP
-        </h1>
-        <p className="mx-auto mt-1 max-w-xs text-xs text-slate-500">
-          Mã xác thực 6 chữ số đã được gửi tới <strong className="font-semibold text-slate-800">{email}</strong>.
-        </p>
-      </div>
+    <div className="w-full max-w-[440px]">
+      <section className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-7 sm:p-9 shadow-2xl shadow-slate-900/10 transition-all">
+        <div className="mb-6 text-center">
+          <div className="mx-auto mb-3 inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50/80 px-3.5 py-1 text-xs font-bold text-[#0863c5]">
+            <span className="h-2 w-2 rounded-full bg-[#0863c5] animate-ping" />
+            <span>Xác thực OTP Email 📧</span>
+          </div>
+          <h1 className="text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">
+            Nhập mã xác thực
+          </h1>
+          <p className="mt-2 text-xs sm:text-sm leading-relaxed text-slate-500">
+            Mã OTP 6 chữ số đã được gửi đến <br className="hidden sm:inline" />
+            <strong className="font-extrabold text-slate-800">{email}</strong>
+          </p>
+        </div>
 
-      <form className="space-y-3.5" onSubmit={onSubmit}>
-        <FormField
-          label="Mã OTP"
-          icon="lock"
-          name="otp"
-          inputMode="numeric"
-          pattern="[0-9]{6}"
-          maxLength={6}
-          placeholder="123456"
-          required
-        />
+        <form className="space-y-4" onSubmit={onSubmit}>
+          <FormField
+            label="Mã OTP (6 chữ số)"
+            icon="lock"
+            name="otp"
+            inputMode="numeric"
+            pattern="[0-9]{6}"
+            maxLength={6}
+            placeholder="• • • • • •"
+            className="text-center tracking-[0.3em] font-mono text-base font-black"
+            required
+          />
 
-        {error && (
-          <div
-            role="alert"
-            className="flex items-center gap-2 rounded-lg border border-red-200/80 bg-red-50 p-2.5 text-xs font-medium text-red-700"
-          >
-            <svg
-              className="h-3.5 w-3.5 shrink-0 text-red-500"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
+          {error && (
+            <div
+              role="alert"
+              className="flex items-start gap-2.5 rounded-2xl border border-rose-200 bg-rose-50/90 p-3.5 text-xs font-semibold text-rose-700 shadow-2xs"
             >
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="8" x2="12" y2="12" />
-              <line x1="12" y1="16" x2="12.01" y2="16" />
-            </svg>
-            <span>{error}</span>
-          </div>
-        )}
+              <svg
+                className="mt-0.5 h-4 w-4 shrink-0 text-rose-500"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <span>{error}</span>
+            </div>
+          )}
 
-        {info && (
-          <div className="flex items-center gap-2 rounded-lg border border-emerald-200/80 bg-emerald-50 p-2.5 text-xs font-medium text-emerald-700">
-            <svg className="h-3.5 w-3.5 shrink-0 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-              <polyline points="22 4 12 14.01 9 11.01" />
-            </svg>
-            <span>{info}</span>
-          </div>
-        )}
+          {info && (
+            <div className="flex items-start gap-2.5 rounded-2xl border border-emerald-200 bg-emerald-50/90 p-3.5 text-xs font-semibold text-emerald-800 shadow-2xs">
+              <svg className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>{info}</span>
+            </div>
+          )}
 
-        <PrimaryButton disabled={submitting}>
-          {submitting ? "Đang xác thực..." : "Xác thực và đăng nhập →"}
-        </PrimaryButton>
-      </form>
+          <PrimaryButton disabled={submitting} className="mt-2">
+            {submitting ? (
+              <span className="flex items-center gap-2">
+                <svg className="h-4 w-4 animate-spin text-white" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Đang xác thực...
+              </span>
+            ) : (
+              <span className="flex items-center gap-2">
+                Xác thực và đăng nhập
+                <svg className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                </svg>
+              </span>
+            )}
+          </PrimaryButton>
+        </form>
 
-      <div className="mt-4 flex flex-col items-center gap-2 border-t border-slate-100 pt-3 text-xs text-slate-500">
-        <button
-          type="button"
-          onClick={onResend}
-          disabled={resending}
-          className="font-semibold text-blue-600 hover:underline disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {resending ? "Đang gửi lại..." : "Gửi lại mã OTP"}
-        </button>
-        <Link
-          href="/auth/login"
-          className="font-semibold text-slate-600 hover:underline"
-        >
-          Quay lại đăng nhập
-        </Link>
-      </div>
-    </section>
+        <div className="mt-6 flex flex-col items-center gap-2.5 border-t border-slate-100 pt-4 text-xs text-slate-600">
+          <button
+            type="button"
+            onClick={onResend}
+            disabled={resending}
+            className="font-extrabold text-[#0863c5] hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {resending ? "Đang gửi lại..." : "Gửi lại mã OTP qua Email"}
+          </button>
+          <Link
+            href="/auth/login"
+            className="font-bold text-slate-500 hover:text-slate-800 hover:underline"
+          >
+            ← Quay lại trang đăng nhập
+          </Link>
+        </div>
+      </section>
+    </div>
   );
 }
 

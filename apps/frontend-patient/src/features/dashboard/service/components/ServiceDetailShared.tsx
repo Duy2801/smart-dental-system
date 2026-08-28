@@ -16,16 +16,16 @@ export function ServiceDetailNotFound() {
     <main className="mx-auto grid min-h-[60vh] w-full max-w-[960px] place-items-center px-4 py-10 text-center">
       <div>
         <h1 className="text-2xl font-bold text-slate-900">
-          Khong tim thay dich vu
+          Không tìm thấy dịch vụ
         </h1>
         <p className={`mt-2 ${T.body}`}>
-          Dich vu co the da ngung hien thi hoac chua duoc cap nhat.
+          Dịch vụ có thể đã ngừng hiển thị hoặc chưa được cập nhật.
         </p>
         <Link
           href={ROUTES.service}
           className="mt-5 inline-flex rounded-xl bg-[#0863c5] px-5 py-3 text-sm font-bold text-white"
         >
-          Quay lai danh sach
+          Quay lại danh sách
         </Link>
       </div>
     </main>
@@ -61,7 +61,7 @@ export function SectionHeading({
 export function EmptyContent({ label }: { label: string }) {
   return (
     <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-sm text-slate-500">
-      {label} chua duoc cap nhat trong he thong.
+      {label} chưa được cập nhật trong hệ thống.
     </div>
   );
 }
@@ -85,20 +85,20 @@ export function BookingPanel({
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="bg-slate-950 p-5 text-white">
           <p className={`${T.fieldLabel} text-blue-200`}>
-            Dat lich uu tien
+            Đặt lịch ưu tiên
           </p>
           <h2 className="mt-2 text-xl font-extrabold">
-            Chon san {activeMethod?.name ?? service.title}
+            Chọn ngay {activeMethod?.name ?? service.title}
           </h2>
           <p className={`mt-2 ${T.bodySm} text-slate-300`}>
-            He thong se chuyen sang lich hen va tu chon dich vu nay cho ban.
+            Hệ thống sẽ chuyển sang lịch hẹn và tự chọn dịch vụ này cho bạn.
           </p>
         </div>
 
         <div className="p-5">
           <div className="grid gap-3">
             <div className="flex items-center justify-between rounded-xl bg-blue-50 px-4 py-3">
-              <span className="text-xs font-bold text-slate-500">Gia tu</span>
+              <span className="text-xs font-bold text-slate-500">Giá từ</span>
               <strong className="text-xl text-[#0863c5]">{price}</strong>
             </div>
             <div className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
@@ -107,7 +107,7 @@ export function BookingPanel({
                   name="clock"
                   className="h-4 w-4 text-[#0863c5]"
                 />
-                Thoi luong
+                Thời lượng
               </span>
               <strong className="text-sm text-slate-900">
                 {minutesLabel(duration)}
@@ -119,14 +119,14 @@ export function BookingPanel({
             href={bookingHref}
             className="mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#0863c5] px-5 text-sm font-bold text-white shadow-lg shadow-blue-200 transition hover:bg-[#0756aa]"
           >
-            Dat dich vu ngay
+            Đặt dịch vụ ngay
             <DashboardIcon name="calendar" className="h-4 w-4" />
           </Link>
           <Link
             href={ROUTES.service}
             className="mt-3 inline-flex h-11 w-full items-center justify-center rounded-xl border border-slate-200 px-5 text-sm font-bold text-slate-600 transition hover:border-blue-200 hover:text-[#0863c5]"
           >
-            Xem dich vu khac
+            Xem dịch vụ khác
           </Link>
         </div>
       </section>
@@ -138,7 +138,7 @@ export function BookingPanel({
               name="shield"
               className="h-4 w-4 text-emerald-600"
             />
-            Bao gom trong buoi hen
+            Bao gồm trong buổi hẹn
           </h2>
           <ul className="mt-4 space-y-3">
             {service.includedItems.slice(0, 4).map((item) => (

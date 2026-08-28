@@ -193,10 +193,10 @@ export function BookingConfirmationView({
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Nguoi kham
+                Người khám
               </p>
               <p className="mt-0.5 truncate text-sm font-bold text-slate-900">
-                {selectedPatient?.fullName || "Chua chon nguoi kham"}
+                {selectedPatient?.fullName || "Chưa chọn người khám"}
               </p>
               <p className="truncate text-xs text-slate-500">
                 {selectedPatient?.relationship || "PATIENT"}

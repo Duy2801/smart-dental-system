@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useLogout } from "@/features/auth/useLogout";
 import { DashboardIcon } from "./DashboardIcon";
-import { logout, useAppDispatch, useAppSelector } from "@/providers";
+import { useAppSelector } from "@/providers";
 
 function getInitials(name?: string) {
   if (!name || name.trim() === "" || name.toLowerCase().includes("khách hàng")) {
@@ -21,17 +21,11 @@ type PatientAccountSidebarProps = {
 };
 
 export function PatientAccountSidebar({ activeTab }: PatientAccountSidebarProps) {
-  const dispatch = useAppDispatch();
-  const router = useRouter();
+  const { handleLogout } = useLogout();
   const { user } = useAppSelector((state) => state.login);
 
   const initials = getInitials(user?.fullName);
   const displayName = user?.fullName || "Khách hàng";
-
-  function handleLogout() {
-    dispatch(logout());
-    router.push("/auth/login");
-  }
 
   return (
     <aside className="w-full lg:w-72 shrink-0 space-y-4">
@@ -70,22 +64,7 @@ export function PatientAccountSidebar({ activeTab }: PatientAccountSidebarProps)
             Thông tin cá nhân
           </Link>
 
-          {/* 2. Lịch sử khám bệnh */}
-          <Link
-            href="/records"
-            className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-xs sm:text-sm font-bold transition ${
-              activeTab === "records"
-                ? "bg-blue-50 text-[#0863c5] shadow-2xs"
-                : "text-slate-700 hover:bg-slate-50 hover:text-[#0863c5]"
-            }`}
-          >
-            <span className={activeTab === "records" ? "text-[#0863c5]" : "text-slate-400"}>
-              <DashboardIcon name="document" className="h-4 w-4" />
-            </span>
-            Lịch sử khám bệnh
-          </Link>
-
-          {/* 3. Đăng xuất */}
+          {/* 2. Đăng xuất */}
           <button
             type="button"
             onClick={handleLogout}

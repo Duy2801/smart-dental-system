@@ -223,10 +223,13 @@ export type ConversationStatus = (typeof ConversationStatus)[keyof typeof Conver
 
 
 export const VideoConsultationStatus = {
+  PENDING_PAYMENT: 'PENDING_PAYMENT',
   SCHEDULED: 'SCHEDULED',
   IN_PROGRESS: 'IN_PROGRESS',
   COMPLETED: 'COMPLETED',
-  CANCELLED: 'CANCELLED'
+  CANCELLED: 'CANCELLED',
+  EXPIRED: 'EXPIRED',
+  DOCTOR_MISSED: 'DOCTOR_MISSED'
 } as const
 
 export type VideoConsultationStatus = (typeof VideoConsultationStatus)[keyof typeof VideoConsultationStatus]

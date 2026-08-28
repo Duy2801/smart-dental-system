@@ -27,12 +27,11 @@ export function useRescheduleAppointment({
   const [selectedDateId, setSelectedDateId] = useState(initialDateId);
   const [selectedTime, setSelectedTime] = useState("");
 
-  // Sync date if appointment changes
+  // Sync date and clear time whenever appointment changes
   useEffect(() => {
-    if (appointment?.dateId && !selectedDateId) {
-      setSelectedDateId(appointment.dateId);
-    }
-  }, [appointment?.dateId, selectedDateId]);
+    setSelectedDateId(appointment?.dateId ?? "");
+    setSelectedTime("");
+  }, [appointment?.id, appointment?.dateId]);
 
   const activeDateId = selectedDateId || appointment?.dateId || "";
 

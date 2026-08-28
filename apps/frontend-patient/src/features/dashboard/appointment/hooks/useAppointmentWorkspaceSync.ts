@@ -125,20 +125,7 @@ export function useAppointmentWorkspaceSync({
     if (!selectedDateId || dates.length === 0) return;
 
     if (availableTimes.length === 0) {
-      if (autoSelectDefaults) {
-        const nextDate = dates.find(
-          (date) => date.isOpen && date.id !== selectedDateId,
-        );
-
-        if (nextDate && nextDate.id !== selectedDateId) {
-          setSelectedDateId(nextDate.id);
-        } else {
-          setSelectedTime("");
-        }
-      } else {
-        setSelectedTime("");
-      }
-
+      setSelectedTime("");
       return;
     }
 

@@ -50,10 +50,14 @@ export function ConsultationDetailModal({
     minute: "2-digit",
   }).format(new Date(consultation.createdAt));
 
+  const durationMs = (consultation.durationMinutes || 30) * 60 * 1000;
+  const isPast = Date.now() > dateObj.getTime() + durationMs;
+
   const isCancelled = consultation.status === "CANCELLED";
   const isCompleted = consultation.status === "COMPLETED";
   const isInProgress = consultation.status === "IN_PROGRESS";
   const isScheduled = consultation.status === "SCHEDULED";
+  const canCancelOrRefund = !isCancelled && !isCompleted && !isPast;
 
   const refund = consultation.refundRequest;
 
@@ -323,7 +327,7 @@ export function ConsultationDetailModal({
         {/* Footer Cố Định */}
         <div className="px-6 py-3.5 border-t border-slate-100 bg-slate-50/80 backdrop-blur-xs flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
-            {!consultation.isPaid && isScheduled && onOpenPaymentModal && (
+            {!consultation.isPaid && canCancelOrRefund && onOpenPaymentModal && (
               <button
                 type="button"
                 onClick={() => {
@@ -333,6 +337,19 @@ export function ConsultationDetailModal({
                 className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-xs text-xs cursor-pointer"
               >
                 Thanh Toán Ngay
+              </button>
+            )}
+
+            {canCancelOrRefund && consultation.isPaid && onOpenRefundModal && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenRefundModal();
+                }}
+                className="px-4 py-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 font-bold rounded-xl shadow-xs text-xs cursor-pointer"
+              >
+                Hủy & Yêu Cầu Hoàn Tiền
               </button>
             )}
 

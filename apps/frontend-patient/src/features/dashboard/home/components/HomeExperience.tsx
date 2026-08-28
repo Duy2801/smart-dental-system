@@ -70,7 +70,7 @@ export function Reveal({
 
 function HeroSkeleton() {
   return (
-    <section className="overflow-hidden rounded-2xl bg-[#0066d9] shadow-xl shadow-blue-900/15">
+    <section className="relative w-full overflow-hidden bg-[#0066d9] shadow-xl">
       <div className="grid min-h-125 lg:grid-cols-[1.05fr_.95fr]">
         <div className="space-y-5 p-8 sm:p-10 lg:p-12">
           <div className="h-8 w-56 animate-pulse rounded-full bg-white/15" />
@@ -152,108 +152,163 @@ export function HomeHeroSlideshow() {
 
   if (hasBanners && currentBanner) {
     return (
-      <section className="relative overflow-hidden rounded-3xl bg-linear-to-br from-[#004bb1] via-[#005bc4] to-[#007ded] text-white shadow-2xl shadow-blue-900/15">
-        <div
-          key={currentBanner.id}
-          className="grid min-h-[500px] sm:min-h-[540px] animate-[hero-in_.55s_ease-out] lg:grid-cols-[1.1fr_.9fr]"
-        >
-          <div className="relative z-10 flex flex-col justify-center px-7 py-10 sm:px-12 sm:py-12 lg:px-16">
-            <div className="mb-5 flex flex-wrap items-center gap-2">
-              <span className="inline-flex w-fit items-center gap-2 rounded-full border border-white/25 bg-white/12 px-3.5 py-1.5 text-xs font-semibold backdrop-blur-md">
-                <DashboardIcon name="sparkles" className="h-4 w-4 text-amber-300" />
-                Chương trình nổi bật
-              </span>
-            </div>
+      <section data-no-reveal="true" className="relative w-full overflow-hidden bg-gradient-to-br from-[#004bb1] via-[#005bc4] to-[#007ded] text-white shadow-xl">
+        {currentBanner.imageUrl ? (
+          <div key={currentBanner.id} className="relative w-full overflow-hidden animate-[hero-in_.55s_ease-out]">
+            <Link href={currentBanner.linkUrl || buildRoute.appointmentBooking()} className="block w-full">
+              <img
+                src={currentBanner.imageUrl}
+                alt={currentBanner.title}
+                className="w-full h-auto max-h-[560px] object-cover sm:object-fill"
+              />
+            </Link>
+            {bannerSelectors.length > 1 ? (
+              <div className="absolute bottom-4 right-6 z-30 flex items-center gap-2">
+                {bannerSelectors.map((item, index) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setActive(index)}
+                    aria-label={`Chọn ${item.title}`}
+                    className={`h-2.5 rounded-full transition-all duration-300 ${
+                      activeIndex === index ? "w-10 bg-white shadow-md" : "w-3 bg-white/50 hover:bg-white/80"
+                    }`}
+                  />
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <div className="mx-auto w-full max-w-[1360px] px-4 sm:px-6 lg:px-8">
+            <div
+              key={currentBanner.id}
+              className="grid min-h-[500px] sm:min-h-[540px] animate-[hero-in_.55s_ease-out] lg:grid-cols-[1.1fr_.9fr]"
+            >
+              <div className="relative z-10 flex flex-col justify-center px-4 py-10 sm:px-8 sm:py-12 lg:px-12">
+                <div className="mb-5 flex flex-wrap items-center gap-2">
+                  <span className="inline-flex w-fit items-center gap-2 rounded-full border border-white/25 bg-white/12 px-3.5 py-1.5 text-xs font-semibold backdrop-blur-md">
+                    <DashboardIcon name="sparkles" className="h-4 w-4 text-amber-300" />
+                    Chương trình nổi bật
+                  </span>
+                </div>
 
-            <h1 className="max-w-2xl text-4xl font-extrabold leading-[1.08] tracking-tight sm:text-5xl lg:text-[58px]">
-              {currentBanner.title}
-            </h1>
-            {currentBanner.description && (
-              <p className="mt-5 max-w-xl text-base leading-7 text-white/85">
-                {currentBanner.description}
-              </p>
-            )}
+                <h1 className="max-w-2xl text-4xl font-extrabold leading-[1.08] tracking-tight sm:text-5xl lg:text-[58px]">
+                  {currentBanner.title}
+                </h1>
+                {currentBanner.description && (
+                  <p className="mt-5 max-w-xl text-base leading-7 text-white/85">
+                    {currentBanner.description}
+                  </p>
+                )}
 
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link
-                href={currentBanner.linkUrl || buildRoute.appointmentBooking()}
-                className="inline-flex h-14 items-center gap-2.5 rounded-2xl bg-white px-7 text-sm font-bold text-[#0058bc] shadow-xl shadow-blue-950/20 transition hover:-translate-y-0.5 hover:bg-slate-50"
-              >
-                Khám phá ngay
-                <DashboardIcon name="arrow" className="h-4 w-4" />
-              </Link>
-            </div>
+                <div className="mt-8 flex flex-wrap gap-3">
+                  <Link
+                    href={currentBanner.linkUrl || buildRoute.appointmentBooking()}
+                    className="inline-flex h-14 items-center gap-2.5 rounded-2xl bg-white px-7 text-sm font-bold text-[#0058bc] shadow-xl shadow-blue-950/20 transition hover:-translate-y-0.5 hover:bg-slate-50"
+                  >
+                    Khám phá ngay
+                    <DashboardIcon name="arrow" className="h-4 w-4" />
+                  </Link>
+                </div>
 
-            <div className="mt-10 flex items-center gap-3">
-              {bannerSelectors.map((item, index) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setActive(index)}
-                  aria-label={`Chọn ${item.title}`}
-                  className={`h-2.5 rounded-full transition-all duration-300 ${
-                    activeIndex === index ? "w-12 bg-white" : "w-3 bg-white/40 hover:bg-white/75"
-                  }`}
-                />
-              ))}
+                <div className="mt-10 flex items-center gap-3">
+                  {bannerSelectors.map((item, index) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setActive(index)}
+                      aria-label={`Chọn ${item.title}`}
+                      className={`h-2.5 rounded-full transition-all duration-300 ${
+                        activeIndex === index ? "w-12 bg-white" : "w-3 bg-white/40 hover:bg-white/75"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="relative h-full w-full min-h-[360px] lg:min-h-full">
+                <div className="relative h-full w-full min-h-[360px] lg:min-h-full grid place-items-center overflow-hidden bg-[#003882]">
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#005bc4] via-[#005bc4]/40 to-transparent z-10" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-black/20 z-10" />
+                  <span className="absolute right-6 top-6 z-20 rounded-full border border-cyan-200/30 bg-black/25 px-3 py-1.5 text-[10px] font-bold tracking-widest text-cyan-100 backdrop-blur-md">
+                    SMART DENTAL BANNER
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
-
-          <div className="relative h-full w-full min-h-[360px] lg:min-h-full">
-            <div className="relative h-full w-full min-h-[360px] lg:min-h-full grid place-items-center overflow-hidden bg-[#003882]">
-              {currentBanner.imageUrl ? (
-                <img
-                  src={currentBanner.imageUrl}
-                  alt={currentBanner.title}
-                  className="absolute inset-0 h-full w-full object-cover opacity-85 transition duration-700 ease-out"
-                />
-              ) : null}
-              <div className="absolute inset-0 bg-gradient-to-r from-[#005bc4] via-[#005bc4]/40 to-transparent z-10" />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-black/20 z-10" />
-              <span className="absolute right-6 top-6 z-20 rounded-full border border-cyan-200/30 bg-black/25 px-3 py-1.5 text-[10px] font-bold tracking-widest text-cyan-100 backdrop-blur-md">
-                SMART DENTAL BANNER
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {bannerSelectors.length > 1 ? (
-          <div className="absolute bottom-6 right-6 z-30 hidden max-w-lg gap-2.5 lg:grid lg:grid-cols-2">
-            {bannerSelectors.map((item, index) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setActive(index)}
-                className={`min-w-0 rounded-2xl border p-3 text-left text-xs backdrop-blur-md transition ${
-                  activeIndex === index
-                    ? "border-white/60 bg-white/25 text-white shadow-lg ring-1 ring-white/40"
-                    : "border-white/20 bg-black/30 text-white/80 hover:bg-black/40 hover:text-white"
-                }`}
-              >
-                <span className="block truncate font-bold text-white">{item.title}</span>
-              </button>
-            ))}
-          </div>
-        ) : null}
+        )}
       </section>
     );
   }
 
   if (!slide) {
     return (
-      <section className="rounded-2xl border border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-500 shadow-sm">
-        Chưa có dịch vụ nổi bật để hiển thị.
+      <section data-no-reveal="true" className="relative w-full overflow-hidden bg-gradient-to-br from-[#004bb1] via-[#005bc4] to-[#007ded] text-white shadow-xl">
+        <div className="mx-auto w-full max-w-[1360px] px-4 sm:px-6 lg:px-8">
+          <div className="grid min-h-[500px] sm:min-h-[540px] lg:grid-cols-[1.1fr_.9fr]">
+            <div className="relative z-10 flex flex-col justify-center px-4 py-10 sm:px-8 sm:py-12 lg:px-12">
+              <div className="mb-5 flex flex-wrap items-center gap-2">
+                <span className="inline-flex w-fit items-center gap-2 rounded-full border border-white/25 bg-white/12 px-3.5 py-1.5 text-xs font-semibold backdrop-blur-md">
+                  <DashboardIcon name="sparkles" className="h-4 w-4 text-amber-300" />
+                  Hệ Thống Nha Khoa Kỹ Thuật Số AI
+                </span>
+              </div>
+
+              <h1 className="max-w-2xl text-4xl font-extrabold leading-[1.08] tracking-tight sm:text-5xl lg:text-[58px]">
+                Chăm sóc nụ cười chuẩn Y Khoa
+              </h1>
+              <p className="mt-5 max-w-xl text-base leading-7 text-white/85">
+                Hệ thống Smart Dental ứng dụng công nghệ trí tuệ nhân tạo (AI) hỗ trợ lập phác đồ điều trị chính xác, đặt lịch hẹn nhanh chóng và tư vấn trực tuyến 24/7.
+              </p>
+
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Link
+                  href={buildRoute.appointmentBooking()}
+                  className="inline-flex h-14 items-center gap-2.5 rounded-2xl bg-white px-7 text-sm font-bold text-[#0058bc] shadow-xl shadow-blue-950/20 transition hover:-translate-y-0.5 hover:bg-slate-50"
+                >
+                  Đặt lịch khám ngay
+                  <DashboardIcon name="arrow" className="h-4 w-4" />
+                </Link>
+                <Link
+                  href={ROUTES.service}
+                  className="inline-flex h-14 items-center rounded-2xl border border-white/35 bg-white/12 px-7 text-sm font-bold text-white backdrop-blur-md transition hover:bg-white/20"
+                >
+                  Khám phá dịch vụ
+                </Link>
+              </div>
+            </div>
+
+            <div className="relative h-full w-full min-h-[360px] lg:min-h-full grid place-items-center overflow-hidden bg-[#003882]">
+              <div className="absolute inset-0 bg-gradient-to-r from-[#005bc4] via-[#005bc4]/50 to-transparent z-10" />
+              <div className="relative z-10 flex flex-col items-center justify-center p-6 text-center">
+                <div className="relative grid place-items-center">
+                  <div className="absolute h-64 w-64 rounded-full border border-cyan-300/20" />
+                  <div className="absolute h-48 w-48 rounded-full border border-cyan-300/25" />
+                  <DashboardIcon
+                    name="tooth"
+                    className="h-28 w-28 text-cyan-100/60 drop-shadow-[0_0_24px_rgba(125,211,252,.45)]"
+                  />
+                </div>
+              </div>
+              <span className="absolute right-6 top-6 z-20 rounded-full border border-cyan-200/30 bg-black/25 px-3 py-1.5 text-[10px] font-bold tracking-widest text-cyan-100 backdrop-blur-md">
+                SMART DENTAL AI
+              </span>
+            </div>
+          </div>
+        </div>
       </section>
     );
   }
 
   return (
-    <section className="relative overflow-hidden rounded-3xl bg-linear-to-br from-[#004bb1] via-[#005bc4] to-[#007ded] text-white shadow-2xl shadow-blue-900/15">
-      <div
-        key={slide.id}
-        className="grid min-h-[500px] sm:min-h-[540px] animate-[hero-in_.55s_ease-out] lg:grid-cols-[1.1fr_.9fr]"
-      >
-        <div className="relative z-10 flex flex-col justify-center px-7 py-10 sm:px-12 sm:py-12 lg:px-16">
+    <section data-no-reveal="true" className="relative w-full overflow-hidden bg-gradient-to-br from-[#004bb1] via-[#005bc4] to-[#007ded] text-white shadow-xl">
+      <div className="mx-auto w-full max-w-[1360px] px-4 sm:px-6 lg:px-8">
+        <div
+          key={slide.id}
+          className="grid min-h-[500px] sm:min-h-[540px] animate-[hero-in_.55s_ease-out] lg:grid-cols-[1.1fr_.9fr]"
+        >
+          <div className="relative z-10 flex flex-col justify-center px-4 py-10 sm:px-8 sm:py-12 lg:px-12">
           <div className="mb-5 flex flex-wrap items-center gap-2">
             <span className="inline-flex w-fit items-center gap-2 rounded-full border border-white/25 bg-white/12 px-3.5 py-1.5 text-xs font-semibold backdrop-blur-md">
               <DashboardIcon name="sparkles" className="h-4 w-4 text-amber-300" />
@@ -332,6 +387,7 @@ export function HomeHeroSlideshow() {
           ))}
         </div>
       ) : null}
+      </div>
     </section>
   );
 }
@@ -420,7 +476,7 @@ function DoctorCardContent({
           {/* Doctor cutout portrait */}
           <div className="relative z-10 h-[260px] sm:h-[320px] lg:h-[370px] w-auto max-w-full flex items-end">
             <img
-              src={doctor.avatarUrl || "/doctor/pham_thi_ha_xuyen.png"}
+              src={doctor.avatarUrl || "/dsbacsi.png"}
               alt={doctor.name}
               className="h-full w-auto object-contain object-bottom drop-shadow-md"
             />

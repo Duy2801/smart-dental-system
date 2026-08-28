@@ -78,10 +78,21 @@ export function ScrollRevealProvider({ children }: { children: ReactNode }) {
     const revealNodes = () => {
       root.querySelectorAll<HTMLElement>(selector).forEach((node, index) => {
         if (node.dataset.revealReady === "true") return;
+        if (node.dataset.noReveal === "true") {
+          node.dataset.revealReady = "true";
+          node.classList.add("patient-reveal-visible");
+          return;
+        }
         node.dataset.revealReady = "true";
         node.style.setProperty("--reveal-delay", `${Math.min(index, 8) * 45}ms`);
         node.classList.add("patient-reveal");
-        observer.observe(node);
+
+        const rect = node.getBoundingClientRect();
+        if (rect.top < window.innerHeight + 100 && rect.bottom > -50) {
+          node.classList.add("patient-reveal-visible");
+        } else {
+          observer.observe(node);
+        }
       });
     };
 

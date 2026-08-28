@@ -43,6 +43,7 @@ export type VideoConsultationMinAggregateOutputType = {
   scheduledAt: Date | null
   durationMinutes: number | null
   status: $Enums.VideoConsultationStatus | null
+  expiresAt: Date | null
   meetingUrl: string | null
   fee: runtime.Decimal | null
   isPaid: boolean | null
@@ -57,6 +58,7 @@ export type VideoConsultationMaxAggregateOutputType = {
   scheduledAt: Date | null
   durationMinutes: number | null
   status: $Enums.VideoConsultationStatus | null
+  expiresAt: Date | null
   meetingUrl: string | null
   fee: runtime.Decimal | null
   isPaid: boolean | null
@@ -71,6 +73,7 @@ export type VideoConsultationCountAggregateOutputType = {
   scheduledAt: number
   durationMinutes: number
   status: number
+  expiresAt: number
   meetingUrl: number
   fee: number
   isPaid: number
@@ -97,6 +100,7 @@ export type VideoConsultationMinAggregateInputType = {
   scheduledAt?: true
   durationMinutes?: true
   status?: true
+  expiresAt?: true
   meetingUrl?: true
   fee?: true
   isPaid?: true
@@ -111,6 +115,7 @@ export type VideoConsultationMaxAggregateInputType = {
   scheduledAt?: true
   durationMinutes?: true
   status?: true
+  expiresAt?: true
   meetingUrl?: true
   fee?: true
   isPaid?: true
@@ -125,6 +130,7 @@ export type VideoConsultationCountAggregateInputType = {
   scheduledAt?: true
   durationMinutes?: true
   status?: true
+  expiresAt?: true
   meetingUrl?: true
   fee?: true
   isPaid?: true
@@ -226,6 +232,7 @@ export type VideoConsultationGroupByOutputType = {
   scheduledAt: Date
   durationMinutes: number
   status: $Enums.VideoConsultationStatus
+  expiresAt: Date | null
   meetingUrl: string | null
   fee: runtime.Decimal
   isPaid: boolean
@@ -263,6 +270,7 @@ export type VideoConsultationWhereInput = {
   scheduledAt?: Prisma.DateTimeFilter<"VideoConsultation"> | Date | string
   durationMinutes?: Prisma.IntFilter<"VideoConsultation"> | number
   status?: Prisma.EnumVideoConsultationStatusFilter<"VideoConsultation"> | $Enums.VideoConsultationStatus
+  expiresAt?: Prisma.DateTimeNullableFilter<"VideoConsultation"> | Date | string | null
   meetingUrl?: Prisma.StringNullableFilter<"VideoConsultation"> | string | null
   fee?: Prisma.DecimalFilter<"VideoConsultation"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: Prisma.BoolFilter<"VideoConsultation"> | boolean
@@ -280,6 +288,7 @@ export type VideoConsultationOrderByWithRelationInput = {
   scheduledAt?: Prisma.SortOrder
   durationMinutes?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  expiresAt?: Prisma.SortOrderInput | Prisma.SortOrder
   meetingUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   fee?: Prisma.SortOrder
   isPaid?: Prisma.SortOrder
@@ -300,6 +309,7 @@ export type VideoConsultationWhereUniqueInput = Prisma.AtLeast<{
   scheduledAt?: Prisma.DateTimeFilter<"VideoConsultation"> | Date | string
   durationMinutes?: Prisma.IntFilter<"VideoConsultation"> | number
   status?: Prisma.EnumVideoConsultationStatusFilter<"VideoConsultation"> | $Enums.VideoConsultationStatus
+  expiresAt?: Prisma.DateTimeNullableFilter<"VideoConsultation"> | Date | string | null
   meetingUrl?: Prisma.StringNullableFilter<"VideoConsultation"> | string | null
   fee?: Prisma.DecimalFilter<"VideoConsultation"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: Prisma.BoolFilter<"VideoConsultation"> | boolean
@@ -317,6 +327,7 @@ export type VideoConsultationOrderByWithAggregationInput = {
   scheduledAt?: Prisma.SortOrder
   durationMinutes?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  expiresAt?: Prisma.SortOrderInput | Prisma.SortOrder
   meetingUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   fee?: Prisma.SortOrder
   isPaid?: Prisma.SortOrder
@@ -339,6 +350,7 @@ export type VideoConsultationScalarWhereWithAggregatesInput = {
   scheduledAt?: Prisma.DateTimeWithAggregatesFilter<"VideoConsultation"> | Date | string
   durationMinutes?: Prisma.IntWithAggregatesFilter<"VideoConsultation"> | number
   status?: Prisma.EnumVideoConsultationStatusWithAggregatesFilter<"VideoConsultation"> | $Enums.VideoConsultationStatus
+  expiresAt?: Prisma.DateTimeNullableWithAggregatesFilter<"VideoConsultation"> | Date | string | null
   meetingUrl?: Prisma.StringNullableWithAggregatesFilter<"VideoConsultation"> | string | null
   fee?: Prisma.DecimalWithAggregatesFilter<"VideoConsultation"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: Prisma.BoolWithAggregatesFilter<"VideoConsultation"> | boolean
@@ -351,6 +363,7 @@ export type VideoConsultationCreateInput = {
   scheduledAt: Date | string
   durationMinutes: number
   status?: $Enums.VideoConsultationStatus
+  expiresAt?: Date | string | null
   meetingUrl?: string | null
   fee: runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: boolean
@@ -368,6 +381,7 @@ export type VideoConsultationUncheckedCreateInput = {
   scheduledAt: Date | string
   durationMinutes: number
   status?: $Enums.VideoConsultationStatus
+  expiresAt?: Date | string | null
   meetingUrl?: string | null
   fee: runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: boolean
@@ -381,6 +395,7 @@ export type VideoConsultationUpdateInput = {
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   durationMinutes?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumVideoConsultationStatusFieldUpdateOperationsInput | $Enums.VideoConsultationStatus
+  expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   meetingUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fee?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -398,6 +413,7 @@ export type VideoConsultationUncheckedUpdateInput = {
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   durationMinutes?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumVideoConsultationStatusFieldUpdateOperationsInput | $Enums.VideoConsultationStatus
+  expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   meetingUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fee?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -413,6 +429,7 @@ export type VideoConsultationCreateManyInput = {
   scheduledAt: Date | string
   durationMinutes: number
   status?: $Enums.VideoConsultationStatus
+  expiresAt?: Date | string | null
   meetingUrl?: string | null
   fee: runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: boolean
@@ -425,6 +442,7 @@ export type VideoConsultationUpdateManyMutationInput = {
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   durationMinutes?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumVideoConsultationStatusFieldUpdateOperationsInput | $Enums.VideoConsultationStatus
+  expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   meetingUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fee?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -439,6 +457,7 @@ export type VideoConsultationUncheckedUpdateManyInput = {
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   durationMinutes?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumVideoConsultationStatusFieldUpdateOperationsInput | $Enums.VideoConsultationStatus
+  expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   meetingUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fee?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -463,6 +482,7 @@ export type VideoConsultationCountOrderByAggregateInput = {
   scheduledAt?: Prisma.SortOrder
   durationMinutes?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  expiresAt?: Prisma.SortOrder
   meetingUrl?: Prisma.SortOrder
   fee?: Prisma.SortOrder
   isPaid?: Prisma.SortOrder
@@ -482,6 +502,7 @@ export type VideoConsultationMaxOrderByAggregateInput = {
   scheduledAt?: Prisma.SortOrder
   durationMinutes?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  expiresAt?: Prisma.SortOrder
   meetingUrl?: Prisma.SortOrder
   fee?: Prisma.SortOrder
   isPaid?: Prisma.SortOrder
@@ -496,6 +517,7 @@ export type VideoConsultationMinOrderByAggregateInput = {
   scheduledAt?: Prisma.SortOrder
   durationMinutes?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  expiresAt?: Prisma.SortOrder
   meetingUrl?: Prisma.SortOrder
   fee?: Prisma.SortOrder
   isPaid?: Prisma.SortOrder
@@ -622,6 +644,7 @@ export type VideoConsultationCreateWithoutPatientInput = {
   scheduledAt: Date | string
   durationMinutes: number
   status?: $Enums.VideoConsultationStatus
+  expiresAt?: Date | string | null
   meetingUrl?: string | null
   fee: runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: boolean
@@ -637,6 +660,7 @@ export type VideoConsultationUncheckedCreateWithoutPatientInput = {
   scheduledAt: Date | string
   durationMinutes: number
   status?: $Enums.VideoConsultationStatus
+  expiresAt?: Date | string | null
   meetingUrl?: string | null
   fee: runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: boolean
@@ -681,6 +705,7 @@ export type VideoConsultationScalarWhereInput = {
   scheduledAt?: Prisma.DateTimeFilter<"VideoConsultation"> | Date | string
   durationMinutes?: Prisma.IntFilter<"VideoConsultation"> | number
   status?: Prisma.EnumVideoConsultationStatusFilter<"VideoConsultation"> | $Enums.VideoConsultationStatus
+  expiresAt?: Prisma.DateTimeNullableFilter<"VideoConsultation"> | Date | string | null
   meetingUrl?: Prisma.StringNullableFilter<"VideoConsultation"> | string | null
   fee?: Prisma.DecimalFilter<"VideoConsultation"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: Prisma.BoolFilter<"VideoConsultation"> | boolean
@@ -693,6 +718,7 @@ export type VideoConsultationCreateWithoutDoctorInput = {
   scheduledAt: Date | string
   durationMinutes: number
   status?: $Enums.VideoConsultationStatus
+  expiresAt?: Date | string | null
   meetingUrl?: string | null
   fee: runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: boolean
@@ -708,6 +734,7 @@ export type VideoConsultationUncheckedCreateWithoutDoctorInput = {
   scheduledAt: Date | string
   durationMinutes: number
   status?: $Enums.VideoConsultationStatus
+  expiresAt?: Date | string | null
   meetingUrl?: string | null
   fee: runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: boolean
@@ -747,6 +774,7 @@ export type VideoConsultationCreateWithoutRefundRequestsInput = {
   scheduledAt: Date | string
   durationMinutes: number
   status?: $Enums.VideoConsultationStatus
+  expiresAt?: Date | string | null
   meetingUrl?: string | null
   fee: runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: boolean
@@ -763,6 +791,7 @@ export type VideoConsultationUncheckedCreateWithoutRefundRequestsInput = {
   scheduledAt: Date | string
   durationMinutes: number
   status?: $Enums.VideoConsultationStatus
+  expiresAt?: Date | string | null
   meetingUrl?: string | null
   fee: runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: boolean
@@ -791,6 +820,7 @@ export type VideoConsultationUpdateWithoutRefundRequestsInput = {
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   durationMinutes?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumVideoConsultationStatusFieldUpdateOperationsInput | $Enums.VideoConsultationStatus
+  expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   meetingUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fee?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -807,6 +837,7 @@ export type VideoConsultationUncheckedUpdateWithoutRefundRequestsInput = {
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   durationMinutes?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumVideoConsultationStatusFieldUpdateOperationsInput | $Enums.VideoConsultationStatus
+  expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   meetingUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fee?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -820,6 +851,7 @@ export type VideoConsultationCreateManyPatientInput = {
   scheduledAt: Date | string
   durationMinutes: number
   status?: $Enums.VideoConsultationStatus
+  expiresAt?: Date | string | null
   meetingUrl?: string | null
   fee: runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: boolean
@@ -832,6 +864,7 @@ export type VideoConsultationUpdateWithoutPatientInput = {
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   durationMinutes?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumVideoConsultationStatusFieldUpdateOperationsInput | $Enums.VideoConsultationStatus
+  expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   meetingUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fee?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -847,6 +880,7 @@ export type VideoConsultationUncheckedUpdateWithoutPatientInput = {
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   durationMinutes?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumVideoConsultationStatusFieldUpdateOperationsInput | $Enums.VideoConsultationStatus
+  expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   meetingUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fee?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -861,6 +895,7 @@ export type VideoConsultationUncheckedUpdateManyWithoutPatientInput = {
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   durationMinutes?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumVideoConsultationStatusFieldUpdateOperationsInput | $Enums.VideoConsultationStatus
+  expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   meetingUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fee?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -874,6 +909,7 @@ export type VideoConsultationCreateManyDoctorInput = {
   scheduledAt: Date | string
   durationMinutes: number
   status?: $Enums.VideoConsultationStatus
+  expiresAt?: Date | string | null
   meetingUrl?: string | null
   fee: runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: boolean
@@ -886,6 +922,7 @@ export type VideoConsultationUpdateWithoutDoctorInput = {
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   durationMinutes?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumVideoConsultationStatusFieldUpdateOperationsInput | $Enums.VideoConsultationStatus
+  expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   meetingUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fee?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -901,6 +938,7 @@ export type VideoConsultationUncheckedUpdateWithoutDoctorInput = {
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   durationMinutes?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumVideoConsultationStatusFieldUpdateOperationsInput | $Enums.VideoConsultationStatus
+  expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   meetingUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fee?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -915,6 +953,7 @@ export type VideoConsultationUncheckedUpdateManyWithoutDoctorInput = {
   scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   durationMinutes?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumVideoConsultationStatusFieldUpdateOperationsInput | $Enums.VideoConsultationStatus
+  expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   meetingUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fee?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -960,6 +999,7 @@ export type VideoConsultationSelect<ExtArgs extends runtime.Types.Extensions.Int
   scheduledAt?: boolean
   durationMinutes?: boolean
   status?: boolean
+  expiresAt?: boolean
   meetingUrl?: boolean
   fee?: boolean
   isPaid?: boolean
@@ -978,6 +1018,7 @@ export type VideoConsultationSelectCreateManyAndReturn<ExtArgs extends runtime.T
   scheduledAt?: boolean
   durationMinutes?: boolean
   status?: boolean
+  expiresAt?: boolean
   meetingUrl?: boolean
   fee?: boolean
   isPaid?: boolean
@@ -994,6 +1035,7 @@ export type VideoConsultationSelectUpdateManyAndReturn<ExtArgs extends runtime.T
   scheduledAt?: boolean
   durationMinutes?: boolean
   status?: boolean
+  expiresAt?: boolean
   meetingUrl?: boolean
   fee?: boolean
   isPaid?: boolean
@@ -1010,6 +1052,7 @@ export type VideoConsultationSelectScalar = {
   scheduledAt?: boolean
   durationMinutes?: boolean
   status?: boolean
+  expiresAt?: boolean
   meetingUrl?: boolean
   fee?: boolean
   isPaid?: boolean
@@ -1017,7 +1060,7 @@ export type VideoConsultationSelectScalar = {
   createdAt?: boolean
 }
 
-export type VideoConsultationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "patientId" | "doctorId" | "scheduledAt" | "durationMinutes" | "status" | "meetingUrl" | "fee" | "isPaid" | "notes" | "createdAt", ExtArgs["result"]["videoConsultation"]>
+export type VideoConsultationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "patientId" | "doctorId" | "scheduledAt" | "durationMinutes" | "status" | "expiresAt" | "meetingUrl" | "fee" | "isPaid" | "notes" | "createdAt", ExtArgs["result"]["videoConsultation"]>
 export type VideoConsultationInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   patient?: boolean | Prisma.PatientDefaultArgs<ExtArgs>
   doctor?: boolean | Prisma.DoctorDefaultArgs<ExtArgs>
@@ -1047,6 +1090,7 @@ export type $VideoConsultationPayload<ExtArgs extends runtime.Types.Extensions.I
     scheduledAt: Date
     durationMinutes: number
     status: $Enums.VideoConsultationStatus
+    expiresAt: Date | null
     meetingUrl: string | null
     fee: runtime.Decimal
     isPaid: boolean
@@ -1484,6 +1528,7 @@ export interface VideoConsultationFieldRefs {
   readonly scheduledAt: Prisma.FieldRef<"VideoConsultation", 'DateTime'>
   readonly durationMinutes: Prisma.FieldRef<"VideoConsultation", 'Int'>
   readonly status: Prisma.FieldRef<"VideoConsultation", 'VideoConsultationStatus'>
+  readonly expiresAt: Prisma.FieldRef<"VideoConsultation", 'DateTime'>
   readonly meetingUrl: Prisma.FieldRef<"VideoConsultation", 'String'>
   readonly fee: Prisma.FieldRef<"VideoConsultation", 'Decimal'>
   readonly isPaid: Prisma.FieldRef<"VideoConsultation", 'Boolean'>

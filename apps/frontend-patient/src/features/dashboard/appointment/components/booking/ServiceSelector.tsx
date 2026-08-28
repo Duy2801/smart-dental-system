@@ -30,7 +30,7 @@ export function ServiceSelector({
     <div className="space-y-6">
       {services.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
-          Bac si nay chua co dich vu phu hop de dat lich truc tuyen.
+          Bác sĩ này chưa có dịch vụ phù hợp để đặt lịch trực tuyến.
         </div>
       ) : null}
       {/* 1. Chọn loại dịch vụ (Service Category) */}

@@ -25,8 +25,14 @@ export function useAppointmentBookingData({
   selectedTime,
 }: UseAppointmentBookingDataParams) {
   const doctorIdForQuery = dedicatedDoctorId || selectedDoctorId || undefined;
+  const baseOptionsQueryParams: BookingOptionsQuery = useMemo(
+    () => ({
+      doctorId: doctorIdForQuery,
+    }),
+    [doctorIdForQuery],
+  );
   const baseOptionsQuery = useAppointmentOptionsBaseQuery(
-    doctorIdForQuery ? { doctorId: doctorIdForQuery } : {},
+    baseOptionsQueryParams,
   );
 
   const scheduleQueryParams: BookingOptionsQuery = useMemo(
@@ -140,6 +146,7 @@ export function useAppointmentBookingData({
       30,
     loading: baseOptionsQuery.isLoading,
     checkingAvailability:
-      scheduleQuery.isFetching || availabilityQuery.isFetching,
+      (scheduleQuery.isFetching && !scheduleQuery.data) ||
+      (availabilityQuery.isFetching && !availabilityQuery.data),
   };
 }

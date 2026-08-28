@@ -16,11 +16,11 @@ type PatientSelectorProps = {
 };
 
 const relationshipLabels: Record<string, string> = {
-  SELF: "Toi",
+  SELF: "Tôi",
   CHILD: "Con",
-  FATHER: "Bo",
-  MOTHER: "Me",
-  OTHER: "Nguoi than",
+  FATHER: "Bố",
+  MOTHER: "Mẹ",
+  OTHER: "Người thân",
 };
 
 export function PatientSelector({
@@ -62,9 +62,9 @@ export function PatientSelector({
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
-          <h3 className="text-sm font-bold text-slate-900">Chon nguoi kham</h3>
+          <h3 className="text-sm font-bold text-slate-900">Chọn người khám</h3>
           <p className="mt-0.5 text-xs text-slate-500">
-            Lich hen se duoc gan voi ho so nguoi di kham.
+            Lịch hẹn sẽ được gán với hồ sơ người đi khám.
           </p>
         </div>
         <button
@@ -72,7 +72,7 @@ export function PatientSelector({
           onClick={() => setShowForm((value) => !value)}
           className="h-9 rounded-xl border border-blue-100 bg-blue-50 px-3 text-xs font-bold text-[#0863c5] transition hover:bg-blue-100"
         >
-          + Them
+          + Thêm
         </button>
       </div>
 
@@ -97,7 +97,7 @@ export function PatientSelector({
                     {patient.fullName}
                   </p>
                   <p className="mt-0.5 text-xs text-slate-500">
-                    {relationshipLabels[patient.relationship] ?? "Nguoi than"}
+                    {relationshipLabels[patient.relationship] ?? "Người thân"}
                   </p>
                 </div>
                 <span
@@ -114,7 +114,7 @@ export function PatientSelector({
       </div>
 
       {isLoading ? (
-        <p className="mt-3 text-xs text-slate-500">Dang tai ho so...</p>
+        <p className="mt-3 text-xs text-slate-500">Đang tải hồ sơ...</p>
       ) : null}
 
       {showForm ? (
@@ -122,13 +122,13 @@ export function PatientSelector({
           <input
             value={fullName}
             onChange={(event) => setFullName(event.target.value)}
-            placeholder="Ho ten nguoi kham"
+            placeholder="Họ tên người khám"
             className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-400"
           />
           <input
             value={phone}
             onChange={(event) => setPhone(event.target.value)}
-            placeholder="So dien thoai neu co"
+            placeholder="Số điện thoại nếu có"
             className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-400"
           />
           <input
@@ -143,19 +143,19 @@ export function PatientSelector({
             className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-400"
           >
             <option value="CHILD">Con</option>
-            <option value="FATHER">Bo</option>
-            <option value="MOTHER">Me</option>
-            <option value="OTHER">Nguoi than</option>
+            <option value="FATHER">Bố</option>
+            <option value="MOTHER">Mẹ</option>
+            <option value="OTHER">Người thân</option>
           </select>
           <select
             value={gender}
             onChange={(event) => setGender(event.target.value)}
             className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-400"
           >
-            <option value="UNKNOWN">Chua ro gioi tinh</option>
+            <option value="UNKNOWN">Chưa rõ giới tính</option>
             <option value="MALE">Nam</option>
-            <option value="FEMALE">Nu</option>
-            <option value="OTHER">Khac</option>
+            <option value="FEMALE">Nữ</option>
+            <option value="OTHER">Khác</option>
           </select>
           <button
             type="button"
@@ -163,7 +163,7 @@ export function PatientSelector({
             onClick={handleSubmit}
             className="h-10 rounded-xl bg-[#0863c5] px-4 text-sm font-bold text-white transition hover:bg-[#0753a8] disabled:cursor-not-allowed disabled:bg-slate-300"
           >
-            {isCreating ? "Dang them..." : "Luu ho so"}
+            {isCreating ? "Đang thêm..." : "Lưu hồ sơ"}
           </button>
         </div>
       ) : null}

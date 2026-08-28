@@ -90,19 +90,6 @@ export class AppointmentController {
     return this.appointmentService.rescheduleByStaff(id, dto);
   }
 
-  @Patch(':id/restore')
-  @Roles('PATIENT')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  restoreAppointment(
-    @CurrentUser() user: AuthenticatedUser,
-    @Param('id') id: string,
-  ) {
-    return this.appointmentService.restoreAppointmentForPatient(
-      user.userId,
-      id,
-    );
-  }
-
   @Patch(':id/confirm')
   @Roles('PATIENT', 'DOCTOR', 'ADMIN', 'RECEPTIONIST')
   @UseGuards(JwtAuthGuard, RolesGuard)

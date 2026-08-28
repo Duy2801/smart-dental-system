@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { useLogout } from "@/features/auth/useLogout";
 import { DashboardIcon } from "./DashboardIcon";
-import { logout, useAppDispatch, useAppSelector } from "@/providers";
+import { useAppSelector } from "@/providers";
 import { ROUTES } from "./routes";
 
 function getInitials(name?: string) {
@@ -19,8 +20,7 @@ function getInitials(name?: string) {
 }
 
 export function HeaderAccountDropdown() {
-  const dispatch = useAppDispatch();
-  const router = useRouter();
+  const { handleLogout } = useLogout();
   const { user, isAuthenticated } = useAppSelector((state) => state.login);
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -39,10 +39,9 @@ export function HeaderAccountDropdown() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  function handleLogout() {
+  function onLogout() {
     setIsOpen(false);
-    dispatch(logout());
-    router.push(ROUTES.login);
+    void handleLogout();
   }
 
   if (!isAuthenticated) {
@@ -53,12 +52,6 @@ export function HeaderAccountDropdown() {
           className="inline-flex h-9 items-center justify-center rounded-xl bg-[#0863c5] px-4 text-xs font-bold text-white shadow-xs transition hover:bg-[#0753a8]"
         >
           Đăng nhập
-        </Link>
-        <Link
-          href={ROUTES.register}
-          className="hidden sm:inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50"
-        >
-          Đăng ký
         </Link>
       </div>
     );
@@ -120,23 +113,12 @@ export function HeaderAccountDropdown() {
                 </span>
                 Thông tin cá nhân
               </Link>
-
-              <Link
-                href={ROUTES.records}
-                onClick={() => setIsOpen(false)}
-                className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition hover:bg-slate-50 hover:text-[#0863c5]"
-              >
-                <span className="text-slate-400">
-                  <DashboardIcon name="document" className="h-4 w-4" />
-                </span>
-                Lịch sử khám bệnh
-              </Link>
             </nav>
 
             <div className="mt-1 pt-1 border-t border-slate-100">
               <button
                 type="button"
-                onClick={handleLogout}
+                onClick={onLogout}
                 className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-semibold text-rose-600 transition hover:bg-rose-50"
               >
                 <DashboardIcon name="logout" className="h-4 w-4 text-rose-500" />

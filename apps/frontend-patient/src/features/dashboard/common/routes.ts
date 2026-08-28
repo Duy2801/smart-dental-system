@@ -18,11 +18,13 @@ export const ROUTES = {
   appointment: "/appointment",
   consultation: "/consultation",
   service: "/service",
+  services: "/service",
   records: "/records",
   profile: "/profile",
   notification: "/notification",
   payment: "/payment",
   doctor: "/doctor",
+  doctors: "/doctor",
   promotions: "/promotions",
 
   // ─── Auth ─────────────────────────────────────────────────────────────
