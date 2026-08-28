@@ -4,11 +4,13 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { InjectQueue } from '@nestjs/bull';
 import type { Queue } from 'bull';
 import type { AuthenticatedUser } from 'src/common/interfaces/authenticated-user.interface';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiClientService } from './ai-client.service';
+import { AiRateLimitService } from './ai-rate-limit.service';
 import { DraftMedicalRecordDto } from './dto/draft-medical-record.dto';
 import { DraftPrescriptionDto } from './dto/draft-prescription.dto';
 import { DraftTreatmentPlanDto } from './dto/draft-treatment-plan.dto';
@@ -113,7 +115,11 @@ const MEDICINE_ALIASES = {
   aspirin: ['aspirin', 'acetylsalicylic acid'],
   amoxicillin: ['amoxicillin', 'amox'],
   ampicillin: ['ampicillin'],
-  augmentin: ['augmentin', 'amoxicillin clavulanate', 'amoxicillin/clavulanic acid'],
+  augmentin: [
+    'augmentin',
+    'amoxicillin clavulanate',
+    'amoxicillin/clavulanic acid',
+  ],
   cephalexin: ['cephalexin', 'cefalexin'],
   cefuroxime: ['cefuroxime', 'zinnat'],
   cefixime: ['cefixime'],
@@ -140,7 +146,12 @@ const MEDICINE_ALIASES = {
 type MedicineKey = keyof typeof MEDICINE_ALIASES;
 
 const PENICILLINS: MedicineKey[] = ['amoxicillin', 'ampicillin', 'augmentin'];
-const NSAIDS: MedicineKey[] = ['ibuprofen', 'diclofenac', 'naproxen', 'aspirin'];
+const NSAIDS: MedicineKey[] = [
+  'ibuprofen',
+  'diclofenac',
+  'naproxen',
+  'aspirin',
+];
 
 function normalizeText(text: string): string {
   return text
@@ -155,10 +166,9 @@ function normalizeText(text: string): string {
 function detectMedicineKeys(name: string): MedicineKey[] {
   const norm = normalizeText(name);
   const keys: MedicineKey[] = [];
-  for (const [key, aliases] of Object.entries(MEDICINE_ALIASES) as Array<[
-    MedicineKey,
-    readonly string[],
-  ]>) {
+  for (const [key, aliases] of Object.entries(MEDICINE_ALIASES) as Array<
+    [MedicineKey, readonly string[]]
+  >) {
     if (aliases.some((alias) => norm.includes(normalizeText(alias)))) {
       keys.push(key);
     }
@@ -174,7 +184,11 @@ function hasAny(text: string, terms: string[]): boolean {
 function dosesPerDay(frequency?: string | null): number | null {
   if (!frequency) return null;
   const norm = normalizeText(frequency);
-  if (norm.includes('1 lan') || norm.includes('mot lan') || norm.includes('sang'))
+  if (
+    norm.includes('1 lan') ||
+    norm.includes('mot lan') ||
+    norm.includes('sang')
+  )
     return 1;
   if (
     norm.includes('2 lan') ||
@@ -352,7 +366,11 @@ export function reviewPrescriptionSafety(
           'Tiền sử nhắc đến thai kỳ và đơn có thuốc chống viêm không steroid.',
       },
       {
-        historyTerms: ['loét dạ dày', 'xuất huyết tiêu hóa', 'viêm loét dạ dày'],
+        historyTerms: [
+          'loét dạ dày',
+          'xuất huyết tiêu hóa',
+          'viêm loét dạ dày',
+        ],
         medicineKeys: NSAIDS,
         severity: 'MEDIUM',
         title: 'Nguy cơ trên dạ dày',
@@ -371,7 +389,8 @@ export function reviewPrescriptionSafety(
         medicineKeys: ['paracetamol'],
         severity: 'MEDIUM',
         title: 'Cần kiểm tra chức năng gan',
-        detail: 'Tiền sử bệnh gan và đơn có paracetamol. Cần xác minh tổng liều.',
+        detail:
+          'Tiền sử bệnh gan và đơn có paracetamol. Cần xác minh tổng liều.',
       },
     ];
     for (const rule of contraindications) {
@@ -393,12 +412,7 @@ export function reviewPrescriptionSafety(
       detail: string;
     }> = [
       {
-        historyTerms: [
-          'warfarin',
-          'sintrom',
-          'thuốc chống đông',
-          'kháng đông',
-        ],
+        historyTerms: ['warfarin', 'sintrom', 'thuốc chống đông', 'kháng đông'],
         medicineKeys: NSAIDS,
         title: 'Tương tác thuốc chống đông và NSAID',
         detail:
@@ -477,6 +491,7 @@ export class AiService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly aiClient: AiClientService,
+    private readonly rateLimit: AiRateLimitService,
     @InjectQueue('mail-queue')
     private readonly mailQueue: Queue,
   ) {}
@@ -913,57 +928,157 @@ export class AiService {
   }
 
   async analyzeXray(user: AuthenticatedUser, dto: AnalyzeXrayDto) {
-    if (dto.patientId) {
-      await this.assertDoctorCanAccessPatient(user, dto.patientId);
+    this.rateLimit.consume(user.userId);
+    const source = await this.resolveStoredXray(user, dto.imageId);
+    const analysisId = randomUUID();
+    const startedAt = Date.now();
+
+    try {
+      const raw = await this.aiClient.post<{
+        is_radiograph?: boolean;
+        status?:
+          | 'INVALID_IMAGE'
+          | 'MODEL_UNAVAILABLE'
+          | 'HEALTHY'
+          | 'PATHOLOGY_DETECTED'
+          | 'ANALYSIS_FAILED';
+        error_status?:
+          | 'INVALID_IMAGE'
+          | 'MODEL_UNAVAILABLE'
+          | 'ANALYSIS_FAILED'
+          | null;
+        model_version?: string;
+        findings: Array<{
+          fdi_tooth_number: number;
+          finding_type: string;
+          confidence: number;
+          bounding_box: { x: number; y: number; width: number; height: number };
+          severity: string;
+        }>;
+        total_findings: number;
+        summary: string;
+        diagnosis_suggestion?: string | null;
+        treatment_recommendations?: string[];
+        annotated_image_url?: string | null;
+        disclaimer: string;
+      }>('/api/v1/doctor/analyze-xray', {
+        image_url: source.url,
+        image_base64: null,
+        patient_id: source.patientId,
+        clinical_note_hint: dto.clinicalNoteHint ?? null,
+      });
+
+      const isRadiograph = raw.is_radiograph !== false;
+      const status =
+        raw.status || (isRadiograph ? 'PATHOLOGY_DETECTED' : 'INVALID_IMAGE');
+      const modelVersion = raw.model_version || 'unknown';
+      const analyzedAt = new Date();
+
+      await this.prisma.aiXrayAnalysisAudit.create({
+        data: {
+          id: analysisId,
+          userId: user.userId,
+          doctorId: source.doctorId,
+          patientId: source.patientId,
+          medicalRecordId: source.medicalRecordId,
+          imageId: dto.imageId,
+          status,
+          errorStatus: [
+            'INVALID_IMAGE',
+            'MODEL_UNAVAILABLE',
+            'ANALYSIS_FAILED',
+          ].includes(status)
+            ? status
+            : null,
+          modelVersion,
+          findingCount: raw.findings?.length ?? 0,
+          durationMs: Date.now() - startedAt,
+          createdAt: analyzedAt,
+        },
+      });
+
+      return {
+        analysisId,
+        modelVersion,
+        analyzedAt: analyzedAt.toISOString(),
+        isRadiograph,
+        status,
+        errorStatus: raw.error_status ?? null,
+        findings: (raw.findings ?? []).map((f) => ({
+          fdiToothNumber: f.fdi_tooth_number,
+          findingType: f.finding_type,
+          confidence: f.confidence,
+          boundingBox: f.bounding_box,
+          severity: f.severity,
+        })),
+        totalFindings: raw.total_findings ?? (raw.findings ?? []).length,
+        summary: raw.summary ?? '',
+        diagnosisSuggestion: raw.diagnosis_suggestion ?? null,
+        treatmentRecommendations: raw.treatment_recommendations ?? [],
+        annotatedImageUrl: raw.annotated_image_url ?? null,
+        disclaimer:
+          raw.disclaimer ||
+          'Kết quả phân tích X-quang bởi Dental Vision AI (Hybrid Cloud Pipeline). Bác sĩ cần đối chiếu lâm sàng.',
+      };
+    } catch (error) {
+      await this.prisma.aiXrayAnalysisAudit
+        .create({
+          data: {
+            id: analysisId,
+            userId: user.userId,
+            doctorId: source.doctorId,
+            patientId: source.patientId,
+            medicalRecordId: source.medicalRecordId,
+            imageId: dto.imageId,
+            status: 'ANALYSIS_FAILED',
+            errorStatus: 'ANALYSIS_FAILED',
+            modelVersion: 'unknown',
+            durationMs: Date.now() - startedAt,
+          },
+        })
+        .catch(() => undefined);
+      throw error;
     }
-
-    const raw = await this.aiClient.post<{
-      is_radiograph?: boolean;
-      status?: string;
-      findings: Array<{
-        fdi_tooth_number: number;
-        finding_type: string;
-        confidence: number;
-        bounding_box: { x: number; y: number; width: number; height: number };
-        severity: string;
-      }>;
-      total_findings: number;
-      summary: string;
-      diagnosis_suggestion?: string | null;
-      treatment_recommendations?: string[];
-      annotated_image_url?: string | null;
-      disclaimer: string;
-    }>('/api/v1/doctor/analyze-xray', {
-      image_url: dto.imageUrl ?? null,
-      image_base64: dto.imageBase64 ?? null,
-      patient_id: dto.patientId ?? null,
-      clinical_note_hint: dto.clinicalNoteHint ?? null,
-    });
-
-    const isRadiograph = raw.is_radiograph !== false;
-    const status = raw.status || (isRadiograph ? 'PATHOLOGY_DETECTED' : 'INVALID_IMAGE');
-
-    return {
-      isRadiograph,
-      status,
-      findings: (raw.findings ?? []).map((f) => ({
-        fdiToothNumber: f.fdi_tooth_number,
-        findingType: f.finding_type,
-        confidence: f.confidence,
-        boundingBox: f.bounding_box,
-        severity: f.severity,
-      })),
-      totalFindings: raw.total_findings ?? (raw.findings ?? []).length,
-      summary: raw.summary ?? '',
-      diagnosisSuggestion: raw.diagnosis_suggestion ?? null,
-      treatmentRecommendations: raw.treatment_recommendations ?? [],
-      annotatedImageUrl: raw.annotated_image_url ?? null,
-      disclaimer:
-        raw.disclaimer ||
-        'Kết quả phân tích X-quang bởi Dental Vision AI (Hybrid Cloud Pipeline). Bác sĩ cần đối chiếu lâm sàng.',
-    };
   }
 
+  private async resolveStoredXray(user: AuthenticatedUser, imageId: string) {
+    type Row = {
+      id: string;
+      patient_id: string;
+      doctor_id: string;
+      image: { id?: string; url?: string; type?: string };
+    };
+    const rows = await this.prisma.$queryRaw<Row[]>`
+      SELECT mr.id, mr.patient_id, mr.doctor_id, image
+      FROM medical_records mr
+      CROSS JOIN LATERAL jsonb_array_elements(COALESCE(mr.images, '[]'::jsonb)) image
+      WHERE image->>'id' = ${imageId}
+      LIMIT 1
+    `;
+    const row = rows[0];
+    if (!row?.image?.url)
+      throw new NotFoundException('Không tìm thấy ảnh bệnh án');
+    if (row.image.type !== 'xray') {
+      throw new BadRequestException(
+        'Chỉ ảnh X-quang đã lưu mới được phân tích',
+      );
+    }
+    if (!user.roles.includes('ADMIN')) {
+      const doctor = await this.prisma.doctor.findUnique({
+        where: { userId: user.userId },
+        select: { id: true },
+      });
+      if (!doctor || doctor.id !== row.doctor_id) {
+        throw new ForbiddenException('Không có quyền phân tích ảnh này');
+      }
+    }
+    return {
+      url: row.image.url,
+      patientId: row.patient_id,
+      doctorId: row.doctor_id,
+      medicalRecordId: row.id,
+    };
+  }
 
   /** Catalog ngắn từ DB để AI bám giá và thời lượng thật của phòng khám. */
   private async buildServiceCatalog(serviceHint?: string | null) {

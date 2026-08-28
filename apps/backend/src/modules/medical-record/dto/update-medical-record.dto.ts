@@ -7,6 +7,7 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  IsUUID,
   Max,
   MaxLength,
   Min,
@@ -26,6 +27,10 @@ const TOOTH_STATUSES = [
 ] as const;
 
 export class MedicalRecordImageDto {
+  @IsOptional()
+  @IsUUID()
+  id?: string;
+
   /** URL http(s) tới ảnh đã upload / cloud */
   @IsString()
   @MaxLength(2000)

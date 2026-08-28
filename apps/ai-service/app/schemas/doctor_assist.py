@@ -1,3 +1,5 @@
+from enum import Enum
+
 from pydantic import BaseModel, Field
 
 
@@ -187,7 +189,21 @@ class DentalFinding(BaseModel):
     finding_type: str  # e.g., "Missing tooth", "Implant", "Residual root", "Crown / Bridge", "Root canal filling", "Filling", "Caries", "Periapical radiolucency"
     confidence: float  # 0.0 - 1.0 (e.g. 0.962)
     bounding_box: dict[str, float]  # {"x": 12.5, "y": 30.0, "width": 8.0, "height": 15.0} (% normalized)
-    severity: str = "MEDIUM"  # LOW, MEDIUM, HIGH
+    severity: str = "UNASSESSED"  # UNASSESSED until a doctor evaluates clinical severity
+
+
+class XrayAnalysisStatus(str, Enum):
+    INVALID_IMAGE = "INVALID_IMAGE"
+    MODEL_UNAVAILABLE = "MODEL_UNAVAILABLE"
+    HEALTHY = "HEALTHY"
+    PATHOLOGY_DETECTED = "PATHOLOGY_DETECTED"
+    ANALYSIS_FAILED = "ANALYSIS_FAILED"
+
+
+class XrayErrorStatus(str, Enum):
+    INVALID_IMAGE = "INVALID_IMAGE"
+    MODEL_UNAVAILABLE = "MODEL_UNAVAILABLE"
+    ANALYSIS_FAILED = "ANALYSIS_FAILED"
 
 
 class AnalyzeXrayRequest(BaseModel):
@@ -199,7 +215,9 @@ class AnalyzeXrayRequest(BaseModel):
 
 class AnalyzeXrayResponse(BaseModel):
     is_radiograph: bool = True
-    status: str = "PATHOLOGY_DETECTED"  # INVALID_IMAGE | MODEL_UNAVAILABLE | HEALTHY | PATHOLOGY_DETECTED
+    status: XrayAnalysisStatus = XrayAnalysisStatus.PATHOLOGY_DETECTED
+    error_status: XrayErrorStatus | None = None
+    model_version: str = "unknown"
     findings: list[DentalFinding] = Field(default_factory=list)
     total_findings: int = 0
     summary: str = ""
@@ -210,4 +228,3 @@ class AnalyzeXrayResponse(BaseModel):
         "YOLO và DeepLab local tạo phát hiện; Gemini chỉ diễn giải kết quả. "
         "Bác sĩ cần đối chiếu lâm sàng trước khi đưa vào bệnh án."
     )
-
