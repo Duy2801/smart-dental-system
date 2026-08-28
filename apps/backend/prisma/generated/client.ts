@@ -155,6 +155,11 @@ export type Appointment = Prisma.AppointmentModel
  */
 export type MedicalRecord = Prisma.MedicalRecordModel
 /**
+ * Model AiXrayAnalysisAudit
+ * 
+ */
+export type AiXrayAnalysisAudit = Prisma.AiXrayAnalysisAuditModel
+/**
  * Model TreatmentPlan
  * 
  */

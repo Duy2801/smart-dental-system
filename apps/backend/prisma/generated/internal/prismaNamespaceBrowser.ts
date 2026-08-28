@@ -74,6 +74,7 @@ export const ModelName = {
   DoctorAvailability: 'DoctorAvailability',
   Appointment: 'Appointment',
   MedicalRecord: 'MedicalRecord',
+  AiXrayAnalysisAudit: 'AiXrayAnalysisAudit',
   TreatmentPlan: 'TreatmentPlan',
   TreatmentPlanStep: 'TreatmentPlanStep',
   ClinicalCase: 'ClinicalCase',
@@ -474,6 +475,24 @@ export const MedicalRecordScalarFieldEnum = {
 } as const
 
 export type MedicalRecordScalarFieldEnum = (typeof MedicalRecordScalarFieldEnum)[keyof typeof MedicalRecordScalarFieldEnum]
+
+
+export const AiXrayAnalysisAuditScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  doctorId: 'doctorId',
+  patientId: 'patientId',
+  medicalRecordId: 'medicalRecordId',
+  imageId: 'imageId',
+  status: 'status',
+  errorStatus: 'errorStatus',
+  modelVersion: 'modelVersion',
+  findingCount: 'findingCount',
+  durationMs: 'durationMs',
+  createdAt: 'createdAt'
+} as const
+
+export type AiXrayAnalysisAuditScalarFieldEnum = (typeof AiXrayAnalysisAuditScalarFieldEnum)[keyof typeof AiXrayAnalysisAuditScalarFieldEnum]
 
 
 export const TreatmentPlanScalarFieldEnum = {

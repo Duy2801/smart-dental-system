@@ -22,6 +22,9 @@ export type DentalFinding = {
 };
 
 export type AnalyzeXrayResult = {
+  isRadiograph: boolean;
+  status: "INVALID_IMAGE" | "MODEL_UNAVAILABLE" | "HEALTHY" | "PATHOLOGY_DETECTED" | "ANALYSIS_FAILED";
+  errorStatus?: "INVALID_IMAGE" | "MODEL_UNAVAILABLE" | "ANALYSIS_FAILED" | null;
   findings: DentalFinding[];
   totalFindings: number;
   summary: string;
@@ -29,9 +32,20 @@ export type AnalyzeXrayResult = {
   treatmentRecommendations: string[];
   annotatedImageUrl: string | null;
   disclaimer: string;
+  analysisId: string;
+  modelVersion: string;
+  analyzedAt: string;
 };
 
+export function canApplyXrayResult(result: AnalyzeXrayResult | null): boolean {
+  return (
+    result?.isRadiograph === true &&
+    (result.status === "HEALTHY" || result.status === "PATHOLOGY_DETECTED")
+  );
+}
+
 type Props = {
+  imageId: string;
   imageUrl: string;
   imageCaption?: string | null;
   patientId?: string;
@@ -47,6 +61,7 @@ const SEVERITY_BADGE = {
 } as const;
 
 export function DoctorXrayAnalysisModal({
+  imageId,
   imageUrl,
   imageCaption,
   patientId,
@@ -67,14 +82,12 @@ export function DoctorXrayAnalysisModal({
       const res = await apiClient.post<AnalyzeXrayResult>(
         "/ai/doctor/analyze-xray",
         {
-          imageUrl,
-          patientId,
+          imageId,
           clinicalNoteHint: imageCaption || undefined,
         },
         { timeout: 60000 }
       );
-      const payload: AnalyzeXrayResult =
-        (res as any)?.data?.data ?? (res as any)?.data ?? res;
+      const payload = res.data;
       setResult(payload);
       if (payload.annotatedImageUrl) {
         setViewMode("annotated");
@@ -92,7 +105,7 @@ export function DoctorXrayAnalysisModal({
   };
 
   const handleApply = () => {
-    if (!result) return;
+    if (!result || !canApplyXrayResult(result)) return;
     const diag = result.diagnosisSuggestion || result.summary;
     const recs = result.treatmentRecommendations.join("\n- ");
     const treatmentNotes = recs
@@ -110,21 +123,24 @@ export function DoctorXrayAnalysisModal({
     viewMode === "annotated" && result?.annotatedImageUrl
       ? result.annotatedImageUrl
       : imageUrl;
+  const canApply = canApplyXrayResult(result);
+  const hasBlockedResult =
+    result?.status === "INVALID_IMAGE" || result?.status === "MODEL_UNAVAILABLE";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
-      <div className="flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-brand-dark/65 p-3 backdrop-blur-sm sm:p-6">
+      <div role="dialog" aria-modal="true" aria-labelledby="xray-analysis-title" className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl border border-white/20 bg-white shadow-[0_30px_90px_-30px_rgba(0,39,141,0.55)]">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-border bg-slate-50 px-6 py-4">
+        <div className="flex items-center justify-between border-b border-border/80 bg-brand-light/35 px-5 py-4 sm:px-6">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand/10 text-brand">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-brand shadow-xs ring-1 ring-brand/15">
               <Sparkle size={20} weight="fill" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-slate-900">
+              <h2 id="xray-analysis-title" className="text-base font-bold tracking-tight text-brand-dark">
                 Phân tích Phim X-quang Nha khoa bằng AI
               </h2>
-              <p className="text-xs text-muted-foreground">
+              <p className="mt-0.5 text-xs text-muted-foreground">
                 {patientName ? `Bệnh nhân: ${patientName} | ` : ""}
                 {imageCaption || "Phim X-quang Panorama/Cận chóp"}
               </p>
@@ -133,7 +149,7 @@ export function DoctorXrayAnalysisModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-2 text-slate-400 hover:bg-slate-200 hover:text-slate-700"
+            className="rounded-xl p-2 text-slate-500 transition-colors hover:bg-white hover:text-brand-dark active:scale-[0.96]"
             aria-label="Đóng"
           >
             <X size={18} />
@@ -141,32 +157,32 @@ export function DoctorXrayAnalysisModal({
         </div>
 
         {/* Content */}
-        <div className="grid flex-1 gap-6 overflow-y-auto p-6 md:grid-cols-12">
+        <div className="grid flex-1 gap-5 overflow-y-auto bg-slate-50/35 p-4 sm:p-6 md:grid-cols-12">
           {/* Left: Image Viewer (7 cols) */}
           <div className="flex flex-col gap-3 md:col-span-7">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-700">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">
                 Khung hiển thị hình ảnh
               </span>
               {result && (
-                <div className="inline-flex rounded-lg border border-border bg-slate-100 p-0.5 text-xs font-medium">
+                <div className="inline-flex rounded-xl border border-border bg-white p-1 text-xs font-medium shadow-xs">
                   <button
                     type="button"
                     onClick={() => setViewMode("annotated")}
                     className={`rounded-md px-2.5 py-1 transition-all ${
                       viewMode === "annotated"
-                        ? "bg-white font-bold text-brand shadow-xs"
+                        ? "bg-brand-light font-bold text-brand-dark"
                         : "text-slate-600 hover:text-slate-900"
                     }`}
                   >
-                    AI Khoanh vùng
+                    Vùng răng AI
                   </button>
                   <button
                     type="button"
                     onClick={() => setViewMode("original")}
                     className={`rounded-md px-2.5 py-1 transition-all ${
                       viewMode === "original"
-                        ? "bg-white font-bold text-brand shadow-xs"
+                        ? "bg-brand-light font-bold text-brand-dark"
                         : "text-slate-600 hover:text-slate-900"
                     }`}
                   >
@@ -176,7 +192,7 @@ export function DoctorXrayAnalysisModal({
               )}
             </div>
 
-            <div className="relative flex min-h-[320px] flex-1 items-center justify-center overflow-hidden rounded-xl border border-border bg-slate-950 p-2">
+            <div className="relative flex min-h-[320px] flex-1 items-center justify-center overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 p-2 shadow-[0_18px_40px_-24px_rgba(15,23,42,0.8)]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={displayImage}
@@ -192,7 +208,7 @@ export function DoctorXrayAnalysisModal({
                   <button
                     type="button"
                     onClick={runAnalysis}
-                    className="inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-bold text-white shadow-md hover:bg-brand-dark"
+                    className="inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-bold text-white shadow-md transition-all hover:bg-brand-dark active:scale-[0.98]"
                   >
                     <Sparkle size={16} weight="fill" /> Bắt đầu phân tích AI
                   </button>
@@ -212,6 +228,13 @@ export function DoctorXrayAnalysisModal({
               )}
             </div>
 
+            {result && result.findings.length > 0 && (
+              <p className="flex items-start gap-1.5 rounded-xl border border-brand/15 bg-brand-light/40 px-3 py-2 text-[11px] leading-relaxed text-brand-dark">
+                <Info size={14} className="mt-0.5 shrink-0 text-brand" />
+                Khung AI biểu thị vùng răng cần bác sĩ kiểm tra, không phải đường biên chính xác của tổn thương.
+              </p>
+            )}
+
             {error && (
               <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
                 <WarningCircle size={16} className="shrink-0" />
@@ -223,9 +246,9 @@ export function DoctorXrayAnalysisModal({
           {/* Right: Analysis Details (5 cols) */}
           <div className="flex flex-col gap-4 md:col-span-5">
             {!result ? (
-              <div className="flex h-full flex-col justify-center rounded-xl border border-dashed border-border p-6 text-center text-muted-foreground">
-                <Info size={32} className="mx-auto mb-2 text-slate-400" />
-                <p className="text-sm font-medium text-slate-700">
+              <div className="flex h-full flex-col justify-center rounded-2xl border border-dashed border-brand/25 bg-white p-6 text-center text-muted-foreground">
+                <span className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-brand-light text-brand"><Info size={25} /></span>
+                <p className="text-sm font-semibold text-brand-dark">
                   Chưa có dữ liệu phân tích
                 </p>
                 <p className="text-xs">
@@ -235,19 +258,25 @@ export function DoctorXrayAnalysisModal({
             ) : (
               <div className="flex flex-col gap-3.5 overflow-y-auto pr-1">
                 {/* Clinical Summary */}
-                {result.summary?.includes("CẢNH BÁO Y KHOA") ? (
-                  <div className="rounded-xl border border-red-200 bg-red-50 p-3.5 text-red-900">
-                    <div className="mb-1.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-red-700">
-                      <WarningCircle size={14} className="text-red-600" /> Cảnh Báo Y Khoa
+                {hasBlockedResult ? (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-amber-900">
+                    <div className="mb-1.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber-700">
+                      <WarningCircle size={14} className="text-amber-600" />
+                      {result.status === "MODEL_UNAVAILABLE"
+                        ? "Model AI chưa sẵn sàng"
+                        : "Ảnh không hợp lệ"}
                     </div>
-                    <p className="text-xs leading-relaxed text-red-800">
+                    <p className="text-xs leading-relaxed text-amber-800">
                       {result.summary}
+                    </p>
+                    <p className="mt-2 text-[11px] font-semibold text-amber-700">
+                      Kết quả này không thể được chèn vào bệnh án.
                     </p>
                   </div>
                 ) : (
-                  <div className="rounded-xl border border-border bg-slate-50 p-3.5">
+                  <div className="rounded-2xl border border-brand/15 bg-brand-light/35 p-4">
                     <div className="mb-1.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700">
-                      <Eye size={14} className="text-brand" /> Tóm tắt hình ảnh
+                      <Eye size={14} className="text-brand" /> Tóm tắt lâm sàng
                     </div>
                     <p className="text-xs leading-relaxed text-slate-800">
                       {result.summary}
@@ -262,7 +291,11 @@ export function DoctorXrayAnalysisModal({
                       Răng phát hiện tổn thương ({result.findings.length})
                     </span>
                   </div>
-                  {result.findings.length === 0 ? (
+                  {hasBlockedResult ? (
+                    <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700">
+                      Chưa có kết quả phân tích hợp lệ.
+                    </p>
+                  ) : result.findings.length === 0 ? (
                     <p className="rounded-lg border border-border bg-slate-50 p-3 text-xs text-slate-500">
                       Không phát hiện bất thường rõ rệt trên phim.
                     </p>
@@ -276,7 +309,7 @@ export function DoctorXrayAnalysisModal({
                         return (
                           <li
                             key={`${f.fdiToothNumber}-${idx}`}
-                            className="flex items-center justify-between rounded-lg border border-border bg-white p-2.5 text-xs"
+                            className="flex items-center justify-between rounded-xl border border-border/80 bg-white p-2.5 text-xs shadow-xs transition-colors hover:border-brand/25"
                           >
                             <div className="flex items-center gap-2">
                               <span className="flex h-6 w-6 items-center justify-center rounded-md bg-brand/10 text-xs font-bold text-brand">
@@ -287,13 +320,13 @@ export function DoctorXrayAnalysisModal({
                               </span>
                             </div>
                             <div className="flex items-center gap-2">
-                              <span className="text-[11px] text-muted-foreground">
+                              <span className="font-mono text-[11px] font-bold text-muted-foreground">
                                 {(f.confidence * 100).toFixed(0)}%
                               </span>
                               <span
                                 className={`rounded-md border px-2 py-0.5 text-[10px] font-bold ${sevClass}`}
                               >
-                                {f.severity}
+                                {f.severity === "UNASSESSED" ? "Chưa đánh giá" : f.severity}
                               </span>
                             </div>
                           </li>
@@ -341,24 +374,24 @@ export function DoctorXrayAnalysisModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t border-border bg-slate-50 px-6 py-3.5">
+        <div className="flex items-center justify-between gap-3 border-t border-border bg-white px-5 py-4 sm:px-6">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-border bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+            className="rounded-xl border border-border bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 active:scale-[0.98]"
           >
             Đóng
           </button>
 
-          {result && onApplyToRecord && (
+          {canApply && onApplyToRecord && (
             <button
               type="button"
               onClick={handleApply}
               disabled={applied}
-              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 disabled:opacity-75"
+              className="inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-brand-dark hover:shadow-md active:scale-[0.98] disabled:opacity-75"
             >
               <CheckCircle size={16} weight="bold" />
-              {applied ? "Đã chèn vào bệnh án!" : "Chèn kết quả vào Bệnh án"}
+              {applied ? "Đã thêm vào bản nháp!" : "Thêm vào bản nháp bệnh án"}
             </button>
           )}
         </div>
