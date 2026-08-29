@@ -127,7 +127,7 @@ export function ClinicalCasesSection() {
 
   return (
     <section className="relative">
-      <div className="relative mx-auto max-w-3xl text-center mb-8 sm:mb-10">
+      <div className="relative mx-auto max-w-3xl text-center mb-4 sm:mb-10">
         <p className={`${T.overline} text-[#0058bc]`}>
           Kết quả điều trị
         </p>

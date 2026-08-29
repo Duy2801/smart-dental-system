@@ -42,7 +42,7 @@ export function HomeServicesSection() {
 
   return (
     <section id="services" className="scroll-mt-24">
-      <div className="relative mx-auto mb-10 max-w-3xl text-center">
+      <div className="relative mx-auto mb-6 sm:mb-10 max-w-3xl text-center">
         <p className={`${T.overline} text-[#0058bc]`}>
           Dịch vụ nổi bật
         </p>

@@ -190,7 +190,7 @@ export function HomeHeroSearchSlideshow() {
   const showDropdown = isFocused && keyword.trim().length > 0;
 
   return (
-    <section className="relative w-full pb-12">
+    <section className="relative w-full pb-2 sm:pb-8">
       {/* Dynamic Top Banner Section from DB */}
       <div className="relative w-full overflow-hidden bg-[#0058bc] pb-6 sm:pb-28">
         {isLoadingBanners ? (
@@ -363,14 +363,14 @@ export function HomeHeroSearchSlideshow() {
 
         {/* Popular Tags / Keywords from DB */}
         {isLoadingServices || isLoadingDoctors ? (
-          <div className="flex items-center gap-2 overflow-x-auto px-4 py-2.5 sm:px-6 text-xs no-scrollbar border-b border-slate-100/60">
+          <div className="flex items-center gap-2 overflow-x-auto px-4 py-2.5 sm:px-6 text-xs no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden border-b border-slate-100/60">
             <span className="font-bold text-slate-400 shrink-0">Gợi ý:</span>
             <span className="h-6 w-20 shrink-0 animate-pulse rounded-full bg-slate-200/80" />
             <span className="h-6 w-28 shrink-0 animate-pulse rounded-full bg-slate-200/80" />
             <span className="h-6 w-24 shrink-0 animate-pulse rounded-full bg-slate-200/80" />
           </div>
         ) : suggestions.length > 0 ? (
-          <div className="flex items-center gap-2 overflow-x-auto px-4 py-2.5 sm:px-6 text-xs text-slate-600 no-scrollbar border-b border-slate-100/60">
+          <div className="flex items-center gap-2 overflow-x-auto px-4 py-2.5 sm:px-6 text-xs text-slate-600 no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden border-b border-slate-100/60">
             <span className="font-extrabold text-slate-400 shrink-0 text-[11px] uppercase tracking-wider">Gợi ý:</span>
             {suggestions.map((item) => (
               <Link
@@ -427,7 +427,7 @@ export function HomeHeroSearchSlideshow() {
           </div>
         </div>
       ) : slides.length > 0 ? (
-        <div className="mx-auto mt-6 sm:mt-10 max-w-[1280px] px-4 sm:px-6 lg:px-8 pb-16 sm:pb-8">
+        <div className="mx-auto mt-4 sm:mt-10 max-w-[1280px] px-4 sm:px-6 lg:px-8 pb-2 sm:pb-8">
           <div className="relative">
             {/* Desktop Nav Arrows (Hidden on Mobile for visual cleanliness) */}
             {totalPages > 1 && (

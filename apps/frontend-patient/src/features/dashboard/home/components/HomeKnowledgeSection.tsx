@@ -167,15 +167,15 @@ export function HomeKnowledgeSection() {
   }
 
   return (
-    <section id="blog" className="space-y-8">
+    <section id="blog" className="space-y-4 sm:space-y-8">
       <div className="mx-auto max-w-3xl text-center">
         <p className={T.overline}>
           Hỏi đáp nha khoa
         </p>
-        <h2 className={`mt-3 ${T.sectionTitleLg}`}>
+        <h2 className={`mt-1.5 sm:mt-3 ${T.sectionTitleLg}`}>
           Câu hỏi thường gặp
         </h2>
-        <p className={`mx-auto mt-3 max-w-2xl ${T.body}`}>
+        <p className={`mx-auto mt-1.5 sm:mt-3 max-w-2xl ${T.body}`}>
           Những thắc mắc phổ biến được tổng hợp từ dữ liệu dịch vụ và cấu hình
           thực tế của phòng khám.
         </p>
