@@ -1,6 +1,7 @@
 import { InjectQueue } from '@nestjs/bull';
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   Logger,
   NotFoundException,
@@ -17,6 +18,7 @@ import {
   PaymentStatus,
   VideoConsultationStatus,
 } from 'prisma/generated/enums';
+import type { AuthenticatedUser } from 'src/common/interfaces/authenticated-user.interface';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationService } from '../notification/notification.service';
 import { EventsGateway } from '../socket/events.gateway';
@@ -34,6 +36,32 @@ export class PaymentService {
     private readonly eventsGateway: EventsGateway,
     @InjectQueue('mail-queue') private readonly mailQueue: Queue,
   ) {}
+
+  async ensureInvoiceAccess(user: AuthenticatedUser, invoiceId: string) {
+    const isStaff =
+      user.roles.includes('ADMIN') ||
+      user.roles.includes('RECEPTIONIST');
+    if (isStaff) return;
+
+    const invoice = await this.prisma.invoice.findUnique({
+      where: { id: invoiceId },
+      include: {
+        patient: true,
+        appointment: true,
+      },
+    });
+    if (!invoice) throw new NotFoundException('invoice.not_found');
+
+    const patientUserId = invoice.patient?.userId;
+    const appointmentCreatedBy = invoice.appointment?.createdBy;
+    const isOwner =
+      (patientUserId && patientUserId === user.userId) ||
+      (appointmentCreatedBy && appointmentCreatedBy === user.userId);
+
+    if (!isOwner) {
+      throw new ForbiddenException('invoice.access_denied');
+    }
+  }
 
   async createPayment(
     userId: string,
@@ -267,6 +295,7 @@ export class PaymentService {
 
     const amount = Number(dto.transferAmount ?? 0);
     const haystack = `${dto.content ?? ''} ${dto.code ?? ''}`.toUpperCase();
+    const matchCode = haystack.match(/SEVQR[A-Z0-9]+/i)?.[0]?.toUpperCase();
 
     const pending = await this.prisma.payment.findMany({
       where: {
@@ -281,9 +310,9 @@ export class PaymentService {
     const matched = pending.find((p) => {
       const ref = (p.transactionRef ?? '').toUpperCase();
       if (!ref) return false;
-      const amountOk =
-        amount <= 0 || Math.abs(Number(p.amount) - amount) < 1;
-      return haystack.includes(ref) && amountOk;
+      const amountOk = Math.abs(Number(p.amount) - amount) < 0.01;
+      const codeOk = matchCode ? ref === matchCode : haystack.includes(ref);
+      return codeOk && amountOk;
     });
 
     if (!matched) {
@@ -326,6 +355,7 @@ export class PaymentService {
       invoiceId: matched.invoiceId,
     };
   }
+
 
   private async markPaid(input: {
     invoiceId: string;

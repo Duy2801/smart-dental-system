@@ -473,7 +473,23 @@ export class AppointmentService {
     return updated;
   }
 
+  async findDoctorByUserId(userId: string) {
+    return this.prisma.doctor.findUnique({
+      where: { userId },
+    });
+  }
+
   async markNoShow(appointmentId: string) {
+    const appt = await this.prisma.appointment.findUnique({
+      where: { id: appointmentId },
+      select: { scheduledAt: true },
+    });
+    if (!appt) {
+      throw new BadRequestException('appointment.not_found');
+    }
+    if (new Date(appt.scheduledAt) > new Date()) {
+      throw new BadRequestException('appointment.cannot_mark_future_no_show');
+    }
     return this.transitionAppointment(
       appointmentId,
       [AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED],
@@ -567,7 +583,7 @@ export class AppointmentService {
       data: {
         scheduledAt,
         endAt,
-        rescheduleHistory: [...rescheduleHistory, previousSchedule],
+        rescheduleHistory: [...rescheduleHistory, previousSchedule].slice(-10),
       },
       include: appointmentInclude,
     });

@@ -162,24 +162,33 @@ apiClient.interceptors.response.use(
       _retry?: boolean;
     };
 
+    const isAuthEndpoint =
+      originalRequest.url?.includes("/auth/login") ||
+      originalRequest.url?.includes("/auth/refresh") ||
+      originalRequest.url?.includes("/auth/forgot-password") ||
+      originalRequest.url?.includes("/auth/reset-password");
+
     if (
       typeof window === "undefined" ||
-      originalRequest.url === "/auth/refresh" ||
+      isAuthEndpoint ||
       originalRequest._retry
     ) {
-      removeCookie("access_token");
-      removeCookie("refresh_token");
-      removeCookie("role");
-      removeCookie("session");
-      removeCookie("user_info");
-      if (
-        typeof window !== "undefined" &&
-        window.location.pathname !== "/login"
-      ) {
-        window.location.href = "/login";
+      if (!isAuthEndpoint) {
+        removeCookie("access_token");
+        removeCookie("refresh_token");
+        removeCookie("role");
+        removeCookie("session");
+        removeCookie("user_info");
+        if (
+          typeof window !== "undefined" &&
+          window.location.pathname !== "/login"
+        ) {
+          window.location.href = "/login";
+        }
       }
       return Promise.reject(error);
     }
+
 
     if (isRefreshing) {
       return new Promise<string>((resolve, reject) => {

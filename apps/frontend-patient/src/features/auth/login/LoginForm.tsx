@@ -24,10 +24,10 @@ export function LoginForm({
 }: LoginFormProps) {
   return (
     <div className="w-full max-w-[420px]">
-      <section className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-5 sm:p-6 lg:p-7 shadow-xl shadow-slate-900/10 transition-all">
-        <div className="mb-4 text-center">
-          <div className="mx-auto mb-2.5 flex items-center justify-center gap-2">
-            <span className="grid h-8 w-8 place-items-center overflow-hidden rounded-full bg-white shadow-xs ring-1 ring-slate-200">
+      <section className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-4 sm:p-6 lg:p-7 shadow-xl shadow-slate-900/10 transition-all">
+        <div className="mb-3.5 text-center">
+          <div className="mx-auto mb-2 flex items-center justify-center gap-2">
+            <span className="grid h-7 w-7 sm:h-8 sm:w-8 place-items-center overflow-hidden rounded-full bg-white shadow-xs ring-1 ring-slate-200">
               <Image
                 src="/clinic-logo.png"
                 alt="Logo Smart Dental System"
@@ -39,14 +39,14 @@ export function LoginForm({
             <span className="font-black text-slate-900 text-sm tracking-tight">Smart Dental System</span>
           </div>
 
-          <div className="mx-auto mb-2 inline-flex items-center gap-1.5 rounded-full border border-blue-100 bg-blue-50/80 px-3 py-0.5 text-[11px] font-bold text-[#0863c5]">
+          <div className="mx-auto mb-1.5 inline-flex items-center gap-1.5 rounded-full border border-blue-100 bg-blue-50/80 px-3 py-0.5 text-[11px] font-bold text-[#0863c5]">
             <span className="h-1.5 w-1.5 rounded-full bg-[#0863c5] animate-ping" />
             <span>Chào mừng bạn quay trở lại 👋</span>
           </div>
-          <h1 className="text-xl font-black tracking-tight text-slate-950 sm:text-2xl">
+          <h1 className="text-lg font-black tracking-tight text-slate-950 sm:text-2xl">
             Đăng nhập
           </h1>
-          <p className="mt-1 text-xs leading-relaxed text-slate-500">
+          <p className="mt-0.5 text-xs leading-relaxed text-slate-500">
             Nhập thông tin tài khoản bệnh nhân để quản lý hồ sơ và đặt lịch khám.
           </p>
         </div>
@@ -58,7 +58,7 @@ export function LoginForm({
             name="email"
             type="email"
             placeholder="example@gmail.com"
-            autoComplete="username"
+            autoComplete="off"
             required
           />
           <FormField
@@ -67,7 +67,7 @@ export function LoginForm({
             type="password"
             name="password"
             placeholder="Nhập mật khẩu của bạn"
-            autoComplete="current-password"
+            autoComplete="off"
             passwordVisible={passwordVisible}
             onTogglePassword={onTogglePassword}
             required

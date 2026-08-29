@@ -11,7 +11,9 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from 'src/common/decorators/curent-user.decorator';
+import { Roles } from 'src/common/decorators/roles.decorator';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/common/guards/roles.guard';
 import type { AuthenticatedUser } from 'src/common/interfaces/authenticated-user.interface';
 import { CreateMarketingCampaignDto } from './dto/create-marketing-campaign.dto';
 import { MarketingCampaignQueryDto } from './dto/marketing-campaign-query.dto';
@@ -58,18 +60,25 @@ export class NotificationController {
   }
 
   @Get()
+  @Roles('ADMIN', 'RECEPTIONIST')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   findMarketingCampaigns(@Query() query: MarketingCampaignQueryDto) {
     return this.notificationService.findMarketingCampaigns(query);
   }
 
   @Post()
+  @Roles('ADMIN', 'RECEPTIONIST')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   createMarketingCampaign(@Body() dto: CreateMarketingCampaignDto) {
     return this.notificationService.createMarketingCampaign(dto);
   }
 
   @Delete(':id')
+  @Roles('ADMIN', 'RECEPTIONIST')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   removeMarketingCampaign(@Param('id') id: string) {
     return this.notificationService.removeMarketingCampaign(id);
   }
 }
+
 

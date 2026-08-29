@@ -7,8 +7,12 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/common/guards/roles.guard';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { ServiceQueryDto } from './dto/service-query.dto';
 import { UpdateServiceStatusDto } from './dto/update-service-status.dto';
@@ -17,6 +21,7 @@ import { UpdateTreatmentMethodDto } from './dto/update-treatment-method.dto';
 import { ServiceService } from './service.service';
 
 @ApiTags('Service')
+@ApiBearerAuth()
 @Controller(['services', 'admin/services'])
 export class ServiceController {
   constructor(private readonly serviceService: ServiceService) {}
@@ -32,21 +37,29 @@ export class ServiceController {
   }
 
   @Post()
+  @Roles('ADMIN', 'RECEPTIONIST')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   create(@Body() dto: CreateServiceDto) {
     return this.serviceService.create(dto);
   }
 
   @Patch(':id')
+  @Roles('ADMIN', 'RECEPTIONIST')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   update(@Param('id') id: string, @Body() dto: UpdateServiceDto) {
     return this.serviceService.update(id, dto);
   }
 
   @Patch(':id/status')
+  @Roles('ADMIN', 'RECEPTIONIST')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   updateStatus(@Param('id') id: string, @Body() dto: UpdateServiceStatusDto) {
     return this.serviceService.updateStatus(id, dto.isActive);
   }
 
   @Patch(':serviceId/treatment-methods/:methodId')
+  @Roles('ADMIN', 'RECEPTIONIST')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   updateTreatmentMethod(
     @Param('serviceId') serviceId: string,
     @Param('methodId') methodId: string,
@@ -60,11 +73,15 @@ export class ServiceController {
   }
 
   @Delete(':id')
+  @Roles('ADMIN', 'RECEPTIONIST')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   remove(@Param('id') id: string) {
     return this.serviceService.remove(id);
   }
 
   @Delete(':serviceId/treatment-methods/:methodId')
+  @Roles('ADMIN', 'RECEPTIONIST')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   removeTreatmentMethod(
     @Param('serviceId') serviceId: string,
     @Param('methodId') methodId: string,
@@ -72,3 +89,4 @@ export class ServiceController {
     return this.serviceService.removeTreatmentMethod(serviceId, methodId);
   }
 }
+

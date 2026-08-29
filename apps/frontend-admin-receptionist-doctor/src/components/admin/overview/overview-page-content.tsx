@@ -75,7 +75,9 @@ export function OverviewPageContent() {
     <>
       <Header title="Tổng quan quản lý" description={currentDate} />
 
-      <div className="space-y-6 p-6 md:p-8">
+      <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+
+
         {isLoading ? (
           <div className="space-y-6">
             <SkeletonCardGrid count={5} />

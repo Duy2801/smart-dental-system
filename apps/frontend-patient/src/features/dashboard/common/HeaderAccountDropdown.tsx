@@ -46,10 +46,10 @@ export function HeaderAccountDropdown() {
 
   if (!isAuthenticated) {
     return (
-      <div className="flex items-center gap-2">
+      <div className="hidden md:flex items-center gap-1.5 sm:gap-2">
         <Link
           href={ROUTES.login}
-          className="inline-flex h-9 items-center justify-center rounded-xl bg-[#0863c5] px-4 text-xs font-bold text-white shadow-xs transition hover:bg-[#0753a8]"
+          className="inline-flex h-9 items-center justify-center rounded-full bg-[#0058bc] px-3.5 sm:px-4.5 text-xs font-bold text-white shadow-xs transition hover:bg-[#004899] active:scale-95 whitespace-nowrap"
         >
           Đăng nhập
         </Link>
@@ -58,7 +58,7 @@ export function HeaderAccountDropdown() {
   }
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative hidden md:block" ref={dropdownRef}>
       {/* Account trigger button matching Image 2 */}
       <button
         type="button"

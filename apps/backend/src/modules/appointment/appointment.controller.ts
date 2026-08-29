@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  ForbiddenException,
   Get,
   Param,
   Patch,
@@ -55,11 +56,10 @@ export class AppointmentController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('PATIENT', 'RECEPTIONIST', 'ADMIN')
   cancel(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
-    if (
-      user.roles.includes('PATIENT') &&
-      !user.roles.includes('RECEPTIONIST') &&
-      !user.roles.includes('ADMIN')
-    ) {
+    const isStaff =
+      user.roles.includes('RECEPTIONIST') ||
+      user.roles.includes('ADMIN');
+    if (!isStaff) {
       return this.appointmentService.cancelAppointmentForPatient(
         user.userId,
         id,
@@ -76,11 +76,10 @@ export class AppointmentController {
     @Param('id') id: string,
     @Body() dto: RescheduleAppointmentDto,
   ) {
-    const isPatientOnly =
-      user.roles.includes('PATIENT') &&
-      !user.roles.includes('RECEPTIONIST') &&
-      !user.roles.includes('ADMIN');
-    if (isPatientOnly) {
+    const isStaff =
+      user.roles.includes('RECEPTIONIST') ||
+      user.roles.includes('ADMIN');
+    if (!isStaff) {
       return this.appointmentService.rescheduleAppointmentForPatient(
         user.userId,
         id,
@@ -91,7 +90,7 @@ export class AppointmentController {
   }
 
   @Patch(':id/confirm')
-  @Roles('PATIENT', 'DOCTOR', 'ADMIN', 'RECEPTIONIST')
+  @Roles('DOCTOR', 'ADMIN', 'RECEPTIONIST')
   @UseGuards(JwtAuthGuard, RolesGuard)
   confirmAppointment(@Param('id') id: string) {
     return this.appointmentService.confirmAppointment(id);
@@ -138,24 +137,38 @@ export class AppointmentController {
   @Get()
   @Roles('DOCTOR', 'ADMIN', 'RECEPTIONIST')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  findMany(
+  async findMany(
+    @CurrentUser() user: AuthenticatedUser,
     @Query('doctorId') doctorId?: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
     @Query('date') date?: string,
     @Query('search') search?: string,
   ) {
-    if (date || search || (from && to && !doctorId)) {
+    let effectiveDoctorId = doctorId;
+    const isDoctorOnly =
+      user.roles.includes('DOCTOR') &&
+      !user.roles.includes('ADMIN') &&
+      !user.roles.includes('RECEPTIONIST');
+    if (isDoctorOnly) {
+      const doctor = await this.appointmentService.findDoctorByUserId(user.userId);
+      if (!doctor) {
+        throw new ForbiddenException('appointment.doctor_not_found');
+      }
+      effectiveDoctorId = doctor.id;
+    }
+
+    if (date || search || (from && to && !effectiveDoctorId)) {
       return this.appointmentService.findByDate({
         date,
         from,
         to,
-        doctorId,
+        doctorId: effectiveDoctorId,
         search,
       });
     }
     return this.appointmentService.findByDoctorAndWeek(
-      doctorId as string,
+      effectiveDoctorId as string,
       from as string,
       to as string,
     );
@@ -195,7 +208,22 @@ export class AppointmentController {
   @Get(':id')
   @Roles('DOCTOR', 'ADMIN', 'RECEPTIONIST')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  findOne(@Param('id') id: string) {
-    return this.appointmentService.findOne(id);
+  async findOne(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ) {
+    const appointment = await this.appointmentService.findOne(id);
+    const isDoctorOnly =
+      user.roles.includes('DOCTOR') &&
+      !user.roles.includes('ADMIN') &&
+      !user.roles.includes('RECEPTIONIST');
+    if (isDoctorOnly) {
+      const doctor = await this.appointmentService.findDoctorByUserId(user.userId);
+      if (!doctor || appointment.doctorId !== doctor.id) {
+        throw new ForbiddenException('appointment.unauthorized_access');
+      }
+    }
+    return appointment;
   }
 }
+

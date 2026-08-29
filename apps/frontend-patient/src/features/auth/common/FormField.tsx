@@ -71,7 +71,7 @@ export function FormField({
         <input
           {...inputProps}
           type={isPassword && passwordVisible ? "text" : type}
-          className={`h-9.5 w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-9 pr-9 text-xs font-medium text-slate-900 outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-300 hover:bg-white focus:border-[#0863c5] focus:bg-white focus:ring-3 focus:ring-blue-500/12 shadow-2xs ${className}`}
+          className={`h-9.5 w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-9 pr-9 text-sm sm:text-xs font-medium text-slate-900 outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-300 hover:bg-white focus:border-[#0863c5] focus:bg-white focus:ring-3 focus:ring-blue-500/12 shadow-2xs ${className}`}
         />
         {isPassword && onTogglePassword && (
           <button

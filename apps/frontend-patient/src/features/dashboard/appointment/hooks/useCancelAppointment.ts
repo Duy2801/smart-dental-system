@@ -34,9 +34,9 @@ export function useCancelAppointment() {
             ),
             history: cancelledItem
               ? [
-                  { ...cancelledItem, status: "cancelled" as const },
-                  ...(previousData.history ?? []),
-                ]
+                { ...cancelledItem, status: "cancelled" as const },
+                ...(previousData.history ?? []),
+              ]
               : previousData.history,
           },
         );

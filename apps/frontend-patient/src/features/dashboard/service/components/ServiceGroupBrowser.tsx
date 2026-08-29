@@ -65,7 +65,7 @@ function ServiceIconContent({
   return (
     <>
       <div
-        className={`relative flex h-20 w-20 items-center justify-center rounded-2xl p-1.5 transition-all duration-300 ${
+        className={`relative flex h-14 w-14 sm:h-20 sm:w-20 items-center justify-center rounded-2xl p-1.5 transition-all duration-300 ${
           selected
             ? "bg-white shadow-md ring-2 ring-[#0863c5]/30 scale-105"
             : "bg-white/90 shadow-sm ring-1 ring-slate-200/60 group-hover:bg-white group-hover:shadow-md group-hover:scale-105"
@@ -79,13 +79,13 @@ function ServiceIconContent({
             aria-hidden="true"
           />
         ) : (
-          <span className="text-xl font-black text-[#0863c5]">
+          <span className="text-base sm:text-xl font-black text-[#0863c5]">
             {service.title.slice(0, 2)}
           </span>
         )}
       </div>
       <span
-        className={`mt-3.5 line-clamp-2 min-h-11 text-center text-[13px] sm:text-[14px] font-extrabold leading-tight transition-colors duration-200 ${
+        className={`mt-2 sm:mt-3.5 line-clamp-2 min-h-8 sm:min-h-11 text-center text-xs sm:text-[14px] font-extrabold leading-tight transition-colors duration-200 ${
           selected
             ? "text-[#0863c5]"
             : "text-slate-700 group-hover:text-[#0863c5]"
@@ -106,7 +106,7 @@ function ServiceIconTile({
   selected?: boolean;
   onSelect?: () => void;
 }) {
-  const className = `group relative flex min-h-[160px] flex-col items-center justify-center rounded-2xl border p-4 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${
+  const className = `group relative flex min-h-[120px] sm:min-h-[160px] flex-col items-center justify-center rounded-2xl border p-2.5 sm:p-4 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${
     selected
       ? "border-[#0863c5] bg-gradient-to-b from-blue-50/90 via-blue-50/40 to-white shadow-md ring-2 ring-[#0863c5]/20"
       : "border-slate-200/70 bg-gradient-to-b from-slate-50/80 to-white hover:border-blue-300/80 hover:bg-gradient-to-b hover:from-blue-50/40 hover:to-white"
@@ -151,7 +151,7 @@ function PopularMethodCard({
     <div
       className="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-lg"
     >
-      <div className="relative aspect-square w-full overflow-hidden bg-slate-100">
+      <div className="relative aspect-[4/3] sm:aspect-square w-full max-h-52 sm:max-h-none overflow-hidden bg-slate-100">
         {imageUrl ? (
           <img
             src={imageUrl}
@@ -159,24 +159,24 @@ function PopularMethodCard({
             className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-blue-50 px-5 text-center text-sm font-extrabold text-[#0863c5]">
+          <div className="flex h-full w-full items-center justify-center bg-blue-50 px-4 text-center text-xs font-extrabold text-[#0863c5]">
             {method.name}
           </div>
         )}
       </div>
 
-      <div className="flex flex-1 flex-col p-5">
+      <div className="flex flex-1 flex-col p-4 sm:p-5">
         <span className={`${T.fieldLabel}`}>
           {service.title}
         </span>
         <h3 className="mt-1 line-clamp-2 text-base font-extrabold leading-6 text-slate-950 group-hover:text-[#0863c5]">
           {method.name}
         </h3>
-        <p className={`mt-4 line-clamp-3 flex-1 ${T.body}`}>
+        <p className={`mt-2 line-clamp-2 sm:line-clamp-3 flex-1 ${T.body}`}>
           {method.description || service.shortDescription}
         </p>
 
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-4">
+        <div className="mt-3.5 flex items-center justify-between gap-2 border-t border-slate-100 pt-3">
           <div>
             <p className="text-xs font-bold text-[#0863c5]">
               {formatServicePrice(method.basePrice)}
@@ -187,7 +187,7 @@ function PopularMethodCard({
           </div>
           <Link
             href={buildRoute.appointmentBooking(service.id, method.id)}
-            className="rounded-xl bg-[#0863c5] px-3.5 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#0756aa]"
+            className="rounded-xl bg-[#0863c5] px-3.5 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#0756aa] active:scale-95"
           >
             Đặt lịch
           </Link>
@@ -209,7 +209,7 @@ function MethodCard({
 
   return (
     <div className="group grid h-full overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-lg sm:grid-cols-[200px_1fr]">
-      <div className="relative aspect-square w-full sm:w-[200px] overflow-hidden bg-slate-100">
+      <div className="relative aspect-[4/3] sm:aspect-square w-full sm:w-[200px] max-h-52 sm:max-h-none overflow-hidden bg-slate-100">
         {imageUrl ? (
           <img
             src={imageUrl}
@@ -217,29 +217,29 @@ function MethodCard({
             className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
           />
         ) : (
-          <div className="flex h-full min-h-[180px] w-full items-center justify-center bg-blue-50 px-5 text-center text-sm font-extrabold text-[#0863c5]">
+          <div className="flex h-full min-h-[160px] w-full items-center justify-center bg-blue-50 px-5 text-center text-sm font-extrabold text-[#0863c5]">
             {method.name}
           </div>
         )}
       </div>
 
-      <div className="flex min-w-0 flex-col p-5">
+      <div className="flex min-w-0 flex-col p-4 sm:p-5">
         <span className={`${T.fieldLabel}`}>
           {service.title}
         </span>
-        <h3 className="mt-1 line-clamp-2 text-lg font-extrabold leading-7 text-slate-950 group-hover:text-[#0863c5]">
+        <h3 className="mt-1 line-clamp-2 text-base sm:text-lg font-extrabold leading-6 sm:leading-7 text-slate-950 group-hover:text-[#0863c5]">
           {method.name}
         </h3>
-        <p className={`mt-3 line-clamp-3 flex-1 ${T.body}`}>
+        <p className={`mt-2 line-clamp-2 sm:line-clamp-3 flex-1 ${T.body}`}>
           {method.description || service.shortDescription}
         </p>
 
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-4">
+        <div className="mt-3.5 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
           <div className="flex items-center gap-2">
-            <span className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-bold text-[#0863c5]">
+            <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-[#0863c5]">
               {formatServicePrice(method.basePrice)}
             </span>
-            <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600">
+            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-600">
               Chuyên sâu
             </span>
           </div>
@@ -267,20 +267,20 @@ function PopularMethodsSection({ methods }: { methods: MethodMatch[] }) {
   if (!methods.length) return null;
 
   return (
-    <section className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm sm:p-7">
+    <section className="rounded-3xl border border-slate-100 bg-white p-4 shadow-sm sm:p-7">
       <div className="mx-auto max-w-3xl text-center">
         <p className={`${T.overline} text-[#0863c5]`}>
           Được yêu thích
         </p>
-        <h3 className="mt-2 text-2xl font-black text-[#07366f] sm:text-3xl">
+        <h3 className="mt-1 text-xl font-black text-[#07366f] sm:text-3xl">
           Dịch vụ được đặt nhiều nhất
         </h3>
-        <p className={`mx-auto mt-2 max-w-2xl ${T.body}`}>
+        <p className={`mx-auto mt-1 max-w-2xl text-xs sm:text-sm ${T.body}`}>
           Tự động xếp hạng theo số lượt đặt lịch thực tế trong hệ thống.
         </p>
       </div>
 
-      <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-4 sm:mt-6 grid gap-3.5 sm:gap-4 md:grid-cols-2 xl:grid-cols-4">
         {methods.map(({ service, method }) => (
           <PopularMethodCard
             key={method.id}
@@ -436,7 +436,7 @@ export function ServiceGroupBrowser({
   if (compact) {
     return (
       <div className="space-y-9">
-        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-8">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-8">
           {filteredServices.map((service) => (
             <ServiceIconTile key={service.id} service={service} />
           ))}
@@ -464,7 +464,7 @@ export function ServiceGroupBrowser({
         </p>
       </section>
 
-      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-8">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-8">
         {filteredServices.map((service) => (
           <ServiceIconTile
             key={service.id}

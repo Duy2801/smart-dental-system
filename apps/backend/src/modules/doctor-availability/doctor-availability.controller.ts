@@ -7,8 +7,12 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/common/guards/roles.guard';
 import { AvailabilityApprovalStatus } from '../../../prisma/generated/client';
 import { AutoWeeklyAvailabilityDto } from './dto/auto-weekly-availability.dto';
 import { CreateDoctorAvailabilityDto } from './dto/create-doctor-availability.dto';
@@ -16,6 +20,7 @@ import { UpdateDoctorAvailabilityDto } from './dto/update-doctor-availability.dt
 import { DoctorAvailabilityService } from './doctor-availability.service';
 
 @ApiTags('Doctor Availability')
+@ApiBearerAuth()
 @Controller(['doctor-availability', 'admin/doctor-availability'])
 export class DoctorAvailabilityController {
   constructor(
@@ -28,11 +33,15 @@ export class DoctorAvailabilityController {
   }
 
   @Get('matrix')
+  @Roles('ADMIN', 'RECEPTIONIST', 'DOCTOR')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   getMatrix() {
     return this.doctorAvailabilityService.getMatrixForAllDoctors();
   }
 
   @Get('check-conflicts')
+  @Roles('ADMIN', 'RECEPTIONIST', 'DOCTOR')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   checkConflicts(
     @Query('doctorId') doctorId: string,
     @Query('specificDate') specificDate?: string,
@@ -50,6 +59,8 @@ export class DoctorAvailabilityController {
   }
 
   @Post()
+  @Roles('ADMIN', 'RECEPTIONIST', 'DOCTOR')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   create(
     @Body() dto: CreateDoctorAvailabilityDto,
     @Query('force') force?: string,
@@ -58,11 +69,15 @@ export class DoctorAvailabilityController {
   }
 
   @Post('auto-weekly')
+  @Roles('ADMIN', 'RECEPTIONIST', 'DOCTOR')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   autoCreateWeekly(@Body() dto: AutoWeeklyAvailabilityDto) {
     return this.doctorAvailabilityService.autoCreateWeekly(dto);
   }
 
   @Patch(':id/approval')
+  @Roles('ADMIN', 'RECEPTIONIST')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   updateApproval(
     @Param('id') id: string,
     @Body('approvalStatus') approvalStatus: AvailabilityApprovalStatus,
@@ -74,13 +89,18 @@ export class DoctorAvailabilityController {
   }
 
   @Patch(':id')
+  @Roles('ADMIN', 'RECEPTIONIST', 'DOCTOR')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   update(@Param('id') id: string, @Body() dto: UpdateDoctorAvailabilityDto) {
     return this.doctorAvailabilityService.update(id, dto);
   }
 
   @Delete(':id')
+  @Roles('ADMIN', 'RECEPTIONIST', 'DOCTOR')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   remove(@Param('id') id: string, @Query('force') force?: string) {
     return this.doctorAvailabilityService.remove(id, force === 'true');
   }
 }
+
 

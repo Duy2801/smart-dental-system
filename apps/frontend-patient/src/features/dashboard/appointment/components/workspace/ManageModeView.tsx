@@ -68,7 +68,7 @@ export function ManageModeView({
       />
 
       {/* Main Container Card */}
-      <section className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-sm space-y-6">
+      <section className="rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-6 lg:p-8 shadow-sm space-y-6">
         {/* Premium Header: Search Box on LEFT, 2 Main Tabs on RIGHT */}
         <div className="border-b border-slate-200 pb-3 flex flex-col-reverse gap-4 md:flex-row md:items-center md:justify-between">
           {/* Left Side: Search Box */}
@@ -95,14 +95,14 @@ export function ManageModeView({
           </div>
 
           {/* Right Side: 2 Main Tabs */}
-          <div className="flex items-center gap-6 border-b md:border-b-0 border-slate-100 pb-2 md:pb-0">
+          <div className="flex items-center gap-4 sm:gap-6 border-b md:border-b-0 border-slate-100 pb-2 md:pb-0 overflow-x-auto max-w-full">
             <button
               type="button"
               onClick={() => {
                 setActiveMainTab("upcoming");
                 setStatusFilter("all");
               }}
-              className={`relative pb-3 text-base font-extrabold transition cursor-pointer flex items-center gap-2 ${
+              className={`relative pb-3 text-sm sm:text-base font-extrabold transition cursor-pointer flex items-center gap-2 whitespace-nowrap ${
                 activeMainTab === "upcoming"
                   ? "text-[#0058bc]"
                   : "text-slate-500 hover:text-slate-800"
@@ -130,7 +130,7 @@ export function ManageModeView({
                 setActiveMainTab("history");
                 setStatusFilter("all");
               }}
-              className={`relative pb-3 text-base font-extrabold transition cursor-pointer flex items-center gap-2 ${
+              className={`relative pb-3 text-sm sm:text-base font-extrabold transition cursor-pointer flex items-center gap-2 whitespace-nowrap ${
                 activeMainTab === "history"
                   ? "text-[#0058bc]"
                   : "text-slate-500 hover:text-slate-800"
@@ -157,8 +157,8 @@ export function ManageModeView({
         {/* Tab Content Section - Completely Identical Layout for Both Tabs */}
         <div className="space-y-4">
           {/* Status Sub-Filters Row */}
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-1.5 bg-slate-100/80 p-1 rounded-xl border border-slate-200/60">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-1.5 bg-slate-100/80 p-1 rounded-xl border border-slate-200/60 overflow-x-auto max-w-full">
               {currentFilterTabs.map((item) => {
                 const active = statusFilter === item.value;
                 return (
@@ -166,7 +166,7 @@ export function ManageModeView({
                     key={item.value}
                     type="button"
                     onClick={() => setStatusFilter(item.value)}
-                    className={`rounded-xl px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${
+                    className={`rounded-xl px-3 sm:px-3.5 py-1.5 text-xs font-bold transition cursor-pointer whitespace-nowrap shrink-0 ${
                       active
                         ? "bg-white text-[#0058bc] shadow-2xs"
                         : "text-slate-600 hover:text-slate-900"
@@ -178,7 +178,7 @@ export function ManageModeView({
               })}
             </div>
 
-            <span className="text-xs font-semibold text-slate-400">
+            <span className="text-xs font-semibold text-slate-400 self-end sm:self-auto">
               Hiển thị {currentList.length} / {totalCount} cuộc hẹn
             </span>
           </div>

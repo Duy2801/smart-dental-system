@@ -192,9 +192,9 @@ export function HomeHeroSearchSlideshow() {
   return (
     <section className="relative w-full pb-12">
       {/* Dynamic Top Banner Section from DB */}
-      <div className="relative w-full overflow-hidden bg-gradient-to-b from-[#0058bc] via-blue-50/40 to-[#f6f8fc] pb-20 sm:pb-28">
+      <div className="relative w-full overflow-hidden bg-[#0058bc] pb-6 sm:pb-28">
         {isLoadingBanners ? (
-          <div className="h-[280px] w-full animate-pulse bg-slate-300/40 sm:h-[420px]" />
+          <div className="w-full h-36 animate-pulse bg-blue-400/30 sm:h-[420px]" />
         ) : currentHeroBanner ? (
           <a
             href={currentHeroBanner.linkUrl || "#"}
@@ -205,14 +205,14 @@ export function HomeHeroSearchSlideshow() {
             <img
               src={currentHeroBanner.imageUrl}
               alt={currentHeroBanner.title || "Smart Dental Banner"}
-              className="h-auto w-full object-cover min-h-[240px] max-h-[480px] sm:max-h-[580px] transition-all duration-700"
+              className="w-full h-auto block object-contain sm:object-cover sm:max-h-[580px] transition-all duration-700"
             />
           </a>
         ) : (
           <img
             src="/bannerhome.png"
             alt="Smart Dental Banner"
-            className="h-auto w-full object-cover min-h-[240px] max-h-[480px] sm:max-h-[580px]"
+            className="w-full h-auto block object-contain sm:object-cover sm:max-h-[580px]"
           />
         )}
       </div>
@@ -221,7 +221,7 @@ export function HomeHeroSearchSlideshow() {
       <div
         ref={searchCardRef}
         onClick={(event) => event.stopPropagation()}
-        className="relative z-30 mx-auto -mt-24 w-[calc(100%-2rem)] max-w-[960px] overflow-visible rounded-3xl bg-white shadow-2xl shadow-slate-900/15 ring-1 ring-slate-200/80 sm:-mt-32 lg:-mt-36"
+        className="relative z-30 mx-auto -mt-5 xs:-mt-8 sm:-mt-24 lg:-mt-36 w-[calc(100%-1.5rem)] sm:w-[calc(100%-2rem)] max-w-[960px] overflow-visible rounded-2xl sm:rounded-3xl bg-white shadow-2xl shadow-slate-900/15 ring-1 ring-slate-200/80"
       >
         <div className="relative">
           <form
@@ -363,20 +363,20 @@ export function HomeHeroSearchSlideshow() {
 
         {/* Popular Tags / Keywords from DB */}
         {isLoadingServices || isLoadingDoctors ? (
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-4 py-3 text-xs sm:px-6">
-            <span className="font-semibold text-slate-400">Gợi ý:</span>
-            <span className="h-4 w-20 animate-pulse rounded-md bg-slate-200/80" />
-            <span className="h-4 w-28 animate-pulse rounded-md bg-slate-200/80" />
-            <span className="h-4 w-24 animate-pulse rounded-md bg-slate-200/80" />
+          <div className="flex items-center gap-2 overflow-x-auto px-4 py-2.5 sm:px-6 text-xs no-scrollbar border-b border-slate-100/60">
+            <span className="font-bold text-slate-400 shrink-0">Gợi ý:</span>
+            <span className="h-6 w-20 shrink-0 animate-pulse rounded-full bg-slate-200/80" />
+            <span className="h-6 w-28 shrink-0 animate-pulse rounded-full bg-slate-200/80" />
+            <span className="h-6 w-24 shrink-0 animate-pulse rounded-full bg-slate-200/80" />
           </div>
         ) : suggestions.length > 0 ? (
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-4 py-3 text-xs text-slate-600 sm:px-6">
-            <span className="font-semibold text-slate-400">Gợi ý:</span>
+          <div className="flex items-center gap-2 overflow-x-auto px-4 py-2.5 sm:px-6 text-xs text-slate-600 no-scrollbar border-b border-slate-100/60">
+            <span className="font-extrabold text-slate-400 shrink-0 text-[11px] uppercase tracking-wider">Gợi ý:</span>
             {suggestions.map((item) => (
               <Link
                 key={item.id}
                 href={item.href}
-                className="transition hover:text-[#0058bc] hover:underline font-medium"
+                className="shrink-0 rounded-full bg-slate-100/90 px-3 py-1 text-xs font-semibold text-slate-700 border border-slate-200/60 transition hover:bg-blue-50 hover:text-[#0058bc] hover:border-blue-200 active:scale-95"
               >
                 {item.label}
               </Link>
@@ -385,57 +385,57 @@ export function HomeHeroSearchSlideshow() {
         ) : null}
 
         {/* Quick Contact & Clinic Location Links */}
-        <div className="grid divide-y divide-slate-100 border-t border-slate-100 sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+        <div className="grid divide-y divide-slate-100 sm:grid-cols-2 sm:divide-x sm:divide-y-0">
           <Link
             href={ROUTES.consultation}
-            className="flex items-center justify-between gap-3 px-5 py-3.5 transition hover:bg-blue-50/50 sm:px-6"
+            className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6 transition hover:bg-blue-50/50"
           >
             <div className="flex items-center gap-3">
-              <span className="grid h-9 w-9 place-items-center rounded-full bg-blue-100 text-[#0058bc]">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-blue-100 text-[#0058bc]">
                 <DashboardIcon name="user" className="h-4 w-4" />
               </span>
               <span className="text-xs font-bold text-slate-800 sm:text-sm">
                 Liên hệ bác sĩ tư vấn
               </span>
             </div>
-            <DashboardIcon name="chevron" className="h-4 w-4 text-slate-400" />
+            <DashboardIcon name="chevron" className="h-4 w-4 text-slate-400 shrink-0" />
           </Link>
 
           <Link
             href={ROUTES.appointment}
-            className="flex items-center justify-between gap-3 px-5 py-3.5 transition hover:bg-blue-50/50 sm:px-6"
+            className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6 transition hover:bg-blue-50/50"
           >
             <div className="flex items-center gap-3">
-              <span className="grid h-9 w-9 place-items-center rounded-full bg-cyan-100 text-[#0058bc]">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-cyan-100 text-[#0058bc]">
                 <DashboardIcon name="calendar" className="h-4 w-4" />
               </span>
               <span className="text-xs font-bold text-slate-800 sm:text-sm">
                 Đặt lịch khám nhanh
               </span>
             </div>
-            <DashboardIcon name="chevron" className="h-4 w-4 text-slate-400" />
+            <DashboardIcon name="chevron" className="h-4 w-4 text-slate-400 shrink-0" />
           </Link>
         </div>
       </div>
 
       {/* Dual Banner Slideshow Section */}
       {isLoadingServices ? (
-        <div className="mx-auto mt-10 max-w-[1280px] px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-5 sm:grid-cols-2">
-            <div className="h-[210px] animate-pulse rounded-2xl border border-slate-200/80 bg-slate-200/60 sm:h-[250px]" />
-            <div className="h-[210px] animate-pulse rounded-2xl border border-slate-200/80 bg-slate-200/60 sm:h-[250px]" />
+        <div className="mx-auto mt-6 sm:mt-10 max-w-[1280px] px-4 sm:px-6 lg:px-8">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="h-[190px] animate-pulse rounded-2xl border border-slate-200/80 bg-slate-200/60 sm:h-[250px]" />
+            <div className="h-[190px] animate-pulse rounded-2xl border border-slate-200/80 bg-slate-200/60 sm:h-[250px]" />
           </div>
         </div>
       ) : slides.length > 0 ? (
-        <div className="mx-auto mt-10 max-w-[1280px] px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto mt-6 sm:mt-10 max-w-[1280px] px-4 sm:px-6 lg:px-8 pb-16 sm:pb-8">
           <div className="relative">
-            {/* Nav Arrows */}
+            {/* Desktop Nav Arrows (Hidden on Mobile for visual cleanliness) */}
             {totalPages > 1 && (
               <>
                 <button
                   type="button"
                   onClick={handlePrev}
-                  className="absolute -left-3 top-1/2 z-20 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full border border-slate-200 bg-white text-lg font-bold text-slate-700 shadow-lg transition hover:bg-slate-50 hover:text-[#0058bc] sm:-left-5"
+                  className="hidden sm:grid absolute -left-4 top-1/2 z-20 h-10 w-10 -translate-y-1/2 place-items-center rounded-full border border-slate-200 bg-white text-lg font-bold text-slate-700 shadow-lg transition hover:bg-slate-50 hover:text-[#0058bc]"
                   aria-label="Previous Slide"
                 >
                   ‹
@@ -443,7 +443,7 @@ export function HomeHeroSearchSlideshow() {
                 <button
                   type="button"
                   onClick={handleNext}
-                  className="absolute -right-3 top-1/2 z-20 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full border border-slate-200 bg-white text-lg font-bold text-slate-700 shadow-lg transition hover:bg-slate-50 hover:text-[#0058bc] sm:-right-5"
+                  className="hidden sm:grid absolute -right-4 top-1/2 z-20 h-10 w-10 -translate-y-1/2 place-items-center rounded-full border border-slate-200 bg-white text-lg font-bold text-slate-700 shadow-lg transition hover:bg-slate-50 hover:text-[#0058bc]"
                   aria-label="Next Slide"
                 >
                   ›
@@ -451,15 +451,15 @@ export function HomeHeroSearchSlideshow() {
               </>
             )}
 
-            {/* Banner Cards Grid (2 Banners side by side) */}
-            <div className="grid gap-5 sm:grid-cols-2">
+            {/* Banner Cards Grid (2 Banners side by side on desktop, stacked neatly on mobile) */}
+            <div className="grid gap-4 sm:grid-cols-2">
               {slides
                 .slice(activeSlide * 2, activeSlide * 2 + 2)
                 .map((slide) => (
                   <Link
                     key={slide.id}
                     href={slide.href}
-                    className="group relative flex min-h-[210px] flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/80 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 p-6 text-white shadow-md transition duration-300 hover:-translate-y-1 hover:shadow-xl sm:min-h-[250px] sm:p-7"
+                    className="group relative flex min-h-[190px] flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/80 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 p-5 text-white shadow-md transition duration-300 hover:-translate-y-1 hover:shadow-xl sm:min-h-[250px] sm:p-7"
                   >
                     {slide.imageUrl && (
                       <div className="absolute inset-0 pointer-events-none">
@@ -474,11 +474,11 @@ export function HomeHeroSearchSlideshow() {
 
                     <div className="relative z-10">
                       {slide.badge && (
-                        <span className="inline-block rounded-full bg-white/20 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white backdrop-blur-sm">
+                        <span className="inline-block rounded-full bg-white/20 px-3 py-0.5 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-white backdrop-blur-sm">
                           {slide.badge}
                         </span>
                       )}
-                      <h3 className="mt-3 text-xl font-black tracking-tight text-white sm:text-2xl">
+                      <h3 className="mt-2.5 text-lg font-black tracking-tight text-white sm:text-2xl">
                         {slide.title}
                       </h3>
                       <p className="mt-1 line-clamp-2 text-xs text-blue-100 sm:text-sm">
@@ -487,10 +487,10 @@ export function HomeHeroSearchSlideshow() {
                     </div>
 
                     <div className="relative z-10 mt-4 flex items-center justify-between">
-                      <span className="text-sm font-bold text-white sm:text-base">
+                      <span className="text-xs font-bold text-white sm:text-base">
                         {slide.price}
                       </span>
-                      <span className="inline-flex items-center gap-1 rounded-xl bg-white px-4 py-2 text-xs font-extrabold text-[#0058bc] shadow-md transition group-hover:bg-blue-50">
+                      <span className="inline-flex items-center gap-1 rounded-xl bg-white px-3.5 py-1.5 text-xs font-extrabold text-[#0058bc] shadow-md transition group-hover:bg-blue-50">
                         Xem dịch vụ ›
                       </span>
                     </div>
@@ -500,14 +500,14 @@ export function HomeHeroSearchSlideshow() {
 
             {/* Pagination Dots */}
             {totalPages > 1 && (
-              <div className="mt-5 flex justify-center gap-2">
+              <div className="mt-4 sm:mt-5 flex justify-center gap-2">
                 {Array.from({ length: totalPages }).map((_, idx) => (
                   <button
                     key={idx}
                     type="button"
                     onClick={() => setActiveSlide(idx)}
                     className={`h-2 rounded-full transition-all duration-300 ${idx === activeSlide
-                      ? "w-6 bg-slate-800"
+                      ? "w-6 bg-[#0058bc]"
                       : "w-2 bg-slate-300 hover:bg-slate-400"
                       }`}
                     aria-label={`Go to slide page ${idx + 1}`}

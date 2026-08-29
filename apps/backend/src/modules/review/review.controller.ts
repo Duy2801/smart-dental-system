@@ -1,10 +1,14 @@
-import { Body, Controller, Delete, Get, Param, Patch, Query } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Delete, Get, Param, Patch, Query, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/common/guards/roles.guard';
 import { ReviewQueryDto } from './dto/review-query.dto';
 import { UpdateReviewVisibilityDto } from './dto/update-review-visibility.dto';
 import { ReviewService } from './review.service';
 
 @ApiTags('Review')
+@ApiBearerAuth()
 @Controller(['reviews', 'admin/reviews'])
 export class ReviewController {
   constructor(private readonly reviewService: ReviewService) {}
@@ -15,6 +19,8 @@ export class ReviewController {
   }
 
   @Patch(':id/visibility')
+  @Roles('ADMIN', 'RECEPTIONIST')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   updateVisibility(
     @Param('id') id: string,
     @Body() dto: UpdateReviewVisibilityDto,
@@ -23,7 +29,10 @@ export class ReviewController {
   }
 
   @Delete(':id')
+  @Roles('ADMIN', 'RECEPTIONIST')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   remove(@Param('id') id: string) {
     return this.reviewService.remove(id);
   }
 }
+

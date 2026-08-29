@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
+import { timingSafeEqual } from 'crypto';
 import { CurrentUser } from 'src/common/decorators/curent-user.decorator';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
@@ -47,12 +48,18 @@ export class PaymentController {
     const expected =
       this.config.get<string>('SEPAY_WEBHOOK_API_KEY') ||
       this.config.get<string>('SEPAY_API_KEY');
-    if (expected) {
-      const bearer = authorization?.replace(/^Bearer\s+/i, '').trim();
-      const provided = bearer || apiKeyHeader || '';
-      if (provided !== expected) {
-        throw new UnauthorizedException('sepay.unauthorized');
-      }
+    if (!expected) {
+      throw new UnauthorizedException('sepay.webhook_key_missing');
+    }
+    const bearer = authorization?.replace(/^Bearer\s+/i, '').trim();
+    const provided = bearer || apiKeyHeader || '';
+    const bufProvided = Buffer.from(provided);
+    const bufExpected = Buffer.from(expected);
+    if (
+      bufProvided.length !== bufExpected.length ||
+      !timingSafeEqual(bufProvided, bufExpected)
+    ) {
+      throw new UnauthorizedException('sepay.unauthorized');
     }
     return this.paymentService.handleSepayWebhook(dto);
   }
@@ -61,10 +68,11 @@ export class PaymentController {
   @ApiBearerAuth()
   @Roles('PATIENT', 'RECEPTIONIST', 'ADMIN')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  create(
+  async create(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreatePaymentDto,
   ) {
+    await this.paymentService.ensureInvoiceAccess(user, dto.invoiceId);
     return this.paymentService.createPayment(user.userId, dto);
   }
 
@@ -72,10 +80,11 @@ export class PaymentController {
   @ApiBearerAuth()
   @Roles('PATIENT', 'RECEPTIONIST', 'ADMIN')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  findByInvoice(
+  async findByInvoice(
     @CurrentUser() user: AuthenticatedUser,
     @Param('invoiceId') invoiceId: string,
   ) {
+    await this.paymentService.ensureInvoiceAccess(user, invoiceId);
     return this.paymentService.getPaymentByInvoice(invoiceId);
   }
 
@@ -83,8 +92,13 @@ export class PaymentController {
   @ApiBearerAuth()
   @Roles('PATIENT', 'RECEPTIONIST', 'ADMIN')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  findOne(@Param('id') id: string) {
-    return this.paymentService.getPayment(id);
+  async findOne(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ) {
+    const payment = await this.paymentService.getPayment(id);
+    await this.paymentService.ensureInvoiceAccess(user, payment.invoiceId);
+    return payment;
   }
 
   @Patch(':id/confirm')
@@ -106,3 +120,4 @@ export class PaymentController {
     return this.paymentService.sendPaymentReminder(invoiceId);
   }
 }
+

@@ -51,7 +51,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         </span>
       </div>
 
-      <main className="auth-background relative flex flex-1 items-center justify-center p-3 sm:p-4 lg:p-5 overflow-hidden min-h-0">
+      <main className="auth-background relative flex flex-1 items-center justify-center p-3 sm:p-4 lg:p-5 overflow-y-auto min-h-0">
         <div className="mx-auto grid w-full max-w-5xl items-center gap-6 lg:grid-cols-12 lg:gap-10 h-full max-h-full">
           {/* Left Side Showcase (Large screens) */}
           <div className="hidden lg:col-span-6 lg:flex lg:flex-col lg:justify-center">

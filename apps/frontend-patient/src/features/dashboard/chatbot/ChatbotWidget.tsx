@@ -155,9 +155,9 @@ export function ChatbotWidget() {
   }
 
   return (
-    <div className="fixed bottom-5 right-5 z-50 sm:bottom-7 sm:right-7">
+    <div className="fixed bottom-20 right-4 z-50 sm:bottom-7 sm:right-7">
       {open && (
-        <section className="mb-4 flex h-[540px] max-h-[calc(100dvh-100px)] w-[calc(100vw-32px)] max-w-[390px] flex-col overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-[0_24px_70px_rgba(15,43,82,0.22)]">
+        <section className="mb-3 flex h-[520px] max-h-[calc(100dvh-120px)] w-[calc(100vw-32px)] max-w-[390px] flex-col overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-[0_24px_70px_rgba(15,43,82,0.22)]">
           {/* Header */}
           <header className="flex items-center justify-between bg-gradient-to-r from-[#0863c5] via-[#0779da] to-[#0782d8] px-4 py-3.5 text-white shadow-md">
             <div className="flex items-center gap-3">
@@ -285,7 +285,7 @@ export function ChatbotWidget() {
         onClick={() => setOpen((current) => !current)}
         aria-label={open ? "Đóng trợ lý nha khoa" : "Mở trợ lý nha khoa AI"}
         aria-expanded={open}
-        className="relative ml-auto grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-tr from-[#0863c5] to-[#0782d8] text-white shadow-[0_12px_30px_rgba(8,99,197,0.38)] transition duration-200 hover:-translate-y-1 hover:shadow-blue-500/40 active:scale-95"
+        className="relative ml-auto grid h-13 w-13 sm:h-14 sm:w-14 place-items-center rounded-2xl bg-gradient-to-tr from-[#0863c5] to-[#0782d8] text-white shadow-[0_12px_30px_rgba(8,99,197,0.38)] transition duration-200 hover:-translate-y-1 hover:shadow-blue-500/40 active:scale-95"
       >
         <DashboardIcon name={open ? "chevron" : "chat"} className={`h-6 w-6 ${open ? "-rotate-90" : ""}`} />
         {!open && (

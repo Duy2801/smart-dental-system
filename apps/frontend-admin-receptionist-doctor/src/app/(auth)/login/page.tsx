@@ -105,16 +105,28 @@ export default function LoginPage() {
 
       router.replace(destination);
       router.refresh();
-    } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : "Đăng nhập thất bại. Vui lòng thử lại.";
+    } catch (err: any) {
+      let message = "Đăng nhập thất bại. Vui lòng thử lại.";
+      if (err?.response?.data?.message) {
+        const msg = err.response.data.message;
+        if (
+          msg === "auth.invalid_credentials" ||
+          msg === "user.not_found" ||
+          err?.response?.status === 401
+        ) {
+          message = "Email hoặc mật khẩu không chính xác.";
+        } else {
+          message = Array.isArray(msg) ? msg.join(", ") : msg;
+        }
+      } else if (err?.message) {
+        message = err.message;
+      }
       setError(message);
     } finally {
       setIsLoading(false);
     }
   };
+
 
   return (
     <div className="flex min-h-[100dvh] w-full flex-col lg:flex-row">

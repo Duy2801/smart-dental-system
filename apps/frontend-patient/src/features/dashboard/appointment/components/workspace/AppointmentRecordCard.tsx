@@ -108,12 +108,12 @@ export function AppointmentRecordCard({
       </div>
 
       {/* Action Buttons */}
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex flex-wrap items-center gap-2 shrink-0 w-full sm:w-auto justify-end sm:justify-start pt-2.5 sm:pt-0 border-t sm:border-t-0 border-slate-200/60">
         {onViewDetail ? (
           <button
             type="button"
             onClick={onViewDetail}
-            className="px-3.5 py-2 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+            className="flex-1 sm:flex-none px-3 sm:px-3.5 py-2 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
           >
             <svg
               className="w-3.5 h-3.5 text-slate-500"
@@ -142,7 +142,7 @@ export function AppointmentRecordCard({
           <button
             type="button"
             onClick={onReschedule}
-            className="px-4 py-2 bg-white hover:bg-blue-50 border border-blue-200 text-[#0058bc] font-bold rounded-xl text-xs transition-all shadow-2xs cursor-pointer"
+            className="flex-1 sm:flex-none px-3.5 sm:px-4 py-2 bg-white hover:bg-blue-50 border border-blue-200 text-[#0058bc] font-bold rounded-xl text-xs transition-all shadow-2xs cursor-pointer text-center"
           >
             Đổi lịch
           </button>
@@ -153,7 +153,7 @@ export function AppointmentRecordCard({
             type="button"
             onClick={onCancel}
             disabled={isCancelling}
-            className="px-4 py-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 font-bold rounded-xl text-xs transition-all disabled:opacity-60 cursor-pointer"
+            className="flex-1 sm:flex-none px-3.5 sm:px-4 py-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 font-bold rounded-xl text-xs transition-all disabled:opacity-60 cursor-pointer text-center"
           >
             {isCancelling ? "Đang hủy..." : "Hủy"}
           </button>

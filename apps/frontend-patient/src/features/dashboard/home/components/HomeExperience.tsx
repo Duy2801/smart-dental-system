@@ -425,33 +425,33 @@ function DoctorCardContent({
     doctor.bullets && doctor.bullets.length > 0
       ? doctor.bullets
       : getDoctorBullets(doctor)
-  ).slice(0, 5);
+  ).slice(0, 4);
 
   const isPreview = mode === "preview";
 
   return (
     <article
-      className={`relative overflow-hidden transition-all duration-500 rounded-[28px] bg-white border h-[480px] sm:h-[500px] lg:h-[520px] flex flex-col justify-between ${
+      className={`relative overflow-hidden transition-all duration-500 rounded-3xl bg-white border min-h-[440px] sm:min-h-[480px] lg:h-[520px] flex flex-col justify-between ${
         isPreview
           ? "border-slate-200/60 opacity-40 scale-[0.93] shadow-sm select-none pointer-events-none"
           : "border-slate-100/80 shadow-[0_20px_50px_rgba(15,23,42,0.07)] opacity-100 scale-100 z-10"
       }`}
     >
-      <div className="relative h-full p-7 sm:p-9 lg:p-10 grid grid-cols-1 lg:grid-cols-[1.3fr_0.7fr] gap-6 items-stretch">
+      <div className="relative h-full p-5 sm:p-8 lg:p-10 flex flex-col lg:grid lg:grid-cols-[1.3fr_0.7fr] gap-4 sm:gap-6 justify-between items-stretch">
         {/* Left text & content container */}
         <div className="z-10 flex flex-col justify-between h-full min-w-0">
           <div>
-            <p className="text-[13px] sm:text-[14px] font-semibold text-[#3b4c7c] tracking-wide mb-1">
-              Bác sĩ
+            <p className="text-xs sm:text-[14px] font-semibold text-[#3b4c7c] tracking-wide mb-1">
+              Bác sĩ chuyên khoa
             </p>
-            <h3 className="text-2xl sm:text-3xl lg:text-[34px] xl:text-[36px] font-bold text-[#1f2b56] tracking-tight leading-tight mb-4 line-clamp-1">
+            <h3 className="text-xl sm:text-3xl lg:text-[34px] xl:text-[36px] font-bold text-[#1f2b56] tracking-tight leading-tight mb-3 line-clamp-1">
               {doctor.name}
             </h3>
 
-            <ul className="space-y-2 lg:space-y-2.5 text-[13px] sm:text-[13.5px] lg:text-[14px] text-slate-700 leading-relaxed font-normal overflow-hidden">
+            <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-[14px] text-slate-700 leading-relaxed overflow-hidden">
               {bullets.map((bullet, idx) => (
-                <li key={idx} className="flex items-start gap-2.5">
-                  <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-slate-800" />
+                <li key={idx} className="flex items-start gap-2">
+                  <span className="mt-[6px] h-1.5 w-1.5 shrink-0 rounded-full bg-slate-800" />
                   <span className="line-clamp-2">{bullet}</span>
                 </li>
               ))}
@@ -461,24 +461,21 @@ function DoctorCardContent({
           <div className="pt-3">
             <Link
               href={buildRoute.doctorDetail(doctor.id)}
-              className="inline-flex items-center justify-center rounded-full bg-[#ecf3fe] px-7 py-2.5 text-xs sm:text-sm font-semibold text-[#2563eb] transition duration-200 hover:bg-[#deebff] hover:text-[#1d4ed8]"
+              className="inline-flex items-center justify-center rounded-full bg-[#ecf3fe] px-6 py-2.5 text-xs sm:text-sm font-semibold text-[#2563eb] transition duration-200 hover:bg-[#deebff]"
             >
-              Xem chi tiết
+              Xem chi tiết bác sĩ ›
             </Link>
           </div>
         </div>
 
         {/* Right graphic motif & doctor image cutout */}
-        <div className="relative h-full flex items-end justify-center lg:justify-end overflow-hidden">
-          {/* Circular soft blue background shape */}
-          <div className="absolute bottom-2 right-4 sm:right-6 lg:right-8 w-48 h-48 sm:w-56 sm:h-56 lg:w-68 lg:h-68 rounded-full bg-[#d0e2fe] z-0 pointer-events-none" />
-
-          {/* Doctor cutout portrait */}
-          <div className="relative z-10 h-[260px] sm:h-[320px] lg:h-[370px] w-auto max-w-full flex items-end">
+        <div className="relative h-44 sm:h-60 lg:h-full flex items-end justify-center lg:justify-end overflow-hidden">
+          <div className="absolute bottom-0 w-40 h-40 sm:w-56 sm:h-56 lg:w-68 lg:h-68 rounded-full bg-[#d0e2fe] z-0 pointer-events-none" />
+          <div className="relative z-10 h-full w-auto max-w-full flex items-end">
             <img
               src={doctor.avatarUrl || "/dsbacsi.png"}
               alt={doctor.name}
-              className="h-full w-auto object-contain object-bottom drop-shadow-md"
+              className="h-full w-auto object-contain object-bottom drop-shadow-md max-h-[220px] sm:max-h-[320px] lg:max-h-none"
             />
           </div>
         </div>
@@ -515,20 +512,18 @@ export function DoctorDirectory() {
   }
 
   return (
-    <section className="relative overflow-hidden bg-[#f4f7fc] py-12 sm:py-16 lg:py-20">
-      <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-12">
+    <section className="relative overflow-hidden bg-[#f4f7fc] py-10 sm:py-16 lg:py-20">
+      <div className="mx-auto max-w-[1440px] px-3.5 sm:px-6 lg:px-12">
         {/* Top Header Section */}
-        <div className="relative mx-auto mb-10 max-w-4xl text-center lg:mb-12">
+        <div className="relative mx-auto mb-8 max-w-4xl text-center lg:mb-12">
           <p className={T.overline}>
             Đội ngũ bác sĩ
           </p>
-          <h2 className="mx-auto mt-3 text-3xl font-semibold tracking-[-0.04em] text-[#173761] sm:text-4xl lg:text-5xl">
-            Gặp gỡ đội ngũ bác sĩ răng hàm mặt giàu kinh nghiệm
+          <h2 className="mx-auto mt-2 text-2xl font-bold tracking-tight text-[#173761] sm:text-4xl lg:text-5xl">
+            Gặp gỡ đội ngũ bác sĩ giàu kinh nghiệm
           </h2>
-          <p className={`mx-auto mt-4 text-base sm:text-lg ${T.body}`}>
-            Đội ngũ bác sĩ tận tâm, chính trực và phối hợp chặt chẽ để mang đến
-            trải nghiệm điều trị an toàn, chính xác và dễ hiểu cho từng khách
-            hàng.
+          <p className={`mx-auto mt-3 text-xs sm:text-base ${T.body}`}>
+            Đội ngũ bác sĩ tận tâm, chuyên nghiệp, luôn lắng nghe và mang đến trải nghiệm điều trị tốt nhất.
           </p>
         </div>
 
@@ -537,8 +532,8 @@ export function DoctorDirectory() {
             <DoctorSkeleton />
           </div>
         ) : doctors.length ? (
-          <div className="relative mt-10 flex flex-col items-center lg:mt-12">
-            <div className="relative min-h-[560px] w-full max-w-[1240px] overflow-hidden">
+          <div className="relative mt-6 flex flex-col items-center lg:mt-12">
+            <div className="relative min-h-[460px] sm:min-h-[520px] lg:min-h-[560px] w-full max-w-[1240px] overflow-hidden">
               {/* Navigation Arrows */}
               {doctors.length > 1 ? (
                 <>
@@ -546,17 +541,17 @@ export function DoctorDirectory() {
                     type="button"
                     onClick={() => step(-1)}
                     aria-label="Bác sĩ trước"
-                    className="absolute left-4 top-[230px] z-30 grid h-11 w-11 place-items-center rounded-full border border-slate-100 bg-white text-slate-800 shadow-[0_8px_25px_rgba(0,0,0,0.12)] transition-all duration-200 hover:scale-105 hover:bg-slate-50 active:scale-95 sm:left-8 sm:h-13 sm:w-13 lg:left-12"
+                    className="absolute left-1 sm:left-4 top-1/2 z-30 grid h-9 w-9 sm:h-12 sm:w-12 -translate-y-1/2 place-items-center rounded-full border border-slate-100 bg-white text-slate-800 shadow-md transition hover:scale-105 active:scale-95"
                   >
-                    <span className="text-2xl font-light leading-none">‹</span>
+                    <span className="text-xl sm:text-2xl font-light leading-none">‹</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => step(1)}
                     aria-label="Bác sĩ tiếp theo"
-                    className="absolute right-4 top-[230px] z-30 grid h-11 w-11 place-items-center rounded-full border border-slate-100 bg-white text-slate-800 shadow-[0_8px_25px_rgba(0,0,0,0.12)] transition-all duration-200 hover:scale-105 hover:bg-slate-50 active:scale-95 sm:right-8 sm:h-13 sm:w-13 lg:right-12"
+                    className="absolute right-1 sm:right-4 top-1/2 z-30 grid h-9 w-9 sm:h-12 sm:w-12 -translate-y-1/2 place-items-center rounded-full border border-slate-100 bg-white text-slate-800 shadow-md transition hover:scale-105 active:scale-95"
                   >
-                    <span className="text-2xl font-light leading-none">›</span>
+                    <span className="text-xl sm:text-2xl font-light leading-none">›</span>
                   </button>
                 </>
               ) : null}
@@ -572,12 +567,12 @@ export function DoctorDirectory() {
                     <div
                       key={doctor.id}
                       onClick={() => moveToIndex(index)}
-                      className={`absolute left-1/2 top-0 w-[min(82vw,880px)] cursor-pointer transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                      className={`absolute left-1/2 top-0 w-[calc(100%-1rem)] sm:w-[min(82vw,880px)] cursor-pointer transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
                         isActive
                           ? "z-20 opacity-100 scale-100"
                           : distance === 1
-                            ? "z-10 opacity-45 scale-[0.9]"
-                            : "opacity-0 scale-[0.86] pointer-events-none"
+                            ? "hidden sm:block z-10 opacity-45 scale-[0.9]"
+                            : "hidden opacity-0 scale-[0.86] pointer-events-none"
                       }`}
                       style={{
                         transform: `translateX(calc(-50% + ${offset * 560}px))`,
@@ -593,28 +588,30 @@ export function DoctorDirectory() {
               </div>
             </div>
 
-            {/* Indicator Dots */}
-            <div className="hidden">
-              {doctors.map((doctor, index) => (
-                <button
-                  key={doctor.id}
-                  type="button"
-                  onClick={() => moveToIndex(index)}
-                  aria-label={`Chọn ${doctor.name}`}
-                  className={`h-2.5 rounded-full transition-all duration-300 ${
-                    index === activeIndex ? "w-9 bg-[#2563eb]" : "w-2.5 bg-[#c2d7fc] hover:bg-[#8eb6fa]"
-                  }`}
-                />
-              ))}
-            </div>
+            {/* Indicator Dots for Mobile & Desktop */}
+            {doctors.length > 1 && (
+              <div className="mt-4 flex justify-center gap-1.5">
+                {doctors.map((doctor, index) => (
+                  <button
+                    key={doctor.id}
+                    type="button"
+                    onClick={() => moveToIndex(index)}
+                    aria-label={`Chọn ${doctor.name}`}
+                    className={`h-2 rounded-full transition-all duration-300 ${
+                      index === activeIndex ? "w-6 bg-[#0058bc]" : "w-2 bg-slate-300 hover:bg-slate-400"
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
 
             {/* Xem tất cả bác sĩ Button */}
-            <div className="mt-2 flex justify-center">
+            <div className="mt-6 flex justify-center">
               <Link
                 href={ROUTES.doctor}
-                className="inline-flex h-12 items-center rounded-full border border-[#0058bc] bg-white px-8 text-sm font-semibold text-[#0058bc] shadow-sm transition hover:bg-[#f5f9ff]"
+                className="inline-flex h-11 items-center rounded-full border border-[#0058bc] bg-white px-7 text-xs sm:text-sm font-bold text-[#0058bc] shadow-sm transition hover:bg-[#f5f9ff]"
               >
-                Xem tất cả bác sĩ
+                Xem tất cả bác sĩ ›
               </Link>
             </div>
           </div>

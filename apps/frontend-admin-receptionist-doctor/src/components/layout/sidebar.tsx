@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { X } from "@phosphor-icons/react";
 import { ROUTES } from "@/src/constants/routes";
 import { cn } from "@/src/lib/utils/cn";
 import { ClinicSidebarBrand } from "./clinic-brand";
@@ -15,6 +16,9 @@ type SidebarProps = {
   title: string;
   items: NavItem[];
   pathname: string;
+  onItemClick?: () => void;
+  className?: string;
+  onCloseMobile?: () => void;
 };
 
 function isNavItemActive(pathname: string, href: string) {
@@ -30,21 +34,39 @@ function removeCookie(name: string) {
   document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
 }
 
-export function Sidebar({ title, items, pathname }: SidebarProps) {
+export function Sidebar({
+  title,
+  items,
+  pathname,
+  onItemClick,
+  className,
+  onCloseMobile,
+}: SidebarProps) {
   const router = useRouter();
 
   const handleLogout = () => {
     ["access_token", "refresh_token", "role", "session", "user_info"].forEach(
       removeCookie,
     );
+    if (onItemClick) onItemClick();
     router.replace(ROUTES.LOGIN);
     router.refresh();
   };
 
   return (
-    <aside className="flex w-64 shrink-0 flex-col bg-brand-dark text-white">
-      <div className="border-b border-white/10 px-6 py-5">
+    <aside className={cn("flex w-64 shrink-0 flex-col bg-brand-dark text-white", className)}>
+      <div className="flex items-center justify-between border-b border-white/10 px-6 py-5">
         <ClinicSidebarBrand title={title} />
+        {onCloseMobile ? (
+          <button
+            type="button"
+            onClick={onCloseMobile}
+            className="rounded-lg p-1.5 text-white/75 hover:bg-white/10 hover:text-white transition-colors md:hidden"
+            aria-label="Close menu"
+          >
+            <X size={20} />
+          </button>
+        ) : null}
       </div>
       <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-4">
         {items.map((item) => {
@@ -54,6 +76,7 @@ export function Sidebar({ title, items, pathname }: SidebarProps) {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onItemClick}
               className={cn(
                 "rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                 isActive
@@ -77,3 +100,5 @@ export function Sidebar({ title, items, pathname }: SidebarProps) {
     </aside>
   );
 }
+
+
