@@ -51,9 +51,9 @@ function DashboardHeader() {
 
 function DashboardFooter() {
   return (
-    <footer className="mt-12 border-t border-slate-200 bg-white">
-      <div className="mx-auto w-full max-w-[1360px] px-4 py-8 text-xs text-slate-600 sm:px-6 lg:px-8">
-        <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-4 pb-6 border-b border-slate-100">
+    <footer className="mt-8 sm:mt-12 border-t border-slate-200 bg-white pb-20 md:pb-0">
+      <div className="mx-auto w-full max-w-[1360px] px-4 py-6 sm:py-8 text-xs text-slate-600 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-4 pb-6 border-b border-slate-100">
           <div className="space-y-2">
             <p className={T.brandNameFooter}>Smart Dental System</p>
             <p className={T.caption}>
@@ -65,7 +65,7 @@ function DashboardFooter() {
 
         <div className="flex flex-col gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between text-[11px] text-slate-500">
           <p>© 2026 Smart Dental System. Chăm sóc nụ cười bằng công nghệ AI.</p>
-          <div className="flex gap-5">
+          <div className="flex flex-wrap gap-4 sm:gap-5">
             {FOOTER_LINKS.map((link) => (
               <Link key={link.href} href={link.href} className="hover:text-[#0863c5]">
                 {link.label}
