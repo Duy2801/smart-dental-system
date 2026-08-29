@@ -192,27 +192,20 @@ export function HomeHeroSearchSlideshow() {
   return (
     <section className="relative w-full pb-2 sm:pb-8">
       {/* Dynamic Top Banner Section from DB */}
-      <div className="relative w-full overflow-hidden bg-[#0058bc] pb-6 sm:pb-28">
+      <div className="relative w-full overflow-hidden pb-6 sm:pb-28">
         {isLoadingBanners ? (
           <div className="w-full h-36 animate-pulse bg-blue-400/30 sm:h-[420px]" />
         ) : currentHeroBanner ? (
-          <a
-            href={currentHeroBanner.linkUrl || "#"}
-            target={currentHeroBanner.linkUrl?.startsWith("http") ? "_blank" : "_self"}
-            rel="noopener noreferrer"
-            className="block w-full"
-          >
-            <img
-              src={currentHeroBanner.imageUrl}
-              alt={currentHeroBanner.title || "Smart Dental Banner"}
-              className="w-full h-auto block object-contain sm:object-cover sm:max-h-[580px] transition-all duration-700"
-            />
-          </a>
+          <img
+            src={currentHeroBanner.imageUrl}
+            alt={currentHeroBanner.title || "Smart Dental Banner"}
+            className="w-full h-auto block object-cover sm:max-h-[520px] transition-all duration-700 cursor-default select-none"
+          />
         ) : (
           <img
             src="/bannerhome.png"
             alt="Smart Dental Banner"
-            className="w-full h-auto block object-contain sm:object-cover sm:max-h-[580px]"
+            className="w-full h-auto block object-cover sm:max-h-[520px] cursor-default select-none"
           />
         )}
       </div>
