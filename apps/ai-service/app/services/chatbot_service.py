@@ -5,6 +5,11 @@ from app.schemas.chatbot import ChatRequest, ChatResponse
 
 
 class ChatbotService:
+    """
+    Chatbot bệnh nhân gốc: RAG + LLM thuần.
+    Được gọi tại POST /api/v1/chatbot/chat
+    """
+
     async def reply(self, body: ChatRequest) -> ChatResponse:
         history_txt = "\n".join(
             f"{m.role}: {m.content}" for m in body.history[-10:]

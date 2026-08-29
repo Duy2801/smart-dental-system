@@ -1,19 +1,13 @@
-"""LLM client — fallback chain: nvidia -> openrouter -> groq."""
+"""LLM client — fallback chain: nvidia -> openrouter -> groq -> gemini."""
 
 import logging
-
 from app.config import get_settings
 
 logger = logging.getLogger(__name__)
 
 
 async def complete(system: str, user: str) -> str:
-    """Goi LLM voi fallback tu dong: nvidia -> openrouter -> groq.
-
-    - openai / gemini van dung duoc qua LLM_PROVIDER (khong co fallback).
-    - Ba provider con lai luon thu theo thu tu nvidia -> openrouter -> groq,
-      bat ke gia tri LLM_PROVIDER la gi.
-    """
+    """Goi LLM voi fallback tu dong: nvidia -> openrouter -> groq -> gemini."""
     settings = get_settings()
     provider = settings.llm_provider.lower()
 
@@ -26,10 +20,8 @@ async def complete(system: str, user: str) -> str:
             system,
             user,
         )
-    if provider == "gemini" and settings.gemini_api_key:
-        return await _gemini_complete(system, user, settings)
 
-    # --- Fallback chain: nvidia -> openrouter -> groq ---
+    # --- Fallback chain: nvidia -> openrouter -> groq -> gemini ---
     candidates = []
 
     if settings.nvidia_api_key:
@@ -63,7 +55,8 @@ async def complete(system: str, user: str) -> str:
         )
 
     last_error: Exception | None = None
-    for name, url, api_key, model in candidates:
+    for item in candidates:
+        name, url, api_key, model = item
         try:
             logger.info("[LLM] Trying provider: %s", name)
             result = await _openai_compatible(url, api_key, model, system, user)
@@ -73,12 +66,23 @@ async def complete(system: str, user: str) -> str:
             logger.warning("[LLM] Provider %s failed: %s — trying next.", name, exc)
             last_error = exc
 
+    # Fallback to Gemini if configured
+    if settings.gemini_api_key:
+        try:
+            logger.info("[LLM] Trying fallback provider: gemini")
+            result = await _gemini_complete(system, user, settings)
+            logger.info("[LLM] Success with fallback provider: gemini")
+            return result
+        except Exception as exc:
+            logger.warning("[LLM] Provider gemini failed: %s", exc)
+            last_error = exc
+
     if last_error:
         raise RuntimeError(f"Tat ca LLM provider deu that bai. Loi cuoi: {last_error}")
 
     return (
         "[STUB AI] Chua cau hinh API key. "
-        "Dien NVIDIA_API_KEY / OPENROUTER_API_KEY / GROQ_API_KEY vao "
+        "Dien NVIDIA_API_KEY / OPENROUTER_API_KEY / GROQ_API_KEY / GEMINI_API_KEY vao "
         "apps/ai-service/.env roi restart service."
     )
 
@@ -88,7 +92,7 @@ async def _openai_compatible(
 ) -> str:
     import httpx
 
-    async with httpx.AsyncClient(timeout=60) as client:
+    async with httpx.AsyncClient(timeout=10) as client:
         res = await client.post(
             url,
             headers={"Authorization": f"Bearer {api_key}"},
@@ -114,12 +118,17 @@ async def _gemini_complete(system: str, user: str, settings) -> str:
         f"{settings.gemini_model}:generateContent"
         f"?key={settings.gemini_api_key}"
     )
-    async with httpx.AsyncClient(timeout=60) as client:
+    async with httpx.AsyncClient(timeout=10) as client:
         res = await client.post(
             url,
             json={
-                "system_instruction": {"parts": [{"text": system}]},
-                "contents": [{"parts": [{"text": user}]}],
+                "contents": [
+                    {
+                        "parts": [
+                            {"text": system + "\n\n" + user}
+                        ]
+                    }
+                ]
             },
         )
         res.raise_for_status()
@@ -128,8 +137,8 @@ async def _gemini_complete(system: str, user: str, settings) -> str:
 
 
 async def complete_gemini(system: str, user: str) -> str:
-    """Dùng Gemini để diễn giải dữ liệu đã được model local phát hiện."""
+    """Use Gemini for vision explanation prompts."""
     settings = get_settings()
     if not settings.gemini_api_key:
-        raise RuntimeError("Chưa cấu hình GEMINI_API_KEY cho phần giải thích X-quang.")
+        raise RuntimeError("GEMINI_API_KEY is required for vision explanations.")
     return await _gemini_complete(system, user, settings)

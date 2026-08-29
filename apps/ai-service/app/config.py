@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     )
 
     ai_service_name: str = "smart-dental-ai"
-    ai_service_port: int = 8000
+    ai_service_port: int = 8001
     llm_provider: str = "openrouter"
     openrouter_api_key: str = ""
     openrouter_model: str = ""
@@ -47,6 +47,7 @@ class Settings(BaseSettings):
     huggingface_model_id: str = "Hau1122/smart-dental-pano-ai"
     node_env: str = "development"
     ai_service_api_key: str = "dev-local-key"
+    backend_base_url: str = "http://localhost:3000/api/v1"
     cors_origins: str = (
         "http://localhost:3001,http://localhost:3002,"
         "http://127.0.0.1:3001,http://127.0.0.1:3002"

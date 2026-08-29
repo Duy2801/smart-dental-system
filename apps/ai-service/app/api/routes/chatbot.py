@@ -11,8 +11,16 @@ service = ChatbotService()
 
 @router.post("/chat", response_model=ChatResponse)
 async def chat(body: ChatRequest):
-    """Chatbot bệnh nhân: FAQ / triệu chứng / gợi ý đặt lịch."""
+    """Chatbot bệnh nhân: FAQ / triệu chứng / gợi ý đặt lịch (RAG + LLM)."""
     return await service.reply(body)
+
+
+@router.post("/agent-chat", response_model=ChatResponse)
+async def agent_chat(body: ChatRequest):
+    """Booking Agent bệnh nhân: tự động đặt lịch hẹn qua AI Agent."""
+    from app.services.booking_agent import BookingAgent
+    agent = BookingAgent()
+    return await agent.process_chat(body)
 
 
 @router.post("/receptionist-chat", response_model=ChatResponse)

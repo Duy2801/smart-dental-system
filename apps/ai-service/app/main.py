@@ -37,5 +37,6 @@ def health():
             or (s.llm_provider == "groq" and s.groq_api_key)
             or (s.llm_provider == "openai" and s.openai_api_key)
             or (s.llm_provider == "gemini" and s.gemini_api_key)
+            or (s.llm_provider == "nvidia" and s.nvidia_api_key)
         ),
     }

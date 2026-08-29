@@ -89,7 +89,7 @@ const API_ORIGIN = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
 const apiClient = axios.create({
   baseURL: `${API_ORIGIN}/api/v1`,
-  timeout: 10000,
+      timeout: 30000,
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
