@@ -31,3 +31,17 @@ export type NotificationCategoryFilter =
 export interface UnreadCountResponse {
   unreadCount: number;
 }
+
+export interface NotificationMeta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasMore: boolean;
+  unreadCount: number;
+}
+
+export interface PaginatedNotificationsResponse {
+  data: NotificationItem[];
+  meta: NotificationMeta;
+}

@@ -51,7 +51,7 @@ function buildDefaults(profile?: PatientProfileUser | null): ProfileFormState {
 export default function ProfilePage() {
   const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
-  const { user: storedUser, accessToken } = useAppSelector((state) => state.login);
+  const { user: storedUser, accessToken, isHydrated } = useAppSelector((state) => state.login);
 
   const [saving, setSaving] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -93,7 +93,7 @@ export default function ProfilePage() {
   });
 
   const profile = profileQuery.data ?? (storedUser as PatientProfileUser | null);
-  const loading = profileQuery.isLoading && !profile;
+  const loading = (!isHydrated || profileQuery.isLoading) && !profile;
   const initials = useMemo(() => getInitials(profile?.fullName), [profile?.fullName]);
 
   const defaults = useMemo(() => buildDefaults(profile), [profile]);

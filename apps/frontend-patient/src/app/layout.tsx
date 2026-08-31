@@ -1,16 +1,21 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import { AppProvider } from "@/providers";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const nunito = localFont({
+  src: [
+    {
+      path: "../../public/font/Nunito/Nunito-VariableFont_wght.ttf",
+      style: "normal",
+    },
+    {
+      path: "../../public/font/Nunito/Nunito-Italic-VariableFont_wght.ttf",
+      style: "italic",
+    },
+  ],
+  variable: "--font-nunito",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -18,7 +23,7 @@ export const metadata: Metadata = {
     default: "Smart Dental System",
     template: "%s | Smart Dental System",
   },
-  description: "Smart Dental System",
+  description: "Smart Dental System - Hệ thống quản lý và chăm sóc sức khỏe nha khoa thông minh",
 };
 
 export default function RootLayout({
@@ -29,9 +34,9 @@ export default function RootLayout({
   return (
     <html
       lang="vi"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${nunito.variable} ${nunito.className} h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col">
+      <body className="flex min-h-full flex-col font-sans text-slate-900 selection:bg-blue-100 selection:text-[#0863c5]">
         <AppProvider>{children}</AppProvider>
       </body>
     </html>

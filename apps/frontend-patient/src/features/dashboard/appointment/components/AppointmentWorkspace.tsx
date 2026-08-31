@@ -37,18 +37,8 @@ export function AppointmentWorkspace({
     setMode("booking");
   }, [ensureLoggedInBeforeBooking]);
 
-  if (!isHydrated) {
-    return (
-      <main className="mx-auto w-full max-w-[1360px] px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
-        <div className="space-y-6">
-          <div className="h-40 rounded-2xl bg-gradient-to-r from-slate-200/70 via-slate-100 to-slate-200/70 animate-pulse" />
-          <div className="h-96 rounded-2xl bg-gradient-to-r from-slate-200/70 via-slate-100 to-slate-200/70 animate-pulse" />
-        </div>
-      </main>
-    );
-  }
-
-  if (!isLoggedIn) {
+  // Show LoginRequiredPanel ONLY after auth hydration completes and user is confirmed unauthenticated
+  if (isHydrated && !isLoggedIn) {
     return (
       <LoginRequiredPanel
         title="Đặt lịch khám nha khoa"

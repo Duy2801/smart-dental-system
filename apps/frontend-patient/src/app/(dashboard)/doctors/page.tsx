@@ -9,6 +9,7 @@ import { PatientPageSkeleton } from "@/features/dashboard/common/PatientSkeleton
 import { getDoctors, getDoctorBullets, type HomeDoctorCard } from "@/features/dashboard/home/api";
 import { getPatientServices } from "@/features/dashboard/service/api";
 import { EmptySearchResult } from "@/features/dashboard/common/EmptySearchResult";
+import { DashboardIcon } from "@/features/dashboard/common/DashboardIcon";
 
 function getInitials(name: string) {
   return name
@@ -188,116 +189,132 @@ function DoctorsPageContent() {
     });
   }, [doctorName, doctors, relatedDoctors, searched, selectedDoctorId, selectedService]);
 
-  if (doctorsQuery.isLoading || servicesQuery.isLoading) {
-    return <PatientPageSkeleton />;
-  }
-
   return (
-    <main className="mx-auto w-full max-w-[1360px] px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
-      <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-        <div className="relative h-56 bg-slate-100 sm:h-64 lg:h-[360px]">
-          <Image
-            src="/dsbacsi.png"
-            alt="Đội ngũ bác sĩ"
-            fill
-            priority
-            sizes="100vw"
-            className="object-cover object-center"
-          />
+    <main className="mx-auto w-full max-w-[1360px] space-y-8 px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
+      {/* Intro Header Section (Left-aligned) */}
+      <section className="py-2 space-y-3">
+        <div>
+          <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 border border-blue-200 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-[#0058bc]">
+            <DashboardIcon name="sparkles" className="h-3.5 w-3.5 text-[#0058bc]" />
+            Đội Ngũ Chuyên Gia
+          </span>
         </div>
 
-        <div className="px-6 py-8 sm:px-8 lg:px-10">
-          <nav className="flex items-center gap-2 text-sm text-slate-500">
-            <Link href="/home" className="font-semibold hover:text-[#0058bc]">
-              Trang chủ
-            </Link>
-            <span>/</span>
-            <span className="font-semibold text-[#0058bc]">Bác sĩ</span>
-          </nav>
+        <h1 className="text-2xl sm:text-3xl font-black text-slate-900">
+          Đội Ngũ Bác Sĩ Răng Hàm Mặt
+        </h1>
 
-          <section className="mt-8">
-            <h1 className="max-w-4xl text-3xl font-extrabold leading-tight text-[#354a8a] sm:text-4xl">
-              Đội ngũ bác sĩ răng hàm mặt giàu kinh nghiệm
-            </h1>
-            <p className="mt-4 max-w-5xl text-base leading-7 text-slate-700">
-              Chọn dịch vụ bạn quan tâm, hệ thống sẽ gợi ý các bác sĩ phù hợp.
-              Bạn cũng có thể nhập tên bác sĩ để tìm nhanh hơn.
-            </p>
-          </section>
+        <p className="text-sm text-slate-600 leading-relaxed max-w-3xl">
+          Chọn dịch vụ bạn quan tâm hoặc tìm kiếm theo tên bác sĩ để tham khảo thông tin chi tiết và đặt lịch khám cùng các chuyên gia hàng đầu.
+        </p>
+      </section>
 
-          <section className="mx-auto mt-12 max-w-4xl">
-            <div className="grid gap-6">
-              <div className="grid gap-3 md:grid-cols-[160px_1fr] md:items-center">
-                <label className="text-base font-bold text-[#354a8a]">
-                  Dịch vụ
-                </label>
-                <select
-                  value={selectedServiceId}
-                  onChange={(event) => {
-                    setSelectedServiceId(event.target.value);
-                    setSelectedDoctorId("");
-                    setSearched(false);
-                  }}
-                  className="h-14 w-full rounded-full border border-slate-200 bg-white px-5 text-base outline-none transition focus:border-blue-300"
-                >
-                  <option value="">Chọn dịch vụ</option>
-                  {services.map((service) => (
-                    <option key={service.id} value={service.id}>
-                      {service.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
+      {/* Hero Banner Image Section */}
+      <section className="overflow-hidden rounded-3xl border border-slate-200/80 bg-[#eef2f6] shadow-xs">
+        <div className="relative w-full flex items-center justify-center p-2 sm:p-3">
+          <img
+            src="/dsbacsi.png"
+            alt="Đội ngũ bác sĩ Smart Dental"
+            className="w-full h-auto max-h-[340px] sm:max-h-[400px] object-contain rounded-2xl"
+          />
+        </div>
+      </section>
 
-              <div className="grid gap-3 md:grid-cols-[160px_1fr] md:items-center">
-                <label className="text-base font-bold text-[#354a8a]">
-                  Tên bác sĩ
-                </label>
-                <input
-                  value={doctorName}
-                  onChange={(event) => {
-                    setDoctorName(event.target.value);
-                    setSearched(false);
-                  }}
-                  className="h-14 w-full rounded-full border border-slate-200 bg-white px-5 text-base outline-none transition focus:border-blue-300"
-                  placeholder="Nhập tên bác sĩ"
-                />
-              </div>
+      {/* Search & Filter Control Bar */}
+      <section className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 items-end">
+          {/* Service Dropdown */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              Dịch vụ nha khoa
+            </label>
+            <select
+              value={selectedServiceId}
+              onChange={(event) => {
+                setSelectedServiceId(event.target.value);
+                setSelectedDoctorId("");
+                setSearched(true);
+              }}
+              className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 text-sm font-semibold text-slate-800 outline-none ring-2 ring-transparent focus:border-[#0058bc] focus:bg-white focus:ring-blue-100 transition cursor-pointer"
+            >
+              <option value="">Tất cả dịch vụ</option>
+              {services.map((service) => (
+                <option key={service.id} value={service.id}>
+                  {service.title}
+                </option>
+              ))}
+            </select>
+          </div>
 
-              {selectedService ? (
-                <div className="grid gap-3 md:grid-cols-[160px_1fr] md:items-center">
-                  <label className="text-base font-bold text-[#354a8a]">
-                    Bác sĩ phù hợp
-                  </label>
-                  <select
-                    value={selectedDoctorId}
-                    onChange={(event) => {
-                      setSelectedDoctorId(event.target.value);
-                      setSearched(false);
-                    }}
-                    className="h-14 w-full rounded-full border border-slate-200 bg-white px-5 text-base outline-none transition focus:border-blue-300"
-                  >
-                    <option value="">Tất cả bác sĩ liên quan</option>
-                    {relatedDoctors.map((doctor) => (
-                      <option key={doctor.id} value={doctor.id}>
-                        {doctor.name} - {doctor.specialization}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ) : null}
-
-              <div className="pt-2 text-center">
+          {/* Doctor Name Input */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              Tên bác sĩ
+            </label>
+            <div className="relative flex items-center">
+              <DashboardIcon
+                name="search"
+                className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none"
+              />
+              <input
+                type="text"
+                value={doctorName}
+                onChange={(event) => {
+                  setDoctorName(event.target.value);
+                  setSearched(true);
+                }}
+                placeholder="Nhập tên bác sĩ cần tìm..."
+                className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50/50 pl-11 pr-8 text-sm font-semibold text-slate-800 outline-none ring-2 ring-transparent focus:border-[#0058bc] focus:bg-white focus:ring-blue-100 transition"
+              />
+              {doctorName && (
                 <button
                   type="button"
-                  onClick={() => setSearched(true)}
-                  className="inline-flex min-w-[240px] items-center justify-center rounded-full bg-gradient-to-r from-[#3f658f] to-[#433f92] px-8 py-4 text-base font-bold text-white transition hover:shadow-lg"
+                  onClick={() => {
+                    setDoctorName("");
+                    setSearched(true);
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 hover:text-slate-600"
                 >
-                  Tìm bác sĩ
+                  Xóa
                 </button>
-              </div>
+              )}
             </div>
-          </section>
+          </div>
+
+          {/* Related Doctor Dropdown if service selected */}
+          {selectedService ? (
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Bác sĩ phù hợp
+              </label>
+              <select
+                value={selectedDoctorId}
+                onChange={(event) => {
+                  setSelectedDoctorId(event.target.value);
+                  setSearched(true);
+                }}
+                className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 text-sm font-semibold text-slate-800 outline-none ring-2 ring-transparent focus:border-[#0058bc] focus:bg-white focus:ring-blue-100 transition cursor-pointer"
+              >
+                <option value="">Tất cả bác sĩ liên quan</option>
+                {relatedDoctors.map((doctor) => (
+                  <option key={doctor.id} value={doctor.id}>
+                    {doctor.name} - {doctor.specialization}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div className="flex items-end">
+              <button
+                type="button"
+                onClick={() => setSearched(true)}
+                className="h-12 w-full rounded-2xl bg-[#0058bc] text-white text-sm font-bold shadow-md shadow-blue-500/20 hover:bg-[#004bb0] active:scale-95 transition cursor-pointer flex items-center justify-center gap-2"
+              >
+                <DashboardIcon name="search" className="h-4 w-4" />
+                <span>Tìm bác sĩ</span>
+              </button>
+            </div>
+          )}
         </div>
       </section>
 
@@ -317,7 +334,16 @@ function DoctorsPageContent() {
             </Link>
           </div>
 
-          {visibleDoctors.length ? (
+          {doctorsQuery.isLoading || servicesQuery.isLoading ? (
+            <div className="grid gap-8 xl:grid-cols-2">
+              {[1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="h-[480px] rounded-[28px] bg-slate-100 border border-slate-200/60 animate-pulse"
+                />
+              ))}
+            </div>
+          ) : visibleDoctors.length ? (
             <div className="grid gap-8 xl:grid-cols-2">
               {visibleDoctors.map((doctor) => (
                 <DoctorCard key={doctor.id} doctor={doctor} />

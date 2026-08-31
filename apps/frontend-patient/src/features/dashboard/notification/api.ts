@@ -1,11 +1,13 @@
 import apiClient from "@/lib/axios";
-import type { NotificationItem, UnreadCountResponse } from "./types";
+import type { PaginatedNotificationsResponse, UnreadCountResponse } from "./types";
 
 export async function fetchUserNotifications(params?: {
   type?: string;
   unreadOnly?: boolean;
+  page?: number;
+  limit?: number;
 }) {
-  const response = await apiClient.get<NotificationItem[]>(
+  const response = await apiClient.get<PaginatedNotificationsResponse>(
     "/notifications/my-notifications",
     { params },
   );

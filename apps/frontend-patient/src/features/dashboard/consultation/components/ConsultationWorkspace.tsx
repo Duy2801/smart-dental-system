@@ -22,7 +22,7 @@ import { useAppSelector } from "@/providers";
 
 export function ConsultationWorkspace() {
   const queryClient = useQueryClient();
-  const { isAuthenticated, accessToken } = useAppSelector((state) => state.login);
+  const { isAuthenticated, accessToken, isHydrated } = useAppSelector((state) => state.login);
   const isLoggedIn = isAuthenticated && Boolean(accessToken);
   const [activeTab, setActiveTab] = useState<"book" | "my-consultations">("book");
 
@@ -52,7 +52,8 @@ export function ConsultationWorkspace() {
     setSelectedDate(defaultDate);
   }, []);
 
-  if (!isLoggedIn) {
+  // Show LoginRequiredPanel ONLY after auth hydration completes and user is confirmed unauthenticated
+  if (isHydrated && !isLoggedIn) {
     return (
       <LoginRequiredPanel
         title="Đặt tư vấn nha khoa trực tuyến"

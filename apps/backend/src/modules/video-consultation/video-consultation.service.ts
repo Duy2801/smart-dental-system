@@ -132,13 +132,13 @@ export class VideoConsultationService implements OnModuleInit {
     private eventsGateway: EventsGateway,
     @InjectQueue('mail-queue')
     private readonly mailQueue: Queue,
-  ) {}
+  ) { }
 
   onModuleInit() {
     setInterval(() => {
-      this.cleanupExpiredBookings().catch(() => {});
-      this.processPendingNotifications().catch(() => {});
-      this.checkDoctorMissedConsultations().catch(() => {});
+      this.cleanupExpiredBookings().catch(() => { });
+      this.processPendingNotifications().catch(() => { });
+      this.checkDoctorMissedConsultations().catch(() => { });
     }, 30000);
   }
 
@@ -370,23 +370,23 @@ export class VideoConsultationService implements OnModuleInit {
 
     const activeWorkingHours = availability.length
       ? availability.map((a) => ({
-          ...a,
-          startTime: a.startTime < clinicStart ? clinicStart : a.startTime,
-          endTime: a.endTime > clinicEnd ? clinicEnd : a.endTime,
-        }))
+        ...a,
+        startTime: a.startTime < clinicStart ? clinicStart : a.startTime,
+        endTime: a.endTime > clinicEnd ? clinicEnd : a.endTime,
+      }))
       : [
-          {
-            id: 'default',
-            doctorId,
-            recordType: 'WEEKLY' as const,
-            dayOfWeek,
-            specificDate: null,
-            startTime: clinicStart,
-            endTime: clinicEnd,
-            reason: null,
-            isActive: true,
-          },
-        ];
+        {
+          id: 'default',
+          doctorId,
+          recordType: 'WEEKLY' as const,
+          dayOfWeek,
+          specificDate: null,
+          startTime: clinicStart,
+          endTime: clinicEnd,
+          reason: null,
+          isActive: true,
+        },
+      ];
 
     const timeOffs = await this.prisma.doctorAvailability.findMany({
       where: {
@@ -1012,20 +1012,20 @@ export class VideoConsultationService implements OnModuleInit {
         doctorAvatarUrl: row.doctor.avatarUrl,
         refundRequest: latestRefund
           ? {
-              id: latestRefund.id,
-              refundCode: latestRefund.refundCode,
-              bankName: latestRefund.bankName,
-              accountNumber: latestRefund.accountNumber,
-              accountHolder: latestRefund.accountHolder,
-              qrCodeUrl: latestRefund.qrCodeUrl,
-              requestedAmount: Number(latestRefund.requestedAmount),
-              refundPercent: latestRefund.refundPercent,
-              reason: latestRefund.reason,
-              status: latestRefund.status,
-              rejectReason: latestRefund.rejectReason,
-              proofImageUrl: latestRefund.proofImageUrl,
-              createdAt: latestRefund.createdAt.toISOString(),
-            }
+            id: latestRefund.id,
+            refundCode: latestRefund.refundCode,
+            bankName: latestRefund.bankName,
+            accountNumber: latestRefund.accountNumber,
+            accountHolder: latestRefund.accountHolder,
+            qrCodeUrl: latestRefund.qrCodeUrl,
+            requestedAmount: Number(latestRefund.requestedAmount),
+            refundPercent: latestRefund.refundPercent,
+            reason: latestRefund.reason,
+            status: latestRefund.status,
+            rejectReason: latestRefund.rejectReason,
+            proofImageUrl: latestRefund.proofImageUrl,
+            createdAt: latestRefund.createdAt.toISOString(),
+          }
           : null,
       };
     });
@@ -1048,7 +1048,7 @@ export class VideoConsultationService implements OnModuleInit {
 
     const meetingUrl =
       row.status === VideoConsultationStatus.IN_PROGRESS ||
-      row.status === VideoConsultationStatus.SCHEDULED
+        row.status === VideoConsultationStatus.SCHEDULED
         ? row.meetingUrl
         : null;
 
@@ -1193,8 +1193,8 @@ export class VideoConsultationService implements OnModuleInit {
 
     const notes = summaryNotes?.trim()
       ? [row.notes, `[Ghi chú tổng kết]: ${summaryNotes.trim()}`]
-          .filter(Boolean)
-          .join('\n\n')
+        .filter(Boolean)
+        .join('\n\n')
       : row.notes;
 
     const updated = await this.prisma.videoConsultation.update({

@@ -48,17 +48,8 @@ export function PatientRecordsPageClient() {
     isLoggedIn && Boolean(activePatientId),
   );
 
-  // 1. Show skeleton while auth hydration is restoring (e.g. on F5 refresh)
-  if (!isHydrated || (profilesQuery.isLoading && !profiles.length)) {
-    return (
-      <main className="mx-auto w-full max-w-[1360px] space-y-5 px-4 py-7 sm:px-6 lg:px-8">
-        <PatientRecordsSkeleton />
-      </main>
-    );
-  }
-
-  // 2. Show LoginRequiredPanel ONLY after auth hydration finishes and user is not logged in
-  if (!isLoggedIn) {
+  // Show LoginRequiredPanel ONLY after auth hydration completes and user is confirmed unauthenticated
+  if (isHydrated && !isLoggedIn) {
     return (
       <LoginRequiredPanel
         title="Xem hồ sơ bệnh án"

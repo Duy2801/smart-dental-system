@@ -99,88 +99,85 @@ export function PromotionWorkspace() {
 
   return (
     <div className="mx-auto w-full max-w-[1360px] space-y-8 px-4 py-6 sm:px-6 lg:px-8">
-      {/* Centered Intro Header Section (Clean layout, no blue background box) */}
-      <section className="text-center py-4 space-y-4 max-w-3xl mx-auto">
-        <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 border border-blue-200 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-[#0058bc]">
-          <DashboardIcon name="sparkles" className="h-4 w-4 text-[#0058bc]" />
-          Đặc quyền cho bệnh nhân
-        </span>
+      {/* Intro Header & Search Section (Left-aligned & Natural Flow) */}
+      <section className="space-y-4">
+        <div className="space-y-2">
+          <div>
+            <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 border border-blue-200 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-[#0058bc]">
+              <DashboardIcon name="sparkles" className="h-3.5 w-3.5 text-[#0058bc]" />
+              Đặc quyền cho bệnh nhân
+            </span>
+          </div>
 
-        <h1 className="text-2xl sm:text-3xl font-black text-slate-900">
-          Chương Trình Ưu Đãi & Voucher Nha Khoa
-        </h1>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900">
+            Chương Trình Ưu Đãi & Voucher Nha Khoa
+          </h1>
 
-        <p className="text-sm text-slate-600 leading-relaxed max-w-2xl mx-auto">
-          Khám phá các mã giảm giá và chương trình ưu đãi đặc biệt từ Smart Dental. Áp dụng mã trực tiếp khi đặt lịch khám để tiết kiệm chi phí điều trị tối đa.
-        </p>
+          <p className="text-sm text-slate-600 leading-relaxed max-w-3xl">
+            Khám phá các mã giảm giá và chương trình ưu đãi đặc biệt từ Smart Dental. Áp dụng mã trực tiếp khi đặt lịch khám để tiết kiệm chi phí điều trị tối đa.
+          </p>
+        </div>
 
-        {/* Search input bar */}
-        <div className="pt-2 max-w-lg mx-auto">
-          <div className="relative flex items-center">
+        {/* Search input bar & Filter pills in one clean left-aligned row */}
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center pt-1">
+          {/* Search box */}
+          <div className="relative w-full sm:w-80 md:w-96 shrink-0 flex items-center">
             <DashboardIcon
               name="search"
-              className="absolute left-4 h-5 w-5 text-slate-400"
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none"
             />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Tìm mã ưu đãi, dịch vụ hoặc chương trình..."
-              className="h-11 w-full rounded-2xl border border-slate-200 bg-white pl-12 pr-4 text-sm font-semibold text-slate-800 shadow-sm placeholder:text-slate-400 outline-none ring-2 ring-transparent focus:border-[#0058bc] focus:ring-blue-100 transition"
+              placeholder="Tìm mã ưu đãi, dịch vụ..."
+              className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-8 text-sm font-medium text-slate-800 shadow-xs placeholder:text-slate-400 outline-none ring-2 ring-transparent focus:border-[#0058bc] focus:ring-blue-100 transition"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
-                className="absolute right-3.5 text-xs font-bold text-slate-400 hover:text-slate-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 hover:text-slate-600"
               >
                 Xóa
               </button>
             )}
           </div>
+
+          {/* Filter Pills */}
+          <div className="flex flex-wrap items-center gap-2">
+            {[
+              { id: "all", label: `Tất cả (${filteredPromotions.length})` },
+              { id: "percentage", label: "Giảm phần trăm (%)" },
+              { id: "fixed", label: "Giảm số tiền" },
+              { id: "expiring", label: "Sắp hết hạn" },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id as FilterTab)}
+                className={`rounded-xl px-3.5 py-2 text-xs font-bold transition cursor-pointer ${
+                  activeTab === tab.id
+                    ? "bg-[#0058bc] text-white shadow-xs"
+                    : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* Filter Tabs & Counter Bar (Centered & Balanced) */}
-      <div className="flex flex-col items-center gap-4 border-b border-slate-200/80 pb-4">
-        {/* Filter Tabs */}
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          {[
-            { id: "all", label: "Tất cả ưu đãi" },
-            { id: "percentage", label: "Giảm phần trăm (%)" },
-            { id: "fixed", label: "Giảm số tiền" },
-            { id: "expiring", label: "Sắp hết hạn" },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id as FilterTab)}
-              className={`rounded-xl px-4 py-2 text-xs font-bold transition ${
-                activeTab === tab.id
-                  ? "bg-[#0058bc] text-white shadow-md shadow-blue-500/20"
-                  : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Counter */}
-        <p className="text-xs font-bold text-slate-500">
-          Hiển thị <strong className="text-slate-800">{filteredPromotions.length}</strong> ưu đãi khả dụng
-        </p>
-      </div>
-
-      {/* Grid of Promotions (Compact 4-column layout) */}
+      {/* Grid of Promotions (Horizontal 2-column layout per row) */}
       {isLoading ? (
-        <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-          {Array.from({ length: 8 }).map((_, i) => (
+        <div className="grid gap-5 grid-cols-1 md:grid-cols-2">
+          {Array.from({ length: 6 }).map((_, i) => (
             <PromotionCardSkeleton key={i} />
           ))}
         </div>
       ) : filteredPromotions.length > 0 ? (
-        <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+        <div className="grid gap-5 grid-cols-1 md:grid-cols-2">
           {filteredPromotions.map((promo) => (
             <PromotionCard
               key={promo.id}

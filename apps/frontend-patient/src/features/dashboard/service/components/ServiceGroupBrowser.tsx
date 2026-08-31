@@ -20,6 +20,7 @@ function normalizeText(value: string) {
 type ServiceGroupBrowserProps = {
   services: DentalService[];
   compact?: boolean;
+  hideHeader?: boolean;
 };
 
 type MethodMatch = {
@@ -335,6 +336,7 @@ function ServiceFaqSection({ faqs }: { faqs: FaqMatch[] }) {
 export function ServiceGroupBrowser({
   services,
   compact = false,
+  hideHeader = false,
 }: ServiceGroupBrowserProps) {
   const orderedServices = useMemo(
     () =>
@@ -448,21 +450,25 @@ export function ServiceGroupBrowser({
 
   return (
     <div className="space-y-8">
-      {/* Centered Intro Header Section (Clean layout, matching PromotionWorkspace) */}
-      <section className="text-center py-4 space-y-4 max-w-3xl mx-auto">
-        <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 border border-blue-200 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-[#0058bc]">
-          <DashboardIcon name="sparkles" className="h-4 w-4 text-[#0058bc]" />
-          Chăm Sóc Nụ Cười Toàn Diện
-        </span>
+      {/* Intro Header Section (Left-aligned) */}
+      {!hideHeader && (
+        <section className="py-2 space-y-3">
+          <div>
+            <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 border border-blue-200 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-[#0058bc]">
+              <DashboardIcon name="sparkles" className="h-3.5 w-3.5 text-[#0058bc]" />
+              Chăm Sóc Nụ Cười Toàn Diện
+            </span>
+          </div>
 
-        <h1 className="text-2xl sm:text-3xl font-black text-slate-900">
-          Danh Sách Dịch Vụ Nha Khoa
-        </h1>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900">
+            Danh Sách Dịch Vụ Nha Khoa
+          </h1>
 
-        <p className="text-sm text-slate-600 leading-relaxed max-w-2xl mx-auto">
-          Chọn nhóm dịch vụ bên dưới để xem các phương pháp điều trị, chi phí và quy trình chi tiết.
-        </p>
-      </section>
+          <p className="text-sm text-slate-600 leading-relaxed max-w-3xl">
+            Chọn nhóm dịch vụ bên dưới để xem các phương pháp điều trị, chi phí và quy trình chi tiết.
+          </p>
+        </section>
+      )}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-8">
         {filteredServices.map((service) => (

@@ -80,7 +80,8 @@ export function HomeHeroSearchSlideshow() {
   useEffect(() => {
     function updateDockedSearch() {
       const node = searchButtonRef.current ?? searchCardRef.current;
-      const docked = node ? node.getBoundingClientRect().top <= 76 : false;
+      const isPastHero = window.scrollY > 320;
+      const docked = node ? (node.getBoundingClientRect().top <= 76 && isPastHero) : false;
       window.dispatchEvent(
         new CustomEvent("home-search-dock", { detail: { docked } }),
       );

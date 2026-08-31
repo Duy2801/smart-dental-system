@@ -43,6 +43,7 @@ export const MAIN_NAV = [
   { label: "Đặt lịch khám", href: ROUTES.appointment },
   { label: "Tư vấn", href: ROUTES.consultation },
   { label: "Dịch vụ", href: ROUTES.service },
+  { label: "Bác sĩ", href: ROUTES.doctor },
   { label: "Ưu đãi", href: ROUTES.promotions },
   { label: "Hồ sơ", href: ROUTES.records },
 ] as const;

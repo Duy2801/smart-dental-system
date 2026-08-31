@@ -13,36 +13,76 @@ export class NotificationService {
 
   async findUserNotifications(
     userId: string,
-    query?: { type?: string; unreadOnly?: boolean },
+    query?: { type?: string; unreadOnly?: boolean | string; page?: number; limit?: number },
   ) {
-    let notifications = await this.prisma.notification.findMany({
-      where: {
-        userId,
-        ...(query?.unreadOnly ? { readAt: null } : {}),
-        ...(query?.type ? { type: query.type } : {}),
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    const page = Math.max(1, Number(query?.page) || 1);
+    const limit = Math.min(50, Math.max(1, Number(query?.limit) || 20));
+    const skip = (page - 1) * limit;
+    const isUnreadOnly = query?.unreadOnly === true || query?.unreadOnly === 'true';
 
-    if (notifications.length === 0 && !query?.type && !query?.unreadOnly) {
-      await this.seedInitialPatientNotifications(userId);
-      notifications = await this.prisma.notification.findMany({
-        where: { userId },
-        orderBy: { createdAt: 'desc' },
-      });
+    let typeFilter: any = undefined;
+    if (query?.type) {
+      if (query.type === 'APPOINTMENTS') {
+        typeFilter = { in: ['APPOINTMENT_CONFIRMED', 'APPOINTMENT_REMINDER'] };
+      } else if (query.type === 'PAYMENTS') {
+        typeFilter = 'PAYMENT_SUCCESS';
+      } else if (query.type === 'PROMOTIONS') {
+        typeFilter = { in: ['PROMOTION_CAMPAIGN', 'MARKETING'] };
+      } else if (query.type.includes(',')) {
+        typeFilter = { in: query.type.split(',') };
+      } else {
+        typeFilter = query.type;
+      }
     }
 
-    return notifications.map((item) => ({
-      id: item.id,
-      userId: item.userId,
-      type: item.type,
-      title: item.title,
-      content: item.content,
-      read: Boolean(item.readAt),
-      readAt: item.readAt,
-      createdAt: item.createdAt,
-      appointmentId: item.appointmentId,
-    }));
+    const whereCondition = {
+      userId,
+      ...(isUnreadOnly ? { readAt: null } : {}),
+      ...(typeFilter ? { type: typeFilter } : {}),
+    };
+
+    let total = await this.prisma.notification.count({ where: whereCondition });
+
+    if (total === 0 && !query?.type && !isUnreadOnly && page === 1) {
+      await this.seedInitialPatientNotifications(userId);
+      total = await this.prisma.notification.count({ where: whereCondition });
+    }
+
+    const notifications = await this.prisma.notification.findMany({
+      where: whereCondition,
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: limit,
+    });
+
+    const unreadCount = await this.prisma.notification.count({
+      where: { userId, readAt: null },
+    });
+
+    const totalPages = Math.ceil(total / limit);
+    const hasMore = page < totalPages;
+
+    return {
+      data: notifications.map((item) => ({
+        id: item.id,
+        userId: item.userId,
+        type: item.type,
+        title: item.title,
+        content: item.content,
+        read: Boolean(item.readAt),
+        readAt: item.readAt,
+        createdAt: item.createdAt,
+        appointmentId: item.appointmentId,
+      })),
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasMore,
+        unreadCount,
+      },
+    };
   }
 
   async getUnreadCount(userId: string) {
@@ -80,6 +120,7 @@ export class NotificationService {
       where: {
         userId,
         readAt: null,
+        status: NotificationStatus.SENT,
       },
       data: {
         readAt: new Date(),
@@ -146,7 +187,7 @@ export class NotificationService {
         content:
           'Hóa đơn đặt cọc dịch vụ nha khoa đã được thanh toán thành công và lưu trữ trong lịch sử giao dịch.',
         channel: NotificationChannel.IN_APP,
-        status: NotificationStatus.SENT,
+        status: NotificationStatus.READ,
         sentAt: new Date(now.getTime() - 24 * 60 * 60 * 1000),
         createdAt: new Date(now.getTime() - 24 * 60 * 60 * 1000),
         readAt: new Date(now.getTime() - 20 * 60 * 60 * 1000),
@@ -158,7 +199,7 @@ export class NotificationService {
         content:
           'Nhận ngay Voucher giảm giá 500.000 VNĐ cho các gói dịch vụ Tẩy trắng răng & Bọc răng sứ cao cấp trong tháng này!',
         channel: NotificationChannel.IN_APP,
-        status: NotificationStatus.SENT,
+        status: NotificationStatus.READ,
         sentAt: new Date(now.getTime() - 48 * 60 * 60 * 1000),
         createdAt: new Date(now.getTime() - 48 * 60 * 60 * 1000),
         readAt: new Date(now.getTime() - 40 * 60 * 60 * 1000),
@@ -209,12 +250,12 @@ export class NotificationService {
       const scheduledAt = (
         notification.scheduledAt ?? notification.createdAt
       ).toISOString();
-      const key = [
+      const key = JSON.stringify([
         notification.title,
         notification.content,
         notification.channel,
         scheduledAt,
-      ].join('|');
+      ]);
       const current = grouped.get(key) ?? {
         id: notification.id,
         title: notification.title,
@@ -266,34 +307,31 @@ export class NotificationService {
       ? NotificationStatus.PENDING
       : NotificationStatus.SENT;
 
-    const notifications = await this.prisma.$transaction(
-      patients.map((patient) =>
-        this.prisma.notification.create({
-          data: {
-            userId: patient.userId!,
-            type: 'MARKETING',
-            title: dto.title.trim(),
-            content: dto.content.trim(),
-            channel: dto.channel,
-            status,
-            scheduledAt,
-            isManual: true,
-            sentAt: status === NotificationStatus.SENT ? new Date() : null,
-          },
-        }),
-      ),
-    );
-
-    const firstNotification = notifications[0];
+    const chunkSize = 500;
+    for (let i = 0; i < patients.length; i += chunkSize) {
+      const chunk = patients.slice(i, i + chunkSize);
+      await this.prisma.notification.createMany({
+        data: chunk.map((patient) => ({
+          userId: patient.userId!,
+          type: 'MARKETING',
+          title: dto.title.trim(),
+          content: dto.content.trim(),
+          channel: dto.channel,
+          status,
+          scheduledAt,
+          isManual: true,
+          sentAt: status === NotificationStatus.SENT ? new Date() : null,
+        })),
+      });
+    }
 
     return {
-      id: firstNotification.id,
-      title: firstNotification.title,
-      content: firstNotification.content,
-      channel: firstNotification.channel,
-      status: this.mapCampaignStatus(firstNotification.status),
-      scheduled_at: firstNotification.scheduledAt?.toISOString() ?? scheduledAt.toISOString(),
-      sent_count: status === NotificationStatus.SENT ? notifications.length : 0,
+      title: dto.title.trim(),
+      content: dto.content.trim(),
+      channel: dto.channel,
+      status: this.mapCampaignStatus(status),
+      scheduled_at: scheduledAt.toISOString(),
+      sent_count: status === NotificationStatus.SENT ? patients.length : 0,
       read_count: 0,
     };
   }

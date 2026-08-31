@@ -3,6 +3,7 @@
 import { Suspense } from "react";
 import { usePatientServicesQuery } from "../hooks";
 import { PatientGridSkeleton } from "../../common/PatientSkeleton";
+import { DashboardIcon } from "../../common/DashboardIcon";
 import { ServiceGroupBrowser } from "./ServiceGroupBrowser";
 
 export function ServiceCatalogExperience() {
@@ -14,11 +15,27 @@ export function ServiceCatalogExperience() {
   } = usePatientServicesQuery();
 
   return (
-    <main className="mx-auto w-full max-w-[1360px] px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
-      {isLoading ? (
+    <main className="mx-auto w-full max-w-[1360px] px-4 py-7 sm:px-6 sm:py-9 lg:px-8 space-y-8">
+      {/* Intro Header Section (Left-aligned, renders instantly) */}
+      <section className="py-2 space-y-3">
         <div>
-          <PatientGridSkeleton />
+          <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 border border-blue-200 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-[#0058bc]">
+            <DashboardIcon name="sparkles" className="h-3.5 w-3.5 text-[#0058bc]" />
+            Chăm Sóc Nụ Cười Toàn Diện
+          </span>
         </div>
+
+        <h1 className="text-2xl sm:text-3xl font-black text-slate-900">
+          Danh Sách Dịch Vụ Nha Khoa
+        </h1>
+
+        <p className="text-sm text-slate-600 leading-relaxed max-w-3xl">
+          Chọn nhóm dịch vụ bên dưới để xem các phương pháp điều trị, chi phí và quy trình chi tiết.
+        </p>
+      </section>
+
+      {isLoading ? (
+        <PatientGridSkeleton />
       ) : isError ? (
         <section className="rounded-2xl border border-red-100 bg-red-50 p-10 text-center">
           <h2 className="text-lg font-bold text-red-700">
@@ -38,7 +55,7 @@ export function ServiceCatalogExperience() {
       ) : services.length ? (
         <section aria-live="polite">
           <Suspense fallback={<PatientGridSkeleton />}>
-            <ServiceGroupBrowser services={services} />
+            <ServiceGroupBrowser services={services} hideHeader />
           </Suspense>
         </section>
       ) : (

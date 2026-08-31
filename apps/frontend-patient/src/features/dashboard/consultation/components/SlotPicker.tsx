@@ -56,8 +56,13 @@ export function SlotPicker({
       </div>
 
       {isLoadingSlots ? (
-        <div className="py-8 text-center text-slate-400 text-sm">
-          Đang tính toán các khung giờ rảnh theo lịch phòng khám...
+        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2.5">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-9 w-full rounded-lg bg-slate-200/80 animate-pulse"
+            />
+          ))}
         </div>
       ) : availableSlots.length === 0 ? (
         <div className="bg-slate-50 border border-dashed rounded-xl p-6 text-center text-slate-500 text-sm space-y-3">

@@ -34,7 +34,6 @@ const MOBILE_NAV_ITEMS = [
   { label: "Tư vấn Telehealth", href: ROUTES.consultation, icon: "chat" },
   { label: "Dịch vụ nha khoa", href: ROUTES.service, icon: "sparkles" },
   { label: "Đội ngũ Bác sĩ", href: ROUTES.doctor, icon: "user" },
-  { label: "Ca lâm sàng & Kết quả", href: `${ROUTES.home}#clinical-cases`, icon: "heart" },
   { label: "Hồ sơ bệnh án", href: ROUTES.records, icon: "document" },
   { label: "Khuyến mãi & Ưu đãi HOT", href: ROUTES.promotions, icon: "sparkles" },
 ] as const;
@@ -65,9 +64,13 @@ export function DashboardNav() {
     setMounted(true);
   }, []);
 
-  // Close mobile dropdown when route changes
+  // Close mobile dropdown and reset docked search on route change
   useEffect(() => {
     setMobileMenuOpen(false);
+    setHomeSearchDocked(false);
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "instant" });
+    }
   }, [pathname]);
 
   useEffect(() => {

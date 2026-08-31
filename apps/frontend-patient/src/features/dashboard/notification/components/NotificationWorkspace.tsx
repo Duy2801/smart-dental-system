@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useMemo } from "react";
+import { useAppSelector } from "@/providers";
 import { DashboardIcon } from "../../common/DashboardIcon";
 import { LoginRequiredPanel } from "../../common/LoginRequiredPanel";
-import { useAppSelector } from "@/providers";
 import {
   useMarkAllNotificationsRead,
   useMarkNotificationRead,
-  useUserNotifications,
+  useUnreadNotificationCount,
+  useUserNotificationsInfinite,
 } from "../hooks/useNotificationQueries";
 import type { NotificationCategoryFilter, NotificationItem } from "../types";
 import { NotificationItemCard } from "./NotificationItemCard";
@@ -21,30 +23,50 @@ const filterTabs: { id: NotificationCategoryFilter; label: string; icon: string 
 ];
 
 export function NotificationWorkspace() {
-  const { isAuthenticated, accessToken } = useAppSelector((state) => state.login);
+  const { isAuthenticated, accessToken, isHydrated } = useAppSelector((state) => state.login);
   const isLoggedIn = isAuthenticated && Boolean(accessToken);
-  const [activeTab, setActiveTab] = useState<NotificationCategoryFilter>("ALL");
-  const { data: notifications, isLoading, isError } = useUserNotifications(
-    activeTab === "ALL" || activeTab === "UNREAD" ? activeTab : undefined,
-    isLoggedIn,
+
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const activeTab = (searchParams.get("tab") as NotificationCategoryFilter) || "ALL";
+
+  const handleTabChange = useCallback(
+    (tabId: NotificationCategoryFilter) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (tabId === "ALL") {
+        params.delete("tab");
+      } else {
+        params.set("tab", tabId);
+      }
+      router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    },
+    [searchParams, router, pathname],
   );
 
+  const {
+    data,
+    isLoading,
+    isError,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useUserNotificationsInfinite(activeTab, isLoggedIn);
+
+  const { data: unreadData } = useUnreadNotificationCount(isLoggedIn);
   const markReadMutation = useMarkNotificationRead();
   const markAllReadMutation = useMarkAllNotificationsRead();
 
-  const filteredNotifications = (notifications ?? []).filter((item: NotificationItem) => {
-    if (activeTab === "UNREAD") return !item.read;
-    if (activeTab === "APPOINTMENTS")
-      return item.type === "APPOINTMENT_CONFIRMED" || item.type === "APPOINTMENT_REMINDER";
-    if (activeTab === "PAYMENTS") return item.type === "PAYMENT_SUCCESS";
-    if (activeTab === "PROMOTIONS")
-      return item.type === "PROMOTION_CAMPAIGN" || item.type === "MARKETING";
-    return true;
-  });
+  const allNotifications = useMemo(() => {
+    if (!data?.pages) return [];
+    return data.pages.flatMap((page) => page.data);
+  }, [data]);
 
-  const unreadCount = (notifications ?? []).filter((item) => !item.read).length;
+  const unreadCount = unreadData?.unreadCount ?? data?.pages[0]?.meta?.unreadCount ?? 0;
 
-  if (!isLoggedIn) {
+  // Show LoginRequiredPanel ONLY after auth hydration completes and user is confirmed unauthenticated
+  if (isHydrated && !isLoggedIn) {
     return (
       <LoginRequiredPanel
         title="Xem thông báo cá nhân"
@@ -99,7 +121,7 @@ export function NotificationWorkspace() {
             <button
               key={tab.id}
               type="button"
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => handleTabChange(tab.id)}
               className={`inline-flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-xs font-bold transition-all duration-200 ${
                 isActive
                   ? "bg-[#0863c5] text-white shadow-md shadow-blue-500/20"
@@ -113,7 +135,7 @@ export function NotificationWorkspace() {
       </div>
 
       {/* Content Section */}
-      {isLoading ? (
+      {isLoading || !isHydrated ? (
         <div className="space-y-3">
           {[1, 2, 3, 4].map((i) => (
             <div
@@ -128,7 +150,7 @@ export function NotificationWorkspace() {
             Không thể tải danh sách thông báo. Vui lòng thử lại sau.
           </p>
         </div>
-      ) : filteredNotifications.length === 0 ? (
+      ) : allNotifications.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-12 text-center shadow-xs">
           <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-slate-100 text-slate-400">
             <DashboardIcon name="bell" className="h-6 w-6" />
@@ -143,14 +165,30 @@ export function NotificationWorkspace() {
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {filteredNotifications.map((item: NotificationItem) => (
-            <NotificationItemCard
-              key={item.id}
-              notification={item}
-              onMarkAsRead={(id) => markReadMutation.mutate(id)}
-            />
-          ))}
+        <div className="space-y-4">
+          <div className="space-y-3">
+            {allNotifications.map((item: NotificationItem) => (
+              <NotificationItemCard
+                key={item.id}
+                notification={item}
+                onMarkAsRead={(id) => markReadMutation.mutate(id)}
+              />
+            ))}
+          </div>
+
+          {/* Load More Button */}
+          {hasNextPage && (
+            <div className="pt-2 text-center">
+              <button
+                type="button"
+                onClick={() => fetchNextPage()}
+                disabled={isFetchingNextPage}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-6 py-2.5 text-xs font-bold text-slate-700 shadow-xs transition hover:bg-slate-50 active:scale-95 disabled:opacity-50"
+              >
+                {isFetchingNextPage ? "Đang tải thêm..." : "Tải thêm thông báo"}
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

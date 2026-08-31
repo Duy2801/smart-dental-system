@@ -21,7 +21,7 @@ function getInitials(name?: string) {
 
 export function HeaderAccountDropdown() {
   const { handleLogout } = useLogout();
-  const { user, isAuthenticated } = useAppSelector((state) => state.login);
+  const { user, isAuthenticated, isHydrated } = useAppSelector((state) => state.login);
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -44,6 +44,20 @@ export function HeaderAccountDropdown() {
     void handleLogout();
   }
 
+  // 1. Render subtle skeleton pulse while auth state is hydrating (e.g. on F5 refresh)
+  if (!isHydrated) {
+    return (
+      <div className="hidden md:flex items-center gap-2.5 rounded-full p-1">
+        <div className="h-10 w-10 shrink-0 animate-pulse rounded-full bg-slate-200/80" />
+        <div className="hidden sm:flex flex-col gap-1.5">
+          <div className="h-2.5 w-10 animate-pulse rounded bg-slate-200/80" />
+          <div className="h-3 w-16 animate-pulse rounded bg-slate-200/80" />
+        </div>
+      </div>
+    );
+  }
+
+  // 2. Render Login button ONLY after auth hydration finishes and user is not logged in
   if (!isAuthenticated) {
     return (
       <div className="hidden md:flex items-center gap-1.5 sm:gap-2">

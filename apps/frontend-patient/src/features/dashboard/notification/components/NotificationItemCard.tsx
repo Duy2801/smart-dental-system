@@ -106,7 +106,8 @@ export function NotificationItemCard({
     }
   };
 
-  const handleDetailClick = () => {
+  const handleDetailClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!notification.read) {
       onMarkAsRead(notification.id);
     }

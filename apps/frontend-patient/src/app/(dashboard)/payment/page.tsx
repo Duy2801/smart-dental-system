@@ -39,7 +39,7 @@ const currency = new Intl.NumberFormat("vi-VN", {
 });
 
 export default function PaymentPage() {
-  const { isAuthenticated, accessToken } = useAppSelector((state) => state.login);
+  const { isAuthenticated, accessToken, isHydrated } = useAppSelector((state) => state.login);
   const isLoggedIn = isAuthenticated && Boolean(accessToken);
   const [selectedMethodId, setSelectedMethodId] = useState(paymentMethods[0].id);
   const [promoCode, setPromoCode] = useState(VALID_PROMO_CODE);
@@ -69,7 +69,8 @@ export default function PaymentPage() {
     setNotice(`Đang chuẩn bị hóa đơn ${transaction.invoiceCode}.`);
   };
 
-  if (!isLoggedIn) {
+  // Show LoginRequiredPanel ONLY after auth hydration completes and user is confirmed unauthenticated
+  if (isHydrated && !isLoggedIn) {
     return (
       <LoginRequiredPanel
         title="Xem thanh toán và hóa đơn"
