@@ -29,6 +29,18 @@ export default tseslint.config(
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-floating-promises': 'warn',
       '@typescript-eslint/no-unsafe-argument': 'warn',
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['src', 'src/*', 'prisma/*'],
+              message:
+                'Use relative imports (e.g. "../../common/...") instead of root paths to ensure compatibility with production Node.js runtime.',
+            },
+          ],
+        },
+      ],
       "prettier/prettier": ["error", { endOfLine: "auto" }],
     },
   },

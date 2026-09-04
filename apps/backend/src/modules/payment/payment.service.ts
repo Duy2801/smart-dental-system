@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Queue } from 'bull';
-import { Prisma } from 'prisma/generated/client';
+import { Prisma } from '../../../prisma/generated/client';
 import {
   AppointmentPaymentStatus,
   DiscountType,
@@ -17,7 +17,7 @@ import {
   PaymentMethod,
   PaymentStatus,
   VideoConsultationStatus,
-} from 'prisma/generated/enums';
+} from '../../../prisma/generated/enums';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationService } from '../notification/notification.service';

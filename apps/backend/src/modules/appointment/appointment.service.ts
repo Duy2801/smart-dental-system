@@ -15,9 +15,9 @@ import {
   DiscountType,
   InvoiceStatus,
   InvoiceType,
-} from 'prisma/generated/enums';
+} from '../../../prisma/generated/enums';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma } from 'prisma/generated/client';
+import { Prisma } from '../../../prisma/generated/client';
 import { ClinicConfigService } from '../clinic-config/clinic-config.service';
 import { NotificationService } from '../notification/notification.service';
 import {
