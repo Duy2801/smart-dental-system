@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { apiRefresh } from "@/features/auth/api";
 import { DashboardIcon } from "@/features/dashboard/common/DashboardIcon";
 import { LoginRequiredPanel } from "@/features/dashboard/common/LoginRequiredPanel";
 import { PatientPageSkeleton } from "@/features/dashboard/common/PatientSkeleton";
@@ -20,7 +19,6 @@ import type {
 import {
   login,
   logout,
-  updateAccessToken,
   useAppDispatch,
   useAppSelector,
 } from "@/providers";
@@ -52,7 +50,9 @@ export default function EditProfilePage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
-  const { user: storedUser, accessToken } = useAppSelector((state) => state.login);
+  const { user: storedUser, accessToken, isHydrated } = useAppSelector(
+    (state) => state.login,
+  );
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -60,19 +60,11 @@ export default function EditProfilePage() {
     queryKey: ["patient", "profile"],
     queryFn: async () => {
       try {
-        let sessionAccessToken = accessToken;
-
-        if (!sessionAccessToken) {
-          const refreshResponse = await apiRefresh();
-          sessionAccessToken = refreshResponse.data.accessToken;
-          dispatch(updateAccessToken(sessionAccessToken));
-        }
-
         const meResponse = await apiGetPatientProfile();
         dispatch(
           login({
             user: meResponse.data,
-            accessToken: sessionAccessToken,
+            accessToken,
           }),
         );
 
@@ -82,6 +74,8 @@ export default function EditProfilePage() {
         throw error;
       }
     },
+    enabled: isHydrated && Boolean(accessToken),
+    staleTime: 60 * 1000,
     retry: false,
   });
 

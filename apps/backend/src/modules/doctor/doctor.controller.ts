@@ -22,8 +22,13 @@ export class DoctorController {
   findAll(
     @Query('serviceId') serviceId?: string,
     @Query('specializationId') specializationId?: string,
+    @Query('view') view?: 'full' | 'summary',
   ) {
-    return this.doctorService.getAllDoctors(serviceId, specializationId);
+    return this.doctorService.getAllDoctors(
+      serviceId,
+      specializationId,
+      view === 'summary' ? 'summary' : 'full',
+    );
   }
 
   @Get(':id')

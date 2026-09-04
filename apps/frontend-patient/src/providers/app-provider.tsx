@@ -2,7 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Provider } from "react-redux";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import { apiMe, apiRefresh } from "@/features/auth/api";
 import { ToastProvider } from "@/features/dashboard/common/toast";
@@ -23,7 +23,12 @@ const queryClient = new QueryClient({
 });
 
 function AuthHydrator() {
+  const startedRef = useRef(false);
+
   useEffect(() => {
+    if (startedRef.current) return;
+    startedRef.current = true;
+
     if (window.location.pathname.startsWith("/auth")) {
       store.dispatch(finishHydration());
       return;
@@ -31,13 +36,14 @@ function AuthHydrator() {
 
     void apiRefresh()
       .then(async (refreshResponse) => {
-        const { accessToken } = refreshResponse.data;
+        const { accessToken, user: refreshedUser } = refreshResponse.data;
         store.dispatch(updateAccessToken(accessToken));
 
-        const meResponse = await apiMe();
+        const user = refreshedUser ?? (await apiMe()).data;
+        queryClient.setQueryData(["patient", "profile"], user);
         store.dispatch(
           login({
-            user: meResponse.data,
+            user,
             accessToken,
           }),
         );

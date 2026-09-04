@@ -29,20 +29,22 @@ export function useHomeBannersQuery() {
   });
 }
 
-export function useHomeServicesQuery() {
+export function useHomeServicesQuery(enabled = true) {
   return useQuery({
     queryKey: homeQueryKeys.services(),
     queryFn: getHomeServices,
+    enabled,
     staleTime: 10 * 60 * 1000,
     gcTime: 60 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 }
 
-export function useHomeDoctorsQuery() {
+export function useHomeDoctorsQuery(enabled = true) {
   return useQuery({
     queryKey: homeQueryKeys.doctors(),
     queryFn: getHomeDoctors,
+    enabled,
     staleTime: 10 * 60 * 1000,
     gcTime: 60 * 60 * 1000,
     refetchOnWindowFocus: false,

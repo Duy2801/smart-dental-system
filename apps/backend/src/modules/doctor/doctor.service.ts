@@ -6,12 +6,19 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 import { CreateDoctorDto } from './dto/create-doctor-dto';
 import { UpdateDoctorDto } from './dto/update-doctor-dto';
 
+const doctorCachePrefix = 'catalog:doctors:';
+const doctorCacheTtlSeconds = 10 * 60;
+
 @Injectable()
 export class DoctorService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+  ) {}
 
   private includeDoctorRelations() {
     return {
@@ -42,7 +49,9 @@ export class DoctorService {
         where: { isVisible: true },
         include: {
           patient: { include: { user: true } },
-          appointment: { include: { treatmentMethod: { include: { service: true } } } },
+          appointment: {
+            include: { treatmentMethod: { include: { service: true } } },
+          },
         },
         orderBy: { createdAt: 'desc' as const },
         take: 8,
@@ -54,7 +63,7 @@ export class DoctorService {
     const email = dto.email.trim().toLowerCase();
     const phone = dto.phone?.trim();
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const existingUser = await tx.user.findFirst({
         where: {
           OR: [{ email }, ...(phone ? [{ phone }] : [])],
@@ -120,42 +129,89 @@ export class DoctorService {
         include: this.includeDoctorRelations(),
       });
     });
+    await this.invalidateCache();
+    return result;
   }
 
-  async getAllDoctors(serviceId?: string, specializationId?: string) {
-    let targetSpecializationId = specializationId;
+  async getAllDoctors(
+    serviceId?: string,
+    specializationId?: string,
+    view: 'full' | 'summary' = 'full',
+  ) {
+    const cacheKey = `${doctorCachePrefix}list:${JSON.stringify({
+      serviceId: serviceId ?? '',
+      specializationId: specializationId ?? '',
+      view,
+    })}`;
 
-    if (!targetSpecializationId && serviceId) {
-      const service = await this.prisma.service.findUnique({
-        where: { id: serviceId },
-        select: { specializationId: true },
-      });
-      targetSpecializationId = service?.specializationId ?? undefined;
-    }
+    return this.redis.rememberJson(
+      cacheKey,
+      doctorCacheTtlSeconds,
+      async () => {
+        let targetSpecializationId = specializationId;
 
-    return this.prisma.doctor.findMany({
-      where: {
-        isActive: true,
-        ...(targetSpecializationId
-          ? {
-              specializations: {
-                some: {
-                  specializationId: targetSpecializationId,
+        if (!targetSpecializationId && serviceId) {
+          const service = await this.prisma.service.findUnique({
+            where: { id: serviceId },
+            select: { specializationId: true },
+          });
+          targetSpecializationId = service?.specializationId ?? undefined;
+        }
+
+        const where = {
+          isActive: true,
+          ...(targetSpecializationId
+            ? {
+                specializations: {
+                  some: {
+                    specializationId: targetSpecializationId,
+                  },
+                },
+              }
+            : {}),
+        };
+
+        if (view === 'summary') {
+          return this.prisma.doctor.findMany({
+            where,
+            select: {
+              id: true,
+              avatarUrl: true,
+              specialization: true,
+              yearsExperience: true,
+              isActive: true,
+              user: {
+                select: {
+                  fullName: true,
+                  status: true,
                 },
               },
-            }
-          : {}),
+            },
+            orderBy: { createdAt: 'desc' },
+          });
+        }
+
+        return this.prisma.doctor.findMany({
+          where: {
+            ...where,
+          },
+          include: this.includeDoctorRelations(),
+          orderBy: { createdAt: 'desc' },
+        });
       },
-      include: this.includeDoctorRelations(),
-      orderBy: { createdAt: 'desc' },
-    });
+    );
   }
 
   async getDoctorById(id: string) {
-    const doctor = await this.prisma.doctor.findUnique({
-      where: { id },
-      include: this.includeDoctorRelations(),
-    });
+    const doctor = await this.redis.rememberJson(
+      `${doctorCachePrefix}detail:${id}`,
+      doctorCacheTtlSeconds,
+      () =>
+        this.prisma.doctor.findUnique({
+          where: { id },
+          include: this.includeDoctorRelations(),
+        }),
+    );
 
     if (!doctor) {
       throw new NotFoundException(`Doctor with id ${id} not found`);
@@ -168,7 +224,7 @@ export class DoctorService {
     const email = dto.email?.trim().toLowerCase();
     const phone = dto.phone?.trim();
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const doctor = await tx.doctor.findUnique({
         where: { id },
         include: { user: true },
@@ -250,6 +306,8 @@ export class DoctorService {
         include: this.includeDoctorRelations(),
       });
     });
+    await this.invalidateCache();
+    return result;
   }
 
   async deleteDoctor(id: string) {
@@ -271,7 +329,12 @@ export class DoctorService {
         data: { isActive: false },
       }),
     ]);
+    await this.invalidateCache();
 
     return { message: 'doctor.deactivated' };
+  }
+
+  private invalidateCache() {
+    return this.redis.delByPrefix(doctorCachePrefix);
   }
 }

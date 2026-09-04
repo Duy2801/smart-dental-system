@@ -192,26 +192,37 @@ export function ManageModeView({
             </div>
           ) : currentList.length > 0 ? (
             <div className="space-y-3">
-              {currentList.map((item) => (
-                <AppointmentRecordCard
-                  key={item.id}
-                  appointment={item}
-                  onViewDetail={() => setSelectedDetail(item)}
-                  onReschedule={
-                    activeMainTab === "upcoming" ? () => onReschedule(item) : undefined
-                  }
-                  onCancel={
-                    activeMainTab === "upcoming"
-                      ? () => onCancelAppointment(item.id)
-                      : undefined
-                  }
-                  canCancel={
-                    activeMainTab === "upcoming" &&
-                    (item.status === "pending" || item.status === "confirmed")
-                  }
-                  isCancelling={cancellingAppointmentId === item.id}
-                />
-              ))}
+              {currentList.map((item) => {
+                const now = Date.now();
+                const scheduledTime = new Date(item.scheduledAt).getTime();
+                const hoursUntil = (scheduledTime - now) / (1000 * 60 * 60);
+                const isUpcoming = activeMainTab === "upcoming";
+                const isPendingOrConfirmed =
+                  item.status === "pending" || item.status === "confirmed";
+
+                const canCancel = isUpcoming && isPendingOrConfirmed && hoursUntil >= 12;
+                const canReschedule =
+                  isUpcoming &&
+                  isPendingOrConfirmed &&
+                  hoursUntil >= 6 &&
+                  (item.rescheduleCount ?? 0) < 1;
+
+                return (
+                  <AppointmentRecordCard
+                    key={item.id}
+                    appointment={item}
+                    onViewDetail={() => setSelectedDetail(item)}
+                    onReschedule={canReschedule ? () => onReschedule(item) : undefined}
+                    onCancel={
+                      isUpcoming && isPendingOrConfirmed
+                        ? () => onCancelAppointment(item.id)
+                        : undefined
+                    }
+                    canCancel={canCancel}
+                    isCancelling={cancellingAppointmentId === item.id}
+                  />
+                );
+              })}
             </div>
           ) : (
             <div className="py-12 text-center text-slate-400 space-y-3 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">

@@ -17,6 +17,8 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RedisService.name);
   private client!: Redis;
   private readonly memoryStore = new Map<string, MemoryStoreEntry>();
+  private readonly inFlightLoads = new Map<string, Promise<unknown>>();
+  private cacheEpoch = 0;
   private isConnected = false;
 
   constructor(private readonly configService: ConfigService) {}
@@ -92,10 +94,10 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
      ======================== */
 
   async get(key: string): Promise<string | null> {
-    if (this.client) {
+    if (this.isConnected) {
       try {
         const result = await this.client.get(key);
-        if (result !== null) return result;
+        return result;
       } catch (err: any) {
         this.logger.warn(`Redis get failed for [${key}]: ${err.message}`);
       }
@@ -103,7 +105,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
     const entry = this.memoryStore.get(key);
     if (this.cleanExpired(key, entry)) {
-      return typeof entry!.value === 'string' ? entry!.value : JSON.stringify(entry!.value);
+      return typeof entry!.value === 'string'
+        ? entry!.value
+        : JSON.stringify(entry!.value);
     }
     return null;
   }
@@ -118,7 +122,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     const expiresAt = ttlSeconds ? Date.now() + ttlSeconds * 1000 : undefined;
     this.memoryStore.set(key, { value, expiresAt });
 
-    if (this.client) {
+    if (this.isConnected) {
       try {
         if (ttlSeconds) {
           await this.client.set(key, value, 'EX', ttlSeconds);
@@ -126,14 +130,17 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
           await this.client.set(key, value);
         }
       } catch (err: any) {
-        this.logger.warn(`Redis set failed for [${key}]: ${err.message}. Stored in fallback memory.`);
+        this.logger.warn(
+          `Redis set failed for [${key}]: ${err.message}. Stored in fallback memory.`,
+        );
       }
     }
   }
 
   async del(key: string): Promise<void> {
+    this.cacheEpoch += 1;
     this.memoryStore.delete(key);
-    if (this.client) {
+    if (this.isConnected) {
       try {
         await this.client.del(key);
       } catch (err: any) {
@@ -143,10 +150,11 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   async delMany(keys: string[]): Promise<void> {
+    this.cacheEpoch += 1;
     for (const k of keys) {
       this.memoryStore.delete(k);
     }
-    if (this.client && keys.length) {
+    if (this.isConnected && keys.length) {
       try {
         await this.client.del(...keys);
       } catch (err: any) {
@@ -155,12 +163,74 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  async delByPrefix(prefix: string): Promise<void> {
+    this.cacheEpoch += 1;
+    const memoryKeys = [...this.memoryStore.keys()].filter((key) =>
+      key.startsWith(prefix),
+    );
+    memoryKeys.forEach((key) => this.memoryStore.delete(key));
+
+    if (!this.isConnected) return;
+
+    try {
+      let cursor = '0';
+      do {
+        const [nextCursor, keys] = await this.client.scan(
+          cursor,
+          'MATCH',
+          `${prefix}*`,
+          'COUNT',
+          100,
+        );
+        cursor = nextCursor;
+        if (keys.length) await this.client.del(...keys);
+      } while (cursor !== '0');
+    } catch (error: unknown) {
+      this.logger.warn(
+        `Redis prefix invalidation failed for [${prefix}]: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+  }
+
+  async rememberJson<T>(
+    key: string,
+    ttlSeconds: number,
+    loader: () => Promise<T>,
+  ): Promise<T> {
+    const cached = await this.get(key);
+    if (cached !== null) {
+      try {
+        return JSON.parse(cached) as T;
+      } catch {
+        await this.del(key);
+      }
+    }
+
+    const existingLoad = this.inFlightLoads.get(key) as Promise<T> | undefined;
+    if (existingLoad) return existingLoad;
+
+    const loadEpoch = this.cacheEpoch;
+    const load = loader()
+      .then(async (value) => {
+        if (loadEpoch === this.cacheEpoch) {
+          await this.set(key, JSON.stringify(value), ttlSeconds);
+        }
+        return value;
+      })
+      .finally(() => this.inFlightLoads.delete(key));
+
+    this.inFlightLoads.set(key, load);
+    return load;
+  }
+
   async expire(key: string, ttlSeconds: number): Promise<void> {
     const entry = this.memoryStore.get(key);
     if (entry) {
       entry.expiresAt = Date.now() + ttlSeconds * 1000;
     }
-    if (this.client) {
+    if (this.isConnected) {
       try {
         await this.client.expire(key, ttlSeconds);
       } catch (err: any) {
@@ -170,7 +240,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   async incr(key: string): Promise<number> {
-    if (this.client) {
+    if (this.isConnected) {
       try {
         return await this.client.incr(key);
       } catch (err: any) {
@@ -198,7 +268,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     }
     setObj.add(member);
 
-    if (this.client) {
+    if (this.isConnected) {
       try {
         await this.client.sadd(key, member);
       } catch (err: any) {
@@ -213,7 +283,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       entry!.value.delete(member);
     }
 
-    if (this.client) {
+    if (this.isConnected) {
       try {
         await this.client.srem(key, member);
       } catch (err: any) {
@@ -223,7 +293,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   async smembers(key: string): Promise<string[]> {
-    if (this.client) {
+    if (this.isConnected) {
       try {
         return await this.client.smembers(key);
       } catch (err: any) {

@@ -1,11 +1,7 @@
 import apiClient from "@/lib/axios";
 import axios from "axios";
 import type { DashboardIconName } from "../common/DashboardIcon";
-import type {
-  AppointmentService,
-  BookingDate,
-  Dentist,
-} from "./types";
+import type { AppointmentService, BookingDate, Dentist } from "./types";
 
 type TreatmentMethodDto = {
   id: string;
@@ -34,6 +30,7 @@ type DoctorDto = {
   specialization: string;
   yearsExperience?: number;
   isActive: boolean;
+  availableTimeSlots?: string[];
   user: {
     fullName: string;
     status?: string;
@@ -230,7 +227,8 @@ function mapAppointment(item: AppointmentDto): AppointmentItem {
     id: item.id,
     patientId: item.patientId ?? item.patient?.id ?? null,
     patientName,
-    patientRelationship: item.patient?.patientAccounts?.[0]?.relationship ?? null,
+    patientRelationship:
+      item.patient?.patientAccounts?.[0]?.relationship ?? null,
     doctorId: item.doctorId,
     serviceId: item.serviceId,
     scheduledAt: item.scheduledAt,
@@ -306,6 +304,7 @@ function mapDoctor(item: DoctorDto, index: number): Dentist {
     experience: `${item.yearsExperience ?? 0} năm`,
     initials: getInitials(item.user.fullName),
     tone: tones[index % tones.length],
+    availableTimeSlots: item.availableTimeSlots ?? [],
   };
 }
 
@@ -364,18 +363,20 @@ export async function createPatientAppointment(
     appointment: mapAppointment(response.data),
     bookingPolicy: response.data.bookingPolicy
       ? {
-        noShowCount: response.data.bookingPolicy.noShowCount ?? 0,
-        requiresDeposit: Boolean(response.data.bookingPolicy.requiresDeposit),
-        onlineBookingBlocked: Boolean(
-          response.data.bookingPolicy.onlineBookingBlocked,
-        ),
-      }
+          noShowCount: response.data.bookingPolicy.noShowCount ?? 0,
+          requiresDeposit: Boolean(response.data.bookingPolicy.requiresDeposit),
+          onlineBookingBlocked: Boolean(
+            response.data.bookingPolicy.onlineBookingBlocked,
+          ),
+        }
       : null,
   } satisfies CreateAppointmentResult;
 }
 
 export async function getManagedPatientProfiles() {
-  const response = await apiClient.get<PatientProfile[]>("/patients/me/profiles");
+  const response = await apiClient.get<PatientProfile[]>(
+    "/patients/me/profiles",
+  );
   return response.data;
 }
 

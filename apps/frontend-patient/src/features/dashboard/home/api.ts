@@ -1,4 +1,4 @@
-import apiClient from "@/lib/axios";
+import apiClient, { getWithSummaryFallback } from "@/lib/axios";
 
 type PaginatedResponse<T> = {
   data: T[];
@@ -234,7 +234,10 @@ function mapService(service: ServiceDto): HomeServiceCard {
   const durations = activeMethods
     .map((m) => Number(m.durationMinutes ?? 0))
     .filter((d) => d > 0);
-  const minDuration = durations.length > 0 ? Math.min(...durations) : (service.durationMinutes || 30);
+  const minDuration =
+    durations.length > 0
+      ? Math.min(...durations)
+      : service.durationMinutes || 30;
 
   return {
     id: service.id,
@@ -271,7 +274,7 @@ function mapDoctorDetail(doctor: DoctorDto): DoctorDetail {
   const reviews = doctor.reviews ?? [];
   const averageRating = reviews.length
     ? reviews.reduce((total, review) => total + review.rating, 0) /
-    reviews.length
+      reviews.length
     : 0;
 
   return {
@@ -307,7 +310,7 @@ function mapClinicalCase(item: ClinicalCaseDto): HomeClinicalCase {
 
 export async function getHomeServices(): Promise<HomeServiceCard[]> {
   try {
-    const response = await apiClient.get<unknown>("/services", {
+    const response = await getWithSummaryFallback<unknown>("/services", {
       params: {
         isActive: true,
         limit: 20,
@@ -316,7 +319,9 @@ export async function getHomeServices(): Promise<HomeServiceCard[]> {
     });
 
     const resData = (response as { data?: unknown })?.data ?? response;
-    const items = (resData as { data?: ServiceDto[] })?.data ?? (Array.isArray(resData) ? resData : []);
+    const items =
+      (resData as { data?: ServiceDto[] })?.data ??
+      (Array.isArray(resData) ? resData : []);
 
     if (!Array.isArray(items)) return [];
     return items.map(mapService);
@@ -344,7 +349,9 @@ export function getDoctorBullets(doctor: HomeDoctorCard): string[] {
   }
 
   if (doctor.yearsExperience > 0) {
-    items.push(`${doctor.yearsExperience}+ năm kinh nghiệm lâm sàng Răng Hàm Mặt`);
+    items.push(
+      `${doctor.yearsExperience}+ năm kinh nghiệm lâm sàng Răng Hàm Mặt`,
+    );
   }
 
   if (doctor.educations && doctor.educations.length > 0) {
@@ -355,7 +362,9 @@ export function getDoctorBullets(doctor: HomeDoctorCard): string[] {
 
   if (doctor.certificates && doctor.certificates.length > 0) {
     doctor.certificates.forEach((cert) => {
-      items.push(`Chứng chỉ: ${cert.title}${cert.issuer ? ` (${cert.issuer})` : ""}`);
+      items.push(
+        `Chứng chỉ: ${cert.title}${cert.issuer ? ` (${cert.issuer})` : ""}`,
+      );
     });
   }
 
@@ -375,11 +384,14 @@ export function getDoctorBullets(doctor: HomeDoctorCard): string[] {
 
 export async function getHomeDoctors(): Promise<HomeDoctorCard[]> {
   try {
-    const response = await apiClient.get<unknown>("/doctors");
+    const response = await getWithSummaryFallback<unknown>("/doctors");
     const raw = (response as { data?: unknown })?.data ?? response;
     const items = Array.isArray(raw) ? (raw as DoctorDto[]) : [];
     const active = items
-      .filter((doctor) => doctor && doctor.isActive && doctor.user?.status !== "INACTIVE")
+      .filter(
+        (doctor) =>
+          doctor && doctor.isActive && doctor.user?.status !== "INACTIVE",
+      )
       .map(mapDoctor);
 
     return active.slice(0, 6).map((doc) => ({
@@ -394,11 +406,14 @@ export async function getHomeDoctors(): Promise<HomeDoctorCard[]> {
 
 export async function getDoctors(): Promise<HomeDoctorCard[]> {
   try {
-    const response = await apiClient.get<unknown>("/doctors");
+    const response = await getWithSummaryFallback<unknown>("/doctors");
     const raw = (response as { data?: unknown })?.data ?? response;
     const items = Array.isArray(raw) ? (raw as DoctorDto[]) : [];
     const active = items
-      .filter((doctor) => doctor && doctor.isActive && doctor.user?.status !== "INACTIVE")
+      .filter(
+        (doctor) =>
+          doctor && doctor.isActive && doctor.user?.status !== "INACTIVE",
+      )
       .map(mapDoctor);
 
     return active.map((doc) => ({
@@ -453,4 +468,3 @@ export async function getBanners(): Promise<BannerDto[]> {
     return [];
   }
 }
-

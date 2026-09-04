@@ -20,6 +20,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '../../../prisma/generated/client';
 import { ClinicConfigService } from '../clinic-config/clinic-config.service';
 import { NotificationService } from '../notification/notification.service';
+import { RedisService } from '../redis/redis.service';
 import {
   BusinessHourDto,
   ClinicSpecialDateDto,
@@ -51,7 +52,9 @@ const appointmentInclude = {
   doctor: { include: { user: true } },
   treatmentMethod: { include: { service: true } },
   medicalRecords: { select: { id: true }, take: 1 },
-  invoices: { select: { id: true, invoiceType: true, status: true, finalAmount: true } },
+  invoices: {
+    select: { id: true, invoiceType: true, status: true, finalAmount: true },
+  },
 };
 
 type BookingOptionQuery = {
@@ -91,13 +94,13 @@ export class AppointmentService {
     private prisma: PrismaService,
     private clinicConfigService: ClinicConfigService,
     private notificationService: NotificationService,
+    private redis: RedisService,
     @InjectQueue('mail-queue') private readonly mailQueue: Queue,
-  ) { }
+  ) {}
 
-  private withDerivedService<T extends Record<string, any>>(
-    appointment: T,
-  ) {
-    const service = appointment.service ?? appointment.treatmentMethod?.service ?? null;
+  private withDerivedService<T extends Record<string, any>>(appointment: T) {
+    const service =
+      appointment.service ?? appointment.treatmentMethod?.service ?? null;
     return {
       ...appointment,
       service,
@@ -235,7 +238,7 @@ export class AppointmentService {
 
     const endAt = new Date(
       scheduledAt.getTime() +
-      (appointment.treatmentMethod?.durationMinutes ?? 30) * 60 * 1000,
+        (appointment.treatmentMethod?.durationMinutes ?? 30) * 60 * 1000,
     );
 
     if (
@@ -277,8 +280,13 @@ export class AppointmentService {
       },
       include: appointmentInclude,
     });
+    void this.invalidateBookingCache(userId, appointment.patientId || undefined);
     const result = this.withDerivedService(updated);
-    void this.dispatchAppointmentRescheduledNotification(result, previousSchedule.scheduledAt, scheduledAt);
+    void this.dispatchAppointmentRescheduledNotification(
+      result,
+      previousSchedule.scheduledAt,
+      scheduledAt,
+    );
     return result;
   }
 
@@ -311,8 +319,12 @@ export class AppointmentService {
       },
       include: appointmentInclude,
     });
+    void this.invalidateBookingCache(userId, appointment.patientId || undefined);
     const result = this.withDerivedService(updated);
-    void this.dispatchAppointmentCancelledNotification(result, 'Bệnh nhân đã hủy qua ứng dụng');
+    void this.dispatchAppointmentCancelledNotification(
+      result,
+      'Bệnh nhân đã hủy qua ứng dụng',
+    );
     return result;
   }
 
@@ -377,40 +389,40 @@ export class AppointmentService {
         scheduledAt: { gte: fromDate, lte: toDate },
         ...(search
           ? {
-            OR: [
-              {
-                appointmentCode: {
-                  contains: search,
-                  mode: 'insensitive',
-                },
-              },
-              {
-                patient: {
-                  is: {
-                    OR: [
-                      { fullName: { contains: search, mode: 'insensitive' } },
-                      { phone: { contains: search } },
-                      {
-                        user: {
-                          is: {
-                            OR: [
-                              {
-                                fullName: {
-                                  contains: search,
-                                  mode: 'insensitive',
-                                },
-                              },
-                              { phone: { contains: search } },
-                            ],
-                          },
-                        },
-                      },
-                    ],
+              OR: [
+                {
+                  appointmentCode: {
+                    contains: search,
+                    mode: 'insensitive',
                   },
                 },
-              },
-            ],
-          }
+                {
+                  patient: {
+                    is: {
+                      OR: [
+                        { fullName: { contains: search, mode: 'insensitive' } },
+                        { phone: { contains: search } },
+                        {
+                          user: {
+                            is: {
+                              OR: [
+                                {
+                                  fullName: {
+                                    contains: search,
+                                    mode: 'insensitive',
+                                  },
+                                },
+                                { phone: { contains: search } },
+                              ],
+                            },
+                          },
+                        },
+                      ],
+                    },
+                  },
+                },
+              ],
+            }
           : {}),
       },
       include: appointmentInclude,
@@ -508,7 +520,10 @@ export class AppointmentService {
       },
       'appointment.cannot_cancel',
     );
-    void this.dispatchAppointmentCancelledNotification(updated, reason || 'Phòng khám hủy lịch theo yêu cầu');
+    void this.dispatchAppointmentCancelledNotification(
+      updated,
+      reason || 'Phòng khám hủy lịch theo yêu cầu',
+    );
     return updated;
   }
 
@@ -541,7 +556,7 @@ export class AppointmentService {
 
     const endAt = new Date(
       scheduledAt.getTime() +
-      (appointment.treatmentMethod?.durationMinutes ?? 30) * 60 * 1000,
+        (appointment.treatmentMethod?.durationMinutes ?? 30) * 60 * 1000,
     );
 
     const previousSchedule = {
@@ -586,8 +601,13 @@ export class AppointmentService {
       },
       include: appointmentInclude,
     });
+    void this.invalidateBookingCache(updated.createdBy, updated.patientId || undefined);
     const result = this.withDerivedService(updated);
-    void this.dispatchAppointmentRescheduledNotification(result, previousSchedule.scheduledAt, scheduledAt);
+    void this.dispatchAppointmentRescheduledNotification(
+      result,
+      previousSchedule.scheduledAt,
+      scheduledAt,
+    );
     return result;
   }
 
@@ -603,9 +623,14 @@ export class AppointmentService {
     const patient = appointment.patient;
     const email = patient?.email || patient?.user?.email;
     const name = patient?.fullName || patient?.user?.fullName || 'Quý khách';
-    const doctorName = appointment.doctor?.user?.fullName || 'Bác sĩ chuyên khoa';
-    const service = (appointment as any).service ?? appointment.treatmentMethod?.service;
-    const serviceName = (service && typeof service === 'object' && 'name' in service) ? service.name : 'Khám nha khoa';
+    const doctorName =
+      appointment.doctor?.user?.fullName || 'Bác sĩ chuyên khoa';
+    const service =
+      (appointment as any).service ?? appointment.treatmentMethod?.service;
+    const serviceName =
+      service && typeof service === 'object' && 'name' in service
+        ? service.name
+        : 'Khám nha khoa';
     const scheduledAt = appointment.scheduledAt;
     const code = appointment.appointmentCode;
 
@@ -649,9 +674,14 @@ export class AppointmentService {
       const patient = appointment.patient;
       const email = patient?.email || patient?.user?.email;
       const name = patient?.fullName || patient?.user?.fullName || 'Quý khách';
-      const doctorName = appointment.doctor?.user?.fullName || 'Bác sĩ chuyên khoa';
-      const service = appointment.service ?? appointment.treatmentMethod?.service;
-      const serviceName = (service && typeof service === 'object' && 'name' in service) ? service.name : 'Khám nha khoa';
+      const doctorName =
+        appointment.doctor?.user?.fullName || 'Bác sĩ chuyên khoa';
+      const service =
+        appointment.service ?? appointment.treatmentMethod?.service;
+      const serviceName =
+        service && typeof service === 'object' && 'name' in service
+          ? service.name
+          : 'Khám nha khoa';
       const scheduledAt = appointment.scheduledAt;
       const code = appointment.appointmentCode;
 
@@ -684,7 +714,9 @@ export class AppointmentService {
         });
       }
     } catch (err) {
-      this.logger.warn(`Failed to dispatch appointment confirmation notification: ${err}`);
+      this.logger.warn(
+        `Failed to dispatch appointment confirmation notification: ${err}`,
+      );
     }
   }
 
@@ -697,9 +729,14 @@ export class AppointmentService {
       const patient = appointment.patient;
       const email = patient?.email || patient?.user?.email;
       const name = patient?.fullName || patient?.user?.fullName || 'Quý khách';
-      const doctorName = appointment.doctor?.user?.fullName || 'Bác sĩ chuyên khoa';
-      const service = appointment.service ?? appointment.treatmentMethod?.service;
-      const serviceName = (service && typeof service === 'object' && 'name' in service) ? service.name : 'Khám nha khoa';
+      const doctorName =
+        appointment.doctor?.user?.fullName || 'Bác sĩ chuyên khoa';
+      const service =
+        appointment.service ?? appointment.treatmentMethod?.service;
+      const serviceName =
+        service && typeof service === 'object' && 'name' in service
+          ? service.name
+          : 'Khám nha khoa';
       const code = appointment.appointmentCode;
 
       if (email) {
@@ -732,18 +769,28 @@ export class AppointmentService {
         });
       }
     } catch (err) {
-      this.logger.warn(`Failed to dispatch appointment rescheduled notification: ${err}`);
+      this.logger.warn(
+        `Failed to dispatch appointment rescheduled notification: ${err}`,
+      );
     }
   }
 
-  private async dispatchAppointmentCancelledNotification(appointment: any, reason?: string) {
+  private async dispatchAppointmentCancelledNotification(
+    appointment: any,
+    reason?: string,
+  ) {
     try {
       const patient = appointment.patient;
       const email = patient?.email || patient?.user?.email;
       const name = patient?.fullName || patient?.user?.fullName || 'Quý khách';
-      const doctorName = appointment.doctor?.user?.fullName || 'Bác sĩ chuyên khoa';
-      const service = appointment.service ?? appointment.treatmentMethod?.service;
-      const serviceName = (service && typeof service === 'object' && 'name' in service) ? service.name : 'Khám nha khoa';
+      const doctorName =
+        appointment.doctor?.user?.fullName || 'Bác sĩ chuyên khoa';
+      const service =
+        appointment.service ?? appointment.treatmentMethod?.service;
+      const serviceName =
+        service && typeof service === 'object' && 'name' in service
+          ? service.name
+          : 'Khám nha khoa';
       const scheduledAt = appointment.scheduledAt;
       const code = appointment.appointmentCode;
 
@@ -771,7 +818,9 @@ export class AppointmentService {
         });
       }
     } catch (err) {
-      this.logger.warn(`Failed to dispatch appointment cancelled notification: ${err}`);
+      this.logger.warn(
+        `Failed to dispatch appointment cancelled notification: ${err}`,
+      );
     }
   }
 
@@ -780,10 +829,15 @@ export class AppointmentService {
       const patient = appointment.patient;
       const email = patient?.email || patient?.user?.email;
       const name = patient?.fullName || patient?.user?.fullName || 'Quý khách';
-      const doctorName = appointment.doctor?.user?.fullName || 'Bác sĩ chuyên khoa';
+      const doctorName =
+        appointment.doctor?.user?.fullName || 'Bác sĩ chuyên khoa';
       const doctorUserId = appointment.doctor?.userId;
-      const service = (appointment as any).service ?? appointment.treatmentMethod?.service;
-      const serviceName = (service && typeof service === 'object' && 'name' in service) ? service.name : 'Khám nha khoa';
+      const service =
+        (appointment as any).service ?? appointment.treatmentMethod?.service;
+      const serviceName =
+        service && typeof service === 'object' && 'name' in service
+          ? service.name
+          : 'Khám nha khoa';
       const code = appointment.appointmentCode;
       const queueNumber = `#${code.slice(-4)}`;
 
@@ -830,7 +884,8 @@ export class AppointmentService {
   private async dispatchAppointmentInProgressNotification(appointment: any) {
     try {
       const patient = appointment.patient;
-      const doctorName = appointment.doctor?.user?.fullName || 'Bác sĩ chuyên khoa';
+      const doctorName =
+        appointment.doctor?.user?.fullName || 'Bác sĩ chuyên khoa';
       const patientUserId = patient?.userId || appointment.createdBy;
       const code = appointment.appointmentCode;
 
@@ -868,6 +923,7 @@ export class AppointmentService {
       data,
       include: appointmentInclude,
     });
+    void this.invalidateBookingCache(updated.createdBy, updated.patientId || undefined);
     return this.withDerivedService(updated);
   }
 
@@ -925,6 +981,7 @@ export class AppointmentService {
       await this.ensureMedicalRecord(appointment);
     }
 
+    void this.invalidateBookingCache(updated.createdBy, updated.patientId || undefined);
     return this.withDerivedService(updated);
   }
 
@@ -1124,209 +1181,368 @@ export class AppointmentService {
     return invoice;
   }
 
-  async getBookingOptions(query: BookingOptionQuery) {
-    const [doctorSpecializations, clinicConfig] = await Promise.all([
-      query.doctorId
-        ? this.prisma.doctorSpecialization.findMany({
+  async invalidateBookingCache(userId?: string, patientId?: string) {
+    try {
+      await Promise.all([
+        this.redis.delByPrefix('booking:options:'),
+        this.redis.delByPrefix('booking:window:'),
+        this.redis.delByPrefix('booking:slots:'),
+        this.redis.delByPrefix('booking:dates:'),
+        this.redis.delByPrefix('patient:appointments:'),
+        patientId ? this.redis.del(`patient:records:${patientId}`) : Promise.resolve(),
+      ]);
+    } catch (err: any) {
+      this.logger.warn(`Failed to invalidate booking cache: ${err.message}`);
+    }
+  }
+
+  private async getCachedServices(doctorId?: string) {
+    const cacheKey = `booking:catalog:services:${doctorId || 'all'}`;
+    return this.redis.rememberJson(cacheKey, 600, async () => {
+      let doctorSpecializationIds: string[] = [];
+      if (doctorId) {
+        const specs = await this.prisma.doctorSpecialization.findMany({
           where: {
-            doctorId: query.doctorId,
+            doctorId,
             specialization: { isActive: true },
           },
           select: { specializationId: true },
-        })
-        : Promise.resolve([]),
-      this.clinicConfigService.getClinicScheduleConfig(),
-    ]);
-    const doctorSpecializationIds = doctorSpecializations.map(
-      (item) => item.specializationId,
-    );
+        });
+        doctorSpecializationIds = specs.map((item) => item.specializationId);
+      }
 
-    const services = await this.prisma.service.findMany({
-      where: {
-        isActive: true,
-        ...(query.doctorId
-          ? { specializationId: { in: doctorSpecializationIds } }
-          : {}),
-      },
-      include: {
-        treatmentMethods: {
-          where: { isActive: true },
-          orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
+      return this.prisma.service.findMany({
+        where: {
+          isActive: true,
+          ...(doctorId
+            ? { specializationId: { in: doctorSpecializationIds } }
+            : {}),
         },
-      },
-      orderBy: [
-        { isFeatured: 'desc' },
-        { displayOrder: 'asc' },
-        { name: 'asc' },
-      ],
-    });
-    const selectedService =
-      services.find((service) => service.id === query.serviceId) ?? services[0];
-    const selectedTreatmentMethod =
-      selectedService?.treatmentMethods.find(
-        (method) => method.id === query.treatmentMethodId,
-      ) ??
-      selectedService?.treatmentMethods[0] ??
-      null;
-
-    const doctorWhere: any = {
-      isActive: true,
-      user: { status: 'ACTIVE' },
-      ...(query.doctorId ? { id: query.doctorId } : {}),
-    };
-
-    if (selectedService?.specializationId) {
-      doctorWhere.specializations = {
-        some: {
-          specializationId: selectedService.specializationId,
-        },
-      };
-    }
-
-    const rawDoctors = await this.prisma.doctor.findMany({
-      where: doctorWhere,
-      include: {
-        user: true,
-        specializations: {
-          include: {
-            specialization: true,
+        select: {
+          id: true,
+          category: true,
+          name: true,
+          slug: true,
+          icon: true,
+          shortDescription: true,
+          description: true,
+          specializationId: true,
+          treatmentMethods: {
+            where: { isActive: true },
+            orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }],
+            select: {
+              id: true,
+              serviceId: true,
+              name: true,
+              slug: true,
+              description: true,
+              imageUrl: true,
+              basePrice: true,
+              durationMinutes: true,
+            },
           },
         },
-      },
-      orderBy: { createdAt: 'desc' },
+        orderBy: [
+          { isFeatured: 'desc' },
+          { displayOrder: 'asc' },
+          { name: 'asc' },
+        ],
+      });
+    });
+  }
+
+  private async getCachedDoctors(
+    serviceSpecializationId?: string | null,
+    doctorId?: string,
+  ) {
+    const cacheKey = `booking:catalog:doctors:${serviceSpecializationId || 'all'}:${doctorId || 'all'}`;
+    return this.redis.rememberJson(cacheKey, 600, async () => {
+      const doctorWhere: Prisma.DoctorWhereInput = {
+        isActive: true,
+        user: { status: 'ACTIVE' },
+        ...(doctorId ? { id: doctorId } : {}),
+      };
+
+      if (serviceSpecializationId) {
+        doctorWhere.specializations = {
+          some: {
+            specializationId: serviceSpecializationId,
+          },
+        };
+      }
+
+      const rawDoctors = await this.prisma.doctor.findMany({
+        where: doctorWhere,
+        select: {
+          id: true,
+          specialization: true,
+          yearsExperience: true,
+          isActive: true,
+          user: {
+            select: {
+              fullName: true,
+              status: true,
+            },
+          },
+          specializations: {
+            select: {
+              specialization: {
+                select: { name: true },
+              },
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      return rawDoctors.map((doc) => ({
+        ...doc,
+        specialization:
+          doc.specializations
+            .map((s) => s.specialization.name)
+            .filter(Boolean)
+            .join(', ') || 'Chuyên môn nha khoa',
+      }));
+    });
+  }
+
+  private async getCachedBookingWindowData(doctorIds: string[]) {
+    if (!doctorIds.length) {
+      return {
+        recordsByDoctor: new Map<string, any[]>(),
+        appointmentsByDoctor: new Map<string, AppointmentSlotSnapshot[]>(),
+        availabilityRecords: [],
+        activeAppointments: [],
+      };
+    }
+    const sortedIds = [...doctorIds].sort();
+    const cacheKey = `booking:window:${sortedIds.join(',')}`;
+
+    const raw = await this.redis.rememberJson(cacheKey, 45, async () => {
+      const data = await this.getBookingWindowData(sortedIds);
+      return {
+        recordsByDoctorEntries: Array.from(data.recordsByDoctor.entries()),
+        appointmentsByDoctorEntries: Array.from(
+          data.appointmentsByDoctor.entries(),
+        ).map(([docId, apps]) => [
+          docId,
+          apps.map((a) => ({
+            doctorId: a.doctorId,
+            scheduledAt: a.scheduledAt.toISOString(),
+            endAt: a.endAt.toISOString(),
+          })),
+        ]),
+        availabilityRecords: data.availabilityRecords,
+        activeAppointments: data.activeAppointments.map((a) => ({
+          doctorId: a.doctorId,
+          scheduledAt: a.scheduledAt.toISOString(),
+          endAt: a.endAt.toISOString(),
+        })),
+      };
     });
 
-    const doctors = rawDoctors.map((doc) => ({
-      ...doc,
-      specialization:
-        doc.specializations
-          .map((s) => s.specialization.name)
-          .filter(Boolean)
-          .join(', ') || 'Chuyên môn nha khoa',
-    }));
-    const bookingWindow = await this.getBookingWindowData(
-      doctors.map((doctor) => doctor.id),
+    const recordsByDoctor = new Map<string, any[]>(
+      raw.recordsByDoctorEntries as any,
     );
-    const dates = await this.buildBookingDates(
-      doctors.map((doctor) => doctor.id),
-      clinicConfig.businessHours,
-      selectedTreatmentMethod?.durationMinutes ?? 30,
-      clinicConfig.specialDates,
-      clinicConfig.slotIntervalMinutes,
-      bookingWindow.recordsByDoctor,
-      bookingWindow.appointmentsByDoctor,
-    );
-    const selectedDateId =
-      query.date ?? dates.find((date) => date.isOpen)?.id ?? null;
-    const timeSlots =
-      selectedDateId && selectedService
-        ? await this.buildTimeSlots({
-          dateId: selectedDateId,
-          serviceDurationMinutes:
-            selectedTreatmentMethod?.durationMinutes ?? 30,
-          doctors,
-          businessHours: clinicConfig.businessHours,
-          specialDates: clinicConfig.specialDates,
-          slotIntervalMinutes: clinicConfig.slotIntervalMinutes,
-          recordsByDoctor: bookingWindow.recordsByDoctor,
-          appointmentsByDoctor: bookingWindow.appointmentsByDoctor,
-        })
-        : [];
-    const startAt =
-      query.date && query.time
-        ? this.buildDateTime(query.date, query.time)
-        : null;
-    const endAt =
-      startAt && selectedTreatmentMethod
-        ? new Date(
-          startAt.getTime() +
-          (selectedTreatmentMethod.durationMinutes ?? 30) * 60 * 1000,
-        )
-        : null;
-    const selectedBusinessHour = startAt
-      ? this.getBusinessHourForDate(
-        startAt,
-        clinicConfig.businessHours,
-        clinicConfig.specialDates,
-      )
-      : null;
-
-    const queryDateStr = query.date ? query.date : (startAt ? this.formatDateId(startAt) : '');
-    const availableDoctors =
-      startAt && endAt
-        ? doctors
-          .map((doctor) => ({
-            doctor,
-            available: this.isDoctorBookableFromSnapshot(
-              doctor.id,
-              startAt,
-              endAt,
-              bookingWindow.recordsByDoctor,
-              bookingWindow.appointmentsByDoctor,
-              queryDateStr,
-              selectedBusinessHour?.start,
-              selectedBusinessHour?.end,
-            ),
-          }))
-          .filter((item) => item.available)
-          .map((item) => item.doctor)
-        : doctors;
+    const appointmentsByDoctor = new Map<string, AppointmentSlotSnapshot[]>();
+    for (const [docId, apps] of raw.appointmentsByDoctorEntries as any) {
+      appointmentsByDoctor.set(
+        docId,
+        apps.map((a: any) => ({
+          doctorId: a.doctorId,
+          scheduledAt: new Date(a.scheduledAt),
+          endAt: new Date(a.endAt),
+        })),
+      );
+    }
 
     return {
-      services,
-      selectedServiceId: selectedService?.id ?? null,
-      selectedTreatmentMethodId: selectedTreatmentMethod?.id ?? null,
-      selectedDoctorId: query.doctorId ?? null,
-      dates,
-      selectedDateId,
-      timeSlots,
-      doctors: availableDoctors,
+      recordsByDoctor,
+      appointmentsByDoctor,
+      availabilityRecords: raw.availabilityRecords,
+      activeAppointments: (raw.activeAppointments as any[]).map((a: any) => ({
+        doctorId: a.doctorId,
+        scheduledAt: new Date(a.scheduledAt),
+        endAt: new Date(a.endAt),
+      })),
     };
+  }
+
+  async getBookingOptions(query: BookingOptionQuery) {
+    const fullCacheKey = `booking:options:${query.serviceId || 'default'}:${query.treatmentMethodId || 'default'}:${query.doctorId || 'all'}:${query.date || 'default'}:${query.time || 'default'}`;
+
+    return this.redis.rememberJson(fullCacheKey, 45, async () => {
+      const [clinicConfig, services] = await Promise.all([
+        this.clinicConfigService.getClinicScheduleConfig(),
+        this.getCachedServices(query.doctorId),
+      ]);
+
+      const selectedService =
+        services.find((service) => service.id === query.serviceId) ?? services[0];
+      const selectedTreatmentMethod =
+        selectedService?.treatmentMethods.find(
+          (method) => method.id === query.treatmentMethodId,
+        ) ??
+        selectedService?.treatmentMethods[0] ??
+        null;
+
+      const doctors = await this.getCachedDoctors(
+        selectedService?.specializationId,
+        query.doctorId,
+      );
+
+      const doctorIds = doctors.map((doctor) => doctor.id);
+      const bookingWindow = await this.getCachedBookingWindowData(doctorIds);
+
+      const duration = selectedTreatmentMethod?.durationMinutes ?? 30;
+      const datesCacheKey = `booking:dates:${duration}:${query.doctorId || 'all'}`;
+
+      const dates = await this.redis.rememberJson(datesCacheKey, 45, () =>
+        this.buildBookingDates(
+          doctorIds,
+          clinicConfig.businessHours,
+          duration,
+          clinicConfig.specialDates,
+          clinicConfig.slotIntervalMinutes,
+          bookingWindow.recordsByDoctor,
+          bookingWindow.appointmentsByDoctor,
+        ),
+      );
+
+      const selectedDateId =
+        query.date ?? dates.find((date) => date.isOpen)?.id ?? null;
+
+      let timeSlots: string[] = [];
+      let doctorsWithAvailableSlots: any[] = [];
+
+      if (selectedDateId && selectedService && selectedTreatmentMethod) {
+        const slotCacheKey = `booking:slots:${selectedService.id}:${selectedTreatmentMethod.id}:${query.doctorId || 'all'}:${selectedDateId}`;
+
+        const slotCalc = await this.redis.rememberJson(slotCacheKey, 30, async () => {
+          const computedSlots = await this.buildTimeSlots({
+            dateId: selectedDateId,
+            serviceDurationMinutes: duration,
+            doctors,
+            businessHours: clinicConfig.businessHours,
+            specialDates: clinicConfig.specialDates,
+            slotIntervalMinutes: clinicConfig.slotIntervalMinutes,
+            recordsByDoctor: bookingWindow.recordsByDoctor,
+            appointmentsByDoctor: bookingWindow.appointmentsByDoctor,
+          });
+
+          const docSlots = doctors.map((doctor) => ({
+            ...doctor,
+            availableTimeSlots: computedSlots.filter((time) => {
+              const slotStart = this.buildDateTime(selectedDateId, time);
+              const slotEnd = new Date(slotStart.getTime() + duration * 60 * 1000);
+              const businessHour = this.getBusinessHourForDate(
+                slotStart,
+                clinicConfig.businessHours,
+                clinicConfig.specialDates,
+              );
+
+              return this.isDoctorBookableFromSnapshot(
+                doctor.id,
+                slotStart,
+                slotEnd,
+                bookingWindow.recordsByDoctor,
+                bookingWindow.appointmentsByDoctor,
+                selectedDateId,
+                businessHour?.start,
+                businessHour?.end,
+              );
+            }),
+          }));
+
+          return { timeSlots: computedSlots, doctorsWithAvailableSlots: docSlots };
+        });
+
+        timeSlots = slotCalc.timeSlots;
+        doctorsWithAvailableSlots = slotCalc.doctorsWithAvailableSlots;
+      } else {
+        doctorsWithAvailableSlots = doctors.map((doctor) => ({
+          ...doctor,
+          availableTimeSlots: [],
+        }));
+      }
+
+      const startAt =
+        query.date && query.time
+          ? this.buildDateTime(query.date, query.time)
+          : null;
+      const endAt =
+        startAt && selectedTreatmentMethod
+          ? new Date(startAt.getTime() + duration * 60 * 1000)
+          : null;
+      const availableDoctors =
+        startAt && endAt
+          ? doctorsWithAvailableSlots.filter((doctor) =>
+              doctor.availableTimeSlots.includes(query.time as string),
+            )
+          : doctorsWithAvailableSlots;
+
+      return {
+        services,
+        selectedServiceId: selectedService?.id ?? null,
+        selectedTreatmentMethodId: selectedTreatmentMethod?.id ?? null,
+        selectedDoctorId: query.doctorId ?? null,
+        dates,
+        selectedDateId,
+        timeSlots,
+        doctors: availableDoctors,
+      };
+    });
   }
 
   async findUpcomingForPatient(userId: string) {
-    const ownerWhere = await this.buildPatientAppointmentOwnerWhere(userId);
+    const cacheKey = `patient:appointments:upcoming:${userId}`;
+    return this.redis.rememberJson(cacheKey, 60, async () => {
+      const ownerWhere = await this.buildPatientAppointmentOwnerWhere(userId);
 
-    const appointments = await this.prisma.appointment.findMany({
-      where: {
-        ...ownerWhere,
-        scheduledAt: { gte: new Date() },
-        status: { in: activeAppointmentStatuses },
-      },
-      include: appointmentInclude,
-      orderBy: { scheduledAt: 'asc' },
+      const appointments = await this.prisma.appointment.findMany({
+        where: {
+          ...ownerWhere,
+          scheduledAt: { gte: new Date() },
+          status: { in: activeAppointmentStatuses },
+        },
+        include: appointmentInclude,
+        orderBy: { scheduledAt: 'asc' },
+      });
+      return this.withDerivedServices(appointments);
     });
-    return this.withDerivedServices(appointments);
   }
 
   async findHistoryForPatient(userId: string) {
-    const ownerWhere = await this.buildPatientAppointmentOwnerWhere(userId);
+    const cacheKey = `patient:appointments:history:${userId}`;
+    return this.redis.rememberJson(cacheKey, 60, async () => {
+      const ownerWhere = await this.buildPatientAppointmentOwnerWhere(userId);
 
-    const appointments = await this.prisma.appointment.findMany({
-      where: {
-        AND: [
-          ownerWhere,
-          {
-            OR: [
-              {
-                status: {
-                  in: [
-                    AppointmentStatus.COMPLETED,
-                    AppointmentStatus.CANCELLED,
-                    AppointmentStatus.NO_SHOW,
-                    AppointmentStatus.RESCHEDULED,
-                  ],
+      const appointments = await this.prisma.appointment.findMany({
+        where: {
+          AND: [
+            ownerWhere,
+            {
+              OR: [
+                {
+                  status: {
+                    in: [
+                      AppointmentStatus.COMPLETED,
+                      AppointmentStatus.CANCELLED,
+                      AppointmentStatus.NO_SHOW,
+                      AppointmentStatus.RESCHEDULED,
+                    ],
+                  },
                 },
-              },
-              { endAt: { lt: new Date() } },
-            ],
-          },
-        ],
-      },
-      include: appointmentInclude,
-      orderBy: { scheduledAt: 'desc' },
+                { endAt: { lt: new Date() } },
+              ],
+            },
+          ],
+        },
+        include: appointmentInclude,
+        orderBy: { scheduledAt: 'desc' },
+      });
+      return this.withDerivedServices(appointments);
     });
-    return this.withDerivedServices(appointments);
   }
 
   private async buildPatientAppointmentOwnerWhere(userId: string) {
@@ -1373,7 +1589,10 @@ export class AppointmentService {
   private async ensureUserCanBookPatient(userId: string, patientId: string) {
     const link = await this.prisma.patientAccount.findUnique({
       where: { userId_patientId: { userId, patientId } },
-      select: { canBook: true, patient: { select: { id: true, patientCode: true } } },
+      select: {
+        canBook: true,
+        patient: { select: { id: true, patientCode: true } },
+      },
     });
 
     if (!link?.canBook) {
@@ -1491,7 +1710,7 @@ export class AppointmentService {
 
     const endAt = new Date(
       scheduledAt.getTime() +
-      (treatmentMethod.durationMinutes ?? 30) * 60 * 1000,
+        (treatmentMethod.durationMinutes ?? 30) * 60 * 1000,
     );
 
     await this.ensureClinicOpen(scheduledAt, endAt);
@@ -1509,14 +1728,24 @@ export class AppointmentService {
             undefined,
             tx,
           );
-          await this.ensureNoConflict(input.doctorId, scheduledAt, endAt, undefined, tx);
+          await this.ensureNoConflict(
+            input.doctorId,
+            scheduledAt,
+            endAt,
+            undefined,
+            tx,
+          );
           await this.ensurePatientHasNoIncompleteTreatmentMethodAppointment(
             input.patientId,
             input.createdBy,
             input.treatmentMethodId,
             tx,
           );
-          await this.ensurePendingAppointmentLimit(input.patientId, input.createdBy, tx);
+          await this.ensurePendingAppointmentLimit(
+            input.patientId,
+            input.createdBy,
+            tx,
+          );
           await this.ensureSevenDayAppointmentLimit(
             input.patientId,
             input.createdBy,
@@ -1524,7 +1753,8 @@ export class AppointmentService {
             tx,
           );
 
-          const paymentStatus = AppointmentPaymentStatus.PAY_AT_COUNTER_SELECTED;
+          const paymentStatus =
+            AppointmentPaymentStatus.PAY_AT_COUNTER_SELECTED;
 
           return await tx.appointment.create({
             data: {
@@ -1580,6 +1810,8 @@ export class AppointmentService {
       });
     }
 
+    void this.invalidateBookingCache(input.createdBy, input.patientId || undefined);
+
     return {
       ...this.withDerivedService(appointment),
       bookingPolicy: {
@@ -1591,14 +1823,14 @@ export class AppointmentService {
     };
   }
 
-  private async queueAppointmentConfirmationEmail(
-    appointment: {
-      scheduledAt: Date;
-      patient?: { user?: { fullName: string; email: string | null } | null } | null;
-      doctor: { user: { fullName: string } };
-      treatmentMethod?: { name: string } | null;
-    },
-  ) {
+  private async queueAppointmentConfirmationEmail(appointment: {
+    scheduledAt: Date;
+    patient?: {
+      user?: { fullName: string; email: string | null } | null;
+    } | null;
+    doctor: { user: { fullName: string } };
+    treatmentMethod?: { name: string } | null;
+  }) {
     const patientUser = appointment.patient?.user;
     if (!patientUser?.email) return;
 
@@ -1615,7 +1847,8 @@ export class AppointmentService {
       });
     } catch (error) {
       this.logger.warn(
-        `Could not queue appointment confirmation email: ${error instanceof Error ? error.message : String(error)
+        `Could not queue appointment confirmation email: ${
+          error instanceof Error ? error.message : String(error)
         }`,
       );
     }
@@ -1966,67 +2199,81 @@ export class AppointmentService {
     const start = this.parseDateId(todayVnStr);
     const end = new Date(start.getTime() + 16 * 24 * 60 * 60 * 1000 - 1);
 
-    const [availabilityRecords, activeAppointments, activeVideoConsultations] = await Promise.all([
-      this.prisma.doctorAvailability.findMany({
-        where: {
-          doctorId: { in: doctorIds },
-          isActive: true,
-          OR: [
-            { recordType: 'WEEKLY' },
-            {
-              recordType: { in: ['DATE_OVERRIDE', 'TIME_OFF'] },
-              specificDate: { gte: start, lte: end },
-            },
-          ],
-        },
-        select: {
-          doctorId: true,
-          recordType: true,
-          dayOfWeek: true,
-          specificDate: true,
-          startTime: true,
-          endTime: true,
-        },
-      }),
-      this.prisma.appointment.findMany({
-        where: {
-          doctorId: { in: doctorIds },
-          status: { in: activeAppointmentStatuses },
-          scheduledAt: { lt: end },
-          endAt: { gt: start },
-        },
-        select: {
-          doctorId: true,
-          scheduledAt: true,
-          endAt: true,
-        },
-      }),
-      this.prisma.videoConsultation.findMany({
-        where: {
-          doctorId: { in: doctorIds },
-          status: { notIn: ['CANCELLED'] },
-          scheduledAt: { lte: end, gte: start },
-        },
-        select: {
-          doctorId: true,
-          scheduledAt: true,
-          durationMinutes: true,
-        },
-      }),
-    ]);
+    const [availabilityRecords, activeAppointments, activeVideoConsultations] =
+      await Promise.all([
+        this.prisma.doctorAvailability.findMany({
+          where: {
+            doctorId: { in: doctorIds },
+            isActive: true,
+            OR: [
+              { recordType: 'WEEKLY' },
+              {
+                recordType: { in: ['DATE_OVERRIDE', 'TIME_OFF'] },
+                specificDate: { gte: start, lte: end },
+              },
+            ],
+          },
+          select: {
+            doctorId: true,
+            recordType: true,
+            dayOfWeek: true,
+            specificDate: true,
+            startTime: true,
+            endTime: true,
+          },
+        }),
+        this.prisma.appointment.findMany({
+          where: {
+            doctorId: { in: doctorIds },
+            status: { in: activeAppointmentStatuses },
+            scheduledAt: { lt: end },
+            endAt: { gt: start },
+          },
+          select: {
+            doctorId: true,
+            scheduledAt: true,
+            endAt: true,
+          },
+        }),
+        this.prisma.videoConsultation.findMany({
+          where: {
+            doctorId: { in: doctorIds },
+            status: { notIn: ['CANCELLED'] },
+            scheduledAt: { lte: end, gte: start },
+          },
+          select: {
+            doctorId: true,
+            scheduledAt: true,
+            durationMinutes: true,
+          },
+        }),
+      ]);
 
     const activeVcSlots = activeVideoConsultations.map((vc) => ({
       doctorId: vc.doctorId,
       scheduledAt: vc.scheduledAt,
-      endAt: new Date(vc.scheduledAt.getTime() + vc.durationMinutes * 60 * 1000),
+      endAt: new Date(
+        vc.scheduledAt.getTime() + vc.durationMinutes * 60 * 1000,
+      ),
     }));
 
-    const recordsByDoctor = new Map<string, Array<{ recordType: string; dayOfWeek: number | null; specificDateStr: string | null; startMin: number; endMin: number }>>();
+    const recordsByDoctor = new Map<
+      string,
+      Array<{
+        recordType: string;
+        dayOfWeek: number | null;
+        specificDateStr: string | null;
+        startMin: number;
+        endMin: number;
+      }>
+    >();
     for (const rec of availabilityRecords) {
       const prepared = {
         recordType: rec.recordType,
         dayOfWeek: rec.dayOfWeek,
-        specificDateStr: rec.specificDate ? this.formatDateId(new Date(rec.specificDate)) : null,
+        specificDateStr: rec.specificDate
+          ? this.formatDateId(new Date(rec.specificDate))
+          : null,
         startMin: this.timeToMinutes(rec.startTime),
         endMin: this.timeToMinutes(rec.endTime),
       };
@@ -2052,7 +2299,10 @@ export class AppointmentService {
       recordsByDoctor,
       appointmentsByDoctor,
       availabilityRecords: availabilityRecords as AvailabilityRecordSnapshot[],
-      activeAppointments: [...activeAppointments, ...activeVcSlots] as AppointmentSlotSnapshot[],
+      activeAppointments: [
+        ...activeAppointments,
+        ...activeVcSlots,
+      ] as AppointmentSlotSnapshot[],
     };
   }
 
@@ -2195,7 +2445,7 @@ export class AppointmentService {
       return (
         Boolean(record.specificDate) &&
         this.formatDateId(record.specificDate as Date) ===
-        this.formatDateId(date)
+          this.formatDateId(date)
       );
     });
   }
@@ -2373,11 +2623,7 @@ export class AppointmentService {
     const step = Math.max(1, slotIntervalMinutes || 30);
     const now = new Date();
 
-    for (
-      let minutes = openMinutes;
-      minutes <= latestStart;
-      minutes += step
-    ) {
+    for (let minutes = openMinutes; minutes <= latestStart; minutes += step) {
       const startAt = this.dateWithMinutes(date, minutes);
       if (startAt <= now) continue;
 

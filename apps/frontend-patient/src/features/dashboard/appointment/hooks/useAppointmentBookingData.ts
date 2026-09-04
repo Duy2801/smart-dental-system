@@ -69,8 +69,20 @@ export function useAppointmentBookingData({
     ],
   );
 
+  const scheduleDoctors = scheduleQuery.data?.doctors ?? [];
+  const hasSlotInfo = useMemo(
+    () =>
+      scheduleDoctors.some(
+        (doctor) =>
+          Array.isArray(doctor.availableTimeSlots) &&
+          doctor.availableTimeSlots.length > 0,
+      ),
+    [scheduleDoctors],
+  );
+
   const availabilityQuery = useAppointmentAvailabilityQuery(
     availabilityQueryParams,
+    !hasSlotInfo,
   );
 
   const services = useMemo(
@@ -87,7 +99,27 @@ export function useAppointmentBookingData({
     }
 
     if (selectedServiceId && selectedDateId && selectedTime) {
-      return availabilityQuery.data?.doctors ?? [];
+      const scheduleDocs = scheduleQuery.data?.doctors ?? [];
+      // 1. If doctors have availableTimeSlots (our optimized backend), filter directly client-side
+      if (hasSlotInfo) {
+        const filtered = scheduleDocs.filter((doctor) =>
+          doctor.availableTimeSlots?.includes(selectedTime),
+        );
+        if (filtered.length > 0) return filtered;
+      }
+
+      // 2. Fallback to availabilityQuery if available (e.g. Vercel backend or slot filtering on server)
+      if (
+        availabilityQuery.data?.doctors &&
+        availabilityQuery.data.doctors.length > 0
+      ) {
+        return availabilityQuery.data.doctors;
+      }
+
+      // 3. Fallback to scheduleDocs or base doctors rather than rendering empty
+      return scheduleDocs.length > 0
+        ? scheduleDocs
+        : (baseOptionsQuery.data?.doctors ?? []);
     }
 
     return scheduleQuery.data?.doctors ?? baseOptionsQuery.data?.doctors ?? [];
@@ -95,6 +127,7 @@ export function useAppointmentBookingData({
     availabilityQuery.data?.doctors,
     baseOptionsQuery.data?.doctors,
     dedicatedDoctorId,
+    hasSlotInfo,
     scheduleQuery.data?.doctors,
     selectedDateId,
     selectedServiceId,
@@ -147,6 +180,6 @@ export function useAppointmentBookingData({
     loading: baseOptionsQuery.isLoading,
     checkingAvailability:
       (scheduleQuery.isFetching && !scheduleQuery.data) ||
-      (availabilityQuery.isFetching && !availabilityQuery.data),
+      (!hasSlotInfo && availabilityQuery.isFetching && !availabilityQuery.data),
   };
 }

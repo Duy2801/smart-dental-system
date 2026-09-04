@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { ServiceQueryDto } from './dto/service-query.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
@@ -21,6 +22,47 @@ const serviceInclude = {
   },
 };
 
+const serviceSummarySelect = {
+  id: true,
+  category: true,
+  name: true,
+  slug: true,
+  icon: true,
+  shortDescription: true,
+  description: true,
+  detailSummary: true,
+  highlights: true,
+  suitableFor: true,
+  includedItems: true,
+  preparationNotes: true,
+  aftercareNotes: true,
+  importantNotes: true,
+  pricingNote: true,
+  isActive: true,
+  isFeatured: true,
+  displayOrder: true,
+  basePrice: true,
+  durationMinutes: true,
+  treatmentMethods: {
+    orderBy: { displayOrder: 'asc' as const },
+    select: {
+      id: true,
+      serviceId: true,
+      name: true,
+      slug: true,
+      description: true,
+      imageUrl: true,
+      basePrice: true,
+      durationMinutes: true,
+      displayOrder: true,
+      isActive: true,
+    },
+  },
+};
+
+const serviceCachePrefix = 'catalog:services:';
+const serviceCacheTtlSeconds = 10 * 60;
+
 function cleanOptionalText(value?: string) {
   const trimmed = value?.trim();
   return trimmed ? trimmed : null;
@@ -28,9 +70,7 @@ function cleanOptionalText(value?: string) {
 
 function cleanTextList(values?: string[]) {
   if (!values) return undefined;
-  return values
-    .map((value) => value.trim())
-    .filter(Boolean);
+  return values.map((value) => value.trim()).filter(Boolean);
 }
 
 function cleanHighlights(
@@ -48,9 +88,27 @@ function cleanHighlights(
 
 @Injectable()
 export class ServiceService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+  ) {}
 
   async findAll(query: ServiceQueryDto) {
+    const cacheKey = `${serviceCachePrefix}list:${JSON.stringify({
+      page: query.page ?? 1,
+      limit: query.limit ?? 100,
+      search: query.search?.trim() ?? '',
+      category: query.category?.trim() ?? '',
+      isActive: query.isActive ?? null,
+      view: query.view ?? 'full',
+    })}`;
+
+    return this.redis.rememberJson(cacheKey, serviceCacheTtlSeconds, () =>
+      this.loadAll(query),
+    );
+  }
+
+  private async loadAll(query: ServiceQueryDto) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 100;
     const skip = (page - 1) * limit;
@@ -61,41 +119,57 @@ export class ServiceService {
       AND: [
         search
           ? {
-            OR: [
-              { name: { contains: search, mode: 'insensitive' as const } },
-              {
-                category: {
-                  contains: search,
-                  mode: 'insensitive' as const,
+              OR: [
+                { name: { contains: search, mode: 'insensitive' as const } },
+                {
+                  category: {
+                    contains: search,
+                    mode: 'insensitive' as const,
+                  },
                 },
-              },
-              {
-                description: {
-                  contains: search,
-                  mode: 'insensitive' as const,
+                {
+                  description: {
+                    contains: search,
+                    mode: 'insensitive' as const,
+                  },
                 },
-              },
-            ],
-          }
+              ],
+            }
           : {},
         category ? { category } : {},
         query.isActive === undefined ? {} : { isActive: query.isActive },
       ],
     };
 
-    const [data, total] = await this.prisma.$transaction([
-      this.prisma.service.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: [
-          { isFeatured: 'desc' },
-          { displayOrder: 'asc' },
-          { category: 'asc' },
-          { name: 'asc' },
-        ],
-        include: serviceInclude,
-      }),
+    const listQuery =
+      query.view === 'summary'
+        ? this.prisma.service.findMany({
+            where,
+            skip,
+            take: limit,
+            orderBy: [
+              { isFeatured: 'desc' as const },
+              { displayOrder: 'asc' as const },
+              { category: 'asc' as const },
+              { name: 'asc' as const },
+            ],
+            select: serviceSummarySelect,
+          })
+        : this.prisma.service.findMany({
+            where,
+            skip,
+            take: limit,
+            orderBy: [
+              { isFeatured: 'desc' },
+              { displayOrder: 'asc' },
+              { category: 'asc' },
+              { name: 'asc' },
+            ],
+            include: serviceInclude,
+          });
+
+    const [data, total] = await Promise.all([
+      listQuery,
       this.prisma.service.count({ where }),
     ]);
 
@@ -111,10 +185,15 @@ export class ServiceService {
   }
 
   async findOne(id: string) {
-    const service = await this.prisma.service.findUnique({
-      where: { id },
-      include: serviceInclude,
-    });
+    const service = await this.redis.rememberJson(
+      `${serviceCachePrefix}detail:${id}`,
+      serviceCacheTtlSeconds,
+      () =>
+        this.prisma.service.findUnique({
+          where: { id },
+          include: serviceInclude,
+        }),
+    );
 
     if (!service) {
       throw new NotFoundException('service.not_found');
@@ -124,7 +203,7 @@ export class ServiceService {
   }
 
   async create(dto: CreateServiceDto) {
-    return this.prisma.service.create({
+    const result = await this.prisma.service.create({
       data: {
         category: dto.category.trim(),
         name: dto.name.trim(),
@@ -152,56 +231,58 @@ export class ServiceService {
         durationMinutes: dto.durationMinutes,
         treatmentMethods: dto.treatmentMethods?.length
           ? {
-            create: dto.treatmentMethods.map((tm, tmIndex) => ({
-              name: tm.name.trim(),
-              slug: cleanOptionalText(tm.slug),
-              description: cleanOptionalText(tm.description),
-              imageUrl: cleanOptionalText(tm.imageUrl),
-              basePrice: tm.basePrice,
-              durationMinutes: tm.durationMinutes,
-              displayOrder: tm.displayOrder ?? tmIndex + 1,
-              isActive: tm.isActive ?? true,
-              media: tm.media?.length
-                ? {
-                  create: tm.media.map((media, index) => ({
-                    url: media.url.trim(),
-                    alt: cleanOptionalText(media.alt),
-                    type: media.type.trim(),
-                    sortOrder: media.sortOrder ?? index + 1,
-                  })),
-                }
-                : undefined,
-              procedureSteps: tm.procedureSteps?.length
-                ? {
-                  create: tm.procedureSteps.map((step, index) => ({
-                    stepOrder: step.stepOrder ?? index + 1,
-                    title: step.title.trim(),
-                    description: step.description.trim(),
-                    durationMinutes: step.durationMinutes,
-                  })),
-                }
-                : undefined,
-              faqs: tm.faqs?.length
-                ? {
-                  create: tm.faqs.map((faq, index) => ({
-                    question: faq.question.trim(),
-                    answer: faq.answer.trim(),
-                    sortOrder: faq.sortOrder ?? index + 1,
-                  })),
-                }
-                : undefined,
-            })),
-          }
+              create: dto.treatmentMethods.map((tm, tmIndex) => ({
+                name: tm.name.trim(),
+                slug: cleanOptionalText(tm.slug),
+                description: cleanOptionalText(tm.description),
+                imageUrl: cleanOptionalText(tm.imageUrl),
+                basePrice: tm.basePrice,
+                durationMinutes: tm.durationMinutes,
+                displayOrder: tm.displayOrder ?? tmIndex + 1,
+                isActive: tm.isActive ?? true,
+                media: tm.media?.length
+                  ? {
+                      create: tm.media.map((media, index) => ({
+                        url: media.url.trim(),
+                        alt: cleanOptionalText(media.alt),
+                        type: media.type.trim(),
+                        sortOrder: media.sortOrder ?? index + 1,
+                      })),
+                    }
+                  : undefined,
+                procedureSteps: tm.procedureSteps?.length
+                  ? {
+                      create: tm.procedureSteps.map((step, index) => ({
+                        stepOrder: step.stepOrder ?? index + 1,
+                        title: step.title.trim(),
+                        description: step.description.trim(),
+                        durationMinutes: step.durationMinutes,
+                      })),
+                    }
+                  : undefined,
+                faqs: tm.faqs?.length
+                  ? {
+                      create: tm.faqs.map((faq, index) => ({
+                        question: faq.question.trim(),
+                        answer: faq.answer.trim(),
+                        sortOrder: faq.sortOrder ?? index + 1,
+                      })),
+                    }
+                  : undefined,
+              })),
+            }
           : undefined,
       },
       include: serviceInclude,
     });
+    await this.invalidateCache();
+    return result;
   }
 
   async update(id: string, dto: UpdateServiceDto) {
     await this.ensureServiceExists(id);
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const service = await tx.service.update({
         where: { id },
         data: {
@@ -277,9 +358,7 @@ export class ServiceService {
           .filter((methodId): methodId is string => Boolean(methodId));
 
         if (
-          retainedMethodIds.some(
-            (methodId) => !existingMethodIds.has(methodId),
-          )
+          retainedMethodIds.some((methodId) => !existingMethodIds.has(methodId))
         ) {
           throw new NotFoundException('treatment_method.not_found');
         }
@@ -358,32 +437,32 @@ export class ServiceService {
                 ...methodData,
                 media: tm.media?.length
                   ? {
-                    create: tm.media.map((media, index) => ({
-                      url: media.url.trim(),
-                      alt: cleanOptionalText(media.alt),
-                      type: media.type.trim(),
-                      sortOrder: media.sortOrder ?? index + 1,
-                    })),
-                  }
+                      create: tm.media.map((media, index) => ({
+                        url: media.url.trim(),
+                        alt: cleanOptionalText(media.alt),
+                        type: media.type.trim(),
+                        sortOrder: media.sortOrder ?? index + 1,
+                      })),
+                    }
                   : undefined,
                 procedureSteps: tm.procedureSteps?.length
                   ? {
-                    create: tm.procedureSteps.map((step, index) => ({
-                      stepOrder: step.stepOrder ?? index + 1,
-                      title: step.title.trim(),
-                      description: step.description.trim(),
-                      durationMinutes: step.durationMinutes,
-                    })),
-                  }
+                      create: tm.procedureSteps.map((step, index) => ({
+                        stepOrder: step.stepOrder ?? index + 1,
+                        title: step.title.trim(),
+                        description: step.description.trim(),
+                        durationMinutes: step.durationMinutes,
+                      })),
+                    }
                   : undefined,
                 faqs: tm.faqs?.length
                   ? {
-                    create: tm.faqs.map((faq, index) => ({
-                      question: faq.question.trim(),
-                      answer: faq.answer.trim(),
-                      sortOrder: faq.sortOrder ?? index + 1,
-                    })),
-                  }
+                      create: tm.faqs.map((faq, index) => ({
+                        question: faq.question.trim(),
+                        answer: faq.answer.trim(),
+                        sortOrder: faq.sortOrder ?? index + 1,
+                      })),
+                    }
                   : undefined,
               },
             });
@@ -391,21 +470,24 @@ export class ServiceService {
         }
       }
 
-
       return tx.service.findUniqueOrThrow({
         where: { id: service.id },
         include: serviceInclude,
       });
     });
+    await this.invalidateCache();
+    return result;
   }
 
   async updateStatus(id: string, isActive: boolean) {
     await this.ensureServiceExists(id);
 
-    return this.prisma.service.update({
+    const result = await this.prisma.service.update({
       where: { id },
       data: { isActive },
     });
+    await this.invalidateCache();
+    return result;
   }
 
   async updateTreatmentMethod(
@@ -422,7 +504,7 @@ export class ServiceService {
       throw new NotFoundException('treatment_method.not_found');
     }
 
-    return this.prisma.treatmentMethod.update({
+    const result = await this.prisma.treatmentMethod.update({
       where: { id: methodId },
       data: {
         name: dto.name.trim(),
@@ -440,6 +522,8 @@ export class ServiceService {
         faqs: { orderBy: { sortOrder: 'asc' } },
       },
     });
+    await this.invalidateCache();
+    return result;
   }
 
   async remove(id: string) {
@@ -455,16 +539,14 @@ export class ServiceService {
       throw new NotFoundException('service.not_found');
     }
 
-    if (
-      service._count.appointments > 0 ||
-      service._count.clinicalCases > 0
-    ) {
+    if (service._count.appointments > 0 || service._count.clinicalCases > 0) {
       throw new BadRequestException('service.has_related_history');
     }
 
     await this.prisma.service.delete({
       where: { id },
     });
+    await this.invalidateCache();
 
     return { message: 'service.deleted' };
   }
@@ -484,7 +566,12 @@ export class ServiceService {
     }
 
     await this.prisma.treatmentMethod.delete({ where: { id: methodId } });
+    await this.invalidateCache();
     return { message: 'treatment_method.deleted' };
+  }
+
+  private invalidateCache() {
+    return this.redis.delByPrefix(serviceCachePrefix);
   }
 
   private async ensureServiceExists(id: string) {

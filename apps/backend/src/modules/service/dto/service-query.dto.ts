@@ -1,7 +1,18 @@
 import { Transform } from 'class-transformer';
-import { IsBoolean, IsInt, IsOptional, IsString, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Min,
+} from 'class-validator';
 
 export class ServiceQueryDto {
+  @IsOptional()
+  @IsIn(['full', 'summary'])
+  view: 'full' | 'summary' = 'full';
+
   @IsOptional()
   @IsString()
   search?: string;

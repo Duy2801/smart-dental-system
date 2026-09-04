@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/features/dashboard/common/toast";
 import {
@@ -59,7 +60,11 @@ export function useCancelAppointment() {
     },
   });
 
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+
   async function cancelAppointment(appointmentId: string) {
+    if (cancellingId) return;
+    setCancellingId(appointmentId);
     try {
       await cancelAppointmentMutation.mutateAsync(appointmentId);
       toast.success(
@@ -71,12 +76,15 @@ export function useCancelAppointment() {
         "Không thể hủy lịch hẹn",
         getCreateAppointmentErrorMessage(error),
       );
+    } finally {
+      setCancellingId(null);
+      cancelAppointmentMutation.reset();
     }
   }
 
   return {
     cancelAppointment,
-    cancellingAppointmentId: cancelAppointmentMutation.variables ?? null,
-    isCancelling: cancelAppointmentMutation.isPending,
+    cancellingAppointmentId: cancellingId,
+    isCancelling: Boolean(cancellingId) || cancelAppointmentMutation.isPending,
   };
 }

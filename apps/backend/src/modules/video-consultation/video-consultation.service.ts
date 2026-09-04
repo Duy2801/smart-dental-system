@@ -19,6 +19,7 @@ import { ClinicConfigService } from '../clinic-config/clinic-config.service';
 import { PaymentService } from '../payment/payment.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { EventsGateway } from '../socket/events.gateway';
+import { RedisService } from '../redis/redis.service';
 import { CreateVideoConsultationDto } from './dto/create-video-consultation.dto';
 
 const consultInclude = {
@@ -130,6 +131,7 @@ export class VideoConsultationService implements OnModuleInit {
     private paymentService: PaymentService,
     private clinicConfigService: ClinicConfigService,
     private eventsGateway: EventsGateway,
+    private redis: RedisService,
     @InjectQueue('mail-queue')
     private readonly mailQueue: Queue,
   ) { }
@@ -239,23 +241,38 @@ export class VideoConsultationService implements OnModuleInit {
     }
   }
 
+  async invalidateConsultationSlots(doctorId?: string) {
+    try {
+      if (doctorId) {
+        await this.redis.delByPrefix(`consultation:slots:${doctorId}:`);
+      } else {
+        await this.redis.delByPrefix('consultation:slots:');
+      }
+      await this.redis.delByPrefix('booking:window:');
+    } catch (err: any) {
+      // ignore
+    }
+  }
+
   /** Lấy danh sách các gói tư vấn (ConsultationPackage) từ DB */
   async getConsultationPackages() {
-    const packages = await this.prisma.consultationPackage.findMany({
-      where: { isActive: true },
-      orderBy: { displayOrder: 'asc' },
-    });
+    return this.redis.rememberJson('consultation:packages', 1800, async () => {
+      const packages = await this.prisma.consultationPackage.findMany({
+        where: { isActive: true },
+        orderBy: { displayOrder: 'asc' },
+      });
 
-    return packages.map((pkg) => ({
-      id: pkg.id,
-      minutes: pkg.minutes,
-      label: pkg.label,
-      price: Number(pkg.price),
-      formattedPrice: `${Number(pkg.price).toLocaleString('vi-VN')} đ`,
-      description: pkg.description,
-      tag: pkg.tag,
-      displayOrder: pkg.displayOrder,
-    }));
+      return packages.map((pkg) => ({
+        id: pkg.id,
+        minutes: pkg.minutes,
+        label: pkg.label,
+        price: Number(pkg.price),
+        formattedPrice: `${Number(pkg.price).toLocaleString('vi-VN')} đ`,
+        description: pkg.description,
+        tag: pkg.tag,
+        displayOrder: pkg.displayOrder,
+      }));
+    });
   }
 
   /** Tính toán giá phí tư vấn dựa theo dữ liệu gói lưu trong DB */
@@ -273,37 +290,39 @@ export class VideoConsultationService implements OnModuleInit {
 
   /** Lấy danh sách bác sĩ tư vấn online cho bệnh nhân */
   async findDoctorsForConsultation() {
-    const doctors = await this.prisma.doctor.findMany({
-      where: { isActive: true },
-      select: {
-        id: true,
-        specialization: true,
-        licenseNumber: true,
-        avatarUrl: true,
-        bio: true,
-        yearsExperience: true,
-        position: true,
-        user: {
-          select: {
-            fullName: true,
-            email: true,
-            phone: true,
+    return this.redis.rememberJson('consultation:doctors', 600, async () => {
+      const doctors = await this.prisma.doctor.findMany({
+        where: { isActive: true },
+        select: {
+          id: true,
+          specialization: true,
+          licenseNumber: true,
+          avatarUrl: true,
+          bio: true,
+          yearsExperience: true,
+          position: true,
+          user: {
+            select: {
+              fullName: true,
+              email: true,
+              phone: true,
+            },
           },
         },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+        orderBy: { createdAt: 'desc' },
+      });
 
-    return doctors.map((d) => ({
-      id: d.id,
-      fullName: d.user.fullName,
-      specialization: d.specialization,
-      licenseNumber: d.licenseNumber,
-      avatarUrl: d.avatarUrl,
-      bio: d.bio,
-      yearsExperience: d.yearsExperience,
-      position: d.position,
-    }));
+      return doctors.map((d) => ({
+        id: d.id,
+        fullName: d.user.fullName,
+        specialization: d.specialization,
+        licenseNumber: d.licenseNumber,
+        avatarUrl: d.avatarUrl,
+        bio: d.bio,
+        yearsExperience: d.yearsExperience,
+        position: d.position,
+      }));
+    });
   }
 
   /** Tính toán slot rảnh tư vấn tuân thủ 100% lịch hoạt động setting của phòng khám */
@@ -312,172 +331,175 @@ export class VideoConsultationService implements OnModuleInit {
     dateStr: string,
     durationMinutes: number,
   ): Promise<string[]> {
-    const {
-      formattedDateStr,
-      dayOfWeek,
-      weeklyDayOfWeek,
-      startOfDay,
-      endOfDay,
-    } = getIctDateDetails(dateStr);
+    const cacheKey = `consultation:slots:${doctorId}:${dateStr}:${durationMinutes}`;
+    return this.redis.rememberJson(cacheKey, 60, async () => {
+      const {
+        formattedDateStr,
+        dayOfWeek,
+        weeklyDayOfWeek,
+        startOfDay,
+        endOfDay,
+      } = getIctDateDetails(dateStr);
 
-    const doctor = await this.prisma.doctor.findUnique({
-      where: { id: doctorId },
-      select: { id: true, isActive: true },
-    });
-    if (!doctor || !doctor.isActive) {
-      throw new NotFoundException('Không tìm thấy bác sĩ');
-    }
-
-    // 1. Kiểm tra cấu hình giờ hoạt động phòng khám (ClinicConfig)
-    const clinicConfig = await this.clinicConfigService.getClinicConfig();
-    const businessHours = clinicConfig.businessHours;
-
-    const specialDate = clinicConfig.specialDates.find(
-      (s) => s.date === formattedDateStr,
-    );
-    if (specialDate && specialDate.isClosed) {
-      return [];
-    }
-
-    const daySetting = businessHours.find((bh) => bh.id === dayOfWeek);
-
-    if (!daySetting || !daySetting.isOpen) {
-      return [];
-    }
-
-    let clinicStart = daySetting.start;
-    let clinicEnd = daySetting.end;
-
-    if (specialDate && !specialDate.isClosed && specialDate.start && specialDate.end) {
-      clinicStart = specialDate.start;
-      clinicEnd = specialDate.end;
-    }
-
-    // 2. Lấy lịch làm việc của Bác sĩ trong khung giờ phòng khám
-    const availability = await this.prisma.doctorAvailability.findMany({
-      where: {
-        doctorId,
-        isActive: true,
-        OR: [
-          { recordType: 'WEEKLY', dayOfWeek: { in: weeklyDayOfWeek } },
-          {
-            recordType: 'DATE_OVERRIDE',
-            specificDate: { gte: startOfDay, lte: endOfDay },
-          },
-        ],
-      },
-    });
-
-    const activeWorkingHours = availability.length
-      ? availability.map((a) => ({
-        ...a,
-        startTime: a.startTime < clinicStart ? clinicStart : a.startTime,
-        endTime: a.endTime > clinicEnd ? clinicEnd : a.endTime,
-      }))
-      : [
-        {
-          id: 'default',
-          doctorId,
-          recordType: 'WEEKLY' as const,
-          dayOfWeek,
-          specificDate: null,
-          startTime: clinicStart,
-          endTime: clinicEnd,
-          reason: null,
-          isActive: true,
-        },
-      ];
-
-    const timeOffs = await this.prisma.doctorAvailability.findMany({
-      where: {
-        doctorId,
-        isActive: true,
-        recordType: 'TIME_OFF',
-        specificDate: { gte: startOfDay, lte: endOfDay },
-      },
-    });
-
-    const existingAppointments = await this.prisma.appointment.findMany({
-      where: {
-        doctorId,
-        scheduledAt: { gte: startOfDay, lte: endOfDay },
-        status: { notIn: ['CANCELLED', 'NO_SHOW'] },
-      },
-      select: { scheduledAt: true, endAt: true },
-    });
-
-    const now = new Date();
-    const existingConsultations = await this.prisma.videoConsultation.findMany({
-      where: {
-        doctorId,
-        scheduledAt: { gte: startOfDay, lte: endOfDay },
-        status: { notIn: ['CANCELLED', 'EXPIRED'] },
-        NOT: {
-          status: 'PENDING_PAYMENT',
-          expiresAt: { lte: now },
-        },
-      },
-      select: { scheduledAt: true, durationMinutes: true },
-    });
-
-    const busyRanges: { startMs: number; endMs: number }[] = [];
-
-    for (const app of existingAppointments) {
-      busyRanges.push({
-        startMs: app.scheduledAt.getTime(),
-        endMs: app.endAt.getTime(),
+      const doctor = await this.prisma.doctor.findUnique({
+        where: { id: doctorId },
+        select: { id: true, isActive: true },
       });
-    }
-
-    for (const vc of existingConsultations) {
-      const startMs = vc.scheduledAt.getTime();
-      const endMs = startMs + vc.durationMinutes * 60 * 1000;
-      busyRanges.push({ startMs, endMs });
-    }
-
-    for (const to of timeOffs) {
-      const startMs = new Date(`${formattedDateStr}T${to.startTime}:00.000+07:00`).getTime();
-      const endMs = new Date(`${formattedDateStr}T${to.endTime}:00.000+07:00`).getTime();
-      busyRanges.push({ startMs, endMs });
-    }
-
-    const availableSlots: string[] = [];
-    const stepMinutes = 15;
-
-    for (const avail of activeWorkingHours) {
-      let current = new Date(`${formattedDateStr}T${avail.startTime}:00.000+07:00`);
-      const availEnd = new Date(`${formattedDateStr}T${avail.endTime}:00.000+07:00`);
-
-      while (current.getTime() + durationMinutes * 60 * 1000 <= availEnd.getTime()) {
-        const slotStartMs = current.getTime();
-        const slotEndMs = slotStartMs + durationMinutes * 60 * 1000;
-
-        if (slotStartMs > Date.now()) {
-          const isConflict = busyRanges.some(
-            (b) => slotStartMs < b.endMs && slotEndMs > b.startMs,
-          );
-
-          if (!isConflict) {
-            const timeFormatter = new Intl.DateTimeFormat('en-GB', {
-              timeZone: 'Asia/Ho_Chi_Minh',
-              hour: '2-digit',
-              minute: '2-digit',
-              hour12: false,
-            });
-            availableSlots.push(timeFormatter.format(current));
-          }
-        }
-
-        current = new Date(current.getTime() + stepMinutes * 60 * 1000);
+      if (!doctor || !doctor.isActive) {
+        throw new NotFoundException('Không tìm thấy bác sĩ');
       }
-    }
 
-    return Array.from(new Set(availableSlots)).sort();
+      // 1. Kiểm tra cấu hình giờ hoạt động phòng khám (ClinicConfig)
+      const clinicConfig = await this.clinicConfigService.getClinicConfig();
+      const businessHours = clinicConfig.businessHours;
+
+      const specialDate = clinicConfig.specialDates.find(
+        (s) => s.date === formattedDateStr,
+      );
+      if (specialDate && specialDate.isClosed) {
+        return [];
+      }
+
+      const daySetting = businessHours.find((bh) => bh.id === dayOfWeek);
+
+      if (!daySetting || !daySetting.isOpen) {
+        return [];
+      }
+
+      let clinicStart = daySetting.start;
+      let clinicEnd = daySetting.end;
+
+      if (specialDate && !specialDate.isClosed && specialDate.start && specialDate.end) {
+        clinicStart = specialDate.start;
+        clinicEnd = specialDate.end;
+      }
+
+      // 2. Lấy lịch làm việc của Bác sĩ trong khung giờ phòng khám
+      const availability = await this.prisma.doctorAvailability.findMany({
+        where: {
+          doctorId,
+          isActive: true,
+          OR: [
+            { recordType: 'WEEKLY', dayOfWeek: { in: weeklyDayOfWeek } },
+            {
+              recordType: 'DATE_OVERRIDE',
+              specificDate: { gte: startOfDay, lte: endOfDay },
+            },
+          ],
+        },
+      });
+
+      const activeWorkingHours = availability.length
+        ? availability.map((a) => ({
+          ...a,
+          startTime: a.startTime < clinicStart ? clinicStart : a.startTime,
+          endTime: a.endTime > clinicEnd ? clinicEnd : a.endTime,
+        }))
+        : [
+          {
+            id: 'default',
+            doctorId,
+            recordType: 'WEEKLY' as const,
+            dayOfWeek,
+            specificDate: null,
+            startTime: clinicStart,
+            endTime: clinicEnd,
+            reason: null,
+            isActive: true,
+          },
+        ];
+
+      const timeOffs = await this.prisma.doctorAvailability.findMany({
+        where: {
+          doctorId,
+          isActive: true,
+          recordType: 'TIME_OFF',
+          specificDate: { gte: startOfDay, lte: endOfDay },
+        },
+      });
+
+      const existingAppointments = await this.prisma.appointment.findMany({
+        where: {
+          doctorId,
+          scheduledAt: { gte: startOfDay, lte: endOfDay },
+          status: { notIn: ['CANCELLED', 'NO_SHOW'] },
+        },
+        select: { scheduledAt: true, endAt: true },
+      });
+
+      const now = new Date();
+      const existingConsultations = await this.prisma.videoConsultation.findMany({
+        where: {
+          doctorId,
+          scheduledAt: { gte: startOfDay, lte: endOfDay },
+          status: { notIn: ['CANCELLED', 'EXPIRED'] },
+          NOT: {
+            status: 'PENDING_PAYMENT',
+            expiresAt: { lte: now },
+          },
+        },
+        select: { scheduledAt: true, durationMinutes: true },
+      });
+
+      const busyRanges: { startMs: number; endMs: number }[] = [];
+
+      for (const app of existingAppointments) {
+        busyRanges.push({
+          startMs: app.scheduledAt.getTime(),
+          endMs: app.endAt.getTime(),
+        });
+      }
+
+      for (const vc of existingConsultations) {
+        const startMs = vc.scheduledAt.getTime();
+        const endMs = startMs + vc.durationMinutes * 60 * 1000;
+        busyRanges.push({ startMs, endMs });
+      }
+
+      for (const to of timeOffs) {
+        const startMs = new Date(`${formattedDateStr}T${to.startTime}:00.000+07:00`).getTime();
+        const endMs = new Date(`${formattedDateStr}T${to.endTime}:00.000+07:00`).getTime();
+        busyRanges.push({ startMs, endMs });
+      }
+
+      const availableSlots: string[] = [];
+      const stepMinutes = 15;
+
+      for (const avail of activeWorkingHours) {
+        let current = new Date(`${formattedDateStr}T${avail.startTime}:00.000+07:00`);
+        const availEnd = new Date(`${formattedDateStr}T${avail.endTime}:00.000+07:00`);
+
+        while (current.getTime() + durationMinutes * 60 * 1000 <= availEnd.getTime()) {
+          const slotStartMs = current.getTime();
+          const slotEndMs = slotStartMs + durationMinutes * 60 * 1000;
+
+          if (slotStartMs > Date.now()) {
+            const isConflict = busyRanges.some(
+              (b) => slotStartMs < b.endMs && slotEndMs > b.startMs,
+            );
+
+            if (!isConflict) {
+              const timeFormatter = new Intl.DateTimeFormat('en-GB', {
+                timeZone: 'Asia/Ho_Chi_Minh',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false,
+              });
+              availableSlots.push(timeFormatter.format(current));
+            }
+          }
+
+          current = new Date(current.getTime() + stepMinutes * 60 * 1000);
+        }
+      }
+
+      return Array.from(new Set(availableSlots)).sort();
+    });
   }
 
   /** Đặt lịch tư vấn trực tuyến cho bệnh nhân với Serializable transaction & 15m slot locking */
   async createBooking(user: AuthenticatedUser, dto: CreateVideoConsultationDto) {
-    return this.prisma.$transaction(
+    const result = await this.prisma.$transaction(
       async (tx) => {
         let patient = await tx.patient.findUnique({
           where: { userId: user.userId },
@@ -735,11 +757,14 @@ export class VideoConsultationService implements OnModuleInit {
       },
       { isolationLevel: 'Serializable' },
     );
+
+    void this.invalidateConsultationSlots(dto.doctorId);
+    return result;
   }
 
   /** Bệnh nhân hủy lịch tư vấn & Xử lý chính sách hoàn tiền */
   async cancelBookingByPatient(user: AuthenticatedUser, id: string) {
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const patient = await tx.patient.findUnique({
         where: { userId: user.userId },
       });
@@ -862,6 +887,9 @@ export class VideoConsultationService implements OnModuleInit {
         },
       };
     });
+
+    void this.invalidateConsultationSlots(result.consultation.doctorId);
+    return result;
   }
 
   /** Lấy thông tin thanh toán (VietQR) cho lịch tư vấn chưa thanh toán */

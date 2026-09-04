@@ -98,6 +98,46 @@ const apiClient = axios.create({
   },
 }) as CustomAxiosInstance;
 
+let summaryViewSupported: boolean | undefined;
+
+function isUnsupportedSummaryViewError(error: unknown) {
+  if (!axios.isAxiosError(error) || error.response?.status !== 400) {
+    return false;
+  }
+
+  const message = (error.response.data as { message?: unknown } | undefined)
+    ?.message;
+  const messages = Array.isArray(message) ? message : [message];
+  return messages.some(
+    (item) => item === "property view should not exist",
+  );
+}
+
+export async function getWithSummaryFallback<T>(
+  url: string,
+  config: AxiosRequestConfig = {},
+): Promise<ApiResponse<T>> {
+  const params = { ...(config.params ?? {}) } as Record<string, unknown>;
+
+  if (summaryViewSupported === false) {
+    return apiClient.get<T>(url, { ...config, params });
+  }
+
+  try {
+    const response = await apiClient.get<T>(url, {
+      ...config,
+      params: { ...params, view: "summary" },
+    });
+    summaryViewSupported = true;
+    return response;
+  } catch (error) {
+    if (!isUnsupportedSummaryViewError(error)) throw error;
+
+    summaryViewSupported = false;
+    return apiClient.get<T>(url, { ...config, params });
+  }
+}
+
 let isRefreshing = false;
 let failedQueue: {
   resolve: (token: string) => void;
@@ -136,9 +176,13 @@ apiClient.interceptors.response.use(
     }
 
     const { status } = error.response;
+    const unsupportedSummaryView = isUnsupportedSummaryViewError(error);
 
     if (status !== 401) {
-      if (status === 403)
+      if (unsupportedSummaryView) {
+        // A rolling deployment may briefly have the new frontend talking to
+        // the previous backend. The request helper retries without `view`.
+      } else if (status === 403)
         console.warn("Forbidden: Ban khong co quyen truy cap.");
       else if (status === 404)
         console.warn("Not Found: Khong tim thay tai nguyen.");

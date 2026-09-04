@@ -38,6 +38,7 @@ export type AuthSession = {
 
 export type RefreshSession = {
   accessToken: string;
+  user?: AuthUser;
 };
 
 export type LoginBody = {

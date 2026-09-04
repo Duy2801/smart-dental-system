@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 import {
   BusinessHourDto,
   ClinicSpecialDateDto,
@@ -8,12 +9,25 @@ import {
 import { DepositCalculationMode } from '../../../prisma/generated/enums';
 
 const defaultSlotIntervalMinutes = 30;
+const clinicConfigCacheKey = 'catalog:clinic-config:v1';
+const clinicConfigCacheTtlSeconds = 10 * 60;
 
 @Injectable()
 export class ClinicConfigService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+  ) {}
 
   async getClinicConfig() {
+    return this.redis.rememberJson(
+      clinicConfigCacheKey,
+      clinicConfigCacheTtlSeconds,
+      () => this.loadClinicConfig(),
+    );
+  }
+
+  private async loadClinicConfig() {
     const rows = await this.prisma.clinicConfig.findMany({
       where: { configType: 'CLINIC_PROFILE' },
     });
@@ -36,9 +50,12 @@ export class ClinicConfigService {
       values['booking.deposit.enabled'] === ''
         ? true
         : values['booking.deposit.enabled'] === 'true';
-    const bookingDepositCalculationMode =
-      this.parseDepositCalculationMode(values['booking.deposit.mode']);
-    const bookingDepositValue = this.parseDecimal(values['booking.deposit.value']);
+    const bookingDepositCalculationMode = this.parseDepositCalculationMode(
+      values['booking.deposit.mode'],
+    );
+    const bookingDepositValue = this.parseDecimal(
+      values['booking.deposit.value'],
+    );
 
     return {
       name: values['clinic.name'] ?? '',
@@ -109,6 +126,7 @@ export class ClinicConfigService {
       }
     }
 
+    await this.redis.del(clinicConfigCacheKey);
     return next;
   }
 
@@ -176,8 +194,12 @@ export class ClinicConfigService {
   }
 
   async getClinicScheduleConfig() {
-    const { businessHours, isBusinessHoursConfigured, slotIntervalMinutes, specialDates } =
-      await this.getClinicConfig();
+    const {
+      businessHours,
+      isBusinessHoursConfigured,
+      slotIntervalMinutes,
+      specialDates,
+    } = await this.getClinicConfig();
 
     if (!isBusinessHoursConfigured) {
       throw new BadRequestException('clinic.business_hours_not_configured');
@@ -252,10 +274,10 @@ export class ClinicConfigService {
     }
   }
 
-  private parseDepositCalculationMode(
-    value?: string,
-  ): DepositCalculationMode {
-    return value === 'FIXED' ? DepositCalculationMode.FIXED : DepositCalculationMode.PERCENT;
+  private parseDepositCalculationMode(value?: string): DepositCalculationMode {
+    return value === 'FIXED'
+      ? DepositCalculationMode.FIXED
+      : DepositCalculationMode.PERCENT;
   }
 
   private parseDecimal(value?: string) {
@@ -320,9 +342,13 @@ export class ClinicConfigService {
 
       if (
         !specialDate.isClosed &&
-        (!specialDate.start || !specialDate.end || specialDate.start >= specialDate.end)
+        (!specialDate.start ||
+          !specialDate.end ||
+          specialDate.start >= specialDate.end)
       ) {
-        throw new BadRequestException('clinic.special_dates_invalid_time_range');
+        throw new BadRequestException(
+          'clinic.special_dates_invalid_time_range',
+        );
       }
     }
   }

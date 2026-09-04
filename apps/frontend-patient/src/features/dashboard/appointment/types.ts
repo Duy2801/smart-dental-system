@@ -28,6 +28,7 @@ export type Dentist = {
   experience: string;
   initials: string;
   tone: "blue" | "cyan" | "violet";
+  availableTimeSlots: string[];
 };
 
 export type BookingDate = {

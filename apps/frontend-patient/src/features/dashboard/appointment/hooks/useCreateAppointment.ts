@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRef, useState } from "react";
 import { toast } from "@/features/dashboard/common/toast";
 import { createPatientAppointment, getAppointmentOptions } from "../api";
 import { getCreateAppointmentErrorMessage } from "../utils";
@@ -37,6 +38,8 @@ export function useCreateAppointment({
   onSuccess,
 }: UseCreateAppointmentParams) {
   const queryClient = useQueryClient();
+  const isSubmittingRef = useRef(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const createAppointmentMutation = useMutation({
     mutationFn: createPatientAppointment,
@@ -55,36 +58,40 @@ export function useCreateAppointment({
   });
 
   async function createAppointment(promotionCode?: string) {
-    const canBook = await ensureLoggedInBeforeBooking();
-    if (!canBook) return;
-
-    const chosenDate = dates.find((date) => date.id === selectedDateId);
-
-    if (
-      !selectedDoctorId ||
-      !selectedPatientId ||
-      !selectedTreatmentMethodId ||
-      !selectedDateId ||
-      !selectedTime
-    ) {
-      toast.error(
-        "Thiếu thông tin đặt lịch",
-        "Vui lòng chọn đầy đủ dịch vụ, phương pháp điều trị, ngày giờ và bác sĩ.",
-      );
-      return;
-    }
-
-    if (!chosenDate?.isOpen) {
-      toast.error("Ngày không làm việc", "Vui lòng chọn ngày khám khác.");
-      return;
-    }
-
-    if (!availableTimes.includes(selectedTime)) {
-      toast.error("Khung giờ không hợp lệ", "Vui lòng chọn khung giờ khác.");
-      return;
-    }
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
+    setIsProcessing(true);
 
     try {
+      const canBook = await ensureLoggedInBeforeBooking();
+      if (!canBook) return;
+
+      const chosenDate = dates.find((date) => date.id === selectedDateId);
+
+      if (
+        !selectedDoctorId ||
+        !selectedPatientId ||
+        !selectedTreatmentMethodId ||
+        !selectedDateId ||
+        !selectedTime
+      ) {
+        toast.error(
+          "Thiếu thông tin đặt lịch",
+          "Vui lòng chọn đầy đủ dịch vụ, phương pháp điều trị, ngày giờ và bác sĩ.",
+        );
+        return;
+      }
+
+      if (!chosenDate?.isOpen) {
+        toast.error("Ngày không làm việc", "Vui lòng chọn ngày khám khác.");
+        return;
+      }
+
+      if (!availableTimes.includes(selectedTime)) {
+        toast.error("Khung giờ không hợp lệ", "Vui lòng chọn khung giờ khác.");
+        return;
+      }
+
       const confirmedOptions = await getAppointmentOptions({
         serviceId: selectedServiceId,
         treatmentMethodId: selectedTreatmentMethodId,
@@ -135,11 +142,14 @@ export function useCreateAppointment({
         "Không thể đặt lịch hẹn",
         getCreateAppointmentErrorMessage(appointmentError),
       );
+    } finally {
+      isSubmittingRef.current = false;
+      setIsProcessing(false);
     }
   }
 
   return {
     createAppointment,
-    isSubmitting: createAppointmentMutation.isPending,
+    isSubmitting: isProcessing || createAppointmentMutation.isPending,
   };
 }

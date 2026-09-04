@@ -1,5 +1,11 @@
-import apiClient from "@/lib/axios";
-import type { DentalService, ServiceFaq, ServiceMedia, ServiceProcedureStep, TreatmentMethod } from "./types";
+import apiClient, { getWithSummaryFallback } from "@/lib/axios";
+import type {
+  DentalService,
+  ServiceFaq,
+  ServiceMedia,
+  ServiceProcedureStep,
+  TreatmentMethod,
+} from "./types";
 
 type ServiceDto = {
   id: string;
@@ -30,23 +36,32 @@ type ServiceListDto = {
   data: ServiceDto[];
 };
 
-
-
 export function formatServicePrice(value: string | number) {
   return `${new Intl.NumberFormat("vi-VN").format(Number(value ?? 0))} đ`;
 }
 
 function mapService(item: ServiceDto): DentalService {
-  const rawMethods = item.treatmentMethods ?? (item as unknown as { treatment_methods?: TreatmentMethod[] }).treatment_methods ?? [];
+  const rawMethods =
+    item.treatmentMethods ??
+    (item as unknown as { treatment_methods?: TreatmentMethod[] })
+      .treatment_methods ??
+    [];
   const treatmentMethods = rawMethods.map((method) => ({
     ...method,
     bookingCount: method.bookingCount ?? method._count?.appointments ?? 0,
   }));
-  const aggregatedMedia = item.media ?? treatmentMethods.flatMap((m) => m.media ?? []);
-  const aggregatedSteps = item.procedureSteps ?? treatmentMethods.flatMap((m) => m.procedureSteps ?? []);
-  const aggregatedFaqs = item.faqs ?? treatmentMethods.flatMap((m) => m.faqs ?? []);
+  const aggregatedMedia =
+    item.media ?? treatmentMethods.flatMap((m) => m.media ?? []);
+  const aggregatedSteps =
+    item.procedureSteps ??
+    treatmentMethods.flatMap((m) => m.procedureSteps ?? []);
+  const aggregatedFaqs =
+    item.faqs ?? treatmentMethods.flatMap((m) => m.faqs ?? []);
 
-  const image = treatmentMethods.find((m) => m.imageUrl)?.imageUrl || aggregatedMedia?.[0]?.url || "";
+  const image =
+    treatmentMethods.find((m) => m.imageUrl)?.imageUrl ||
+    aggregatedMedia?.[0]?.url ||
+    "";
   const description =
     item.description ||
     item.shortDescription ||
@@ -94,7 +109,7 @@ function mapService(item: ServiceDto): DentalService {
 }
 
 export async function getPatientServices() {
-  const response = await apiClient.get<ServiceListDto>("/services", {
+  const response = await getWithSummaryFallback<ServiceListDto>("/services", {
     params: { isActive: true, limit: 100 },
   });
 

@@ -10,6 +10,7 @@ import type { Prisma } from '../../../prisma/generated/client';
 import { uploadImageBuffer } from '../../common/cloudinary';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 import { UpdateMedicalRecordDto } from './dto/update-medical-record.dto';
 
 type RecordImage = {
@@ -47,6 +48,7 @@ export class MedicalRecordService {
   constructor(
     private prisma: PrismaService,
     private config: ConfigService,
+    private redis: RedisService,
   ) {}
 
   async resolveDoctorIdByUserId(userId: string) {
@@ -177,6 +179,7 @@ export class MedicalRecordService {
       data,
       include: recordInclude,
     });
+    void this.redis.del(`patient:records:${updated.patientId}`);
     return this.toDetail(updated);
   }
 
@@ -231,6 +234,7 @@ export class MedicalRecordService {
       },
       include: recordInclude,
     });
+    void this.redis.del(`patient:records:${updated.patientId}`);
     return this.toDetail(updated);
   }
 

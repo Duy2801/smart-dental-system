@@ -1,4 +1,4 @@
-import apiClient from "@/lib/axios";
+import apiClient, { getWithSummaryFallback } from "@/lib/axios";
 import type { PromotionDto, ServiceOption } from "../types";
 
 type TreatmentMethodDto = {
@@ -41,18 +41,24 @@ export async function fetchPromotions(): Promise<PromotionDto[]> {
 
 export async function fetchServicesForPromotions(): Promise<ServiceOption[]> {
   try {
-    const response = await apiClient.get<PaginatedServicesResponse>("/services", {
-      params: {
-        isActive: true,
-        limit: 100,
+    const response = await getWithSummaryFallback<PaginatedServicesResponse>(
+      "/services",
+      {
+        params: {
+          isActive: true,
+          limit: 100,
+        },
       },
-    });
+    );
 
     if (response.data && Array.isArray(response.data.data)) {
       const options: ServiceOption[] = [];
 
       for (const service of response.data.data) {
-        const methods = service.treatmentMethods || (service as unknown as { treatment_methods?: TreatmentMethodDto[] }).treatment_methods;
+        const methods =
+          service.treatmentMethods ||
+          (service as unknown as { treatment_methods?: TreatmentMethodDto[] })
+            .treatment_methods;
         if (methods && methods.length > 0) {
           for (const tm of methods) {
             options.push({
@@ -64,7 +70,8 @@ export async function fetchServicesForPromotions(): Promise<ServiceOption[]> {
               category: service.category || service.name,
               basePrice: Number(tm.basePrice || 0),
               description: tm.description ?? service.description ?? null,
-              shortDescription: tm.description ?? service.shortDescription ?? null,
+              shortDescription:
+                tm.description ?? service.shortDescription ?? null,
               badge: service.badge ?? null,
               imageUrl: tm.imageUrl ?? service.image ?? null,
             });

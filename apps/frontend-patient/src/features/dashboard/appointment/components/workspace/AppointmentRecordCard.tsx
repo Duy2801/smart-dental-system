@@ -62,6 +62,13 @@ export function AppointmentRecordCard({
 }: AppointmentRecordCardProps) {
   const status = statusInfo[appointment.status] ?? statusInfo.pending;
   const notes = appointment.preparation ?? [];
+  const now = Date.now();
+  const scheduledTime = new Date(appointment.scheduledAt).getTime();
+  const hoursUntil = (scheduledTime - now) / (1000 * 60 * 60);
+  const isUpcoming =
+    appointment.status === "pending" || appointment.status === "confirmed";
+  const canCancelOnline = canCancel && hoursUntil >= 12;
+  const isUnder12Hours = isUpcoming && hoursUntil < 12 && hoursUntil > 0;
 
   return (
     <article className="p-5 rounded-2xl border border-slate-200 bg-slate-50/40 hover:border-blue-200 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -77,24 +84,25 @@ export function AppointmentRecordCard({
           <span
             className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-0.5 rounded-full border ${status.className}`}
           >
-            <span className={`h-1.5 w-1.5 rounded-full ${status.dotColor} ${appointment.status === 'pending' ? 'animate-pulse' : ''}`} />
+            <span className={`h-1.5 w-1.5 rounded-full ${status.dotColor}`} />
             {status.label}
           </span>
         </div>
 
         {/* Info row: Scheduled Date & Time */}
-        <p className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
-          <DashboardIcon name="clock" className="h-3.5 w-3.5 text-slate-400" />
-          <span>Thời gian hẹn:</span>
-          <strong className="text-slate-800 font-bold">
-            {formatTimeRange(appointment.time, appointment.durationMinutes || 30)} - {appointment.date}
-          </strong>
-        </p>
+        <div className="flex flex-wrap items-center gap-y-1 gap-x-4 text-xs font-semibold text-slate-500">
+          <div className="flex items-center gap-1.5 text-slate-700">
+            <DashboardIcon name="clock" className="h-4 w-4 text-[#0058bc]" />
+            <span>
+              Thời gian hẹn: <strong className="text-slate-900">{formatTimeRange(appointment.time, appointment.durationMinutes || 30)}</strong> - {appointment.date}
+            </span>
+          </div>
+        </div>
 
         {/* Preparation Notes pill list if any */}
         {notes.length ? (
           <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-            <span className="text-[11px] font-semibold text-slate-400">Ghi chú:</span>
+            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Ghi chú:</span>
             {notes.map((note) => (
               <span
                 key={note}
@@ -108,12 +116,12 @@ export function AppointmentRecordCard({
       </div>
 
       {/* Action Buttons */}
-      <div className="flex flex-wrap items-center gap-2 shrink-0 w-full sm:w-auto justify-end sm:justify-start pt-2.5 sm:pt-0 border-t sm:border-t-0 border-slate-200/60">
+      <div className="flex flex-wrap items-center gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200/60">
         {onViewDetail ? (
           <button
             type="button"
             onClick={onViewDetail}
-            className="flex-1 sm:flex-none px-3 sm:px-3.5 py-2 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3.5 sm:px-4 py-2 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-all shadow-2xs cursor-pointer"
           >
             <svg
               className="w-3.5 h-3.5 text-slate-500"
@@ -148,7 +156,7 @@ export function AppointmentRecordCard({
           </button>
         ) : null}
 
-        {canCancel && onCancel ? (
+        {canCancelOnline && onCancel ? (
           <button
             type="button"
             onClick={onCancel}
@@ -156,6 +164,15 @@ export function AppointmentRecordCard({
             className="flex-1 sm:flex-none px-3.5 sm:px-4 py-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 font-bold rounded-xl text-xs transition-all disabled:opacity-60 cursor-pointer text-center"
           >
             {isCancelling ? "Đang hủy..." : "Hủy"}
+          </button>
+        ) : isUnder12Hours ? (
+          <button
+            type="button"
+            disabled
+            title="Quy định: Chỉ được hủy online trước giờ khám ít nhất 12 giờ. Vì lịch khám còn dưới 12 giờ, quý khách vui lòng liên hệ hotline phòng khám để được hỗ trợ hủy lịch gấp."
+            className="flex-1 sm:flex-none px-3 sm:px-3.5 py-2 bg-slate-100 border border-slate-200 text-slate-400 font-semibold rounded-xl text-xs cursor-not-allowed text-center"
+          >
+            Hủy (Gọi lễ tân)
           </button>
         ) : null}
       </div>

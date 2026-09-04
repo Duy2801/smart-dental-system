@@ -46,15 +46,19 @@ export function DashboardNav() {
 
   const { handleLogout } = useLogout();
   const { user, isAuthenticated } = useAppSelector((state) => state.login);
-  const { data: services = [] } = useHomeServicesQuery();
-  const { data: doctors = [] } = useHomeDoctorsQuery();
-  const { data: clinic } = useClinicConfigQuery();
 
   const [mounted, setMounted] = useState(false);
   const [homeSearchDocked, setHomeSearchDocked] = useState(false);
   const [keyword, setKeyword] = useState(keywordFromUrl);
   const [isFocused, setIsFocused] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const showNavbarSearchBar =
+    Boolean(keywordFromUrl) ||
+    (pathname === ROUTES.home && homeSearchDocked);
+  const { data: services = [] } = useHomeServicesQuery(showNavbarSearchBar);
+  const { data: doctors = [] } = useHomeDoctorsQuery(showNavbarSearchBar);
+  const { data: clinic } = useClinicConfigQuery();
 
   const displayName = user?.fullName || "Khách hàng";
   const initials = getInitials(user?.fullName);
@@ -153,10 +157,6 @@ export function DashboardNav() {
     setIsFocused(false);
   }
 
-  const showNavbarSearchBar =
-    Boolean(keywordFromUrl) ||
-    (pathname === ROUTES.home && homeSearchDocked);
-
   const showDropdown = isFocused && keyword.trim().length > 0;
 
   return (
@@ -177,7 +177,6 @@ export function DashboardNav() {
               <Link
                 key={item.href}
                 href={item.href}
-                prefetch={false}
                 aria-current={active ? "page" : undefined}
                 className={`relative flex h-full items-center px-1 text-sm font-semibold transition-colors duration-200 hover:text-[#0863c5] ${
                   active ? "text-[#0863c5] font-bold" : "text-slate-600"

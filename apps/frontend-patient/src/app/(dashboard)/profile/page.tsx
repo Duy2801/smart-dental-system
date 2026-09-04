@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { apiRefresh } from "@/features/auth/api";
 import { LoginRequiredPanel } from "@/features/dashboard/common/LoginRequiredPanel";
 import { PatientPageSkeleton } from "@/features/dashboard/common/PatientSkeleton";
 import { clearClientAuth } from "@/features/auth/useLogout";
@@ -19,7 +18,6 @@ import type {
 import {
   login,
   logout,
-  updateAccessToken,
   useAppDispatch,
   useAppSelector,
 } from "@/providers";
@@ -66,19 +64,11 @@ export default function ProfilePage() {
     queryKey: ["patient", "profile"],
     queryFn: async () => {
       try {
-        let sessionAccessToken = accessToken;
-
-        if (!sessionAccessToken) {
-          const refreshResponse = await apiRefresh();
-          sessionAccessToken = refreshResponse.data.accessToken;
-          dispatch(updateAccessToken(sessionAccessToken));
-        }
-
         const meResponse = await apiGetPatientProfile();
         dispatch(
           login({
             user: meResponse.data,
-            accessToken: sessionAccessToken,
+            accessToken,
           }),
         );
 
@@ -89,6 +79,8 @@ export default function ProfilePage() {
         throw error;
       }
     },
+    enabled: isHydrated && Boolean(accessToken),
+    staleTime: 60 * 1000,
     retry: false,
   });
 

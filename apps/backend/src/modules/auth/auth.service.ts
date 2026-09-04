@@ -304,7 +304,11 @@ export class AuthService {
       if (payload.tokenType !== 'refresh' || payload.sub !== userId) {
         throw new Error('Invalid refresh token');
       }
-      return { accessToken: this.signAccessToken(payload.sub, payload.email) };
+      const [accessToken, user] = await Promise.all([
+        Promise.resolve(this.signAccessToken(payload.sub, payload.email)),
+        this.me(payload.sub),
+      ]);
+      return { accessToken, user };
     } catch {
       await this.redisService.del(`refresh_token:${userId}`);
       throw new UnauthorizedException('auth.refresh_expired');

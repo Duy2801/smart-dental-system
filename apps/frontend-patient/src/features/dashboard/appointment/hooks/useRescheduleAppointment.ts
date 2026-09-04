@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/features/dashboard/common/toast";
 import {
@@ -21,6 +21,7 @@ export function useRescheduleAppointment({
   onClose,
 }: UseRescheduleAppointmentParams) {
   const queryClient = useQueryClient();
+  const isSubmittingRef = useRef(false);
 
   // Initialize selectedDateId with appointment.dateId so API loads for that date immediately
   const initialDateId = appointment?.dateId ?? "";
@@ -91,7 +92,7 @@ export function useRescheduleAppointment({
   });
 
   async function confirmReschedule() {
-    if (!appointment) return;
+    if (!appointment || isSubmittingRef.current) return;
     if (!canReschedule) {
       toast.error(
         "Không thể đổi lịch",
@@ -108,6 +109,7 @@ export function useRescheduleAppointment({
       return;
     }
 
+    isSubmittingRef.current = true;
     try {
       await mutation.mutateAsync({
         appointmentId: appointment.id,
@@ -120,6 +122,8 @@ export function useRescheduleAppointment({
       onClose();
     } catch (error) {
       toast.error("Không thể đổi lịch", getCreateAppointmentErrorMessage(error));
+    } finally {
+      isSubmittingRef.current = false;
     }
   }
 

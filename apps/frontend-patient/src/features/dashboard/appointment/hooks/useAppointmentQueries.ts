@@ -83,11 +83,14 @@ export function useAppointmentScheduleQuery(params: BookingOptionsQuery) {
 /**
  * Hook to check specific doctor availability for a date + time combination.
  */
-export function useAppointmentAvailabilityQuery(params: BookingOptionsQuery) {
+export function useAppointmentAvailabilityQuery(
+  params: BookingOptionsQuery,
+  enabled = true,
+) {
   return useQuery({
     queryKey: appointmentQueryKeys.optionsAvailability(params),
     queryFn: () => getAppointmentOptions(params),
-    enabled: Boolean(params.serviceId && params.date && params.time),
+    enabled: Boolean(enabled && params.serviceId && params.date && params.time),
     staleTime: 15 * 1000,
     gcTime: 10 * 60 * 1000,
     placeholderData: (previousData) => previousData,

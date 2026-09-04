@@ -24,6 +24,7 @@ import {
   TreatmentStepStatus,
 } from '../../../prisma/generated/enums';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 import { CreatePatientDto } from './dto/create-patient.dto';
 import { CreateManagedPatientDto } from './dto/create-managed-patient.dto';
 import { UpdatePatientDto } from './dto/update-patient.dto';
@@ -32,45 +33,64 @@ import { UpdatePatientDto } from './dto/update-patient.dto';
 export class PatientService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
     @InjectQueue('mail-queue')
     private readonly mailQueue: Queue,
-  ) {}
+  ) { }
+
+  async invalidatePatientCache(patientId?: string, userId?: string) {
+    try {
+      if (patientId) {
+        await this.redis.del(`patient:records:${patientId}`);
+      }
+      if (userId) {
+        await this.redis.del(`patient:profiles:${userId}`);
+        await this.redis.del(`patient:appointments:upcoming:${userId}`);
+        await this.redis.del(`patient:appointments:history:${userId}`);
+      }
+    } catch (err: any) {
+      // ignore
+    }
+  }
 
   async getManagedPatientProfiles(userId: string) {
-    const links = await this.prisma.patientAccount.findMany({
-      where: { userId },
-      include: {
-        patient: {
-          include: {
-            user: { select: { fullName: true, phone: true, email: true } },
-            appointments: {
-              orderBy: { scheduledAt: 'desc' },
-              take: 1,
-              select: { scheduledAt: true },
+    const cacheKey = `patient:profiles:${userId}`;
+    return this.redis.rememberJson(cacheKey, 60, async () => {
+      const links = await this.prisma.patientAccount.findMany({
+        where: { userId },
+        include: {
+          patient: {
+            include: {
+              user: { select: { fullName: true, phone: true, email: true } },
+              appointments: {
+                orderBy: { scheduledAt: 'desc' },
+                take: 1,
+                select: { scheduledAt: true },
+              },
             },
           },
         },
-      },
-      orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
-    });
+        orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+      });
 
-    return links.map((link) => {
-      const identity = this.getPatientIdentity(link.patient);
-      return {
-        id: link.patient.id,
-        patientCode: link.patient.patientCode,
-        fullName: identity.fullName,
-        phone: identity.phone,
-        email: identity.email,
-        gender: link.patient.gender,
-        dateOfBirth: link.patient.dateOfBirth,
-        address: link.patient.address,
-        medicalHistory: link.patient.medicalHistory,
-        relationship: link.relationship,
-        isPrimary: link.isPrimary,
-        canBook: link.canBook,
-        lastVisit: link.patient.appointments[0]?.scheduledAt ?? null,
-      };
+      return links.map((link) => {
+        const identity = this.getPatientIdentity(link.patient);
+        return {
+          id: link.patient.id,
+          patientCode: link.patient.patientCode,
+          fullName: identity.fullName,
+          phone: identity.phone,
+          email: identity.email,
+          gender: link.patient.gender,
+          dateOfBirth: link.patient.dateOfBirth,
+          address: link.patient.address,
+          medicalHistory: link.patient.medicalHistory,
+          relationship: link.relationship,
+          isPrimary: link.isPrimary,
+          canBook: link.canBook,
+          lastVisit: link.patient.appointments[0]?.scheduledAt ?? null,
+        };
+      });
     });
   }
 
@@ -143,6 +163,8 @@ export class PatientService {
 
     const identity = this.getPatientIdentity(patient);
     const link = patient.patientAccounts[0];
+    void this.invalidatePatientCache(patient.id, userId);
+
     return {
       id: patient.id,
       patientCode: patient.patientCode,
@@ -165,26 +187,26 @@ export class PatientService {
     const patients = await this.prisma.patient.findMany({
       where: q
         ? {
-            OR: [
-              { patientCode: { contains: q, mode: 'insensitive' } },
-              {
-                fullName: { contains: q, mode: 'insensitive' },
-              },
-              { phone: { contains: q } },
-              { email: { contains: q, mode: 'insensitive' } },
-              {
-                user: {
-                  is: {
-                    OR: [
-                      { fullName: { contains: q, mode: 'insensitive' } },
-                      { phone: { contains: q } },
-                      { email: { contains: q, mode: 'insensitive' } },
-                    ],
-                  },
+          OR: [
+            { patientCode: { contains: q, mode: 'insensitive' } },
+            {
+              fullName: { contains: q, mode: 'insensitive' },
+            },
+            { phone: { contains: q } },
+            { email: { contains: q, mode: 'insensitive' } },
+            {
+              user: {
+                is: {
+                  OR: [
+                    { fullName: { contains: q, mode: 'insensitive' } },
+                    { phone: { contains: q } },
+                    { email: { contains: q, mode: 'insensitive' } },
+                  ],
                 },
               },
-            ],
-          }
+            },
+          ],
+        }
         : undefined,
       include: {
         user: { select: { fullName: true, phone: true, email: true } },
@@ -611,23 +633,23 @@ export class PatientService {
           medicalHistory,
           ...(dto.dateOfBirth !== undefined
             ? {
-                dateOfBirth: dto.dateOfBirth
-                  ? new Date(dto.dateOfBirth)
-                  : null,
-              }
+              dateOfBirth: dto.dateOfBirth
+                ? new Date(dto.dateOfBirth)
+                : null,
+            }
             : {}),
           ...(dto.gender ? { gender: dto.gender } : {}),
           ...(dto.emergencyContactName !== undefined
             ? {
-                emergencyContactName:
-                  dto.emergencyContactName?.trim() || null,
-              }
+              emergencyContactName:
+                dto.emergencyContactName?.trim() || null,
+            }
             : {}),
           ...(dto.emergencyContactPhone !== undefined
             ? {
-                emergencyContactPhone:
-                  dto.emergencyContactPhone?.trim() || null,
-              }
+              emergencyContactPhone:
+                dto.emergencyContactPhone?.trim() || null,
+            }
             : {}),
         },
       });
@@ -718,10 +740,10 @@ export class PatientService {
           medicalHistory,
           ...(dto.dateOfBirth !== undefined
             ? {
-                dateOfBirth: dto.dateOfBirth
-                  ? new Date(dto.dateOfBirth)
-                  : null,
-              }
+              dateOfBirth: dto.dateOfBirth
+                ? new Date(dto.dateOfBirth)
+                : null,
+            }
             : {}),
           ...(dto.gender ? { gender: dto.gender } : {}),
         },
@@ -812,7 +834,7 @@ export class PatientService {
 
   async findPatientsByDoctor(doctorId: string, search?: string) {
     const q = search?.trim().toLowerCase();
-    
+
     const patients = await this.prisma.patient.findMany({
       where: {
         OR: [
@@ -845,7 +867,7 @@ export class PatientService {
         serviceName: a.service?.name ?? 'Khám trực tiếp',
         status: a.status
       }));
-      
+
       const onlineVisits = p.videoConsultations.map(vc => ({
         scheduledAt: vc.scheduledAt,
         serviceName: `Tư vấn trực tuyến (${vc.durationMinutes} phút)`,
@@ -855,7 +877,7 @@ export class PatientService {
       const allVisits = [...offlineVisits, ...onlineVisits].sort(
         (a, b) => b.scheduledAt.getTime() - a.scheduledAt.getTime()
       );
-      
+
       const lastVisit = allVisits[0];
 
       return {
@@ -967,10 +989,10 @@ export class PatientService {
     const activePlan = patient.treatmentPlans[0] ?? null;
     const planItems = Array.isArray(activePlan?.items)
       ? (activePlan.items as {
-          service?: string;
-          tooth?: string;
-          estimatedCost?: string;
-        }[])
+        service?: string;
+        tooth?: string;
+        estimatedCost?: string;
+      }[])
       : [];
     const steps = activePlan?.steps ?? [];
     const totalSteps =
@@ -978,7 +1000,7 @@ export class PatientService {
     const completedSteps =
       steps.length > 0
         ? steps.filter((s) => s.status === TreatmentStepStatus.COMPLETED)
-            .length
+          .length
         : 0;
 
     const finance = await this.getPatientFinance(patientId, activePlan?.id);
@@ -1001,15 +1023,15 @@ export class PatientService {
       finance,
       activeTreatmentPlan: activePlan
         ? {
-            id: activePlan.id,
-            title: activePlan.title,
-            status: activePlan.status,
-            startDate: activePlan.startDate,
-            expectedEndDate: activePlan.expectedEndDate,
-            totalSteps,
-            completedSteps,
-            estimatedTotal: finance.planTotal,
-          }
+          id: activePlan.id,
+          title: activePlan.title,
+          status: activePlan.status,
+          startDate: activePlan.startDate,
+          expectedEndDate: activePlan.expectedEndDate,
+          totalSteps,
+          completedSteps,
+          estimatedTotal: finance.planTotal,
+        }
         : null,
       appointments: appointments.map((a) => ({
         id: a.id,
@@ -1091,7 +1113,7 @@ export class PatientService {
         throw new ForbiddenException('patient.profile_forbidden');
       }
 
-      return this.buildPatientRecordResponse(link.patientId);
+      return this.getCachedPatientRecordResponse(link.patientId);
     }
 
     const patient = await this.prisma.patient.findUnique({
@@ -1109,7 +1131,14 @@ export class PatientService {
       };
     }
 
-    return this.buildPatientRecordResponse(patient.id);
+    return this.getCachedPatientRecordResponse(patient.id);
+  }
+
+  async getCachedPatientRecordResponse(patientId: string) {
+    const cacheKey = `patient:records:${patientId}`;
+    return this.redis.rememberJson(cacheKey, 120, () =>
+      this.buildPatientRecordResponse(patientId),
+    );
   }
 
   private async findOrCreatePatientProfile(userId: string) {
@@ -1182,24 +1211,24 @@ export class PatientService {
       updatedAt: user.updatedAt,
       patientProfile: user.patientProfile
         ? {
-            id: user.patientProfile.id,
-            patientCode: user.patientProfile.patientCode,
-            dateOfBirth: user.patientProfile.dateOfBirth,
-            gender: user.patientProfile.gender,
-            address: user.patientProfile.address,
-            emergencyContactName: user.patientProfile.emergencyContactName,
-            emergencyContactPhone: user.patientProfile.emergencyContactPhone,
-            medicalHistory: user.patientProfile.medicalHistory,
-          }
+          id: user.patientProfile.id,
+          patientCode: user.patientProfile.patientCode,
+          dateOfBirth: user.patientProfile.dateOfBirth,
+          gender: user.patientProfile.gender,
+          address: user.patientProfile.address,
+          emergencyContactName: user.patientProfile.emergencyContactName,
+          emergencyContactPhone: user.patientProfile.emergencyContactPhone,
+          medicalHistory: user.patientProfile.medicalHistory,
+        }
         : null,
       lastAppointment: lastAppointment
         ? {
-            id: lastAppointment.id,
-            scheduledAt: lastAppointment.scheduledAt,
-            status: lastAppointment.status,
-            serviceName: lastAppointment.service.name,
-            doctorName: lastAppointment.doctor.user.fullName,
-          }
+          id: lastAppointment.id,
+          scheduledAt: lastAppointment.scheduledAt,
+          status: lastAppointment.status,
+          serviceName: lastAppointment.service.name,
+          doctorName: lastAppointment.doctor.user.fullName,
+        }
         : null,
     };
   }
