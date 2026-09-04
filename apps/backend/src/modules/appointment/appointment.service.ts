@@ -358,10 +358,9 @@ export class AppointmentService {
 
     const parseBound = (raw: string, endOfDay: boolean) => {
       if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
-        const [y, m, d] = raw.split('-').map(Number);
         return endOfDay
-          ? new Date(y, m - 1, d, 23, 59, 59, 999)
-          : new Date(y, m - 1, d, 0, 0, 0, 0);
+          ? new Date(`${raw}T23:59:59.999+07:00`)
+          : new Date(`${raw}T00:00:00.000+07:00`);
       }
       const value = new Date(raw);
       if (endOfDay) value.setHours(23, 59, 59, 999);
@@ -1958,12 +1957,14 @@ export class AppointmentService {
   }
 
   private async getBookingWindowData(doctorIds: string[]) {
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
-
-    const end = new Date(start);
-    end.setDate(end.getDate() + 15);
-    end.setHours(23, 59, 59, 999);
+    const nowVn = this.getVnDate(new Date());
+    const todayVnStr = [
+      nowVn.getUTCFullYear(),
+      String(nowVn.getUTCMonth() + 1).padStart(2, '0'),
+      String(nowVn.getUTCDate()).padStart(2, '0'),
+    ].join('-');
+    const start = this.parseDateId(todayVnStr);
+    const end = new Date(start.getTime() + 16 * 24 * 60 * 60 * 1000 - 1);
 
     const [availabilityRecords, activeAppointments, activeVideoConsultations] = await Promise.all([
       this.prisma.doctorAvailability.findMany({
@@ -2078,7 +2079,7 @@ export class AppointmentService {
     );
     if (hasTimeOff) return false;
 
-    const dayOfWeek = startAt.getDay();
+    const dayOfWeek = this.dateGetDayOfWeek(startAt);
     const dateOverrides = docRecords.filter(
       (r) => r.recordType === 'DATE_OVERRIDE' && r.specificDateStr === dateStr,
     );
@@ -2186,7 +2187,10 @@ export class AppointmentService {
     return availabilityRecords.filter((record) => {
       if (record.doctorId !== doctorId) return false;
       if (record.recordType === 'WEEKLY') {
-        return this.isSameDayOfWeek(record.dayOfWeek, date.getDay());
+        return this.isSameDayOfWeek(
+          record.dayOfWeek,
+          this.dateGetDayOfWeek(date),
+        );
       }
       return (
         Boolean(record.specificDate) &&
@@ -2247,12 +2251,10 @@ export class AppointmentService {
   }
 
   private async getAvailabilityRecords(doctorId: string, date: Date) {
-    const dayStart = new Date(date);
-    dayStart.setHours(0, 0, 0, 0);
-
-    const dayEnd = new Date(date);
-    dayEnd.setHours(23, 59, 59, 999);
-    const weeklyDayOfWeek = date.getDay() === 0 ? [0, 7] : [date.getDay()];
+    const dayStart = this.parseDateId(this.formatDateId(date));
+    const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000 - 1);
+    const dayOfWeek = this.dateGetDayOfWeek(date);
+    const weeklyDayOfWeek = dayOfWeek === 0 ? [0, 7] : [dayOfWeek];
 
     return this.prisma.doctorAvailability.findMany({
       where: {
@@ -2288,10 +2290,16 @@ export class AppointmentService {
     const now = new Date();
     const step = Math.max(1, slotIntervalMinutes || 30);
 
+    const nowVn = this.getVnDate(now);
+    const todayVnStr = [
+      nowVn.getUTCFullYear(),
+      String(nowVn.getUTCMonth() + 1).padStart(2, '0'),
+      String(nowVn.getUTCDate()).padStart(2, '0'),
+    ].join('-');
+    const baseToday = this.parseDateId(todayVnStr);
+
     for (let index = 0; index < 15; index += 1) {
-      const date = new Date();
-      date.setDate(date.getDate() + index);
-      date.setHours(0, 0, 0, 0);
+      const date = new Date(baseToday.getTime() + index * 24 * 60 * 60 * 1000);
       const dateStr = this.formatDateId(date);
 
       const businessHour = this.getBusinessHourForDate(
@@ -2314,13 +2322,15 @@ export class AppointmentService {
           now,
         });
 
+      const vnDate = this.getVnDate(date);
       dates.push({
         id: dateStr,
-        weekday: new Intl.DateTimeFormat('vi-VN', { weekday: 'short' }).format(
-          date,
-        ),
-        day: String(date.getDate()).padStart(2, '0'),
-        month: `Thg ${date.getMonth() + 1}`,
+        weekday: new Intl.DateTimeFormat('vi-VN', {
+          timeZone: 'Asia/Ho_Chi_Minh',
+          weekday: 'short',
+        }).format(date),
+        day: String(vnDate.getUTCDate()).padStart(2, '0'),
+        month: `Thg ${vnDate.getUTCMonth() + 1}`,
         isOpen,
       });
     }
@@ -2452,6 +2462,17 @@ export class AppointmentService {
     return false;
   }
 
+  private static readonly VN_TIMEZONE_OFFSET_MS = 7 * 60 * 60 * 1000;
+
+  private getVnDate(date: Date) {
+    return new Date(date.getTime() + AppointmentService.VN_TIMEZONE_OFFSET_MS);
+  }
+
+  private dateGetDayOfWeek(date: Date) {
+    const vn = this.getVnDate(date);
+    return vn.getUTCDay();
+  }
+
   private getBusinessHourForDate(
     date: Date,
     businessHours: BusinessHourDto[],
@@ -2460,11 +2481,12 @@ export class AppointmentService {
     const specialDate = specialDates.find(
       (item) => item.date === this.formatDateId(date),
     );
+    const dayOfWeek = this.dateGetDayOfWeek(date);
 
     if (specialDate) {
       if (specialDate.isClosed) {
         return {
-          id: date.getDay(),
+          id: dayOfWeek,
           label: specialDate.label,
           isOpen: false,
           start: '00:00',
@@ -2473,7 +2495,7 @@ export class AppointmentService {
       }
 
       return {
-        id: date.getDay(),
+        id: dayOfWeek,
         label: specialDate.label,
         isOpen: true,
         start: specialDate.start ?? '08:00',
@@ -2481,7 +2503,7 @@ export class AppointmentService {
       } satisfies BusinessHourDto;
     }
 
-    return businessHours.find((hour) => hour.id === date.getDay());
+    return businessHours.find((hour) => hour.id === dayOfWeek);
   }
 
   private isSameDayOfWeek(
@@ -2495,10 +2517,10 @@ export class AppointmentService {
   }
 
   private parseDateId(dateId: string) {
-    const [year, month, date] = dateId.split('-').map(Number);
-    const value = new Date();
-    value.setFullYear(year, month - 1, date);
-    value.setHours(0, 0, 0, 0);
+    const value = new Date(`${dateId}T00:00:00+07:00`);
+    if (Number.isNaN(value.getTime())) {
+      throw new BadRequestException('appointment.invalid_date');
+    }
     return value;
   }
 
@@ -2518,16 +2540,15 @@ export class AppointmentService {
   }
 
   private dateWithMinutes(date: Date, minutes: number) {
-    const value = new Date(date);
-    value.setHours(Math.floor(minutes / 60), minutes % 60, 0, 0);
-    return value;
+    return new Date(date.getTime() + minutes * 60 * 1000);
   }
 
   private formatDateId(date: Date) {
+    const vn = this.getVnDate(date);
     return [
-      date.getFullYear(),
-      String(date.getMonth() + 1).padStart(2, '0'),
-      String(date.getDate()).padStart(2, '0'),
+      vn.getUTCFullYear(),
+      String(vn.getUTCMonth() + 1).padStart(2, '0'),
+      String(vn.getUTCDate()).padStart(2, '0'),
     ].join('-');
   }
 
@@ -2537,7 +2558,8 @@ export class AppointmentService {
   }
 
   private dateToMinutes(date: Date) {
-    return date.getHours() * 60 + date.getMinutes();
+    const vn = this.getVnDate(date);
+    return vn.getUTCHours() * 60 + vn.getUTCMinutes();
   }
 
   private timeRangesOverlap(
