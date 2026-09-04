@@ -6,7 +6,7 @@ import {
 import { InjectQueue } from '@nestjs/bull';
 import type { Queue } from 'bull';
 import { RefundStatus } from '../../../prisma/generated/enums';
-import { AuthenticatedUser } from 'src/common/interfaces/authenticated-user.interface';
+import { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateRefundRequestDto } from './dto/create-refund-request.dto';
 import { ProcessRefundDto } from './dto/process-refund.dto';

@@ -1,8 +1,8 @@
 import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { CurrentUser } from 'src/common/decorators/curent-user.decorator';
-import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
-import type { AuthenticatedUser } from 'src/common/interfaces/authenticated-user.interface';
+import { CurrentUser } from '../../common/decorators/curent-user.decorator';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface';
 import { ChatbotConversationService } from './chatbot-conversation.service';
 import { PatientChatDto } from './dto/chat.dto';
 

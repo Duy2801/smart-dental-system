@@ -7,8 +7,8 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
 import type { Prisma } from '../../../prisma/generated/client';
-import { uploadImageBuffer } from 'src/common/cloudinary';
-import type { AuthenticatedUser } from 'src/common/interfaces/authenticated-user.interface';
+import { uploadImageBuffer } from '../../common/cloudinary';
+import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateMedicalRecordDto } from './dto/update-medical-record.dto';
 

@@ -7,7 +7,7 @@ import {
 import { randomUUID } from 'crypto';
 import { InjectQueue } from '@nestjs/bull';
 import type { Queue } from 'bull';
-import type { AuthenticatedUser } from 'src/common/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiClientService } from './ai-client.service';
 import { AiRateLimitService } from './ai-rate-limit.service';

@@ -14,7 +14,7 @@ import {
   PaymentMethod,
   VideoConsultationStatus,
 } from '../../../prisma/generated/enums';
-import type { AuthenticatedUser } from 'src/common/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface';
 import { ClinicConfigService } from '../clinic-config/clinic-config.service';
 import { PaymentService } from '../payment/payment.service';
 import { PrismaService } from '../prisma/prisma.service';

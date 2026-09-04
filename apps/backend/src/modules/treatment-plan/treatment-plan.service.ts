@@ -11,7 +11,7 @@ import {
   InvoiceType,
   TreatmentStepPaymentStatus,
 } from '../../../prisma/generated/enums';
-import type { AuthenticatedUser } from 'src/common/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface';
 import { PrismaService } from '../prisma/prisma.service';
 import { EventsGateway } from '../socket/events.gateway';
 import { CreateTreatmentPlanDto } from './dto/create-treatment-plan.dto';

@@ -11,11 +11,11 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { RefundStatus } from '../../../prisma/generated/enums';
-import { CurrentUser } from 'src/common/decorators/curent-user.decorator';
-import { Roles } from 'src/common/decorators/roles.decorator';
-import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
-import { RolesGuard } from 'src/common/guards/roles.guard';
-import type { AuthenticatedUser } from 'src/common/interfaces/authenticated-user.interface';
+import { CurrentUser } from '../../common/decorators/curent-user.decorator';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface';
 import { CreateRefundRequestDto } from './dto/create-refund-request.dto';
 import { ProcessRefundDto } from './dto/process-refund.dto';
 import { RefundService } from './refund.service';
