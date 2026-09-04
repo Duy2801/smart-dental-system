@@ -38,7 +38,9 @@ export class AuthController {
   ) {}
 
   private setRefreshCookie(response: Response, refreshToken: string) {
-    const isProduction = this.config.get<string>('NODE_ENV') === 'production';
+    const isProduction =
+      process.env.NODE_ENV === 'production' ||
+      this.config.get<string>('NODE_ENV') === 'production';
     response.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: isProduction,
@@ -49,7 +51,9 @@ export class AuthController {
   }
 
   private clearRefreshCookie(response: Response) {
-    const isProduction = this.config.get<string>('NODE_ENV') === 'production';
+    const isProduction =
+      process.env.NODE_ENV === 'production' ||
+      this.config.get<string>('NODE_ENV') === 'production';
     response.clearCookie('refreshToken', {
       httpOnly: true,
       secure: isProduction,

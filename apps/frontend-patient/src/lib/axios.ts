@@ -85,7 +85,9 @@ const clearAuthState = () => {
   store.dispatch(logout());
 };
 
-const API_ORIGIN = process.env.NEXT_PUBLIC_API_URL;
+const API_ORIGIN = (
+  process.env.NEXT_PUBLIC_API_URL || ""
+).replace(/\/$/, "");
 
 const apiClient = axios.create({
   baseURL: `${API_ORIGIN}/api/v1`,
