@@ -85,11 +85,11 @@ const clearAuthState = () => {
   store.dispatch(logout());
 };
 
-const API_ORIGIN = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+const API_ORIGIN = process.env.NEXT_PUBLIC_API_URL;
 
 const apiClient = axios.create({
   baseURL: `${API_ORIGIN}/api/v1`,
-      timeout: 30000,
+  timeout: 30000,
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",

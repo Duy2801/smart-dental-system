@@ -23,14 +23,10 @@ async function bootstrap() {
   });
 
   app.enableCors({
-    origin: configService
-      .get<string>(
-        'CORS_ORIGINS',
-        'http://localhost:3001,http://localhost:3002,http://127.0.0.1:3001,http://127.0.0.1:3002',
-      )
-      .split(',')
-      .map((origin) => origin.trim()),
+    origin: true, // Cho phép tất cả các origin (*)
     credentials: true,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    allowedHeaders: '*',
   });
   app.useGlobalPipes(
     new ValidationPipe({

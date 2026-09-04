@@ -38,20 +38,22 @@ export class AuthController {
   ) {}
 
   private setRefreshCookie(response: Response, refreshToken: string) {
+    const isProduction = this.config.get<string>('NODE_ENV') === 'production';
     response.cookie('refreshToken', refreshToken, {
       httpOnly: true,
-      secure: this.config.get<string>('NODE_ENV') === 'production',
-      sameSite: 'lax',
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000,
       path: '/api/v1/auth',
     });
   }
 
   private clearRefreshCookie(response: Response) {
+    const isProduction = this.config.get<string>('NODE_ENV') === 'production';
     response.clearCookie('refreshToken', {
       httpOnly: true,
-      secure: this.config.get<string>('NODE_ENV') === 'production',
-      sameSite: 'lax',
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
       path: '/api/v1/auth',
     });
   }
