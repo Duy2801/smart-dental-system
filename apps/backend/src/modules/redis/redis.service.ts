@@ -37,8 +37,12 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       this.logger.error(`Redis connection error: ${error.message}`);
     });
 
-    await this.client.ping();
-    this.logger.log('Redis connected');
+    try {
+      await this.client.ping();
+      this.logger.log('Redis connected');
+    } catch (err: any) {
+      this.logger.error(`Redis ping failed on startup: ${err.message}. Features depending on Redis will degrade until reconnected.`);
+    }
   }
 
   async onModuleDestroy() {

@@ -1,4 +1,3 @@
-import { BullModule } from '@nestjs/bull';
 import { Module } from '@nestjs/common';
 import { ClinicConfigModule } from '../clinic-config/clinic-config.module';
 import { MailModule } from '../mail/mail.module';
@@ -15,7 +14,6 @@ import { VideoConsultationService } from './video-consultation.service';
     ClinicConfigModule,
     MailModule,
     SocketModule,
-    BullModule.registerQueue({ name: 'mail-queue' }),
   ],
   controllers: [VideoConsultationController],
   providers: [VideoConsultationService],

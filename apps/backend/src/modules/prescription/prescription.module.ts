@@ -1,4 +1,3 @@
-import { BullModule } from '@nestjs/bull';
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module';
 import { MailModule } from '../mail/mail.module';
@@ -9,7 +8,6 @@ import { PrescriptionService } from './prescription.service';
   imports: [
     PrismaModule,
     MailModule,
-    BullModule.registerQueue({ name: 'mail-queue' }),
   ],
   controllers: [PrescriptionController],
   providers: [PrescriptionService],

@@ -1,4 +1,3 @@
-import { BullModule } from '@nestjs/bull';
 import { Module } from '@nestjs/common';
 import { MailModule } from '../mail/mail.module';
 import { PrismaModule } from '../prisma/prisma.module';
@@ -13,7 +12,6 @@ import { AiRateLimitService } from './ai-rate-limit.service';
     PrismaModule,
     MailModule,
     SocketModule,
-    BullModule.registerQueue({ name: 'mail-queue' }),
   ],
   controllers: [AiController],
   providers: [AiClientService, AiRateLimitService, AiService],
