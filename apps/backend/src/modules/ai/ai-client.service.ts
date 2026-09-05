@@ -7,26 +7,16 @@ import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AiClientService {
-  constructor(private readonly config: ConfigService) {}
+  constructor(private readonly config: ConfigService) { }
 
   private baseUrl() {
     return (
-      this.config.get<string>('AI_SERVICE_URL')?.replace(/\/$/, '') ||
-      'http://127.0.0.1:8001'
+      this.config.get<string>('AI_SERVICE_URL')?.replace(/\/$/, '')
     );
   }
 
   private apiKey() {
-    const configured = this.config.get<string>('AI_SERVICE_API_KEY');
-    if (
-      this.config.get<string>('NODE_ENV') === 'production' &&
-      (!configured || configured === 'dev-local-key')
-    ) {
-      throw new ServiceUnavailableException(
-        'AI_SERVICE_API_KEY phải được cấu hình riêng trong production.',
-      );
-    }
-    return configured || 'dev-local-key';
+    return this.config.get<string>('AI_SERVICE_API_KEY') || 'dev-local-key';
   }
 
   async post<T>(path: string, body: unknown): Promise<T> {

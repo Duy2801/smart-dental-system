@@ -25,6 +25,16 @@ app.add_middleware(
 app.include_router(api_router)
 
 
+@app.get("/")
+def root():
+    return {
+        "status": "ok",
+        "message": "Smart Dental AI Service is running",
+        "docs": "/docs",
+        "health": "/health",
+    }
+
+
 @app.get("/health")
 def health():
     s = get_settings()
