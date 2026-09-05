@@ -69,10 +69,10 @@ function DoctorCard({ doctor }: { doctor: HomeDoctorCard }) {
   ).slice(0, 5);
 
   return (
-    <article className="relative overflow-hidden transition-all duration-300 rounded-[28px] bg-white border border-slate-100/90 shadow-[0_18px_45px_rgba(15,23,42,0.06)] h-[480px] sm:h-[500px] lg:h-[520px] flex flex-col justify-between">
-      <div className="relative h-full p-7 sm:p-9 lg:p-10 grid grid-cols-1 lg:grid-cols-[1.3fr_0.7fr] gap-6 items-stretch">
+    <article className="relative flex min-h-[480px] flex-col justify-between overflow-hidden rounded-[28px] border border-slate-100/90 bg-white shadow-[0_18px_45px_rgba(15,23,42,0.06)] transition-all duration-300 sm:min-h-[500px] lg:h-[520px] lg:min-h-0">
+      <div className="relative grid h-full grid-cols-1 items-stretch gap-5 p-5 sm:gap-6 sm:p-9 lg:grid-cols-[1.3fr_0.7fr] lg:p-10">
         {/* Left text & content container */}
-        <div className="z-10 flex flex-col justify-between h-full min-w-0">
+        <div className="z-10 flex min-w-0 flex-col justify-start lg:h-full lg:justify-between">
           <div>
             <p className="text-[13px] sm:text-[14px] font-semibold text-[#3b4c7c] tracking-wide mb-1">
               Bác sĩ
@@ -91,7 +91,7 @@ function DoctorCard({ doctor }: { doctor: HomeDoctorCard }) {
             </ul>
           </div>
 
-          <div className="pt-3">
+          <div className="pt-4 lg:pt-3">
             <Link
               href={`/doctor/${doctor.id}`}
               className="inline-flex items-center justify-center rounded-full bg-[#ecf3fe] px-7 py-2.5 text-xs sm:text-sm font-semibold text-[#2563eb] transition duration-200 hover:bg-[#deebff] hover:text-[#1d4ed8]"
@@ -102,16 +102,16 @@ function DoctorCard({ doctor }: { doctor: HomeDoctorCard }) {
         </div>
 
         {/* Right graphic motif & doctor image cutout */}
-        <div className="relative h-full flex items-end justify-center lg:justify-end overflow-hidden">
+        <div className="relative flex h-52 min-h-0 items-end justify-center overflow-hidden sm:h-[280px] lg:h-full lg:justify-end">
           {/* Circular soft blue background shape */}
-          <div className="absolute bottom-2 right-4 sm:right-6 w-48 h-48 sm:w-56 sm:h-56 lg:w-64 lg:h-64 rounded-full bg-[#d0e2fe] z-0 pointer-events-none" />
+          <div className="pointer-events-none absolute bottom-0 left-1/2 z-0 h-44 w-44 -translate-x-1/2 rounded-full bg-[#d0e2fe] sm:h-56 sm:w-56 lg:bottom-2 lg:left-auto lg:right-4 lg:h-64 lg:w-64 lg:translate-x-0" />
 
           {/* Doctor cutout portrait */}
-          <div className="relative z-10 h-[250px] sm:h-[300px] lg:h-[350px] w-auto max-w-full flex items-end">
+          <div className="relative z-10 flex h-full w-full max-w-full items-end justify-center lg:h-[350px] lg:w-auto lg:justify-end">
             <img
               src={doctor.avatarUrl || "/doctor/pham_thi_ha_xuyen.png"}
               alt={doctor.name}
-              className="h-full w-auto object-contain object-bottom drop-shadow-md"
+              className="h-full w-auto max-w-[90%] object-contain object-bottom drop-shadow-md sm:max-w-full"
             />
           </div>
         </div>
