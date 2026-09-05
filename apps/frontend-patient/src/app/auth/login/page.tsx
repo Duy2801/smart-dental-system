@@ -83,11 +83,13 @@ export default function LoginPage() {
   }
 
   function handleGoogleClick() {
-    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientId =
+      process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
     if (!clientId) {
       setError("Hệ thống chưa cấu hình GOOGLE_CLIENT_ID cho Web.");
       return;
     }
+
 
     const google = (window as unknown as { google?: any })?.google;
     if (!google?.accounts?.oauth2) {
