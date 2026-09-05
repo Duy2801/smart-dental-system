@@ -53,7 +53,7 @@ export function ServiceDetailHero({
       </nav>
 
       {/* Main Unified Hero Card */}
-      <section className="overflow-hidden rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-7 lg:p-8 shadow-sm">
+      <section className="max-w-full overflow-hidden rounded-3xl border border-slate-200/90 bg-white p-4 shadow-sm sm:p-7 lg:p-8">
         <div className="grid items-center gap-7 lg:grid-cols-[380px_1fr] xl:grid-cols-[420px_1fr]">
           
           {/* Left: Media Showcase Frame */}
@@ -71,7 +71,7 @@ export function ServiceDetailHero({
           </div>
 
           {/* Right: Content & Action Panel */}
-          <div className="flex flex-col justify-between space-y-6">
+          <div className="min-w-0 flex flex-col justify-between space-y-6">
             <div>
               {/* Category Badge & Status */}
               <div className="flex flex-wrap items-center gap-2">
@@ -87,7 +87,7 @@ export function ServiceDetailHero({
               </div>
 
               {/* Main Title */}
-              <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl lg:text-4xl">
+              <h1 className="mt-3 break-words text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl lg:text-4xl">
                 {title}
               </h1>
 
@@ -104,14 +104,14 @@ export function ServiceDetailHero({
             </div>
 
             {/* Quick Spec Highlights */}
-            <div className="grid grid-cols-2 gap-3.5 sm:gap-4">
+            <div className="grid grid-cols-1 gap-3.5 min-[420px]:grid-cols-2 sm:gap-4">
               <div className="flex items-center gap-3.5 rounded-2xl border border-blue-100/70 bg-blue-50/50 p-4">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100/80 text-[#0863c5]">
                   <DashboardIcon name="shield" className="h-5 w-5" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-xs font-bold text-slate-500">Tiêu chuẩn phục vụ</p>
-                  <strong className="text-base font-extrabold text-slate-900">
+                  <strong className="block break-words text-base font-extrabold text-slate-900">
                     Chuẩn Y Khoa
                   </strong>
                 </div>
@@ -121,9 +121,9 @@ export function ServiceDetailHero({
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100/80 text-emerald-600">
                   <DashboardIcon name="shield" className="h-5 w-5" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-xs font-bold text-slate-500">Kế hoạch điều trị</p>
-                  <strong className="text-base font-extrabold text-slate-900">
+                  <strong className="block break-words text-base font-extrabold text-slate-900">
                     Cá nhân hóa
                   </strong>
                 </div>

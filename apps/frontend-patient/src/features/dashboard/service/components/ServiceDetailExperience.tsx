@@ -61,7 +61,7 @@ export function ServiceDetailExperience({ serviceId }: { serviceId: string }) {
     hasItems(service.includedItems);
 
   return (
-    <main className="mx-auto w-full max-w-[1360px] px-4 py-7 sm:px-6 lg:px-8">
+    <main className="mx-auto w-full max-w-[1360px] min-w-0 px-3.5 py-5 sm:px-6 sm:py-7 lg:px-8">
       <ServiceDetailHero service={service} activeMethod={activeMethod} />
 
       {hasItems(treatmentMethods) ? (
@@ -134,9 +134,9 @@ export function ServiceDetailExperience({ serviceId }: { serviceId: string }) {
         </section>
       ) : null}
 
-      <div className="mt-7 grid items-start gap-7 lg:grid-cols-[1fr_380px]">
-        <div className="space-y-7">
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+      <div className="mt-7 grid min-w-0 items-start gap-7 lg:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="min-w-0 space-y-7">
+          <section className="max-w-full rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
             <SectionHeading
               eyebrow="Tổng quan"
               title={`Vì sao nên chọn ${service.title}?`}
@@ -199,7 +199,7 @@ export function ServiceDetailExperience({ serviceId }: { serviceId: string }) {
             )}
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+          <section className="max-w-full rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
             <SectionHeading
               eyebrow="Quy trình"
               title={`Các bước thực hiện${activeMethod ? ` (${activeMethod.name})` : ""}`}
@@ -237,7 +237,7 @@ export function ServiceDetailExperience({ serviceId }: { serviceId: string }) {
             )}
           </section>
 
-          <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <section className="max-w-full min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div className="border-b border-slate-100 p-6 sm:p-8">
               <SectionHeading
                 eyebrow="Chi phí"
@@ -245,7 +245,7 @@ export function ServiceDetailExperience({ serviceId }: { serviceId: string }) {
                 description={service.pricingNote || undefined}
               />
             </div>
-            <div className="overflow-x-auto">
+            <div className="max-w-full overflow-x-auto overscroll-x-contain">
               <table className="w-full min-w-[640px] text-left text-sm">
                 <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                   <tr>
@@ -350,7 +350,7 @@ export function ServiceDetailExperience({ serviceId }: { serviceId: string }) {
           ) : null}
 
           {hasItems(gallery) ? (
-            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+            <section className="max-w-full rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
               <SectionHeading
                 eyebrow="Hình ảnh"
                 title="Hình ảnh dịch vụ"
@@ -376,7 +376,7 @@ export function ServiceDetailExperience({ serviceId }: { serviceId: string }) {
             </section>
           ) : null}
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+          <section className="max-w-full rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
             <SectionHeading
               eyebrow="FAQ"
               title="Câu hỏi thường gặp"
