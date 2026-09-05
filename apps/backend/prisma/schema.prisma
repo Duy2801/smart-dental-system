@@ -683,12 +683,27 @@ model MedicalRecord {
   doctor              Doctor             @relation(fields: [doctorId], references: [id], onDelete: Restrict)
   treatmentPlanStep   TreatmentPlanStep? @relation(fields: [treatmentPlanStepId], references: [id], onDelete: SetNull)
   prescriptionRecords Prescription[]
+  audits              MedicalRecordAudit[]
 
   @@index([patientId, createdAt])
   @@index([appointmentId])
   @@index([doctorId])
   @@index([treatmentPlanStepId])
   @@map("medical_records")
+}
+
+model MedicalRecordAudit {
+  id              String   @id @default(uuid()) @db.Uuid
+  medicalRecordId String   @map("medical_record_id") @db.Uuid
+  changedBy       String   @map("changed_by") @db.Uuid
+  previousData    Json     @map("previous_data")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  medicalRecord MedicalRecord @relation(fields: [medicalRecordId], references: [id], onDelete: Cascade)
+
+  @@index([medicalRecordId, createdAt])
+  @@index([changedBy, createdAt])
+  @@map("medical_record_audits")
 }
 
 model AiXrayAnalysisAudit {

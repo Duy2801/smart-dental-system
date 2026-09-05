@@ -30,13 +30,7 @@ import {
 } from "@phosphor-icons/react";
 import apiClient from "@/src/lib/api/client";
 import axios from "axios";
-import {
-  getVisibleFindings,
-  readImageDimensions,
-  validateXrayDimensions,
-  validateXrayFile,
-  validateXraySignature,
-} from "./dental-xray-analysis-utils";
+import { getVisibleFindings } from "./dental-xray-analysis-utils";
 
 export interface DentalFinding {
   fdiToothNumber: number;
@@ -83,6 +77,7 @@ interface DentalXrayAnalyzerProps {
   patientImages?: PatientXrayItem[];
   onApplyToMedicalRecord?: (findingsSummary: string) => void;
   onApplyToDentalChart?: (findings: DentalFinding[]) => void;
+  onRequestUpload?: () => void;
 }
 
 const FINDING_CONFIG: Record<
@@ -233,6 +228,7 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
   patientImages = [],
   onApplyToMedicalRecord,
   onApplyToDentalChart,
+  onRequestUpload,
 }) => {
   const effectivePatientImages = patientImages;
 
@@ -282,50 +278,6 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
     setResult(null);
     setApplied(false);
     setChartSynced(false);
-  };
-
-  const handleUploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-
-    setUploadError(null);
-
-    const fileError = validateXrayFile(file);
-    if (fileError) {
-      setUploadError(fileError);
-      return;
-    }
-
-    try {
-      const signature = new Uint8Array(await file.slice(0, 12).arrayBuffer());
-      const signatureError = validateXraySignature(signature, file.type);
-      if (signatureError) {
-        setUploadError(signatureError);
-        return;
-      }
-
-      const { width, height } = await readImageDimensions(file);
-      const dimensionError = validateXrayDimensions(width, height);
-      if (dimensionError) {
-        setUploadError(dimensionError);
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        const b64 = ev.target?.result as string;
-        setImageUrl(b64);
-        setImageId(null);
-        setResult(null);
-        setApplied(false);
-        setChartSynced(false);
-      };
-      reader.onerror = () => setUploadError("Không thể đọc nội dung ảnh. Vui lòng chọn ảnh khác.");
-      reader.readAsDataURL(file);
-    } catch (error) {
-      setUploadError(error instanceof Error ? error.message : "Không thể đọc nội dung ảnh.");
-    }
   };
 
   // Main Analyze Function
@@ -572,11 +524,10 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
 
         {/* Action Controls */}
         <div className="flex items-center gap-2.5">
-          <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-border bg-white px-3 py-2 text-xs font-semibold text-brand-dark shadow-xs transition-all hover:border-brand/40 hover:bg-brand-light/40 active:scale-[0.98]">
+          <button type="button" onClick={onRequestUpload} className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-border bg-white px-3 py-2 text-xs font-semibold text-brand-dark shadow-xs transition-all hover:border-brand/40 hover:bg-brand-light/40 active:scale-[0.98]">
             <FileArrowUp size={16} className="text-brand" />
-            Tải ảnh khác
-            <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleUploadImage} />
-          </label>
+            Quản lý ảnh
+          </button>
 
           <button
             type="button"
@@ -883,13 +834,12 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
                 <FileArrowUp size={32} className="mb-2 text-sky-400" />
                 <p className="text-sm font-bold">Chưa có phim X-quang</p>
                 <p className="mt-1 max-w-sm text-xs text-slate-300">
-                  Tải phim của bệnh nhân lên để bắt đầu phân tích. Hệ thống không sử dụng ảnh mẫu thay thế.
+                  Hãy tải và lưu phim trong tab Ảnh trước khi phân tích. Hệ thống không sử dụng ảnh mẫu thay thế.
                 </p>
-                <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-xl bg-brand px-4 py-2 text-xs font-bold text-white transition-all hover:bg-brand-dark active:scale-[0.98]">
+                <button type="button" onClick={onRequestUpload} className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-xl bg-brand px-4 py-2 text-xs font-bold text-white transition-all hover:bg-brand-dark active:scale-[0.98]">
                   <FileArrowUp size={16} />
-                  Tải ảnh lên
-                  <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleUploadImage} />
-                </label>
+                  Mở tab Ảnh
+                </button>
               </div>
             ) : !result && !loading ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/60 p-6 text-center text-white backdrop-blur-[2px]">
@@ -1379,7 +1329,7 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
                       {chartSynced ? (
                         <>
                           <CheckCircle size={15} weight="fill" className="text-blue-600" />
-                          <span>Đã Đồng Bộ Răng</span>
+                          <span>Đã thêm vào bản nháp</span>
                         </>
                       ) : (
                         <>
@@ -1403,7 +1353,7 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
                 {onApplyToMedicalRecord && (
                   <button
                     type="button"
-                    onClick={() => {
+                      onClick={() => {
                       const doctorApprovedSummary =
                         `\n--- KẾT QUẢ X-QUANG (BÁC SĨ ĐÃ PHÊ DUYỆT ${acceptedFindings.length} TỔN THƯƠNG) ---\n` +
                         acceptedFindings
@@ -1422,8 +1372,9 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
 
                       onApplyToMedicalRecord(doctorApprovedSummary);
                       setApplied(true);
-                    }}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-emerald-500/20 transition hover:from-emerald-700 hover:to-teal-700 cursor-pointer"
+                      }}
+                      disabled={applied}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-emerald-500/20 transition hover:from-emerald-700 hover:to-teal-700 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {applied ? (
                       <>

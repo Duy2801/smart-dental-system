@@ -63,6 +63,39 @@ type Props = {
   onChange: (next: DentalChartData) => void;
 };
 
+function ToothRow({
+  nums,
+  getStatus,
+  onCycle,
+}: {
+  nums: number[];
+  getStatus: (number: number) => ToothStatus;
+  onCycle: (number: number) => void;
+}) {
+  return (
+    <div className="flex flex-wrap justify-center gap-1">
+      {nums.map((number, index) => {
+        const status = getStatus(number);
+        return (
+          <button
+            key={number}
+            type="button"
+            title={`${number}: ${STATUS_LABEL[status]} - bấm để đổi`}
+            onClick={() => onCycle(number)}
+            className={cn(
+              "flex h-9 w-9 flex-col items-center justify-center rounded-md border text-[10px] font-bold transition-colors",
+              STATUS_COLOR[status],
+              index === 7 ? "mr-2" : "",
+            )}
+          >
+            {number}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function DentalChartEditor({ value, onChange }: Props) {
   const map = new Map(value.teeth.map((t) => [t.number, t.status]));
 
@@ -79,38 +112,15 @@ export function DentalChartEditor({ value, onChange }: Props) {
     onChange({ teeth: compact });
   };
 
-  const Row = ({ nums }: { nums: number[] }) => (
-    <div className="flex flex-wrap justify-center gap-1">
-      {nums.map((n, idx) => {
-        const status = get(n);
-        return (
-          <button
-            key={n}
-            type="button"
-            title={`${n}: ${STATUS_LABEL[status]} - bấm để đổi`}
-            onClick={() => cycle(n)}
-            className={cn(
-              "flex h-9 w-9 flex-col items-center justify-center rounded-md border text-[10px] font-bold transition-colors",
-              STATUS_COLOR[status],
-              idx === 7 ? "mr-2" : "",
-            )}
-          >
-            {n}
-          </button>
-        );
-      })}
-    </div>
-  );
-
   return (
     <div className="space-y-3">
       <div className="space-y-2 rounded-xl border border-border bg-slate-50 p-4">
         <p className="text-center text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           Hàm trên
         </p>
-        <Row nums={UPPER} />
+        <ToothRow nums={UPPER} getStatus={get} onCycle={cycle} />
         <div className="my-2 border-t border-dashed border-border" />
-        <Row nums={LOWER} />
+        <ToothRow nums={LOWER} getStatus={get} onCycle={cycle} />
         <p className="text-center text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           Hàm dưới
         </p>

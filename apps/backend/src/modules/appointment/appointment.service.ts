@@ -945,6 +945,9 @@ export class AppointmentService {
       data: { status: AppointmentStatus.IN_PROGRESS },
       include: appointmentInclude,
     });
+    if (appointment.patientId) {
+      await this.ensureMedicalRecord(appointment);
+    }
     const result = this.withDerivedService(updated);
     void this.dispatchAppointmentInProgressNotification(result);
     return result;
@@ -966,6 +969,15 @@ export class AppointmentService {
       );
     }
 
+    if (appointment.patientId) {
+      const medicalRecord = await this.ensureMedicalRecord(appointment);
+      if (!medicalRecord?.diagnosis?.trim() || !medicalRecord.treatmentNotes?.trim()) {
+        throw new BadRequestException(
+          'appointment.medical_record_required_before_complete',
+        );
+      }
+    }
+
     const updated = await this.prisma.appointment.update({
       where: { id: appointmentId },
       data: {
@@ -978,7 +990,6 @@ export class AppointmentService {
     // Sau khám: tạo HĐ thu tiền phù hợp (ca ngắn / phần còn lại sau cọc)
     if (appointment.patientId) {
       await this.ensureInvoiceAfterComplete(appointment);
-      await this.ensureMedicalRecord(appointment);
     }
 
     void this.invalidateBookingCache(updated.createdBy, updated.patientId || undefined);

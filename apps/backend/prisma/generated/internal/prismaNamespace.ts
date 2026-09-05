@@ -407,6 +407,7 @@ export const ModelName = {
   DoctorAvailability: 'DoctorAvailability',
   Appointment: 'Appointment',
   MedicalRecord: 'MedicalRecord',
+  MedicalRecordAudit: 'MedicalRecordAudit',
   AiXrayAnalysisAudit: 'AiXrayAnalysisAudit',
   TreatmentPlan: 'TreatmentPlan',
   TreatmentPlanStep: 'TreatmentPlanStep',
@@ -438,7 +439,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "clinicConfig" | "user" | "role" | "permission" | "userRole" | "rolePermission" | "service" | "specialization" | "doctorSpecialization" | "treatmentMethod" | "serviceMedia" | "serviceProcedureStep" | "serviceFaq" | "promotion" | "patient" | "patientAccount" | "doctor" | "doctorEducation" | "doctorCertificate" | "doctorMedia" | "doctorAvailability" | "appointment" | "medicalRecord" | "aiXrayAnalysisAudit" | "treatmentPlan" | "treatmentPlanStep" | "clinicalCase" | "invoice" | "prescription" | "prescriptionItem" | "payment" | "review" | "chatbotConversation" | "videoConsultation" | "patientAiBrief" | "notification" | "banner" | "consultationPackage" | "refundRequest"
+    modelProps: "clinicConfig" | "user" | "role" | "permission" | "userRole" | "rolePermission" | "service" | "specialization" | "doctorSpecialization" | "treatmentMethod" | "serviceMedia" | "serviceProcedureStep" | "serviceFaq" | "promotion" | "patient" | "patientAccount" | "doctor" | "doctorEducation" | "doctorCertificate" | "doctorMedia" | "doctorAvailability" | "appointment" | "medicalRecord" | "medicalRecordAudit" | "aiXrayAnalysisAudit" | "treatmentPlan" | "treatmentPlanStep" | "clinicalCase" | "invoice" | "prescription" | "prescriptionItem" | "payment" | "review" | "chatbotConversation" | "videoConsultation" | "patientAiBrief" | "notification" | "banner" | "consultationPackage" | "refundRequest"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2144,6 +2145,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    MedicalRecordAudit: {
+      payload: Prisma.$MedicalRecordAuditPayload<ExtArgs>
+      fields: Prisma.MedicalRecordAuditFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MedicalRecordAuditFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicalRecordAuditPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MedicalRecordAuditFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicalRecordAuditPayload>
+        }
+        findFirst: {
+          args: Prisma.MedicalRecordAuditFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicalRecordAuditPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MedicalRecordAuditFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicalRecordAuditPayload>
+        }
+        findMany: {
+          args: Prisma.MedicalRecordAuditFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicalRecordAuditPayload>[]
+        }
+        create: {
+          args: Prisma.MedicalRecordAuditCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicalRecordAuditPayload>
+        }
+        createMany: {
+          args: Prisma.MedicalRecordAuditCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MedicalRecordAuditCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicalRecordAuditPayload>[]
+        }
+        delete: {
+          args: Prisma.MedicalRecordAuditDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicalRecordAuditPayload>
+        }
+        update: {
+          args: Prisma.MedicalRecordAuditUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicalRecordAuditPayload>
+        }
+        deleteMany: {
+          args: Prisma.MedicalRecordAuditDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MedicalRecordAuditUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MedicalRecordAuditUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicalRecordAuditPayload>[]
+        }
+        upsert: {
+          args: Prisma.MedicalRecordAuditUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicalRecordAuditPayload>
+        }
+        aggregate: {
+          args: Prisma.MedicalRecordAuditAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMedicalRecordAudit>
+        }
+        groupBy: {
+          args: Prisma.MedicalRecordAuditGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MedicalRecordAuditGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MedicalRecordAuditCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MedicalRecordAuditCountAggregateOutputType> | number
+        }
+      }
+    }
     AiXrayAnalysisAudit: {
       payload: Prisma.$AiXrayAnalysisAuditPayload<ExtArgs>
       fields: Prisma.AiXrayAnalysisAuditFieldRefs
@@ -3737,6 +3812,17 @@ export const MedicalRecordScalarFieldEnum = {
 export type MedicalRecordScalarFieldEnum = (typeof MedicalRecordScalarFieldEnum)[keyof typeof MedicalRecordScalarFieldEnum]
 
 
+export const MedicalRecordAuditScalarFieldEnum = {
+  id: 'id',
+  medicalRecordId: 'medicalRecordId',
+  changedBy: 'changedBy',
+  previousData: 'previousData',
+  createdAt: 'createdAt'
+} as const
+
+export type MedicalRecordAuditScalarFieldEnum = (typeof MedicalRecordAuditScalarFieldEnum)[keyof typeof MedicalRecordAuditScalarFieldEnum]
+
+
 export const AiXrayAnalysisAuditScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -4677,6 +4763,7 @@ export type GlobalOmitConfig = {
   doctorAvailability?: Prisma.DoctorAvailabilityOmit
   appointment?: Prisma.AppointmentOmit
   medicalRecord?: Prisma.MedicalRecordOmit
+  medicalRecordAudit?: Prisma.MedicalRecordAuditOmit
   aiXrayAnalysisAudit?: Prisma.AiXrayAnalysisAuditOmit
   treatmentPlan?: Prisma.TreatmentPlanOmit
   treatmentPlanStep?: Prisma.TreatmentPlanStepOmit

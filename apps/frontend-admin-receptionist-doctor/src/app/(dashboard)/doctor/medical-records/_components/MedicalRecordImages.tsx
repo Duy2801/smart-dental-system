@@ -48,11 +48,11 @@ export function MedicalRecordImages({
   const onFile = async (file: File | undefined) => {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      setErr("Chỉ chọn file ảnh (JPG, PNG, DICOM, WEBP).");
+      setErr("Chỉ chọn file ảnh JPG, PNG hoặc WEBP.");
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      setErr("Dung lượng ảnh tối đa 5MB.");
+    if (file.size > 3 * 1024 * 1024) {
+      setErr("Dung lượng ảnh tối đa 3MB.");
       return;
     }
     if (value.length >= 20) {
@@ -163,7 +163,7 @@ export function MedicalRecordImages({
 
         {err && <p className="text-xs font-medium text-red-600">{err}</p>}
         <p className="text-[11px] text-muted-foreground">
-          Định dạng hỗ trợ: JPG, PNG, WEBP (Tối đa 5MB/ảnh). Ảnh sẽ được tải lên Cloudinary và lưu tự động vào bệnh án.
+          Định dạng hỗ trợ: JPG, PNG, WEBP (Tối đa 3MB/ảnh). Ảnh sẽ được tải lên Cloudinary và lưu tự động vào bệnh án.
         </p>
       </div>
 
@@ -175,7 +175,7 @@ export function MedicalRecordImages({
             Chưa có ảnh nào được lưu cho bệnh án này
           </p>
           <p className="text-xs text-muted-foreground mt-1 max-w-sm">
-            Chọn loại ảnh ở trên và bấm "Chọn file ảnh từ máy tính" để đính kèm phim X-quang hoặc ảnh chụp trong miệng.
+            Chọn loại ảnh ở trên và bấm &quot;Chọn file ảnh từ máy tính&quot; để đính kèm phim X-quang hoặc ảnh chụp trong miệng.
           </p>
         </div>
       ) : (

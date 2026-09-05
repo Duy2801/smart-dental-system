@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -41,6 +42,19 @@ const recordInclude = {
   prescriptionRecords: {
     include: { items: true },
   },
+} as const;
+
+const recordSummarySelect = {
+  id: true,
+  patientId: true,
+  diagnosis: true,
+  chiefComplaint: true,
+  followUpDate: true,
+  createdAt: true,
+  updatedAt: true,
+  patient: recordInclude.patient,
+  appointment: recordInclude.appointment,
+  _count: { select: { prescriptionRecords: true } },
 } as const;
 
 @Injectable()
@@ -98,7 +112,7 @@ export class MedicalRecordService {
         doctorId,
         ...(patientId ? { patientId } : {}),
       },
-      include: recordInclude,
+      select: recordSummarySelect,
       orderBy: { createdAt: 'desc' },
     });
     return records.map((r) => this.toSummary(r));
@@ -121,10 +135,29 @@ export class MedicalRecordService {
   ) {
     const exists = await this.prisma.medicalRecord.findUnique({
       where: { id },
-      select: { id: true, doctorId: true, images: true },
+      select: {
+        id: true,
+        doctorId: true,
+        images: true,
+        dentalChart: true,
+        chiefComplaint: true,
+        diagnosis: true,
+        treatmentNotes: true,
+        internalNotes: true,
+        followUpDate: true,
+        updatedAt: true,
+      },
     });
     if (!exists) throw new NotFoundException('Không tìm thấy hồ sơ bệnh án');
     await this.ensureCanAccess(exists.doctorId, user);
+    if (
+      dto.expectedUpdatedAt &&
+      exists.updatedAt.getTime() !== new Date(dto.expectedUpdatedAt).getTime()
+    ) {
+      throw new ConflictException(
+        'Hồ sơ vừa được cập nhật ở nơi khác. Vui lòng tải lại trước khi lưu.',
+      );
+    }
 
     const data: Prisma.MedicalRecordUpdateInput = {};
     if (dto.chiefComplaint !== undefined) {
@@ -140,7 +173,19 @@ export class MedicalRecordService {
       data.internalNotes = dto.internalNotes?.trim() || null;
     }
     if (dto.followUpDate !== undefined) {
-      data.followUpDate = dto.followUpDate ? new Date(dto.followUpDate) : null;
+      if (dto.followUpDate) {
+        const followUpDate = new Date(dto.followUpDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (followUpDate.getTime() < today.getTime()) {
+          throw new BadRequestException(
+            'Ngày tái khám không được trước ngày hiện tại',
+          );
+        }
+        data.followUpDate = followUpDate;
+      } else {
+        data.followUpDate = null;
+      }
     }
     if (dto.images !== undefined) {
       const storedImages = Array.isArray(exists.images)
@@ -174,10 +219,40 @@ export class MedicalRecordService {
       ) as Prisma.InputJsonValue;
     }
 
-    const updated = await this.prisma.medicalRecord.update({
-      where: { id },
-      data,
-      include: recordInclude,
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const write = await tx.medicalRecord.updateMany({
+        where: { id, updatedAt: exists.updatedAt },
+        data,
+      });
+      if (write.count !== 1) {
+        throw new ConflictException(
+          'Hồ sơ vừa được cập nhật ở nơi khác. Vui lòng tải lại trước khi lưu.',
+        );
+      }
+      await tx.medicalRecordAudit.create({
+        data: {
+          medicalRecordId: id,
+          changedBy: user.userId,
+          previousData: JSON.parse(
+            JSON.stringify({
+              chiefComplaint: exists.chiefComplaint,
+              diagnosis: exists.diagnosis,
+              treatmentNotes: exists.treatmentNotes,
+              internalNotes: exists.internalNotes,
+              followUpDate: exists.followUpDate,
+              images: exists.images,
+              dentalChart: exists.dentalChart,
+              updatedAt: exists.updatedAt,
+            }),
+          ) as Prisma.InputJsonValue,
+        },
+      });
+      const record = await tx.medicalRecord.findUnique({
+        where: { id },
+        include: recordInclude,
+      });
+      if (!record) throw new NotFoundException('Không tìm thấy hồ sơ bệnh án');
+      return record;
     });
     void this.redis.del(`patient:records:${updated.patientId}`);
     return this.toDetail(updated);
@@ -263,8 +338,10 @@ export class MedicalRecordService {
       serviceName: r.appointment?.service?.name ?? null,
       scheduledAt: r.appointment?.scheduledAt ?? null,
       followUpDate: r.followUpDate ?? null,
-      prescriptionCount: r.prescriptionRecords?.length ?? 0,
+      prescriptionCount:
+        r._count?.prescriptionRecords ?? r.prescriptionRecords?.length ?? 0,
       createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
     };
   }
 

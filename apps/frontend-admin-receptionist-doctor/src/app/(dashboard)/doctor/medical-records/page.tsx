@@ -4,6 +4,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   Suspense,
 } from "react";
@@ -59,6 +60,7 @@ type RecordSummary = {
   followUpDate: string | null;
   prescriptionCount: number;
   createdAt: string;
+  updatedAt: string;
 };
 
 type PrescriptionItem = {
@@ -120,7 +122,7 @@ function isUuid(value: string) {
 }
 
 function MedicalRecordsContent() {
-  const { showAlert } = useAppDialog();
+  const { showAlert, showConfirm } = useAppDialog();
   const searchParams = useSearchParams();
   const preSelectId = searchParams.get("recordId");
 
@@ -134,10 +136,23 @@ function MedicalRecordsContent() {
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const [activeTab, setActiveTab] = useState<TabKey>("OVERVIEW");
 
   const [pastRecords, setPastRecords] = useState<RecordSummary[]>([]);
   const [loadingPastRecords, setLoadingPastRecords] = useState(false);
+  const requestSequence = useRef(0);
+  const savedFormSnapshot = useRef(
+    JSON.stringify({
+      chiefComplaint: "",
+      diagnosis: "",
+      treatmentNotes: "",
+      internalNotes: "",
+      followUpDate: "",
+      images: [],
+      dentalChart: { teeth: [] },
+    }),
+  );
 
   const [form, setForm] = useState({
     chiefComplaint: "",
@@ -149,18 +164,25 @@ function MedicalRecordsContent() {
     dentalChart: { teeth: [] } as DentalChartData,
   });
   const doctorId = getDoctorIdFromCookie();
+  const sessionError = doctorId
+    ? null
+    : "Không tìm thấy thông tin bác sĩ. Vui lòng đăng nhập lại.";
+  const selectionError = preSelectId && !isUuid(preSelectId)
+    ? "Mã hồ sơ không hợp lệ."
+    : null;
   const today = localDateStr();
   // Khởi tạo trung tính để tránh hydration mismatch (cookie chỉ có trên client)
   const [listLoading, setListLoading] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
 
+  /* eslint-disable react-hooks/preserve-manual-memoization -- callbacks intentionally stay stable for request effects */
   const applyDetail = useCallback((data: RecordDetail, id: string) => {
     setDetail(data);
     setLoadedDetailId(id);
     setDetailError(null);
     setSaved(false);
     setSaveError(null);
-    setForm({
+    const nextForm = {
       chiefComplaint: data.chiefComplaint ?? "",
       diagnosis: data.diagnosis ?? "",
       treatmentNotes: data.treatmentNotes ?? "",
@@ -177,7 +199,9 @@ function MedicalRecordsContent() {
             }))
           : [],
       },
-    });
+    };
+    setForm(nextForm);
+    savedFormSnapshot.current = JSON.stringify(nextForm);
 
     // Fetch past records of this patient
     if (data.patientId && doctorId) {
@@ -211,6 +235,7 @@ function MedicalRecordsContent() {
           followUpDate: data.followUpDate,
           prescriptionCount: data.prescriptionCount,
           createdAt: data.createdAt,
+          updatedAt: data.updatedAt,
         },
         ...prev,
       ];
@@ -219,11 +244,14 @@ function MedicalRecordsContent() {
 
   const loadDetail = useCallback(
     async (id: string, opts?: { keepTab?: boolean }) => {
+      const sequence = ++requestSequence.current;
       try {
         const res = await apiClient.get<RecordDetail>(`/medical-records/${id}`);
+        if (sequence !== requestSequence.current) return;
         applyDetail(res.data, id);
         if (!opts?.keepTab) setActiveTab("OVERVIEW");
       } catch (err) {
+        if (sequence !== requestSequence.current) return;
         const status = axios.isAxiosError(err) ? err.response?.status : null;
         setDetail(null);
         setLoadedDetailId(id);
@@ -238,16 +266,36 @@ function MedicalRecordsContent() {
     },
     [applyDetail],
   );
+  /* eslint-enable react-hooks/preserve-manual-memoization */
+
+  const selectRecord = async (id: string) => {
+    if (id === selectedId) return;
+    if (JSON.stringify(form) !== savedFormSnapshot.current) {
+      const confirmed = await showConfirm({
+        title: "Bỏ các thay đổi chưa lưu?",
+        description: "Các ghi chép, sơ đồ răng hoặc kết quả AI chưa lưu sẽ bị mất.",
+        confirmLabel: "Bỏ thay đổi",
+        tone: "danger",
+      });
+      if (!confirmed) return;
+    }
+    setSelectedId(id);
+  };
+
+  useEffect(() => {
+    if (JSON.stringify(form) === savedFormSnapshot.current) return;
+    const warnBeforeLeaving = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+    };
+    window.addEventListener("beforeunload", warnBeforeLeaving);
+    return () => window.removeEventListener("beforeunload", warnBeforeLeaving);
+  }, [form]);
 
   useEffect(() => {
     if (!doctorId) {
-      setListError("Không tìm thấy thông tin bác sĩ. Vui lòng đăng nhập lại.");
-      setListLoading(false);
       return;
     }
     if (preSelectId && !isUuid(preSelectId)) {
-      setListError("Mã hồ sơ không hợp lệ.");
-      setListLoading(false);
       return;
     }
     apiClient
@@ -264,12 +312,16 @@ function MedicalRecordsContent() {
 
   useEffect(() => {
     if (!selectedId) return;
+    // The state update occurs after the API promise resolves, not synchronously in this effect.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadDetail(selectedId);
   }, [selectedId, loadDetail]);
 
   // Reload đơn thuốc khi quay lại tab
   useEffect(() => {
     if (activeTab !== "PRESCRIPTIONS" || !selectedId) return;
+    // Reload after navigation back from prescription editing.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadDetail(selectedId, { keepTab: true });
   }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -295,6 +347,7 @@ function MedicalRecordsContent() {
           followUpDate: form.followUpDate || null,
           images: form.images,
           dentalChart: form.dentalChart,
+          expectedUpdatedAt: detail?.updatedAt,
         },
       );
       applyDetail(res.data, selectedId);
@@ -307,6 +360,7 @@ function MedicalRecordsContent() {
                 chiefComplaint: res.data.chiefComplaint,
                 followUpDate: res.data.followUpDate,
                 prescriptionCount: res.data.prescriptionCount,
+                updatedAt: res.data.updatedAt,
               }
             : r,
         ),
@@ -318,6 +372,8 @@ function MedicalRecordsContent() {
       setSaveError(
         status === 403
           ? "Bạn không có quyền sửa hồ sơ này."
+          : status === 409
+            ? "Hồ sơ vừa được cập nhật ở nơi khác. Vui lòng tải lại rồi thực hiện lại thay đổi."
           : status === 404
             ? "Không tìm thấy hồ sơ. F5 tải lại danh sách rồi chọn lại."
             : "Lưu thất bại. Vui lòng thử lại.",
@@ -337,6 +393,13 @@ function MedicalRecordsContent() {
         (r.diagnosis ?? "").toLowerCase().includes(q),
     );
   }, [records, search]);
+  const pageSize = 20;
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const visibleRecords = filtered.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  );
 
   const initials = detail
     ? detail.patientName
@@ -362,10 +425,10 @@ function MedicalRecordsContent() {
           </p>
         </div>
 
-        {listError && (
+        {(sessionError || selectionError || listError) && (
           <div className="mb-4 flex items-center gap-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-inset ring-red-200">
             <Warning size={18} className="shrink-0" />
-            {listError}
+            {sessionError || selectionError || listError}
           </div>
         )}
 
@@ -384,14 +447,17 @@ function MedicalRecordsContent() {
                   type="search"
                   placeholder="Tìm tên BN, mã BN, chẩn đoán..."
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
                   className="w-full rounded-xl border border-border bg-white py-2 pl-9 pr-4 text-sm shadow-sm outline-none transition-all focus:border-brand focus:ring-1 focus:ring-brand"
                 />
               </div>
             </div>
 
             <div className="flex-1 space-y-2 overflow-y-auto p-3">
-              {listLoading ? (
+              {doctorId && !selectionError && listLoading ? (
                 <div className="flex justify-center py-10">
                   <SpinnerGap size={24} className="animate-spin text-brand" />
                 </div>
@@ -400,11 +466,11 @@ function MedicalRecordsContent() {
                   Không có hồ sơ nào
                 </div>
               ) : (
-                filtered.map((r) => (
+                visibleRecords.map((r) => (
                   <button
                     key={r.id}
                     type="button"
-                    onClick={() => setSelectedId(r.id)}
+                    onClick={() => void selectRecord(r.id)}
                     className={cn(
                       "block w-full rounded-xl border p-4 text-left transition-all active:scale-[0.98]",
                       selectedId === r.id
@@ -451,6 +517,17 @@ function MedicalRecordsContent() {
                 ))
               )}
             </div>
+            {!listLoading && filtered.length > pageSize && (
+              <div className="flex items-center justify-between border-t border-border px-3 py-2">
+                <span className="font-mono text-[11px] text-muted-foreground">
+                  {currentPage}/{totalPages}
+                </span>
+                <div className="flex gap-1.5">
+                  <button type="button" disabled={currentPage === 1} onClick={() => setPage((value) => value - 1)} className="rounded-lg border border-border px-2.5 py-1 text-xs font-semibold disabled:opacity-40">Trước</button>
+                  <button type="button" disabled={currentPage === totalPages} onClick={() => setPage((value) => value + 1)} className="rounded-lg border border-border px-2.5 py-1 text-xs font-semibold disabled:opacity-40">Sau</button>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex flex-col gap-6 xl:col-span-9">
@@ -691,7 +768,7 @@ function MedicalRecordsContent() {
 
                           <div className="space-y-1.5">
                             <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                              <Lock size={12} /> Ghi chú nội bộ
+                              <Lock size={12} /> Ghi chú nội bộ phòng khám
                             </label>
                             <textarea
                               rows={2}
@@ -702,7 +779,7 @@ function MedicalRecordsContent() {
                                   internalNotes: e.target.value,
                                 }))
                               }
-                              placeholder="Chỉ bác sĩ xem được..."
+                              placeholder="Chỉ bác sĩ phụ trách và quản trị viên được xem..."
                               className="w-full resize-y rounded-xl border border-border bg-slate-50 px-4 py-3 text-sm italic text-slate-700 shadow-sm outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand/20"
                             />
                           </div>
@@ -829,8 +906,10 @@ function MedicalRecordsContent() {
                   {activeTab === "XRAY_AI" && (
                     <DentalXrayAnalyzer
                       patientId={detail.patientId}
-                      patientImages={(form.images || []).map((img, i) => ({
-                        id: `img-${i}`,
+                      patientImages={(form.images || [])
+                        .filter((img) => img.id && img.type === "xray")
+                        .map((img, i) => ({
+                        id: img.id,
                         url: img.url,
                         title:
                           img.caption ||
@@ -863,6 +942,7 @@ function MedicalRecordsContent() {
                           dentalChart: { teeth: updatedTeeth },
                         }));
                       }}
+                      onRequestUpload={() => setActiveTab("IMAGES")}
                     />
                   )}
 
@@ -1057,7 +1137,7 @@ function MedicalRecordsContent() {
 
                                 <button
                                   type="button"
-                                  onClick={() => loadDetail(pastRec.id)}
+                                  onClick={() => void selectRecord(pastRec.id)}
                                   className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs transition hover:border-brand/40 hover:bg-brand/5 hover:text-brand cursor-pointer shrink-0"
                                 >
                                   Mở bệnh án này <ArrowRight size={12} />

@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
+  ArrayUnique,
   IsArray,
   IsDateString,
   IsIn,
@@ -8,9 +9,7 @@ import {
   IsOptional,
   IsString,
   IsUUID,
-  Max,
   MaxLength,
-  Min,
   ValidateIf,
   ValidateNested,
 } from 'class-validator';
@@ -24,6 +23,13 @@ const TOOTH_STATUSES = [
   'root_canal',
   'implant',
   'treated',
+] as const;
+
+const FDI_TOOTH_NUMBERS = [
+  11, 12, 13, 14, 15, 16, 17, 18,
+  21, 22, 23, 24, 25, 26, 27, 28,
+  31, 32, 33, 34, 35, 36, 37, 38,
+  41, 42, 43, 44, 45, 46, 47, 48,
 ] as const;
 
 export class MedicalRecordImageDto {
@@ -48,8 +54,7 @@ export class MedicalRecordImageDto {
 
 export class DentalChartToothDto {
   @IsInt()
-  @Min(11)
-  @Max(48)
+  @IsIn([...FDI_TOOTH_NUMBERS])
   number!: number;
 
   @IsIn([...TOOTH_STATUSES])
@@ -61,10 +66,15 @@ export class DentalChartDto {
   @ValidateNested({ each: true })
   @Type(() => DentalChartToothDto)
   @ArrayMaxSize(32)
+  @ArrayUnique((tooth: DentalChartToothDto) => tooth.number)
   teeth!: DentalChartToothDto[];
 }
 
 export class UpdateMedicalRecordDto {
+  @IsOptional()
+  @IsDateString()
+  expectedUpdatedAt?: string;
+
   @IsOptional()
   @IsString()
   @MaxLength(2000)

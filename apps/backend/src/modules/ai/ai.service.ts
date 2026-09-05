@@ -973,7 +973,11 @@ export class AiService {
       },
     });
 
-    const email = (record.patient as any)?.user?.email;
+    const email =
+      (record.patient as any)?.user?.email ??
+      (record.patient as any)?.patientAccounts?.[0]?.user?.email;
+    let emailQueued = false;
+    let emailQueueFailed = false;
     if (email && !email.endsWith('@clinic.local')) {
       const patientName =
         (record.patient as any)?.fullName ||
@@ -983,20 +987,32 @@ export class AiService {
       const doctorName =
         (record as any)?.doctor?.user?.fullName ||
         'Bác sĩ Nha Khoa Smart Dental';
-      await this.mailQueue.add('send-aftercare', {
-        name: patientName,
-        email,
-        patientCode,
-        doctorName,
-        diagnosis: record.diagnosis,
-        serviceName: record.appointment?.service?.name,
-        content,
-      });
+      try {
+        await this.mailQueue.add('send-aftercare', {
+          name: patientName,
+          email,
+          patientCode,
+          doctorName,
+          diagnosis: record.diagnosis,
+          serviceName: record.appointment?.service?.name,
+          content,
+        });
+        emailQueued = true;
+      } catch {
+        // The in-app notification has already been persisted. Report the
+        // partial delivery instead of turning a successful send into a 500.
+        emailQueueFailed = true;
+      }
     }
 
     return {
       sent: true,
-      message: 'Đã gửi hướng dẫn chăm sóc cho bệnh nhân qua Thông báo & Gmail.',
+      channels: emailQueued ? ['IN_APP', 'EMAIL'] : ['IN_APP'],
+      message: emailQueued
+        ? 'Đã gửi thông báo và xếp hàng gửi email hướng dẫn cho bệnh nhân.'
+        : emailQueueFailed
+          ? 'Đã gửi thông báo trong ứng dụng nhưng chưa thể xếp hàng gửi email.'
+          : 'Đã gửi hướng dẫn qua thông báo trong ứng dụng. Bệnh nhân chưa có email hợp lệ.',
     };
   }
 
@@ -1344,7 +1360,10 @@ export class AiService {
             patientAccounts: {
               orderBy: { isPrimary: 'desc' },
               take: 1,
-              select: { userId: true },
+              select: {
+                userId: true,
+                user: { select: { email: true } },
+              },
             },
           },
         },

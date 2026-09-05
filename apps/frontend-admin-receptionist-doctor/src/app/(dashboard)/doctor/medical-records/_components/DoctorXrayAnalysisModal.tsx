@@ -64,7 +64,6 @@ export function DoctorXrayAnalysisModal({
   imageId,
   imageUrl,
   imageCaption,
-  patientId,
   patientName,
   onClose,
   onApplyToRecord,
