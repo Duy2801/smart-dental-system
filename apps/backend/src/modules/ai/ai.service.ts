@@ -23,12 +23,33 @@ import {
   SendAftercareDto,
 } from './dto/doctor-ai.dto';
 import { SummarizePatientDto } from './dto/summarize-patient.dto';
+import { ReviewPatientAiBriefDto } from './dto/review-patient-ai-brief.dto';
 
 type AiSummarizeResponse = {
   bullet_points: string[];
   questions_to_ask: string[];
   risk_flags: string[];
   disclaimer: string;
+  provider?: string | null;
+  model?: string | null;
+};
+
+type StoredAiBrief = {
+  id: string;
+  patientId: string;
+  patientName: string;
+  bulletPoints: unknown;
+  questionsToAsk: unknown;
+  riskFlags: unknown;
+  disclaimer: string;
+  sourceData: unknown;
+  provider: string | null;
+  model: string | null;
+  feedback: 'HELPFUL' | 'INACCURATE' | 'MISSED_RISK' | null;
+  feedbackNote: string | null;
+  reviewedAt: Date | null;
+  createdAt: Date;
+  creator: { fullName: string };
 };
 
 type AiDraftResponse = {
@@ -517,15 +538,182 @@ export class AiService {
       },
     );
 
+    const doctor = await this.prisma.doctor.findUnique({
+      where: { userId: user.userId },
+      select: { id: true },
+    });
+    const saved = await this.prisma.patientAiBrief.create({
+      data: {
+        patientId: ctx.patientId,
+        doctorId: doctor?.id ?? null,
+        createdBy: user.userId,
+        consultationId: dto.consultationId ?? null,
+        patientName: ctx.patientName,
+        bulletPoints: raw.bullet_points ?? [],
+        questionsToAsk: raw.questions_to_ask ?? [],
+        riskFlags: raw.risk_flags ?? [],
+        disclaimer:
+          raw.disclaimer ||
+          'AI hỗ trợ chuẩn bị khám. Quyết định lâm sàng thuộc bác sĩ.',
+        sourceData: [
+          {
+            key: 'medical_history',
+            label: 'Tiền sử bệnh',
+            available: Boolean(ctx.medicalHistory),
+          },
+          {
+            key: 'chatbot',
+            label: 'Trao đổi chatbot',
+            available: ctx.chatbotMessages.length > 0,
+          },
+          {
+            key: 'diagnoses',
+            label: 'Chẩn đoán gần đây',
+            available: ctx.recentDiagnoses.length > 0,
+          },
+          {
+            key: 'medical_record',
+            label: 'Hồ sơ bệnh án gần nhất',
+            available: Boolean(ctx.latestMedicalRecord),
+          },
+          {
+            key: 'prescriptions',
+            label: 'Đơn thuốc gần đây',
+            available: ctx.recentPrescriptions.length > 0,
+          },
+          {
+            key: 'treatment_plan',
+            label: 'Kế hoạch điều trị',
+            available: Boolean(ctx.activeTreatmentPlan),
+          },
+          {
+            key: 'follow_up',
+            label: 'Lịch tái khám',
+            available: Boolean(ctx.followUp),
+          },
+        ],
+        provider: raw.provider ?? null,
+        model: raw.model ?? null,
+      },
+      include: { creator: { select: { fullName: true } } },
+    });
+
+    return this.toPatientAiBrief(saved);
+  }
+
+  async getLatestPatientSummary(
+    user: AuthenticatedUser,
+    dto: SummarizePatientDto,
+  ) {
+    if (!dto.consultationId && !dto.patientId) {
+      throw new BadRequestException('Cần consultationId hoặc patientId');
+    }
+
+    let patientId = dto.patientId;
+    if (dto.consultationId) {
+      const consultation = await this.prisma.videoConsultation.findUnique({
+        where: { id: dto.consultationId },
+        select: { patientId: true, doctorId: true },
+      });
+      if (!consultation) {
+        throw new NotFoundException('Không tìm thấy buổi tư vấn');
+      }
+      await this.assertDoctorOwnsConsult(user, consultation.doctorId);
+      patientId = consultation.patientId;
+    } else {
+      await this.assertDoctorCanAccessPatient(user, patientId!);
+    }
+
+    const brief = await this.prisma.patientAiBrief.findFirst({
+      where: dto.consultationId
+        ? { consultationId: dto.consultationId }
+        : { patientId: patientId! },
+      orderBy: { createdAt: 'desc' },
+      include: { creator: { select: { fullName: true } } },
+    });
+
+    return brief ? this.toPatientAiBrief(brief) : null;
+  }
+
+  async reviewPatientSummary(
+    user: AuthenticatedUser,
+    id: string,
+    dto: ReviewPatientAiBriefDto,
+  ) {
+    const brief = await this.prisma.patientAiBrief.findUnique({
+      where: { id },
+      select: { patientId: true },
+    });
+    if (!brief) throw new NotFoundException('Không tìm thấy hồ sơ AI');
+    await this.assertDoctorCanAccessPatient(user, brief.patientId);
+
+    const updated = await this.prisma.patientAiBrief.update({
+      where: { id },
+      data: {
+        feedback: dto.feedback,
+        feedbackNote: dto.note?.trim() || null,
+        reviewedAt: new Date(),
+      },
+      include: { creator: { select: { fullName: true } } },
+    });
+    return this.toPatientAiBrief(updated);
+  }
+
+  async getPatientBriefQualityMetrics(user: AuthenticatedUser) {
+    const doctor = user.roles.includes('ADMIN')
+      ? null
+      : await this.prisma.doctor.findUnique({
+          where: { userId: user.userId },
+          select: { id: true },
+        });
+    if (!user.roles.includes('ADMIN') && !doctor) {
+      throw new ForbiddenException('Không tìm thấy hồ sơ bác sĩ');
+    }
+    const where = doctor ? { doctorId: doctor.id } : {};
+    const [total, reviewed, groups] = await Promise.all([
+      this.prisma.patientAiBrief.count({ where }),
+      this.prisma.patientAiBrief.count({
+        where: { ...where, feedback: { not: null } },
+      }),
+      this.prisma.patientAiBrief.groupBy({
+        by: ['feedback'],
+        where: { ...where, feedback: { not: null } },
+        _count: { _all: true },
+      }),
+    ]);
+    const counts = { HELPFUL: 0, INACCURATE: 0, MISSED_RISK: 0 };
+    for (const group of groups) {
+      if (group.feedback) counts[group.feedback] = group._count._all;
+    }
     return {
-      patientId: ctx.patientId,
-      patientName: ctx.patientName,
-      bulletPoints: raw.bullet_points ?? [],
-      questionsToAsk: raw.questions_to_ask ?? [],
-      riskFlags: raw.risk_flags ?? [],
-      disclaimer:
-        raw.disclaimer ||
-        'AI hỗ trợ chuẩn bị khám. Quyết định lâm sàng thuộc bác sĩ.',
+      total,
+      reviewed,
+      ...counts,
+      helpfulRate: reviewed
+        ? Math.round((counts.HELPFUL / reviewed) * 100)
+        : null,
+    };
+  }
+
+  private toPatientAiBrief(brief: StoredAiBrief) {
+    return {
+      id: brief.id,
+      patientId: brief.patientId,
+      patientName: brief.patientName,
+      bulletPoints: Array.isArray(brief.bulletPoints) ? brief.bulletPoints : [],
+      questionsToAsk: Array.isArray(brief.questionsToAsk)
+        ? brief.questionsToAsk
+        : [],
+      riskFlags: Array.isArray(brief.riskFlags) ? brief.riskFlags : [],
+      disclaimer: brief.disclaimer,
+      sources: Array.isArray(brief.sourceData) ? brief.sourceData : [],
+      provider: brief.provider,
+      model: brief.model,
+      feedback: brief.feedback,
+      feedbackNote: brief.feedbackNote,
+      reviewedAt: brief.reviewedAt?.toISOString() ?? null,
+      createdAt: brief.createdAt.toISOString(),
+      createdByName: brief.creator.fullName,
     };
   }
 

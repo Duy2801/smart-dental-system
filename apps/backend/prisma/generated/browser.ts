@@ -188,6 +188,11 @@ export type ChatbotConversation = Prisma.ChatbotConversationModel
  */
 export type VideoConsultation = Prisma.VideoConsultationModel
 /**
+ * Model PatientAiBrief
+ * 
+ */
+export type PatientAiBrief = Prisma.PatientAiBriefModel
+/**
  * Model Notification
  * 
  */

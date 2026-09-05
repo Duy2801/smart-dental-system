@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { cn } from "@/src/lib/utils/cn";
 import { Header } from "@/src/components/layout/header";
-import { PatientAiBrief } from "@/src/components/doctor/patient-ai-brief";
 import Link from "next/link";
 import {
   CalendarCheck,
@@ -244,13 +243,6 @@ export default function DoctorDashboardPage() {
   const totalCount = appointments.length;
   const waitingCount = appointments.filter((a) => WAITING_STATUSES.includes(a.status)).length;
   const completedCount = appointments.filter((a) => a.status === "COMPLETED").length;
-  const briefAppointment = appointments.find(
-    (appointment) =>
-      (appointment.type === "ONLINE" || appointment.patientId) &&
-      (WAITING_STATUSES.includes(appointment.status) ||
-        appointment.status === "IN_PROGRESS"),
-  );
-
   const statCards = [
     {
       label: "Tổng ca hôm nay",
@@ -322,18 +314,6 @@ export default function DoctorDashboardPage() {
                 );
               })}
         </div>
-
-        {briefAppointment && (
-          <PatientAiBrief
-            key={briefAppointment.id}
-            patientId={briefAppointment.patientId}
-            consultationId={
-              briefAppointment.type === "ONLINE" ? briefAppointment.id : null
-            }
-            patientName={briefAppointment.patient_name}
-            className="shadow-sm"
-          />
-        )}
 
         <div className="flex flex-col rounded-2xl border border-border bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-border p-5">

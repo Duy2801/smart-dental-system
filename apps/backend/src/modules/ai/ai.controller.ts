@@ -1,4 +1,13 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/curent-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -17,6 +26,7 @@ import {
   SendAftercareDto,
 } from './dto/doctor-ai.dto';
 import { SummarizePatientDto } from './dto/summarize-patient.dto';
+import { ReviewPatientAiBriefDto } from './dto/review-patient-ai-brief.dto';
 
 @ApiTags('AI Doctor Assist')
 @ApiBearerAuth()
@@ -25,6 +35,28 @@ import { SummarizePatientDto } from './dto/summarize-patient.dto';
 @Roles('DOCTOR', 'ADMIN')
 export class AiController {
   constructor(private readonly aiService: AiService) {}
+
+  @Get('summarize-patient/latest')
+  getLatestPatientSummary(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() dto: SummarizePatientDto,
+  ) {
+    return this.aiService.getLatestPatientSummary(user, dto);
+  }
+
+  @Patch('patient-brief/:id/review')
+  reviewPatientSummary(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() dto: ReviewPatientAiBriefDto,
+  ) {
+    return this.aiService.reviewPatientSummary(user, id, dto);
+  }
+
+  @Get('patient-brief/quality-metrics')
+  getPatientBriefQualityMetrics(@CurrentUser() user: AuthenticatedUser) {
+    return this.aiService.getPatientBriefQualityMetrics(user);
+  }
 
   @Post('summarize-patient')
   summarizePatient(
@@ -98,4 +130,3 @@ export class AiController {
     return this.aiService.analyzeXray(user, dto);
   }
 }
-

@@ -786,6 +786,23 @@ export type EnumVideoConsultationStatusWithAggregatesFilter<$PrismaModel = never
   _max?: Prisma.NestedEnumVideoConsultationStatusFilter<$PrismaModel>
 }
 
+export type EnumAiBriefFeedbackNullableFilter<$PrismaModel = never> = {
+  equals?: $Enums.AiBriefFeedback | Prisma.EnumAiBriefFeedbackFieldRefInput<$PrismaModel> | null
+  in?: $Enums.AiBriefFeedback[] | Prisma.ListEnumAiBriefFeedbackFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.AiBriefFeedback[] | Prisma.ListEnumAiBriefFeedbackFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumAiBriefFeedbackNullableFilter<$PrismaModel> | $Enums.AiBriefFeedback | null
+}
+
+export type EnumAiBriefFeedbackNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.AiBriefFeedback | Prisma.EnumAiBriefFeedbackFieldRefInput<$PrismaModel> | null
+  in?: $Enums.AiBriefFeedback[] | Prisma.ListEnumAiBriefFeedbackFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.AiBriefFeedback[] | Prisma.ListEnumAiBriefFeedbackFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumAiBriefFeedbackNullableWithAggregatesFilter<$PrismaModel> | $Enums.AiBriefFeedback | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumAiBriefFeedbackNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumAiBriefFeedbackNullableFilter<$PrismaModel>
+}
+
 export type EnumNotificationChannelFilter<$PrismaModel = never> = {
   equals?: $Enums.NotificationChannel | Prisma.EnumNotificationChannelFieldRefInput<$PrismaModel>
   in?: $Enums.NotificationChannel[] | Prisma.ListEnumNotificationChannelFieldRefInput<$PrismaModel>
@@ -1562,6 +1579,23 @@ export type NestedEnumVideoConsultationStatusWithAggregatesFilter<$PrismaModel =
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumVideoConsultationStatusFilter<$PrismaModel>
   _max?: Prisma.NestedEnumVideoConsultationStatusFilter<$PrismaModel>
+}
+
+export type NestedEnumAiBriefFeedbackNullableFilter<$PrismaModel = never> = {
+  equals?: $Enums.AiBriefFeedback | Prisma.EnumAiBriefFeedbackFieldRefInput<$PrismaModel> | null
+  in?: $Enums.AiBriefFeedback[] | Prisma.ListEnumAiBriefFeedbackFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.AiBriefFeedback[] | Prisma.ListEnumAiBriefFeedbackFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumAiBriefFeedbackNullableFilter<$PrismaModel> | $Enums.AiBriefFeedback | null
+}
+
+export type NestedEnumAiBriefFeedbackNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.AiBriefFeedback | Prisma.EnumAiBriefFeedbackFieldRefInput<$PrismaModel> | null
+  in?: $Enums.AiBriefFeedback[] | Prisma.ListEnumAiBriefFeedbackFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.AiBriefFeedback[] | Prisma.ListEnumAiBriefFeedbackFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumAiBriefFeedbackNullableWithAggregatesFilter<$PrismaModel> | $Enums.AiBriefFeedback | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumAiBriefFeedbackNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumAiBriefFeedbackNullableFilter<$PrismaModel>
 }
 
 export type NestedEnumNotificationChannelFilter<$PrismaModel = never> = {

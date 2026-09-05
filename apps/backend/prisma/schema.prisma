@@ -168,6 +168,12 @@ enum VideoConsultationStatus {
   DOCTOR_MISSED
 }
 
+enum AiBriefFeedback {
+  HELPFUL
+  INACCURATE
+  MISSED_RISK
+}
+
 enum NotificationChannel {
   IN_APP
   EMAIL
@@ -207,16 +213,17 @@ model User {
   createdAt     DateTime   @default(now()) @map("created_at")
   updatedAt     DateTime   @updatedAt @map("updated_at")
 
-  patientProfile      Patient?
-  doctorProfile       Doctor?
-  roles               UserRole[]     @relation("UserRoleMemberships")
-  assignedRoles       UserRole[]     @relation("UserRoleAssignments")
-  createdAppointments Appointment[]  @relation("AppointmentCreator")
-  createdInvoices     Invoice[]      @relation("InvoiceCreator")
-  receivedPayments    Payment[]      @relation("PaymentReceiver")
-  notifications       Notification[]
-  patientAccounts     PatientAccount[]
-  processedRefunds    RefundRequest[] @relation("RefundProcessor")
+  patientProfile         Patient?
+  doctorProfile          Doctor?
+  roles                  UserRole[]       @relation("UserRoleMemberships")
+  assignedRoles          UserRole[]       @relation("UserRoleAssignments")
+  createdAppointments    Appointment[]    @relation("AppointmentCreator")
+  createdInvoices        Invoice[]        @relation("InvoiceCreator")
+  receivedPayments       Payment[]        @relation("PaymentReceiver")
+  notifications          Notification[]
+  patientAccounts        PatientAccount[]
+  processedRefunds       RefundRequest[]  @relation("RefundProcessor")
+  createdPatientAiBriefs PatientAiBrief[]
 
   @@index([fullName])
   @@map("users")
@@ -338,9 +345,9 @@ model Specialization {
 }
 
 model DoctorSpecialization {
-  doctorId         String         @map("doctor_id") @db.Uuid
-  specializationId String         @map("specialization_id") @db.Uuid
-  createdAt        DateTime       @default(now()) @map("created_at")
+  doctorId         String   @map("doctor_id") @db.Uuid
+  specializationId String   @map("specialization_id") @db.Uuid
+  createdAt        DateTime @default(now()) @map("created_at")
 
   doctor         Doctor         @relation(fields: [doctorId], references: [id], onDelete: Cascade)
   specialization Specialization @relation(fields: [specializationId], references: [id], onDelete: Cascade)
@@ -419,25 +426,25 @@ model ServiceFaq {
 }
 
 model Promotion {
-  id                          String          @id @default(uuid()) @db.Uuid
-  code                        String          @unique
+  id                          String       @id @default(uuid()) @db.Uuid
+  code                        String       @unique
   name                        String
-  description                 String?         @db.Text
-  imageUrl                    String?         @map("image_url") @db.Text
-  applicableServiceSlug       String?         @map("applicable_service_slug")
-  applicableTreatmentMethodId String?         @map("applicable_treatment_method_id") @db.Uuid
-  discountType                DiscountType    @map("discount_type")
-  discountValue               Decimal         @map("discount_value") @db.Decimal(12, 2)
-  minOrderAmount              Decimal         @default(0) @map("min_order_amount") @db.Decimal(12, 2)
-  maxUses                     Int?            @map("max_uses")
-  usedCount                   Int             @default(0) @map("used_count")
-  startDate                   DateTime        @map("start_date")
-  endDate                     DateTime        @map("end_date")
-  isActive                    Boolean         @default(true) @map("is_active")
-  createdAt                   DateTime        @default(now()) @map("created_at")
+  description                 String?      @db.Text
+  imageUrl                    String?      @map("image_url") @db.Text
+  applicableServiceSlug       String?      @map("applicable_service_slug")
+  applicableTreatmentMethodId String?      @map("applicable_treatment_method_id") @db.Uuid
+  discountType                DiscountType @map("discount_type")
+  discountValue               Decimal      @map("discount_value") @db.Decimal(12, 2)
+  minOrderAmount              Decimal      @default(0) @map("min_order_amount") @db.Decimal(12, 2)
+  maxUses                     Int?         @map("max_uses")
+  usedCount                   Int          @default(0) @map("used_count")
+  startDate                   DateTime     @map("start_date")
+  endDate                     DateTime     @map("end_date")
+  isActive                    Boolean      @default(true) @map("is_active")
+  createdAt                   DateTime     @default(now()) @map("created_at")
 
-  applicableTreatmentMethod   TreatmentMethod? @relation("PromotionTreatmentMethod", fields: [applicableTreatmentMethodId], references: [id], onDelete: SetNull)
-  invoices                    Invoice[]
+  applicableTreatmentMethod TreatmentMethod? @relation("PromotionTreatmentMethod", fields: [applicableTreatmentMethodId], references: [id], onDelete: SetNull)
+  invoices                  Invoice[]
 
   @@index([isActive, startDate, endDate])
   @@index([applicableTreatmentMethodId])
@@ -472,6 +479,7 @@ model Patient {
   chatbotConversations ChatbotConversation[]
   videoConsultations   VideoConsultation[]
   refundRequests       RefundRequest[]
+  aiBriefs             PatientAiBrief[]
 
   @@map("patients")
 }
@@ -509,7 +517,7 @@ model Doctor {
   isActive        Boolean  @default(true) @map("is_active")
   createdAt       DateTime @default(now()) @map("created_at")
 
-  user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user               User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   availability       DoctorAvailability[]
   appointments       Appointment[]
   certificates       DoctorCertificate[]
@@ -523,6 +531,7 @@ model Doctor {
   reviews            Review[]
   videoConsultations VideoConsultation[]
   specializations    DoctorSpecialization[]
+  patientAiBriefs    PatientAiBrief[]
 
   @@index([specialization, isActive])
   @@map("doctors")
@@ -580,16 +589,16 @@ model DoctorMedia {
 }
 
 model DoctorAvailability {
-  id           String                 @id @default(uuid()) @db.Uuid
-  doctorId     String                 @map("doctor_id") @db.Uuid
-  recordType   AvailabilityRecordType @map("record_type")
-  dayOfWeek    Int?                   @map("day_of_week")
-  specificDate DateTime?              @map("specific_date") @db.Date
-  startTime    String                 @map("start_time")
-  endTime      String                 @map("end_time")
-  reason       String?                    @db.Text
+  id             String                     @id @default(uuid()) @db.Uuid
+  doctorId       String                     @map("doctor_id") @db.Uuid
+  recordType     AvailabilityRecordType     @map("record_type")
+  dayOfWeek      Int?                       @map("day_of_week")
+  specificDate   DateTime?                  @map("specific_date") @db.Date
+  startTime      String                     @map("start_time")
+  endTime        String                     @map("end_time")
+  reason         String?                    @db.Text
   approvalStatus AvailabilityApprovalStatus @default(APPROVED) @map("approval_status")
-  isActive     Boolean                    @default(true) @map("is_active")
+  isActive       Boolean                    @default(true) @map("is_active")
 
   doctor Doctor @relation(fields: [doctorId], references: [id], onDelete: Cascade)
 
@@ -946,14 +955,46 @@ model VideoConsultation {
   notes           String?                 @db.Text
   createdAt       DateTime                @default(now()) @map("created_at")
 
-  patient Patient @relation(fields: [patientId], references: [id], onDelete: Restrict)
-  doctor  Doctor  @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  patient        Patient          @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  doctor         Doctor           @relation(fields: [doctorId], references: [id], onDelete: Restrict)
   refundRequests RefundRequest[]
+  aiBriefs       PatientAiBrief[]
 
   @@index([patientId, scheduledAt])
   @@index([doctorId, scheduledAt])
   @@index([status, scheduledAt])
   @@map("video_consultations")
+}
+
+model PatientAiBrief {
+  id             String           @id @default(uuid()) @db.Uuid
+  patientId      String           @map("patient_id") @db.Uuid
+  doctorId       String?          @map("doctor_id") @db.Uuid
+  createdBy      String           @map("created_by") @db.Uuid
+  consultationId String?          @map("consultation_id") @db.Uuid
+  patientName    String           @map("patient_name")
+  bulletPoints   Json             @map("bullet_points")
+  questionsToAsk Json             @map("questions_to_ask")
+  riskFlags      Json             @map("risk_flags")
+  disclaimer     String           @db.Text
+  sourceData     Json             @map("source_data")
+  provider       String?
+  model          String?
+  feedback       AiBriefFeedback?
+  feedbackNote   String?          @map("feedback_note") @db.Text
+  reviewedAt     DateTime?        @map("reviewed_at")
+  createdAt      DateTime         @default(now()) @map("created_at")
+
+  patient      Patient            @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor       Doctor?            @relation(fields: [doctorId], references: [id], onDelete: SetNull)
+  creator      User               @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+  consultation VideoConsultation? @relation(fields: [consultationId], references: [id], onDelete: SetNull)
+
+  @@index([patientId, createdAt])
+  @@index([doctorId, createdAt])
+  @@index([createdBy, createdAt])
+  @@index([consultationId, createdAt])
+  @@map("patient_ai_briefs")
 }
 
 model Notification {
@@ -1027,29 +1068,29 @@ enum RefundStatus {
 }
 
 model RefundRequest {
-  id                  String       @id @default(uuid()) @db.Uuid
-  refundCode          String       @unique @map("refund_code")
-  patientId           String       @map("patient_id") @db.Uuid
-  videoConsultationId String?      @map("video_consultation_id") @db.Uuid
-  appointmentId       String?      @map("appointment_id") @db.Uuid
-  invoiceId           String?      @map("invoice_id") @db.Uuid
-  
-  bankName            String       @map("bank_name")
-  accountNumber       String       @map("account_number")
-  accountHolder       String       @map("account_holder")
-  qrCodeUrl           String?      @map("qr_code_url") @db.Text
-  
-  requestedAmount     Decimal      @map("requested_amount") @db.Decimal(12, 2)
-  refundPercent       Int          @default(100) @map("refund_percent")
-  reason              String?      @db.Text
-  
-  status              RefundStatus @default(PENDING)
-  rejectReason        String?      @map("reject_reason") @db.Text
-  proofImageUrl       String?      @map("proof_image_url") @db.Text
-  processedBy         String?      @map("processed_by") @db.Uuid
-  processedAt         DateTime?    @map("processed_at")
-  createdAt           DateTime     @default(now()) @map("created_at")
-  updatedAt           DateTime     @updatedAt @map("updated_at")
+  id                  String  @id @default(uuid()) @db.Uuid
+  refundCode          String  @unique @map("refund_code")
+  patientId           String  @map("patient_id") @db.Uuid
+  videoConsultationId String? @map("video_consultation_id") @db.Uuid
+  appointmentId       String? @map("appointment_id") @db.Uuid
+  invoiceId           String? @map("invoice_id") @db.Uuid
+
+  bankName      String  @map("bank_name")
+  accountNumber String  @map("account_number")
+  accountHolder String  @map("account_holder")
+  qrCodeUrl     String? @map("qr_code_url") @db.Text
+
+  requestedAmount Decimal @map("requested_amount") @db.Decimal(12, 2)
+  refundPercent   Int     @default(100) @map("refund_percent")
+  reason          String? @db.Text
+
+  status        RefundStatus @default(PENDING)
+  rejectReason  String?      @map("reject_reason") @db.Text
+  proofImageUrl String?      @map("proof_image_url") @db.Text
+  processedBy   String?      @map("processed_by") @db.Uuid
+  processedAt   DateTime?    @map("processed_at")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
 
   patient           Patient            @relation(fields: [patientId], references: [id], onDelete: Restrict)
   videoConsultation VideoConsultation? @relation(fields: [videoConsultationId], references: [id], onDelete: SetNull)
@@ -1064,5 +1105,3 @@ model RefundRequest {
   @@index([invoiceId])
   @@map("refund_requests")
 }
-
-

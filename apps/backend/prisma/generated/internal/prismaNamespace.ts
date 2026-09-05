@@ -418,6 +418,7 @@ export const ModelName = {
   Review: 'Review',
   ChatbotConversation: 'ChatbotConversation',
   VideoConsultation: 'VideoConsultation',
+  PatientAiBrief: 'PatientAiBrief',
   Notification: 'Notification',
   Banner: 'Banner',
   ConsultationPackage: 'ConsultationPackage',
@@ -437,7 +438,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "clinicConfig" | "user" | "role" | "permission" | "userRole" | "rolePermission" | "service" | "specialization" | "doctorSpecialization" | "treatmentMethod" | "serviceMedia" | "serviceProcedureStep" | "serviceFaq" | "promotion" | "patient" | "patientAccount" | "doctor" | "doctorEducation" | "doctorCertificate" | "doctorMedia" | "doctorAvailability" | "appointment" | "medicalRecord" | "aiXrayAnalysisAudit" | "treatmentPlan" | "treatmentPlanStep" | "clinicalCase" | "invoice" | "prescription" | "prescriptionItem" | "payment" | "review" | "chatbotConversation" | "videoConsultation" | "notification" | "banner" | "consultationPackage" | "refundRequest"
+    modelProps: "clinicConfig" | "user" | "role" | "permission" | "userRole" | "rolePermission" | "service" | "specialization" | "doctorSpecialization" | "treatmentMethod" | "serviceMedia" | "serviceProcedureStep" | "serviceFaq" | "promotion" | "patient" | "patientAccount" | "doctor" | "doctorEducation" | "doctorCertificate" | "doctorMedia" | "doctorAvailability" | "appointment" | "medicalRecord" | "aiXrayAnalysisAudit" | "treatmentPlan" | "treatmentPlanStep" | "clinicalCase" | "invoice" | "prescription" | "prescriptionItem" | "payment" | "review" | "chatbotConversation" | "videoConsultation" | "patientAiBrief" | "notification" | "banner" | "consultationPackage" | "refundRequest"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2957,6 +2958,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    PatientAiBrief: {
+      payload: Prisma.$PatientAiBriefPayload<ExtArgs>
+      fields: Prisma.PatientAiBriefFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.PatientAiBriefFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientAiBriefPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.PatientAiBriefFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientAiBriefPayload>
+        }
+        findFirst: {
+          args: Prisma.PatientAiBriefFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientAiBriefPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.PatientAiBriefFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientAiBriefPayload>
+        }
+        findMany: {
+          args: Prisma.PatientAiBriefFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientAiBriefPayload>[]
+        }
+        create: {
+          args: Prisma.PatientAiBriefCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientAiBriefPayload>
+        }
+        createMany: {
+          args: Prisma.PatientAiBriefCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.PatientAiBriefCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientAiBriefPayload>[]
+        }
+        delete: {
+          args: Prisma.PatientAiBriefDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientAiBriefPayload>
+        }
+        update: {
+          args: Prisma.PatientAiBriefUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientAiBriefPayload>
+        }
+        deleteMany: {
+          args: Prisma.PatientAiBriefDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.PatientAiBriefUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.PatientAiBriefUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientAiBriefPayload>[]
+        }
+        upsert: {
+          args: Prisma.PatientAiBriefUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientAiBriefPayload>
+        }
+        aggregate: {
+          args: Prisma.PatientAiBriefAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregatePatientAiBrief>
+        }
+        groupBy: {
+          args: Prisma.PatientAiBriefGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PatientAiBriefGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.PatientAiBriefCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PatientAiBriefCountAggregateOutputType> | number
+        }
+      }
+    }
     Notification: {
       payload: Prisma.$NotificationPayload<ExtArgs>
       fields: Prisma.NotificationFieldRefs
@@ -3857,6 +3932,29 @@ export const VideoConsultationScalarFieldEnum = {
 export type VideoConsultationScalarFieldEnum = (typeof VideoConsultationScalarFieldEnum)[keyof typeof VideoConsultationScalarFieldEnum]
 
 
+export const PatientAiBriefScalarFieldEnum = {
+  id: 'id',
+  patientId: 'patientId',
+  doctorId: 'doctorId',
+  createdBy: 'createdBy',
+  consultationId: 'consultationId',
+  patientName: 'patientName',
+  bulletPoints: 'bulletPoints',
+  questionsToAsk: 'questionsToAsk',
+  riskFlags: 'riskFlags',
+  disclaimer: 'disclaimer',
+  sourceData: 'sourceData',
+  provider: 'provider',
+  model: 'model',
+  feedback: 'feedback',
+  feedbackNote: 'feedbackNote',
+  reviewedAt: 'reviewedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type PatientAiBriefScalarFieldEnum = (typeof PatientAiBriefScalarFieldEnum)[keyof typeof PatientAiBriefScalarFieldEnum]
+
+
 export const NotificationScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -4378,6 +4476,20 @@ export type ListEnumVideoConsultationStatusFieldRefInput<$PrismaModel> = FieldRe
 
 
 /**
+ * Reference to a field of type 'AiBriefFeedback'
+ */
+export type EnumAiBriefFeedbackFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AiBriefFeedback'>
+    
+
+
+/**
+ * Reference to a field of type 'AiBriefFeedback[]'
+ */
+export type ListEnumAiBriefFeedbackFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AiBriefFeedback[]'>
+    
+
+
+/**
  * Reference to a field of type 'NotificationChannel'
  */
 export type EnumNotificationChannelFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'NotificationChannel'>
@@ -4576,6 +4688,7 @@ export type GlobalOmitConfig = {
   review?: Prisma.ReviewOmit
   chatbotConversation?: Prisma.ChatbotConversationOmit
   videoConsultation?: Prisma.VideoConsultationOmit
+  patientAiBrief?: Prisma.PatientAiBriefOmit
   notification?: Prisma.NotificationOmit
   banner?: Prisma.BannerOmit
   consultationPackage?: Prisma.ConsultationPackageOmit

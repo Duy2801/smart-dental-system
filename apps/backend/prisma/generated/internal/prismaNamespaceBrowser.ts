@@ -85,6 +85,7 @@ export const ModelName = {
   Review: 'Review',
   ChatbotConversation: 'ChatbotConversation',
   VideoConsultation: 'VideoConsultation',
+  PatientAiBrief: 'PatientAiBrief',
   Notification: 'Notification',
   Banner: 'Banner',
   ConsultationPackage: 'ConsultationPackage',
@@ -670,6 +671,29 @@ export const VideoConsultationScalarFieldEnum = {
 } as const
 
 export type VideoConsultationScalarFieldEnum = (typeof VideoConsultationScalarFieldEnum)[keyof typeof VideoConsultationScalarFieldEnum]
+
+
+export const PatientAiBriefScalarFieldEnum = {
+  id: 'id',
+  patientId: 'patientId',
+  doctorId: 'doctorId',
+  createdBy: 'createdBy',
+  consultationId: 'consultationId',
+  patientName: 'patientName',
+  bulletPoints: 'bulletPoints',
+  questionsToAsk: 'questionsToAsk',
+  riskFlags: 'riskFlags',
+  disclaimer: 'disclaimer',
+  sourceData: 'sourceData',
+  provider: 'provider',
+  model: 'model',
+  feedback: 'feedback',
+  feedbackNote: 'feedbackNote',
+  reviewedAt: 'reviewedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type PatientAiBriefScalarFieldEnum = (typeof PatientAiBriefScalarFieldEnum)[keyof typeof PatientAiBriefScalarFieldEnum]
 
 
 export const NotificationScalarFieldEnum = {

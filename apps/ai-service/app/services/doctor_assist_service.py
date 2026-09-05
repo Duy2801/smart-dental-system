@@ -95,15 +95,24 @@ class DoctorAssistService:
             f"Chatbot:\n{chat or '(trống)'}\n\n"
             'Trả JSON: {"bullet_points":[],"questions_to_ask":[],"risk_flags":[]}'
         )
-        raw = await llm.complete(SUMMARIZE_PATIENT_SYSTEM, "\n\n".join(parts))
+        completion = await llm.complete_with_metadata(
+            SUMMARIZE_PATIENT_SYSTEM, "\n\n".join(parts)
+        )
+        raw = completion.content
         data = _extract_json(raw)
         if data:
             return SummarizePatientResponse(
                 bullet_points=data.get("bullet_points") or [raw],
                 questions_to_ask=data.get("questions_to_ask") or [],
                 risk_flags=data.get("risk_flags") or [],
+                provider=completion.provider,
+                model=completion.model,
             )
-        return SummarizePatientResponse(bullet_points=[raw])
+        return SummarizePatientResponse(
+            bullet_points=[raw],
+            provider=completion.provider,
+            model=completion.model,
+        )
 
     async def draft_medical_record(
         self, body: MedicalRecordDraftRequest
@@ -399,4 +408,3 @@ class DoctorAssistService:
         from app.services.vision_service import vision_service
 
         return await vision_service.analyze_xray_hybrid(body)
-

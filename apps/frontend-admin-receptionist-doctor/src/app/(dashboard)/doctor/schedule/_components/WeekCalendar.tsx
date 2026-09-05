@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState } from "react";
 import { cn } from "@/src/lib/utils/cn";
 import { SpinnerGap, X, VideoCamera, Storefront } from "@phosphor-icons/react";
 import type { ScheduleAppointment, AppointmentStatus, TimeOffRecord } from "./types";
@@ -47,31 +47,6 @@ export function WeekCalendar({
 }: Props) {
   const [selected, setSelected] = useState<ScheduleAppointment | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [currentTime, setCurrentTime] = useState<Date>(() => new Date());
-
-  // Update current time every minute for the red indicator line
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 60000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const todayIdx = useMemo(() => {
-    return weekDays.findIndex((d) => d.isToday);
-  }, [weekDays]);
-
-  const currentHours = useMemo(() => {
-    return currentTime.getHours() + currentTime.getMinutes() / 60;
-  }, [currentTime]);
-
-  const currentTimeLabel = useMemo(() => {
-    return currentTime.toLocaleTimeString("vi-VN", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
-  }, [currentTime]);
 
   async function handleDeleteTimeOff(id: string) {
     if (!confirm("Xóa đăng ký nghỉ này?")) return;
@@ -116,9 +91,6 @@ export function WeekCalendar({
                 )}
               >
                 <span>{day.date}</span>
-                {day.isToday && (
-                  <span className="h-2 w-2 rounded-full bg-brand animate-pulse" />
-                )}
               </div>
             </div>
           ))}
@@ -167,24 +139,6 @@ export function WeekCalendar({
                   />
                 ))}
 
-                {/* ELEGANT CURRENT TIME INDICATOR (CONFINED TO TODAY COLUMN ONLY) */}
-                {day.isToday && currentHours >= 7 && currentHours <= 19 && (
-                  <div
-                    style={{
-                      top: `${(currentHours - 7) * 144}px`,
-                    }}
-                    className="pointer-events-none absolute left-0 right-0 z-30 flex items-center"
-                  >
-                    {/* Small Pulsing Brand Dot */}
-                    <span className="h-2 w-2 -ml-1 rounded-full bg-blue-600 ring-2 ring-white shadow-xs" />
-                    {/* Thin subtle brand line */}
-                    <span className="h-[1.5px] flex-1 bg-blue-600/70" />
-                    {/* Tiny time pill badge at the right edge */}
-                    <span className="rounded bg-blue-600/90 px-1 py-0.2 text-[9px] font-mono font-bold text-white shadow-xs">
-                      {currentTimeLabel}
-                    </span>
-                  </div>
-                )}
               </div>
             ))}
 
