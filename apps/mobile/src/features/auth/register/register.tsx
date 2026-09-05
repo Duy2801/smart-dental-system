@@ -72,7 +72,7 @@ const RegisterScreen = () => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F5F7FC" />
+      <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.flex}
@@ -84,17 +84,17 @@ const RegisterScreen = () => {
         >
           <View style={styles.screen}>
             <View style={styles.hero}>
-              <View style={styles.heroIcon}>
+              <View style={styles.heroBadge}>
                 <FontAwesome6
-                  name="file-circle-check"
-                  size={26}
-                  color="#FFFFFF"
+                  name="tooth"
+                  size={24}
+                  color="#007AFF"
                   iconStyle="solid"
                 />
               </View>
-              <Text style={styles.title}>Tạo tài khoản mới</Text>
+              <Text style={styles.title}>Tạo tài khoản</Text>
               <Text style={styles.subtitle}>
-                Đăng ký bằng email để sử dụng hệ thống nha khoa AI
+                Đăng ký hồ sơ để đặt lịch và quản lý nha khoa
               </Text>
             </View>
 
@@ -109,7 +109,7 @@ const RegisterScreen = () => {
                   setFullName(value);
                   clearError('fullName');
                 }}
-                placeholder="Nguyễn Văn A"
+                placeholder="Nguyễn Văn An"
                 value={fullName}
               />
               <AuthTextField
@@ -180,7 +180,7 @@ const RegisterScreen = () => {
                 </View>
                 <Text style={styles.termsText}>
                   Tôi đồng ý với{' '}
-                  <Text style={styles.linkText}>Điều khoản dịch vụ</Text> và{' '}
+                  <Text style={styles.linkText}>Điều khoản</Text> và{' '}
                   <Text style={styles.linkText}>Chính sách bảo mật</Text>.
                 </Text>
               </TouchableOpacity>
@@ -202,10 +202,10 @@ const RegisterScreen = () => {
                   <ActivityIndicator color="#FFFFFF" />
                 ) : (
                   <>
-                    <Text style={styles.primaryButtonText}>Đăng ký</Text>
+                    <Text style={styles.primaryButtonText}>Đăng ký ngay</Text>
                     <FontAwesome6
                       name="arrow-right"
-                      size={15}
+                      size={14}
                       color="#FFFFFF"
                       iconStyle="solid"
                     />
@@ -220,7 +220,7 @@ const RegisterScreen = () => {
                     navigation.navigate(SCREEN_NAME.PATIENT_LOGIN)
                   }
                 >
-                  <Text style={styles.linkText}>Đăng nhập</Text>
+                  <Text style={styles.linkText}>Đăng nhập ngay</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -229,11 +229,11 @@ const RegisterScreen = () => {
               <FontAwesome6
                 name="shield-halved"
                 size={12}
-                color="#7A8496"
+                color="#10B981"
                 iconStyle="solid"
               />
               <Text style={styles.trustText}>
-                Thông tin của bạn được mã hóa và bảo mật
+                Bảo mật dữ liệu y tế theo chuẩn HIPAA
               </Text>
             </View>
           </View>
@@ -245,96 +245,100 @@ const RegisterScreen = () => {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  safeArea: { backgroundColor: '#F5F7FC', flex: 1 },
+  safeArea: { backgroundColor: '#F8FAFC', flex: 1 },
   content: {
     alignItems: 'center',
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
   },
   screen: { maxWidth: 420, width: '100%' },
-  hero: { alignItems: 'center' },
-  heroIcon: {
+  hero: { alignItems: 'center', marginBottom: 18 },
+  heroBadge: {
     alignItems: 'center',
-    backgroundColor: '#0875D1',
-    borderRadius: 12,
-    elevation: 5,
-    height: 54,
+    backgroundColor: '#EFF6FF',
+    borderColor: '#DBEAFE',
+    borderRadius: 20,
+    borderWidth: 1,
+    height: 56,
     justifyContent: 'center',
-    shadowColor: '#0875D1',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.24,
-    shadowRadius: 8,
-    width: 54,
+    width: 56,
   },
-  title: { color: '#101828', fontSize: 27, fontWeight: '800', marginTop: 18 },
+  title: { color: '#0F172A', fontSize: 23, fontWeight: '800', marginTop: 12 },
   subtitle: {
-    color: '#667085',
-    fontSize: 14,
-    lineHeight: 21,
-    marginBottom: 26,
-    marginTop: 9,
+    color: '#64748B',
+    fontSize: 13,
+    marginTop: 4,
     textAlign: 'center',
   },
   card: {
     alignSelf: 'stretch',
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    elevation: 3,
-    gap: 16,
-    padding: 22,
-    shadowColor: '#172B4D',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.09,
+    borderColor: '#E2E8F0',
+    borderRadius: 24,
+    borderWidth: 1,
+    elevation: 2,
+    gap: 14,
+    padding: 20,
+    shadowColor: '#007AFF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
     shadowRadius: 10,
   },
-  termsRow: { alignItems: 'flex-start', flexDirection: 'row', gap: 10 },
+  termsRow: { alignItems: 'flex-start', flexDirection: 'row', gap: 10, marginTop: 2 },
   checkbox: {
     alignItems: 'center',
-    borderColor: '#D0D5DD',
-    borderRadius: 4,
-    borderWidth: 1,
-    height: 18,
+    borderColor: '#CBD5E1',
+    borderRadius: 6,
+    borderWidth: 1.5,
+    height: 20,
     justifyContent: 'center',
     marginTop: 1,
-    width: 18,
+    width: 20,
   },
-  checkboxChecked: { backgroundColor: '#0875D1', borderColor: '#0875D1' },
-  termsText: { color: '#667085', flex: 1, fontSize: 12, lineHeight: 18 },
-  linkText: { color: '#0875D1', fontSize: 13, fontWeight: '700' },
-  fieldError: { color: '#D92D20', fontSize: 12, marginTop: -10 },
+  checkboxChecked: { backgroundColor: '#007AFF', borderColor: '#007AFF' },
+  termsText: { color: '#64748B', flex: 1, fontSize: 12, lineHeight: 18 },
+  linkText: { color: '#007AFF', fontSize: 13, fontWeight: '700' },
+  fieldError: { color: '#EF4444', fontSize: 12, marginTop: -6 },
   formError: {
-    color: '#D92D20',
+    color: '#EF4444',
     fontSize: 13,
     lineHeight: 18,
     textAlign: 'center',
   },
   primaryButton: {
     alignItems: 'center',
-    backgroundColor: '#0875D1',
-    borderRadius: 12,
+    backgroundColor: '#007AFF',
+    borderRadius: 14,
     elevation: 2,
     flexDirection: 'row',
-    gap: 9,
-    height: 54,
+    gap: 8,
+    height: 50,
     justifyContent: 'center',
+    marginTop: 4,
+    shadowColor: '#007AFF',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
   },
-  primaryButtonText: { color: '#FFFFFF', fontSize: 17, fontWeight: '800' },
+  primaryButtonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
   buttonDisabled: { opacity: 0.65 },
   loginRow: {
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
+    marginTop: 4,
   },
-  loginPrompt: { color: '#667085', fontSize: 13 },
+  loginPrompt: { color: '#64748B', fontSize: 13 },
   trustRow: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 7,
+    gap: 6,
     justifyContent: 'center',
-    marginTop: 22,
+    marginTop: 18,
   },
-  trustText: { color: '#7A8496', fontSize: 11 },
+  trustText: { color: '#94A3B8', fontSize: 11, fontWeight: '500' },
 });
 
 export default RegisterScreen;
