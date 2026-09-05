@@ -75,3 +75,7 @@ export const apiVerifyOtp = (body: VerifyOtpBody) =>
 
 export const apiResendOtp = (email: string) =>
   apiClient.post<{ message: string }>("/auth/resend-otp", { email });
+
+export const apiLoginWithGoogle = (idToken: string) =>
+  apiClient.post<AuthSession>("/auth/google", { idToken, token: idToken });
+

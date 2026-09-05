@@ -80,7 +80,19 @@ export class ResetPasswordDto {
 }
 
 export class GoogleLoginDto {
-  @ApiProperty({ description: 'Google ID token từ web hoặc mobile' })
+  @ApiPropertyOptional({ description: 'Google ID token từ web hoặc mobile' })
+  @IsOptional()
   @IsString()
-  idToken: string;
+  idToken?: string;
+
+  @ApiPropertyOptional({ description: 'Google access token (tùy chọn)' })
+  @IsOptional()
+  @IsString()
+  accessToken?: string;
+
+  @ApiPropertyOptional({ description: 'Alias token gửi từ mobile hoặc web' })
+  @IsOptional()
+  @IsString()
+  token?: string;
 }
+

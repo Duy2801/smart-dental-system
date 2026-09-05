@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -139,7 +140,11 @@ export class AuthController {
     @Body() dto: GoogleLoginDto,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const session = await this.auth.loginWithGoogle(dto.idToken);
+    const rawToken = dto.idToken || dto.accessToken || dto.token;
+    if (!rawToken) {
+      throw new BadRequestException('auth.google_token_required');
+    }
+    const session = await this.auth.loginWithGoogle(rawToken);
     return this.hideRefreshToken(session, response);
   }
 }
