@@ -91,6 +91,7 @@ export default function LoginPage() {
     }
 
 
+
     const google = (window as unknown as { google?: any })?.google;
     if (!google?.accounts?.oauth2) {
       setError("Đang tải dịch vụ đăng nhập Google, vui lòng thử lại sau vài giây.");

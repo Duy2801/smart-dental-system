@@ -54,6 +54,7 @@ export class PatientService {
   }
 
   async getManagedPatientProfiles(userId: string) {
+    await this.findOrCreatePatientProfile(userId);
     const cacheKey = `patient:profiles:${userId}`;
     return this.redis.rememberJson(cacheKey, 60, async () => {
       const links = await this.prisma.patientAccount.findMany({
@@ -1144,10 +1145,26 @@ export class PatientService {
   private async findOrCreatePatientProfile(userId: string) {
     const existing = await this.prisma.patient.findUnique({
       where: { userId },
-      select: { id: true },
+      select: { id: true, fullName: true, email: true, phone: true },
     });
     if (existing) {
       await this.ensurePatientAccountLink(userId, existing.id, true);
+      if (!existing.fullName || !existing.email) {
+        const user = await this.prisma.user.findUnique({
+          where: { id: userId },
+          select: { fullName: true, phone: true, email: true },
+        });
+        if (user) {
+          await this.prisma.patient.update({
+            where: { id: existing.id },
+            data: {
+              fullName: existing.fullName || user.fullName,
+              email: existing.email || user.email,
+              phone: existing.phone || user.phone,
+            },
+          });
+        }
+      }
       return existing;
     }
 

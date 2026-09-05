@@ -81,19 +81,58 @@ export class AuthService {
   }
 
   private async ensurePatientProfile(userId: string) {
-    const existing = await this.prismaService.patient.findUnique({
-      where: { userId },
-      select: { id: true },
+    const user = await this.prismaService.user.findUnique({
+      where: { id: userId },
+      select: { fullName: true, phone: true, email: true },
     });
-    if (existing) return;
+    if (!user) return;
 
-    await this.prismaService.patient.create({
-      data: {
+    let patient = await this.prismaService.patient.findUnique({
+      where: { userId },
+      select: { id: true, fullName: true, email: true, phone: true },
+    });
+
+    if (!patient) {
+      patient = await this.prismaService.patient.create({
+        data: {
+          userId,
+          patientCode: await this.generatePatientCode(),
+          fullName: user.fullName,
+          phone: user.phone,
+          email: user.email,
+        },
+        select: { id: true, fullName: true, email: true, phone: true },
+      });
+    } else if (!patient.fullName || !patient.email) {
+      await this.prismaService.patient.update({
+        where: { id: patient.id },
+        data: {
+          fullName: patient.fullName || user.fullName,
+          email: patient.email || user.email,
+          phone: patient.phone || user.phone,
+        },
+      });
+    }
+
+    await this.prismaService.patientAccount.upsert({
+      where: { userId_patientId: { userId, patientId: patient.id } },
+      update: {
+        relationship: 'SELF',
+        isPrimary: true,
+        canBook: true,
+      },
+      create: {
         userId,
-        patientCode: await this.generatePatientCode(),
+        patientId: patient.id,
+        relationship: 'SELF',
+        isPrimary: true,
+        canBook: true,
       },
     });
+
+    await this.redisService.del(`patient:profiles:${userId}`);
   }
+
 
   async register(data: RegisterDto, locale: 'en' | 'vi' = 'vi') {
     const email = this.normalizeEmail(data.email);

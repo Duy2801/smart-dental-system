@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAppointmentBookingData } from "../../hooks/useAppointmentBookingData";
 import { useCreateAppointment } from "../../hooks/useCreateAppointment";
@@ -51,6 +51,20 @@ export function BookingModeView({
   const queryClient = useQueryClient();
   const patientProfilesQuery = useManagedPatientProfilesQuery(isLoggedIn);
   const patientProfiles = patientProfilesQuery.data ?? [];
+
+  // Tự động chọn người khám chính (chính chủ hoặc hồ sơ đầu tiên) khi danh sách tải xong
+  useEffect(() => {
+    if (!selectedPatientId && patientProfiles.length > 0) {
+      const defaultPatient =
+        patientProfiles.find((p) => p.isPrimary && p.canBook) ??
+        patientProfiles.find((p) => p.canBook) ??
+        patientProfiles[0];
+      if (defaultPatient) {
+        setSelectedPatientId(defaultPatient.id);
+      }
+    }
+  }, [selectedPatientId, patientProfiles]);
+
 
   const createPatientMutation = useMutation({
     mutationFn: createManagedPatientProfile,
