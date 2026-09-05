@@ -42,3 +42,12 @@ export const apiResendOtp = async (email: string) => {
 };
 
 export const apiLogout = () => api.post('/auth/logout');
+
+export const apiLoginWithGoogle = async (token: string) => {
+  const response = await api.post<ApiEnvelope<AuthSession>>('/auth/google', {
+    idToken: token,
+    token,
+  });
+  return response.data.data;
+};
+

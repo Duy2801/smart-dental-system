@@ -104,7 +104,7 @@ export function ClinicLocationSection() {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 self-start rounded-xl bg-blue-50 px-4 py-2.5 text-xs font-bold text-[#0058bc] transition hover:bg-[#0058bc] hover:text-white"
           >
-            Mở chỉ đường Google Maps &rarr;
+            Mở chỉ đường Google Maps
           </a>
         ) : null}
       </div>
@@ -214,7 +214,7 @@ export function ClinicLocationSection() {
                   rel="noopener noreferrer"
                   className="pointer-events-auto rounded-xl bg-slate-900/90 px-3 py-2 text-xs font-bold text-white shadow-md backdrop-blur transition hover:bg-slate-900"
                 >
-                  Chỉ đường &rarr;
+                  Chỉ đường
                 </a>
               </div>
             </>

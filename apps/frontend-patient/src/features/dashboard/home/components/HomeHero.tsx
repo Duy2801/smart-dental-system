@@ -61,10 +61,9 @@ export function HomeHero({ patientName }: { patientName: string }) {
         </p>
         <Link
           href={buildRoute.appointmentBooking()}
-          className="mt-7 inline-flex h-12 w-fit items-center gap-2 rounded-xl bg-white px-5 text-sm font-bold text-[#0863c5] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+          className="mt-7 inline-flex h-12 w-fit items-center justify-center rounded-xl bg-white px-5 text-sm font-bold text-[#0863c5] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
         >
           Tư vấn cùng chuyên gia
-          <DashboardIcon name="arrow" className="h-4 w-4" />
         </Link>
       </div>
       <DentalScan />

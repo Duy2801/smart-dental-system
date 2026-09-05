@@ -60,18 +60,18 @@ export function FormField({
 
   return (
     <label className="group block">
-      <span className="mb-1 flex items-center justify-between gap-2 text-[11px] font-bold text-slate-700 group-focus-within:text-[#0863c5] transition-colors">
+      <span className="mb-1.5 flex items-center justify-between gap-2 text-xs font-semibold text-slate-700 group-focus-within:text-[#0863c5] transition-colors">
         <span>{label}</span>
         {hint}
       </span>
       <span className="relative block">
-        <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 group-focus-within:text-[#0863c5] transition-colors duration-200">
+        <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400 group-focus-within:text-[#0863c5] transition-colors duration-200">
           <FieldIcon name={icon} />
         </span>
         <input
           {...inputProps}
           type={isPassword && passwordVisible ? "text" : type}
-          className={`h-9.5 w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-9 pr-9 text-sm sm:text-xs font-medium text-slate-900 outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-300 hover:bg-white focus:border-[#0863c5] focus:bg-white focus:ring-3 focus:ring-blue-500/12 shadow-2xs ${className}`}
+          className={`h-11 w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-10 pr-10 text-xs sm:text-sm font-medium text-slate-900 outline-none transition-all duration-200 placeholder:text-slate-400 hover:border-slate-300 hover:bg-white focus:border-[#0863c5] focus:bg-white focus:ring-4 focus:ring-blue-500/10 shadow-2xs ${className}`}
         />
         {isPassword && onTogglePassword && (
           <button
@@ -79,7 +79,7 @@ export function FormField({
             aria-label={passwordVisible ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
             aria-pressed={passwordVisible}
             onClick={onTogglePassword}
-            className="absolute inset-y-0 right-0 flex w-9 items-center justify-center text-slate-400 transition hover:text-[#0863c5] rounded-r-xl"
+            className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-slate-400 transition hover:text-[#0863c5] rounded-r-xl"
           >
             <svg
               aria-hidden="true"
@@ -91,7 +91,7 @@ export function FormField({
               strokeLinecap="round"
               strokeLinejoin="round"
             >
-              <path d="M2.5 12s3.5-5.5 9.5-5.5 9.5 5.5 9.5 5.5-3.5 5.5-9.5 5.5S2.5 12 2.5 12Z" />
+              <path d="M2.5 12s3.5-5.5 9.5-5.5 9.5 5.5-3.5 5.5-9.5 5.5S2.5 12 2.5 12Z" />
               <circle cx="12" cy="12" r="2.5" />
               {passwordVisible && <path d="m4 4 16 16" />}
             </svg>

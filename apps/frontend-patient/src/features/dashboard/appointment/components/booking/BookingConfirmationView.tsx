@@ -304,7 +304,7 @@ export function BookingConfirmationView({
               onClick={onBackToEdit}
               className="inline-flex h-10 w-full items-center justify-center rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-600 transition hover:bg-slate-50"
             >
-              ← Quay lại chỉnh sửa
+              Quay lại chỉnh sửa
             </button>
           </div>
         </section>

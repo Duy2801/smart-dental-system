@@ -128,7 +128,6 @@ export function PromotionDetailExperience({ promotionId }: { promotionId: string
             href={ROUTES.promotions}
             className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#0058bc] px-5 py-3 text-sm font-bold text-white shadow-md transition hover:bg-[#004698]"
           >
-            <DashboardIcon name="arrow" className="h-4 w-4 rotate-180" />
             Xem danh sách ưu đãi khác
           </Link>
         </div>

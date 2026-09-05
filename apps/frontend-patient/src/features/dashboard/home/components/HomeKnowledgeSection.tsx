@@ -140,8 +140,8 @@ function FaqCard({ item }: { item: FaqItem }) {
         <span className={T.linkCta}>
           Đặt lịch tư vấn
         </span>
-        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#0058bc] text-white shadow-lg shadow-blue-500/20 transition group-hover:translate-x-1">
-          <DashboardIcon name="arrow" className="h-4 w-4" />
+        <span className="inline-flex items-center justify-center rounded-xl bg-[#0058bc] px-3.5 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#004698]">
+          Đặt ngay
         </span>
       </div>
     </Link>

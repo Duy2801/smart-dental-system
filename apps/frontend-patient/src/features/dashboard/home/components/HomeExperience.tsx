@@ -204,10 +204,9 @@ export function HomeHeroSlideshow() {
                 <div className="mt-8 flex flex-wrap gap-3">
                   <Link
                     href={currentBanner.linkUrl || buildRoute.appointmentBooking()}
-                    className="inline-flex h-14 items-center gap-2.5 rounded-2xl bg-white px-7 text-sm font-bold text-[#0058bc] shadow-xl shadow-blue-950/20 transition hover:-translate-y-0.5 hover:bg-slate-50"
+                    className="inline-flex h-14 items-center justify-center rounded-2xl bg-white px-7 text-sm font-bold text-[#0058bc] shadow-xl shadow-blue-950/20 transition hover:-translate-y-0.5 hover:bg-slate-50"
                   >
                     Khám phá ngay
-                    <DashboardIcon name="arrow" className="h-4 w-4" />
                   </Link>
                 </div>
 
@@ -265,10 +264,9 @@ export function HomeHeroSlideshow() {
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link
                   href={buildRoute.appointmentBooking()}
-                  className="inline-flex h-14 items-center gap-2.5 rounded-2xl bg-white px-7 text-sm font-bold text-[#0058bc] shadow-xl shadow-blue-950/20 transition hover:-translate-y-0.5 hover:bg-slate-50"
+                  className="inline-flex h-14 items-center justify-center rounded-2xl bg-white px-7 text-sm font-bold text-[#0058bc] shadow-xl shadow-blue-950/20 transition hover:-translate-y-0.5 hover:bg-slate-50"
                 >
                   Đặt lịch khám ngay
-                  <DashboardIcon name="arrow" className="h-4 w-4" />
                 </Link>
                 <Link
                   href={ROUTES.service}
@@ -333,10 +331,9 @@ export function HomeHeroSlideshow() {
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
               href={buildRoute.appointmentWithService(slide.id)}
-              className="inline-flex h-14 items-center gap-2.5 rounded-2xl bg-white px-7 text-sm font-bold text-[#0058bc] shadow-xl shadow-blue-950/20 transition hover:-translate-y-0.5 hover:bg-slate-50"
+              className="inline-flex h-14 items-center justify-center rounded-2xl bg-white px-7 text-sm font-bold text-[#0058bc] shadow-xl shadow-blue-950/20 transition hover:-translate-y-0.5 hover:bg-slate-50"
             >
               Đặt lịch hẹn ngay
-              <DashboardIcon name="arrow" className="h-4 w-4" />
             </Link>
             <Link
               href={slide.href}

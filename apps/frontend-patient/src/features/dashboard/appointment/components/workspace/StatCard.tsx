@@ -33,9 +33,6 @@ export function StatCard({
           <strong className="block text-3xl text-slate-900">{value}</strong>
           <p className="mt-1 text-xs font-medium text-slate-500">{label}</p>
         </div>
-        <span className="text-lg text-slate-200 transition group-hover:translate-x-1 group-hover:text-blue-400">
-          →
-        </span>
       </div>
     </article>
   );

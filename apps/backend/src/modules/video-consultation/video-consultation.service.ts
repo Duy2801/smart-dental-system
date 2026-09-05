@@ -497,8 +497,50 @@ export class VideoConsultationService implements OnModuleInit {
     });
   }
 
-  /** Đặt lịch tư vấn trực tuyến cho bệnh nhân với Serializable transaction & 15m slot locking */
+  /** Đặt lịch tư vấn trực tuyến cho bệnh nhân với 15m slot locking */
   async createBooking(user: AuthenticatedUser, dto: CreateVideoConsultationDto) {
+    const scheduledAt = new Date(dto.scheduledAt);
+    if (isNaN(scheduledAt.getTime())) {
+      throw new BadRequestException('Thời gian hẹn không hợp lệ');
+    }
+    if (scheduledAt.getTime() < Date.now()) {
+      throw new BadRequestException('Thời gian tư vấn phải ở tương lai');
+    }
+
+    const scheduledEndMs = scheduledAt.getTime() + dto.durationMinutes * 60 * 1000;
+    const scheduledEnd = new Date(scheduledEndMs);
+
+    // 1. Kiểm tra Giờ hoạt động phòng khám (Clinic Operating Hours) trước khi mở transaction
+    const clinicConfig = await this.clinicConfigService.getClinicConfig();
+    const { formattedDateStr, dayOfWeek } = getIctDateDetails(scheduledAt);
+
+    const specialDate = clinicConfig.specialDates.find(
+      (s) => s.date === formattedDateStr,
+    );
+    if (specialDate && specialDate.isClosed) {
+      throw new BadRequestException('Phòng khám đóng cửa vào ngày này');
+    }
+
+    const daySetting = clinicConfig.businessHours.find((bh) => bh.id === dayOfWeek);
+    if (!daySetting || !daySetting.isOpen) {
+      throw new BadRequestException('Phòng khám không mở cửa vào ngày này');
+    }
+
+    let clinicStart = daySetting.start;
+    let clinicEnd = daySetting.end;
+    if (specialDate && !specialDate.isClosed && specialDate.start && specialDate.end) {
+      clinicStart = specialDate.start;
+      clinicEnd = specialDate.end;
+    }
+
+    const clinicStartMs = new Date(`${formattedDateStr}T${clinicStart}:00.000+07:00`).getTime();
+    const clinicEndMs = new Date(`${formattedDateStr}T${clinicEnd}:00.000+07:00`).getTime();
+    if (scheduledAt.getTime() < clinicStartMs || scheduledEndMs > clinicEndMs) {
+      throw new BadRequestException('Thời gian tư vấn nằm ngoài giờ hoạt động của phòng khám');
+    }
+
+    const fee = await this.calculateConsultationFee(dto.durationMinutes);
+
     const result = await this.prisma.$transaction(
       async (tx) => {
         let patient = await tx.patient.findUnique({
@@ -529,46 +571,6 @@ export class VideoConsultationService implements OnModuleInit {
         });
         if (!doctor || !doctor.isActive) {
           throw new NotFoundException('Không tìm thấy bác sĩ tư vấn');
-        }
-
-        const scheduledAt = new Date(dto.scheduledAt);
-        if (isNaN(scheduledAt.getTime())) {
-          throw new BadRequestException('Thời gian hẹn không hợp lệ');
-        }
-        if (scheduledAt.getTime() < Date.now()) {
-          throw new BadRequestException('Thời gian tư vấn phải ở tương lai');
-        }
-
-        const scheduledEndMs = scheduledAt.getTime() + dto.durationMinutes * 60 * 1000;
-        const scheduledEnd = new Date(scheduledEndMs);
-
-        // 1. Kiểm tra Giờ hoạt động phòng khám (Clinic Operating Hours)
-        const clinicConfig = await this.clinicConfigService.getClinicConfig();
-        const { formattedDateStr, dayOfWeek } = getIctDateDetails(scheduledAt);
-
-        const specialDate = clinicConfig.specialDates.find(
-          (s) => s.date === formattedDateStr,
-        );
-        if (specialDate && specialDate.isClosed) {
-          throw new BadRequestException('Phòng khám đóng cửa vào ngày này');
-        }
-
-        const daySetting = clinicConfig.businessHours.find((bh) => bh.id === dayOfWeek);
-        if (!daySetting || !daySetting.isOpen) {
-          throw new BadRequestException('Phòng khám không mở cửa vào ngày này');
-        }
-
-        let clinicStart = daySetting.start;
-        let clinicEnd = daySetting.end;
-        if (specialDate && !specialDate.isClosed && specialDate.start && specialDate.end) {
-          clinicStart = specialDate.start;
-          clinicEnd = specialDate.end;
-        }
-
-        const clinicStartMs = new Date(`${formattedDateStr}T${clinicStart}:00.000+07:00`).getTime();
-        const clinicEndMs = new Date(`${formattedDateStr}T${clinicEnd}:00.000+07:00`).getTime();
-        if (scheduledAt.getTime() < clinicStartMs || scheduledEndMs > clinicEndMs) {
-          throw new BadRequestException('Thời gian tư vấn nằm ngoài giờ hoạt động của phòng khám');
         }
 
         // 2. Doctor Overlapping check
@@ -654,7 +656,6 @@ export class VideoConsultationService implements OnModuleInit {
           throw new BadRequestException('Bạn đã có cuộc hẹn tư vấn trực tuyến khác vào khung giờ này');
         }
 
-        const fee = await this.calculateConsultationFee(dto.durationMinutes);
         const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // Lock 15 phút
 
         const consultation = await tx.videoConsultation.create({
@@ -672,7 +673,7 @@ export class VideoConsultationService implements OnModuleInit {
           include: consultInclude,
         });
 
-        const invoiceCode = `INV-VC-${Date.now().toString().slice(-6)}`;
+        const invoiceCode = `INV-VC-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
         const invoice = await tx.invoice.create({
           data: {
             invoiceCode,
@@ -755,7 +756,7 @@ export class VideoConsultationService implements OnModuleInit {
           payment: paymentDetails,
         };
       },
-      { isolationLevel: 'Serializable' },
+      { maxWait: 15000, timeout: 30000 },
     );
 
     void this.invalidateConsultationSlots(dto.doctorId);
@@ -764,10 +765,11 @@ export class VideoConsultationService implements OnModuleInit {
 
   /** Bệnh nhân hủy lịch tư vấn & Xử lý chính sách hoàn tiền */
   async cancelBookingByPatient(user: AuthenticatedUser, id: string) {
-    const result = await this.prisma.$transaction(async (tx) => {
-      const patient = await tx.patient.findUnique({
-        where: { userId: user.userId },
-      });
+    const result = await this.prisma.$transaction(
+      async (tx) => {
+        const patient = await tx.patient.findUnique({
+          where: { userId: user.userId },
+        });
       if (!patient) {
         throw new NotFoundException('Không tìm thấy thông tin bệnh nhân');
       }
@@ -886,7 +888,9 @@ export class VideoConsultationService implements OnModuleInit {
           note: refundNote,
         },
       };
-    });
+    },
+    { maxWait: 15000, timeout: 30000 },
+  );
 
     void this.invalidateConsultationSlots(result.consultation.doctorId);
     return result;

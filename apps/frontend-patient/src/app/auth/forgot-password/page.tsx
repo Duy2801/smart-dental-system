@@ -5,6 +5,9 @@ import Link from "next/link";
 import apiClient from "@/lib/axios";
 import { AxiosError } from "axios";
 
+import { FormField } from "@/features/auth/common/FormField";
+import { PrimaryButton } from "@/features/auth/common/PrimaryButton";
+
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -38,65 +41,58 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="w-full max-w-md rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-8">
-      <div className="text-center">
-        <h1 className="text-xl font-black text-slate-900 sm:text-2xl">
-          Quên mật khẩu?
-        </h1>
-        <p className="mt-1 text-xs text-slate-500">
-          Nhập địa chỉ email đăng ký để nhận liên kết đặt lại mật khẩu.
-        </p>
-      </div>
+    <div className="w-full sm:max-w-[400px] flex-1 sm:flex-initial flex flex-col justify-center px-4 sm:px-0 py-6 sm:py-0">
+      <section className="w-full bg-white border-0 sm:border sm:border-slate-200/80 rounded-none sm:rounded-2xl shadow-none sm:shadow-lg sm:shadow-slate-200/50 p-0 sm:p-7 transition-all">
+        <div className="mb-5 text-center">
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900">
+            Quên mật khẩu?
+          </h1>
+          <p className="mt-1 text-xs text-slate-500">
+            Nhập địa chỉ email đăng ký để nhận hướng dẫn đặt lại mật khẩu.
+          </p>
+        </div>
 
-      <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-        {successMessage ? (
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50/90 p-3 text-xs font-semibold text-emerald-800">
-            {successMessage}
-          </div>
-        ) : null}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {successMessage && (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50/90 p-2.5 text-xs font-semibold text-emerald-800">
+              {successMessage}
+            </div>
+          )}
 
-        {errorMessage ? (
-          <div className="rounded-xl border border-rose-200 bg-rose-50/90 p-3 text-xs font-semibold text-rose-700">
-            {errorMessage}
-          </div>
-        ) : null}
+          {errorMessage && (
+            <div className="rounded-xl border border-rose-200 bg-rose-50/90 p-2.5 text-xs font-semibold text-rose-700">
+              {errorMessage}
+            </div>
+          )}
 
-        <div>
-          <label
-            htmlFor="email"
-            className="block text-xs font-bold text-slate-700"
-          >
-            Địa chỉ email
-          </label>
-          <input
-            id="email"
+          <FormField
+            label="Địa chỉ email"
+            icon="mail"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
             placeholder="example@gmail.com"
-            className="mt-1.5 w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-xs text-slate-900 outline-none transition focus:border-[#0863c5] focus:ring-2 focus:ring-blue-100"
+            autoComplete="email"
           />
-        </div>
 
-        <button
-          type="submit"
-          disabled={submitting}
-          className="w-full rounded-xl bg-[#0863c5] py-2.5 text-xs font-extrabold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-50"
-        >
-          {submitting ? "Đang xử lý..." : "Gửi yêu cầu đặt lại"}
-        </button>
+          <div className="pt-1">
+            <PrimaryButton disabled={submitting}>
+              {submitting ? "Đang xử lý..." : "Gửi yêu cầu đặt lại"}
+            </PrimaryButton>
+          </div>
 
-        <div className="pt-2 text-center text-xs font-bold text-slate-500">
-          Nhớ lại mật khẩu?{" "}
-          <Link
-            href="/auth/login"
-            className="text-[#0863c5] hover:text-blue-700 hover:underline"
-          >
-            Đăng nhập ngay
-          </Link>
-        </div>
-      </form>
+          <p className="mt-5 border-t border-slate-100 pt-3.5 text-center text-xs text-slate-500">
+            Nhớ lại mật khẩu?{" "}
+            <Link
+              href="/auth/login"
+              className="font-extrabold text-[#0863c5] transition hover:underline"
+            >
+              Đăng nhập ngay
+            </Link>
+          </p>
+        </form>
+      </section>
     </div>
   );
 }

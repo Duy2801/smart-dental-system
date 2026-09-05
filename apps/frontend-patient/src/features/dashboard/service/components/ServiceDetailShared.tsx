@@ -42,15 +42,15 @@ export function SectionHeading({
   title: string;
 }) {
   return (
-    <div>
+    <div className="min-w-0">
       <p className={`${T.overline} text-[#0863c5]`}>
         {eyebrow}
       </p>
-      <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-slate-950">
+      <h2 className="mt-2 break-words text-xl font-extrabold tracking-tight text-slate-950 sm:text-2xl">
         {title}
       </h2>
       {description ? (
-        <p className={`mt-3 max-w-3xl ${T.body}`}>
+        <p className={`mt-3 max-w-3xl break-words ${T.body}`}>
           {description}
         </p>
       ) : null}
@@ -60,7 +60,7 @@ export function SectionHeading({
 
 export function EmptyContent({ label }: { label: string }) {
   return (
-    <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-sm text-slate-500">
+    <div className="max-w-full break-words rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500 sm:p-5">
       {label} chưa được cập nhật trong hệ thống.
     </div>
   );
@@ -81,7 +81,7 @@ export function BookingPanel({
     }&intent=booking`;
 
   return (
-    <aside className="space-y-5 lg:sticky lg:top-24">
+    <aside className="min-w-0 space-y-5 lg:sticky lg:top-24">
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="bg-slate-950 p-5 text-white">
           <p className={`${T.fieldLabel} text-blue-200`}>

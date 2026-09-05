@@ -1,3 +1,5 @@
+# Core dependencies for Smart Dental AI Service (Vercel Serverless / Cloud Production)
+# Bao gồm FastAPI, Pydantic, HTTP client và các thư viện xử lý ảnh cơ bản cho LLM & Gemini Vision.
 fastapi==0.115.6
 uvicorn[standard]==0.34.0
 pydantic==2.10.4
@@ -6,13 +8,3 @@ httpx==0.28.1
 python-dotenv==1.0.1
 pillow>=10.0.0
 numpy>=1.26.0
-pandas>=2.2.3
-matplotlib>=3.10.0
-opencv-python-headless>=4.11.0.86
-absl-py>=2.1.0
-ultralytics==8.3.75
---extra-index-url https://download.pytorch.org/whl/cpu
---extra-index-url https://miropsota.github.io/torch_packages_builder
-torch==2.6.0+cpu
-torchvision==0.21.0+cpu
-detectron2==0.6+2a420edpt2.6.0cpu

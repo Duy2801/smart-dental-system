@@ -27,7 +27,7 @@ export function InsightsSection({ article }: { article: FeaturedArticle }) {
             href={ROUTES.records}
             className="inline-flex items-center gap-1.5 text-sm font-bold text-[#0863c5] hover:underline"
           >
-            Đọc bài viết <DashboardIcon name="arrow" className="h-4 w-4" />
+            Đọc bài viết
           </Link>
           <span className="flex items-center gap-1 text-xs text-slate-400">
             <DashboardIcon name="clock" className="h-4 w-4" /> {article.readTime}
@@ -55,7 +55,7 @@ export function InsightsSection({ article }: { article: FeaturedArticle }) {
             aria-label="Gửi câu hỏi"
             className="grid h-9 w-9 place-items-center rounded-lg bg-[#0863c5] text-white hover:bg-[#0756aa]"
           >
-            <DashboardIcon name="arrow" className="h-4 w-4" />
+            <DashboardIcon name="send" className="h-4 w-4" />
           </button>
         </div>
       </aside>

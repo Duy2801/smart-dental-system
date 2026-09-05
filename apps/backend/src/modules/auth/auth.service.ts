@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
@@ -26,6 +27,7 @@ const RESEND_WINDOW_SECONDS = 3 * 60;
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
   private readonly googleClient: OAuth2Client;
 
   constructor(
@@ -36,9 +38,7 @@ export class AuthService {
     private readonly prismaService: PrismaService,
     @InjectQueue('mail-queue') private readonly mailQueue: Queue,
   ) {
-    this.googleClient = new OAuth2Client(
-      this.configService.get<string>('GOOGLE_CLIENT_ID'),
-    );
+    this.googleClient = new OAuth2Client();
   }
 
   private normalizeEmail(email: string) {
@@ -81,19 +81,58 @@ export class AuthService {
   }
 
   private async ensurePatientProfile(userId: string) {
-    const existing = await this.prismaService.patient.findUnique({
-      where: { userId },
-      select: { id: true },
+    const user = await this.prismaService.user.findUnique({
+      where: { id: userId },
+      select: { fullName: true, phone: true, email: true },
     });
-    if (existing) return;
+    if (!user) return;
 
-    await this.prismaService.patient.create({
-      data: {
+    let patient = await this.prismaService.patient.findUnique({
+      where: { userId },
+      select: { id: true, fullName: true, email: true, phone: true },
+    });
+
+    if (!patient) {
+      patient = await this.prismaService.patient.create({
+        data: {
+          userId,
+          patientCode: await this.generatePatientCode(),
+          fullName: user.fullName,
+          phone: user.phone,
+          email: user.email,
+        },
+        select: { id: true, fullName: true, email: true, phone: true },
+      });
+    } else if (!patient.fullName || !patient.email) {
+      await this.prismaService.patient.update({
+        where: { id: patient.id },
+        data: {
+          fullName: patient.fullName || user.fullName,
+          email: patient.email || user.email,
+          phone: patient.phone || user.phone,
+        },
+      });
+    }
+
+    await this.prismaService.patientAccount.upsert({
+      where: { userId_patientId: { userId, patientId: patient.id } },
+      update: {
+        relationship: 'SELF',
+        isPrimary: true,
+        canBook: true,
+      },
+      create: {
         userId,
-        patientCode: await this.generatePatientCode(),
+        patientId: patient.id,
+        relationship: 'SELF',
+        isPrimary: true,
+        canBook: true,
       },
     });
+
+    await this.redisService.del(`patient:profiles:${userId}`);
   }
+
 
   async register(data: RegisterDto, locale: 'en' | 'vi' = 'vi') {
     const email = this.normalizeEmail(data.email);
@@ -406,16 +445,105 @@ export class AuthService {
     return { message: 'auth.password_reset_success' };
   }
 
-  private async verifyGoogleToken(idToken: string) {
-    const ticket = await this.googleClient.verifyIdToken({
-      idToken,
-      audience: this.configService.getOrThrow<string>('GOOGLE_CLIENT_ID'),
-    });
-    return ticket.getPayload();
+  private getGoogleAudiences(): string[] {
+    const rawIds = [
+      this.configService.get<string>('GOOGLE_CLIENT_ID'),
+      this.configService.get<string>('GOOGLE_WEB_CLIENT_ID'),
+      this.configService.get<string>('GOOGLE_ANDROID_CLIENT_ID'),
+      this.configService.get<string>('GOOGLE_IOS_CLIENT_ID'),
+      this.configService.get<string>('GOOGLE_MOBILE_CLIENT_ID'),
+    ];
+
+    const audiences = rawIds
+      .map((id) => id?.trim().replace(/^["']|["']$/g, ''))
+      .filter((id): id is string => Boolean(id));
+
+    return Array.from(new Set(audiences));
   }
 
-  async loginWithGoogle(idToken: string) {
-    const payload = await this.verifyGoogleToken(idToken);
+  private async fetchGoogleUserInfo(accessToken: string): Promise<{
+    sub: string;
+    email: string;
+    email_verified?: boolean;
+    name?: string;
+  }> {
+    const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!res.ok) {
+      throw new Error(`Google userinfo status: ${res.status}`);
+    }
+    const data = (await res.json()) as {
+      sub?: string;
+      email?: string;
+      email_verified?: boolean;
+      name?: string;
+    };
+    if (!data?.email || !data?.sub) {
+      throw new Error('Google userinfo response missing email or sub');
+    }
+    return {
+      sub: data.sub,
+      email: data.email,
+      email_verified: data.email_verified ?? false,
+      name: data.name,
+    };
+  }
+
+  private async verifyGoogleToken(rawToken: string): Promise<{
+    sub: string;
+    email: string;
+    email_verified?: boolean;
+    name?: string;
+  }> {
+    const token = rawToken?.trim();
+    if (!token) {
+      throw new UnauthorizedException('auth.google_invalid_token');
+    }
+
+    // Nếu token là OAuth2 Access Token (bắt đầu bằng ya29.)
+    if (token.startsWith('ya29.')) {
+      try {
+        return await this.fetchGoogleUserInfo(token);
+      } catch (err: any) {
+        this.logger.warn(`Google access_token verification failed: ${err?.message || err}`);
+        throw new UnauthorizedException('auth.google_invalid_token');
+      }
+    }
+
+    // Token dạng JWT ID Token
+    const audiences = this.getGoogleAudiences();
+    try {
+      const ticket = await this.googleClient.verifyIdToken({
+        idToken: token,
+        audience: audiences.length > 0 ? audiences : undefined,
+      });
+      const payload = ticket.getPayload();
+      if (payload?.email && payload?.sub) {
+        return {
+          sub: payload.sub,
+          email: payload.email,
+          email_verified: payload.email_verified ?? false,
+          name: payload.name,
+        };
+      }
+    } catch (err: any) {
+      this.logger.warn(
+        `Google verifyIdToken failed: ${err?.message || err}. Attempting userinfo fallback...`,
+      );
+    }
+
+    // Fallback thử endpoint userinfo
+    try {
+      return await this.fetchGoogleUserInfo(token);
+    } catch (err: any) {
+      this.logger.warn(`Google userinfo fallback failed: ${err?.message || err}`);
+      throw new UnauthorizedException('auth.google_invalid_token');
+    }
+  }
+
+  async loginWithGoogle(rawToken: string) {
+    const payload = await this.verifyGoogleToken(rawToken);
     if (!payload?.email) {
       throw new UnauthorizedException('auth.google_invalid_token');
     }
@@ -423,7 +551,11 @@ export class AuthService {
     const email = this.normalizeEmail(payload.email);
     let user = await this.prismaService.user.findFirst({
       where: { OR: [{ googleId: payload.sub }, { email }] },
+      include: {
+        roles: { include: { role: true } },
+      },
     });
+
     if (!user) {
       const role = await this.getPatientRole();
       user = await this.prismaService.user.create({
@@ -431,8 +563,11 @@ export class AuthService {
           email,
           fullName: payload.name ?? email.split('@')[0],
           googleId: payload.sub,
-          emailVerified: payload.email_verified ?? false,
+          emailVerified: payload.email_verified ?? true,
           roles: { create: { roleId: role.id } },
+        },
+        include: {
+          roles: { include: { role: true } },
         },
       });
     } else if (!user.googleId) {
@@ -441,13 +576,27 @@ export class AuthService {
         data: {
           googleId: payload.sub,
           emailVerified:
-            user.emailVerified || (payload.email_verified ?? false),
+            user.emailVerified || (payload.email_verified ?? true),
+        },
+        include: {
+          roles: { include: { role: true } },
         },
       });
     }
+
     if (user.status !== 'ACTIVE') {
       throw new UnauthorizedException('auth.account_inactive');
     }
+
+    // Đảm bảo mọi tài khoản bệnh nhân đăng nhập qua Google đều có PatientProfile
+    const isPatient =
+      user.roles.length === 0 ||
+      user.roles.some((r) => r.role.code === 'PATIENT');
+    if (isPatient) {
+      await this.ensurePatientProfile(user.id);
+    }
+
     return this.createSession(user);
   }
 }
+

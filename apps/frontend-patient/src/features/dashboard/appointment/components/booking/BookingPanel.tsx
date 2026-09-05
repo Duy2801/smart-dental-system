@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   AppointmentService,
   BookingDate,
@@ -106,6 +106,32 @@ export function BookingPanel({
     isStep4Complete,
   ];
 
+  const panelTopRef = useRef<HTMLDivElement>(null);
+  const isFirstMount = useRef(true);
+
+  // Auto smooth scroll to top of panel on every step change
+  useEffect(() => {
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      return;
+    }
+
+    const scrollToTop = () => {
+      if (panelTopRef.current) {
+        const rect = panelTopRef.current.getBoundingClientRect();
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const targetY = scrollTop + rect.top - 80;
+        window.scrollTo({
+          top: Math.max(0, targetY),
+          behavior: "smooth",
+        });
+      }
+    };
+
+    const timer = setTimeout(scrollToTop, 50);
+    return () => clearTimeout(timer);
+  }, [activeStep]);
+
   // Quick info objects for summary header
   const selectedPatient = useMemo(
     () => patients.find((p) => p.id === selectedPatientId),
@@ -147,9 +173,9 @@ export function BookingPanel({
   ];
 
   return (
-    <div className="space-y-6">
-      {/* STEPPER BAR (Inspired by Image 1) */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+    <div ref={panelTopRef} className="space-y-6">
+      {/* STEPPER BAR */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-3.5 sm:p-5 shadow-sm">
         <div className="flex items-center justify-between">
           {stepsConfig.map((step, idx) => {
             const stepNum = step.number;
@@ -167,20 +193,23 @@ export function BookingPanel({
                   type="button"
                   disabled={!isClickable}
                   onClick={() => handleStepClick(stepNum)}
-                  className={`group flex flex-col items-center sm:flex-row sm:gap-3 transition text-left ${isClickable ? "cursor-pointer" : "cursor-not-allowed opacity-40"
-                    }`}
+                  className={`group flex items-center justify-center sm:justify-start sm:gap-3 transition text-left ${
+                    isClickable ? "cursor-pointer" : "cursor-not-allowed opacity-40"
+                  }`}
+                  aria-label={`Bước ${stepNum}: ${step.label}`}
                 >
                   {/* Step Pill / Badge */}
                   <div
-                    className={`flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl font-extrabold text-xs sm:text-sm transition-all ${isActive
+                    className={`flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl font-extrabold text-xs sm:text-sm transition-all ${
+                      isActive
                         ? "bg-[#0863c5] text-white shadow-md shadow-blue-500/20 ring-4 ring-blue-100 scale-105"
                         : isCompleted
                           ? "bg-emerald-500 text-white shadow-xs"
                           : "bg-slate-100 border border-slate-200 text-slate-400"
-                      }`}
+                    }`}
                   >
                     {isCompleted && !isActive ? (
-                      <svg className="h-5 w-5 stroke-current stroke-[3]" fill="none" viewBox="0 0 24 24">
+                      <svg className="h-4.5 w-4.5 sm:h-5 sm:w-5 stroke-current stroke-[3]" fill="none" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                       </svg>
                     ) : (
@@ -188,19 +217,20 @@ export function BookingPanel({
                     )}
                   </div>
 
-                  {/* Label */}
-                  <div className="mt-1 text-center sm:mt-0 sm:text-left">
+                  {/* Label: Hidden on mobile to prevent 3-line word wrapping, displayed on desktop */}
+                  <div className="hidden sm:block">
                     <span
-                      className={`block text-[10px] sm:text-xs font-extrabold uppercase tracking-wider transition ${isActive
+                      className={`block text-xs font-extrabold uppercase tracking-wider transition ${
+                        isActive
                           ? "text-[#0863c5]"
                           : isCompleted
                             ? "text-slate-800"
                             : "text-slate-400"
-                        }`}
+                      }`}
                     >
                       {step.label}
                     </span>
-                    <span className="hidden text-[10px] text-slate-400 sm:block font-medium">
+                    <span className="block text-[10px] text-slate-400 font-medium">
                       {isCompleted && !isActive ? "Đã hoàn thành" : `Bước ${step.number}`}
                     </span>
                   </div>
@@ -208,16 +238,41 @@ export function BookingPanel({
 
                 {/* Connecting Line */}
                 {idx < stepsConfig.length - 1 && (
-                  <div className="mx-2 sm:mx-3 h-[2px] flex-1 rounded-full bg-slate-200">
+                  <div className="mx-1.5 sm:mx-3 h-[2.5px] flex-1 rounded-full bg-slate-200 overflow-hidden">
                     <div
-                      className={`h-full rounded-full transition-all duration-300 ${completedSteps[idx] ? "bg-emerald-500" : "bg-transparent"
-                        }`}
+                      className={`h-full rounded-full transition-all duration-300 ${
+                        completedSteps[idx] ? "bg-emerald-500" : "bg-transparent"
+                      }`}
                     />
                   </div>
                 )}
               </div>
             );
           })}
+        </div>
+
+        {/* Dedicated Mobile Active Step Bar */}
+        <div className="mt-3.5 flex items-center justify-between border-t border-slate-100 pt-3 sm:hidden">
+          <div className="flex items-center gap-2">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 text-[11px] font-extrabold text-[#0863c5]">
+              {activeStep}
+            </span>
+            <span className="text-xs font-extrabold text-slate-900 tracking-tight">
+              {stepsConfig[activeStep - 1].label}
+            </span>
+          </div>
+          <span className="text-[11px] font-semibold">
+            {completedSteps[activeStep - 1] ? (
+              <span className="inline-flex items-center gap-1 font-bold text-emerald-600">
+                <svg className="h-3 w-3 stroke-current stroke-[3]" fill="none" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                Đã chọn
+              </span>
+            ) : (
+              <span className="font-bold text-[#0863c5]">Bước {activeStep}/4</span>
+            )}
+          </span>
         </div>
       </div>
 
@@ -274,9 +329,9 @@ export function BookingPanel({
                 type="button"
                 disabled={!isStep1Complete}
                 onClick={() => setActiveStep(2)}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#0863c5] px-6 text-sm font-bold text-white transition hover:bg-[#0753a8] disabled:cursor-not-allowed disabled:bg-slate-300 shadow-sm"
+                className="w-full sm:w-auto inline-flex h-11 items-center justify-center rounded-xl bg-[#0863c5] px-6 text-sm font-bold text-white transition hover:bg-[#0753a8] disabled:cursor-not-allowed disabled:bg-slate-300 shadow-sm"
               >
-                Tiếp tục: Chọn dịch vụ →
+                Tiếp tục: Chọn dịch vụ
               </button>
             </div>
           </div>
@@ -300,21 +355,21 @@ export function BookingPanel({
               onSelectService={onSelectService}
               onSelectMethod={onSelectMethod}
             />
-            <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+            <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t border-slate-100">
               <button
                 type="button"
                 onClick={() => setActiveStep(1)}
-                className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition"
+                className="w-full sm:w-auto inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition"
               >
-                ← Quay lại người khám
+                Quay lại người khám
               </button>
               <button
                 type="button"
                 disabled={!isStep2Complete}
                 onClick={() => setActiveStep(3)}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#0863c5] px-6 text-sm font-bold text-white transition hover:bg-[#0753a8] disabled:cursor-not-allowed disabled:bg-slate-300 shadow-sm"
+                className="w-full sm:w-auto inline-flex h-11 items-center justify-center rounded-xl bg-[#0863c5] px-6 text-sm font-bold text-white transition hover:bg-[#0753a8] disabled:cursor-not-allowed disabled:bg-slate-300 shadow-sm"
               >
-                Tiếp tục: Chọn ngày & giờ →
+                Tiếp tục: Chọn ngày & giờ
               </button>
             </div>
           </div>
@@ -342,21 +397,21 @@ export function BookingPanel({
               onSelectDate={onSelectDate}
               onSelectTime={onSelectTime}
             />
-            <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+            <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t border-slate-100">
               <button
                 type="button"
                 onClick={() => setActiveStep(2)}
-                className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition"
+                className="w-full sm:w-auto inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition"
               >
-                ← Quay lại dịch vụ
+                Quay lại dịch vụ
               </button>
               <button
                 type="button"
                 disabled={!isStep3Complete}
                 onClick={() => setActiveStep(4)}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#0863c5] px-6 text-sm font-bold text-white transition hover:bg-[#0753a8] disabled:cursor-not-allowed disabled:bg-slate-300 shadow-sm"
+                className="w-full sm:w-auto inline-flex h-11 items-center justify-center rounded-xl bg-[#0863c5] px-6 text-sm font-bold text-white transition hover:bg-[#0753a8] disabled:cursor-not-allowed disabled:bg-slate-300 shadow-sm"
               >
-                Tiếp tục: Chọn bác sĩ →
+                Tiếp tục: Chọn bác sĩ
               </button>
             </div>
           </div>
@@ -378,19 +433,19 @@ export function BookingPanel({
               selectedId={selectedDoctorId}
               onSelect={onSelectDoctor}
             />
-            <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+            <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t border-slate-100">
               <button
                 type="button"
                 onClick={() => setActiveStep(3)}
-                className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition"
+                className="w-full sm:w-auto inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition"
               >
-                ← Quay lại chọn lịch
+                Quay lại chọn lịch
               </button>
               <button
                 type="button"
                 disabled={!canReview}
                 onClick={onOpenReview}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#0863c5] px-6 text-sm font-bold text-white transition hover:bg-[#0753a8] disabled:cursor-not-allowed disabled:bg-slate-300 shadow-md"
+                className="w-full sm:w-auto inline-flex h-11 items-center justify-center rounded-xl bg-[#0863c5] px-6 text-sm font-bold text-white transition hover:bg-[#0753a8] disabled:cursor-not-allowed disabled:bg-slate-300 shadow-md"
               >
                 {isCheckingAvailability ? (
                   <>
@@ -398,7 +453,7 @@ export function BookingPanel({
                     Mở màn hình xác nhận...
                   </>
                 ) : (
-                  "Tiếp tục đến bước Xác nhận →"
+                  "Tiếp tục đến bước xác nhận"
                 )}
               </button>
             </div>

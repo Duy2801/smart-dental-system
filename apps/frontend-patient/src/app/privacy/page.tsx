@@ -12,18 +12,9 @@ export default function PrivacyPage() {
         <div className="mx-auto flex h-16 max-w-4xl items-center justify-between px-4 sm:px-6">
           <Link
             href="/home"
-            className="group inline-flex items-center gap-2 text-sm font-bold text-[#0863c5] transition hover:text-blue-700"
+            className="text-sm font-bold text-[#0863c5] transition hover:text-blue-700"
           >
-            <svg
-              className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-1"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth="2.5"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-            </svg>
-            <span>Trang chủ</span>
+            Trang chủ
           </Link>
           <span className="text-xs font-semibold text-slate-500">
             Cập nhật lần cuối: 2026

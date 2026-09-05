@@ -81,14 +81,14 @@ export function MyConsultationsList({ onBookNew }: MyConsultationsListProps) {
   };
 
   return (
-    <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-md border border-slate-100 space-y-6">
-      <div className="flex justify-between items-center border-b pb-4">
-        <h2 className="text-xl font-bold text-slate-800">
+    <div className="bg-white rounded-2xl p-4 sm:p-6 lg:p-8 shadow-md border border-slate-100 space-y-6 pb-24 sm:pb-8">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2.5 border-b pb-4">
+        <h2 className="text-lg sm:text-xl font-bold text-slate-800">
           Danh Sách Buổi Tư Vấn Trực Tuyến Của Tôi
         </h2>
         <button
           onClick={() => void refetch()}
-          className="text-xs font-semibold text-blue-600 hover:underline"
+          className="self-start sm:self-auto text-xs font-semibold text-blue-600 hover:underline px-2.5 py-1 rounded-md bg-blue-50 sm:bg-transparent"
         >
           Làm mới
         </button>
@@ -116,11 +116,11 @@ export function MyConsultationsList({ onBookNew }: MyConsultationsListProps) {
           ))}
         </div>
       ) : myConsultations.length === 0 ? (
-        <div className="py-12 text-center text-slate-400 space-y-3">
-          <p>Bạn chưa có buổi tư vấn trực tuyến nào.</p>
+        <div className="py-12 text-center text-slate-400 space-y-4">
+          <p className="text-sm">Bạn chưa có buổi tư vấn trực tuyến nào.</p>
           <button
             onClick={onBookNew}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700"
+            className="w-full sm:w-auto px-6 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 shadow-md shadow-blue-500/20"
           >
             Đặt Lịch Tư Vấn Ngay
           </button>
