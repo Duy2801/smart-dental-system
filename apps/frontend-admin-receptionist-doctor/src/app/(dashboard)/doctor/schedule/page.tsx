@@ -102,12 +102,17 @@ function toTimeOff(raw: Record<string, unknown>): TimeOffRecord | null {
   if (raw.recordType !== "TIME_OFF" || !raw.isActive) return null;
   const specificDate = raw.specificDate as string | null;
   if (!specificDate) return null;
+  const approvalStatus =
+    raw.approvalStatus === "PENDING" || raw.approvalStatus === "REJECTED"
+      ? raw.approvalStatus
+      : "APPROVED";
   return {
     id: raw.id as string,
     dayIso: localDateStr(new Date(specificDate)),
     startTime: String(raw.startTime).slice(0, 5),
     endTime: String(raw.endTime).slice(0, 5),
     reason: (raw.reason as string) ?? null,
+    approvalStatus,
   };
 }
 

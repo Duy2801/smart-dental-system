@@ -151,7 +151,7 @@ export default function LoginPage() {
                   htmlFor="email"
                   className="mb-1.5 block text-sm font-medium text-brand-dark"
                 >
-                  Email
+                  Email <span className="text-rose-500" aria-hidden="true">*</span>
                 </label>
                 <input
                   id="email"
@@ -169,7 +169,7 @@ export default function LoginPage() {
                     htmlFor="password"
                     className="block text-sm font-medium text-brand-dark"
                   >
-                    Mật khẩu
+                    Mật khẩu <span className="text-rose-500" aria-hidden="true">*</span>
                   </label>
                   <Link
                     href={ROUTES.FORGOT_PASSWORD}

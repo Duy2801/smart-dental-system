@@ -114,11 +114,11 @@ function NewPrescriptionContent() {
   useEffect(() => {
     if (!doctorId || !selectedPatientId) return;
     apiClient
-      .get<RecordSummary[]>(`/medical-records?doctorId=${doctorId}`)
+      .get<RecordSummary[]>(
+        `/medical-records?doctorId=${doctorId}&patientId=${encodeURIComponent(selectedPatientId)}`,
+      )
       .then((res) => {
-        const filtered = res.data.filter(
-          (r) => r.patientId === selectedPatientId,
-        );
+        const filtered = res.data;
         setRecords(filtered);
         // Giữ recordId từ query (HSBA) nếu còn trong danh sách; không ghi đè
         setSelectedRecordId((prev) => {

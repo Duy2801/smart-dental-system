@@ -31,6 +31,7 @@ export type TimeOffRecord = {
   startTime: string;
   endTime: string;
   reason: string | null;
+  approvalStatus: "PENDING" | "APPROVED" | "REJECTED";
 };
 
 export const statusConfig: Record<

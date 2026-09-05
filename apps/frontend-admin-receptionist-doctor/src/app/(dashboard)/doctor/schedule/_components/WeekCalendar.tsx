@@ -25,6 +25,24 @@ type Props = {
 
 const hours = Array.from({ length: 12 }, (_, i) => i + 7);
 
+const timeOffStatusConfig = {
+  PENDING: {
+    label: "Chờ duyệt",
+    block: "border-slate-400 bg-slate-100/95 text-slate-800",
+    badge: "bg-amber-100 text-amber-800 ring-amber-600/20",
+  },
+  APPROVED: {
+    label: "Đã duyệt",
+    block: "border-emerald-300 bg-emerald-50/90 text-emerald-950",
+    badge: "bg-emerald-100 text-emerald-800 ring-emerald-600/20",
+  },
+  REJECTED: {
+    label: "Bị từ chối",
+    block: "border-rose-300 bg-rose-50/90 text-rose-950",
+    badge: "bg-rose-100 text-rose-800 ring-rose-600/20",
+  },
+} as const;
+
 function parseHm(hm: string) {
   const [h, m] = hm.split(":").map(Number);
   return h + m / 60;
@@ -157,6 +175,7 @@ export function WeekCalendar({
 
             {/* Time Off Blocks */}
             {timeOffs.map((off) => {
+              const approval = timeOffStatusConfig[off.approvalStatus];
               const dayIdx = weekDays.findIndex((d) => d.iso === off.dayIso);
               if (dayIdx < 0) return null;
               const start = Math.max(7, parseHm(off.startTime));
@@ -167,21 +186,34 @@ export function WeekCalendar({
               return (
                 <div
                   key={off.id}
-                  className="relative m-0.5 overflow-hidden rounded-xl border border-dashed border-slate-300 bg-slate-100/90 p-2 text-xs text-slate-600 shadow-2xs"
+                  className={cn(
+                    "relative m-0.5 overflow-hidden rounded-xl border border-dashed p-2 text-xs shadow-2xs",
+                    approval.block,
+                  )}
                   style={{
                     gridColumn: dayIdx + 2,
                     gridRow: `${Math.max(1, Math.round(gridRow))} / span ${Math.max(1, Math.round(span))}`,
                   }}
-                  title={off.reason ?? "Nghỉ"}
+                  title={`${approval.label}${off.reason ? ` · ${off.reason}` : ""}`}
                 >
                   <div className="flex items-start justify-between gap-1">
                     <div>
-                      <span className="block font-bold leading-tight text-slate-800">Nghỉ phép</span>
-                      <span className="block font-mono text-[10px] text-slate-500 mt-0.5">
+                      <span className="block font-bold leading-tight">
+                        {off.approvalStatus === "APPROVED" ? "Nghỉ phép" : "Yêu cầu nghỉ"}
+                      </span>
+                      <span
+                        className={cn(
+                          "mt-1 inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-bold ring-1 ring-inset",
+                          approval.badge,
+                        )}
+                      >
+                        {approval.label}
+                      </span>
+                      <span className="mt-1 block font-mono text-[10px] opacity-70">
                         {off.startTime} - {off.endTime}
                       </span>
                       {off.reason && (
-                        <span className="mt-1 block truncate text-[10px] text-slate-600 italic">
+                        <span className="mt-1 block truncate text-[10px] italic opacity-75">
                           {off.reason}
                         </span>
                       )}

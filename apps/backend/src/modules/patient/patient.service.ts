@@ -833,53 +833,84 @@ export class PatientService {
     return doctor.id;
   }
 
-  async findPatientsByDoctor(doctorId: string, search?: string) {
+  async findPatientsByDoctor(
+    doctorId: string,
+    search?: string,
+    now: Date = new Date(),
+  ) {
     const q = search?.trim().toLowerCase();
 
     const patients = await this.prisma.patient.findMany({
       where: {
         OR: [
           { appointments: { some: { doctorId } } },
-          { videoConsultations: { some: { doctorId } } }
-        ]
+          { videoConsultations: { some: { doctorId } } },
+        ],
       },
       include: {
         user: { select: { fullName: true, phone: true, email: true } },
         appointments: {
           where: { doctorId },
-          select: { scheduledAt: true, status: true, service: { select: { name: true } } },
+          select: {
+            scheduledAt: true,
+            status: true,
+            service: { select: { name: true } },
+          },
         },
         videoConsultations: {
           where: { doctorId },
           select: { scheduledAt: true, status: true, durationMinutes: true },
         },
-      }
+        treatmentPlans: {
+          where: { doctorId, status: TreatmentPlanStatus.IN_PROGRESS },
+          select: { id: true },
+        },
+      },
     });
 
     return patients.map((p) => {
       const identity = this.getPatientIdentity(p);
-      const age = p.dateOfBirth
-        ? new Date().getFullYear() - new Date(p.dateOfBirth).getFullYear()
-        : null;
+      const age = this.calculateAge(p.dateOfBirth, now);
 
       // Combine both types of visits
-      const offlineVisits = p.appointments.map(a => ({
+      const offlineVisits = p.appointments.map((a) => ({
         scheduledAt: a.scheduledAt,
         serviceName: a.service?.name ?? 'Khám trực tiếp',
-        status: a.status
+        status: a.status,
       }));
 
-      const onlineVisits = p.videoConsultations.map(vc => ({
+      const onlineVisits = p.videoConsultations.map((vc) => ({
         scheduledAt: vc.scheduledAt,
         serviceName: `Tư vấn trực tuyến (${vc.durationMinutes} phút)`,
-        status: vc.status
+        status: vc.status,
       }));
 
       const allVisits = [...offlineVisits, ...onlineVisits].sort(
-        (a, b) => b.scheduledAt.getTime() - a.scheduledAt.getTime()
+        (a, b) => b.scheduledAt.getTime() - a.scheduledAt.getTime(),
       );
 
-      const lastVisit = allVisits[0];
+      const completedVisits = allVisits.filter(
+        (visit) =>
+          visit.status === AppointmentStatus.COMPLETED &&
+          visit.scheduledAt.getTime() <= now.getTime(),
+      );
+      const lastVisit = completedVisits[0];
+      const upcomingWindowEnd = new Date(
+        now.getTime() + 7 * 24 * 60 * 60 * 1000,
+      );
+      const activeUpcomingStatuses = new Set<string>([
+        AppointmentStatus.PENDING,
+        AppointmentStatus.CONFIRMED,
+        AppointmentStatus.CHECKED_IN,
+        'PENDING_PAYMENT',
+        'SCHEDULED',
+      ]);
+      const upcomingVisitsInNext7Days = allVisits.filter(
+        (visit) =>
+          activeUpcomingStatuses.has(visit.status) &&
+          visit.scheduledAt.getTime() >= now.getTime() &&
+          visit.scheduledAt.getTime() <= upcomingWindowEnd.getTime(),
+      ).length;
 
       return {
         id: p.id,
@@ -891,8 +922,10 @@ export class PatientService {
         age,
         lastVisitDate: lastVisit?.scheduledAt ?? null,
         lastService: lastVisit?.serviceName ?? '—',
-        lastStatus: lastVisit?.status ?? '—',
-        totalVisits: allVisits.length,
+        lastStatus: lastVisit?.status ?? null,
+        totalVisits: completedVisits.length,
+        hasActiveTreatmentPlan: p.treatmentPlans.length > 0,
+        upcomingVisitsInNext7Days,
         medicalHistory: p.medicalHistory,
       };
     })
@@ -1432,9 +1465,8 @@ export class PatientService {
     };
   }
 
-  private calculateAge(dateOfBirth?: Date | null) {
+  private calculateAge(dateOfBirth?: Date | null, today: Date = new Date()) {
     if (!dateOfBirth) return null;
-    const today = new Date();
     let age = today.getFullYear() - dateOfBirth.getFullYear();
     const monthDiff = today.getMonth() - dateOfBirth.getMonth();
     if (

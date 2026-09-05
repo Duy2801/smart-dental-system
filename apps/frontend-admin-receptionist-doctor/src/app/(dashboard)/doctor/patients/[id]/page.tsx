@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useParams } from "next/navigation";
 import { cn } from "@/src/lib/utils/cn";
 import {
@@ -23,6 +24,8 @@ import {
   X,
 } from "@phosphor-icons/react";
 import apiClient from "@/src/lib/api/client";
+import { formatDate } from "@/src/lib/utils/date";
+import { patientQuickLinks } from "../patient-list";
 import { PatientAiBrief } from "@/src/components/doctor/patient-ai-brief";
 import {
   genderLabel,
@@ -128,16 +131,17 @@ export default function DoctorPatientDetailPage() {
   const [previewImage, setPreviewImage] = useState<XrayItem | null>(null);
 
   const doctorId = getDoctorIdFromCookie();
+  const validationError = !id || !isUuid(id)
+    ? "Mã bệnh nhân không hợp lệ."
+    : !doctorId
+      ? "Không tìm thấy thông tin bác sĩ. Vui lòng đăng nhập lại."
+      : null;
 
   useEffect(() => {
     if (!id || !isUuid(id)) {
-      setError("Mã bệnh nhân không hợp lệ.");
-      setLoading(false);
       return;
     }
     if (!doctorId) {
-      setError("Không tìm thấy thông tin bác sĩ. Vui lòng đăng nhập lại.");
-      setLoading(false);
       return;
     }
 
@@ -165,24 +169,6 @@ export default function DoctorPatientDetailPage() {
           });
         });
 
-        // Default mock if none uploaded yet
-        if (allImages.length === 0) {
-          allImages.push(
-            {
-              url: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Panoramic_dental_X-ray.jpg/1280px-Panoramic_dental_X-ray.jpg",
-              caption: "Phim Panorama OPG toàn cảnh (Lần khám 1)",
-              type: "xray",
-              createdAt: "23/08/2026",
-            },
-            {
-              url: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/Orthopantomogram.jpg/1280px-Orthopantomogram.jpg",
-              caption: "Phim Cánh bướm Bitewing R36-R38",
-              type: "xray",
-              createdAt: "15/06/2026",
-            }
-          );
-        }
-
         setXrayAlbum(allImages);
       })
       .catch((err) => {
@@ -198,7 +184,7 @@ export default function DoctorPatientDetailPage() {
       .finally(() => setLoading(false));
   }, [id, doctorId]);
 
-  if (loading) {
+  if (!validationError && loading) {
     return (
       <div className="flex h-64 items-center justify-center">
         <SpinnerGap size={32} className="animate-spin text-brand" />
@@ -206,7 +192,7 @@ export default function DoctorPatientDetailPage() {
     );
   }
 
-  if (error || !patient) {
+  if (validationError || error || !patient) {
     return (
       <div className="p-8">
         <Link
@@ -217,7 +203,7 @@ export default function DoctorPatientDetailPage() {
         </Link>
         <div className="flex items-center gap-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-inset ring-red-200">
           <Warning size={18} className="shrink-0" />
-          {error ?? "Không tìm thấy bệnh nhân."}
+          {validationError ?? error ?? "Không tìm thấy bệnh nhân."}
         </div>
       </div>
     );
@@ -233,6 +219,7 @@ export default function DoctorPatientDetailPage() {
     plan && plan.totalSteps > 0
       ? Math.round((plan.completedSteps / plan.totalSteps) * 100)
       : 0;
+  const quickLinks = patientQuickLinks(patient.id);
 
   return (
     <div className="space-y-6 p-6 md:p-8">
@@ -249,15 +236,15 @@ export default function DoctorPatientDetailPage() {
         {/* Quick Action Shortcuts */}
         <div className="flex flex-wrap items-center gap-2.5">
           <Link
-            href={`/doctor/medical-records?patientId=${patient.id}`}
+            href={quickLinks.records}
             className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs transition hover:border-brand/40 hover:bg-brand/5 hover:text-brand cursor-pointer"
           >
             <FileText size={15} className="text-brand" />
-            <span>Tạo Bệnh Án</span>
+            <span>Xem Bệnh Án</span>
           </Link>
 
           <Link
-            href={`/doctor/prescriptions?patientId=${patient.id}`}
+            href={quickLinks.prescription}
             className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 cursor-pointer"
           >
             <Pill size={15} className="text-blue-600" />
@@ -265,7 +252,7 @@ export default function DoctorPatientDetailPage() {
           </Link>
 
           <Link
-            href={`/doctor/treatment-plans/new?patientId=${patient.id}`}
+            href={quickLinks.treatmentPlan}
             className="inline-flex items-center gap-1.5 rounded-xl bg-brand px-4 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-brand-dark cursor-pointer"
           >
             <Plus size={14} weight="bold" />
@@ -472,10 +459,10 @@ export default function DoctorPatientDetailPage() {
                 </h3>
               </div>
               <Link
-                href={`/doctor/medical-records?patientId=${patient.id}`}
+                href={quickLinks.records}
                 className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:underline cursor-pointer"
               >
-                <Sparkle size={13} weight="fill" /> Mở Kính Soi AI
+                <Sparkle size={13} weight="fill" /> Xem hồ sơ hình ảnh
               </Link>
             </div>
 
@@ -492,16 +479,21 @@ export default function DoctorPatientDetailPage() {
                     className="group relative cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-slate-900 transition hover:border-blue-500 hover:shadow-md"
                   >
                     <div className="aspect-4/3 w-full overflow-hidden">
-                      <img
+                      <Image
                         src={img.url}
                         alt={img.caption || `X-ray ${idx + 1}`}
+                        width={480}
+                        height={360}
+                        unoptimized
                         className="h-full w-full object-cover opacity-90 transition duration-300 group-hover:scale-105 group-hover:opacity-100"
                       />
                     </div>
                     <div className="bg-slate-900/90 p-2 text-white">
                       <p className="truncate text-[11px] font-bold">{img.caption || `Phim X-quang #${idx + 1}`}</p>
                       {img.createdAt && (
-                        <p className="text-[9px] text-slate-400">{img.createdAt}</p>
+                        <p className="font-mono text-[9px] text-slate-400">
+                          {formatDate(img.createdAt)}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -514,7 +506,7 @@ export default function DoctorPatientDetailPage() {
           <div className="rounded-2xl border border-border bg-white shadow-xs">
             <div className="flex items-center justify-between border-b border-border p-5">
               <h2 className="text-base font-bold text-brand-dark">
-                Lịch sử các lần khám ({patient.appointments.length})
+                Lịch hẹn và lần khám với bạn ({patient.appointments.length})
               </h2>
               <Link
                 href={`/doctor/patients/${patient.id}/records`}
@@ -531,7 +523,7 @@ export default function DoctorPatientDetailPage() {
                   className="text-slate-300"
                   weight="duotone"
                 />
-                <p className="text-sm">Chưa có lịch sử khám nào</p>
+                <p className="text-sm">Chưa có lịch hẹn hoặc lần khám nào với bạn</p>
               </div>
             ) : (
               <div className="divide-y divide-border/50">
@@ -608,9 +600,12 @@ export default function DoctorPatientDetailPage() {
                 <X size={18} />
               </button>
             </div>
-            <img
+            <Image
               src={previewImage.url}
               alt="Preview X-ray"
+              width={1200}
+              height={900}
+              unoptimized
               className="max-h-[500px] w-auto max-w-full rounded-xl object-contain mx-auto"
             />
           </div>

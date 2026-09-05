@@ -19,6 +19,7 @@ describe('WeekCalendar time-off deletion', () => {
             startTime: '08:00',
             endTime: '17:00',
             reason: 'Việc cá nhân',
+            approvalStatus: 'PENDING',
           },
         ]}
         loading={false}
@@ -35,5 +36,31 @@ describe('WeekCalendar time-off deletion', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Xóa ngày nghỉ' }));
 
     await waitFor(() => expect(onDeleteTimeOff).toHaveBeenCalledWith('time-off-1'));
+  });
+
+  it('shows the approval status of a time-off request', () => {
+    render(
+      <WeekCalendar
+        weekDays={[
+          { iso: '2026-09-05', date: '05-09', day: 'Thứ 7', isToday: true },
+        ]}
+        appointments={[]}
+        timeOffs={[
+          {
+            id: 'pending-time-off',
+            dayIso: '2026-09-05',
+            startTime: '08:00',
+            endTime: '17:00',
+            reason: 'Việc cá nhân',
+            approvalStatus: 'PENDING',
+          },
+        ]}
+        loading={false}
+        onStatusChange={vi.fn()}
+        onDeleteTimeOff={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Chờ duyệt')).not.toBeNull();
   });
 });

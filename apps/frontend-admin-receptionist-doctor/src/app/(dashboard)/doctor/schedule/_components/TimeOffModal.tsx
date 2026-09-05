@@ -147,7 +147,7 @@ export function TimeOffModal({ doctorId, onClose, onSuccess }: Props) {
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-brand-dark">
-                Từ ngày
+                Từ ngày <span className="text-rose-500" aria-hidden="true">*</span>
               </label>
               <input
                 type="date"
@@ -166,7 +166,7 @@ export function TimeOffModal({ doctorId, onClose, onSuccess }: Props) {
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-brand-dark">
-                Đến ngày
+                Đến ngày <span className="text-rose-500" aria-hidden="true">*</span>
               </label>
               <input
                 type="date"
@@ -184,7 +184,7 @@ export function TimeOffModal({ doctorId, onClose, onSuccess }: Props) {
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-brand-dark">
-                Từ giờ
+                Từ giờ <span className="text-rose-500" aria-hidden="true">*</span>
               </label>
               <input
                 type="time"
@@ -201,7 +201,7 @@ export function TimeOffModal({ doctorId, onClose, onSuccess }: Props) {
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-brand-dark">
-                Đến giờ
+                Đến giờ <span className="text-rose-500" aria-hidden="true">*</span>
               </label>
               <input
                 type="time"
@@ -220,7 +220,7 @@ export function TimeOffModal({ doctorId, onClose, onSuccess }: Props) {
 
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-brand-dark">
-              Lý do nghỉ
+              Lý do nghỉ <span className="text-rose-500" aria-hidden="true">*</span>
             </label>
             <textarea
               rows={3}
