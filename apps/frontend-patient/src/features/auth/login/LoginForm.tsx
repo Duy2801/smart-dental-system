@@ -158,7 +158,7 @@ export function LoginForm({
             href="/auth/register"
             className="font-extrabold text-[#0863c5] transition hover:text-blue-700 hover:underline"
           >
-            Đăng ký tài khoản bệnh nhân →
+            Đăng ký tài khoản bệnh nhân
           </Link>
         </p>
 

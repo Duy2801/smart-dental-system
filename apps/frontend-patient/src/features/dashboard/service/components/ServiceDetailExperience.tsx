@@ -245,8 +245,50 @@ export function ServiceDetailExperience({ serviceId }: { serviceId: string }) {
                 description={service.pricingNote || undefined}
               />
             </div>
-            <div className="max-w-full overflow-x-auto overscroll-x-contain">
-              <table className="w-full min-w-[640px] text-left text-sm">
+            {/* Mobile View: Stacked Card Rows (No horizontal overflow or cut-off) */}
+            <div className="block sm:hidden divide-y divide-slate-100 p-4 space-y-4">
+              <div className="space-y-1">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
+                  Hạng mục: Dịch vụ
+                </span>
+                <p className="font-bold text-slate-900 text-sm">
+                  {service.title}
+                </p>
+                <p className="text-xs text-slate-500">
+                  Theo danh mục {service.category}
+                </p>
+              </div>
+
+              {activeMethod && (
+                <div className="pt-3 space-y-1">
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
+                    Hạng mục: Phương pháp chọn
+                  </span>
+                  <p className="font-bold text-[#0863c5] text-sm">
+                    {activeMethod.name}
+                  </p>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    {activeMethod.description}
+                  </p>
+                </div>
+              )}
+
+              <div className="pt-3 space-y-1">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
+                  Hạng mục: Chi phí
+                </span>
+                <p className="text-xl font-extrabold text-[#0863c5]">
+                  {activeMethod ? formatServicePrice(activeMethod.basePrice) : service.price}
+                </p>
+                <p className="text-xs text-slate-500">
+                  {service.pricingNote || "Chưa cập nhật ghi chú giá"}
+                </p>
+              </div>
+            </div>
+
+            {/* Desktop / Tablet View: Standard Table */}
+            <div className="hidden sm:block max-w-full overflow-x-auto overscroll-x-contain">
+              <table className="w-full text-left text-sm">
                 <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                   <tr>
                     <th className="px-6 py-4 font-extrabold">Hạng mục</th>
@@ -422,10 +464,9 @@ export function ServiceDetailExperience({ serviceId }: { serviceId: string }) {
               </div>
               <Link
                 href={`/appointment?service=${service.id}${activeMethod ? `&treatmentMethod=${activeMethod.id}` : ""}&intent=booking`}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-white px-6 text-sm font-extrabold text-[#0863c5] transition hover:bg-blue-50"
+                className="inline-flex h-12 items-center justify-center rounded-xl bg-white px-6 text-sm font-extrabold text-[#0863c5] transition hover:bg-blue-50"
               >
                 Đặt dịch vụ ngay
-                <DashboardIcon name="arrow" className="h-4 w-4" />
               </Link>
             </div>
           </section>

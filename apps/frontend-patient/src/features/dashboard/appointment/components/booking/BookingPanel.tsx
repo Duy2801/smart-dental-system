@@ -274,9 +274,9 @@ export function BookingPanel({
                 type="button"
                 disabled={!isStep1Complete}
                 onClick={() => setActiveStep(2)}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#0863c5] px-6 text-sm font-bold text-white transition hover:bg-[#0753a8] disabled:cursor-not-allowed disabled:bg-slate-300 shadow-sm"
+                className="w-full sm:w-auto inline-flex h-11 items-center justify-center rounded-xl bg-[#0863c5] px-6 text-sm font-bold text-white transition hover:bg-[#0753a8] disabled:cursor-not-allowed disabled:bg-slate-300 shadow-sm"
               >
-                Tiếp tục: Chọn dịch vụ →
+                Tiếp tục: Chọn dịch vụ
               </button>
             </div>
           </div>
@@ -300,21 +300,21 @@ export function BookingPanel({
               onSelectService={onSelectService}
               onSelectMethod={onSelectMethod}
             />
-            <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+            <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t border-slate-100">
               <button
                 type="button"
                 onClick={() => setActiveStep(1)}
-                className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition"
+                className="w-full sm:w-auto inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition"
               >
-                ← Quay lại người khám
+                Quay lại người khám
               </button>
               <button
                 type="button"
                 disabled={!isStep2Complete}
                 onClick={() => setActiveStep(3)}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#0863c5] px-6 text-sm font-bold text-white transition hover:bg-[#0753a8] disabled:cursor-not-allowed disabled:bg-slate-300 shadow-sm"
+                className="w-full sm:w-auto inline-flex h-11 items-center justify-center rounded-xl bg-[#0863c5] px-6 text-sm font-bold text-white transition hover:bg-[#0753a8] disabled:cursor-not-allowed disabled:bg-slate-300 shadow-sm"
               >
-                Tiếp tục: Chọn ngày & giờ →
+                Tiếp tục: Chọn ngày & giờ
               </button>
             </div>
           </div>
@@ -342,21 +342,21 @@ export function BookingPanel({
               onSelectDate={onSelectDate}
               onSelectTime={onSelectTime}
             />
-            <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+            <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t border-slate-100">
               <button
                 type="button"
                 onClick={() => setActiveStep(2)}
-                className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition"
+                className="w-full sm:w-auto inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition"
               >
-                ← Quay lại dịch vụ
+                Quay lại dịch vụ
               </button>
               <button
                 type="button"
                 disabled={!isStep3Complete}
                 onClick={() => setActiveStep(4)}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#0863c5] px-6 text-sm font-bold text-white transition hover:bg-[#0753a8] disabled:cursor-not-allowed disabled:bg-slate-300 shadow-sm"
+                className="w-full sm:w-auto inline-flex h-11 items-center justify-center rounded-xl bg-[#0863c5] px-6 text-sm font-bold text-white transition hover:bg-[#0753a8] disabled:cursor-not-allowed disabled:bg-slate-300 shadow-sm"
               >
-                Tiếp tục: Chọn bác sĩ →
+                Tiếp tục: Chọn bác sĩ
               </button>
             </div>
           </div>
@@ -378,19 +378,19 @@ export function BookingPanel({
               selectedId={selectedDoctorId}
               onSelect={onSelectDoctor}
             />
-            <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+            <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t border-slate-100">
               <button
                 type="button"
                 onClick={() => setActiveStep(3)}
-                className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition"
+                className="w-full sm:w-auto inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition"
               >
-                ← Quay lại chọn lịch
+                Quay lại chọn lịch
               </button>
               <button
                 type="button"
                 disabled={!canReview}
                 onClick={onOpenReview}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#0863c5] px-6 text-sm font-bold text-white transition hover:bg-[#0753a8] disabled:cursor-not-allowed disabled:bg-slate-300 shadow-md"
+                className="w-full sm:w-auto inline-flex h-11 items-center justify-center rounded-xl bg-[#0863c5] px-6 text-sm font-bold text-white transition hover:bg-[#0753a8] disabled:cursor-not-allowed disabled:bg-slate-300 shadow-md"
               >
                 {isCheckingAvailability ? (
                   <>
@@ -398,7 +398,7 @@ export function BookingPanel({
                     Mở màn hình xác nhận...
                   </>
                 ) : (
-                  "Tiếp tục đến bước Xác nhận →"
+                  "Tiếp tục đến bước xác nhận"
                 )}
               </button>
             </div>

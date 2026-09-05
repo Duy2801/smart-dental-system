@@ -235,25 +235,25 @@ function MethodCard({
           {method.description || service.shortDescription}
         </p>
 
-        <div className="mt-3.5 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
-          <div className="flex items-center gap-2">
-            <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-[#0863c5]">
+        <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-slate-100 pt-3">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+            <span className="rounded-full bg-blue-50 px-2.5 sm:px-3 py-1 text-xs font-bold text-[#0863c5]">
               {formatServicePrice(method.basePrice)}
             </span>
-            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-600">
+            <span className="rounded-full bg-slate-100 px-2 py-0.5 sm:px-2.5 sm:py-1 text-[11px] font-bold text-slate-600">
               Chuyên sâu
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
             <Link
               href={methodHref(service, method)}
-              className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:bg-slate-50"
+              className="flex-1 sm:flex-initial text-center rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:bg-slate-50"
             >
               Chi tiết
             </Link>
             <Link
               href={buildRoute.appointmentBooking(service.id, method.id)}
-              className="rounded-lg bg-[#0863c5] px-3.5 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#0756aa]"
+              className="flex-1 sm:flex-initial text-center rounded-lg bg-[#0863c5] px-3.5 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#0756aa]"
             >
               Đặt lịch
             </Link>

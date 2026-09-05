@@ -150,7 +150,6 @@ export function ServiceDetailHero({
                 className="mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#0863c5] text-base font-bold text-white shadow-md shadow-blue-500/20 transition-all duration-200 hover:bg-[#0756aa] hover:shadow-lg hover:shadow-blue-500/30 active:scale-[0.99]"
               >
                 Đặt dịch vụ ngay
-                <DashboardIcon name="arrow" className="h-4 w-4" />
               </Link>
             </div>
           </div>

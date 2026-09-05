@@ -29,17 +29,8 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
       <div className="absolute top-3 left-4 sm:top-5 sm:left-6 z-30">
         <Link
           href="/home"
-          className="group inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-white/90 px-3.5 py-1.5 text-xs font-extrabold text-slate-700 shadow-sm backdrop-blur-md transition duration-200 hover:border-blue-200 hover:bg-white hover:text-[#0863c5] hover:shadow-md active:scale-95"
+          className="group inline-flex items-center rounded-full border border-slate-200/90 bg-white/90 px-3.5 py-1.5 text-xs font-extrabold text-slate-700 shadow-sm backdrop-blur-md transition duration-200 hover:border-blue-200 hover:bg-white hover:text-[#0863c5] hover:shadow-md active:scale-95"
         >
-          <svg
-            className="h-3.5 w-3.5 transition-transform duration-200 group-hover:-translate-x-1"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth="2.5"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-          </svg>
           <span>Quay lại Trang chủ</span>
         </Link>
       </div>

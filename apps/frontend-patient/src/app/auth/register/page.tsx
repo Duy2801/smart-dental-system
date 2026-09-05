@@ -139,7 +139,7 @@ function OtpVerificationCard({
             href="/auth/login"
             className="font-bold text-slate-500 hover:text-slate-800 hover:underline"
           >
-            ← Quay lại trang đăng nhập
+            Quay lại trang đăng nhập
           </Link>
         </div>
       </section>

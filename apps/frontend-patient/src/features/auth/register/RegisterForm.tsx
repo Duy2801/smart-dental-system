@@ -185,7 +185,7 @@ export function RegisterForm({
             href="/auth/login"
             className="font-extrabold text-[#0863c5] transition hover:text-blue-700 hover:underline"
           >
-            Đăng nhập ngay →
+            Đăng nhập ngay
           </Link>
         </p>
 
