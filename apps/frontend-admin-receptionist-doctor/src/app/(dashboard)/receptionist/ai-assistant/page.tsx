@@ -42,7 +42,7 @@ interface Message {
 // ---------------------------------------------------------------------------
 
 const AI_BASE =
-  process.env.NEXT_PUBLIC_AI_SERVICE_URL ?? "http://localhost:8001";
+  process.env.AI_SERVICE_URL;
 const AI_URL = `${AI_BASE}/api/v1/chatbot/receptionist-chat`;
 
 async function callAI(message: string, history: Message[]): Promise<string> {
@@ -229,15 +229,15 @@ export default function AIAssistantPage() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => { 
-    setMessages(loadMessages()); 
+  useEffect(() => {
+    setMessages(loadMessages());
     setIsLoaded(true);
   }, []);
-  
-  useEffect(() => { 
-    if (isLoaded && messages.length > 0) saveMessages(messages); 
+
+  useEffect(() => {
+    if (isLoaded && messages.length > 0) saveMessages(messages);
   }, [messages, isLoaded]);
-  
+
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, typing]);
   useEffect(() => { textareaRef.current?.focus(); }, []);
 
@@ -346,15 +346,13 @@ export default function AIAssistantPage() {
                   )}
 
                   <div className="flex flex-col gap-1.5 max-w-[80%] md:max-w-[65%]">
-                    <div className={`rounded-2xl px-4 py-3 shadow-sm ${
-                      msg.role === "user"
+                    <div className={`rounded-2xl px-4 py-3 shadow-sm ${msg.role === "user"
                         ? "rounded-tr-sm bg-brand text-white"
                         : "rounded-tl-sm border border-border bg-white text-foreground"
-                    }`}>
-                      <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</p>
-                      <p className={`mt-2 text-right font-medium tabular-nums text-[10px] ${
-                        msg.role === "user" ? "text-white/60" : "text-muted-foreground"
                       }`}>
+                      <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</p>
+                      <p className={`mt-2 text-right font-medium tabular-nums text-[10px] ${msg.role === "user" ? "text-white/60" : "text-muted-foreground"
+                        }`}>
                         {fmtTime(msg.timestamp)}
                       </p>
                     </div>
