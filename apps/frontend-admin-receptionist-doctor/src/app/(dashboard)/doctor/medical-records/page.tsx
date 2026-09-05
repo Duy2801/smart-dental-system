@@ -31,6 +31,7 @@ import axios from "axios";
 import apiClient from "@/src/lib/api/client";
 import { getDoctorIdFromCookie } from "@/src/lib/doctor/session";
 import { localDateStr } from "@/src/lib/receptionist/mappers";
+import { useAppDialog } from "@/src/providers/app-dialog-provider";
 import {
   DentalChartEditor,
   type DentalChartData,
@@ -119,6 +120,7 @@ function isUuid(value: string) {
 }
 
 function MedicalRecordsContent() {
+  const { showAlert } = useAppDialog();
   const searchParams = useSearchParams();
   const preSelectId = searchParams.get("recordId");
 
@@ -1021,7 +1023,11 @@ function MedicalRecordsContent() {
                                             ...f,
                                             diagnosis: pastRec.diagnosis || f.diagnosis,
                                           }));
-                                          alert("Đã sao chép chẩn đoán sang bệnh án hiện tại!");
+                                          void showAlert({
+                                            title: "Đã sao chép chẩn đoán",
+                                            description: "Chẩn đoán từ lần khám trước đã được đưa vào bệnh án hiện tại.",
+                                            tone: "success",
+                                          });
                                         }}
                                         className="inline-flex items-center gap-1 rounded-md bg-white px-2 py-0.5 text-[10px] font-bold text-brand shadow-2xs border border-brand/20 hover:bg-brand/5 cursor-pointer"
                                         title="Sao chép chẩn đoán sang ca này"

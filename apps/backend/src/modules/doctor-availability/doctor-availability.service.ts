@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -10,6 +11,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { ClinicConfigService } from '../clinic-config/clinic-config.service';
 import type { BusinessHourDto } from '../clinic-config/dto/update-clinic-config.dto';
+import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface';
 import {
   AutoScheduleMode,
   AutoWeeklyAvailabilityDto,
@@ -144,9 +146,26 @@ export class DoctorAvailabilityService {
     };
   }
 
-  async create(dto: CreateDoctorAvailabilityDto, force = false) {
-    await this.ensureDoctorExists(dto.doctorId);
+  async create(
+    user: AuthenticatedUser,
+    dto: CreateDoctorAvailabilityDto,
+    force = false,
+  ) {
+    const isDoctor = user.roles.includes('DOCTOR');
+    if (isDoctor) {
+      const doctor = await this.prisma.doctor.findUnique({
+        where: { userId: user.userId },
+        select: { id: true },
+      });
+      if (!doctor || doctor.id !== dto.doctorId) {
+        throw new ForbiddenException('availability.doctor_mismatch');
+      }
+    } else {
+      await this.ensureDoctorExists(dto.doctorId);
+    }
+
     this.validateAvailabilityPayload(dto);
+    this.ensureTimeOffStartsInFuture(dto);
     await this.ensureWithinClinicHours(dto);
 
     if (dto.recordType === AvailabilityRecordType.TIME_OFF && !force) {
@@ -186,7 +205,9 @@ export class DoctorAvailabilityService {
         startTime: dto.startTime,
         endTime: dto.endTime,
         reason: dto.reason?.trim(),
-        approvalStatus: dto.approvalStatus ?? AvailabilityApprovalStatus.APPROVED,
+        approvalStatus: isDoctor
+          ? AvailabilityApprovalStatus.PENDING
+          : (dto.approvalStatus ?? AvailabilityApprovalStatus.APPROVED),
         isActive: dto.isActive ?? true,
       },
     });
@@ -464,6 +485,25 @@ export class DoctorAvailabilityService {
       throw new BadRequestException(
         'availability.day_or_specific_date_required',
       );
+    }
+  }
+
+  private ensureTimeOffStartsInFuture(
+    dto: Omit<CreateDoctorAvailabilityDto, 'specificDate'> & {
+      specificDate?: string;
+    },
+  ) {
+    if (
+      dto.recordType !== AvailabilityRecordType.TIME_OFF ||
+      !dto.specificDate
+    ) {
+      return;
+    }
+
+    const date = dto.specificDate.slice(0, 10);
+    const start = new Date(`${date}T${dto.startTime}:00+07:00`);
+    if (Number.isNaN(start.getTime()) || start.getTime() <= Date.now()) {
+      throw new BadRequestException('availability.time_off_in_past');
     }
   }
 

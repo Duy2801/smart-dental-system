@@ -379,6 +379,7 @@ export class VideoConsultationService implements OnModuleInit {
         where: {
           doctorId,
           isActive: true,
+          approvalStatus: 'APPROVED',
           OR: [
             { recordType: 'WEEKLY', dayOfWeek: { in: weeklyDayOfWeek } },
             {
@@ -413,6 +414,7 @@ export class VideoConsultationService implements OnModuleInit {
         where: {
           doctorId,
           isActive: true,
+          approvalStatus: 'APPROVED',
           recordType: 'TIME_OFF',
           specificDate: { gte: startOfDay, lte: endOfDay },
         },

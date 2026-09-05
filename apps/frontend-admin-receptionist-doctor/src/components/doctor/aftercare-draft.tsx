@@ -12,6 +12,7 @@ import {
 } from "@phosphor-icons/react";
 import axios from "axios";
 import apiClient from "@/src/lib/api/client";
+import { useAppDialog } from "@/src/providers/app-dialog-provider";
 
 type AftercareResponse = {
   instructions: string[];
@@ -82,6 +83,7 @@ function GuidanceGroup({
 }
 
 export function AftercareDraft({ medicalRecordId }: AftercareDraftProps) {
+  const { showConfirm } = useAppDialog();
   const [draft, setDraft] = useState<AftercareResponse | null>(null);
   const [content, setContent] = useState("");
   const [generating, setGenerating] = useState(false);
@@ -124,7 +126,12 @@ export function AftercareDraft({ medicalRecordId }: AftercareDraftProps) {
 
   async function send() {
     if (!content.trim() || sending || sent) return;
-    if (!window.confirm("Gửi hướng dẫn đã duyệt cho bệnh nhân?")) return;
+    const confirmed = await showConfirm({
+      title: "Gửi hướng dẫn sau điều trị?",
+      description: "Nội dung bạn đã duyệt sẽ được gửi cho bệnh nhân.",
+      confirmLabel: "Gửi hướng dẫn",
+    });
+    if (!confirmed) return;
     setSending(true);
     setError(null);
     try {

@@ -11,6 +11,7 @@ import { mapAppointments, localDateStr } from "@/src/lib/receptionist/mappers";
 import type { ReceptionistAppointment } from "@/src/lib/receptionist/mappers";
 import { getApiErrorMessage } from "@/src/lib/utils/api-error";
 import { formatDoctorName } from "@/src/lib/utils/format";
+import { useAppDialog } from "@/src/providers/app-dialog-provider";
 import {
   CalendarPlus,
   MagnifyingGlass,
@@ -308,6 +309,7 @@ function FilterPanel({
 const PAGE_SIZE = 10;
 
 export default function ReceptionistAppointmentsPage() {
+  const { showConfirm } = useAppDialog();
   const today = new Date();
   const [selectedDate, setSelectedDate] = useState<Date>(today);
   const [doctorFilter, setDoctorFilter] = useState("");
@@ -391,8 +393,24 @@ export default function ReceptionistAppointmentsPage() {
   const isTomorrow = toDateStr(selectedDate) === toDateStr(new Date(today.getTime() + 86400000));
 
   const handleStatusChange = async (id: string, status: AppointmentStatus) => {
-    if (status === "CANCELLED" && !window.confirm("Xác nhận hủy lịch hẹn này?")) return;
-    if (status === "NO_SHOW" && !window.confirm("Đánh dấu bệnh nhân vắng mặt?")) return;
+    if (status === "CANCELLED") {
+      const confirmed = await showConfirm({
+        title: "Hủy lịch hẹn?",
+        description: "Lịch hẹn này sẽ được chuyển sang trạng thái đã hủy.",
+        confirmLabel: "Hủy lịch hẹn",
+        tone: "danger",
+      });
+      if (!confirmed) return;
+    }
+    if (status === "NO_SHOW") {
+      const confirmed = await showConfirm({
+        title: "Đánh dấu bệnh nhân vắng mặt?",
+        description: "Xác nhận bệnh nhân đã không đến theo lịch hẹn này.",
+        confirmLabel: "Xác nhận vắng mặt",
+        tone: "danger",
+      });
+      if (!confirmed) return;
+    }
 
     const endpoint = statusEndpoint(status);
     if (!endpoint) return;

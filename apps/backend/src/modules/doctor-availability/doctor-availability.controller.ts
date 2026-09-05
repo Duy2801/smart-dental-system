@@ -10,9 +10,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { CurrentUser } from '../../common/decorators/curent-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface';
 import { AvailabilityApprovalStatus } from '../../../prisma/generated/client';
 import { AutoWeeklyAvailabilityDto } from './dto/auto-weekly-availability.dto';
 import { CreateDoctorAvailabilityDto } from './dto/create-doctor-availability.dto';
@@ -62,10 +64,11 @@ export class DoctorAvailabilityController {
   @Roles('ADMIN', 'RECEPTIONIST', 'DOCTOR')
   @UseGuards(JwtAuthGuard, RolesGuard)
   create(
+    @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateDoctorAvailabilityDto,
     @Query('force') force?: string,
   ) {
-    return this.doctorAvailabilityService.create(dto, force === 'true');
+    return this.doctorAvailabilityService.create(user, dto, force === 'true');
   }
 
   @Post('auto-weekly')

@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { Header } from "@/src/components/layout/header";
 import apiClient from "@/src/lib/api/client";
 import { cn } from "@/src/lib/utils/cn";
+import { useAppDialog } from "@/src/providers/app-dialog-provider";
 import {
   Clock,
   CheckCircle,
@@ -236,6 +237,7 @@ const STATUS_CONFIG: Record<
 };
 
 export default function ReceptionistRequestsPage() {
+  const { showAlert } = useAppDialog();
   const [requests, setRequests] = useState<ChangeRequest[]>(INITIAL_REQUESTS);
   const [statusFilter, setStatusFilter] = useState<"ALL" | RequestStatus>("PENDING");
   const [typeFilter, setTypeFilter] = useState<"ALL" | RequestType>("ALL");
@@ -258,7 +260,11 @@ export default function ReceptionistRequestsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
-      alert("Dung lượng tệp ảnh không được vượt quá 5MB.");
+      void showAlert({
+        title: "Tệp ảnh quá lớn",
+        description: "Dung lượng tệp ảnh không được vượt quá 5MB.",
+        tone: "danger",
+      });
       return;
     }
     const reader = new FileReader();
@@ -375,7 +381,11 @@ export default function ReceptionistRequestsPage() {
         showToast(`✓ Đã duyệt hoàn tiền ${(target.refundAmount || 0).toLocaleString("vi-VN")}đ và gửi Gmail + App cho ${target.requesterName}!`, "success");
       }
     } catch {
-      alert("Xử lý phê duyệt thất bại. Vui lòng thử lại.");
+      await showAlert({
+        title: "Không thể phê duyệt yêu cầu",
+        description: "Xử lý phê duyệt thất bại. Vui lòng thử lại.",
+        tone: "danger",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -383,7 +393,10 @@ export default function ReceptionistRequestsPage() {
 
   const handleReject = async (id: string) => {
     if (!actionNote.trim()) {
-      alert("Vui lòng nhập lý do từ chối để thông báo cho bệnh nhân / bác sĩ.");
+      await showAlert({
+        title: "Chưa nhập lý do từ chối",
+        description: "Vui lòng nhập lý do để thông báo cho bệnh nhân hoặc bác sĩ.",
+      });
       return;
     }
     const target = requests.find((r) => r.id === id);
@@ -416,7 +429,11 @@ export default function ReceptionistRequestsPage() {
         showToast(`✓ Đã từ chối yêu cầu #${target.requestCode} và gửi Gmail giải trình + App cho ${target.requesterName}!`, "info");
       }
     } catch {
-      alert("Xử lý từ chối thất bại. Vui lòng thử lại.");
+      await showAlert({
+        title: "Không thể từ chối yêu cầu",
+        description: "Xử lý từ chối thất bại. Vui lòng thử lại.",
+        tone: "danger",
+      });
     } finally {
       setSubmitting(false);
     }

@@ -19,6 +19,7 @@ import { ROUTES } from "@/src/constants/routes";
 import { getDoctorIdFromCookie } from "@/src/lib/doctor/session";
 import apiClient from "@/src/lib/api/client";
 import { cn } from "@/src/lib/utils/cn";
+import { useAppDialog } from "@/src/providers/app-dialog-provider";
 
 type ConsultStatus = "SCHEDULED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
 
@@ -133,6 +134,7 @@ function apiErrorMessage(err: unknown, fallback: string) {
 }
 
 export default function DoctorConsultationsPage() {
+  const { showAlert, showConfirm } = useAppDialog();
   const [doctorId, setDoctorId] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [items, setItems] = useState<Consultation[]>([]);
@@ -208,7 +210,13 @@ export default function DoctorConsultationsPage() {
   }, [items, filter, search]);
 
   const handleCancel = async (id: string, patientName: string) => {
-    if (!confirm(`Hủy buổi tư vấn với ${patientName}?`)) return;
+    const confirmed = await showConfirm({
+      title: "Hủy buổi tư vấn?",
+      description: `Buổi tư vấn với ${patientName} sẽ bị hủy và không thể hoàn tác.`,
+      confirmLabel: "Hủy buổi tư vấn",
+      tone: "danger",
+    });
+    if (!confirmed) return;
     setCancellingId(id);
     try {
       await apiClient.patch(`/video-consultations/${id}/cancel`);
@@ -218,7 +226,11 @@ export default function DoctorConsultationsPage() {
         ),
       );
     } catch (err) {
-      alert(apiErrorMessage(err, "Không thể hủy buổi tư vấn."));
+      await showAlert({
+        title: "Không thể hủy buổi tư vấn",
+        description: apiErrorMessage(err, "Không thể hủy buổi tư vấn."),
+        tone: "danger",
+      });
     } finally {
       setCancellingId(null);
     }

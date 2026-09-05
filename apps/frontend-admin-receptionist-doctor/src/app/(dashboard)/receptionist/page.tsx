@@ -13,6 +13,7 @@ import { mapAppointments, localDateStr } from "@/src/lib/receptionist/mappers";
 import type { ReceptionistAppointment } from "@/src/lib/receptionist/mappers";
 import { getApiErrorMessage } from "@/src/lib/utils/api-error";
 import { formatDoctorName } from "@/src/lib/utils/format";
+import { useAppDialog } from "@/src/providers/app-dialog-provider";
 import {
   CalendarBlank,
   Clock,
@@ -202,6 +203,7 @@ function QueueActionMenu({
 // ---------------------------------------------------------------------------
 
 export default function ReceptionistDashboard() {
+  const { showConfirm } = useAppDialog();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -254,8 +256,24 @@ export default function ReceptionistDashboard() {
     searchQuery.length > 0 && filtered.length === 0 && appointments.length > 0;
 
   const handleStatusChange = async (id: string, status: AppointmentStatus) => {
-    if (status === "CANCELLED" && !window.confirm("Xác nhận hủy lịch hẹn này?")) return;
-    if (status === "NO_SHOW" && !window.confirm("Đánh dấu bệnh nhân vắng mặt?")) return;
+    if (status === "CANCELLED") {
+      const confirmed = await showConfirm({
+        title: "Hủy lịch hẹn?",
+        description: "Lịch hẹn này sẽ được chuyển sang trạng thái đã hủy.",
+        confirmLabel: "Hủy lịch hẹn",
+        tone: "danger",
+      });
+      if (!confirmed) return;
+    }
+    if (status === "NO_SHOW") {
+      const confirmed = await showConfirm({
+        title: "Đánh dấu bệnh nhân vắng mặt?",
+        description: "Xác nhận bệnh nhân đã không đến theo lịch hẹn này.",
+        confirmLabel: "Xác nhận vắng mặt",
+        tone: "danger",
+      });
+      if (!confirmed) return;
+    }
 
     const endpoint = statusEndpoint(status);
     if (!endpoint) return;

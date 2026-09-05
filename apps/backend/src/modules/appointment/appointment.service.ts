@@ -2205,6 +2205,7 @@ export class AppointmentService {
           where: {
             doctorId: { in: doctorIds },
             isActive: true,
+            approvalStatus: 'APPROVED',
             OR: [
               { recordType: 'WEEKLY' },
               {
@@ -2510,6 +2511,7 @@ export class AppointmentService {
       where: {
         doctorId,
         isActive: true,
+        approvalStatus: 'APPROVED',
         OR: [
           { recordType: 'WEEKLY', dayOfWeek: { in: weeklyDayOfWeek } },
           {

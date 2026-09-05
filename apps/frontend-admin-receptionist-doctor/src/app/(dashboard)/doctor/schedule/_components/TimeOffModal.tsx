@@ -17,6 +17,8 @@ const ERROR_MAP: Record<string, string> = {
   "availability.invalid_time_range": "Giờ bắt đầu phải trước giờ kết thúc.",
   "availability.specific_date_required": "Vui lòng chọn ngày nghỉ.",
   "availability.day_or_specific_date_required": "Vui lòng chọn ngày nghỉ.",
+  "availability.time_off_in_past": "Thời gian bắt đầu nghỉ phải ở tương lai.",
+  "availability.doctor_mismatch": "Bạn chỉ có thể đăng ký ngày nghỉ cho chính mình.",
 };
 
 function eachDate(from: string, to: string): string[] {
@@ -32,6 +34,14 @@ function eachDate(from: string, to: string): string[] {
 
 function normalizeTime(t: string) {
   return t.slice(0, 5);
+}
+
+function isPastOrCurrentStart(date: string, time: string, now = new Date()) {
+  const today = localDateStr(now);
+  const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(
+    now.getMinutes(),
+  ).padStart(2, "0")}`;
+  return date < today || (date === today && time <= currentTime);
 }
 
 function apiErrorMessage(err: unknown): string {
@@ -68,8 +78,8 @@ export function TimeOffModal({ doctorId, onClose, onSuccess }: Props) {
       setError("Vui lòng chọn ngày bắt đầu và ngày kết thúc.");
       return;
     }
-    if (form.fromDate < today) {
-      setError("Không thể đăng ký nghỉ cho ngày đã qua.");
+    if (isPastOrCurrentStart(form.fromDate, startTime)) {
+      setError("Thời gian bắt đầu nghỉ phải ở tương lai.");
       return;
     }
     if (form.toDate < form.fromDate) {

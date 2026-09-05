@@ -27,18 +27,12 @@ type Props = {
   onStatusChange: (id: string, action: "start" | "complete") => Promise<void>;
 };
 
-type PreviousAppointment = {
+type PreviousVisit = {
   id: string;
-  appointmentCode: string;
-  scheduledAt: string;
-  status: AppointmentStatus;
-  serviceName: string;
-  doctorName: string;
-  recordId: string | null;
-};
-
-type PatientAppointmentHistory = {
-  appointments: PreviousAppointment[];
+  scheduledAt: string | null;
+  createdAt: string;
+  serviceName: string | null;
+  diagnosis: string | null;
 };
 
 function InfoRow({
@@ -68,9 +62,7 @@ export function AppointmentDetailPanel({
 }: Props) {
   const [loading, setLoading] = useState<"start" | "complete" | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [previousVisits, setPreviousVisits] = useState<PreviousAppointment[]>(
-    [],
-  );
+  const [previousVisits, setPreviousVisits] = useState<PreviousVisit[]>([]);
   const [historyLoading, setHistoryLoading] = useState(Boolean(apt.patientId));
   const config =
     statusConfig[apt.status as AppointmentStatus] ?? statusConfig.PENDING;
@@ -92,19 +84,18 @@ export function AppointmentDetailPanel({
 
     let cancelled = false;
     void apiClient
-      .get<PatientAppointmentHistory>(
-        `/patients/${apt.patientId}?doctorId=${doctorId}`,
+      .get<PreviousVisit[]>(
+        `/medical-records?doctorId=${doctorId}&patientId=${apt.patientId}`,
       )
       .then((response) => {
         if (cancelled) return;
         const currentTime = new Date(apt.scheduledAt).getTime();
         setPreviousVisits(
-          (response.data.appointments ?? [])
+          (response.data ?? [])
             .filter(
               (visit) =>
-                visit.id !== apt.id &&
-                visit.status === "COMPLETED" &&
-                new Date(visit.scheduledAt).getTime() < currentTime,
+                new Date(visit.scheduledAt ?? visit.createdAt).getTime() <
+                currentTime,
             )
             .slice(0, 3),
         );
@@ -208,7 +199,7 @@ export function AppointmentDetailPanel({
                   </h4>
                 </div>
                 <Link
-                  href={`/doctor/patients/${apt.patientId}`}
+                  href={`/doctor/patients/${apt.patientId}/records`}
                   className="inline-flex items-center gap-1 text-[10px] font-semibold text-brand hover:underline"
                 >
                   Xem tất cả <ArrowUpRight size={11} />
@@ -222,25 +213,21 @@ export function AppointmentDetailPanel({
                 </div>
               ) : previousVisits.length === 0 ? (
                 <p className="py-1 text-[11px] text-slate-500">
-                  Chưa có lần khám hoàn thành trước đó.
+                  Chưa có hồ sơ bệnh án từ lần khám trước.
                 </p>
               ) : (
                 <div className="space-y-2">
                   {previousVisits.map((visit) => (
                     <Link
                       key={visit.id}
-                      href={
-                        visit.recordId
-                          ? `/doctor/medical-records?recordId=${visit.recordId}`
-                          : `/doctor/patients/${apt.patientId}`
-                      }
+                      href={`/doctor/medical-records?recordId=${visit.id}`}
                       className="block rounded-lg border border-slate-200 bg-white px-3 py-2 transition hover:border-brand/30 hover:shadow-xs"
                     >
                       <div className="flex items-center justify-between gap-2">
                         <time className="font-mono text-[10px] font-semibold text-slate-500">
-                          {new Date(visit.scheduledAt).toLocaleDateString(
-                            "vi-VN",
-                          )}
+                          {new Date(
+                            visit.scheduledAt ?? visit.createdAt,
+                          ).toLocaleDateString("vi-VN")}
                         </time>
                         <ArrowUpRight
                           size={11}
@@ -248,11 +235,13 @@ export function AppointmentDetailPanel({
                         />
                       </div>
                       <p className="mt-0.5 truncate text-[11px] font-semibold text-slate-800">
-                        {visit.serviceName}
+                        {visit.serviceName || "Khám nha khoa"}
                       </p>
-                      <p className="mt-0.5 truncate text-[10px] text-slate-500">
-                        {visit.doctorName}
-                      </p>
+                      {visit.diagnosis && (
+                        <p className="mt-0.5 truncate text-[10px] text-slate-500">
+                          {visit.diagnosis}
+                        </p>
+                      )}
                     </Link>
                   ))}
                 </div>

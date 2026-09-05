@@ -2,7 +2,14 @@
 
 import { useState } from "react";
 import { cn } from "@/src/lib/utils/cn";
-import { SpinnerGap, X, VideoCamera, Storefront } from "@phosphor-icons/react";
+import {
+  SpinnerGap,
+  X,
+  VideoCamera,
+  Storefront,
+  Trash,
+  WarningCircle,
+} from "@phosphor-icons/react";
 import type { ScheduleAppointment, AppointmentStatus, TimeOffRecord } from "./types";
 import { statusConfig } from "./types";
 import { AppointmentDetailPanel } from "./AppointmentDetailPanel";
@@ -47,12 +54,18 @@ export function WeekCalendar({
 }: Props) {
   const [selected, setSelected] = useState<ScheduleAppointment | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<TimeOffRecord | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  async function handleDeleteTimeOff(id: string) {
-    if (!confirm("Xóa đăng ký nghỉ này?")) return;
-    setDeletingId(id);
+  async function handleDeleteTimeOff() {
+    if (!pendingDelete) return;
+    setDeleteError(null);
+    setDeletingId(pendingDelete.id);
     try {
-      await onDeleteTimeOff(id);
+      await onDeleteTimeOff(pendingDelete.id);
+      setPendingDelete(null);
+    } catch {
+      setDeleteError("Không thể xóa ngày nghỉ. Vui lòng thử lại.");
     } finally {
       setDeletingId(null);
     }
@@ -178,7 +191,8 @@ export function WeekCalendar({
                       disabled={deletingId === off.id}
                       onClick={(e) => {
                         e.stopPropagation();
-                        void handleDeleteTimeOff(off.id);
+                        setDeleteError(null);
+                        setPendingDelete(off);
                       }}
                       className="rounded p-0.5 text-slate-400 hover:bg-white hover:text-red-600 disabled:opacity-50 cursor-pointer"
                       title="Xóa nghỉ"
@@ -286,6 +300,98 @@ export function WeekCalendar({
             setSelected(null);
           }}
         />
+      )}
+
+      {pendingDelete && (
+        <div
+          className="fixed inset-0 z-70 flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-xs"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !deletingId) {
+              setPendingDelete(null);
+            }
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-time-off-title"
+            className="w-full max-w-md rounded-2xl border border-slate-200/80 bg-white p-6 shadow-2xl"
+          >
+            <div className="flex items-start gap-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-rose-50 text-rose-600">
+                <WarningCircle size={24} weight="duotone" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3
+                      id="delete-time-off-title"
+                      className="text-lg font-bold text-brand-dark"
+                    >
+                      Xóa đăng ký nghỉ?
+                    </h3>
+                    <p className="mt-1 text-sm leading-relaxed text-slate-600">
+                      Khoảng nghỉ này sẽ bị xóa khỏi lịch làm việc của bạn.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    title="Đóng"
+                    disabled={Boolean(deletingId)}
+                    onClick={() => setPendingDelete(null)}
+                    className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/80 p-3">
+                  <p className="font-mono text-sm font-bold tracking-tight text-slate-900">
+                    {new Date(`${pendingDelete.dayIso}T00:00:00`).toLocaleDateString(
+                      "vi-VN",
+                    )}{" "}
+                    · {pendingDelete.startTime}–{pendingDelete.endTime}
+                  </p>
+                  {pendingDelete.reason && (
+                    <p className="mt-1.5 text-sm text-slate-600">
+                      {pendingDelete.reason}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {deleteError && (
+              <p className="mt-4 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700 ring-1 ring-inset ring-rose-200">
+                {deleteError}
+              </p>
+            )}
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                disabled={Boolean(deletingId)}
+                onClick={() => setPendingDelete(null)}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50"
+              >
+                Giữ lại
+              </button>
+              <button
+                type="button"
+                disabled={Boolean(deletingId)}
+                onClick={() => void handleDeleteTimeOff()}
+                className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow-xs transition-all hover:bg-rose-700 active:scale-[0.98] disabled:opacity-60"
+              >
+                {deletingId ? (
+                  <SpinnerGap size={16} className="animate-spin" />
+                ) : (
+                  <Trash size={16} weight="bold" />
+                )}
+                {deletingId ? "Đang xóa..." : "Xóa ngày nghỉ"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

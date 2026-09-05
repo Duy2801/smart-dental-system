@@ -13,6 +13,7 @@ import {
   Storefront,
 } from "@phosphor-icons/react";
 import apiClient from "@/src/lib/api/client";
+import { useAppDialog } from "@/src/providers/app-dialog-provider";
 
 type AppointmentStatus =
   | "PENDING"
@@ -131,6 +132,7 @@ function AppointmentSkeleton() {
 }
 
 export default function DoctorDashboardPage() {
+  const { showAlert } = useAppDialog();
   const [appointments, setAppointments] = useState<TodayAppointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -218,7 +220,11 @@ export default function DoctorDashboardPage() {
       await apiClient.patch(`/appointments/${id}/start`);
       await fetchDashboard();
     } catch {
-      alert("Không thể bắt đầu ca khám. Vui lòng thử lại.");
+      await showAlert({
+        title: "Không thể bắt đầu ca khám",
+        description: "Vui lòng thử lại sau.",
+        tone: "danger",
+      });
     } finally {
       setActionLoading(null);
     }
@@ -230,7 +236,11 @@ export default function DoctorDashboardPage() {
       await apiClient.patch(`/appointments/${id}/complete`);
       await fetchDashboard();
     } catch {
-      alert("Không thể kết thúc ca khám. Vui lòng thử lại.");
+      await showAlert({
+        title: "Không thể kết thúc ca khám",
+        description: "Vui lòng thử lại sau.",
+        tone: "danger",
+      });
     } finally {
       setActionLoading(null);
     }

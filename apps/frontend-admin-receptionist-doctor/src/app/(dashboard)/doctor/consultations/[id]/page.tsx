@@ -22,6 +22,7 @@ import {
 import { ROUTES } from "@/src/constants/routes";
 import apiClient from "@/src/lib/api/client";
 import { cn } from "@/src/lib/utils/cn";
+import { useAppDialog } from "@/src/providers/app-dialog-provider";
 
 type ConsultStatus = "SCHEDULED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
 
@@ -120,6 +121,7 @@ function apiErrorMessage(err: unknown, fallback: string) {
 }
 
 export default function ConsultationRoomPage() {
+  const { showAlert, showConfirm } = useAppDialog();
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const id = params.id;
@@ -230,7 +232,11 @@ export default function ConsultationRoomPage() {
         disclaimer: res.data.disclaimer,
       });
     } catch (err) {
-      alert(apiErrorMessage(err, "Không tạo được tóm tắt AI."));
+      await showAlert({
+        title: "Không thể tạo tóm tắt AI",
+        description: apiErrorMessage(err, "Không tạo được tóm tắt AI."),
+        tone: "danger",
+      });
     } finally {
       setAiLoading(false);
     }
@@ -239,9 +245,11 @@ export default function ConsultationRoomPage() {
   const handleStart = async () => {
     if (!detail) return;
     if (!detail.isPaid) {
-      const ok = confirm(
-        "Buổi tư vấn chưa thanh toán. Bạn vẫn muốn bắt đầu?",
-      );
+      const ok = await showConfirm({
+        title: "Buổi tư vấn chưa thanh toán",
+        description: "Bạn vẫn muốn bắt đầu buổi tư vấn này?",
+        confirmLabel: "Vẫn bắt đầu",
+      });
       if (!ok) return;
     }
     setActionLoading(true);
@@ -262,14 +270,24 @@ export default function ConsultationRoomPage() {
       setInCall(true);
       setCallStartedAt(Date.now());
     } catch (err) {
-      alert(apiErrorMessage(err, "Không thể bắt đầu tư vấn. Vui lòng thử lại."));
+      await showAlert({
+        title: "Không thể bắt đầu tư vấn",
+        description: apiErrorMessage(err, "Không thể bắt đầu tư vấn. Vui lòng thử lại."),
+        tone: "danger",
+      });
     } finally {
       setActionLoading(false);
     }
   };
 
   const handleComplete = async () => {
-    if (!confirm("Kết thúc buổi tư vấn? Link phòng sẽ hết hạn ngay.")) return;
+    const confirmed = await showConfirm({
+      title: "Kết thúc buổi tư vấn?",
+      description: "Link phòng sẽ hết hạn ngay sau khi kết thúc.",
+      confirmLabel: "Kết thúc tư vấn",
+      tone: "danger",
+    });
+    if (!confirmed) return;
     setActionLoading(true);
     try {
       await apiClient.patch(`/video-consultations/${id}/complete`);
@@ -277,14 +295,24 @@ export default function ConsultationRoomPage() {
       setCallStartedAt(null);
       await load();
     } catch (err) {
-      alert(apiErrorMessage(err, "Không thể kết thúc tư vấn. Vui lòng thử lại."));
+      await showAlert({
+        title: "Không thể kết thúc tư vấn",
+        description: apiErrorMessage(err, "Không thể kết thúc tư vấn. Vui lòng thử lại."),
+        tone: "danger",
+      });
     } finally {
       setActionLoading(false);
     }
   };
 
   const handleCancel = async () => {
-    if (!confirm("Hủy buổi tư vấn này? Thao tác không hoàn tác được.")) return;
+    const confirmed = await showConfirm({
+      title: "Hủy buổi tư vấn?",
+      description: "Thao tác này không thể hoàn tác.",
+      confirmLabel: "Hủy buổi tư vấn",
+      tone: "danger",
+    });
+    if (!confirmed) return;
     setActionLoading(true);
     try {
       await apiClient.patch(`/video-consultations/${id}/cancel`);
@@ -292,7 +320,11 @@ export default function ConsultationRoomPage() {
       setCallStartedAt(null);
       await load();
     } catch (err) {
-      alert(apiErrorMessage(err, "Không thể hủy buổi tư vấn."));
+      await showAlert({
+        title: "Không thể hủy buổi tư vấn",
+        description: apiErrorMessage(err, "Không thể hủy buổi tư vấn."),
+        tone: "danger",
+      });
     } finally {
       setActionLoading(false);
     }
@@ -314,7 +346,11 @@ export default function ConsultationRoomPage() {
       setNotesSaved(true);
       setTimeout(() => setNotesSaved(false), 2500);
     } catch (err) {
-      alert(apiErrorMessage(err, "Lưu ghi chú thất bại."));
+      await showAlert({
+        title: "Không thể lưu ghi chú",
+        description: apiErrorMessage(err, "Lưu ghi chú thất bại."),
+        tone: "danger",
+      });
     } finally {
       setSavingNotes(false);
     }
@@ -327,7 +363,11 @@ export default function ConsultationRoomPage() {
       setPinCopied(true);
       setTimeout(() => setPinCopied(false), 2000);
     } catch {
-      alert(`Mã PIN: ${detail.roomPin}`);
+      await showAlert({
+        title: "Mã PIN phòng tư vấn",
+        description: detail.roomPin,
+        closeLabel: "Đã nhớ",
+      });
     }
   };
 

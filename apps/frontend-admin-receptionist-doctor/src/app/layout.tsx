@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Be_Vietnam_Pro } from "next/font/google";
 import { siteConfig } from "@/src/config/site";
 import { ReactQueryProvider } from "@/src/providers/react-query-provider";
+import { AppDialogProvider } from "@/src/providers/app-dialog-provider";
 import "./globals.css";
 
 const beVietnamPro = Be_Vietnam_Pro({
@@ -26,7 +27,9 @@ export default function RootLayout({
   return (
     <html lang="vi" className={`${beVietnamPro.variable} h-full antialiased`} style={{ fontFamily: "var(--font-be-vietnam), system-ui, sans-serif" }} suppressHydrationWarning>
       <body className="flex min-h-full flex-col">
-        <ReactQueryProvider>{children}</ReactQueryProvider>
+        <ReactQueryProvider>
+          <AppDialogProvider>{children}</AppDialogProvider>
+        </ReactQueryProvider>
       </body>
     </html>
   );
