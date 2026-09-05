@@ -26,7 +26,7 @@ import {
 
 type LocalizedRequest = Request & {
   locale?: 'en' | 'vi';
-  user?: { sub: string };
+  user?: { sub: string; sid?: string };
   refreshToken?: string;
 };
 
@@ -47,7 +47,7 @@ export class AuthController {
       secure: isProduction,
       sameSite: isProduction ? 'none' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000,
-      path: '/api/v1/auth',
+      path: '/api/v1',
     });
   }
 
@@ -59,7 +59,7 @@ export class AuthController {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? 'none' : 'lax',
-      path: '/api/v1/auth',
+      path: '/api/v1',
     });
   }
 
@@ -95,18 +95,28 @@ export class AuthController {
   @ApiCookieAuth('refreshToken')
   @UseGuards(RefreshTokenGuard)
   @Post('refresh')
-  refreshToken(@Req() req: LocalizedRequest) {
-    return this.auth.refreshToken(req.user!.sub, req.refreshToken!);
+  async refreshToken(
+    @Req() req: LocalizedRequest,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const session = await this.auth.refreshToken(
+      req.user!.sub,
+      req.refreshToken!,
+    );
+    return this.hideRefreshToken(session, response);
   }
 
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Post('logout')
   async logout(
-    @Req() req: Request & { user: { userId: string } },
+    @Req()
+    req: Request & {
+      user: { userId: string; sessionId?: string };
+    },
     @Res({ passthrough: true }) response: Response,
   ) {
-    const result = await this.auth.logout(req.user.userId);
+    const result = await this.auth.logout(req.user.userId, req.user.sessionId);
     this.clearRefreshCookie(response);
     return result;
   }

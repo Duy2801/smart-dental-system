@@ -133,7 +133,6 @@ export class AuthService {
     await this.redisService.del(`patient:profiles:${userId}`);
   }
 
-
   async register(data: RegisterDto, locale: 'en' | 'vi' = 'vi') {
     const email = this.normalizeEmail(data.email);
     const existingUser = await this.userService.findByEmail(email);
@@ -274,14 +273,22 @@ export class AuthService {
     };
   }
 
-  async logout(userId: string) {
-    await this.redisService.del(`refresh_token:${userId}`);
+  async logout(userId: string, sessionId?: string) {
+    await this.redisService.del(
+      sessionId
+        ? this.refreshTokenKey(userId, sessionId)
+        : `refresh_token:${userId}`,
+    );
     return { message: 'auth.logout_success' };
   }
 
-  private signAccessToken(userId: string, email: string) {
+  private refreshTokenKey(userId: string, sessionId: string) {
+    return `refresh_token:${userId}:${sessionId}`;
+  }
+
+  private signAccessToken(userId: string, email: string, sessionId: string) {
     return this.jwtService.sign(
-      { sub: userId, email, tokenType: 'access' },
+      { sub: userId, email, sid: sessionId, tokenType: 'access' },
       {
         expiresIn: '15m',
         secret: this.configService.getOrThrow<string>('JWT_SECRET'),
@@ -289,9 +296,9 @@ export class AuthService {
     );
   }
 
-  private signRefreshToken(userId: string, email: string) {
+  private signRefreshToken(userId: string, email: string, sessionId: string) {
     return this.jwtService.sign(
-      { sub: userId, email, tokenType: 'refresh' },
+      { sub: userId, email, sid: sessionId, tokenType: 'refresh' },
       {
         expiresIn: '7d',
         secret: this.configService.getOrThrow<string>('JWT_SECRET'),
@@ -300,10 +307,11 @@ export class AuthService {
   }
 
   private async createSession(user: { id: string; email: string }) {
-    const accessToken = this.signAccessToken(user.id, user.email);
-    const refreshToken = this.signRefreshToken(user.id, user.email);
+    const sessionId = randomBytes(24).toString('hex');
+    const accessToken = this.signAccessToken(user.id, user.email, sessionId);
+    const refreshToken = this.signRefreshToken(user.id, user.email, sessionId);
     await this.redisService.set(
-      `refresh_token:${user.id}`,
+      this.refreshTokenKey(user.id, sessionId),
       refreshToken,
       REFRESH_TOKEN_TTL_SECONDS,
     );
@@ -327,29 +335,47 @@ export class AuthService {
   }
 
   async refreshToken(userId: string, presentedToken: string) {
-    const storedToken = await this.redisService.get(`refresh_token:${userId}`);
-    if (!storedToken || storedToken !== presentedToken) {
-      throw new UnauthorizedException('auth.refresh_expired');
-    }
-
     try {
       const payload = this.jwtService.verify<{
         sub: string;
         email: string;
+        sid?: string;
         tokenType: string;
-      }>(storedToken, {
+      }>(presentedToken, {
         secret: this.configService.getOrThrow<string>('JWT_SECRET'),
       });
       if (payload.tokenType !== 'refresh' || payload.sub !== userId) {
         throw new Error('Invalid refresh token');
       }
+      const tokenKey = payload.sid
+        ? this.refreshTokenKey(userId, payload.sid)
+        : `refresh_token:${userId}`;
+      const storedToken = await this.redisService.get(tokenKey);
+      if (!storedToken || storedToken !== presentedToken) {
+        throw new Error('Refresh session not found');
+      }
+
+      // Migrate a legacy single-session token without forcing the user out.
+      const sessionId = payload.sid ?? randomBytes(24).toString('hex');
+      const refreshToken = payload.sid
+        ? presentedToken
+        : this.signRefreshToken(payload.sub, payload.email, sessionId);
+      if (!payload.sid) {
+        await this.redisService.set(
+          this.refreshTokenKey(userId, sessionId),
+          refreshToken,
+          REFRESH_TOKEN_TTL_SECONDS,
+        );
+        await this.redisService.del(tokenKey);
+      }
       const [accessToken, user] = await Promise.all([
-        Promise.resolve(this.signAccessToken(payload.sub, payload.email)),
+        Promise.resolve(
+          this.signAccessToken(payload.sub, payload.email, sessionId),
+        ),
         this.me(payload.sub),
       ]);
-      return { accessToken, user };
+      return { accessToken, refreshToken, user };
     } catch {
-      await this.redisService.del(`refresh_token:${userId}`);
       throw new UnauthorizedException('auth.refresh_expired');
     }
   }
@@ -442,6 +468,7 @@ export class AuthService {
       data: { passwordHash: await bcrypt.hash(newPassword, 10) },
     });
     await this.redisService.del(`refresh_token:${userId}`);
+    await this.redisService.delByPrefix(`refresh_token:${userId}:`);
     return { message: 'auth.password_reset_success' };
   }
 
@@ -506,7 +533,9 @@ export class AuthService {
       try {
         return await this.fetchGoogleUserInfo(token);
       } catch (err: any) {
-        this.logger.warn(`Google access_token verification failed: ${err?.message || err}`);
+        this.logger.warn(
+          `Google access_token verification failed: ${err?.message || err}`,
+        );
         throw new UnauthorizedException('auth.google_invalid_token');
       }
     }
@@ -537,7 +566,9 @@ export class AuthService {
     try {
       return await this.fetchGoogleUserInfo(token);
     } catch (err: any) {
-      this.logger.warn(`Google userinfo fallback failed: ${err?.message || err}`);
+      this.logger.warn(
+        `Google userinfo fallback failed: ${err?.message || err}`,
+      );
       throw new UnauthorizedException('auth.google_invalid_token');
     }
   }
@@ -575,8 +606,7 @@ export class AuthService {
         where: { id: user.id },
         data: {
           googleId: payload.sub,
-          emailVerified:
-            user.emailVerified || (payload.email_verified ?? true),
+          emailVerified: user.emailVerified || (payload.email_verified ?? true),
         },
         include: {
           roles: { include: { role: true } },
@@ -599,4 +629,3 @@ export class AuthService {
     return this.createSession(user);
   }
 }
-
