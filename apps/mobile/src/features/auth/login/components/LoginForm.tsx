@@ -13,8 +13,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useDispatch } from 'react-redux';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useDispatch } from 'react-redux';
 import { SCREEN_NAME } from '~src/constants/screenName';
 import { setSession } from '~src/reducers/loginReducer';
 import { AppDispatch } from '~src/reducers/store';
@@ -32,10 +32,14 @@ type LoginFormProps = {
   subtitle: string;
   accentColor: string;
   showPatientActions?: boolean;
+  initialEmail?: string;
+  initialPassword?: string;
 };
 
 const LoginForm = ({
   accentColor,
+  initialEmail,
+  initialPassword,
   role,
   showPatientActions = false,
   subtitle,
@@ -43,8 +47,12 @@ const LoginForm = ({
 }: LoginFormProps) => {
   const navigation = useNavigation<any>();
   const dispatch = useDispatch<AppDispatch>();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState(
+    initialEmail ?? (role === 'PATIENT' ? 'patient01@smartdental.test' : ''),
+  );
+  const [password, setPassword] = useState(
+    initialPassword ?? (role === 'PATIENT' ? 'Test@123456' : ''),
+  );
   const [errors, setErrors] = useState<
     Partial<Record<'email' | 'password', string>>
   >({});
@@ -104,13 +112,15 @@ const LoginForm = ({
             <View style={styles.brand}>
               <View style={[styles.brandIcon, { backgroundColor: accentColor }]}>
                 <FontAwesome6
-                  name={isDoctor ? 'user-doctor' : 'tooth'}
-                  size={22}
                   color="#FFFFFF"
                   iconStyle="solid"
+                  name="tooth"
+                  size={19}
                 />
               </View>
-              <Text style={[styles.brandName, { color: accentColor }]}> AIsmart Dental System </Text>
+              <Text style={[styles.brandName, { color: accentColor }]}>
+                AIsmart Dental System
+              </Text>
             </View>
 
             <View style={styles.heading}>
@@ -119,7 +129,10 @@ const LoginForm = ({
             </View>
 
             <View style={styles.card}>
-              <Text style={[styles.cardTitle, { color: accentColor }]}>Đăng nhập</Text>
+              <Text style={[styles.cardTitle, { color: accentColor }]}>
+                Đăng nhập
+              </Text>
+
               <AuthTextField
                 autoCapitalize="none"
                 autoComplete="email"
@@ -136,6 +149,7 @@ const LoginForm = ({
                 returnKeyType="next"
                 value={email}
               />
+
               <AuthTextField
                 autoCapitalize="none"
                 autoComplete="current-password"
@@ -155,8 +169,10 @@ const LoginForm = ({
               />
 
               {showPatientActions && (
-                <TouchableOpacity style={styles.forgotButton} onPress={() => { }}>
-                  <Text style={[styles.linkText, { color: accentColor }]}>Quên mật khẩu?</Text>
+                <TouchableOpacity style={styles.forgotButton} onPress={() => {}}>
+                  <Text style={[styles.linkText, { color: accentColor }]}>
+                    Quên mật khẩu?
+                  </Text>
                 </TouchableOpacity>
               )}
 
@@ -165,25 +181,17 @@ const LoginForm = ({
               <TouchableOpacity
                 activeOpacity={0.85}
                 disabled={loginMutation.isPending}
+                onPress={handleLogin}
                 style={[
                   styles.primaryButton,
                   { backgroundColor: accentColor },
                   loginMutation.isPending && styles.buttonDisabled,
                 ]}
-                onPress={handleLogin}
               >
                 {loginMutation.isPending ? (
                   <ActivityIndicator color="#FFFFFF" />
                 ) : (
-                  <>
-                    <Text style={styles.primaryButtonText}>Đăng nhập</Text>
-                    <FontAwesome6
-                      name="arrow-right"
-                      size={15}
-                      color="#FFFFFF"
-                      iconStyle="solid"
-                    />
-                  </>
+                  <Text style={styles.primaryButtonText}>Đăng nhập</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -194,7 +202,9 @@ const LoginForm = ({
                 <TouchableOpacity
                   onPress={() => navigation.navigate(SCREEN_NAME.REGISTER)}
                 >
-                  <Text style={[styles.linkText, { color: accentColor }]}>Đăng ký ngay</Text>
+                  <Text style={[styles.linkText, { color: accentColor }]}>
+                    Đăng ký ngay
+                  </Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -230,46 +240,54 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 28,
   },
   screen: { maxWidth: 420, width: '100%' },
   brand: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 9,
+    gap: 10,
     justifyContent: 'center',
   },
   brandIcon: {
     alignItems: 'center',
-    borderRadius: 11,
-    height: 42,
+    borderRadius: 9,
+    height: 40,
     justifyContent: 'center',
-    width: 42,
+    width: 40,
   },
-  brandName: { fontSize: 21, fontWeight: '800' },
-  heading: { alignItems: 'center', marginBottom: 28, marginTop: 32 },
-  title: { color: '#101828', fontSize: 27, fontWeight: '800', textAlign: 'center' },
+  brandName: { fontSize: 18, fontWeight: '800' },
+  heading: { alignItems: 'center', marginBottom: 24, marginTop: 30 },
+  title: {
+    color: '#101828',
+    fontSize: 24,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
   subtitle: {
     color: '#667085',
-    fontSize: 14,
-    lineHeight: 21,
-    marginTop: 10,
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 9,
     textAlign: 'center',
   },
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    borderRadius: 17,
     elevation: 3,
-    gap: 18,
-    padding: 22,
+    gap: 16,
+    paddingBottom: 20,
+    paddingHorizontal: 22,
+    paddingTop: 22,
     shadowColor: '#172B4D',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 11,
   },
-  cardTitle: { fontSize: 21, fontWeight: '800', textAlign: 'center' },
+  cardTitle: { fontSize: 20, fontWeight: '800', textAlign: 'center' },
   forgotButton: { alignSelf: 'flex-end', marginTop: -5 },
-  linkText: { fontSize: 13, fontWeight: '700' },
+  linkText: { fontSize: 12, fontWeight: '700' },
   formError: {
     color: '#D92D20',
     fontSize: 13,
@@ -278,14 +296,18 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     alignItems: 'center',
-    borderRadius: 12,
-    elevation: 2,
+    borderRadius: 9,
+    elevation: 3,
     flexDirection: 'row',
-    gap: 9,
-    height: 54,
+    height: 50,
     justifyContent: 'center',
+    marginTop: 2,
+    shadowColor: '#0B66C3',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.18,
+    shadowRadius: 7,
   },
-  primaryButtonText: { color: '#FFFFFF', fontSize: 17, fontWeight: '800' },
+  primaryButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '800' },
   buttonDisabled: { opacity: 0.65 },
   registerRow: {
     alignItems: 'center',

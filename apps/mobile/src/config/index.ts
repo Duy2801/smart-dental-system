@@ -1,25 +1,21 @@
-import { Platform } from 'react-native';
 import axios from 'axios';
-import Config from 'react-native-config';
+import { NEXT_PUBLIC_API_URL, BACKEND_URL } from '@env';
 import { KEY_STORAGE } from '~src/constants/keyStorage';
 import { getItem } from '~src/utils/storage';
 
-const getApiBaseUrl = () => {
-  const configuredUrl = (Config.BACKEND_URL || '').replace(
-    /\/$/,
-    '',
-  );
-  const deviceUrl =
-    Platform.OS === 'android'
-      ? configuredUrl.replace('localhost', '10.0.2.2')
-      : configuredUrl;
+const RESOLVED_URL =
+  (NEXT_PUBLIC_API_URL || BACKEND_URL || '').replace(/\/$/, '')
 
-  return deviceUrl.endsWith('/api/v1') ? deviceUrl : `${deviceUrl}/api/v1`;
-};
+export const getResolvedBackendUrl = () => RESOLVED_URL;
+
+export const getApiBaseUrl = () =>
+  RESOLVED_URL.endsWith('/api/v1') ? RESOLVED_URL : `${RESOLVED_URL}/api/v1`;
+
+export const getSocketUrl = () => RESOLVED_URL.replace(/\/api\/v1$/, '');
 
 export const api = axios.create({
   baseURL: getApiBaseUrl(),
-  timeout: 10000,
+  timeout: 15000,
   withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
 });
@@ -31,4 +27,3 @@ api.interceptors.request.use(async config => {
   }
   return config;
 });
-

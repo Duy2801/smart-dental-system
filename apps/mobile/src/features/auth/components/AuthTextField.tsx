@@ -29,12 +29,12 @@ const AuthTextField = ({
     <View style={styles.field}>
       <Text style={styles.label}>{label}</Text>
       <View style={[styles.inputContainer, error && styles.inputError]}>
-        <FontAwesome6 name={icon} size={17} color="#8E96A8" iconStyle="solid" />
+        <FontAwesome6 color="#8E96A8" iconStyle="solid" name={icon} size={16} />
         <TextInput
           {...inputProps}
-          style={styles.input}
           placeholderTextColor="#A8AFBD"
           secureTextEntry={isPassword && !passwordVisible}
+          style={styles.input}
         />
         {isPassword && (
           <TouchableOpacity
@@ -45,10 +45,10 @@ const AuthTextField = ({
             onPress={() => setPasswordVisible(value => !value)}
           >
             <FontAwesome6
-              name={passwordVisible ? 'eye-slash' : 'eye'}
-              size={17}
               color="#8E96A8"
               iconStyle="solid"
+              name={passwordVisible ? 'eye-slash' : 'eye'}
+              size={16}
             />
           </TouchableOpacity>
         )}
@@ -63,18 +63,18 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   label: {
-    color: '#475467',
-    fontSize: 13,
+    color: '#344054',
+    fontSize: 12,
     fontWeight: '700',
   },
   inputContainer: {
     alignItems: 'center',
-    backgroundColor: '#F8FAFD',
+    backgroundColor: '#F8FAFC',
     borderColor: '#DDE3EC',
-    borderRadius: 12,
+    borderRadius: 10,
     borderWidth: 1,
     flexDirection: 'row',
-    minHeight: 54,
+    minHeight: 50,
     paddingHorizontal: 16,
   },
   input: {

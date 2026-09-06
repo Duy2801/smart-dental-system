@@ -56,6 +56,7 @@ export function LoginForm({
             icon="mail"
             name="email"
             type="email"
+            defaultValue="patient01@smartdental.test"
             placeholder="example@gmail.com"
             autoComplete="email"
             required
@@ -65,6 +66,7 @@ export function LoginForm({
             icon="lock"
             type="password"
             name="password"
+            defaultValue="Test@123456"
             placeholder="Nhập mật khẩu của bạn"
             autoComplete="current-password"
             passwordVisible={passwordVisible}

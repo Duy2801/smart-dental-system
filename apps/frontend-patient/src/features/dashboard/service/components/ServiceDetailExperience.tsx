@@ -72,34 +72,38 @@ export function ServiceDetailExperience({ serviceId }: { serviceId: string }) {
             description="Lựa chọn phương pháp điều trị phù hợp với nhu cầu và ngân sách của bạn."
           />
 
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 items-stretch">
             {treatmentMethods.map((method) => {
               const isSelected = activeMethod?.id === method.id;
               return (
                 <div
                   key={method.id}
                   onClick={() => setSelectedMethodId(method.id)}
-                  className={`cursor-pointer rounded-2xl border p-5 transition-all duration-200 ${isSelected
+                  className={`group flex h-full flex-col justify-between cursor-pointer rounded-2xl border p-5 transition-all duration-200 ${isSelected
                     ? "border-[#0863c5] bg-white shadow-md ring-2 ring-[#0863c5]/20"
                     : "border-slate-200 bg-white/80 hover:border-blue-300 hover:bg-white"
                     }`}
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="inline-block rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-bold text-[#0863c5]">
-                      Phương pháp
-                    </span>
-                    {isSelected && (
-                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#0863c5] text-[10px] font-extrabold text-white">
-                        ✓
+                  <div className="flex flex-1 flex-col">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="inline-block rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-bold text-[#0863c5]">
+                        Phương pháp
                       </span>
-                    )}
+                      {isSelected ? (
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#0863c5] text-[10px] font-extrabold text-white">
+                          ✓
+                        </span>
+                      ) : (
+                        <span className="h-5 w-5 shrink-0" />
+                      )}
+                    </div>
+                    <h3 className="mt-3 min-h-[3rem] text-base font-extrabold leading-6 text-slate-950 line-clamp-2">
+                      {method.name}
+                    </h3>
+                    <p className="mt-2 min-h-[3.75rem] flex-1 text-xs leading-5 text-slate-500 line-clamp-3">
+                      {method.description || "Chi tiết phương pháp điều trị chuyên sâu."}
+                    </p>
                   </div>
-                  <h3 className="mt-3 text-base font-extrabold text-slate-950">
-                    {method.name}
-                  </h3>
-                  <p className="mt-2 text-xs leading-5 text-slate-500 line-clamp-3">
-                    {method.description || "Chi tiết phương pháp điều trị chuyên sâu."}
-                  </p>
                   <div className="mt-4 border-t border-slate-100 pt-3">
                     <span className={`${T.caption} text-slate-400`}>Chi phí:</span>
                     <p className="text-lg font-extrabold text-[#0863c5]">
@@ -114,11 +118,11 @@ export function ServiceDetailExperience({ serviceId }: { serviceId: string }) {
       ) : null}
 
       {hasItems(service.highlights) ? (
-        <section className="mt-7 grid gap-4 md:grid-cols-3">
+        <section className="mt-7 grid gap-4 md:grid-cols-3 items-stretch">
           {service.highlights.map((item) => (
             <article
               key={`${item.title}-${item.description}`}
-              className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+              className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
             >
               <span className="grid h-11 w-11 place-items-center rounded-xl bg-blue-50 text-[#0863c5]">
                 <DashboardIcon name={normalizeServiceIcon(item.icon)} className="h-5 w-5" />
@@ -126,7 +130,7 @@ export function ServiceDetailExperience({ serviceId }: { serviceId: string }) {
               <h2 className="mt-4 text-base font-extrabold text-slate-950">
                 {item.title}
               </h2>
-              <p className="mt-2 text-sm leading-6 text-slate-500">
+              <p className="mt-2 text-sm leading-6 text-slate-500 flex-1">
                 {item.description}
               </p>
             </article>
@@ -143,53 +147,57 @@ export function ServiceDetailExperience({ serviceId }: { serviceId: string }) {
               description="Nội dung trong phần này được lấy từ dữ liệu quản trị dịch vụ."
             />
             {hasOverviewContent ? (
-              <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_0.85fr]">
-                <div>
+              <div className="mt-6 grid gap-6 sm:grid-cols-2 items-stretch">
+                <div className="flex h-full flex-col">
                   <h3 className="text-sm font-extrabold text-slate-950">
                     Dịch vụ phù hợp với ai?
                   </h3>
-                  {hasItems(service.suitableFor) ? (
-                    <ul className="mt-4 space-y-3">
-                      {service.suitableFor.map((item) => (
-                        <li
-                          key={item}
-                          className="flex gap-3 text-sm leading-6 text-slate-600"
-                        >
-                          <span className="mt-1 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-blue-50 text-[10px] font-bold text-[#0863c5]">
-                            ✓
-                          </span>
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <div className="mt-4">
+                  <div className="mt-3 flex-1 flex flex-col">
+                    {hasItems(service.suitableFor) ? (
+                      <div className="h-full rounded-2xl border border-slate-200/80 bg-slate-50/60 p-5">
+                        <ul className="space-y-3">
+                          {service.suitableFor.map((item) => (
+                            <li
+                              key={item}
+                              className="flex gap-3 text-sm leading-6 text-slate-600"
+                            >
+                              <span className="mt-1 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-blue-50 text-[10px] font-bold text-[#0863c5]">
+                                ✓
+                              </span>
+                              {item}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : (
                       <EmptyContent label="Đối tượng phù hợp" />
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
 
-                <div className="rounded-2xl bg-slate-50 p-5">
+                <div className="flex h-full flex-col">
                   <h3 className="text-sm font-extrabold text-slate-950">
                     Bao gồm trong buổi hẹn
                   </h3>
-                  {hasItems(service.includedItems) ? (
-                    <ul className="mt-4 space-y-3">
-                      {service.includedItems.map((item) => (
-                        <li
-                          key={item}
-                          className="flex gap-2 text-xs leading-5 text-slate-600"
-                        >
-                          <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#0863c5]" />
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <div className="mt-4">
+                  <div className="mt-3 flex-1 flex flex-col">
+                    {hasItems(service.includedItems) ? (
+                      <div className="h-full rounded-2xl border border-slate-200/80 bg-slate-50/60 p-5">
+                        <ul className="space-y-3">
+                          {service.includedItems.map((item) => (
+                            <li
+                              key={item}
+                              className="flex gap-2 text-xs leading-5 text-slate-600"
+                            >
+                              <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#0863c5]" />
+                              {item}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : (
                       <EmptyContent label="Quyền lợi buổi hẹn" />
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
             ) : (
@@ -337,41 +345,41 @@ export function ServiceDetailExperience({ serviceId }: { serviceId: string }) {
             </div>
           </section>
 
-          <section className="grid gap-5 md:grid-cols-2">
-            <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <section className="grid gap-5 md:grid-cols-2 items-stretch">
+            <article className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <SectionHeading eyebrow="Trước buổi hẹn" title="Chuẩn bị" />
-              {hasItems(service.preparationNotes) ? (
-                <ul className="mt-5 space-y-3">
-                  {service.preparationNotes.map((item) => (
-                    <li key={item} className="flex gap-3 text-sm leading-6 text-slate-600">
-                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#0863c5]" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="mt-5">
+              <div className="mt-5 flex-1 flex flex-col">
+                {hasItems(service.preparationNotes) ? (
+                  <ul className="space-y-3">
+                    {service.preparationNotes.map((item) => (
+                      <li key={item} className="flex gap-3 text-sm leading-6 text-slate-600">
+                        <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#0863c5]" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
                   <EmptyContent label="Nội dung chuẩn bị" />
-                </div>
-              )}
+                )}
+              </div>
             </article>
 
-            <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <article className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <SectionHeading eyebrow="Sau điều trị" title="Chăm sóc" />
-              {hasItems(service.aftercareNotes) ? (
-                <ul className="mt-5 space-y-3">
-                  {service.aftercareNotes.map((item) => (
-                    <li key={item} className="flex gap-3 text-sm leading-6 text-slate-600">
-                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="mt-5">
+              <div className="mt-5 flex-1 flex flex-col">
+                {hasItems(service.aftercareNotes) ? (
+                  <ul className="space-y-3">
+                    {service.aftercareNotes.map((item) => (
+                      <li key={item} className="flex gap-3 text-sm leading-6 text-slate-600">
+                        <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
                   <EmptyContent label="Nội dung chăm sóc sau điều trị" />
-                </div>
-              )}
+                )}
+              </div>
             </article>
           </section>
 
