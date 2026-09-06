@@ -83,7 +83,7 @@ function ToothRow({
             title={`${number}: ${STATUS_LABEL[status]} - bấm để đổi`}
             onClick={() => onCycle(number)}
             className={cn(
-              "flex h-9 w-9 flex-col items-center justify-center rounded-md border text-[10px] font-bold transition-colors",
+              "flex h-9 w-9 flex-col items-center justify-center rounded-md border text-[10px] font-bold transition-colors cursor-pointer",
               STATUS_COLOR[status],
               index === 7 ? "mr-2" : "",
             )}
@@ -97,18 +97,24 @@ function ToothRow({
 }
 
 export function DentalChartEditor({ value, onChange }: Props) {
-  const map = new Map(value.teeth.map((t) => [t.number, t.status]));
+  const map = new Map((value?.teeth || []).map((t) => [t.number, t.status]));
 
   const get = (n: number): ToothStatus => map.get(n) ?? "healthy";
 
   const cycle = (n: number) => {
     const status = nextStatus(get(n));
-    const teeth = UPPER.concat(LOWER).map((number) => ({
+    const standardTeeth = UPPER.concat(LOWER).map((number) => ({
       number,
       status: number === n ? status : get(number),
     }));
-    // Chỉ lưu răng khác healthy để JSON gọn — nhưng seed có cả healthy. Lưu tất cả đã click khác healthy + existing non-healthy
-    const compact = teeth.filter((t) => t.status !== "healthy");
+    // Giữ lại các răng ngoài dải 11-48 (răng sữa 51-85 hoặc răng đặc biệt) nếu đã có sẵn
+    const otherTeeth = (value?.teeth || []).filter(
+      (t) => !UPPER.includes(t.number) && !LOWER.includes(t.number) && t.status !== "healthy"
+    );
+    const compact = [
+      ...standardTeeth.filter((t) => t.status !== "healthy"),
+      ...otherTeeth,
+    ];
     onChange({ teeth: compact });
   };
 

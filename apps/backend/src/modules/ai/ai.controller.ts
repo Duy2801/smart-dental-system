@@ -106,6 +106,14 @@ export class AiController {
     return this.aiService.generateAftercare(user, dto);
   }
 
+  @Get('latest-aftercare/:medicalRecordId')
+  getLatestAftercare(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('medicalRecordId') medicalRecordId: string,
+  ) {
+    return this.aiService.getLatestAftercare(user, medicalRecordId);
+  }
+
   @Post('send-aftercare')
   sendAftercare(
     @CurrentUser() user: AuthenticatedUser,

@@ -17,8 +17,13 @@ import {
   X,
   Funnel,
   PaperPlaneTilt,
+  ArrowClockwise,
+  CaretLeft,
+  CaretRight,
+  CurrencyCircleDollar,
 } from "@phosphor-icons/react";
 import apiClient from "@/src/lib/api/client";
+import { getDoctorInfoFromCookie } from "@/src/lib/doctor/session";
 
 type PlanStatus = "PLANNED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
 
@@ -60,28 +65,26 @@ type Plan = {
   totalSteps: number;
   completedSteps: number;
   progressPercent: number;
+  totalEstimatedCost?: number | null;
   createdAt: string;
 };
 
-function getUserInfo(): { doctorId: string | null } {
-  if (typeof document === "undefined") return { doctorId: null };
-  const raw = document.cookie
-    .split("; ")
-    .find((c) => c.startsWith("user_info="))
-    ?.split("=")
-    .slice(1)
-    .join("=");
-  if (!raw) return { doctorId: null };
-  try {
-    return JSON.parse(decodeURIComponent(raw));
-  } catch {
-    return { doctorId: null };
-  }
+function cleanSearchText(str: string) {
+  return str
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d");
 }
 
 function formatDate(iso: string | null) {
-  if (!iso) return "?";
+  if (!iso) return "—";
   return new Date(iso).toLocaleDateString("vi-VN");
+}
+
+function formatCurrency(n?: number | null) {
+  if (n == null || n <= 0) return null;
+  return n.toLocaleString("vi-VN") + " đ";
 }
 
 function DeleteModal({
@@ -147,7 +150,39 @@ export default function TreatmentPlansPage() {
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
-  const doctorId = getUserInfo().doctorId;
+  const [doctorId, setDoctorId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const pageSize = 12;
+
+  useEffect(() => {
+    const doc = getDoctorInfoFromCookie();
+    if (doc?.doctorId) {
+      setDoctorId(doc.doctorId);
+    } else {
+      setError("Không tìm thấy thông tin bác sĩ. Vui lòng đăng nhập lại.");
+      setLoading(false);
+    }
+  }, []);
+
+  const loadPlans = () => {
+    if (!doctorId) return;
+    setLoading(true);
+    setError(null);
+    apiClient
+      .get<Plan[]>(`/treatment-plans?doctorId=${doctorId}`)
+      .then((res) => setPlans(res.data))
+      .catch((err: any) => {
+        const msg = err.response?.data?.message || "Không thể tải danh sách kế hoạch điều trị.";
+        setError(Array.isArray(msg) ? msg[0] : msg);
+      })
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    if (doctorId) {
+      loadPlans();
+    }
+  }, [doctorId]);
 
   const handleSendEmail = async (plan: Plan) => {
     setSendingId(plan.id);
@@ -172,28 +207,16 @@ export default function TreatmentPlansPage() {
     }
   };
 
-  useEffect(() => {
-    if (!doctorId) {
-      setError("Không tìm thấy thông tin bác sĩ. Vui lòng đăng nhập lại.");
-      setLoading(false);
-      return;
-    }
-    apiClient
-      .get<Plan[]>(`/treatment-plans?doctorId=${doctorId}`)
-      .then((res) => setPlans(res.data))
-      .catch(() => setError("Không thể tải danh sách kế hoạch điều trị."))
-      .finally(() => setLoading(false));
-  }, [doctorId]);
-
   const filtered = useMemo(() => {
     let data = plans;
     if (search.trim()) {
-      const q = search.trim().toLowerCase();
+      const q = cleanSearchText(search.trim());
       data = data.filter(
         (p) =>
-          p.title.toLowerCase().includes(q) ||
-          p.patientName.toLowerCase().includes(q) ||
-          p.patientCode.toLowerCase().includes(q),
+          cleanSearchText(p.title).includes(q) ||
+          cleanSearchText(p.patientName).includes(q) ||
+          cleanSearchText(p.patientCode).includes(q) ||
+          (p.description ? cleanSearchText(p.description).includes(q) : false),
       );
     }
     if (filterStatus) {
@@ -202,15 +225,35 @@ export default function TreatmentPlansPage() {
     return data;
   }, [plans, search, filterStatus]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [search, filterStatus]);
+
+  const totalPages = Math.ceil(filtered.length / pageSize) || 1;
+  const paginatedPlans = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, page, pageSize]);
+
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
       await apiClient.delete(`/treatment-plans/${deleteTarget.id}`);
       setPlans((prev) => prev.filter((p) => p.id !== deleteTarget.id));
+      setToast({
+        message: `✓ Đã xóa kế hoạch điều trị "${deleteTarget.title}"`,
+        type: "success",
+      });
+      setTimeout(() => setToast(null), 4000);
       setDeleteTarget(null);
-    } catch {
-      setError("Xóa kế hoạch thất bại. Vui lòng thử lại.");
+    } catch (err: any) {
+      const msg = err.response?.data?.message || "Xóa kế hoạch thất bại. Vui lòng thử lại.";
+      setToast({
+        message: Array.isArray(msg) ? msg[0] : msg,
+        type: "error",
+      });
+      setTimeout(() => setToast(null), 4000);
       setDeleteTarget(null);
     } finally {
       setDeleting(false);
@@ -246,9 +289,20 @@ export default function TreatmentPlansPage() {
 
       <div className="p-6 md:p-8">
         {error && (
-          <div className="mb-4 flex items-center gap-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-inset ring-red-200">
-            <Warning size={18} className="shrink-0" />
-            {error}
+          <div className="mb-4 flex items-center justify-between gap-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-inset ring-red-200">
+            <div className="flex items-center gap-2.5">
+              <Warning size={18} className="shrink-0" />
+              <span>{error}</span>
+            </div>
+            {doctorId && (
+              <button
+                onClick={loadPlans}
+                className="inline-flex items-center gap-1 text-xs font-semibold text-red-700 underline hover:text-red-900 cursor-pointer"
+              >
+                <ArrowClockwise size={13} />
+                Thử lại
+              </button>
+            )}
           </div>
         )}
 
@@ -332,14 +386,17 @@ export default function TreatmentPlansPage() {
           </div>
         ) : !error ? (
           <>
-            <p className="mb-3 text-xs text-muted-foreground">
-              Hiển thị{" "}
-              <strong className="text-brand-dark">{filtered.length}</strong> /{" "}
-              {plans.length} kế hoạch
-            </p>
+            <div className="mb-3 flex items-center justify-between text-xs text-muted-foreground">
+              <p>
+                Hiển thị{" "}
+                <strong className="text-brand-dark">{paginatedPlans.length}</strong> /{" "}
+                {filtered.length} kế hoạch
+                {filtered.length !== plans.length && ` (lọc từ ${plans.length})`}
+              </p>
+            </div>
 
             <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-              {filtered.map((plan) => {
+              {paginatedPlans.map((plan) => {
                 const pct = plan.progressPercent;
                 const s = statusMap[plan.status] ?? statusMap.PLANNED;
                 return (
@@ -408,16 +465,24 @@ export default function TreatmentPlansPage() {
                       </div>
                     </div>
 
-                    {/* Status badge */}
-                    <span
-                      className={cn(
-                        "mb-3 inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider ring-1 ring-inset",
-                        s.color,
+                    {/* Status badge & Cost badge */}
+                    <div className="mb-3 flex flex-wrap items-center gap-2">
+                      <span
+                        className={cn(
+                          "inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider ring-1 ring-inset",
+                          s.color,
+                        )}
+                      >
+                        <span className={cn("h-1.5 w-1.5 rounded-full", s.dot)} />
+                        {s.label}
+                      </span>
+                      {plan.totalEstimatedCost != null && plan.totalEstimatedCost > 0 && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
+                          <CurrencyCircleDollar size={13} weight="bold" />
+                          {formatCurrency(plan.totalEstimatedCost)}
+                        </span>
                       )}
-                    >
-                      <span className={cn("h-1.5 w-1.5 rounded-full", s.dot)} />
-                      {s.label}
-                    </span>
+                    </div>
 
                     <div className="mt-auto space-y-4">
                       {plan.totalSteps > 0 && (
@@ -466,6 +531,32 @@ export default function TreatmentPlansPage() {
                 );
               })}
             </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="mt-8 flex items-center justify-between border-t border-border pt-4">
+                <p className="text-xs text-muted-foreground">
+                  Trang <span className="font-semibold text-brand-dark">{page}</span> /{" "}
+                  <span className="font-semibold text-brand-dark">{totalPages}</span>
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    className="inline-flex h-9 items-center gap-1 rounded-xl border border-border bg-white px-3 text-xs font-medium text-slate-700 shadow-2xs hover:bg-slate-50 disabled:opacity-40 cursor-pointer"
+                  >
+                    <CaretLeft size={14} /> Trước
+                  </button>
+                  <button
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                    className="inline-flex h-9 items-center gap-1 rounded-xl border border-border bg-white px-3 text-xs font-medium text-slate-700 shadow-2xs hover:bg-slate-50 disabled:opacity-40 cursor-pointer"
+                  >
+                    Sau <CaretRight size={14} />
+                  </button>
+                </div>
+              </div>
+            )}
           </>
         ) : null}
       </div>

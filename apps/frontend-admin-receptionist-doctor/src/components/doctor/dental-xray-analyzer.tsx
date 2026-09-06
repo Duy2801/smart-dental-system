@@ -77,8 +77,48 @@ interface DentalXrayAnalyzerProps {
   patientImages?: PatientXrayItem[];
   onApplyToMedicalRecord?: (findingsSummary: string) => void;
   onApplyToDentalChart?: (findings: DentalFinding[]) => void;
+  onApplyDiagnosis?: (diagnosis: string) => void;
   onRequestUpload?: () => void;
 }
+
+export const FDI_TOOTH_OPTIONS = [
+  // Hàm trên - Phải (Quadrant 1)
+  { value: 18, label: "18 - Răng khôn trên phải" },
+  { value: 17, label: "17 - Răng cối lớn 2 trên phải" },
+  { value: 16, label: "16 - Răng cối lớn 1 trên phải" },
+  { value: 15, label: "15 - Răng cối nhỏ 2 trên phải" },
+  { value: 14, label: "14 - Răng cối nhỏ 1 trên phải" },
+  { value: 13, label: "13 - Răng nanh trên phải" },
+  { value: 12, label: "12 - Răng cửa bên trên phải" },
+  { value: 11, label: "11 - Răng cửa giữa trên phải" },
+  // Hàm trên - Trái (Quadrant 2)
+  { value: 21, label: "21 - Răng cửa giữa trên trái" },
+  { value: 22, label: "22 - Răng cửa bên trên trái" },
+  { value: 23, label: "23 - Răng nanh trên trái" },
+  { value: 24, label: "24 - Răng cối nhỏ 1 trên trái" },
+  { value: 25, label: "25 - Răng cối nhỏ 2 trên trái" },
+  { value: 26, label: "26 - Răng cối lớn 1 trên trái" },
+  { value: 27, label: "27 - Răng cối lớn 2 trên trái" },
+  { value: 28, label: "28 - Răng khôn trên trái" },
+  // Hàm dưới - Trái (Quadrant 3)
+  { value: 38, label: "38 - Răng khôn dưới trái" },
+  { value: 37, label: "37 - Răng cối lớn 2 dưới trái" },
+  { value: 36, label: "36 - Răng cối lớn 1 dưới trái" },
+  { value: 35, label: "35 - Răng cối nhỏ 2 dưới trái" },
+  { value: 34, label: "34 - Răng cối nhỏ 1 dưới trái" },
+  { value: 33, label: "33 - Răng nanh dưới trái" },
+  { value: 32, label: "32 - Răng cửa bên dưới trái" },
+  { value: 31, label: "31 - Răng cửa giữa dưới trái" },
+  // Hàm dưới - Phải (Quadrant 4)
+  { value: 41, label: "41 - Răng cửa giữa dưới phải" },
+  { value: 42, label: "42 - Răng cửa bên dưới phải" },
+  { value: 43, label: "43 - Răng nanh dưới phải" },
+  { value: 44, label: "44 - Răng cối nhỏ 1 dưới phải" },
+  { value: 45, label: "45 - Răng cối nhỏ 2 dưới phải" },
+  { value: 46, label: "46 - Răng cối lớn 1 dưới phải" },
+  { value: 47, label: "47 - Răng cối lớn 2 dưới phải" },
+  { value: 48, label: "48 - Răng khôn dưới phải" },
+];
 
 const FINDING_CONFIG: Record<
   string,
@@ -228,12 +268,24 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
   patientImages = [],
   onApplyToMedicalRecord,
   onApplyToDentalChart,
+  onApplyDiagnosis,
   onRequestUpload,
 }) => {
   const effectivePatientImages = patientImages;
 
   const [imageUrl, setImageUrl] = useState<string>(effectivePatientImages[0]?.url || "");
   const [imageId, setImageId] = useState<string | null>(effectivePatientImages[0]?.id ?? null);
+
+  React.useEffect(() => {
+    if (effectivePatientImages.length === 0) {
+      setImageUrl("");
+      setImageId(null);
+    } else if (!imageId || !effectivePatientImages.some((img) => img.id === imageId || img.url === imageUrl)) {
+      setImageUrl(effectivePatientImages[0].url);
+      setImageId(effectivePatientImages[0].id ?? null);
+    }
+  }, [effectivePatientImages, imageId, imageUrl]);
+
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalyzeXrayResponse | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -1279,13 +1331,25 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
                   </div>
 
                   {result.diagnosisSuggestion && (
-                    <div className="rounded-xl border border-brand/20 bg-brand-light/45 p-3.5">
-                      <p className="mb-1 text-[11px] font-bold uppercase tracking-wider text-brand-dark">
-                        Gợi ý chẩn đoán ICD-10:
-                      </p>
-                      <p className="whitespace-pre-line text-xs font-bold leading-relaxed text-brand-dark">
-                        {result.diagnosisSuggestion}
-                      </p>
+                    <div className="rounded-xl border border-brand/20 bg-brand-light/45 p-3.5 space-y-2">
+                      <div>
+                        <p className="mb-1 text-[11px] font-bold uppercase tracking-wider text-brand-dark">
+                          Gợi ý chẩn đoán ICD-10:
+                        </p>
+                        <p className="whitespace-pre-line text-xs font-bold leading-relaxed text-brand-dark">
+                          {result.diagnosisSuggestion}
+                        </p>
+                      </div>
+                      {onApplyDiagnosis && (
+                        <button
+                          type="button"
+                          onClick={() => onApplyDiagnosis(result.diagnosisSuggestion!)}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-teal-700 transition cursor-pointer"
+                        >
+                          <Check size={14} weight="bold" />
+                          Áp dụng vào bệnh án
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1414,15 +1478,18 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="mb-1 block font-bold text-slate-300">Răng số (Chuẩn FDI 11-48):</label>
-                <input
-                  type="number"
-                  min={11}
-                  max={48}
+                <label className="mb-1 block font-bold text-slate-300">Răng số (Chuẩn FDI):</label>
+                <select
                   value={editFdiNumber}
                   onChange={(e) => setEditFdiNumber(Number(e.target.value))}
-                  className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm font-bold text-white focus:border-sky-400 focus:outline-none"
-                />
+                  className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs font-medium text-white focus:border-sky-400 focus:outline-none"
+                >
+                  {FDI_TOOTH_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
@@ -1516,15 +1583,17 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
             <div className="space-y-3 text-xs">
               <div>
                 <label className="mb-1 block font-bold text-slate-300">Răng số (Chuẩn FDI):</label>
-                <input
-                  type="number"
-                  min={11}
-                  max={48}
+                <select
                   value={newFdiNumber}
                   onChange={(e) => setNewFdiNumber(Number(e.target.value))}
-                  className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm font-bold text-white focus:border-amber-400 focus:outline-none"
-                  placeholder="Ví dụ: 18, 48, 36..."
-                />
+                  className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs font-medium text-white focus:border-amber-400 focus:outline-none"
+                >
+                  {FDI_TOOTH_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
@@ -1590,7 +1659,7 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
       {/* MODAL: PRINTABLE REPORT */}
       {showReportModal && result && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-xs overflow-y-auto">
-          <div className="my-8 w-full max-w-3xl rounded-2xl border border-slate-700 bg-white p-8 text-slate-900 shadow-2xl">
+          <div id="print-area" className="my-8 w-full max-w-3xl rounded-2xl border border-slate-700 bg-white p-8 text-slate-900 shadow-2xl">
             <div className="mb-6 flex items-center justify-between border-b border-slate-200 pb-4 print:hidden">
               <div className="flex items-center gap-2">
                 <Printer size={20} className="text-blue-600" />

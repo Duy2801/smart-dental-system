@@ -144,7 +144,6 @@ const MEDICINE_ALIASES = {
   cephalexin: ['cephalexin', 'cefalexin'],
   cefuroxime: ['cefuroxime', 'zinnat'],
   cefixime: ['cefixime'],
-  azithromycin: ['azithromycin', 'zithromax'],
   clarithromycin: ['clarithromycin', 'klacid'],
   erythromycin: ['erythromycin'],
   metronidazole: ['metronidazole', 'flagyl', 'rodogyl'],
@@ -193,6 +192,9 @@ function detectMedicineKeys(name: string): MedicineKey[] {
     if (aliases.some((alias) => norm.includes(normalizeText(alias)))) {
       keys.push(key);
     }
+  }
+  if (norm.includes('augmentin') && !keys.includes('amoxicillin')) {
+    keys.push('amoxicillin');
   }
   return keys;
 }
@@ -277,11 +279,24 @@ export function reviewPrescriptionSafety(
     if (names.length > 1) {
       addWarning({
         severity: 'HIGH',
-        title: 'Trùng nhóm hoạt chất',
+        title: 'Trùng hoạt chất',
         detail: `Đơn có ${names.length} thuốc cùng chứa hoặc thuộc nhóm ${key}. Nguy cơ quá liều hoặc tăng độc tính.`,
         medicineNames: names,
       });
     }
+  }
+
+  const medicinesOutsideCatalog = keyed
+    .filter((item) => item.keys.length === 0)
+    .map((item) => item.name);
+  if (medicinesOutsideCatalog.length) {
+    addWarning({
+      severity: 'MEDIUM',
+      title: 'Hoạt chất ngoài danh mục quy tắc',
+      detail:
+        'Bộ quy tắc hiện chưa kiểm tra đầy đủ dị ứng, chống chỉ định và tương tác cho các thuốc này. Cần đối chiếu nguồn dược lâm sàng trước khi kê.',
+      medicineNames: medicinesOutsideCatalog,
+    });
   }
 
   const nsaidNames = namesFor(NSAIDS);
@@ -296,14 +311,28 @@ export function reviewPrescriptionSafety(
   }
 
   if (history.trim()) {
-    const normHistory = normalizeText(history);
+    const allergySegments = history
+      .split(/[.\n;]/)
+      .map((seg) => normalizeText(seg))
+      .filter(
+        (seg) =>
+          (seg.includes('di ung') ||
+            seg.includes('allergy') ||
+            seg.includes('qua man') ||
+            seg.includes('phan ve')) &&
+          !seg.includes('khong co di ung') &&
+          !seg.includes('khong di ung') &&
+          !seg.includes('chua phat hien di ung') &&
+          !seg.includes('chua ghi nhan di ung') &&
+          !seg.includes('ko di ung') &&
+          !seg.includes('no known allergy') &&
+          !seg.includes('no allergy'),
+      );
+
     for (const item of keyed) {
       const normItem = normalizeText(item.name);
       if (!normItem) continue;
-      const exactMatch =
-        normHistory.includes(`di ung ${normItem}`) ||
-        normHistory.includes(`allergy ${normItem}`) ||
-        (normHistory.includes('di ung') && normHistory.includes(normItem));
+      const exactMatch = allergySegments.some((seg) => seg.includes(normItem));
       if (exactMatch) {
         addWarning({
           severity: 'HIGH',
@@ -348,8 +377,8 @@ export function reviewPrescriptionSafety(
         label: 'nhóm NSAID',
       },
       {
-        terms: ['macrolide', 'azithromycin', 'clarithromycin', 'erythromycin'],
-        keys: ['azithromycin', 'clarithromycin', 'erythromycin'],
+        terms: ['macrolide', 'clarithromycin', 'erythromycin'],
+        keys: ['clarithromycin', 'erythromycin'],
         label: 'nhóm macrolide',
       },
       {
@@ -360,12 +389,12 @@ export function reviewPrescriptionSafety(
     ];
 
     for (const group of allergyGroups) {
-      if (!hasAny(history, group.terms)) continue;
+      if (!allergySegments.some((seg) => hasAny(seg, group.terms))) continue;
       const names = namesFor(group.keys);
       if (!names.length) continue;
       addWarning({
         severity: 'HIGH',
-        title: `Tiền sử dị ứng ${group.label}`,
+        title: 'Nguy cơ dị ứng thuốc',
         detail: `Bệnh nhân có ghi nhận dị ứng ${group.label}. Đơn có thuốc thuộc nhóm này.`,
         medicineNames: names,
       });
@@ -435,7 +464,7 @@ export function reviewPrescriptionSafety(
       {
         historyTerms: ['warfarin', 'sintrom', 'thuốc chống đông', 'kháng đông'],
         medicineKeys: NSAIDS,
-        title: 'Tương tác thuốc chống đông và NSAID',
+        title: 'Tương tác với thuốc chống đông',
         detail:
           'Dùng NSAID cùng thuốc chống đông làm tăng nguy cơ xuất huyết tiêu hóa.',
       },
@@ -875,13 +904,20 @@ export class AiService {
       user,
       dto.medicalRecordId,
     );
+    const chiefComplaint = dto.chiefComplaint?.trim() || record.chiefComplaint;
+    const diagnosis = dto.diagnosis?.trim() || record.diagnosis;
+    const treatmentNotes = dto.treatmentNotes?.trim() || record.treatmentNotes;
+    const followUpDate =
+      dto.followUpDate?.trim() ||
+      (record.followUpDate?.toISOString().slice(0, 10) ?? null);
+
     const raw = await this.aiClient.post<AiAftercareResponse>(
       '/api/v1/doctor/generate-aftercare',
       {
         medical_record: {
-          chief_complaint: record.chiefComplaint,
-          diagnosis: record.diagnosis,
-          treatment_notes: record.treatmentNotes,
+          chief_complaint: chiefComplaint,
+          diagnosis: diagnosis,
+          treatment_notes: treatmentNotes,
         },
         service_name: record.appointment.service.name,
         service_aftercare_notes: this.toTextList(
@@ -908,7 +944,7 @@ export class AiService {
             instruction: item.instruction,
           })),
         ),
-        follow_up_date: record.followUpDate?.toISOString().slice(0, 10) ?? null,
+        follow_up_date: followUpDate,
       },
     );
 
@@ -924,6 +960,45 @@ export class AiService {
     };
   }
 
+  async getLatestAftercare(user: AuthenticatedUser, medicalRecordId: string) {
+    const record = await this.findOwnedRecordForAftercare(
+      user,
+      medicalRecordId,
+    );
+    const notification = await this.prisma.notification.findFirst({
+      where: {
+        appointmentId: record.appointmentId,
+        type: 'AFTERCARE',
+        status: 'SENT',
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        content: true,
+        sentAt: true,
+        channel: true,
+      },
+    });
+
+    const email =
+      (record.patient as any)?.email ||
+      (record.patient as any)?.user?.email ||
+      (record.patient as any)?.patientAccounts?.[0]?.user?.email ||
+      null;
+
+    const hasAccount = !!(
+      record.patient.userId || record.patient.patientAccounts?.[0]?.userId
+    );
+
+    return {
+      latestNotification: notification,
+      patientContact: {
+        hasAccount,
+        email: email && !email.endsWith('@clinic.local') ? email : null,
+      },
+    };
+  }
+
   async sendAftercare(user: AuthenticatedUser, dto: SendAftercareDto) {
     const content = dto.content.trim();
     if (!content)
@@ -934,51 +1009,61 @@ export class AiService {
       dto.medicalRecordId,
     );
     const recipientId =
-      record.patient.userId ?? record.patient.patientAccounts[0]?.userId;
-    if (!recipientId) {
+      record.patient.userId ?? record.patient.patientAccounts[0]?.userId ?? null;
+
+    const email =
+      (record.patient as any)?.email ||
+      (record.patient as any)?.user?.email ||
+      (record.patient as any)?.patientAccounts?.[0]?.user?.email ||
+      null;
+
+    const hasValidEmail = email && !email.endsWith('@clinic.local');
+
+    if (!recipientId && !hasValidEmail) {
       throw new BadRequestException(
-        'Bệnh nhân chưa có tài khoản để nhận thông báo',
+        'Bệnh nhân chưa có tài khoản hoặc email để nhận thông báo. Vui lòng cập nhật email trong hồ sơ bệnh nhân hoặc sao chép hướng dẫn để gửi trực tiếp.',
       );
     }
 
-    const duplicate = await this.prisma.notification.findFirst({
-      where: {
-        userId: recipientId,
-        appointmentId: record.appointmentId,
-        type: 'AFTERCARE',
-        content,
-        status: 'SENT',
-      },
-      select: { id: true },
-    });
-    if (duplicate) {
-      return {
-        sent: true,
-        message: 'Hướng dẫn này đã được gửi cho bệnh nhân.',
-      };
+    let inAppSent = false;
+    if (recipientId) {
+      const duplicate = await this.prisma.notification.findFirst({
+        where: {
+          userId: recipientId,
+          appointmentId: record.appointmentId,
+          type: 'AFTERCARE',
+          content,
+          status: 'SENT',
+        },
+        select: { id: true },
+      });
+      if (duplicate && !hasValidEmail) {
+        return {
+          sent: true,
+          message: 'Hướng dẫn này đã được gửi cho bệnh nhân.',
+        };
+      }
+
+      await this.prisma.notification.create({
+        data: {
+          userId: recipientId,
+          type: 'AFTERCARE',
+          title: 'Hướng dẫn chăm sóc sau điều trị',
+          content,
+          channel: 'IN_APP',
+          status: 'SENT',
+          sentAt: new Date(),
+          appointmentId: record.appointmentId,
+          treatmentPlanId:
+            record.treatmentPlanStep?.treatmentPlan.id ?? undefined,
+        },
+      });
+      inAppSent = true;
     }
 
-    await this.prisma.notification.create({
-      data: {
-        userId: recipientId,
-        type: 'AFTERCARE',
-        title: 'Hướng dẫn chăm sóc sau điều trị',
-        content,
-        channel: 'IN_APP',
-        status: 'SENT',
-        sentAt: new Date(),
-        appointmentId: record.appointmentId,
-        treatmentPlanId:
-          record.treatmentPlanStep?.treatmentPlan.id ?? undefined,
-      },
-    });
-
-    const email =
-      (record.patient as any)?.user?.email ??
-      (record.patient as any)?.patientAccounts?.[0]?.user?.email;
     let emailQueued = false;
     let emailQueueFailed = false;
-    if (email && !email.endsWith('@clinic.local')) {
+    if (hasValidEmail) {
       const patientName =
         (record.patient as any)?.fullName ||
         (record.patient as any)?.user?.fullName ||
@@ -999,20 +1084,25 @@ export class AiService {
         });
         emailQueued = true;
       } catch {
-        // The in-app notification has already been persisted. Report the
-        // partial delivery instead of turning a successful send into a 500.
         emailQueueFailed = true;
       }
     }
 
+    const channels: string[] = [];
+    if (inAppSent) channels.push('IN_APP');
+    if (emailQueued) channels.push('EMAIL');
+
     return {
       sent: true,
-      channels: emailQueued ? ['IN_APP', 'EMAIL'] : ['IN_APP'],
-      message: emailQueued
-        ? 'Đã gửi thông báo và xếp hàng gửi email hướng dẫn cho bệnh nhân.'
-        : emailQueueFailed
-          ? 'Đã gửi thông báo trong ứng dụng nhưng chưa thể xếp hàng gửi email.'
-          : 'Đã gửi hướng dẫn qua thông báo trong ứng dụng. Bệnh nhân chưa có email hợp lệ.',
+      channels,
+      message:
+        emailQueued && inAppSent
+          ? 'Đã gửi thông báo trong ứng dụng và xếp hàng gửi email hướng dẫn cho bệnh nhân.'
+          : emailQueued
+            ? `Đã xếp hàng gửi email hướng dẫn tới ${email} cho bệnh nhân.`
+            : emailQueueFailed
+              ? 'Đã gửi thông báo trong ứng dụng nhưng chưa thể gửi email.'
+              : 'Đã gửi hướng dẫn qua thông báo trong ứng dụng. Bệnh nhân chưa có email hợp lệ.',
     };
   }
 
@@ -1351,6 +1441,8 @@ export class AiService {
             fullName: true,
             patientCode: true,
             userId: true,
+            email: true,
+            phone: true,
             user: {
               select: {
                 email: true,

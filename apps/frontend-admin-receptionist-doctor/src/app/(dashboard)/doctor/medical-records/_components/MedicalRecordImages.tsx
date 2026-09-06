@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { Image as ImageIcon, Trash, SpinnerGap, Sparkle, UploadSimple } from "@phosphor-icons/react";
 import axios from "axios";
 import apiClient from "@/src/lib/api/client";
+import { useAppDialog } from "@/src/providers/app-dialog-provider";
 import { DoctorXrayAnalysisModal } from "./DoctorXrayAnalysisModal";
 
 export type RecordImage = {
@@ -25,7 +26,7 @@ type Props = {
   patientName?: string;
   value: RecordImage[];
   onChange: (next: RecordImage[]) => void;
-  onUploaded?: (detailImages: RecordImage[]) => void;
+  onUploaded?: (detailImages: RecordImage[], updatedAt?: string) => void;
   onApplyAiDiagnosis?: (diagnosis: string, treatmentNotes: string) => void;
 };
 
@@ -38,6 +39,7 @@ export function MedicalRecordImages({
   onUploaded,
   onApplyAiDiagnosis,
 }: Props) {
+  const { showConfirm } = useAppDialog();
   const fileRef = useRef<HTMLInputElement>(null);
   const [caption, setCaption] = useState("");
   const [type, setType] = useState<"xray" | "intraoral" | "other">("xray");
@@ -67,7 +69,7 @@ export function MedicalRecordImages({
       form.append("file", file);
       if (caption.trim()) form.append("caption", caption.trim());
       form.append("type", type);
-      const res = await apiClient.post<{ images: RecordImage[] }>(
+      const res = await apiClient.post<{ images: RecordImage[]; updatedAt?: string }>(
         `/medical-records/${recordId}/images`,
         form,
         {
@@ -88,7 +90,7 @@ export function MedicalRecordImages({
       );
       const images = res.data.images ?? [];
       onChange(images);
-      onUploaded?.(images);
+      onUploaded?.(images, res.data.updatedAt);
       setCaption("");
       if (fileRef.current) fileRef.current.value = "";
     } catch (e) {
@@ -215,7 +217,18 @@ export function MedicalRecordImages({
                   </button>
                   <button
                     type="button"
-                    onClick={() => onChange(value.filter((_, j) => j !== i))}
+                    onClick={async () => {
+                      const name = img.caption ? `"${img.caption}"` : `ảnh #${i + 1}`;
+                      const confirmed = await showConfirm({
+                        title: "Xóa hình ảnh?",
+                        description: `Bạn có chắc muốn xóa ${name} khỏi hồ sơ không?`,
+                        confirmLabel: "Xóa ảnh",
+                        tone: "danger",
+                      });
+                      if (confirmed) {
+                        onChange(value.filter((_, j) => j !== i));
+                      }
+                    }}
                     className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 transition cursor-pointer"
                     aria-label="Xóa ảnh"
                   >

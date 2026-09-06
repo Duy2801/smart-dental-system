@@ -352,6 +352,31 @@ export class TreatmentPlanService {
       });
     }
 
+    if (dto.status !== undefined) {
+      const allSteps = await this.prisma.treatmentPlanStep.findMany({
+        where: { treatmentPlanId: planId },
+        select: { status: true },
+      });
+      if (allSteps.length > 0) {
+        const allCompleted = allSteps.every((s) => s.status === 'COMPLETED');
+        const anyActive = allSteps.some(
+          (s) => s.status === 'IN_PROGRESS' || s.status === 'COMPLETED',
+        );
+
+        if (allCompleted && plan.status !== 'COMPLETED') {
+          await this.prisma.treatmentPlan.update({
+            where: { id: planId },
+            data: { status: 'COMPLETED' },
+          });
+        } else if (anyActive && plan.status === 'PLANNED') {
+          await this.prisma.treatmentPlan.update({
+            where: { id: planId },
+            data: { status: 'IN_PROGRESS' },
+          });
+        }
+      }
+    }
+
     return this.prisma.treatmentPlanStep.findUnique({
       where: { id: stepId },
       select: stepSelect,
@@ -425,6 +450,12 @@ export class TreatmentPlanService {
     const total = p.steps?.length ?? 0;
     const completed =
       p.steps?.filter((s: any) => s.status === 'COMPLETED').length ?? 0;
+    const totalEstimatedCost =
+      p.steps?.reduce(
+        (sum: number, s: any) =>
+          sum + Number(s.estimatedCost ?? s.paymentAmount ?? 0),
+        0,
+      ) ?? 0;
     return {
       id: p.id,
       title: p.title,
@@ -438,6 +469,7 @@ export class TreatmentPlanService {
       totalSteps: total,
       completedSteps: completed,
       progressPercent: total > 0 ? Math.round((completed / total) * 100) : 0,
+      totalEstimatedCost,
       createdAt: p.createdAt,
     };
   }
@@ -461,8 +493,10 @@ export class TreatmentPlanService {
       (plan.patient as any)?.user?.fullName ??
       'Quý khách';
     const patientCode = plan.patient?.patientCode ?? 'PAT-0000';
-    const doctorName =
-      (plan as any)?.doctor?.user?.fullName ?? 'Bác sĩ Nha Khoa Smart Dental';
+    const rawDoctorName = (plan as any)?.doctor?.user?.fullName;
+    const doctorName = rawDoctorName
+      ? (rawDoctorName.startsWith('BS') ? rawDoctorName : `BS. ${rawDoctorName}`)
+      : 'Bác sĩ Nha Khoa Smart Dental';
 
     if (!email || email.endsWith('@clinic.local')) {
       throw new BadRequestException(

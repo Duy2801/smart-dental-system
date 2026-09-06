@@ -175,9 +175,16 @@ export class MedicalRecordService {
     if (dto.followUpDate !== undefined) {
       if (dto.followUpDate) {
         const followUpDate = new Date(dto.followUpDate);
+        const originalDate = exists.followUpDate
+          ? new Date(exists.followUpDate)
+          : null;
+        const isUnchanged =
+          originalDate &&
+          originalDate.toISOString().slice(0, 10) ===
+            followUpDate.toISOString().slice(0, 10);
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        if (followUpDate.getTime() < today.getTime()) {
+        if (!isUnchanged && followUpDate.getTime() < today.getTime()) {
           throw new BadRequestException(
             'Ngày tái khám không được trước ngày hiện tại',
           );

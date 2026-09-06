@@ -58,6 +58,26 @@ export class ReviewPrescriptionDto {
 export class GenerateAftercareDto {
   @IsUUID()
   medicalRecordId!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  chiefComplaint?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  diagnosis?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(5000)
+  treatmentNotes?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  followUpDate?: string;
 }
 
 export class SendAftercareDto extends GenerateAftercareDto {

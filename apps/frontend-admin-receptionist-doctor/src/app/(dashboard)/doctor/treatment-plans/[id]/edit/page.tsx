@@ -139,6 +139,11 @@ export default function EditTreatmentPlanPage() {
     });
   };
 
+  const totalEstimatedCost = steps.reduce((sum, s) => {
+    const val = Number(s.estimatedCost);
+    return !Number.isNaN(val) && val > 0 ? sum + val : sum;
+  }, 0);
+
   const handleSubmit = async () => {
     if (!title.trim()) { setSaveError("Vui lòng nhập tên kế hoạch."); return; }
     if (startDate && expectedEndDate && startDate > expectedEndDate) {
@@ -148,10 +153,10 @@ export default function EditTreatmentPlanPage() {
     const validSteps = steps.filter((s) => s.title.trim());
     if (validSteps.length === 0) { setSaveError("Vui lòng thêm ít nhất một bước điều trị."); return; }
     const badCost = validSteps.find(
-      (s) => s.estimatedCost && Number(s.estimatedCost) < 0,
+      (s) => s.estimatedCost && (Number.isNaN(Number(s.estimatedCost)) || Number(s.estimatedCost) < 0),
     );
     if (badCost) {
-      setSaveError("Chi phí ước tính không được âm.");
+      setSaveError("Chi phí ước tính phải là số hợp lệ và không được âm.");
       return;
     }
     setSubmitting(true);
@@ -160,8 +165,8 @@ export default function EditTreatmentPlanPage() {
       await apiClient.patch(`/treatment-plans/${id}`, {
         title: title.trim(),
         description: description.trim() || undefined,
-        startDate: startDate || undefined,
-        expectedEndDate: expectedEndDate || undefined,
+        startDate: startDate ? startDate : null,
+        expectedEndDate: expectedEndDate ? expectedEndDate : null,
         steps: validSteps.map((s) => ({
           ...(s.id ? { id: s.id } : {}),
           title: s.title.trim(),
@@ -173,8 +178,9 @@ export default function EditTreatmentPlanPage() {
       });
       setSuccess(true);
       setTimeout(() => router.push(`/doctor/treatment-plans/${id}`), 1400);
-    } catch {
-      setSaveError("Lưu kế hoạch thất bại. Vui lòng thử lại.");
+    } catch (err: any) {
+      const msg = err.response?.data?.message || "Lưu kế hoạch thất bại. Vui lòng thử lại.";
+      setSaveError(Array.isArray(msg) ? msg[0] : msg);
     } finally {
       setSubmitting(false);
     }
@@ -228,9 +234,10 @@ export default function EditTreatmentPlanPage() {
               </p>
             </div>
             <button
+              type="button"
               onClick={handleSubmit}
               disabled={submitting || success}
-              className="inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-brand-dark hover:shadow active:scale-[0.98] disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-brand-dark hover:shadow active:scale-[0.98] disabled:opacity-60 cursor-pointer"
             >
               {submitting ? (
                 <SpinnerGap size={15} className="animate-spin" />
@@ -307,16 +314,26 @@ export default function EditTreatmentPlanPage() {
 
           {/* 2. Steps builder */}
           <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
-            <div className="border-b border-border bg-slate-50/50 p-6 flex items-center justify-between">
+            <div className="border-b border-border bg-slate-50/50 p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
                 <h2 className="text-base font-semibold text-brand-dark">2. Các bước điều trị</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Bước hiện có được giữ nguyên trạng thái/thanh toán; chỉ cập nhật nội dung và thứ tự.
                 </p>
               </div>
-              <span className="rounded-full bg-brand/10 px-2.5 py-0.5 text-xs font-bold text-brand">
-                {steps.filter((s) => s.title.trim()).length} bước
-              </span>
+              <div className="flex items-center gap-3">
+                {totalEstimatedCost > 0 && (
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-right">
+                    <div className="text-[10px] font-medium text-emerald-600">Tổng dự toán</div>
+                    <div className="text-sm font-bold text-emerald-700">
+                      {totalEstimatedCost.toLocaleString("vi-VN")} đ
+                    </div>
+                  </div>
+                )}
+                <span className="rounded-full bg-brand/10 px-2.5 py-0.5 text-xs font-bold text-brand">
+                  {steps.filter((s) => s.title.trim()).length} bước
+                </span>
+              </div>
             </div>
 
             <div className="p-6 md:p-8">
@@ -336,29 +353,32 @@ export default function EditTreatmentPlanPage() {
                         </h3>
                         <div className="flex items-center gap-1">
                           <button
+                            type="button"
                             onClick={() => moveUp(index)}
                             disabled={index === 0}
                             className={cn(
-                              "rounded p-1 text-muted-foreground transition-opacity hover:bg-muted",
+                              "rounded p-1 text-muted-foreground transition-opacity hover:bg-muted cursor-pointer",
                               index === 0 ? "pointer-events-none opacity-0" : "opacity-0 group-hover:opacity-100",
                             )}
                           >
                             <ArrowUp size={14} />
                           </button>
                           <button
+                            type="button"
                             onClick={() => moveDown(index)}
                             disabled={index === steps.length - 1}
                             className={cn(
-                              "rounded p-1 text-muted-foreground transition-opacity hover:bg-muted",
+                              "rounded p-1 text-muted-foreground transition-opacity hover:bg-muted cursor-pointer",
                               index === steps.length - 1 ? "pointer-events-none opacity-0" : "opacity-0 group-hover:opacity-100",
                             )}
                           >
                             <ArrowDown size={14} />
                           </button>
                           <button
+                            type="button"
                             onClick={() => removeStep(step.key)}
                             disabled={steps.length === 1}
-                            className="rounded p-1 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-red-600 disabled:hidden"
+                            className="rounded p-1 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-red-600 disabled:hidden cursor-pointer"
                           >
                             <Trash size={14} />
                           </button>
@@ -429,8 +449,9 @@ export default function EditTreatmentPlanPage() {
 
                 <div className="relative pl-8 pt-2">
                   <button
+                    type="button"
                     onClick={addStep}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border py-4 text-sm font-medium text-muted-foreground transition-all hover:border-brand hover:bg-brand/5 hover:text-brand active:scale-[0.99]"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border py-4 text-sm font-medium text-muted-foreground transition-all hover:border-brand hover:bg-brand/5 hover:text-brand active:scale-[0.99] cursor-pointer"
                   >
                     <Plus size={18} weight="bold" />
                     Thêm bước điều trị mới
@@ -444,14 +465,15 @@ export default function EditTreatmentPlanPage() {
           <div className="flex items-center justify-between rounded-2xl border border-border bg-white px-6 py-4 shadow-sm">
             <Link
               href={`/doctor/treatment-plans/${id}`}
-              className="text-sm text-muted-foreground hover:text-brand"
+              className="text-sm text-muted-foreground hover:text-brand cursor-pointer"
             >
               Hủy thay đổi
             </Link>
             <button
+              type="button"
               onClick={handleSubmit}
               disabled={submitting || success}
-              className="inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-brand-dark hover:shadow active:scale-[0.98] disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-brand-dark hover:shadow active:scale-[0.98] disabled:opacity-60 cursor-pointer"
             >
               {submitting ? (
                 <SpinnerGap size={15} className="animate-spin" />

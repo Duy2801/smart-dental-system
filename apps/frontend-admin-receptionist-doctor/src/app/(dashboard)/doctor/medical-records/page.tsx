@@ -9,7 +9,7 @@ import React, {
   Suspense,
 } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/src/lib/utils/cn";
 import {
   MagnifyingGlass,
@@ -27,6 +27,8 @@ import {
   PencilSimple,
   ClockCounterClockwise,
   Copy,
+  Printer,
+  X,
 } from "@phosphor-icons/react";
 import axios from "axios";
 import apiClient from "@/src/lib/api/client";
@@ -121,7 +123,16 @@ function isUuid(value: string) {
   );
 }
 
+function cleanSearchText(str: string) {
+  return str
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d");
+}
+
 function MedicalRecordsContent() {
+  const router = useRouter();
   const { showAlert, showConfirm } = useAppDialog();
   const searchParams = useSearchParams();
   const preSelectId = searchParams.get("recordId");
@@ -138,6 +149,26 @@ function MedicalRecordsContent() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [activeTab, setActiveTab] = useState<TabKey>("OVERVIEW");
+  const [printingRx, setPrintingRx] = useState<RecordDetail["prescriptions"][number] | null>(null);
+
+  const handleGuardedNavigation = async (
+    e: React.MouseEvent<HTMLAnchorElement>,
+    href: string,
+  ) => {
+    if (JSON.stringify(form) !== savedFormSnapshot.current) {
+      e.preventDefault();
+      const confirmed = await showConfirm({
+        title: "Bỏ các thay đổi chưa lưu?",
+        description:
+          "Hồ sơ bệnh án có các thay đổi chưa được lưu. Nếu rời trang bây giờ, dữ liệu bạn vừa nhập sẽ bị mất.",
+        confirmLabel: "Rời đi",
+        tone: "danger",
+      });
+      if (confirmed) {
+        router.push(href);
+      }
+    }
+  };
 
   const [pastRecords, setPastRecords] = useState<RecordSummary[]>([]);
   const [loadingPastRecords, setLoadingPastRecords] = useState(false);
@@ -248,8 +279,26 @@ function MedicalRecordsContent() {
       try {
         const res = await apiClient.get<RecordDetail>(`/medical-records/${id}`);
         if (sequence !== requestSequence.current) return;
-        applyDetail(res.data, id);
-        if (!opts?.keepTab) setActiveTab("OVERVIEW");
+        if (opts?.keepTab) {
+          // Chỉ làm mới metadata (đơn thuốc, updatedAt) khi reload ngầm mà không xóa đè form đang nhập dở
+          setDetail(res.data);
+          setLoadedDetailId(id);
+          setDetailError(null);
+          setRecords((prev) =>
+            prev.map((r) =>
+              r.id === id
+                ? {
+                    ...r,
+                    prescriptionCount: res.data.prescriptionCount,
+                    updatedAt: res.data.updatedAt,
+                  }
+                : r,
+            ),
+          );
+        } else {
+          applyDetail(res.data, id);
+          setActiveTab("OVERVIEW");
+        }
       } catch (err) {
         if (sequence !== requestSequence.current) return;
         const status = axios.isAxiosError(err) ? err.response?.status : null;
@@ -328,7 +377,10 @@ function MedicalRecordsContent() {
   const handleSave = async () => {
     if (!selectedId) return;
 
-    if (form.followUpDate && form.followUpDate < today) {
+    const originalFollowUp = detail?.followUpDate
+      ? localDateStr(new Date(detail.followUpDate))
+      : "";
+    if (form.followUpDate && form.followUpDate !== originalFollowUp && form.followUpDate < today) {
       setSaveError("Ngày tái khám không được trước hôm nay.");
       return;
     }
@@ -383,15 +435,34 @@ function MedicalRecordsContent() {
     }
   };
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        void handleSave();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleSave]);
+
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return records;
-    return records.filter(
-      (r) =>
-        r.patientName.toLowerCase().includes(q) ||
-        r.patientCode.toLowerCase().includes(q) ||
-        (r.diagnosis ?? "").toLowerCase().includes(q),
-    );
+    const raw = search.trim();
+    if (!raw) return records;
+    const q = raw.toLowerCase();
+    const cleanQ = cleanSearchText(raw);
+    return records.filter((r) => {
+      const name = r.patientName.toLowerCase();
+      const code = r.patientCode.toLowerCase();
+      const diag = (r.diagnosis ?? "").toLowerCase();
+      return (
+        name.includes(q) ||
+        code.includes(q) ||
+        diag.includes(q) ||
+        cleanSearchText(name).includes(cleanQ) ||
+        cleanSearchText(diag).includes(cleanQ)
+      );
+    });
   }, [records, search]);
   const pageSize = 20;
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
@@ -500,7 +571,7 @@ function MedicalRecordsContent() {
                         {r.patientCode}
                       </span>
                       <span className="text-[10px] text-muted-foreground">
-                        {formatDate(r.scheduledAt)}
+                        {formatDate(r.scheduledAt || r.createdAt)}
                       </span>
                     </div>
                     {r.serviceName && (
@@ -550,24 +621,26 @@ function MedicalRecordsContent() {
                 </p>
               </div>
             ) : detailLoading ? (
-              <div className="flex h-64 items-center justify-center rounded-2xl border border-border bg-white shadow-sm">
+              <div className="flex flex-col items-center justify-center rounded-2xl border border-border bg-white py-32 shadow-sm">
                 <SpinnerGap size={32} className="animate-spin text-brand" />
+                <p className="mt-3 text-sm text-muted-foreground">
+                  Đang tải thông tin hồ sơ bệnh án...
+                </p>
               </div>
             ) : detail ? (
               <>
-                <div className="relative overflow-hidden rounded-2xl bg-brand-dark p-6 text-white shadow-xl">
-                  <div className="pointer-events-none absolute -bottom-16 -right-16 h-64 w-64 rounded-full bg-brand/30 blur-[4rem]" />
-                  <div className="relative z-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                    <div className="flex items-center gap-5">
-                      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-xl font-bold ring-1 ring-white/20">
+                <div className="overflow-hidden rounded-2xl border border-slate-700/60 bg-gradient-to-r from-slate-900 to-slate-800 p-6 text-white shadow-lg">
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand text-lg font-bold text-white shadow-md">
                         {initials}
                       </div>
                       <div>
-                        <div className="mb-1 flex flex-wrap items-center gap-3">
-                          <h2 className="text-2xl font-bold">
+                        <div className="mb-1 flex items-center gap-3">
+                          <h2 className="text-xl font-bold">
                             {detail.patientName}
                           </h2>
-                          <span className="rounded bg-white/10 px-2 py-0.5 font-mono text-xs text-slate-300 ring-1 ring-white/10">
+                          <span className="rounded-md bg-white/10 px-2 py-0.5 font-mono text-xs text-slate-300">
                             {detail.patientCode}
                           </span>
                         </div>
@@ -577,10 +650,10 @@ function MedicalRecordsContent() {
                               {detail.patientPhone}
                             </span>
                           )}
-                          {detail.scheduledAt && (
+                          {(detail.scheduledAt || detail.createdAt) && (
                             <>
                               <span className="h-1 w-1 rounded-full bg-slate-600" />
-                              <span>{formatDateTime(detail.scheduledAt)}</span>
+                              <span>{formatDateTime(detail.scheduledAt || detail.createdAt)}</span>
                             </>
                           )}
                           {detail.serviceName && (
@@ -602,7 +675,8 @@ function MedicalRecordsContent() {
                       )}
                       <Link
                         href={`/doctor/patients/${detail.patientId}`}
-                        className="inline-flex items-center gap-1 text-xs text-slate-400 transition-colors hover:text-white"
+                        onClick={(e) => void handleGuardedNavigation(e, `/doctor/patients/${detail.patientId}`)}
+                        className="inline-flex items-center gap-1 text-xs text-slate-400 transition-colors hover:text-white cursor-pointer"
                       >
                         Xem hồ sơ bệnh nhân <ArrowRight size={12} />
                       </Link>
@@ -610,22 +684,24 @@ function MedicalRecordsContent() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-1 border-b border-border px-1">
+                <div className="flex items-center gap-1 overflow-x-auto border-b border-border px-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                   {(
                     [
                       { key: "OVERVIEW" as TabKey, label: "Tổng quan" },
                       { key: "CHART" as TabKey, label: "Sơ đồ răng" },
                       {
                         key: "IMAGES" as TabKey,
-                        label: `Ảnh (${form.images.length})`,
+                        label: "Ảnh",
+                        count: form.images.length,
                       },
                       {
                         key: "XRAY_AI" as TabKey,
-                        label: "Chẩn đoán X-Quang (AI)",
+                        label: "X-Quang (AI)",
                       },
                       {
                         key: "PRESCRIPTIONS" as TabKey,
-                        label: `Đơn thuốc (${detail.prescriptions.length})`,
+                        label: "Đơn thuốc",
+                        count: detail.prescriptions.length,
                       },
                       {
                         key: "AFTERCARE" as TabKey,
@@ -633,185 +709,49 @@ function MedicalRecordsContent() {
                       },
                       {
                         key: "HISTORY" as TabKey,
-                        label: `Lịch sử khám cũ (${pastRecords.length})`,
+                        label: "Lịch sử khám",
+                        count: pastRecords.length,
                       },
-                    ] as { key: TabKey; label: string }[]
-                  ).map((tab) => (
-
-                    <button
-                      key={tab.key}
-                      type="button"
-                      onClick={() => setActiveTab(tab.key)}
-                      className={cn(
-                        "flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-bold transition-all",
-                        activeTab === tab.key
-                          ? "border-brand text-brand"
-                          : "border-transparent text-muted-foreground hover:border-slate-300 hover:text-slate-900",
-                      )}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
+                    ] as { key: TabKey; label: string; count?: number }[]
+                  ).map((tab) => {
+                    const isActive = activeTab === tab.key;
+                    return (
+                      <button
+                        key={tab.key}
+                        type="button"
+                        onClick={() => setActiveTab(tab.key)}
+                        className={cn(
+                          "group -mb-px flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-3.5 py-3 text-sm font-bold transition-all cursor-pointer",
+                          isActive
+                            ? "border-brand text-brand"
+                            : "border-transparent text-muted-foreground hover:border-slate-300 hover:text-slate-900",
+                        )}
+                      >
+                        <span>{tab.label}</span>
+                        {typeof tab.count === "number" && (
+                          <span
+                            className={cn(
+                              "rounded-full px-1.5 py-0.5 font-mono text-[11px] font-bold transition-colors",
+                              isActive
+                                ? "bg-brand/10 text-brand"
+                                : "bg-slate-100 text-slate-500 group-hover:bg-slate-200 group-hover:text-slate-700",
+                            )}
+                          >
+                            {tab.count}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
 
                 <div className="min-h-[400px] rounded-2xl border border-border bg-white p-6 shadow-sm">
-                  {activeTab === "OVERVIEW" && (
-                    <div className="space-y-5">
-                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
-                        <h3 className="text-base font-bold text-slate-900">
-                          Ghi chép lâm sàng
-                        </h3>
-                        <div className="flex flex-wrap items-center gap-2">
-                          {saved && (
-                            <span className="flex items-center gap-1.5 text-xs font-medium text-green-600">
-                              <Check size={14} weight="bold" /> Đã lưu
-                            </span>
-                          )}
-                          {saveError && (
-                            <span className="flex items-center gap-1.5 text-xs font-medium text-red-600">
-                              <Warning size={14} /> {saveError}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      <ClinicalScribeReview
-                        key={detail.id}
-                        patientId={detail.patientId}
-                        serviceName={detail.serviceName}
-                        initialNotes={form.internalNotes}
-                        current={{
-                          chiefComplaint: form.chiefComplaint,
-                          diagnosis: form.diagnosis,
-                          treatmentNotes: form.treatmentNotes,
-                        }}
-                        onApply={(values) =>
-                          setForm((current) => ({ ...current, ...values }))
-                        }
-                      />
-
-                      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                        <div className="space-y-4">
-                          <div className="space-y-1.5">
-                            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                              Lý do khám
-                            </label>
-                            <textarea
-                              rows={2}
-                              value={form.chiefComplaint}
-                              onChange={(e) =>
-                                setForm((f) => ({
-                                  ...f,
-                                  chiefComplaint: e.target.value,
-                                }))
-                              }
-                              placeholder="Lý do khám / triệu chứng chính..."
-                              className="w-full resize-none rounded-xl border border-border bg-white px-4 py-3 text-sm font-medium text-slate-800 shadow-sm outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand/20"
-                            />
-                          </div>
-
-                          <div className="space-y-1.5">
-                            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                              Chẩn đoán
-                            </label>
-                            <input
-                              type="text"
-                              value={form.diagnosis}
-                              onChange={(e) =>
-                                setForm((f) => ({
-                                  ...f,
-                                  diagnosis: e.target.value,
-                                }))
-                              }
-                              placeholder="Nhập chẩn đoán..."
-                              className="w-full rounded-xl border border-border bg-slate-50 px-4 py-3 text-sm font-bold text-brand-dark shadow-sm outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand/20"
-                            />
-                          </div>
-
-                          <div className="space-y-1.5">
-                            <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                              <CalendarBlank size={12} /> Ngày tái khám
-                            </label>
-                            <input
-                              type="date"
-                              min={today}
-                              value={form.followUpDate}
-                              onChange={(e) =>
-                                setForm((f) => ({
-                                  ...f,
-                                  followUpDate: e.target.value,
-                                }))
-                              }
-                              className="rounded-xl border border-border bg-white px-4 py-2 text-sm outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand/20"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="space-y-4">
-                          <div className="space-y-1.5">
-                            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                              Ghi chú điều trị
-                            </label>
-                            <textarea
-                              rows={5}
-                              value={form.treatmentNotes}
-                              onChange={(e) =>
-                                setForm((f) => ({
-                                  ...f,
-                                  treatmentNotes: e.target.value,
-                                }))
-                              }
-                              placeholder="Chi tiết điều trị đã thực hiện..."
-                              className="w-full resize-y rounded-xl border border-border bg-white px-4 py-3 font-mono text-sm leading-relaxed text-slate-800 shadow-inner outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand/20"
-                            />
-                          </div>
-
-                          <div className="space-y-1.5">
-                            <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                              <Lock size={12} /> Ghi chú nội bộ phòng khám
-                            </label>
-                            <textarea
-                              rows={2}
-                              value={form.internalNotes}
-                              onChange={(e) =>
-                                setForm((f) => ({
-                                  ...f,
-                                  internalNotes: e.target.value,
-                                }))
-                              }
-                              placeholder="Chỉ bác sĩ phụ trách và quản trị viên được xem..."
-                              className="w-full resize-y rounded-xl border border-border bg-slate-50 px-4 py-3 text-sm italic text-slate-700 shadow-sm outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand/20"
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex justify-end gap-3 border-t border-border pt-4">
-                        <button
-                          type="button"
-                          onClick={handleSave}
-                          disabled={saving}
-                          className="inline-flex items-center gap-2 rounded-xl bg-brand px-6 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-brand-dark active:scale-[0.98] disabled:opacity-60"
-                        >
-                          {saving ? (
-                            <SpinnerGap size={14} className="animate-spin" />
-                          ) : saved ? (
-                            <CheckCircle size={14} weight="fill" />
-                          ) : (
-                            <FloppyDisk size={14} />
-                          )}
-                          {saving ? "Đang lưu..." : "Lưu hồ sơ"}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {activeTab === "CHART" && (
-                    <div className="space-y-5">
-                      <div className="flex items-center justify-between border-b border-border pb-3">
-                        <h3 className="text-base font-bold text-slate-900">
-                          Sơ đồ răng (FDI)
-                        </h3>
+                  <div className={activeTab === "OVERVIEW" ? "space-y-5" : "hidden"}>
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
+                      <h3 className="text-base font-bold text-slate-900">
+                        Ghi chép lâm sàng
+                      </h3>
+                      <div className="flex flex-wrap items-center gap-2">
                         {saved && (
                           <span className="flex items-center gap-1.5 text-xs font-medium text-green-600">
                             <Check size={14} weight="bold" /> Đã lưu
@@ -823,97 +763,275 @@ function MedicalRecordsContent() {
                           </span>
                         )}
                       </div>
-                      <DentalChartEditor
-                        value={form.dentalChart}
-                        onChange={(dentalChart) =>
-                          setForm((f) => ({ ...f, dentalChart }))
-                        }
-                      />
-                      <div className="flex justify-end border-t border-border pt-4">
-                        <button
-                          type="button"
-                          onClick={handleSave}
-                          disabled={saving}
-                          className="inline-flex items-center gap-2 rounded-xl bg-brand px-6 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-brand-dark disabled:opacity-60"
-                        >
-                          {saving ? (
-                            <SpinnerGap size={14} className="animate-spin" />
-                          ) : (
-                            <FloppyDisk size={14} />
-                          )}
-                          {saving ? "Đang lưu..." : "Lưu sơ đồ răng"}
-                        </button>
+                    </div>
+
+                    <ClinicalScribeReview
+                      key={detail.id}
+                      patientId={detail.patientId}
+                      serviceName={detail.serviceName}
+                      initialNotes={form.internalNotes}
+                      current={{
+                        chiefComplaint: form.chiefComplaint,
+                        diagnosis: form.diagnosis,
+                        treatmentNotes: form.treatmentNotes,
+                      }}
+                      onApply={(values) =>
+                        setForm((current) => ({ ...current, ...values }))
+                      }
+                    />
+
+                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                      <div className="space-y-4">
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                            Lý do khám
+                          </label>
+                          <textarea
+                            rows={2}
+                            value={form.chiefComplaint}
+                            onChange={(e) =>
+                              setForm((f) => ({
+                                ...f,
+                                chiefComplaint: e.target.value,
+                              }))
+                            }
+                            placeholder="Lý do khám / triệu chứng chính..."
+                            className="w-full resize-none rounded-xl border border-border bg-white px-4 py-3 text-sm font-medium text-slate-800 shadow-sm outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand/20"
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                            Chẩn đoán
+                          </label>
+                          <textarea
+                            rows={2}
+                            value={form.diagnosis}
+                            onChange={(e) =>
+                              setForm((f) => ({
+                                ...f,
+                                diagnosis: e.target.value,
+                              }))
+                            }
+                            placeholder="Nhập chẩn đoán..."
+                            className="w-full resize-y rounded-xl border border-border bg-slate-50 px-4 py-3 text-sm font-bold text-brand-dark shadow-sm outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand/20"
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                            <CalendarBlank size={12} /> Ngày tái khám
+                          </label>
+                          <input
+                            type="date"
+                            min={
+                              form.followUpDate && form.followUpDate < today
+                                ? form.followUpDate
+                                : today
+                            }
+                            value={form.followUpDate}
+                            onChange={(e) =>
+                              setForm((f) => ({
+                                ...f,
+                                followUpDate: e.target.value,
+                              }))
+                            }
+                            className="rounded-xl border border-border bg-white px-4 py-2 text-sm outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand/20"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                            Ghi chú điều trị
+                          </label>
+                          <textarea
+                            rows={5}
+                            value={form.treatmentNotes}
+                            onChange={(e) =>
+                              setForm((f) => ({
+                                ...f,
+                                treatmentNotes: e.target.value,
+                              }))
+                            }
+                            placeholder="Chi tiết điều trị đã thực hiện..."
+                            className="w-full resize-y rounded-xl border border-border bg-white px-4 py-3 font-mono text-sm leading-relaxed text-slate-800 shadow-inner outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand/20"
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                            <Lock size={12} /> Ghi chú nội bộ phòng khám
+                          </label>
+                          <textarea
+                            rows={2}
+                            value={form.internalNotes}
+                            onChange={(e) =>
+                              setForm((f) => ({
+                                ...f,
+                                internalNotes: e.target.value,
+                              }))
+                            }
+                            placeholder="Chỉ bác sĩ phụ trách và quản trị viên được xem..."
+                            className="w-full resize-y rounded-xl border border-border bg-slate-50 px-4 py-3 text-sm italic text-slate-700 shadow-sm outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand/20"
+                          />
+                        </div>
                       </div>
                     </div>
-                  )}
 
-                  {activeTab === "IMAGES" && (
-                    <div className="space-y-5">
-                      <div className="flex items-center justify-between border-b border-border pb-3">
-                        <h3 className="text-base font-bold text-slate-900">
-                          Ảnh X-quang / nội khoa
-                        </h3>
-                        {saved && (
-                          <span className="flex items-center gap-1.5 text-xs font-medium text-green-600">
-                            <Check size={14} weight="bold" /> Đã lưu
-                          </span>
+                    <div className="flex justify-end gap-3 border-t border-border pt-4">
+                      <button
+                        type="button"
+                        onClick={handleSave}
+                        disabled={saving}
+                        className="inline-flex items-center gap-2 rounded-xl bg-brand px-6 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-brand-dark active:scale-[0.98] disabled:opacity-60"
+                      >
+                        {saving ? (
+                          <SpinnerGap size={14} className="animate-spin" />
+                        ) : saved ? (
+                          <CheckCircle size={14} weight="fill" />
+                        ) : (
+                          <FloppyDisk size={14} />
                         )}
-                        {saveError && (
-                          <span className="flex items-center gap-1.5 text-xs font-medium text-red-600">
-                            <Warning size={14} /> {saveError}
-                          </span>
-                        )}
-                      </div>
-                      <MedicalRecordImages
-                        recordId={selectedId}
-                        patientId={detail?.patientId}
-                        patientName={detail?.patientName}
-                        value={form.images}
-                        onChange={(images) =>
-                          setForm((f) => ({ ...f, images }))
-                        }
-                        onApplyAiDiagnosis={(diagnosis, treatmentNotes) => {
-                          setForm((f) => ({
-                            ...f,
-                            diagnosis: f.diagnosis
-                              ? `${f.diagnosis}\n[X-quang AI]: ${diagnosis}`
-                              : diagnosis,
-                            treatmentNotes: f.treatmentNotes
-                              ? `${f.treatmentNotes}\n\n${treatmentNotes}`
-                              : treatmentNotes,
-                          }));
-                          setActiveTab("OVERVIEW");
-                        }}
-                      />
-                      <div className="flex justify-end border-t border-border pt-4">
-                        <button
-                          type="button"
-                          onClick={handleSave}
-                          disabled={saving}
-                          className="inline-flex items-center gap-2 rounded-xl bg-brand px-6 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-brand-dark disabled:opacity-60"
-                        >
-                          {saving ? (
-                            <SpinnerGap size={14} className="animate-spin" />
-                          ) : (
-                            <FloppyDisk size={14} />
-                          )}
-                          {saving ? "Đang lưu..." : "Lưu ảnh"}
-                        </button>
-                      </div>
+                        {saving ? "Đang lưu..." : "Lưu hồ sơ"}
+                      </button>
                     </div>
-                  )}
+                  </div>
 
-                  {activeTab === "XRAY_AI" && (
+                  <div className={activeTab === "CHART" ? "space-y-5" : "hidden"}>
+                    <div className="flex items-center justify-between border-b border-border pb-3">
+                      <h3 className="text-base font-bold text-slate-900">
+                        Sơ đồ răng (FDI)
+                      </h3>
+                      {saved && (
+                        <span className="flex items-center gap-1.5 text-xs font-medium text-green-600">
+                          <Check size={14} weight="bold" /> Đã lưu
+                        </span>
+                      )}
+                      {saveError && (
+                        <span className="flex items-center gap-1.5 text-xs font-medium text-red-600">
+                          <Warning size={14} /> {saveError}
+                        </span>
+                      )}
+                    </div>
+                    <DentalChartEditor
+                      value={form.dentalChart}
+                      onChange={(dentalChart) =>
+                        setForm((f) => ({ ...f, dentalChart }))
+                      }
+                    />
+                    <div className="flex justify-end border-t border-border pt-4">
+                      <button
+                        type="button"
+                        onClick={handleSave}
+                        disabled={saving}
+                        className="inline-flex items-center gap-2 rounded-xl bg-brand px-6 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-brand-dark disabled:opacity-60"
+                      >
+                        {saving ? (
+                          <SpinnerGap size={14} className="animate-spin" />
+                        ) : (
+                          <FloppyDisk size={14} />
+                        )}
+                        {saving ? "Đang lưu..." : "Lưu sơ đồ răng"}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className={activeTab === "IMAGES" ? "space-y-5" : "hidden"}>
+                    <div className="flex items-center justify-between border-b border-border pb-3">
+                      <h3 className="text-base font-bold text-slate-900">
+                        Ảnh X-quang / nội khoa
+                      </h3>
+                      {saved && (
+                        <span className="flex items-center gap-1.5 text-xs font-medium text-green-600">
+                          <Check size={14} weight="bold" /> Đã lưu
+                        </span>
+                      )}
+                      {saveError && (
+                        <span className="flex items-center gap-1.5 text-xs font-medium text-red-600">
+                          <Warning size={14} /> {saveError}
+                        </span>
+                      )}
+                    </div>
+                    <MedicalRecordImages
+                      recordId={selectedId}
+                      patientId={detail?.patientId}
+                      patientName={detail?.patientName}
+                      value={form.images}
+                      onChange={(images) =>
+                        setForm((f) => ({ ...f, images }))
+                      }
+                      onUploaded={(images, updatedAt) => {
+                        setDetail((d) =>
+                          d
+                            ? {
+                                ...d,
+                                images,
+                                updatedAt: updatedAt || d.updatedAt,
+                              }
+                            : d,
+                        );
+                        setRecords((prev) =>
+                          prev.map((r) =>
+                            r.id === selectedId
+                              ? { ...r, updatedAt: updatedAt || r.updatedAt }
+                              : r,
+                          ),
+                        );
+                        try {
+                          const currentSnapshot = JSON.parse(
+                            savedFormSnapshot.current,
+                          );
+                          currentSnapshot.images = images;
+                          savedFormSnapshot.current =
+                            JSON.stringify(currentSnapshot);
+                        } catch {
+                          // ignore
+                        }
+                      }}
+                      onApplyAiDiagnosis={(diagnosis, treatmentNotes) => {
+                        setForm((f) => ({
+                          ...f,
+                          diagnosis: f.diagnosis
+                            ? `${f.diagnosis}\n[X-quang AI]: ${diagnosis}`
+                            : diagnosis,
+                          treatmentNotes: f.treatmentNotes
+                            ? `${f.treatmentNotes}\n\n${treatmentNotes}`
+                            : treatmentNotes,
+                        }));
+                        setActiveTab("OVERVIEW");
+                      }}
+                    />
+                    <div className="flex justify-end border-t border-border pt-4">
+                      <button
+                        type="button"
+                        onClick={handleSave}
+                        disabled={saving}
+                        className="inline-flex items-center gap-2 rounded-xl bg-brand px-6 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-brand-dark disabled:opacity-60"
+                      >
+                        {saving ? (
+                          <SpinnerGap size={14} className="animate-spin" />
+                        ) : (
+                          <FloppyDisk size={14} />
+                        )}
+                        {saving ? "Đang lưu..." : "Lưu ảnh"}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className={activeTab === "XRAY_AI" ? "block" : "hidden"}>
                     <DentalXrayAnalyzer
+                      key={detail.id}
                       patientId={detail.patientId}
                       patientImages={(form.images || [])
-                        .filter((img) => img.id && img.type === "xray")
+                        .filter((img) => img.id && (img.type === "xray" || !img.type))
                         .map((img, i) => ({
                         id: img.id,
                         url: img.url,
                         title:
                           img.caption ||
-                          (img.type === "xray"
+                          (img.type === "xray" || !img.type
                             ? `Phim X-quang ${i + 1}`
                             : img.type === "intraoral"
                               ? `Ảnh nội khoa ${i + 1}`
@@ -922,12 +1040,19 @@ function MedicalRecordsContent() {
                         date: "Từ hồ sơ bệnh án",
                       }))}
                       onApplyToMedicalRecord={(summaryText) => {
-
                         setForm((prev) => ({
                           ...prev,
                           treatmentNotes: prev.treatmentNotes
-                            ? `${prev.treatmentNotes}\n\n[Kết quả Vision AI]:\n${summaryText}`
-                            : `[Kết quả Vision AI]:\n${summaryText}`,
+                            ? `${prev.treatmentNotes}\n\n${summaryText}`
+                            : summaryText,
+                        }));
+                      }}
+                      onApplyDiagnosis={(diag) => {
+                        setForm((prev) => ({
+                          ...prev,
+                          diagnosis: prev.diagnosis
+                            ? `${prev.diagnosis}\n[X-quang AI]: ${diag}`
+                            : `[X-quang AI]: ${diag}`,
                         }));
                       }}
                       onApplyToDentalChart={(findings) => {
@@ -944,7 +1069,7 @@ function MedicalRecordsContent() {
                       }}
                       onRequestUpload={() => setActiveTab("IMAGES")}
                     />
-                  )}
+                  </div>
 
 
 
@@ -956,7 +1081,8 @@ function MedicalRecordsContent() {
                         </h3>
                         <Link
                           href={prescribeHref}
-                          className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-dark"
+                          onClick={(e) => void handleGuardedNavigation(e, prescribeHref)}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-dark cursor-pointer"
                         >
                           <Plus size={12} weight="bold" /> Kê đơn thuốc
                         </Link>
@@ -988,9 +1114,18 @@ function MedicalRecordsContent() {
                                 <span className="text-xs text-muted-foreground">
                                   {formatDate(rx.createdAt)}
                                 </span>
+                                <button
+                                  type="button"
+                                  onClick={() => setPrintingRx(rx)}
+                                  className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-200 cursor-pointer"
+                                  title="In đơn thuốc ra giấy"
+                                >
+                                  <Printer size={12} /> In đơn
+                                </button>
                                 <Link
                                   href={`/doctor/prescriptions/${rx.id}/edit`}
-                                  className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-brand transition-colors hover:bg-brand/10"
+                                  onClick={(e) => void handleGuardedNavigation(e, `/doctor/prescriptions/${rx.id}/edit`)}
+                                  className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-brand transition-colors hover:bg-brand/10 cursor-pointer"
                                 >
                                   <PencilSimple size={12} /> Sửa
                                 </Link>
@@ -1037,12 +1172,20 @@ function MedicalRecordsContent() {
                     </div>
                   )}
 
-                  {activeTab === "AFTERCARE" && (
+                  <div className={activeTab === "AFTERCARE" ? "space-y-5" : "hidden"}>
                     <AftercareDraft
                       key={detail.id}
                       medicalRecordId={detail.id}
+                      patientName={detail.patientName}
+                      currentForm={{
+                        chiefComplaint: form.chiefComplaint,
+                        diagnosis: form.diagnosis,
+                        treatmentNotes: form.treatmentNotes,
+                        followUpDate: form.followUpDate,
+                      }}
+                      isDirty={savedFormSnapshot.current !== JSON.stringify(form)}
                     />
-                  )}
+                  </div>
 
                   {activeTab === "HISTORY" && (
                     <div className="space-y-4">
@@ -1155,6 +1298,85 @@ function MedicalRecordsContent() {
           </div>
         </div>
       </div>
+      {printingRx && detail && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs print:static print:bg-transparent print:p-0">
+          <div className="flex max-h-[90vh] w-full max-w-2xl flex-col rounded-2xl bg-white shadow-2xl print:max-h-none print:w-full print:max-w-none print:shadow-none">
+            <div className="flex items-center justify-between border-b border-border px-6 py-4 print:hidden">
+              <div className="flex items-center gap-2">
+                <Pill size={18} className="text-brand" weight="duotone" />
+                <h3 className="text-sm font-bold text-slate-900">Xem trước & In đơn thuốc</h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-brand px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-brand-dark transition cursor-pointer"
+                >
+                  <Printer size={15} weight="bold" /> In ra giấy
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPrintingRx(null)}
+                  className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 transition cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            <div className="overflow-y-auto p-8 text-slate-900 print:overflow-visible print:p-6" id="print-area">
+              <div className="border-b-2 border-slate-900 pb-4 text-center">
+                <p className="text-xs font-bold uppercase tracking-widest text-brand-dark">PHÒNG KHÁM NHA KHOA SMART DENTAL</p>
+                <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-900 uppercase">ĐƠN THUỐC ĐIỆN TỬ</h1>
+                <p className="text-xs text-slate-500 mt-0.5">Ngày kê: {formatDateTime(printingRx.createdAt)}</p>
+              </div>
+
+              <div className="my-5 grid grid-cols-2 gap-3 text-xs bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                <div>
+                  <p><span className="font-semibold text-slate-600">Họ và tên BN:</span> <span className="font-bold text-slate-900 text-sm uppercase">{detail.patientName}</span></p>
+                  <p className="mt-1"><span className="font-semibold text-slate-600">Mã bệnh nhân:</span> <span className="font-mono font-bold text-slate-800">{detail.patientCode}</span></p>
+                </div>
+                <div>
+                  <p><span className="font-semibold text-slate-600">Chẩn đoán:</span> <span className="font-semibold text-slate-900">{detail.diagnosis || "Chưa ghi nhận"}</span></p>
+                  {detail.serviceName && <p className="mt-1"><span className="font-semibold text-slate-600">Dịch vụ điều trị:</span> {detail.serviceName}</p>}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-700">Chỉ định thuốc:</p>
+                <ol className="space-y-3 list-decimal list-inside text-xs">
+                  {printingRx.items.map((item, idx) => (
+                    <li key={item.id || idx} className="border-b border-slate-100 pb-2.5">
+                      <span className="font-bold text-sm text-slate-900">{item.medicineName}</span>
+                      <span className="font-semibold text-slate-700 ml-2">— {item.dosage}</span>
+                      {item.duration && <span className="text-slate-500 ml-2">(× {item.duration})</span>}
+                      <div className="ml-5 mt-1 text-slate-600 font-medium">
+                        {item.frequency && <p>• Cách dùng: {item.frequency}</p>}
+                        {item.instruction && <p className="italic text-slate-500">• Hướng dẫn: {item.instruction}</p>}
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+
+              {printingRx.notes && (
+                <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50/50 p-3 text-xs text-amber-900">
+                  <span className="font-bold">Lời dặn của bác sĩ:</span> {printingRx.notes}
+                </div>
+              )}
+
+              <div className="mt-8 flex justify-end text-center text-xs">
+                <div className="w-56 space-y-1">
+                  <p className="italic text-slate-500">{formatDate(printingRx.createdAt)}</p>
+                  <p className="font-bold text-slate-900 uppercase">Bác sĩ điều trị</p>
+                  <div className="h-16" />
+                  <p className="font-bold text-slate-800">(Ký và ghi rõ họ tên)</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

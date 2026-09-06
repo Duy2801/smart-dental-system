@@ -132,20 +132,26 @@ export default function EditPrescriptionPage() {
   };
 
   const handleSubmit = async () => {
-    const filled = medications.filter(
-      (m) => m.medicineName.trim() || m.dosage.trim(),
+    const activeMeds = medications.filter(
+      (m) =>
+        m.medicineName.trim() ||
+        m.dosage.trim() ||
+        m.frequency.trim() ||
+        m.duration.trim() ||
+        m.instruction.trim(),
     );
-    if (filled.length === 0) {
+    if (activeMeds.length === 0) {
       setSaveError("Vui lòng thêm ít nhất một loại thuốc.");
       return;
     }
-    const incomplete = filled.find(
+    const incomplete = activeMeds.find(
       (m) => !m.medicineName.trim() || !m.dosage.trim(),
     );
     if (incomplete) {
-      setSaveError("Mỗi thuốc cần có tên thuốc và liều dùng.");
+      setSaveError("Mỗi thuốc cần có đầy đủ tên thuốc và liều dùng.");
       return;
     }
+    const filled = activeMeds;
     setSaveError(null);
     if (!(await safetyReview.ensureReadyToSave())) {
       document
@@ -167,8 +173,10 @@ export default function EditPrescriptionPage() {
       });
       setSuccess(true);
       setTimeout(() => router.push("/doctor/prescriptions"), 1500);
-    } catch {
-      setSaveError("Lưu đơn thuốc thất bại. Vui lòng thử lại.");
+    } catch (err: any) {
+      const msg =
+        err.response?.data?.message || "Lưu đơn thuốc thất bại. Vui lòng thử lại.";
+      setSaveError(Array.isArray(msg) ? msg[0] : msg);
     } finally {
       setSubmitting(false);
     }
@@ -225,9 +233,10 @@ export default function EditPrescriptionPage() {
               </p>
             </div>
             <button
+              type="button"
               onClick={handleSubmit}
               disabled={submitting || safetyReview.loading || success}
-              className="inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-brand-dark hover:shadow active:scale-[0.98] disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-brand-dark hover:shadow active:scale-[0.98] disabled:opacity-60 cursor-pointer"
             >
               {submitting ? (
                 <SpinnerGap size={15} className="animate-spin" />
@@ -413,9 +422,10 @@ export default function EditPrescriptionPage() {
                       </td>
                       <td className="py-2.5 text-center">
                         <button
+                          type="button"
                           onClick={() => removeMedication(med.key)}
                           disabled={medications.length === 1}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded text-muted-foreground opacity-30 transition-all hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 disabled:opacity-0 active:scale-95"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded text-muted-foreground opacity-30 transition-all hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 disabled:opacity-0 active:scale-95 cursor-pointer"
                         >
                           <Trash size={14} />
                         </button>
@@ -427,8 +437,9 @@ export default function EditPrescriptionPage() {
 
               <div className="mt-4 border-t border-border/50 pt-4">
                 <button
+                  type="button"
                   onClick={addMedication}
-                  className="inline-flex items-center gap-1.5 text-sm font-medium text-brand transition-colors hover:text-brand-dark"
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-brand transition-colors hover:text-brand-dark cursor-pointer"
                 >
                   <Plus size={15} weight="bold" />
                   Thêm thuốc
@@ -441,14 +452,15 @@ export default function EditPrescriptionPage() {
           <div className="flex items-center justify-between rounded-2xl border border-border bg-white px-6 py-4 shadow-sm">
             <Link
               href="/doctor/prescriptions"
-              className="text-sm text-muted-foreground hover:text-brand"
+              className="text-sm text-muted-foreground hover:text-brand cursor-pointer"
             >
               Hủy thay đổi
             </Link>
             <button
+              type="button"
               onClick={handleSubmit}
               disabled={submitting || safetyReview.loading || success}
-              className="inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-brand-dark hover:shadow active:scale-[0.98] disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-brand-dark hover:shadow active:scale-[0.98] disabled:opacity-60 cursor-pointer"
             >
               {submitting ? (
                 <SpinnerGap size={15} className="animate-spin" />

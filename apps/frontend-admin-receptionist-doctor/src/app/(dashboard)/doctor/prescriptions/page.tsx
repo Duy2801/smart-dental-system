@@ -10,7 +10,9 @@ import {
   SpinnerGap,
   Warning,
   CaretDown,
+  CaretLeft,
   CaretRight,
+  ArrowClockwise,
   MagnifyingGlass,
   PencilSimple,
   Trash,
@@ -21,6 +23,7 @@ import {
   CheckCircle,
 } from "@phosphor-icons/react";
 import apiClient from "@/src/lib/api/client";
+import { getDoctorInfoFromCookie } from "@/src/lib/doctor/session";
 
 type PrescriptionItem = {
   id: string;
@@ -44,20 +47,12 @@ type Prescription = {
   createdAt: string;
 };
 
-function getUserInfo(): { doctorId: string | null } {
-  if (typeof document === "undefined") return { doctorId: null };
-  const raw = document.cookie
-    .split("; ")
-    .find((c) => c.startsWith("user_info="))
-    ?.split("=")
-    .slice(1)
-    .join("=");
-  if (!raw) return { doctorId: null };
-  try {
-    return JSON.parse(decodeURIComponent(raw));
-  } catch {
-    return { doctorId: null };
-  }
+function cleanSearchText(str: string) {
+  return str
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d");
 }
 
 function formatDate(iso: string | null) {
@@ -92,6 +87,11 @@ function MonthYearFilter({
 }) {
   const [month, setMonth] = useState(value ? value.slice(5) : "");
   const [year, setYear] = useState(value ? value.slice(0, 4) : String(currentYear));
+
+  useEffect(() => {
+    setMonth(value ? value.slice(5) : "");
+    setYear(value ? value.slice(0, 4) : String(currentYear));
+  }, [value]);
 
   const commit = (m: string, y: string) => {
     onChange(m ? `${y}-${m}` : "");
@@ -189,11 +189,13 @@ function DeleteModal({
 // Modal in đơn thuốc
 function PrintModal({
   rx,
+  doctorName,
   onClose,
   onSendEmail,
   sendingEmail,
 }: {
   rx: Prescription;
+  doctorName?: string | null;
   onClose: () => void;
   onSendEmail?: (rx: Prescription) => void;
   sendingEmail?: boolean;
@@ -312,11 +314,16 @@ function PrintModal({
 
           <div className="mt-8 text-right text-sm">
             <p className="text-muted-foreground">
-              Ngày {new Date().getDate()} tháng {new Date().getMonth() + 1} năm{" "}
-              {new Date().getFullYear()}
+              {(() => {
+                const d = new Date(rx.scheduledAt ?? rx.createdAt);
+                return `Ngày ${d.getDate()} tháng ${d.getMonth() + 1} năm ${d.getFullYear()}`;
+              })()}
             </p>
-            <p className="mt-1 font-medium">Bác sĩ điều trị</p>
-            <p className="mt-10 text-xs text-muted-foreground">
+            <p className="mt-1 font-medium text-slate-700">Bác sĩ điều trị</p>
+            <p className="mt-8 font-semibold text-slate-900">
+              {doctorName ? `BS. ${doctorName}` : "Bác sĩ điều trị"}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
               (Ký và ghi rõ họ tên)
             </p>
           </div>
@@ -328,19 +335,22 @@ function PrintModal({
 
 export default function PrescriptionsPage() {
   const router = useRouter();
-  const doctorId = getUserInfo().doctorId;
+  const { doctorId, doctorName } = getDoctorInfoFromCookie();
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
-  const [loading, setLoading] = useState(!!doctorId);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(
     !doctorId
       ? "Không tìm thấy thông tin bác sĩ. Vui lòng đăng nhập lại."
       : null,
   );
+  const [fetchFailed, setFetchFailed] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  // Search & filter
+  // Search, filter & pagination
   const [search, setSearch] = useState("");
   const [filterMonth, setFilterMonth] = useState(""); // "YYYY-MM"
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
   // Delete
   const [deleteTarget, setDeleteTarget] = useState<Prescription | null>(null);
@@ -372,25 +382,47 @@ export default function PrescriptionsPage() {
     }
   };
 
+  const loadPrescriptions = async () => {
+    if (!doctorId) {
+      setError("Không tìm thấy thông tin phiên làm việc bác sĩ. Vui lòng đăng nhập lại.");
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    setFetchFailed(false);
+    try {
+      const res = await apiClient.get<Prescription[]>(`/prescriptions?doctorId=${doctorId}`);
+      setPrescriptions(res.data);
+    } catch (err: any) {
+      const msg = err.response?.data?.message || "Không thể tải danh sách đơn thuốc.";
+      setError(Array.isArray(msg) ? msg[0] : msg);
+      setFetchFailed(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    if (!doctorId) return;
-    apiClient
-      .get<Prescription[]>(`/prescriptions?doctorId=${doctorId}`)
-      .then((res) => setPrescriptions(res.data))
-      .catch(() => setError("Không thể tải danh sách đơn thuốc."))
-      .finally(() => setLoading(false));
+    loadPrescriptions();
   }, [doctorId]);
 
   // Lọc dữ liệu theo search + tháng
+  // Reset page to 1 whenever search or filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [search, filterMonth]);
+
+  // Lọc dữ liệu theo search (hỗ trợ tiếng Việt không dấu) + tháng
   const filtered = useMemo(() => {
     let data = prescriptions;
     if (search.trim()) {
-      const q = search.trim().toLowerCase();
+      const q = cleanSearchText(search.trim());
       data = data.filter(
         (rx) =>
-          rx.patientName.toLowerCase().includes(q) ||
-          rx.patientCode.toLowerCase().includes(q) ||
-          (rx.diagnosis ?? "").toLowerCase().includes(q),
+          cleanSearchText(rx.patientName).includes(q) ||
+          cleanSearchText(rx.patientCode).includes(q) ||
+          cleanSearchText(rx.diagnosis ?? "").includes(q),
       );
     }
     if (filterMonth) {
@@ -403,6 +435,12 @@ export default function PrescriptionsPage() {
     return data;
   }, [prescriptions, search, filterMonth]);
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const paginated = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, page, pageSize]);
+
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
@@ -411,8 +449,19 @@ export default function PrescriptionsPage() {
       setPrescriptions((prev) => prev.filter((r) => r.id !== deleteTarget.id));
       setDeleteTarget(null);
       if (expandedId === deleteTarget.id) setExpandedId(null);
-    } catch {
-      setError("Xóa đơn thuốc thất bại. Vui lòng thử lại.");
+      setToast({
+        message: "Đã xóa đơn thuốc thành công!",
+        type: "success",
+      });
+      setTimeout(() => setToast(null), 3000);
+    } catch (err: any) {
+      const msg =
+        err.response?.data?.message || "Xóa đơn thuốc thất bại. Vui lòng thử lại.";
+      setToast({
+        message: Array.isArray(msg) ? msg[0] : msg,
+        type: "error",
+      });
+      setTimeout(() => setToast(null), 4000);
       setDeleteTarget(null);
     } finally {
       setDeleting(false);
@@ -433,15 +482,17 @@ export default function PrescriptionsPage() {
       {printTarget && (
         <PrintModal
           rx={printTarget}
+          doctorName={doctorName}
           onClose={() => setPrintTarget(null)}
           onSendEmail={handleSendEmail}
           sendingEmail={sendingId === printTarget.id}
         />
       )}
 
-      <Header
-        title="Đơn thuốc điện tử"
-        description="Kê đơn và theo dõi đơn thuốc cho bệnh nhân"
+      <div className="print:hidden">
+        <Header
+          title="Đơn thuốc điện tử"
+          description="Kê đơn và theo dõi đơn thuốc cho bệnh nhân"
       >
         <Link
           href="/doctor/prescriptions/new"
@@ -454,14 +505,26 @@ export default function PrescriptionsPage() {
 
       <div className="p-6 md:p-8">
         {error && (
-          <div className="mb-4 flex items-center gap-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-inset ring-red-200">
-            <Warning size={18} className="shrink-0" />
-            {error}
+          <div className="mb-4 flex items-center justify-between gap-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-inset ring-red-200">
+            <div className="flex items-center gap-3">
+              <Warning size={18} className="shrink-0 text-red-600" />
+              <span>{error}</span>
+            </div>
+            {fetchFailed && (
+              <button
+                type="button"
+                onClick={loadPrescriptions}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-800 transition hover:bg-red-200 cursor-pointer"
+              >
+                <ArrowClockwise size={13} />
+                Thử lại
+              </button>
+            )}
           </div>
         )}
 
         {/* Search & Filter bar */}
-        {!loading && !error && (
+        {!loading && !fetchFailed && (
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center">
             {/* Tìm kiếm */}
             <div className="relative flex-1">
@@ -478,15 +541,16 @@ export default function PrescriptionsPage() {
               />
               {search && (
                 <button
+                  type="button"
                   onClick={() => setSearch("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-brand"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-brand cursor-pointer"
                 >
                   <X size={14} />
                 </button>
               )}
             </div>
 
-            {/* Lọc tháng/năm — dùng select tránh vấn đề locale trình duyệt */}
+            {/* Lọc tháng/năm */}
             <MonthYearFilter value={filterMonth} onChange={setFilterMonth} />
           </div>
         )}
@@ -495,7 +559,7 @@ export default function PrescriptionsPage() {
           <div className="flex h-48 items-center justify-center rounded-2xl border border-border bg-white shadow-sm">
             <SpinnerGap size={28} className="animate-spin text-brand" />
           </div>
-        ) : !error && filtered.length === 0 ? (
+        ) : fetchFailed ? null : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-2xl border border-border bg-white py-24 shadow-sm">
             <Pill size={48} className="mb-4 text-slate-300" weight="duotone" />
             <p className="text-sm text-muted-foreground">
@@ -513,20 +577,21 @@ export default function PrescriptionsPage() {
             )}
             {prescriptions.length > 0 && (
               <button
+                type="button"
                 onClick={() => { setSearch(""); setFilterMonth(""); }}
-                className="mt-3 text-sm text-brand hover:underline"
+                className="mt-3 text-sm text-brand hover:underline cursor-pointer"
               >
                 Xóa bộ lọc
               </button>
             )}
           </div>
-        ) : !error ? (
+        ) : (
           <>
             {/* Tổng kết */}
             <p className="mb-3 text-xs text-muted-foreground">
               Hiển thị{" "}
-              <strong className="text-brand-dark">{filtered.length}</strong> /{" "}
-              {prescriptions.length} đơn thuốc
+              <strong className="text-brand-dark">{paginated.length}</strong> /{" "}
+              {filtered.length} đơn thuốc (Tổng: {prescriptions.length})
             </p>
 
             <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
@@ -544,7 +609,7 @@ export default function PrescriptionsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.map((rx) => (
+                    {paginated.map((rx) => (
                       <Fragment key={rx.id}>
                         <tr
                           className="cursor-pointer border-b border-border/50 transition-colors hover:bg-slate-50/50"
@@ -596,6 +661,7 @@ export default function PrescriptionsPage() {
                               onClick={(e) => e.stopPropagation()}
                             >
                               <button
+                                type="button"
                                 onClick={() => handleSendEmail(rx)}
                                 disabled={sendingId === rx.id}
                                 title="Gửi Toa thuốc & Hướng dẫn qua Gmail cho bệnh nhân"
@@ -608,6 +674,7 @@ export default function PrescriptionsPage() {
                                 />
                               </button>
                               <button
+                                type="button"
                                 onClick={() =>
                                   router.push(
                                     `/doctor/prescriptions/${rx.id}/edit`,
@@ -619,6 +686,7 @@ export default function PrescriptionsPage() {
                                 <PencilSimple size={14} />
                               </button>
                               <button
+                                type="button"
                                 onClick={() => setPrintTarget(rx)}
                                 title="In đơn thuốc"
                                 className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-slate-100 hover:text-slate-700 cursor-pointer"
@@ -626,6 +694,7 @@ export default function PrescriptionsPage() {
                                 <Printer size={14} />
                               </button>
                               <button
+                                type="button"
                                 onClick={() => setDeleteTarget(rx)}
                                 title="Xóa đơn thuốc"
                                 className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600 cursor-pointer"
@@ -681,7 +750,7 @@ export default function PrescriptionsPage() {
                                 {/* Action bar inside expanded row */}
                                 <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
                                   <p className="text-xs text-muted-foreground italic">
-                                    💡 Email gửi từ BS. Nguyễn Đức Hậu kèm liều dùng và chỉ dẫn an toàn khi sử dụng thuốc.
+                                    💡 Email gửi từ {doctorName ? `BS. ${doctorName}` : "bác sĩ phụ trách"} kèm liều dùng và chỉ dẫn an toàn khi sử dụng thuốc.
                                   </p>
                                   <div className="flex items-center gap-2">
                                     <button
@@ -715,10 +784,62 @@ export default function PrescriptionsPage() {
                   </tbody>
                 </table>
               </div>
+
+              {/* Pagination controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between border-t border-border bg-slate-50/50 px-5 py-3 text-xs text-muted-foreground">
+                  <span>
+                    Trang <strong className="text-slate-900">{page}</strong> / {totalPages} (Tổng cộng {filtered.length} đơn)
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      disabled={page <= 1}
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white text-slate-700 transition hover:bg-slate-100 disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+                      title="Trang trước"
+                    >
+                      <CaretLeft size={14} />
+                    </button>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+                      .map((p, idx, arr) => {
+                        const prev = arr[idx - 1];
+                        const showEllipsis = prev && p - prev > 1;
+                        return (
+                          <Fragment key={p}>
+                            {showEllipsis && <span className="px-1 text-slate-400">...</span>}
+                            <button
+                              type="button"
+                              onClick={() => setPage(p)}
+                              className={`h-8 min-w-8 rounded-lg px-2 text-xs font-semibold transition cursor-pointer ${
+                                p === page
+                                  ? "bg-brand text-white shadow-xs"
+                                  : "border border-border bg-white text-slate-700 hover:bg-slate-100"
+                              }`}
+                            >
+                              {p}
+                            </button>
+                          </Fragment>
+                        );
+                      })}
+                    <button
+                      type="button"
+                      disabled={page >= totalPages}
+                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white text-slate-700 transition hover:bg-slate-100 disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+                      title="Trang kế tiếp"
+                    >
+                      <CaretRight size={14} />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </>
-        ) : null}
+        )}
       </div>
+    </div>
 
       {/* FLOATING SUCCESS / ERROR TOAST */}
       {toast && (

@@ -13,10 +13,16 @@ import {
   XCircle,
   PaperPlaneTilt,
   CheckCircle,
+  CaretLeft,
+  CaretRight,
+  ArrowClockwise,
 } from "@phosphor-icons/react";
 import { Header } from "@/src/components/layout/header";
 import { ROUTES } from "@/src/constants/routes";
-import { getDoctorIdFromCookie } from "@/src/lib/doctor/session";
+import {
+  getDoctorIdFromCookie,
+  getDoctorInfoFromCookie,
+} from "@/src/lib/doctor/session";
 import apiClient from "@/src/lib/api/client";
 import { cn } from "@/src/lib/utils/cn";
 import { useAppDialog } from "@/src/providers/app-dialog-provider";
@@ -67,8 +73,14 @@ const FILTERS: { key: FilterKey; label: string }[] = [
   { key: "all", label: "Tất cả" },
 ];
 
-function getUserInfo(): { doctorId: string | null } {
-  return { doctorId: getDoctorIdFromCookie() };
+function cleanSearchText(str: string): string {
+  return str
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "d")
+    .trim();
 }
 
 function startOfDay(d = new Date()) {
@@ -142,6 +154,8 @@ export default function DoctorConsultationsPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterKey>("all");
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
@@ -168,7 +182,8 @@ export default function DoctorConsultationsPage() {
   };
 
   useEffect(() => {
-    const id = getUserInfo().doctorId;
+    const doctorInfo = getDoctorInfoFromCookie();
+    const id = doctorInfo?.doctorId ?? getDoctorIdFromCookie();
     setDoctorId(id);
     if (!id) {
       setError("Không tìm thấy thông tin bác sĩ. Vui lòng đăng nhập lại.");
@@ -198,21 +213,37 @@ export default function DoctorConsultationsPage() {
   }, [doctorId]);
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = cleanSearchText(search);
     return items.filter((item) => {
       if (!matchesFilter(item, filter)) return false;
       if (!q) return true;
       return (
-        item.patientName.toLowerCase().includes(q) ||
-        item.patientCode.toLowerCase().includes(q)
+        cleanSearchText(item.patientName).includes(q) ||
+        cleanSearchText(item.patientCode).includes(q)
       );
     });
   }, [items, filter, search]);
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const paginatedItems = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, page, pageSize]);
+
+  const handleFilterSelect = (key: FilterKey) => {
+    setFilter(key);
+    setPage(1);
+  };
+
+  const handleSearchChange = (val: string) => {
+    setSearch(val);
+    setPage(1);
+  };
+
   const handleCancel = async (id: string, patientName: string) => {
     const confirmed = await showConfirm({
       title: "Hủy buổi tư vấn?",
-      description: `Buổi tư vấn với ${patientName} sẽ bị hủy và không thể hoàn tác.`,
+      description: `Buổi tư vấn với ${patientName} sẽ bị hủy và không thể hoàn tác. Tiền phí đã thanh toán sẽ được hoàn lại 100%.`,
       confirmLabel: "Hủy buổi tư vấn",
       tone: "danger",
     });
@@ -225,6 +256,11 @@ export default function DoctorConsultationsPage() {
           item.id === id ? { ...item, status: "CANCELLED" as const } : item,
         ),
       );
+      setToast({
+        message: `Đã hủy buổi tư vấn với ${patientName} thành công.`,
+        type: "success",
+      });
+      setTimeout(() => setToast(null), 4500);
     } catch (err) {
       await showAlert({
         title: "Không thể hủy buổi tư vấn",
@@ -259,7 +295,7 @@ export default function DoctorConsultationsPage() {
               type="text"
               placeholder="Tìm theo tên BN, mã BN..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               className="w-full rounded-xl border border-border bg-white py-2.5 pl-9 pr-3 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand"
             />
           </div>
@@ -269,9 +305,9 @@ export default function DoctorConsultationsPage() {
               <button
                 key={f.key}
                 type="button"
-                onClick={() => setFilter(f.key)}
+                onClick={() => handleFilterSelect(f.key)}
                 className={cn(
-                  "rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors",
+                  "rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer",
                   filter === f.key
                     ? "bg-brand text-white"
                     : "bg-white text-muted-foreground ring-1 ring-inset ring-border hover:bg-muted/40",
@@ -284,9 +320,19 @@ export default function DoctorConsultationsPage() {
         </div>
 
         {error && (
-          <div className="flex items-center gap-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-inset ring-red-200">
-            <Warning size={18} className="shrink-0" />
-            {error}
+          <div className="flex items-center justify-between rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-inset ring-red-200">
+            <div className="flex items-center gap-3">
+              <Warning size={18} className="shrink-0" />
+              <span>{error}</span>
+            </div>
+            <button
+              type="button"
+              onClick={load}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 cursor-pointer"
+            >
+              <ArrowClockwise size={13} weight="bold" />
+              Thử lại
+            </button>
           </div>
         )}
 
@@ -303,8 +349,9 @@ export default function DoctorConsultationsPage() {
               </p>
             </div>
           ) : (
-            <ul className="divide-y divide-border/60">
-              {filtered.map((item) => {
+            <>
+              <ul className="divide-y divide-border/60">
+                {paginatedItems.map((item) => {
                 const cfg = STATUS_CFG[item.status];
                 const action = primaryAction(item);
                 const canCancel =
@@ -390,7 +437,44 @@ export default function DoctorConsultationsPage() {
                 );
               })}
             </ul>
-          )}
+
+            {/* PAGINATION CONTROLS */}
+            {filtered.length > pageSize && (
+              <div className="flex items-center justify-between border-t border-border/70 px-5 py-3.5 bg-slate-50/50">
+                <p className="text-xs text-muted-foreground">
+                  Hiển thị <span className="font-semibold text-slate-700">{(page - 1) * pageSize + 1}</span> -{" "}
+                  <span className="font-semibold text-slate-700">
+                    {Math.min(page * pageSize, filtered.length)}
+                  </span>{" "}
+                  trên tổng số <span className="font-semibold text-slate-700">{filtered.length}</span> buổi tư vấn
+                </p>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page <= 1}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
+                    aria-label="Trang trước"
+                  >
+                    <CaretLeft size={14} weight="bold" />
+                  </button>
+                  <span className="px-2.5 text-xs font-medium text-slate-600">
+                    {page} / {totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page >= totalPages}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
+                    aria-label="Trang sau"
+                  >
+                    <CaretRight size={14} weight="bold" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
         </div>
       </div>
       )}

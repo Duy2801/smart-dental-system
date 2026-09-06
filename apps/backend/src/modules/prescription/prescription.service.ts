@@ -172,7 +172,7 @@ export class PrescriptionService {
     if (!record) {
       throw new NotFoundException('Không tìm thấy hồ sơ bệnh án');
     }
-    if (record.doctorId !== doctorId) {
+    if (!user.roles.includes('ADMIN') && record.doctorId !== doctorId) {
       throw new ForbiddenException(
         'Hồ sơ bệnh án không thuộc bác sĩ đang kê đơn',
       );
@@ -296,7 +296,9 @@ export class PrescriptionService {
     const email = rx.patient?.user?.email || rx.patient?.email;
     const patientName = (rx.patient as any)?.fullName || rx.patient?.user?.fullName || 'Quý khách';
     const patientCode = rx.patient?.patientCode || 'PAT-0000';
-    const doctorName = rx.doctor?.user?.fullName || 'BS. Nguyễn Đức Hậu';
+    const doctorName = rx.doctor?.user?.fullName
+      ? (rx.doctor.user.fullName.startsWith('BS') ? rx.doctor.user.fullName : `BS. ${rx.doctor.user.fullName}`)
+      : 'Bác sĩ điều trị';
     const diagnosis = rx.medicalRecord?.diagnosis || 'Khám & Điều trị nha khoa';
     const notes = rx.notes;
 
@@ -318,7 +320,7 @@ export class PrescriptionService {
         duration: item.duration,
         instruction: item.instruction,
       })),
-      createdAt: rx.createdAt.toISOString(),
+      createdAt: (rx.createdAt ? new Date(rx.createdAt) : new Date()).toISOString(),
     });
 
     if (rx.patient?.user?.id) {

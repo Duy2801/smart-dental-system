@@ -87,11 +87,11 @@ function formatWhen(iso: string) {
   });
 }
 
-function buildSummary(sessions: ChatSession[]): string[] {
-  const patientLines = sessions
-    .flatMap((s) => s.messages)
-    .filter((m) => m.role === "patient" || m.role === "user")
-    .map((m) => m.content.trim())
+function buildSummary(sessions: ChatSession[] = []): string[] {
+  const patientLines = (sessions || [])
+    .flatMap((s) => s?.messages || [])
+    .filter((m) => m?.role === "patient" || m?.role === "user")
+    .map((m) => m?.content?.trim())
     .filter(Boolean);
 
   const unique = [...new Set(patientLines)].slice(0, 5);
@@ -176,6 +176,27 @@ export default function ConsultationRoomPage() {
     if (id) {
       setAiSummary(null);
       load();
+
+      apiClient
+        .get<{
+          bulletPoints?: string[];
+          questionsToAsk?: string[];
+          riskFlags?: string[];
+          disclaimer?: string;
+        }>(`/ai/doctor/summarize-patient/latest?consultationId=${id}`)
+        .then((res) => {
+          if (res.data?.bulletPoints && res.data.bulletPoints.length > 0) {
+            setAiSummary({
+              bulletPoints: res.data.bulletPoints ?? [],
+              questionsToAsk: res.data.questionsToAsk ?? [],
+              riskFlags: res.data.riskFlags ?? [],
+              disclaimer: res.data.disclaimer ?? "",
+            });
+          }
+        })
+        .catch(() => {
+          // No previous summary, doctor can generate on demand
+        });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
@@ -294,6 +315,11 @@ export default function ConsultationRoomPage() {
       setInCall(false);
       setCallStartedAt(null);
       await load();
+      setToast({
+        message: "Đã hoàn thành buổi tư vấn thành công.",
+        type: "success",
+      });
+      setTimeout(() => setToast(null), 4000);
     } catch (err) {
       await showAlert({
         title: "Không thể kết thúc tư vấn",
@@ -308,7 +334,7 @@ export default function ConsultationRoomPage() {
   const handleCancel = async () => {
     const confirmed = await showConfirm({
       title: "Hủy buổi tư vấn?",
-      description: "Thao tác này không thể hoàn tác.",
+      description: "Thao tác này không thể hoàn tác. Tiền phí đã thanh toán sẽ được hoàn lại 100%.",
       confirmLabel: "Hủy buổi tư vấn",
       tone: "danger",
     });
@@ -319,6 +345,11 @@ export default function ConsultationRoomPage() {
       setInCall(false);
       setCallStartedAt(null);
       await load();
+      setToast({
+        message: "Đã hủy buổi tư vấn thành công.",
+        type: "success",
+      });
+      setTimeout(() => setToast(null), 4000);
     } catch (err) {
       await showAlert({
         title: "Không thể hủy buổi tư vấn",
@@ -345,6 +376,11 @@ export default function ConsultationRoomPage() {
       setNotes(notes.trim());
       setNotesSaved(true);
       setTimeout(() => setNotesSaved(false), 2500);
+      setToast({
+        message: "Đã lưu ghi chú lâm sàng thành công.",
+        type: "success",
+      });
+      setTimeout(() => setToast(null), 3000);
     } catch (err) {
       await showAlert({
         title: "Không thể lưu ghi chú",
@@ -389,9 +425,18 @@ export default function ConsultationRoomPage() {
           <ArrowLeft size={14} />
           Quay lại danh sách
         </Link>
-        <div className="flex items-center gap-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-inset ring-red-200">
-          <Warning size={18} />
-          {error ?? "Không tìm thấy buổi tư vấn."}
+        <div className="flex items-center justify-between rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-inset ring-red-200">
+          <div className="flex items-center gap-3">
+            <Warning size={18} className="shrink-0" />
+            <span>{error ?? "Không tìm thấy buổi tư vấn."}</span>
+          </div>
+          <button
+            type="button"
+            onClick={load}
+            className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 cursor-pointer"
+          >
+            Thử lại
+          </button>
         </div>
       </div>
     );
@@ -680,12 +725,12 @@ export default function ConsultationRoomPage() {
               </div>
 
               <div className="flex-1 space-y-5 overflow-y-auto p-4">
-                {detail.chatbotSessions.length === 0 ? (
+                {!detail.chatbotSessions || detail.chatbotSessions.length === 0 ? (
                   <p className="py-10 text-center text-sm text-muted-foreground">
                     Bệnh nhân chưa có phiên chat với AI.
                   </p>
                 ) : (
-                  detail.chatbotSessions.map((session) => (
+                  (detail.chatbotSessions ?? []).map((session) => (
                     <div key={session.id} className="space-y-3">
                       <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                         Phiên {formatWhen(session.startedAt)} · {session.status}
