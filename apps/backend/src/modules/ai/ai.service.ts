@@ -1703,6 +1703,18 @@ export class AiService {
     });
     if (appt) return;
 
+    const plan = await this.prisma.treatmentPlan.findFirst({
+      where: { doctorId: doctor.id, patientId },
+      select: { id: true },
+    });
+    if (plan) return;
+
+    const record = await this.prisma.medicalRecord.findFirst({
+      where: { doctorId: doctor.id, patientId },
+      select: { id: true },
+    });
+    if (record) return;
+
     throw new ForbiddenException('Không có quyền xem bệnh nhân này');
   }
 

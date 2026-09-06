@@ -36,7 +36,7 @@ async def complete_with_metadata(system: str, user: str) -> LlmCompletion:
         )
         return LlmCompletion(content, "openai", settings.openai_model)
 
-    # --- Fallback chain: nvidia -> openrouter -> groq -> gemini ---
+    # --- Fallback chain: nvidia -> gemini -> groq -> openrouter ---
     candidates = []
 
     if settings.nvidia_api_key:
@@ -46,16 +46,6 @@ async def complete_with_metadata(system: str, user: str) -> LlmCompletion:
                 settings.nvidia_base_url,
                 settings.nvidia_api_key,
                 settings.nvidia_model,
-            )
-        )
-
-    if settings.openrouter_api_key:
-        candidates.append(
-            (
-                "openrouter",
-                "https://openrouter.ai/api/v1/chat/completions",
-                settings.openrouter_api_key,
-                settings.openrouter_model,
             )
         )
 
@@ -81,15 +71,32 @@ async def complete_with_metadata(system: str, user: str) -> LlmCompletion:
             logger.warning("[LLM] Provider %s failed: %s — trying next.", name, exc)
             last_error = exc
 
-    # Fallback to Gemini if configured
+    # Fast fallback: Gemini is high-throughput & takes only ~4s
     if settings.gemini_api_key:
         try:
-            logger.info("[LLM] Trying fallback provider: gemini")
+            logger.info("[LLM] Trying fast fallback provider: gemini")
             result = await _gemini_complete(system, user, settings)
             logger.info("[LLM] Success with fallback provider: gemini")
             return LlmCompletion(result, "gemini", settings.gemini_model)
         except Exception as exc:
-            logger.warning("[LLM] Provider gemini failed: %s", exc)
+            logger.warning("[LLM] Provider gemini failed: %s — trying openrouter.", exc)
+            last_error = exc
+
+    # Last resort fallback: OpenRouter
+    if settings.openrouter_api_key:
+        try:
+            logger.info("[LLM] Trying fallback provider: openrouter")
+            result = await _openai_compatible(
+                "https://openrouter.ai/api/v1/chat/completions",
+                settings.openrouter_api_key,
+                settings.openrouter_model,
+                system,
+                user,
+            )
+            logger.info("[LLM] Success with fallback provider: openrouter")
+            return LlmCompletion(result, "openrouter", settings.openrouter_model)
+        except Exception as exc:
+            logger.warning("[LLM] Provider openrouter failed: %s", exc)
             last_error = exc
 
     if last_error:

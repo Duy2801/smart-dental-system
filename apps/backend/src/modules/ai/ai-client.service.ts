@@ -35,9 +35,10 @@ export class AiClientService {
         body: JSON.stringify(body),
         signal: AbortSignal.timeout(60_000),
       });
-    } catch {
+    } catch (err: any) {
+      console.error('[AiClientService] fetch failed for URL:', url, 'Error:', err?.message || err);
       throw new ServiceUnavailableException(
-        'Không kết nối được AI service. Kiểm tra apps/ai-service đang chạy (cổng 8001).',
+        `Không kết nối được AI service (${url}). ${err?.message || ''}`,
       );
     }
 

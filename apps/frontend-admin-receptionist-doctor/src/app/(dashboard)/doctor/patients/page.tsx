@@ -15,11 +15,16 @@ import {
   CaretRight,
 } from "@phosphor-icons/react";
 import apiClient from "@/src/lib/api/client";
+import { cn } from "@/src/lib/utils/cn";
 import {
   genderLabel,
   getDoctorIdFromCookie,
 } from "@/src/lib/doctor/session";
-import { getPatientListStats, paginatePatients } from "./patient-list";
+import {
+  cleanSearchText,
+  getPatientListStats,
+  paginatePatients,
+} from "./patient-list";
 
 const PAGE_SIZE = 10;
 
@@ -35,6 +40,7 @@ type Patient = {
   lastService: string;
   lastStatus: string;
   totalVisits: number;
+  totalAppointments?: number;
   medicalHistory: string | null;
   hasActiveTreatmentPlan: boolean;
   upcomingVisitsInNext7Days: number;
@@ -64,14 +70,15 @@ export default function DoctorPatientsPage() {
   }, [doctorId]);
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return patients;
+    const raw = search.trim();
+    if (!raw) return patients;
+    const qNorm = cleanSearchText(raw);
     return patients.filter(
       (p) =>
-        p.fullName.toLowerCase().includes(q) ||
-        p.patientCode.toLowerCase().includes(q) ||
-        (p.phone ?? "").includes(q) ||
-        (p.email ?? "").toLowerCase().includes(q),
+        cleanSearchText(p.fullName).includes(qNorm) ||
+        cleanSearchText(p.patientCode).includes(qNorm) ||
+        (p.phone ?? "").includes(raw) ||
+        (p.email ?? "").toLowerCase().includes(qNorm),
     );
   }, [patients, search]);
 
@@ -175,7 +182,7 @@ export default function DoctorPatientsPage() {
                     <th className="px-5 py-3.5">Liên hệ</th>
                     <th className="px-5 py-3.5">Lần khám gần nhất</th>
                     <th className="px-5 py-3.5">Dịch vụ gần nhất</th>
-                    <th className="px-5 py-3.5 text-center">Số lần khám</th>
+                    <th className="px-5 py-3.5 text-center">Đã khám / Lượt hẹn</th>
                     <th className="px-5 py-3.5 text-right">Thao tác</th>
                   </tr>
                 </thead>
@@ -221,9 +228,12 @@ export default function DoctorPatientsPage() {
                           </span>
                         </td>
                         <td className="px-5 py-4">
-                          <p className="font-semibold text-slate-900">
+                          <Link
+                            href={`/doctor/patients/${pt.id}`}
+                            className="font-semibold text-slate-900 transition-colors hover:text-brand cursor-pointer"
+                          >
                             {pt.fullName}
-                          </p>
+                          </Link>
                         </td>
                         <td className="whitespace-nowrap px-5 py-4 text-muted-foreground">
                           {genderLabel(pt.gender)}
@@ -253,9 +263,23 @@ export default function DoctorPatientsPage() {
                           {pt.lastVisitDate ? pt.lastService : "—"}
                         </td>
                         <td className="px-5 py-4 text-center">
-                          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-brand/10 text-xs font-bold text-brand">
-                            {pt.totalVisits}
-                          </span>
+                          <div className="inline-flex flex-col items-center">
+                            <span
+                              className={cn(
+                                "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold",
+                                pt.totalVisits > 0
+                                  ? "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200"
+                                  : "bg-slate-100 text-slate-600",
+                              )}
+                            >
+                              {pt.totalVisits > 0 ? `${pt.totalVisits} đã khám` : "Chưa khám"}
+                            </span>
+                            {typeof pt.totalAppointments === "number" && pt.totalAppointments > 0 && (
+                              <span className="mt-1 text-[11px] font-medium text-muted-foreground">
+                                {pt.totalAppointments} lượt hẹn
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="whitespace-nowrap px-5 py-4 text-right">
                           <Link

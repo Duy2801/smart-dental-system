@@ -287,16 +287,28 @@ export function AppointmentDetailPanel({
               </button>
             )}
             {apt.type === "OFFLINE" && apt.status === "IN_PROGRESS" && (
-              <button
-                onClick={() => handleAction("complete")}
-                disabled={loading !== null}
-                className="flex items-center justify-center gap-2 rounded-xl bg-orange-500 py-2.5 text-sm font-semibold text-white transition-all hover:bg-orange-600 disabled:opacity-60"
-              >
-                {loading === "complete" && (
-                  <SpinnerGap size={14} className="animate-spin" />
-                )}
-                {loading === "complete" ? "Đang xử lý..." : "Kết thúc khám"}
-              </button>
+              <>
+                <Link
+                  href={
+                    apt.medicalRecordId
+                      ? `/doctor/medical-records?recordId=${apt.medicalRecordId}`
+                      : `/doctor/medical-records?appointmentId=${apt.id}&patientId=${apt.patientId}`
+                  }
+                  className="flex items-center justify-center rounded-xl bg-blue-600 py-2.5 text-sm font-semibold text-white transition-all hover:bg-blue-700 active:scale-[0.98]"
+                >
+                  Khám / Ghi hồ sơ bệnh án
+                </Link>
+                <button
+                  onClick={() => handleAction("complete")}
+                  disabled={loading !== null}
+                  className="flex items-center justify-center gap-2 rounded-xl border border-orange-300 bg-orange-50 py-2 text-sm font-semibold text-orange-700 transition-all hover:bg-orange-100 disabled:opacity-60 cursor-pointer"
+                >
+                  {loading === "complete" && (
+                    <SpinnerGap size={14} className="animate-spin" />
+                  )}
+                  {loading === "complete" ? "Đang xử lý..." : "Kết thúc khám"}
+                </button>
+              </>
             )}
             {apt.type === "OFFLINE" && apt.status === "COMPLETED" && (
               <Link

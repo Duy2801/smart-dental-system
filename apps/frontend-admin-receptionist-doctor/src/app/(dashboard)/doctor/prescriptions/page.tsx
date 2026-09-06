@@ -203,33 +203,33 @@ function PrintModal({
   const handlePrint = () => window.print();
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm print:static print:bg-transparent print:p-0">
-      <div className="mx-4 flex w-full max-w-2xl flex-col rounded-2xl border border-border bg-white shadow-xl print:mx-0 print:max-w-none print:rounded-none print:border-0 print:shadow-none">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-5 backdrop-blur-xs print:static print:bg-transparent print:p-0">
+      <div className="relative flex w-full max-w-2xl max-h-[90vh] sm:max-h-[88vh] flex-col overflow-hidden rounded-2xl border border-border bg-white shadow-2xl print:mx-0 print:max-h-none print:w-full print:max-w-none print:rounded-none print:border-0 print:shadow-none">
         {/* Header modal — ẩn khi in */}
-        <div className="flex items-center justify-between border-b border-border px-6 py-4 print:hidden">
-          <h3 className="font-semibold text-brand-dark">Xem trước đơn thuốc</h3>
+        <div className="shrink-0 flex items-center justify-between border-b border-border px-6 py-3.5 print:hidden">
+          <h3 className="font-bold text-slate-900">Xem trước đơn thuốc</h3>
           <div className="flex items-center gap-2">
             {onSendEmail && (
               <button
                 type="button"
                 disabled={sendingEmail}
                 onClick={() => onSendEmail(rx)}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50 cursor-pointer"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs transition hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-50 cursor-pointer"
               >
-                <PaperPlaneTilt size={15} weight="bold" />
+                <PaperPlaneTilt size={14} weight="bold" />
                 {sendingEmail ? "Đang gửi..." : "Gửi Gmail cho BN"}
               </button>
             )}
             <button
               onClick={handlePrint}
-              className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-dark cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-brand px-3.5 py-1.5 text-xs font-bold text-white shadow-xs transition hover:bg-brand-dark active:scale-[0.98] cursor-pointer"
             >
-              <Printer size={15} weight="bold" />
+              <Printer size={14} weight="bold" />
               In đơn
             </button>
             <button
               onClick={onClose}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-slate-100 cursor-pointer"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition cursor-pointer"
             >
               <X size={16} />
             </button>
@@ -239,7 +239,7 @@ function PrintModal({
         {/* Nội dung đơn */}
         <div
           id="print-area"
-          className="overflow-y-auto p-8 text-sm text-slate-800"
+          className="flex-1 min-h-0 overflow-y-auto p-6 sm:p-8 text-sm text-slate-800 [scrollbar-width:thin] print:overflow-visible print:p-6"
         >
           <div className="mb-6 text-center">
             <p className="text-xs uppercase tracking-widest text-muted-foreground">

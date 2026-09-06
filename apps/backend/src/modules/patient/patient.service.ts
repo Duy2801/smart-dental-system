@@ -22,6 +22,7 @@ import {
   TreatmentPlanStatus,
   TreatmentStepPaymentStatus,
   TreatmentStepStatus,
+  VideoConsultationStatus,
 } from '../../../prisma/generated/enums';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
@@ -838,13 +839,42 @@ export class PatientService {
     search?: string,
     now: Date = new Date(),
   ) {
-    const q = search?.trim().toLowerCase();
+    const q = search?.trim();
 
     const patients = await this.prisma.patient.findMany({
       where: {
         OR: [
-          { appointments: { some: { doctorId } } },
-          { videoConsultations: { some: { doctorId } } },
+          {
+            appointments: {
+              some: {
+                doctorId,
+                status: {
+                  in: [
+                    AppointmentStatus.CONFIRMED,
+                    AppointmentStatus.CHECKED_IN,
+                    AppointmentStatus.IN_PROGRESS,
+                    AppointmentStatus.COMPLETED,
+                  ],
+                },
+              },
+            },
+          },
+          {
+            videoConsultations: {
+              some: {
+                doctorId,
+                status: {
+                  in: [
+                    VideoConsultationStatus.SCHEDULED,
+                    VideoConsultationStatus.IN_PROGRESS,
+                    VideoConsultationStatus.COMPLETED,
+                  ],
+                },
+              },
+            },
+          },
+          { treatmentPlans: { some: { doctorId } } },
+          { medicalRecords: { some: { doctorId } } },
         ],
       },
       include: {
@@ -862,98 +892,137 @@ export class PatientService {
           select: { scheduledAt: true, status: true, durationMinutes: true },
         },
         treatmentPlans: {
-          where: { doctorId, status: TreatmentPlanStatus.IN_PROGRESS },
+          where: {
+            doctorId,
+            status: {
+              in: [
+                TreatmentPlanStatus.PLANNED,
+                TreatmentPlanStatus.IN_PROGRESS,
+              ],
+            },
+          },
           select: { id: true },
         },
       },
     });
 
-    return patients.map((p) => {
-      const identity = this.getPatientIdentity(p);
-      const age = this.calculateAge(p.dateOfBirth, now);
+    const normalize = (str: string) =>
+      str
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'd');
 
-      // Combine both types of visits
-      const offlineVisits = p.appointments.map((a) => ({
-        scheduledAt: a.scheduledAt,
-        serviceName: a.service?.name ?? 'Khám trực tiếp',
-        status: a.status,
-      }));
+    const normQ = q ? normalize(q) : '';
 
-      const onlineVisits = p.videoConsultations.map((vc) => ({
-        scheduledAt: vc.scheduledAt,
-        serviceName: `Tư vấn trực tuyến (${vc.durationMinutes} phút)`,
-        status: vc.status,
-      }));
+    return patients
+      .map((p) => {
+        const identity = this.getPatientIdentity(p);
+        const age = this.calculateAge(p.dateOfBirth, now);
 
-      const allVisits = [...offlineVisits, ...onlineVisits].sort(
-        (a, b) => b.scheduledAt.getTime() - a.scheduledAt.getTime(),
-      );
+        // Combine both types of visits
+        const offlineVisits = p.appointments.map((a) => ({
+          scheduledAt: a.scheduledAt,
+          serviceName: a.service?.name ?? 'Khám trực tiếp',
+          status: a.status,
+        }));
 
-      const completedVisits = allVisits.filter(
-        (visit) =>
-          visit.status === AppointmentStatus.COMPLETED &&
-          visit.scheduledAt.getTime() <= now.getTime(),
-      );
-      const lastVisit = completedVisits[0];
-      const upcomingWindowEnd = new Date(
-        now.getTime() + 7 * 24 * 60 * 60 * 1000,
-      );
-      const activeUpcomingStatuses = new Set<string>([
-        AppointmentStatus.PENDING,
-        AppointmentStatus.CONFIRMED,
-        AppointmentStatus.CHECKED_IN,
-        'PENDING_PAYMENT',
-        'SCHEDULED',
-      ]);
-      const upcomingVisitsInNext7Days = allVisits.filter(
-        (visit) =>
-          activeUpcomingStatuses.has(visit.status) &&
-          visit.scheduledAt.getTime() >= now.getTime() &&
-          visit.scheduledAt.getTime() <= upcomingWindowEnd.getTime(),
-      ).length;
+        const onlineVisits = p.videoConsultations.map((vc) => ({
+          scheduledAt: vc.scheduledAt,
+          serviceName: `Tư vấn trực tuyến (${vc.durationMinutes} phút)`,
+          status: vc.status,
+        }));
 
-      return {
-        id: p.id,
-        patientCode: p.patientCode,
-        fullName: identity.fullName,
-        phone: identity.phone,
-        email: identity.email,
-        gender: p.gender,
-        age,
-        lastVisitDate: lastVisit?.scheduledAt ?? null,
-        lastService: lastVisit?.serviceName ?? '—',
-        lastStatus: lastVisit?.status ?? null,
-        totalVisits: completedVisits.length,
-        hasActiveTreatmentPlan: p.treatmentPlans.length > 0,
-        upcomingVisitsInNext7Days,
-        medicalHistory: p.medicalHistory,
-      };
-    })
+        const allVisits = [...offlineVisits, ...onlineVisits].sort(
+          (a, b) => b.scheduledAt.getTime() - a.scheduledAt.getTime(),
+        );
+
+        const completedVisits = allVisits.filter(
+          (visit) =>
+            visit.status === AppointmentStatus.COMPLETED &&
+            visit.scheduledAt.getTime() <= now.getTime(),
+        );
+        const lastVisit = completedVisits[0];
+        const todayStart = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate(),
+        );
+        const upcomingWindowEnd = new Date(
+          now.getTime() + 7 * 24 * 60 * 60 * 1000,
+        );
+        const activeUpcomingStatuses = new Set<string>([
+          AppointmentStatus.PENDING,
+          AppointmentStatus.CONFIRMED,
+          AppointmentStatus.CHECKED_IN,
+          'PENDING_PAYMENT',
+          'SCHEDULED',
+        ]);
+        const upcomingVisitsInNext7Days = allVisits.filter(
+          (visit) =>
+            activeUpcomingStatuses.has(visit.status) &&
+            visit.scheduledAt.getTime() >= todayStart.getTime() &&
+            visit.scheduledAt.getTime() <= upcomingWindowEnd.getTime(),
+        ).length;
+
+        return {
+          id: p.id,
+          patientCode: p.patientCode,
+          fullName: identity.fullName,
+          phone: identity.phone,
+          email: identity.email,
+          gender: p.gender,
+          age,
+          lastVisitDate: lastVisit?.scheduledAt ?? null,
+          lastService: lastVisit?.serviceName ?? '—',
+          lastStatus: lastVisit?.status ?? null,
+          totalVisits: completedVisits.length,
+          totalAppointments: allVisits.length,
+          hasActiveTreatmentPlan: p.treatmentPlans.length > 0,
+          upcomingVisitsInNext7Days,
+          medicalHistory: p.medicalHistory,
+        };
+      })
       .filter((p) => {
-        if (!q) return true;
+        if (!normQ) return true;
         return (
-          p.fullName.toLowerCase().includes(q) ||
-          p.patientCode.toLowerCase().includes(q) ||
-          (p.phone ?? '').includes(q) ||
-          (p.email ?? '').toLowerCase().includes(q)
+          normalize(p.fullName).includes(normQ) ||
+          normalize(p.patientCode).includes(normQ) ||
+          (p.phone ?? '').includes(q ?? '') ||
+          (p.email ?? '').toLowerCase().includes(normQ)
         );
       });
   }
 
   async findPatientDetail(patientId: string, doctorId?: string) {
     if (doctorId) {
-      const [relatedAppt, relatedVideo] = await Promise.all([
-        this.prisma.appointment.findFirst({
-          where: { patientId, doctorId },
-          select: { id: true },
-        }),
-        this.prisma.videoConsultation.findFirst({
-          where: { patientId, doctorId },
-          select: { id: true },
-        })
-      ]);
+      const [relatedAppt, relatedVideo, relatedPlan, relatedRecord] =
+        await Promise.all([
+          this.prisma.appointment.findFirst({
+            where: { patientId, doctorId },
+            select: { id: true },
+          }),
+          this.prisma.videoConsultation.findFirst({
+            where: { patientId, doctorId },
+            select: { id: true },
+          }),
+          this.prisma.treatmentPlan.findFirst({
+            where: { patientId, doctorId },
+            select: { id: true },
+          }),
+          this.prisma.medicalRecord.findFirst({
+            where: { patientId, doctorId },
+            select: { id: true },
+          }),
+        ]);
 
-      if (!relatedAppt && !relatedVideo) {
+      if (
+        !relatedAppt &&
+        !relatedVideo &&
+        !relatedPlan &&
+        !relatedRecord
+      ) {
         throw new ForbiddenException(
           'Bạn không có quyền xem bệnh nhân này',
         );
@@ -999,26 +1068,78 @@ export class PatientService {
       throw new NotFoundException('Không tìm thấy bệnh nhân');
     }
 
-    const appointments = await this.prisma.appointment.findMany({
-      where: {
-        patientId,
-        ...(doctorId ? { doctorId } : {}),
-      },
-      select: {
-        id: true,
-        appointmentCode: true,
-        scheduledAt: true,
-        status: true,
-        service: { select: { name: true } },
-        doctor: { select: { user: { select: { fullName: true } } } },
-        medicalRecords: { select: { id: true }, take: 1 },
-      },
-      orderBy: { scheduledAt: 'desc' },
-    });
+    const [appointments, videoConsultations] = await Promise.all([
+      this.prisma.appointment.findMany({
+        where: {
+          patientId,
+          ...(doctorId ? { doctorId } : {}),
+        },
+        select: {
+          id: true,
+          appointmentCode: true,
+          scheduledAt: true,
+          status: true,
+          service: { select: { name: true } },
+          doctor: { select: { user: { select: { fullName: true } } } },
+          medicalRecords: { select: { id: true }, take: 1 },
+        },
+        orderBy: { scheduledAt: 'desc' },
+      }),
+      this.prisma.videoConsultation.findMany({
+        where: {
+          patientId,
+          ...(doctorId ? { doctorId } : {}),
+        },
+        select: {
+          id: true,
+          scheduledAt: true,
+          status: true,
+          durationMinutes: true,
+          meetingUrl: true,
+          doctor: { select: { user: { select: { fullName: true } } } },
+        },
+        orderBy: { scheduledAt: 'desc' },
+      }),
+    ]);
 
-    const age = patient.dateOfBirth
-      ? new Date().getFullYear() - new Date(patient.dateOfBirth).getFullYear()
-      : null;
+    const now = new Date();
+
+    const offlineVisits = appointments.map((a) => ({
+      id: a.id,
+      appointmentCode: a.appointmentCode,
+      scheduledAt: a.scheduledAt,
+      status: a.status as string,
+      serviceName: a.service?.name ?? 'Khám trực tiếp',
+      doctorName: a.doctor?.user.fullName ?? '—',
+      recordId: a.medicalRecords[0]?.id ?? null,
+      type: 'OFFLINE' as const,
+      meetingUrl: null,
+    }));
+
+    const onlineVisits = videoConsultations.map((vc) => ({
+      id: vc.id,
+      appointmentCode: `VC-${vc.id.slice(0, 8).toUpperCase()}`,
+      scheduledAt: vc.scheduledAt,
+      status: vc.status as string,
+      serviceName: `Tư vấn trực tuyến (${vc.durationMinutes} phút)`,
+      doctorName: vc.doctor?.user.fullName ?? '—',
+      recordId: null,
+      type: 'ONLINE' as const,
+      meetingUrl: vc.meetingUrl ?? null,
+    }));
+
+    const allVisits = [...offlineVisits, ...onlineVisits].sort(
+      (a, b) =>
+        new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime(),
+    );
+
+    const completedVisits = allVisits.filter(
+      (visit) =>
+        visit.status === 'COMPLETED' &&
+        new Date(visit.scheduledAt).getTime() <= now.getTime(),
+    );
+
+    const age = this.calculateAge(patient.dateOfBirth);
 
     const activePlan = patient.treatmentPlans[0] ?? null;
     const planItems = Array.isArray(activePlan?.items)
@@ -1067,15 +1188,9 @@ export class PatientService {
           estimatedTotal: finance.planTotal,
         }
         : null,
-      appointments: appointments.map((a) => ({
-        id: a.id,
-        appointmentCode: a.appointmentCode,
-        scheduledAt: a.scheduledAt,
-        status: a.status,
-        serviceName: a.service.name,
-        doctorName: a.doctor?.user.fullName ?? '—',
-        recordId: a.medicalRecords[0]?.id ?? null,
-      })),
+      totalVisits: completedVisits.length,
+      totalAppointments: allVisits.length,
+      appointments: allVisits,
     };
   }
 

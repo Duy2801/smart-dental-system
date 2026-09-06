@@ -264,7 +264,13 @@ function NewPrescriptionContent() {
         await apiClient.post(`/prescriptions/${res.data.id}/send-email`).catch(() => {});
       }
       setSuccess(true);
-      setTimeout(() => router.push("/doctor/prescriptions"), 1500);
+      setTimeout(() => {
+        if (initRecordId || selectedRecordId) {
+          router.push(`/doctor/medical-records?recordId=${initRecordId || selectedRecordId}`);
+        } else {
+          router.push("/doctor/prescriptions");
+        }
+      }, 1500);
     } catch (err: any) {
       const msg =
         err.response?.data?.message || "Tạo đơn thuốc thất bại. Vui lòng thử lại.";
@@ -279,11 +285,15 @@ function NewPrescriptionContent() {
       <div className="mx-auto max-w-4xl">
         <div className="mb-6 space-y-4">
           <Link
-            href="/doctor/prescriptions"
+            href={
+              initRecordId
+                ? `/doctor/medical-records?recordId=${initRecordId}`
+                : "/doctor/prescriptions"
+            }
             className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-brand-dark"
           >
             <ArrowLeft size={16} />
-            Quay lại danh sách
+            {initRecordId ? "Quay lại bệnh án" : "Quay lại danh sách"}
           </Link>
 
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

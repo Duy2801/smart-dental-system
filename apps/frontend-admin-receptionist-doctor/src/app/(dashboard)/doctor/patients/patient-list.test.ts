@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { getPatientListStats, paginatePatients, patientQuickLinks } from "./patient-list";
+import {
+  cleanSearchText,
+  getPatientListStats,
+  paginatePatients,
+  patientQuickLinks,
+} from "./patient-list";
 
 describe("doctor patient list", () => {
   it("uses treatment plans and upcoming appointments for its statistics", () => {
@@ -25,5 +30,11 @@ describe("doctor patient list", () => {
       prescription: "/doctor/prescriptions/new?patientId=patient-1",
       treatmentPlan: "/doctor/treatment-plans/new?patientId=patient-1",
     });
+  });
+
+  it("normalizes Vietnamese text and diacritics for search", () => {
+    expect(cleanSearchText("Nguyễn Văn Đức")).toBe("nguyen van duc");
+    expect(cleanSearchText("ĐỖ THỊ HỒNG")).toBe("do thi hong");
+    expect(cleanSearchText("PAT-2026-001")).toBe("pat-2026-001");
   });
 });

@@ -24,10 +24,13 @@ import axios from "axios";
 type RecordSummary = {
   id: string;
   patientId: string;
+  doctorId?: string | null;
+  doctorName?: string | null;
   patientName: string;
   patientCode: string;
   diagnosis: string | null;
   chiefComplaint: string | null;
+  treatmentNotes?: string | null;
   serviceName: string | null;
   scheduledAt: string | null;
   followUpDate: string | null;
@@ -91,7 +94,7 @@ export default function PatientRecordsPage() {
     Promise.all([
       apiClient.get<PatientBasic>(`/patients/${id}?doctorId=${doctorId}`),
       apiClient.get<RecordSummary[]>(
-        `/medical-records?doctorId=${doctorId}&patientId=${id}`,
+        `/medical-records?patientId=${id}&allDoctors=true`,
       ),
     ])
       .then(([ptRes, recRes]) => {
@@ -206,7 +209,7 @@ export default function PatientRecordsPage() {
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="flex items-center gap-1.5 text-sm font-medium text-slate-900">
                             <CalendarBlank size={14} className="text-brand" />
-                            {formatDateTime(r.scheduledAt)}
+                            {formatDateTime(r.scheduledAt || r.createdAt)}
                           </span>
                           {r.serviceName && (
                             <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">

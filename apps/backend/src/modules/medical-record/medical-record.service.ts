@@ -31,6 +31,12 @@ const recordInclude = {
       user: { select: { fullName: true, phone: true } },
     },
   },
+  doctor: {
+    select: {
+      id: true,
+      user: { select: { fullName: true } },
+    },
+  },
   appointment: {
     select: {
       id: true,
@@ -47,12 +53,16 @@ const recordInclude = {
 const recordSummarySelect = {
   id: true,
   patientId: true,
+  doctorId: true,
   diagnosis: true,
   chiefComplaint: true,
+  treatmentNotes: true,
   followUpDate: true,
+  images: true,
   createdAt: true,
   updatedAt: true,
   patient: recordInclude.patient,
+  doctor: recordInclude.doctor,
   appointment: recordInclude.appointment,
   _count: { select: { prescriptionRecords: true } },
 } as const;
@@ -106,12 +116,51 @@ export class MedicalRecordService {
     throw new ForbiddenException('Không tìm thấy hồ sơ bác sĩ');
   }
 
-  async findByDoctor(doctorId: string, patientId?: string) {
+  async findByDoctor(
+    doctorId: string,
+    patientId?: string,
+    appointmentId?: string,
+    user?: AuthenticatedUser,
+    allDoctors?: boolean,
+  ) {
+    if (patientId && allDoctors && user && !user.roles.includes('ADMIN')) {
+      const ownDoctorId = await this.resolveDoctorIdByUserId(user.userId);
+      const [relAppt, relVideo, relPlan, relRecord] = await Promise.all([
+        this.prisma.appointment.findFirst({
+          where: { patientId, doctorId: ownDoctorId },
+          select: { id: true },
+        }),
+        this.prisma.videoConsultation.findFirst({
+          where: { patientId, doctorId: ownDoctorId },
+          select: { id: true },
+        }),
+        this.prisma.treatmentPlan.findFirst({
+          where: { patientId, doctorId: ownDoctorId },
+          select: { id: true },
+        }),
+        this.prisma.medicalRecord.findFirst({
+          where: { patientId, doctorId: ownDoctorId },
+          select: { id: true },
+        }),
+      ]);
+      if (!relAppt && !relVideo && !relPlan && !relRecord) {
+        throw new ForbiddenException(
+          'Bạn không có quyền xem hồ sơ bệnh án của bệnh nhân này',
+        );
+      }
+    }
+
+    const whereClause: Prisma.MedicalRecordWhereInput =
+      allDoctors && patientId
+        ? { patientId }
+        : {
+            doctorId,
+            ...(patientId ? { patientId } : {}),
+            ...(appointmentId ? { appointmentId } : {}),
+          };
+
     const records = await this.prisma.medicalRecord.findMany({
-      where: {
-        doctorId,
-        ...(patientId ? { patientId } : {}),
-      },
+      where: whereClause,
       select: recordSummarySelect,
       orderBy: { createdAt: 'desc' },
     });
@@ -124,7 +173,7 @@ export class MedicalRecordService {
       include: recordInclude,
     });
     if (!r) throw new NotFoundException('Không tìm thấy hồ sơ bệnh án');
-    await this.ensureCanAccess(r.doctorId, user);
+    await this.ensureCanAccessRead(r, user);
     return this.toDetail(r);
   }
 
@@ -328,6 +377,40 @@ export class MedicalRecordService {
     const ownId = await this.resolveDoctorIdByUserId(user.userId);
     if (ownId !== recordDoctorId) {
       throw new ForbiddenException(
+        'Bạn không có quyền sửa hồ sơ bệnh án của bác sĩ khác',
+      );
+    }
+  }
+
+  private async ensureCanAccessRead(
+    record: { doctorId: string; patientId: string },
+    user: AuthenticatedUser,
+  ) {
+    if (user.roles.includes('ADMIN')) return;
+    const ownDoctorId = await this.resolveDoctorIdByUserId(user.userId);
+    if (ownDoctorId === record.doctorId) return;
+
+    // Bác sĩ có thể đọc hồ sơ nếu có bất kỳ quan hệ khám/điều trị nào với bệnh nhân này
+    const [relAppt, relVideo, relPlan, relRecord] = await Promise.all([
+      this.prisma.appointment.findFirst({
+        where: { patientId: record.patientId, doctorId: ownDoctorId },
+        select: { id: true },
+      }),
+      this.prisma.videoConsultation.findFirst({
+        where: { patientId: record.patientId, doctorId: ownDoctorId },
+        select: { id: true },
+      }),
+      this.prisma.treatmentPlan.findFirst({
+        where: { patientId: record.patientId, doctorId: ownDoctorId },
+        select: { id: true },
+      }),
+      this.prisma.medicalRecord.findFirst({
+        where: { patientId: record.patientId, doctorId: ownDoctorId },
+        select: { id: true },
+      }),
+    ]);
+    if (!relAppt && !relVideo && !relPlan && !relRecord) {
+      throw new ForbiddenException(
         'Bạn không có quyền truy cập hồ sơ bệnh án này',
       );
     }
@@ -337,14 +420,19 @@ export class MedicalRecordService {
     return {
       id: r.id,
       patientId: r.patientId,
+      doctorId: r.doctorId ?? r.doctor?.id ?? null,
+      doctorName: r.doctor?.user?.fullName ?? null,
+      appointmentId: r.appointment?.id ?? r.appointmentId ?? null,
       patientName:
         r.patient?.fullName ?? r.patient?.user?.fullName ?? 'Bệnh nhân',
       patientCode: r.patient?.patientCode ?? '—',
       diagnosis: r.diagnosis ?? null,
       chiefComplaint: r.chiefComplaint ?? null,
+      treatmentNotes: r.treatmentNotes ?? null,
       serviceName: r.appointment?.service?.name ?? null,
       scheduledAt: r.appointment?.scheduledAt ?? null,
       followUpDate: r.followUpDate ?? null,
+      images: Array.isArray(r.images) ? r.images : [],
       prescriptionCount:
         r._count?.prescriptionRecords ?? r.prescriptionRecords?.length ?? 0,
       createdAt: r.createdAt,

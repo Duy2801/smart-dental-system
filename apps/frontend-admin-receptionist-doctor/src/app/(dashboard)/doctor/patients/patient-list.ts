@@ -3,6 +3,15 @@ export type PatientListStatSource = {
   upcomingVisitsInNext7Days: number;
 };
 
+export function cleanSearchText(str: string) {
+  return str
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "d");
+}
+
 export function getPatientListStats(patients: PatientListStatSource[]) {
   return {
     total: patients.length,

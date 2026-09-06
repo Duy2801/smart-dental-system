@@ -20,6 +20,7 @@ import {
   ArrowClockwise,
   CaretLeft,
   CaretRight,
+  CaretDown,
   CurrencyCircleDollar,
 } from "@phosphor-icons/react";
 import apiClient from "@/src/lib/api/client";
@@ -309,48 +310,68 @@ export default function TreatmentPlansPage() {
         {/* Search + filter bar */}
         {!loading && !error && (
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="relative flex-1">
+            <div className="relative flex-1 min-w-0">
               <MagnifyingGlass
                 size={16}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
               />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Tìm theo tên kế hoạch, bệnh nhân, mã BN..."
-                className="w-full rounded-xl border border-border bg-white py-2.5 pl-9 pr-4 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand"
+                className="w-full rounded-xl border border-border bg-white py-2.5 pl-9 pr-9 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand"
               />
               {search && (
                 <button
+                  type="button"
                   onClick={() => setSearch("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-brand"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-0.5 text-muted-foreground transition-colors hover:text-brand cursor-pointer"
+                  title="Xóa tìm kiếm"
                 >
                   <X size={14} />
                 </button>
               )}
             </div>
 
-            <div className="flex items-center gap-2">
-              <Funnel size={15} className="shrink-0 text-muted-foreground" />
+            <div className="relative w-full sm:w-56 sm:shrink-0">
+              <Funnel
+                size={14}
+                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+              />
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value as PlanStatus | "")}
-                className="rounded-xl border border-border bg-white py-2.5 pl-3 pr-7 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand"
+                className={cn(
+                  "w-full appearance-none rounded-xl border border-border bg-white py-2.5 pl-9 pr-9 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand cursor-pointer",
+                  filterStatus && "border-brand/40 bg-brand-50/20 font-medium text-brand-dark"
+                )}
               >
                 <option value="">Tất cả trạng thái</option>
                 {ALL_STATUSES.map((s) => (
-                  <option key={s} value={s}>{statusMap[s].label}</option>
+                  <option key={s} value={s}>
+                    {statusMap[s].label}
+                  </option>
                 ))}
               </select>
-              {hasFilter && (
+              {filterStatus ? (
                 <button
-                  onClick={clearFilters}
-                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-white text-muted-foreground transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600"
-                  title="Xóa bộ lọc"
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setFilterStatus("");
+                  }}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-slate-100 hover:text-red-600 z-10 cursor-pointer"
+                  title="Bỏ chọn trạng thái"
                 >
-                  <X size={14} />
+                  <X size={13} weight="bold" />
                 </button>
+              ) : (
+                <CaretDown
+                  size={14}
+                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                />
               )}
             </div>
           </div>
@@ -393,6 +414,15 @@ export default function TreatmentPlansPage() {
                 {filtered.length} kế hoạch
                 {filtered.length !== plans.length && ` (lọc từ ${plans.length})`}
               </p>
+              {hasFilter && (
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="text-xs font-medium text-brand hover:underline cursor-pointer"
+                >
+                  Xóa tất cả bộ lọc
+                </button>
+              )}
             </div>
 
             <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
@@ -405,35 +435,24 @@ export default function TreatmentPlansPage() {
                     className="group relative flex flex-col rounded-2xl border border-border bg-white p-5 shadow-sm transition-all hover:border-brand/30 hover:shadow-md"
                   >
                     {/* Action buttons */}
-                    <div className="absolute right-4 top-4 flex items-center gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+                    <div className="absolute right-4 top-4 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                       <button
-                        onClick={() => handleSendEmail(plan)}
-                        disabled={sendingId === plan.id}
-                        title="Gửi Phác đồ điều trị & Dự toán chi phí qua Gmail cho bệnh nhân"
-                        className="flex h-7 items-center gap-1 rounded-lg border border-emerald-300 bg-emerald-50 px-2 text-[11px] font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:opacity-50 cursor-pointer"
-                      >
-                        <PaperPlaneTilt
-                          size={12}
-                          weight="bold"
-                          className={sendingId === plan.id ? "animate-spin" : ""}
-                        />
-                        {sendingId === plan.id ? "Đang gửi..." : "Gửi Gmail"}
-                      </button>
-                      <button
+                        type="button"
                         onClick={() =>
                           router.push(`/doctor/treatment-plans/${plan.id}/edit`)
                         }
                         title="Sửa kế hoạch"
-                        className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-brand/10 hover:text-brand cursor-pointer"
+                        className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-brand/10 hover:text-brand cursor-pointer"
                       >
-                        <PencilSimple size={13} />
+                        <PencilSimple size={14} />
                       </button>
                       <button
+                        type="button"
                         onClick={() => setDeleteTarget(plan)}
                         title="Xóa kế hoạch"
-                        className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600 cursor-pointer"
+                        className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 cursor-pointer"
                       >
-                        <Trash size={13} />
+                        <Trash size={14} />
                       </button>
                     </div>
 
@@ -511,12 +530,18 @@ export default function TreatmentPlansPage() {
                         </span>
                         <div className="flex items-center gap-2">
                           <button
+                            type="button"
                             onClick={() => handleSendEmail(plan)}
                             disabled={sendingId === plan.id}
-                            className="inline-flex items-center gap-1 font-semibold text-emerald-600 hover:text-emerald-700 cursor-pointer"
+                            title="Gửi phác đồ điều trị và dự toán chi phí qua email cho bệnh nhân"
+                            className="inline-flex items-center gap-1 rounded-md px-2 py-1 font-semibold text-emerald-600 transition-colors hover:bg-emerald-50 hover:text-emerald-700 disabled:opacity-50 cursor-pointer"
                           >
-                            <PaperPlaneTilt size={11} weight="bold" />
-                            Gửi email
+                            <PaperPlaneTilt
+                              size={12}
+                              weight="bold"
+                              className={sendingId === plan.id ? "animate-spin" : ""}
+                            />
+                            <span>{sendingId === plan.id ? "Đang gửi..." : "Gửi email"}</span>
                           </button>
                           <Link
                             href={`/doctor/treatment-plans/${plan.id}`}

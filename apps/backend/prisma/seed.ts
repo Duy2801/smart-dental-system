@@ -2018,6 +2018,14 @@ async function seedRelatedData(
 
   const medicalRecords: Array<{ id: string }> = [];
   for (let index = 0; index < 10; index += 1) {
+    // Medical record exists -> appointment must be completed
+    await prisma.appointment.update({
+      where: { id: appointments[index].id },
+      data: {
+        status: 'COMPLETED',
+        completedAt: appointments[index].scheduledAt,
+      },
+    });
     medicalRecords.push(
       await prisma.medicalRecord.create({
         data: {
@@ -2032,21 +2040,12 @@ async function seedRelatedData(
           dentalChart: {
             teeth: [
               {
-                number: 11 + index,
+                number: [11, 12, 13, 14, 15, 16, 17, 18, 21, 22][index],
                 status: index % 2 === 0 ? 'healthy' : 'treated',
               },
             ],
           },
-          images:
-            index === 0
-              ? [
-                {
-                  url: 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1785763846/smart-dental/promotions/banner-dieu-tri-tuy.png',
-                  caption: 'Seed X-quang mẫu',
-                  type: 'xray',
-                },
-              ]
-              : [],
+          images: [],
           prescriptions: [
             {
               name: 'Paracetamol',

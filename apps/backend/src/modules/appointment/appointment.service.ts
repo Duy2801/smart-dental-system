@@ -940,15 +940,21 @@ export class AppointmentService {
       throw new BadRequestException('appointment.must_be_checked_in_to_start');
     }
 
+    let createdRecord: { id: string } | null = null;
+    if (appointment.patientId) {
+      createdRecord = await this.ensureMedicalRecord(appointment);
+    }
+
     const updated = await this.prisma.appointment.update({
       where: { id: appointmentId },
       data: { status: AppointmentStatus.IN_PROGRESS },
       include: appointmentInclude,
     });
-    if (appointment.patientId) {
-      await this.ensureMedicalRecord(appointment);
-    }
-    const result = this.withDerivedService(updated);
+    const result = {
+      ...this.withDerivedService(updated),
+      medicalRecordId:
+        createdRecord?.id ?? updated.medicalRecords?.[0]?.id ?? null,
+    };
     void this.dispatchAppointmentInProgressNotification(result);
     return result;
   }

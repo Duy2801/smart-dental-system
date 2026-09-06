@@ -172,7 +172,13 @@ export default function EditPrescriptionPage() {
         })),
       });
       setSuccess(true);
-      setTimeout(() => router.push("/doctor/prescriptions"), 1500);
+      setTimeout(() => {
+        if (prescription?.medicalRecordId) {
+          router.push(`/doctor/medical-records?recordId=${prescription.medicalRecordId}`);
+        } else {
+          router.push("/doctor/prescriptions");
+        }
+      }, 1500);
     } catch (err: any) {
       const msg =
         err.response?.data?.message || "Lưu đơn thuốc thất bại. Vui lòng thử lại.";
@@ -216,11 +222,15 @@ export default function EditPrescriptionPage() {
         {/* Breadcrumb + tiêu đề */}
         <div className="mb-6 space-y-4">
           <Link
-            href="/doctor/prescriptions"
+            href={
+              prescription.medicalRecordId
+                ? `/doctor/medical-records?recordId=${prescription.medicalRecordId}`
+                : "/doctor/prescriptions"
+            }
             className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-brand-dark"
           >
             <ArrowLeft size={16} />
-            Quay lại danh sách
+            {prescription.medicalRecordId ? "Quay lại bệnh án" : "Quay lại danh sách"}
           </Link>
 
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">

@@ -193,16 +193,28 @@ export function AppointmentList({ appointments, loading, onStatusChange }: Props
                               </button>
                             )}
                             {apt.type === "OFFLINE" && apt.status === "IN_PROGRESS" && (
-                              <button
-                                disabled={actionLoading === `${apt.id}-complete`}
-                                onClick={() => handleAction(apt.id, "complete")}
-                                className="flex items-center gap-1.5 rounded-lg bg-orange-500 px-4 py-1.5 text-xs font-medium text-white transition-all hover:bg-orange-600 active:scale-[0.98] disabled:opacity-60"
-                              >
-                                {actionLoading === `${apt.id}-complete` && (
-                                  <SpinnerGap size={12} className="animate-spin" />
-                                )}
-                                Kết thúc
-                              </button>
+                              <div className="flex items-center gap-1.5">
+                                <Link
+                                  href={
+                                    apt.medicalRecordId
+                                      ? `/doctor/medical-records?recordId=${apt.medicalRecordId}`
+                                      : `/doctor/medical-records?appointmentId=${apt.id}&patientId=${apt.patientId}`
+                                  }
+                                  className="flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-blue-700 active:scale-[0.98]"
+                                >
+                                  Khám / Ghi bệnh án
+                                </Link>
+                                <button
+                                  disabled={actionLoading === `${apt.id}-complete`}
+                                  onClick={() => handleAction(apt.id, "complete")}
+                                  className="flex items-center gap-1.5 rounded-lg border border-orange-300 bg-orange-50 px-3 py-1.5 text-xs font-semibold text-orange-700 transition-all hover:bg-orange-100 active:scale-[0.98] disabled:opacity-60 cursor-pointer"
+                                >
+                                  {actionLoading === `${apt.id}-complete` && (
+                                    <SpinnerGap size={12} className="animate-spin" />
+                                  )}
+                                  Kết thúc
+                                </button>
+                              </div>
                             )}
                             {apt.type === "OFFLINE" && (apt.status === "CONFIRMED" || apt.status === "PENDING") && (
                               <span className="rounded-lg border border-border bg-white px-4 py-1.5 text-xs font-medium text-muted-foreground opacity-60">
