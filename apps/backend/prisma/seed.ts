@@ -1182,9 +1182,6 @@ async function cleanObsoleteAccountsAndRoles() {
   const obsoleteUserIds = obsoleteUsers.map((user) => user.id);
 
   if (obsoleteUserIds.length > 0) {
-    await prisma.userRole.deleteMany({
-      where: { userId: { in: obsoleteUserIds } },
-    });
     await prisma.user.deleteMany({
       where: { id: { in: obsoleteUserIds } },
     });
@@ -1200,11 +1197,21 @@ async function cleanObsoleteAccountsAndRoles() {
     await prisma.rolePermission.deleteMany({
       where: { roleId: { in: obsoleteRoleIds } },
     });
-    await prisma.userRole.deleteMany({
-      where: { roleId: { in: obsoleteRoleIds } },
+    const patientRole = await prisma.role.findUnique({
+      where: { code: 'PATIENT' },
+      select: { id: true },
     });
+    if (patientRole) {
+      await prisma.user.updateMany({
+        where: { roleId: { in: obsoleteRoleIds } },
+        data: { roleId: patientRole.id },
+      });
+    }
     await prisma.role.deleteMany({
-      where: { id: { in: obsoleteRoleIds } },
+      where: {
+        id: { in: obsoleteRoleIds },
+        users: { none: {} },
+      },
     });
   }
 }
@@ -1351,6 +1358,7 @@ async function seedBaseData() {
 
   const adminAndReception = new Map<string, { id: string }>();
   for (const userSeed of adminUsers) {
+    const role = createdRoles.get(userSeed.roleCode)!;
     const user = await prisma.user.upsert({
       where: { email: userSeed.email },
       update: {
@@ -1359,6 +1367,7 @@ async function seedBaseData() {
         passwordHash,
         status: userSeed.status,
         emailVerified: true,
+        roleId: role.id,
       },
       create: {
         email: userSeed.email,
@@ -1367,15 +1376,9 @@ async function seedBaseData() {
         passwordHash,
         status: userSeed.status,
         emailVerified: true,
+        roleId: role.id,
       },
       select: { id: true },
-    });
-
-    const role = createdRoles.get(userSeed.roleCode)!;
-    await prisma.userRole.upsert({
-      where: { userId_roleId: { userId: user.id, roleId: role.id } },
-      update: {},
-      create: { userId: user.id, roleId: role.id },
     });
     adminAndReception.set(userSeed.roleCode, user);
   }
@@ -1391,6 +1394,7 @@ async function seedBaseData() {
         passwordHash,
         status: patientSeed.status,
         emailVerified: true,
+        roleId: patientRole.id,
       },
       create: {
         email: patientSeed.email,
@@ -1399,14 +1403,9 @@ async function seedBaseData() {
         passwordHash,
         status: patientSeed.status,
         emailVerified: true,
+        roleId: patientRole.id,
       },
       select: { id: true },
-    });
-
-    await prisma.userRole.upsert({
-      where: { userId_roleId: { userId: user.id, roleId: patientRole.id } },
-      update: {},
-      create: { userId: user.id, roleId: patientRole.id },
     });
 
     const patient = await prisma.patient.upsert({
@@ -1469,6 +1468,7 @@ async function seedBaseData() {
         passwordHash,
         status: doctorSeed.status,
         emailVerified: true,
+        roleId: doctorRole.id,
       },
       create: {
         email: doctorSeed.email,
@@ -1477,14 +1477,9 @@ async function seedBaseData() {
         passwordHash,
         status: doctorSeed.status,
         emailVerified: true,
+        roleId: doctorRole.id,
       },
       select: { id: true },
-    });
-
-    await prisma.userRole.upsert({
-      where: { userId_roleId: { userId: user.id, roleId: doctorRole.id } },
-      update: {},
-      create: { userId: user.id, roleId: doctorRole.id },
     });
 
     const doctor = await prisma.doctor.upsert({

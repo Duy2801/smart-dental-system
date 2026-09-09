@@ -206,11 +206,15 @@ model User {
   emailVerified Boolean    @default(false) @map("email_verified")
   createdAt     DateTime   @default(now()) @map("created_at")
   updatedAt     DateTime   @updatedAt @map("updated_at")
+  roleId        String     @map("role_id") @db.Uuid
+  roleAssignedAt DateTime  @default(now()) @map("role_assigned_at")
+  roleAssignedBy String?   @map("role_assigned_by") @db.Uuid
 
   patientProfile      Patient?
   doctorProfile       Doctor?
-  roles               UserRole[]     @relation("UserRoleMemberships")
-  assignedRoles       UserRole[]     @relation("UserRoleAssignments")
+  role                Role           @relation("UserPrimaryRole", fields: [roleId], references: [id], onDelete: Restrict)
+  roleAssigner        User?          @relation("UserRoleAssignments", fields: [roleAssignedBy], references: [id], onDelete: SetNull)
+  assignedUsers       User[]         @relation("UserRoleAssignments")
   createdAppointments Appointment[]  @relation("AppointmentCreator")
   createdInvoices     Invoice[]      @relation("InvoiceCreator")
   receivedPayments    Payment[]      @relation("PaymentReceiver")
@@ -219,6 +223,8 @@ model User {
   processedRefunds    RefundRequest[] @relation("RefundProcessor")
 
   @@index([fullName])
+  @@index([roleId])
+  @@index([roleAssignedBy])
   @@map("users")
 }
 
@@ -231,7 +237,7 @@ model Role {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  users       UserRole[]
+  users       User[]           @relation("UserPrimaryRole")
   permissions RolePermission[]
 
   @@map("roles")
@@ -251,22 +257,6 @@ model Permission {
 
   @@unique([module, action])
   @@map("permissions")
-}
-
-model UserRole {
-  userId     String   @map("user_id") @db.Uuid
-  roleId     String   @map("role_id") @db.Uuid
-  assignedAt DateTime @default(now()) @map("assigned_at")
-  assignedBy String?  @map("assigned_by") @db.Uuid
-
-  user     User  @relation("UserRoleMemberships", fields: [userId], references: [id], onDelete: Cascade)
-  role     Role  @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  assigner User? @relation("UserRoleAssignments", fields: [assignedBy], references: [id], onDelete: SetNull)
-
-  @@id([userId, roleId])
-  @@index([roleId])
-  @@index([assignedBy])
-  @@map("user_roles")
 }
 
 model RolePermission {

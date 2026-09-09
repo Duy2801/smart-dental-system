@@ -24,11 +24,7 @@ export class DoctorService {
     return {
       user: {
         include: {
-          roles: {
-            include: {
-              role: true,
-            },
-          },
+          role: true,
         },
       },
       specializations: {
@@ -103,12 +99,6 @@ export class DoctorService {
           passwordHash: await bcrypt.hash(dto.password, 10),
           emailVerified: true,
           status: 'ACTIVE',
-        },
-      });
-
-      await tx.userRole.create({
-        data: {
-          userId: user.id,
           roleId: role.id,
         },
       });

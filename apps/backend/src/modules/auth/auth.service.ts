@@ -168,7 +168,7 @@ export class AuthService {
         passwordHash,
         fullName: data.fullName.trim(),
         phone: data.phone,
-        roles: { create: { roleId: role.id } },
+        roleId: role.id,
         patientProfile: {
           create: { patientCode },
         },
@@ -205,7 +205,7 @@ export class AuthService {
     const user = await this.prismaService.user.findUnique({
       where: { id: userId },
       include: {
-        roles: { include: { role: true } },
+        role: true,
         patientProfile: {
           include: {
             appointments: {
@@ -242,7 +242,7 @@ export class AuthService {
       email: user.email,
       fullName: user.fullName,
       phone: user.phone,
-      roles: user.roles.map(({ role }) => role.code),
+      roles: [user.role.code],
       status: user.status,
       emailVerified: user.emailVerified,
       createdAt: user.createdAt,
@@ -310,7 +310,7 @@ export class AuthService {
     const sessionUser = await this.prismaService.user.findUnique({
       where: { id: user.id },
       include: {
-        roles: { include: { role: true } },
+        role: true,
         doctorProfile: { select: { id: true } },
       },
     });
@@ -318,7 +318,7 @@ export class AuthService {
     return {
       user: this.toUserResponse({
         ...sessionUser,
-        roles: sessionUser.roles.map(({ role }) => role.code),
+        roles: [sessionUser.role.code],
         doctorId: sessionUser.doctorProfile?.id ?? null,
       }),
       accessToken,
@@ -552,7 +552,7 @@ export class AuthService {
     let user = await this.prismaService.user.findFirst({
       where: { OR: [{ googleId: payload.sub }, { email }] },
       include: {
-        roles: { include: { role: true } },
+        role: true,
       },
     });
 
@@ -564,10 +564,10 @@ export class AuthService {
           fullName: payload.name ?? email.split('@')[0],
           googleId: payload.sub,
           emailVerified: payload.email_verified ?? true,
-          roles: { create: { roleId: role.id } },
+          roleId: role.id,
         },
         include: {
-          roles: { include: { role: true } },
+          role: true,
         },
       });
     } else if (!user.googleId) {
@@ -579,7 +579,7 @@ export class AuthService {
             user.emailVerified || (payload.email_verified ?? true),
         },
         include: {
-          roles: { include: { role: true } },
+          role: true,
         },
       });
     }
@@ -589,9 +589,7 @@ export class AuthService {
     }
 
     // Đảm bảo mọi tài khoản bệnh nhân đăng nhập qua Google đều có PatientProfile
-    const isPatient =
-      user.roles.length === 0 ||
-      user.roles.some((r) => r.role.code === 'PATIENT');
+    const isPatient = user.role.code === 'PATIENT';
     if (isPatient) {
       await this.ensurePatientProfile(user.id);
     }

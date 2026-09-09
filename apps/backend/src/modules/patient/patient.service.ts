@@ -287,7 +287,7 @@ export class PatientService {
         fullName,
         phone,
         emailVerified: true,
-        roles: { create: { roleId: role.id } },
+        roleId: role.id,
         patientProfile: {
           create: {
             patientCode: await this.generatePatientCode(),
@@ -1191,7 +1191,7 @@ export class PatientService {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
-        roles: { include: { role: true } },
+        role: true,
         patientProfile: {
           include: {
             appointments: {
@@ -1221,7 +1221,7 @@ export class PatientService {
       email: user.email,
       fullName: user.fullName,
       phone: user.phone,
-      roles: user.roles.map(({ role }) => role.code),
+      roles: [user.role.code],
       status: user.status,
       emailVerified: user.emailVerified,
       createdAt: user.createdAt,

@@ -35,6 +35,9 @@ export type UserMinAggregateOutputType = {
   emailVerified: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
+  roleId: string | null
+  roleAssignedAt: Date | null
+  roleAssignedBy: string | null
 }
 
 export type UserMaxAggregateOutputType = {
@@ -48,6 +51,9 @@ export type UserMaxAggregateOutputType = {
   emailVerified: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
+  roleId: string | null
+  roleAssignedAt: Date | null
+  roleAssignedBy: string | null
 }
 
 export type UserCountAggregateOutputType = {
@@ -61,6 +67,9 @@ export type UserCountAggregateOutputType = {
   emailVerified: number
   createdAt: number
   updatedAt: number
+  roleId: number
+  roleAssignedAt: number
+  roleAssignedBy: number
   _all: number
 }
 
@@ -76,6 +85,9 @@ export type UserMinAggregateInputType = {
   emailVerified?: true
   createdAt?: true
   updatedAt?: true
+  roleId?: true
+  roleAssignedAt?: true
+  roleAssignedBy?: true
 }
 
 export type UserMaxAggregateInputType = {
@@ -89,6 +101,9 @@ export type UserMaxAggregateInputType = {
   emailVerified?: true
   createdAt?: true
   updatedAt?: true
+  roleId?: true
+  roleAssignedAt?: true
+  roleAssignedBy?: true
 }
 
 export type UserCountAggregateInputType = {
@@ -102,6 +117,9 @@ export type UserCountAggregateInputType = {
   emailVerified?: true
   createdAt?: true
   updatedAt?: true
+  roleId?: true
+  roleAssignedAt?: true
+  roleAssignedBy?: true
   _all?: true
 }
 
@@ -188,6 +206,9 @@ export type UserGroupByOutputType = {
   emailVerified: boolean
   createdAt: Date
   updatedAt: Date
+  roleId: string
+  roleAssignedAt: Date
+  roleAssignedBy: string | null
   _count: UserCountAggregateOutputType | null
   _min: UserMinAggregateOutputType | null
   _max: UserMaxAggregateOutputType | null
@@ -222,10 +243,14 @@ export type UserWhereInput = {
   emailVerified?: Prisma.BoolFilter<"User"> | boolean
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
+  roleId?: Prisma.UuidFilter<"User"> | string
+  roleAssignedAt?: Prisma.DateTimeFilter<"User"> | Date | string
+  roleAssignedBy?: Prisma.UuidNullableFilter<"User"> | string | null
   patientProfile?: Prisma.XOR<Prisma.PatientNullableScalarRelationFilter, Prisma.PatientWhereInput> | null
   doctorProfile?: Prisma.XOR<Prisma.DoctorNullableScalarRelationFilter, Prisma.DoctorWhereInput> | null
-  roles?: Prisma.UserRoleListRelationFilter
-  assignedRoles?: Prisma.UserRoleListRelationFilter
+  role?: Prisma.XOR<Prisma.RoleScalarRelationFilter, Prisma.RoleWhereInput>
+  roleAssigner?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
+  assignedUsers?: Prisma.UserListRelationFilter
   createdAppointments?: Prisma.AppointmentListRelationFilter
   createdInvoices?: Prisma.InvoiceListRelationFilter
   receivedPayments?: Prisma.PaymentListRelationFilter
@@ -245,10 +270,14 @@ export type UserOrderByWithRelationInput = {
   emailVerified?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  roleId?: Prisma.SortOrder
+  roleAssignedAt?: Prisma.SortOrder
+  roleAssignedBy?: Prisma.SortOrderInput | Prisma.SortOrder
   patientProfile?: Prisma.PatientOrderByWithRelationInput
   doctorProfile?: Prisma.DoctorOrderByWithRelationInput
-  roles?: Prisma.UserRoleOrderByRelationAggregateInput
-  assignedRoles?: Prisma.UserRoleOrderByRelationAggregateInput
+  role?: Prisma.RoleOrderByWithRelationInput
+  roleAssigner?: Prisma.UserOrderByWithRelationInput
+  assignedUsers?: Prisma.UserOrderByRelationAggregateInput
   createdAppointments?: Prisma.AppointmentOrderByRelationAggregateInput
   createdInvoices?: Prisma.InvoiceOrderByRelationAggregateInput
   receivedPayments?: Prisma.PaymentOrderByRelationAggregateInput
@@ -271,10 +300,14 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   emailVerified?: Prisma.BoolFilter<"User"> | boolean
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
+  roleId?: Prisma.UuidFilter<"User"> | string
+  roleAssignedAt?: Prisma.DateTimeFilter<"User"> | Date | string
+  roleAssignedBy?: Prisma.UuidNullableFilter<"User"> | string | null
   patientProfile?: Prisma.XOR<Prisma.PatientNullableScalarRelationFilter, Prisma.PatientWhereInput> | null
   doctorProfile?: Prisma.XOR<Prisma.DoctorNullableScalarRelationFilter, Prisma.DoctorWhereInput> | null
-  roles?: Prisma.UserRoleListRelationFilter
-  assignedRoles?: Prisma.UserRoleListRelationFilter
+  role?: Prisma.XOR<Prisma.RoleScalarRelationFilter, Prisma.RoleWhereInput>
+  roleAssigner?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
+  assignedUsers?: Prisma.UserListRelationFilter
   createdAppointments?: Prisma.AppointmentListRelationFilter
   createdInvoices?: Prisma.InvoiceListRelationFilter
   receivedPayments?: Prisma.PaymentListRelationFilter
@@ -294,6 +327,9 @@ export type UserOrderByWithAggregationInput = {
   emailVerified?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  roleId?: Prisma.SortOrder
+  roleAssignedAt?: Prisma.SortOrder
+  roleAssignedBy?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.UserCountOrderByAggregateInput
   _max?: Prisma.UserMaxOrderByAggregateInput
   _min?: Prisma.UserMinOrderByAggregateInput
@@ -313,6 +349,9 @@ export type UserScalarWhereWithAggregatesInput = {
   emailVerified?: Prisma.BoolWithAggregatesFilter<"User"> | boolean
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
+  roleId?: Prisma.UuidWithAggregatesFilter<"User"> | string
+  roleAssignedAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
+  roleAssignedBy?: Prisma.UuidNullableWithAggregatesFilter<"User"> | string | null
 }
 
 export type UserCreateInput = {
@@ -326,10 +365,12 @@ export type UserCreateInput = {
   emailVerified?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  roleAssignedAt?: Date | string
   patientProfile?: Prisma.PatientCreateNestedOneWithoutUserInput
   doctorProfile?: Prisma.DoctorCreateNestedOneWithoutUserInput
-  roles?: Prisma.UserRoleCreateNestedManyWithoutUserInput
-  assignedRoles?: Prisma.UserRoleCreateNestedManyWithoutAssignerInput
+  role: Prisma.RoleCreateNestedOneWithoutUsersInput
+  roleAssigner?: Prisma.UserCreateNestedOneWithoutAssignedUsersInput
+  assignedUsers?: Prisma.UserCreateNestedManyWithoutRoleAssignerInput
   createdAppointments?: Prisma.AppointmentCreateNestedManyWithoutCreatorInput
   createdInvoices?: Prisma.InvoiceCreateNestedManyWithoutCreatorInput
   receivedPayments?: Prisma.PaymentCreateNestedManyWithoutReceiverInput
@@ -349,10 +390,12 @@ export type UserUncheckedCreateInput = {
   emailVerified?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  roleId: string
+  roleAssignedAt?: Date | string
+  roleAssignedBy?: string | null
   patientProfile?: Prisma.PatientUncheckedCreateNestedOneWithoutUserInput
   doctorProfile?: Prisma.DoctorUncheckedCreateNestedOneWithoutUserInput
-  roles?: Prisma.UserRoleUncheckedCreateNestedManyWithoutUserInput
-  assignedRoles?: Prisma.UserRoleUncheckedCreateNestedManyWithoutAssignerInput
+  assignedUsers?: Prisma.UserUncheckedCreateNestedManyWithoutRoleAssignerInput
   createdAppointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutCreatorInput
   createdInvoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutCreatorInput
   receivedPayments?: Prisma.PaymentUncheckedCreateNestedManyWithoutReceiverInput
@@ -372,10 +415,12 @@ export type UserUpdateInput = {
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roleAssignedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   patientProfile?: Prisma.PatientUpdateOneWithoutUserNestedInput
   doctorProfile?: Prisma.DoctorUpdateOneWithoutUserNestedInput
-  roles?: Prisma.UserRoleUpdateManyWithoutUserNestedInput
-  assignedRoles?: Prisma.UserRoleUpdateManyWithoutAssignerNestedInput
+  role?: Prisma.RoleUpdateOneRequiredWithoutUsersNestedInput
+  roleAssigner?: Prisma.UserUpdateOneWithoutAssignedUsersNestedInput
+  assignedUsers?: Prisma.UserUpdateManyWithoutRoleAssignerNestedInput
   createdAppointments?: Prisma.AppointmentUpdateManyWithoutCreatorNestedInput
   createdInvoices?: Prisma.InvoiceUpdateManyWithoutCreatorNestedInput
   receivedPayments?: Prisma.PaymentUpdateManyWithoutReceiverNestedInput
@@ -395,10 +440,12 @@ export type UserUncheckedUpdateInput = {
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roleId?: Prisma.StringFieldUpdateOperationsInput | string
+  roleAssignedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roleAssignedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   patientProfile?: Prisma.PatientUncheckedUpdateOneWithoutUserNestedInput
   doctorProfile?: Prisma.DoctorUncheckedUpdateOneWithoutUserNestedInput
-  roles?: Prisma.UserRoleUncheckedUpdateManyWithoutUserNestedInput
-  assignedRoles?: Prisma.UserRoleUncheckedUpdateManyWithoutAssignerNestedInput
+  assignedUsers?: Prisma.UserUncheckedUpdateManyWithoutRoleAssignerNestedInput
   createdAppointments?: Prisma.AppointmentUncheckedUpdateManyWithoutCreatorNestedInput
   createdInvoices?: Prisma.InvoiceUncheckedUpdateManyWithoutCreatorNestedInput
   receivedPayments?: Prisma.PaymentUncheckedUpdateManyWithoutReceiverNestedInput
@@ -418,6 +465,9 @@ export type UserCreateManyInput = {
   emailVerified?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  roleId: string
+  roleAssignedAt?: Date | string
+  roleAssignedBy?: string | null
 }
 
 export type UserUpdateManyMutationInput = {
@@ -431,6 +481,7 @@ export type UserUpdateManyMutationInput = {
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roleAssignedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type UserUncheckedUpdateManyInput = {
@@ -444,6 +495,24 @@ export type UserUncheckedUpdateManyInput = {
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roleId?: Prisma.StringFieldUpdateOperationsInput | string
+  roleAssignedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roleAssignedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+}
+
+export type UserNullableScalarRelationFilter = {
+  is?: Prisma.UserWhereInput | null
+  isNot?: Prisma.UserWhereInput | null
+}
+
+export type UserListRelationFilter = {
+  every?: Prisma.UserWhereInput
+  some?: Prisma.UserWhereInput
+  none?: Prisma.UserWhereInput
+}
+
+export type UserOrderByRelationAggregateInput = {
+  _count?: Prisma.SortOrder
 }
 
 export type UserCountOrderByAggregateInput = {
@@ -457,6 +526,9 @@ export type UserCountOrderByAggregateInput = {
   emailVerified?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  roleId?: Prisma.SortOrder
+  roleAssignedAt?: Prisma.SortOrder
+  roleAssignedBy?: Prisma.SortOrder
 }
 
 export type UserMaxOrderByAggregateInput = {
@@ -470,6 +542,9 @@ export type UserMaxOrderByAggregateInput = {
   emailVerified?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  roleId?: Prisma.SortOrder
+  roleAssignedAt?: Prisma.SortOrder
+  roleAssignedBy?: Prisma.SortOrder
 }
 
 export type UserMinOrderByAggregateInput = {
@@ -483,6 +558,9 @@ export type UserMinOrderByAggregateInput = {
   emailVerified?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  roleId?: Prisma.SortOrder
+  roleAssignedAt?: Prisma.SortOrder
+  roleAssignedBy?: Prisma.SortOrder
 }
 
 export type UserScalarRelationFilter = {
@@ -490,9 +568,24 @@ export type UserScalarRelationFilter = {
   isNot?: Prisma.UserWhereInput
 }
 
-export type UserNullableScalarRelationFilter = {
-  is?: Prisma.UserWhereInput | null
-  isNot?: Prisma.UserWhereInput | null
+export type UserCreateNestedOneWithoutAssignedUsersInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutAssignedUsersInput, Prisma.UserUncheckedCreateWithoutAssignedUsersInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutAssignedUsersInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserCreateNestedManyWithoutRoleAssignerInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutRoleAssignerInput, Prisma.UserUncheckedCreateWithoutRoleAssignerInput> | Prisma.UserCreateWithoutRoleAssignerInput[] | Prisma.UserUncheckedCreateWithoutRoleAssignerInput[]
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutRoleAssignerInput | Prisma.UserCreateOrConnectWithoutRoleAssignerInput[]
+  createMany?: Prisma.UserCreateManyRoleAssignerInputEnvelope
+  connect?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
+}
+
+export type UserUncheckedCreateNestedManyWithoutRoleAssignerInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutRoleAssignerInput, Prisma.UserUncheckedCreateWithoutRoleAssignerInput> | Prisma.UserCreateWithoutRoleAssignerInput[] | Prisma.UserUncheckedCreateWithoutRoleAssignerInput[]
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutRoleAssignerInput | Prisma.UserCreateOrConnectWithoutRoleAssignerInput[]
+  createMany?: Prisma.UserCreateManyRoleAssignerInputEnvelope
+  connect?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
 }
 
 export type NullableStringFieldUpdateOperationsInput = {
@@ -507,34 +600,84 @@ export type BoolFieldUpdateOperationsInput = {
   set?: boolean
 }
 
-export type UserCreateNestedOneWithoutRolesInput = {
-  create?: Prisma.XOR<Prisma.UserCreateWithoutRolesInput, Prisma.UserUncheckedCreateWithoutRolesInput>
-  connectOrCreate?: Prisma.UserCreateOrConnectWithoutRolesInput
-  connect?: Prisma.UserWhereUniqueInput
-}
-
-export type UserCreateNestedOneWithoutAssignedRolesInput = {
-  create?: Prisma.XOR<Prisma.UserCreateWithoutAssignedRolesInput, Prisma.UserUncheckedCreateWithoutAssignedRolesInput>
-  connectOrCreate?: Prisma.UserCreateOrConnectWithoutAssignedRolesInput
-  connect?: Prisma.UserWhereUniqueInput
-}
-
-export type UserUpdateOneRequiredWithoutRolesNestedInput = {
-  create?: Prisma.XOR<Prisma.UserCreateWithoutRolesInput, Prisma.UserUncheckedCreateWithoutRolesInput>
-  connectOrCreate?: Prisma.UserCreateOrConnectWithoutRolesInput
-  upsert?: Prisma.UserUpsertWithoutRolesInput
-  connect?: Prisma.UserWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutRolesInput, Prisma.UserUpdateWithoutRolesInput>, Prisma.UserUncheckedUpdateWithoutRolesInput>
-}
-
-export type UserUpdateOneWithoutAssignedRolesNestedInput = {
-  create?: Prisma.XOR<Prisma.UserCreateWithoutAssignedRolesInput, Prisma.UserUncheckedCreateWithoutAssignedRolesInput>
-  connectOrCreate?: Prisma.UserCreateOrConnectWithoutAssignedRolesInput
-  upsert?: Prisma.UserUpsertWithoutAssignedRolesInput
+export type UserUpdateOneWithoutAssignedUsersNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutAssignedUsersInput, Prisma.UserUncheckedCreateWithoutAssignedUsersInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutAssignedUsersInput
+  upsert?: Prisma.UserUpsertWithoutAssignedUsersInput
   disconnect?: Prisma.UserWhereInput | boolean
   delete?: Prisma.UserWhereInput | boolean
   connect?: Prisma.UserWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutAssignedRolesInput, Prisma.UserUpdateWithoutAssignedRolesInput>, Prisma.UserUncheckedUpdateWithoutAssignedRolesInput>
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutAssignedUsersInput, Prisma.UserUpdateWithoutAssignedUsersInput>, Prisma.UserUncheckedUpdateWithoutAssignedUsersInput>
+}
+
+export type UserUpdateManyWithoutRoleAssignerNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutRoleAssignerInput, Prisma.UserUncheckedCreateWithoutRoleAssignerInput> | Prisma.UserCreateWithoutRoleAssignerInput[] | Prisma.UserUncheckedCreateWithoutRoleAssignerInput[]
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutRoleAssignerInput | Prisma.UserCreateOrConnectWithoutRoleAssignerInput[]
+  upsert?: Prisma.UserUpsertWithWhereUniqueWithoutRoleAssignerInput | Prisma.UserUpsertWithWhereUniqueWithoutRoleAssignerInput[]
+  createMany?: Prisma.UserCreateManyRoleAssignerInputEnvelope
+  set?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
+  disconnect?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
+  delete?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
+  connect?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
+  update?: Prisma.UserUpdateWithWhereUniqueWithoutRoleAssignerInput | Prisma.UserUpdateWithWhereUniqueWithoutRoleAssignerInput[]
+  updateMany?: Prisma.UserUpdateManyWithWhereWithoutRoleAssignerInput | Prisma.UserUpdateManyWithWhereWithoutRoleAssignerInput[]
+  deleteMany?: Prisma.UserScalarWhereInput | Prisma.UserScalarWhereInput[]
+}
+
+export type UserUncheckedUpdateManyWithoutRoleAssignerNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutRoleAssignerInput, Prisma.UserUncheckedCreateWithoutRoleAssignerInput> | Prisma.UserCreateWithoutRoleAssignerInput[] | Prisma.UserUncheckedCreateWithoutRoleAssignerInput[]
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutRoleAssignerInput | Prisma.UserCreateOrConnectWithoutRoleAssignerInput[]
+  upsert?: Prisma.UserUpsertWithWhereUniqueWithoutRoleAssignerInput | Prisma.UserUpsertWithWhereUniqueWithoutRoleAssignerInput[]
+  createMany?: Prisma.UserCreateManyRoleAssignerInputEnvelope
+  set?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
+  disconnect?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
+  delete?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
+  connect?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
+  update?: Prisma.UserUpdateWithWhereUniqueWithoutRoleAssignerInput | Prisma.UserUpdateWithWhereUniqueWithoutRoleAssignerInput[]
+  updateMany?: Prisma.UserUpdateManyWithWhereWithoutRoleAssignerInput | Prisma.UserUpdateManyWithWhereWithoutRoleAssignerInput[]
+  deleteMany?: Prisma.UserScalarWhereInput | Prisma.UserScalarWhereInput[]
+}
+
+export type UserCreateNestedManyWithoutRoleInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutRoleInput, Prisma.UserUncheckedCreateWithoutRoleInput> | Prisma.UserCreateWithoutRoleInput[] | Prisma.UserUncheckedCreateWithoutRoleInput[]
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutRoleInput | Prisma.UserCreateOrConnectWithoutRoleInput[]
+  createMany?: Prisma.UserCreateManyRoleInputEnvelope
+  connect?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
+}
+
+export type UserUncheckedCreateNestedManyWithoutRoleInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutRoleInput, Prisma.UserUncheckedCreateWithoutRoleInput> | Prisma.UserCreateWithoutRoleInput[] | Prisma.UserUncheckedCreateWithoutRoleInput[]
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutRoleInput | Prisma.UserCreateOrConnectWithoutRoleInput[]
+  createMany?: Prisma.UserCreateManyRoleInputEnvelope
+  connect?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
+}
+
+export type UserUpdateManyWithoutRoleNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutRoleInput, Prisma.UserUncheckedCreateWithoutRoleInput> | Prisma.UserCreateWithoutRoleInput[] | Prisma.UserUncheckedCreateWithoutRoleInput[]
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutRoleInput | Prisma.UserCreateOrConnectWithoutRoleInput[]
+  upsert?: Prisma.UserUpsertWithWhereUniqueWithoutRoleInput | Prisma.UserUpsertWithWhereUniqueWithoutRoleInput[]
+  createMany?: Prisma.UserCreateManyRoleInputEnvelope
+  set?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
+  disconnect?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
+  delete?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
+  connect?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
+  update?: Prisma.UserUpdateWithWhereUniqueWithoutRoleInput | Prisma.UserUpdateWithWhereUniqueWithoutRoleInput[]
+  updateMany?: Prisma.UserUpdateManyWithWhereWithoutRoleInput | Prisma.UserUpdateManyWithWhereWithoutRoleInput[]
+  deleteMany?: Prisma.UserScalarWhereInput | Prisma.UserScalarWhereInput[]
+}
+
+export type UserUncheckedUpdateManyWithoutRoleNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutRoleInput, Prisma.UserUncheckedCreateWithoutRoleInput> | Prisma.UserCreateWithoutRoleInput[] | Prisma.UserUncheckedCreateWithoutRoleInput[]
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutRoleInput | Prisma.UserCreateOrConnectWithoutRoleInput[]
+  upsert?: Prisma.UserUpsertWithWhereUniqueWithoutRoleInput | Prisma.UserUpsertWithWhereUniqueWithoutRoleInput[]
+  createMany?: Prisma.UserCreateManyRoleInputEnvelope
+  set?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
+  disconnect?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
+  delete?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
+  connect?: Prisma.UserWhereUniqueInput | Prisma.UserWhereUniqueInput[]
+  update?: Prisma.UserUpdateWithWhereUniqueWithoutRoleInput | Prisma.UserUpdateWithWhereUniqueWithoutRoleInput[]
+  updateMany?: Prisma.UserUpdateManyWithWhereWithoutRoleInput | Prisma.UserUpdateManyWithWhereWithoutRoleInput[]
+  deleteMany?: Prisma.UserScalarWhereInput | Prisma.UserScalarWhereInput[]
 }
 
 export type UserCreateNestedOneWithoutPatientProfileInput = {
@@ -653,7 +796,7 @@ export type UserUpdateOneWithoutProcessedRefundsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutProcessedRefundsInput, Prisma.UserUpdateWithoutProcessedRefundsInput>, Prisma.UserUncheckedUpdateWithoutProcessedRefundsInput>
 }
 
-export type UserCreateWithoutRolesInput = {
+export type UserCreateWithoutAssignedUsersInput = {
   id?: string
   email: string
   passwordHash?: string | null
@@ -664,9 +807,11 @@ export type UserCreateWithoutRolesInput = {
   emailVerified?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  roleAssignedAt?: Date | string
   patientProfile?: Prisma.PatientCreateNestedOneWithoutUserInput
   doctorProfile?: Prisma.DoctorCreateNestedOneWithoutUserInput
-  assignedRoles?: Prisma.UserRoleCreateNestedManyWithoutAssignerInput
+  role: Prisma.RoleCreateNestedOneWithoutUsersInput
+  roleAssigner?: Prisma.UserCreateNestedOneWithoutAssignedUsersInput
   createdAppointments?: Prisma.AppointmentCreateNestedManyWithoutCreatorInput
   createdInvoices?: Prisma.InvoiceCreateNestedManyWithoutCreatorInput
   receivedPayments?: Prisma.PaymentCreateNestedManyWithoutReceiverInput
@@ -675,7 +820,7 @@ export type UserCreateWithoutRolesInput = {
   processedRefunds?: Prisma.RefundRequestCreateNestedManyWithoutProcessorInput
 }
 
-export type UserUncheckedCreateWithoutRolesInput = {
+export type UserUncheckedCreateWithoutAssignedUsersInput = {
   id?: string
   email: string
   passwordHash?: string | null
@@ -686,9 +831,11 @@ export type UserUncheckedCreateWithoutRolesInput = {
   emailVerified?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  roleId: string
+  roleAssignedAt?: Date | string
+  roleAssignedBy?: string | null
   patientProfile?: Prisma.PatientUncheckedCreateNestedOneWithoutUserInput
   doctorProfile?: Prisma.DoctorUncheckedCreateNestedOneWithoutUserInput
-  assignedRoles?: Prisma.UserRoleUncheckedCreateNestedManyWithoutAssignerInput
   createdAppointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutCreatorInput
   createdInvoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutCreatorInput
   receivedPayments?: Prisma.PaymentUncheckedCreateNestedManyWithoutReceiverInput
@@ -697,12 +844,12 @@ export type UserUncheckedCreateWithoutRolesInput = {
   processedRefunds?: Prisma.RefundRequestUncheckedCreateNestedManyWithoutProcessorInput
 }
 
-export type UserCreateOrConnectWithoutRolesInput = {
+export type UserCreateOrConnectWithoutAssignedUsersInput = {
   where: Prisma.UserWhereUniqueInput
-  create: Prisma.XOR<Prisma.UserCreateWithoutRolesInput, Prisma.UserUncheckedCreateWithoutRolesInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutAssignedUsersInput, Prisma.UserUncheckedCreateWithoutAssignedUsersInput>
 }
 
-export type UserCreateWithoutAssignedRolesInput = {
+export type UserCreateWithoutRoleAssignerInput = {
   id?: string
   email: string
   passwordHash?: string | null
@@ -713,9 +860,11 @@ export type UserCreateWithoutAssignedRolesInput = {
   emailVerified?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  roleAssignedAt?: Date | string
   patientProfile?: Prisma.PatientCreateNestedOneWithoutUserInput
   doctorProfile?: Prisma.DoctorCreateNestedOneWithoutUserInput
-  roles?: Prisma.UserRoleCreateNestedManyWithoutUserInput
+  role: Prisma.RoleCreateNestedOneWithoutUsersInput
+  assignedUsers?: Prisma.UserCreateNestedManyWithoutRoleAssignerInput
   createdAppointments?: Prisma.AppointmentCreateNestedManyWithoutCreatorInput
   createdInvoices?: Prisma.InvoiceCreateNestedManyWithoutCreatorInput
   receivedPayments?: Prisma.PaymentCreateNestedManyWithoutReceiverInput
@@ -724,7 +873,7 @@ export type UserCreateWithoutAssignedRolesInput = {
   processedRefunds?: Prisma.RefundRequestCreateNestedManyWithoutProcessorInput
 }
 
-export type UserUncheckedCreateWithoutAssignedRolesInput = {
+export type UserUncheckedCreateWithoutRoleAssignerInput = {
   id?: string
   email: string
   passwordHash?: string | null
@@ -735,9 +884,11 @@ export type UserUncheckedCreateWithoutAssignedRolesInput = {
   emailVerified?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  roleId: string
+  roleAssignedAt?: Date | string
   patientProfile?: Prisma.PatientUncheckedCreateNestedOneWithoutUserInput
   doctorProfile?: Prisma.DoctorUncheckedCreateNestedOneWithoutUserInput
-  roles?: Prisma.UserRoleUncheckedCreateNestedManyWithoutUserInput
+  assignedUsers?: Prisma.UserUncheckedCreateNestedManyWithoutRoleAssignerInput
   createdAppointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutCreatorInput
   createdInvoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutCreatorInput
   receivedPayments?: Prisma.PaymentUncheckedCreateNestedManyWithoutReceiverInput
@@ -746,23 +897,28 @@ export type UserUncheckedCreateWithoutAssignedRolesInput = {
   processedRefunds?: Prisma.RefundRequestUncheckedCreateNestedManyWithoutProcessorInput
 }
 
-export type UserCreateOrConnectWithoutAssignedRolesInput = {
+export type UserCreateOrConnectWithoutRoleAssignerInput = {
   where: Prisma.UserWhereUniqueInput
-  create: Prisma.XOR<Prisma.UserCreateWithoutAssignedRolesInput, Prisma.UserUncheckedCreateWithoutAssignedRolesInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutRoleAssignerInput, Prisma.UserUncheckedCreateWithoutRoleAssignerInput>
 }
 
-export type UserUpsertWithoutRolesInput = {
-  update: Prisma.XOR<Prisma.UserUpdateWithoutRolesInput, Prisma.UserUncheckedUpdateWithoutRolesInput>
-  create: Prisma.XOR<Prisma.UserCreateWithoutRolesInput, Prisma.UserUncheckedCreateWithoutRolesInput>
+export type UserCreateManyRoleAssignerInputEnvelope = {
+  data: Prisma.UserCreateManyRoleAssignerInput | Prisma.UserCreateManyRoleAssignerInput[]
+  skipDuplicates?: boolean
+}
+
+export type UserUpsertWithoutAssignedUsersInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutAssignedUsersInput, Prisma.UserUncheckedUpdateWithoutAssignedUsersInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutAssignedUsersInput, Prisma.UserUncheckedCreateWithoutAssignedUsersInput>
   where?: Prisma.UserWhereInput
 }
 
-export type UserUpdateToOneWithWhereWithoutRolesInput = {
+export type UserUpdateToOneWithWhereWithoutAssignedUsersInput = {
   where?: Prisma.UserWhereInput
-  data: Prisma.XOR<Prisma.UserUpdateWithoutRolesInput, Prisma.UserUncheckedUpdateWithoutRolesInput>
+  data: Prisma.XOR<Prisma.UserUpdateWithoutAssignedUsersInput, Prisma.UserUncheckedUpdateWithoutAssignedUsersInput>
 }
 
-export type UserUpdateWithoutRolesInput = {
+export type UserUpdateWithoutAssignedUsersInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
   passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -773,9 +929,11 @@ export type UserUpdateWithoutRolesInput = {
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roleAssignedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   patientProfile?: Prisma.PatientUpdateOneWithoutUserNestedInput
   doctorProfile?: Prisma.DoctorUpdateOneWithoutUserNestedInput
-  assignedRoles?: Prisma.UserRoleUpdateManyWithoutAssignerNestedInput
+  role?: Prisma.RoleUpdateOneRequiredWithoutUsersNestedInput
+  roleAssigner?: Prisma.UserUpdateOneWithoutAssignedUsersNestedInput
   createdAppointments?: Prisma.AppointmentUpdateManyWithoutCreatorNestedInput
   createdInvoices?: Prisma.InvoiceUpdateManyWithoutCreatorNestedInput
   receivedPayments?: Prisma.PaymentUpdateManyWithoutReceiverNestedInput
@@ -784,7 +942,7 @@ export type UserUpdateWithoutRolesInput = {
   processedRefunds?: Prisma.RefundRequestUpdateManyWithoutProcessorNestedInput
 }
 
-export type UserUncheckedUpdateWithoutRolesInput = {
+export type UserUncheckedUpdateWithoutAssignedUsersInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   email?: Prisma.StringFieldUpdateOperationsInput | string
   passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -795,9 +953,11 @@ export type UserUncheckedUpdateWithoutRolesInput = {
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roleId?: Prisma.StringFieldUpdateOperationsInput | string
+  roleAssignedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roleAssignedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   patientProfile?: Prisma.PatientUncheckedUpdateOneWithoutUserNestedInput
   doctorProfile?: Prisma.DoctorUncheckedUpdateOneWithoutUserNestedInput
-  assignedRoles?: Prisma.UserRoleUncheckedUpdateManyWithoutAssignerNestedInput
   createdAppointments?: Prisma.AppointmentUncheckedUpdateManyWithoutCreatorNestedInput
   createdInvoices?: Prisma.InvoiceUncheckedUpdateManyWithoutCreatorNestedInput
   receivedPayments?: Prisma.PaymentUncheckedUpdateManyWithoutReceiverNestedInput
@@ -806,59 +966,113 @@ export type UserUncheckedUpdateWithoutRolesInput = {
   processedRefunds?: Prisma.RefundRequestUncheckedUpdateManyWithoutProcessorNestedInput
 }
 
-export type UserUpsertWithoutAssignedRolesInput = {
-  update: Prisma.XOR<Prisma.UserUpdateWithoutAssignedRolesInput, Prisma.UserUncheckedUpdateWithoutAssignedRolesInput>
-  create: Prisma.XOR<Prisma.UserCreateWithoutAssignedRolesInput, Prisma.UserUncheckedCreateWithoutAssignedRolesInput>
-  where?: Prisma.UserWhereInput
+export type UserUpsertWithWhereUniqueWithoutRoleAssignerInput = {
+  where: Prisma.UserWhereUniqueInput
+  update: Prisma.XOR<Prisma.UserUpdateWithoutRoleAssignerInput, Prisma.UserUncheckedUpdateWithoutRoleAssignerInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutRoleAssignerInput, Prisma.UserUncheckedCreateWithoutRoleAssignerInput>
 }
 
-export type UserUpdateToOneWithWhereWithoutAssignedRolesInput = {
-  where?: Prisma.UserWhereInput
-  data: Prisma.XOR<Prisma.UserUpdateWithoutAssignedRolesInput, Prisma.UserUncheckedUpdateWithoutAssignedRolesInput>
+export type UserUpdateWithWhereUniqueWithoutRoleAssignerInput = {
+  where: Prisma.UserWhereUniqueInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutRoleAssignerInput, Prisma.UserUncheckedUpdateWithoutRoleAssignerInput>
 }
 
-export type UserUpdateWithoutAssignedRolesInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  googleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  fullName?: Prisma.StringFieldUpdateOperationsInput | string
-  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
-  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  patientProfile?: Prisma.PatientUpdateOneWithoutUserNestedInput
-  doctorProfile?: Prisma.DoctorUpdateOneWithoutUserNestedInput
-  roles?: Prisma.UserRoleUpdateManyWithoutUserNestedInput
-  createdAppointments?: Prisma.AppointmentUpdateManyWithoutCreatorNestedInput
-  createdInvoices?: Prisma.InvoiceUpdateManyWithoutCreatorNestedInput
-  receivedPayments?: Prisma.PaymentUpdateManyWithoutReceiverNestedInput
-  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
-  patientAccounts?: Prisma.PatientAccountUpdateManyWithoutUserNestedInput
-  processedRefunds?: Prisma.RefundRequestUpdateManyWithoutProcessorNestedInput
+export type UserUpdateManyWithWhereWithoutRoleAssignerInput = {
+  where: Prisma.UserScalarWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateManyMutationInput, Prisma.UserUncheckedUpdateManyWithoutRoleAssignerInput>
 }
 
-export type UserUncheckedUpdateWithoutAssignedRolesInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  googleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  fullName?: Prisma.StringFieldUpdateOperationsInput | string
-  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
-  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  patientProfile?: Prisma.PatientUncheckedUpdateOneWithoutUserNestedInput
-  doctorProfile?: Prisma.DoctorUncheckedUpdateOneWithoutUserNestedInput
-  roles?: Prisma.UserRoleUncheckedUpdateManyWithoutUserNestedInput
-  createdAppointments?: Prisma.AppointmentUncheckedUpdateManyWithoutCreatorNestedInput
-  createdInvoices?: Prisma.InvoiceUncheckedUpdateManyWithoutCreatorNestedInput
-  receivedPayments?: Prisma.PaymentUncheckedUpdateManyWithoutReceiverNestedInput
-  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
-  patientAccounts?: Prisma.PatientAccountUncheckedUpdateManyWithoutUserNestedInput
-  processedRefunds?: Prisma.RefundRequestUncheckedUpdateManyWithoutProcessorNestedInput
+export type UserScalarWhereInput = {
+  AND?: Prisma.UserScalarWhereInput | Prisma.UserScalarWhereInput[]
+  OR?: Prisma.UserScalarWhereInput[]
+  NOT?: Prisma.UserScalarWhereInput | Prisma.UserScalarWhereInput[]
+  id?: Prisma.UuidFilter<"User"> | string
+  email?: Prisma.StringFilter<"User"> | string
+  passwordHash?: Prisma.StringNullableFilter<"User"> | string | null
+  googleId?: Prisma.StringNullableFilter<"User"> | string | null
+  phone?: Prisma.StringNullableFilter<"User"> | string | null
+  fullName?: Prisma.StringFilter<"User"> | string
+  status?: Prisma.EnumUserStatusFilter<"User"> | $Enums.UserStatus
+  emailVerified?: Prisma.BoolFilter<"User"> | boolean
+  createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
+  roleId?: Prisma.UuidFilter<"User"> | string
+  roleAssignedAt?: Prisma.DateTimeFilter<"User"> | Date | string
+  roleAssignedBy?: Prisma.UuidNullableFilter<"User"> | string | null
+}
+
+export type UserCreateWithoutRoleInput = {
+  id?: string
+  email: string
+  passwordHash?: string | null
+  googleId?: string | null
+  phone?: string | null
+  fullName: string
+  status?: $Enums.UserStatus
+  emailVerified?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  roleAssignedAt?: Date | string
+  patientProfile?: Prisma.PatientCreateNestedOneWithoutUserInput
+  doctorProfile?: Prisma.DoctorCreateNestedOneWithoutUserInput
+  roleAssigner?: Prisma.UserCreateNestedOneWithoutAssignedUsersInput
+  assignedUsers?: Prisma.UserCreateNestedManyWithoutRoleAssignerInput
+  createdAppointments?: Prisma.AppointmentCreateNestedManyWithoutCreatorInput
+  createdInvoices?: Prisma.InvoiceCreateNestedManyWithoutCreatorInput
+  receivedPayments?: Prisma.PaymentCreateNestedManyWithoutReceiverInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
+  patientAccounts?: Prisma.PatientAccountCreateNestedManyWithoutUserInput
+  processedRefunds?: Prisma.RefundRequestCreateNestedManyWithoutProcessorInput
+}
+
+export type UserUncheckedCreateWithoutRoleInput = {
+  id?: string
+  email: string
+  passwordHash?: string | null
+  googleId?: string | null
+  phone?: string | null
+  fullName: string
+  status?: $Enums.UserStatus
+  emailVerified?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  roleAssignedAt?: Date | string
+  roleAssignedBy?: string | null
+  patientProfile?: Prisma.PatientUncheckedCreateNestedOneWithoutUserInput
+  doctorProfile?: Prisma.DoctorUncheckedCreateNestedOneWithoutUserInput
+  assignedUsers?: Prisma.UserUncheckedCreateNestedManyWithoutRoleAssignerInput
+  createdAppointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutCreatorInput
+  createdInvoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutCreatorInput
+  receivedPayments?: Prisma.PaymentUncheckedCreateNestedManyWithoutReceiverInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
+  patientAccounts?: Prisma.PatientAccountUncheckedCreateNestedManyWithoutUserInput
+  processedRefunds?: Prisma.RefundRequestUncheckedCreateNestedManyWithoutProcessorInput
+}
+
+export type UserCreateOrConnectWithoutRoleInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutRoleInput, Prisma.UserUncheckedCreateWithoutRoleInput>
+}
+
+export type UserCreateManyRoleInputEnvelope = {
+  data: Prisma.UserCreateManyRoleInput | Prisma.UserCreateManyRoleInput[]
+  skipDuplicates?: boolean
+}
+
+export type UserUpsertWithWhereUniqueWithoutRoleInput = {
+  where: Prisma.UserWhereUniqueInput
+  update: Prisma.XOR<Prisma.UserUpdateWithoutRoleInput, Prisma.UserUncheckedUpdateWithoutRoleInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutRoleInput, Prisma.UserUncheckedCreateWithoutRoleInput>
+}
+
+export type UserUpdateWithWhereUniqueWithoutRoleInput = {
+  where: Prisma.UserWhereUniqueInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutRoleInput, Prisma.UserUncheckedUpdateWithoutRoleInput>
+}
+
+export type UserUpdateManyWithWhereWithoutRoleInput = {
+  where: Prisma.UserScalarWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateManyMutationInput, Prisma.UserUncheckedUpdateManyWithoutRoleInput>
 }
 
 export type UserCreateWithoutPatientProfileInput = {
@@ -872,9 +1086,11 @@ export type UserCreateWithoutPatientProfileInput = {
   emailVerified?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  roleAssignedAt?: Date | string
   doctorProfile?: Prisma.DoctorCreateNestedOneWithoutUserInput
-  roles?: Prisma.UserRoleCreateNestedManyWithoutUserInput
-  assignedRoles?: Prisma.UserRoleCreateNestedManyWithoutAssignerInput
+  role: Prisma.RoleCreateNestedOneWithoutUsersInput
+  roleAssigner?: Prisma.UserCreateNestedOneWithoutAssignedUsersInput
+  assignedUsers?: Prisma.UserCreateNestedManyWithoutRoleAssignerInput
   createdAppointments?: Prisma.AppointmentCreateNestedManyWithoutCreatorInput
   createdInvoices?: Prisma.InvoiceCreateNestedManyWithoutCreatorInput
   receivedPayments?: Prisma.PaymentCreateNestedManyWithoutReceiverInput
@@ -894,9 +1110,11 @@ export type UserUncheckedCreateWithoutPatientProfileInput = {
   emailVerified?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  roleId: string
+  roleAssignedAt?: Date | string
+  roleAssignedBy?: string | null
   doctorProfile?: Prisma.DoctorUncheckedCreateNestedOneWithoutUserInput
-  roles?: Prisma.UserRoleUncheckedCreateNestedManyWithoutUserInput
-  assignedRoles?: Prisma.UserRoleUncheckedCreateNestedManyWithoutAssignerInput
+  assignedUsers?: Prisma.UserUncheckedCreateNestedManyWithoutRoleAssignerInput
   createdAppointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutCreatorInput
   createdInvoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutCreatorInput
   receivedPayments?: Prisma.PaymentUncheckedCreateNestedManyWithoutReceiverInput
@@ -932,9 +1150,11 @@ export type UserUpdateWithoutPatientProfileInput = {
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roleAssignedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   doctorProfile?: Prisma.DoctorUpdateOneWithoutUserNestedInput
-  roles?: Prisma.UserRoleUpdateManyWithoutUserNestedInput
-  assignedRoles?: Prisma.UserRoleUpdateManyWithoutAssignerNestedInput
+  role?: Prisma.RoleUpdateOneRequiredWithoutUsersNestedInput
+  roleAssigner?: Prisma.UserUpdateOneWithoutAssignedUsersNestedInput
+  assignedUsers?: Prisma.UserUpdateManyWithoutRoleAssignerNestedInput
   createdAppointments?: Prisma.AppointmentUpdateManyWithoutCreatorNestedInput
   createdInvoices?: Prisma.InvoiceUpdateManyWithoutCreatorNestedInput
   receivedPayments?: Prisma.PaymentUpdateManyWithoutReceiverNestedInput
@@ -954,9 +1174,11 @@ export type UserUncheckedUpdateWithoutPatientProfileInput = {
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roleId?: Prisma.StringFieldUpdateOperationsInput | string
+  roleAssignedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roleAssignedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   doctorProfile?: Prisma.DoctorUncheckedUpdateOneWithoutUserNestedInput
-  roles?: Prisma.UserRoleUncheckedUpdateManyWithoutUserNestedInput
-  assignedRoles?: Prisma.UserRoleUncheckedUpdateManyWithoutAssignerNestedInput
+  assignedUsers?: Prisma.UserUncheckedUpdateManyWithoutRoleAssignerNestedInput
   createdAppointments?: Prisma.AppointmentUncheckedUpdateManyWithoutCreatorNestedInput
   createdInvoices?: Prisma.InvoiceUncheckedUpdateManyWithoutCreatorNestedInput
   receivedPayments?: Prisma.PaymentUncheckedUpdateManyWithoutReceiverNestedInput
@@ -976,10 +1198,12 @@ export type UserCreateWithoutPatientAccountsInput = {
   emailVerified?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  roleAssignedAt?: Date | string
   patientProfile?: Prisma.PatientCreateNestedOneWithoutUserInput
   doctorProfile?: Prisma.DoctorCreateNestedOneWithoutUserInput
-  roles?: Prisma.UserRoleCreateNestedManyWithoutUserInput
-  assignedRoles?: Prisma.UserRoleCreateNestedManyWithoutAssignerInput
+  role: Prisma.RoleCreateNestedOneWithoutUsersInput
+  roleAssigner?: Prisma.UserCreateNestedOneWithoutAssignedUsersInput
+  assignedUsers?: Prisma.UserCreateNestedManyWithoutRoleAssignerInput
   createdAppointments?: Prisma.AppointmentCreateNestedManyWithoutCreatorInput
   createdInvoices?: Prisma.InvoiceCreateNestedManyWithoutCreatorInput
   receivedPayments?: Prisma.PaymentCreateNestedManyWithoutReceiverInput
@@ -998,10 +1222,12 @@ export type UserUncheckedCreateWithoutPatientAccountsInput = {
   emailVerified?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  roleId: string
+  roleAssignedAt?: Date | string
+  roleAssignedBy?: string | null
   patientProfile?: Prisma.PatientUncheckedCreateNestedOneWithoutUserInput
   doctorProfile?: Prisma.DoctorUncheckedCreateNestedOneWithoutUserInput
-  roles?: Prisma.UserRoleUncheckedCreateNestedManyWithoutUserInput
-  assignedRoles?: Prisma.UserRoleUncheckedCreateNestedManyWithoutAssignerInput
+  assignedUsers?: Prisma.UserUncheckedCreateNestedManyWithoutRoleAssignerInput
   createdAppointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutCreatorInput
   createdInvoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutCreatorInput
   receivedPayments?: Prisma.PaymentUncheckedCreateNestedManyWithoutReceiverInput
@@ -1036,10 +1262,12 @@ export type UserUpdateWithoutPatientAccountsInput = {
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roleAssignedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   patientProfile?: Prisma.PatientUpdateOneWithoutUserNestedInput
   doctorProfile?: Prisma.DoctorUpdateOneWithoutUserNestedInput
-  roles?: Prisma.UserRoleUpdateManyWithoutUserNestedInput
-  assignedRoles?: Prisma.UserRoleUpdateManyWithoutAssignerNestedInput
+  role?: Prisma.RoleUpdateOneRequiredWithoutUsersNestedInput
+  roleAssigner?: Prisma.UserUpdateOneWithoutAssignedUsersNestedInput
+  assignedUsers?: Prisma.UserUpdateManyWithoutRoleAssignerNestedInput
   createdAppointments?: Prisma.AppointmentUpdateManyWithoutCreatorNestedInput
   createdInvoices?: Prisma.InvoiceUpdateManyWithoutCreatorNestedInput
   receivedPayments?: Prisma.PaymentUpdateManyWithoutReceiverNestedInput
@@ -1058,10 +1286,12 @@ export type UserUncheckedUpdateWithoutPatientAccountsInput = {
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roleId?: Prisma.StringFieldUpdateOperationsInput | string
+  roleAssignedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roleAssignedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   patientProfile?: Prisma.PatientUncheckedUpdateOneWithoutUserNestedInput
   doctorProfile?: Prisma.DoctorUncheckedUpdateOneWithoutUserNestedInput
-  roles?: Prisma.UserRoleUncheckedUpdateManyWithoutUserNestedInput
-  assignedRoles?: Prisma.UserRoleUncheckedUpdateManyWithoutAssignerNestedInput
+  assignedUsers?: Prisma.UserUncheckedUpdateManyWithoutRoleAssignerNestedInput
   createdAppointments?: Prisma.AppointmentUncheckedUpdateManyWithoutCreatorNestedInput
   createdInvoices?: Prisma.InvoiceUncheckedUpdateManyWithoutCreatorNestedInput
   receivedPayments?: Prisma.PaymentUncheckedUpdateManyWithoutReceiverNestedInput
@@ -1080,9 +1310,11 @@ export type UserCreateWithoutDoctorProfileInput = {
   emailVerified?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  roleAssignedAt?: Date | string
   patientProfile?: Prisma.PatientCreateNestedOneWithoutUserInput
-  roles?: Prisma.UserRoleCreateNestedManyWithoutUserInput
-  assignedRoles?: Prisma.UserRoleCreateNestedManyWithoutAssignerInput
+  role: Prisma.RoleCreateNestedOneWithoutUsersInput
+  roleAssigner?: Prisma.UserCreateNestedOneWithoutAssignedUsersInput
+  assignedUsers?: Prisma.UserCreateNestedManyWithoutRoleAssignerInput
   createdAppointments?: Prisma.AppointmentCreateNestedManyWithoutCreatorInput
   createdInvoices?: Prisma.InvoiceCreateNestedManyWithoutCreatorInput
   receivedPayments?: Prisma.PaymentCreateNestedManyWithoutReceiverInput
@@ -1102,9 +1334,11 @@ export type UserUncheckedCreateWithoutDoctorProfileInput = {
   emailVerified?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  roleId: string
+  roleAssignedAt?: Date | string
+  roleAssignedBy?: string | null
   patientProfile?: Prisma.PatientUncheckedCreateNestedOneWithoutUserInput
-  roles?: Prisma.UserRoleUncheckedCreateNestedManyWithoutUserInput
-  assignedRoles?: Prisma.UserRoleUncheckedCreateNestedManyWithoutAssignerInput
+  assignedUsers?: Prisma.UserUncheckedCreateNestedManyWithoutRoleAssignerInput
   createdAppointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutCreatorInput
   createdInvoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutCreatorInput
   receivedPayments?: Prisma.PaymentUncheckedCreateNestedManyWithoutReceiverInput
@@ -1140,9 +1374,11 @@ export type UserUpdateWithoutDoctorProfileInput = {
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roleAssignedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   patientProfile?: Prisma.PatientUpdateOneWithoutUserNestedInput
-  roles?: Prisma.UserRoleUpdateManyWithoutUserNestedInput
-  assignedRoles?: Prisma.UserRoleUpdateManyWithoutAssignerNestedInput
+  role?: Prisma.RoleUpdateOneRequiredWithoutUsersNestedInput
+  roleAssigner?: Prisma.UserUpdateOneWithoutAssignedUsersNestedInput
+  assignedUsers?: Prisma.UserUpdateManyWithoutRoleAssignerNestedInput
   createdAppointments?: Prisma.AppointmentUpdateManyWithoutCreatorNestedInput
   createdInvoices?: Prisma.InvoiceUpdateManyWithoutCreatorNestedInput
   receivedPayments?: Prisma.PaymentUpdateManyWithoutReceiverNestedInput
@@ -1162,9 +1398,11 @@ export type UserUncheckedUpdateWithoutDoctorProfileInput = {
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roleId?: Prisma.StringFieldUpdateOperationsInput | string
+  roleAssignedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roleAssignedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   patientProfile?: Prisma.PatientUncheckedUpdateOneWithoutUserNestedInput
-  roles?: Prisma.UserRoleUncheckedUpdateManyWithoutUserNestedInput
-  assignedRoles?: Prisma.UserRoleUncheckedUpdateManyWithoutAssignerNestedInput
+  assignedUsers?: Prisma.UserUncheckedUpdateManyWithoutRoleAssignerNestedInput
   createdAppointments?: Prisma.AppointmentUncheckedUpdateManyWithoutCreatorNestedInput
   createdInvoices?: Prisma.InvoiceUncheckedUpdateManyWithoutCreatorNestedInput
   receivedPayments?: Prisma.PaymentUncheckedUpdateManyWithoutReceiverNestedInput
@@ -1184,10 +1422,12 @@ export type UserCreateWithoutCreatedAppointmentsInput = {
   emailVerified?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  roleAssignedAt?: Date | string
   patientProfile?: Prisma.PatientCreateNestedOneWithoutUserInput
   doctorProfile?: Prisma.DoctorCreateNestedOneWithoutUserInput
-  roles?: Prisma.UserRoleCreateNestedManyWithoutUserInput
-  assignedRoles?: Prisma.UserRoleCreateNestedManyWithoutAssignerInput
+  role: Prisma.RoleCreateNestedOneWithoutUsersInput
+  roleAssigner?: Prisma.UserCreateNestedOneWithoutAssignedUsersInput
+  assignedUsers?: Prisma.UserCreateNestedManyWithoutRoleAssignerInput
   createdInvoices?: Prisma.InvoiceCreateNestedManyWithoutCreatorInput
   receivedPayments?: Prisma.PaymentCreateNestedManyWithoutReceiverInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
@@ -1206,10 +1446,12 @@ export type UserUncheckedCreateWithoutCreatedAppointmentsInput = {
   emailVerified?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  roleId: string
+  roleAssignedAt?: Date | string
+  roleAssignedBy?: string | null
   patientProfile?: Prisma.PatientUncheckedCreateNestedOneWithoutUserInput
   doctorProfile?: Prisma.DoctorUncheckedCreateNestedOneWithoutUserInput
-  roles?: Prisma.UserRoleUncheckedCreateNestedManyWithoutUserInput
-  assignedRoles?: Prisma.UserRoleUncheckedCreateNestedManyWithoutAssignerInput
+  assignedUsers?: Prisma.UserUncheckedCreateNestedManyWithoutRoleAssignerInput
   createdInvoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutCreatorInput
   receivedPayments?: Prisma.PaymentUncheckedCreateNestedManyWithoutReceiverInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
@@ -1244,10 +1486,12 @@ export type UserUpdateWithoutCreatedAppointmentsInput = {
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roleAssignedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   patientProfile?: Prisma.PatientUpdateOneWithoutUserNestedInput
   doctorProfile?: Prisma.DoctorUpdateOneWithoutUserNestedInput
-  roles?: Prisma.UserRoleUpdateManyWithoutUserNestedInput
-  assignedRoles?: Prisma.UserRoleUpdateManyWithoutAssignerNestedInput
+  role?: Prisma.RoleUpdateOneRequiredWithoutUsersNestedInput
+  roleAssigner?: Prisma.UserUpdateOneWithoutAssignedUsersNestedInput
+  assignedUsers?: Prisma.UserUpdateManyWithoutRoleAssignerNestedInput
   createdInvoices?: Prisma.InvoiceUpdateManyWithoutCreatorNestedInput
   receivedPayments?: Prisma.PaymentUpdateManyWithoutReceiverNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
@@ -1266,10 +1510,12 @@ export type UserUncheckedUpdateWithoutCreatedAppointmentsInput = {
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roleId?: Prisma.StringFieldUpdateOperationsInput | string
+  roleAssignedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roleAssignedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   patientProfile?: Prisma.PatientUncheckedUpdateOneWithoutUserNestedInput
   doctorProfile?: Prisma.DoctorUncheckedUpdateOneWithoutUserNestedInput
-  roles?: Prisma.UserRoleUncheckedUpdateManyWithoutUserNestedInput
-  assignedRoles?: Prisma.UserRoleUncheckedUpdateManyWithoutAssignerNestedInput
+  assignedUsers?: Prisma.UserUncheckedUpdateManyWithoutRoleAssignerNestedInput
   createdInvoices?: Prisma.InvoiceUncheckedUpdateManyWithoutCreatorNestedInput
   receivedPayments?: Prisma.PaymentUncheckedUpdateManyWithoutReceiverNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
@@ -1288,10 +1534,12 @@ export type UserCreateWithoutCreatedInvoicesInput = {
   emailVerified?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  roleAssignedAt?: Date | string
   patientProfile?: Prisma.PatientCreateNestedOneWithoutUserInput
   doctorProfile?: Prisma.DoctorCreateNestedOneWithoutUserInput
-  roles?: Prisma.UserRoleCreateNestedManyWithoutUserInput
-  assignedRoles?: Prisma.UserRoleCreateNestedManyWithoutAssignerInput
+  role: Prisma.RoleCreateNestedOneWithoutUsersInput
+  roleAssigner?: Prisma.UserCreateNestedOneWithoutAssignedUsersInput
+  assignedUsers?: Prisma.UserCreateNestedManyWithoutRoleAssignerInput
   createdAppointments?: Prisma.AppointmentCreateNestedManyWithoutCreatorInput
   receivedPayments?: Prisma.PaymentCreateNestedManyWithoutReceiverInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
@@ -1310,10 +1558,12 @@ export type UserUncheckedCreateWithoutCreatedInvoicesInput = {
   emailVerified?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  roleId: string
+  roleAssignedAt?: Date | string
+  roleAssignedBy?: string | null
   patientProfile?: Prisma.PatientUncheckedCreateNestedOneWithoutUserInput
   doctorProfile?: Prisma.DoctorUncheckedCreateNestedOneWithoutUserInput
-  roles?: Prisma.UserRoleUncheckedCreateNestedManyWithoutUserInput
-  assignedRoles?: Prisma.UserRoleUncheckedCreateNestedManyWithoutAssignerInput
+  assignedUsers?: Prisma.UserUncheckedCreateNestedManyWithoutRoleAssignerInput
   createdAppointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutCreatorInput
   receivedPayments?: Prisma.PaymentUncheckedCreateNestedManyWithoutReceiverInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
@@ -1348,10 +1598,12 @@ export type UserUpdateWithoutCreatedInvoicesInput = {
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roleAssignedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   patientProfile?: Prisma.PatientUpdateOneWithoutUserNestedInput
   doctorProfile?: Prisma.DoctorUpdateOneWithoutUserNestedInput
-  roles?: Prisma.UserRoleUpdateManyWithoutUserNestedInput
-  assignedRoles?: Prisma.UserRoleUpdateManyWithoutAssignerNestedInput
+  role?: Prisma.RoleUpdateOneRequiredWithoutUsersNestedInput
+  roleAssigner?: Prisma.UserUpdateOneWithoutAssignedUsersNestedInput
+  assignedUsers?: Prisma.UserUpdateManyWithoutRoleAssignerNestedInput
   createdAppointments?: Prisma.AppointmentUpdateManyWithoutCreatorNestedInput
   receivedPayments?: Prisma.PaymentUpdateManyWithoutReceiverNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
@@ -1370,10 +1622,12 @@ export type UserUncheckedUpdateWithoutCreatedInvoicesInput = {
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roleId?: Prisma.StringFieldUpdateOperationsInput | string
+  roleAssignedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roleAssignedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   patientProfile?: Prisma.PatientUncheckedUpdateOneWithoutUserNestedInput
   doctorProfile?: Prisma.DoctorUncheckedUpdateOneWithoutUserNestedInput
-  roles?: Prisma.UserRoleUncheckedUpdateManyWithoutUserNestedInput
-  assignedRoles?: Prisma.UserRoleUncheckedUpdateManyWithoutAssignerNestedInput
+  assignedUsers?: Prisma.UserUncheckedUpdateManyWithoutRoleAssignerNestedInput
   createdAppointments?: Prisma.AppointmentUncheckedUpdateManyWithoutCreatorNestedInput
   receivedPayments?: Prisma.PaymentUncheckedUpdateManyWithoutReceiverNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
@@ -1392,10 +1646,12 @@ export type UserCreateWithoutReceivedPaymentsInput = {
   emailVerified?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  roleAssignedAt?: Date | string
   patientProfile?: Prisma.PatientCreateNestedOneWithoutUserInput
   doctorProfile?: Prisma.DoctorCreateNestedOneWithoutUserInput
-  roles?: Prisma.UserRoleCreateNestedManyWithoutUserInput
-  assignedRoles?: Prisma.UserRoleCreateNestedManyWithoutAssignerInput
+  role: Prisma.RoleCreateNestedOneWithoutUsersInput
+  roleAssigner?: Prisma.UserCreateNestedOneWithoutAssignedUsersInput
+  assignedUsers?: Prisma.UserCreateNestedManyWithoutRoleAssignerInput
   createdAppointments?: Prisma.AppointmentCreateNestedManyWithoutCreatorInput
   createdInvoices?: Prisma.InvoiceCreateNestedManyWithoutCreatorInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
@@ -1414,10 +1670,12 @@ export type UserUncheckedCreateWithoutReceivedPaymentsInput = {
   emailVerified?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  roleId: string
+  roleAssignedAt?: Date | string
+  roleAssignedBy?: string | null
   patientProfile?: Prisma.PatientUncheckedCreateNestedOneWithoutUserInput
   doctorProfile?: Prisma.DoctorUncheckedCreateNestedOneWithoutUserInput
-  roles?: Prisma.UserRoleUncheckedCreateNestedManyWithoutUserInput
-  assignedRoles?: Prisma.UserRoleUncheckedCreateNestedManyWithoutAssignerInput
+  assignedUsers?: Prisma.UserUncheckedCreateNestedManyWithoutRoleAssignerInput
   createdAppointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutCreatorInput
   createdInvoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutCreatorInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
@@ -1452,10 +1710,12 @@ export type UserUpdateWithoutReceivedPaymentsInput = {
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roleAssignedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   patientProfile?: Prisma.PatientUpdateOneWithoutUserNestedInput
   doctorProfile?: Prisma.DoctorUpdateOneWithoutUserNestedInput
-  roles?: Prisma.UserRoleUpdateManyWithoutUserNestedInput
-  assignedRoles?: Prisma.UserRoleUpdateManyWithoutAssignerNestedInput
+  role?: Prisma.RoleUpdateOneRequiredWithoutUsersNestedInput
+  roleAssigner?: Prisma.UserUpdateOneWithoutAssignedUsersNestedInput
+  assignedUsers?: Prisma.UserUpdateManyWithoutRoleAssignerNestedInput
   createdAppointments?: Prisma.AppointmentUpdateManyWithoutCreatorNestedInput
   createdInvoices?: Prisma.InvoiceUpdateManyWithoutCreatorNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
@@ -1474,10 +1734,12 @@ export type UserUncheckedUpdateWithoutReceivedPaymentsInput = {
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roleId?: Prisma.StringFieldUpdateOperationsInput | string
+  roleAssignedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roleAssignedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   patientProfile?: Prisma.PatientUncheckedUpdateOneWithoutUserNestedInput
   doctorProfile?: Prisma.DoctorUncheckedUpdateOneWithoutUserNestedInput
-  roles?: Prisma.UserRoleUncheckedUpdateManyWithoutUserNestedInput
-  assignedRoles?: Prisma.UserRoleUncheckedUpdateManyWithoutAssignerNestedInput
+  assignedUsers?: Prisma.UserUncheckedUpdateManyWithoutRoleAssignerNestedInput
   createdAppointments?: Prisma.AppointmentUncheckedUpdateManyWithoutCreatorNestedInput
   createdInvoices?: Prisma.InvoiceUncheckedUpdateManyWithoutCreatorNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
@@ -1496,10 +1758,12 @@ export type UserCreateWithoutNotificationsInput = {
   emailVerified?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  roleAssignedAt?: Date | string
   patientProfile?: Prisma.PatientCreateNestedOneWithoutUserInput
   doctorProfile?: Prisma.DoctorCreateNestedOneWithoutUserInput
-  roles?: Prisma.UserRoleCreateNestedManyWithoutUserInput
-  assignedRoles?: Prisma.UserRoleCreateNestedManyWithoutAssignerInput
+  role: Prisma.RoleCreateNestedOneWithoutUsersInput
+  roleAssigner?: Prisma.UserCreateNestedOneWithoutAssignedUsersInput
+  assignedUsers?: Prisma.UserCreateNestedManyWithoutRoleAssignerInput
   createdAppointments?: Prisma.AppointmentCreateNestedManyWithoutCreatorInput
   createdInvoices?: Prisma.InvoiceCreateNestedManyWithoutCreatorInput
   receivedPayments?: Prisma.PaymentCreateNestedManyWithoutReceiverInput
@@ -1518,10 +1782,12 @@ export type UserUncheckedCreateWithoutNotificationsInput = {
   emailVerified?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  roleId: string
+  roleAssignedAt?: Date | string
+  roleAssignedBy?: string | null
   patientProfile?: Prisma.PatientUncheckedCreateNestedOneWithoutUserInput
   doctorProfile?: Prisma.DoctorUncheckedCreateNestedOneWithoutUserInput
-  roles?: Prisma.UserRoleUncheckedCreateNestedManyWithoutUserInput
-  assignedRoles?: Prisma.UserRoleUncheckedCreateNestedManyWithoutAssignerInput
+  assignedUsers?: Prisma.UserUncheckedCreateNestedManyWithoutRoleAssignerInput
   createdAppointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutCreatorInput
   createdInvoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutCreatorInput
   receivedPayments?: Prisma.PaymentUncheckedCreateNestedManyWithoutReceiverInput
@@ -1556,10 +1822,12 @@ export type UserUpdateWithoutNotificationsInput = {
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roleAssignedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   patientProfile?: Prisma.PatientUpdateOneWithoutUserNestedInput
   doctorProfile?: Prisma.DoctorUpdateOneWithoutUserNestedInput
-  roles?: Prisma.UserRoleUpdateManyWithoutUserNestedInput
-  assignedRoles?: Prisma.UserRoleUpdateManyWithoutAssignerNestedInput
+  role?: Prisma.RoleUpdateOneRequiredWithoutUsersNestedInput
+  roleAssigner?: Prisma.UserUpdateOneWithoutAssignedUsersNestedInput
+  assignedUsers?: Prisma.UserUpdateManyWithoutRoleAssignerNestedInput
   createdAppointments?: Prisma.AppointmentUpdateManyWithoutCreatorNestedInput
   createdInvoices?: Prisma.InvoiceUpdateManyWithoutCreatorNestedInput
   receivedPayments?: Prisma.PaymentUpdateManyWithoutReceiverNestedInput
@@ -1578,10 +1846,12 @@ export type UserUncheckedUpdateWithoutNotificationsInput = {
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roleId?: Prisma.StringFieldUpdateOperationsInput | string
+  roleAssignedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roleAssignedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   patientProfile?: Prisma.PatientUncheckedUpdateOneWithoutUserNestedInput
   doctorProfile?: Prisma.DoctorUncheckedUpdateOneWithoutUserNestedInput
-  roles?: Prisma.UserRoleUncheckedUpdateManyWithoutUserNestedInput
-  assignedRoles?: Prisma.UserRoleUncheckedUpdateManyWithoutAssignerNestedInput
+  assignedUsers?: Prisma.UserUncheckedUpdateManyWithoutRoleAssignerNestedInput
   createdAppointments?: Prisma.AppointmentUncheckedUpdateManyWithoutCreatorNestedInput
   createdInvoices?: Prisma.InvoiceUncheckedUpdateManyWithoutCreatorNestedInput
   receivedPayments?: Prisma.PaymentUncheckedUpdateManyWithoutReceiverNestedInput
@@ -1600,10 +1870,12 @@ export type UserCreateWithoutProcessedRefundsInput = {
   emailVerified?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  roleAssignedAt?: Date | string
   patientProfile?: Prisma.PatientCreateNestedOneWithoutUserInput
   doctorProfile?: Prisma.DoctorCreateNestedOneWithoutUserInput
-  roles?: Prisma.UserRoleCreateNestedManyWithoutUserInput
-  assignedRoles?: Prisma.UserRoleCreateNestedManyWithoutAssignerInput
+  role: Prisma.RoleCreateNestedOneWithoutUsersInput
+  roleAssigner?: Prisma.UserCreateNestedOneWithoutAssignedUsersInput
+  assignedUsers?: Prisma.UserCreateNestedManyWithoutRoleAssignerInput
   createdAppointments?: Prisma.AppointmentCreateNestedManyWithoutCreatorInput
   createdInvoices?: Prisma.InvoiceCreateNestedManyWithoutCreatorInput
   receivedPayments?: Prisma.PaymentCreateNestedManyWithoutReceiverInput
@@ -1622,10 +1894,12 @@ export type UserUncheckedCreateWithoutProcessedRefundsInput = {
   emailVerified?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  roleId: string
+  roleAssignedAt?: Date | string
+  roleAssignedBy?: string | null
   patientProfile?: Prisma.PatientUncheckedCreateNestedOneWithoutUserInput
   doctorProfile?: Prisma.DoctorUncheckedCreateNestedOneWithoutUserInput
-  roles?: Prisma.UserRoleUncheckedCreateNestedManyWithoutUserInput
-  assignedRoles?: Prisma.UserRoleUncheckedCreateNestedManyWithoutAssignerInput
+  assignedUsers?: Prisma.UserUncheckedCreateNestedManyWithoutRoleAssignerInput
   createdAppointments?: Prisma.AppointmentUncheckedCreateNestedManyWithoutCreatorInput
   createdInvoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutCreatorInput
   receivedPayments?: Prisma.PaymentUncheckedCreateNestedManyWithoutReceiverInput
@@ -1660,10 +1934,12 @@ export type UserUpdateWithoutProcessedRefundsInput = {
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roleAssignedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   patientProfile?: Prisma.PatientUpdateOneWithoutUserNestedInput
   doctorProfile?: Prisma.DoctorUpdateOneWithoutUserNestedInput
-  roles?: Prisma.UserRoleUpdateManyWithoutUserNestedInput
-  assignedRoles?: Prisma.UserRoleUpdateManyWithoutAssignerNestedInput
+  role?: Prisma.RoleUpdateOneRequiredWithoutUsersNestedInput
+  roleAssigner?: Prisma.UserUpdateOneWithoutAssignedUsersNestedInput
+  assignedUsers?: Prisma.UserUpdateManyWithoutRoleAssignerNestedInput
   createdAppointments?: Prisma.AppointmentUpdateManyWithoutCreatorNestedInput
   createdInvoices?: Prisma.InvoiceUpdateManyWithoutCreatorNestedInput
   receivedPayments?: Prisma.PaymentUpdateManyWithoutReceiverNestedInput
@@ -1682,15 +1958,173 @@ export type UserUncheckedUpdateWithoutProcessedRefundsInput = {
   emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roleId?: Prisma.StringFieldUpdateOperationsInput | string
+  roleAssignedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roleAssignedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   patientProfile?: Prisma.PatientUncheckedUpdateOneWithoutUserNestedInput
   doctorProfile?: Prisma.DoctorUncheckedUpdateOneWithoutUserNestedInput
-  roles?: Prisma.UserRoleUncheckedUpdateManyWithoutUserNestedInput
-  assignedRoles?: Prisma.UserRoleUncheckedUpdateManyWithoutAssignerNestedInput
+  assignedUsers?: Prisma.UserUncheckedUpdateManyWithoutRoleAssignerNestedInput
   createdAppointments?: Prisma.AppointmentUncheckedUpdateManyWithoutCreatorNestedInput
   createdInvoices?: Prisma.InvoiceUncheckedUpdateManyWithoutCreatorNestedInput
   receivedPayments?: Prisma.PaymentUncheckedUpdateManyWithoutReceiverNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   patientAccounts?: Prisma.PatientAccountUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateManyRoleAssignerInput = {
+  id?: string
+  email: string
+  passwordHash?: string | null
+  googleId?: string | null
+  phone?: string | null
+  fullName: string
+  status?: $Enums.UserStatus
+  emailVerified?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  roleId: string
+  roleAssignedAt?: Date | string
+}
+
+export type UserUpdateWithoutRoleAssignerInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fullName?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roleAssignedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  patientProfile?: Prisma.PatientUpdateOneWithoutUserNestedInput
+  doctorProfile?: Prisma.DoctorUpdateOneWithoutUserNestedInput
+  role?: Prisma.RoleUpdateOneRequiredWithoutUsersNestedInput
+  assignedUsers?: Prisma.UserUpdateManyWithoutRoleAssignerNestedInput
+  createdAppointments?: Prisma.AppointmentUpdateManyWithoutCreatorNestedInput
+  createdInvoices?: Prisma.InvoiceUpdateManyWithoutCreatorNestedInput
+  receivedPayments?: Prisma.PaymentUpdateManyWithoutReceiverNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
+  patientAccounts?: Prisma.PatientAccountUpdateManyWithoutUserNestedInput
+  processedRefunds?: Prisma.RefundRequestUpdateManyWithoutProcessorNestedInput
+}
+
+export type UserUncheckedUpdateWithoutRoleAssignerInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fullName?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roleId?: Prisma.StringFieldUpdateOperationsInput | string
+  roleAssignedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  patientProfile?: Prisma.PatientUncheckedUpdateOneWithoutUserNestedInput
+  doctorProfile?: Prisma.DoctorUncheckedUpdateOneWithoutUserNestedInput
+  assignedUsers?: Prisma.UserUncheckedUpdateManyWithoutRoleAssignerNestedInput
+  createdAppointments?: Prisma.AppointmentUncheckedUpdateManyWithoutCreatorNestedInput
+  createdInvoices?: Prisma.InvoiceUncheckedUpdateManyWithoutCreatorNestedInput
+  receivedPayments?: Prisma.PaymentUncheckedUpdateManyWithoutReceiverNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
+  patientAccounts?: Prisma.PatientAccountUncheckedUpdateManyWithoutUserNestedInput
+  processedRefunds?: Prisma.RefundRequestUncheckedUpdateManyWithoutProcessorNestedInput
+}
+
+export type UserUncheckedUpdateManyWithoutRoleAssignerInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fullName?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roleId?: Prisma.StringFieldUpdateOperationsInput | string
+  roleAssignedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type UserCreateManyRoleInput = {
+  id?: string
+  email: string
+  passwordHash?: string | null
+  googleId?: string | null
+  phone?: string | null
+  fullName: string
+  status?: $Enums.UserStatus
+  emailVerified?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  roleAssignedAt?: Date | string
+  roleAssignedBy?: string | null
+}
+
+export type UserUpdateWithoutRoleInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fullName?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roleAssignedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  patientProfile?: Prisma.PatientUpdateOneWithoutUserNestedInput
+  doctorProfile?: Prisma.DoctorUpdateOneWithoutUserNestedInput
+  roleAssigner?: Prisma.UserUpdateOneWithoutAssignedUsersNestedInput
+  assignedUsers?: Prisma.UserUpdateManyWithoutRoleAssignerNestedInput
+  createdAppointments?: Prisma.AppointmentUpdateManyWithoutCreatorNestedInput
+  createdInvoices?: Prisma.InvoiceUpdateManyWithoutCreatorNestedInput
+  receivedPayments?: Prisma.PaymentUpdateManyWithoutReceiverNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
+  patientAccounts?: Prisma.PatientAccountUpdateManyWithoutUserNestedInput
+  processedRefunds?: Prisma.RefundRequestUpdateManyWithoutProcessorNestedInput
+}
+
+export type UserUncheckedUpdateWithoutRoleInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fullName?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roleAssignedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roleAssignedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  patientProfile?: Prisma.PatientUncheckedUpdateOneWithoutUserNestedInput
+  doctorProfile?: Prisma.DoctorUncheckedUpdateOneWithoutUserNestedInput
+  assignedUsers?: Prisma.UserUncheckedUpdateManyWithoutRoleAssignerNestedInput
+  createdAppointments?: Prisma.AppointmentUncheckedUpdateManyWithoutCreatorNestedInput
+  createdInvoices?: Prisma.InvoiceUncheckedUpdateManyWithoutCreatorNestedInput
+  receivedPayments?: Prisma.PaymentUncheckedUpdateManyWithoutReceiverNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
+  patientAccounts?: Prisma.PatientAccountUncheckedUpdateManyWithoutUserNestedInput
+  processedRefunds?: Prisma.RefundRequestUncheckedUpdateManyWithoutProcessorNestedInput
+}
+
+export type UserUncheckedUpdateManyWithoutRoleInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fullName?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roleAssignedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  roleAssignedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 
@@ -1699,8 +2133,7 @@ export type UserUncheckedUpdateWithoutProcessedRefundsInput = {
  */
 
 export type UserCountOutputType = {
-  roles: number
-  assignedRoles: number
+  assignedUsers: number
   createdAppointments: number
   createdInvoices: number
   receivedPayments: number
@@ -1710,8 +2143,7 @@ export type UserCountOutputType = {
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  roles?: boolean | UserCountOutputTypeCountRolesArgs
-  assignedRoles?: boolean | UserCountOutputTypeCountAssignedRolesArgs
+  assignedUsers?: boolean | UserCountOutputTypeCountAssignedUsersArgs
   createdAppointments?: boolean | UserCountOutputTypeCountCreatedAppointmentsArgs
   createdInvoices?: boolean | UserCountOutputTypeCountCreatedInvoicesArgs
   receivedPayments?: boolean | UserCountOutputTypeCountReceivedPaymentsArgs
@@ -1733,15 +2165,8 @@ export type UserCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensi
 /**
  * UserCountOutputType without action
  */
-export type UserCountOutputTypeCountRolesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.UserRoleWhereInput
-}
-
-/**
- * UserCountOutputType without action
- */
-export type UserCountOutputTypeCountAssignedRolesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.UserRoleWhereInput
+export type UserCountOutputTypeCountAssignedUsersArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.UserWhereInput
 }
 
 /**
@@ -1798,10 +2223,14 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   emailVerified?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  roleId?: boolean
+  roleAssignedAt?: boolean
+  roleAssignedBy?: boolean
   patientProfile?: boolean | Prisma.User$patientProfileArgs<ExtArgs>
   doctorProfile?: boolean | Prisma.User$doctorProfileArgs<ExtArgs>
-  roles?: boolean | Prisma.User$rolesArgs<ExtArgs>
-  assignedRoles?: boolean | Prisma.User$assignedRolesArgs<ExtArgs>
+  role?: boolean | Prisma.RoleDefaultArgs<ExtArgs>
+  roleAssigner?: boolean | Prisma.User$roleAssignerArgs<ExtArgs>
+  assignedUsers?: boolean | Prisma.User$assignedUsersArgs<ExtArgs>
   createdAppointments?: boolean | Prisma.User$createdAppointmentsArgs<ExtArgs>
   createdInvoices?: boolean | Prisma.User$createdInvoicesArgs<ExtArgs>
   receivedPayments?: boolean | Prisma.User$receivedPaymentsArgs<ExtArgs>
@@ -1822,6 +2251,11 @@ export type UserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   emailVerified?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  roleId?: boolean
+  roleAssignedAt?: boolean
+  roleAssignedBy?: boolean
+  role?: boolean | Prisma.RoleDefaultArgs<ExtArgs>
+  roleAssigner?: boolean | Prisma.User$roleAssignerArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
 export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1835,6 +2269,11 @@ export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   emailVerified?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  roleId?: boolean
+  roleAssignedAt?: boolean
+  roleAssignedBy?: boolean
+  role?: boolean | Prisma.RoleDefaultArgs<ExtArgs>
+  roleAssigner?: boolean | Prisma.User$roleAssignerArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
 export type UserSelectScalar = {
@@ -1848,14 +2287,18 @@ export type UserSelectScalar = {
   emailVerified?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  roleId?: boolean
+  roleAssignedAt?: boolean
+  roleAssignedBy?: boolean
 }
 
-export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "email" | "passwordHash" | "googleId" | "phone" | "fullName" | "status" | "emailVerified" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
+export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "email" | "passwordHash" | "googleId" | "phone" | "fullName" | "status" | "emailVerified" | "createdAt" | "updatedAt" | "roleId" | "roleAssignedAt" | "roleAssignedBy", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   patientProfile?: boolean | Prisma.User$patientProfileArgs<ExtArgs>
   doctorProfile?: boolean | Prisma.User$doctorProfileArgs<ExtArgs>
-  roles?: boolean | Prisma.User$rolesArgs<ExtArgs>
-  assignedRoles?: boolean | Prisma.User$assignedRolesArgs<ExtArgs>
+  role?: boolean | Prisma.RoleDefaultArgs<ExtArgs>
+  roleAssigner?: boolean | Prisma.User$roleAssignerArgs<ExtArgs>
+  assignedUsers?: boolean | Prisma.User$assignedUsersArgs<ExtArgs>
   createdAppointments?: boolean | Prisma.User$createdAppointmentsArgs<ExtArgs>
   createdInvoices?: boolean | Prisma.User$createdInvoicesArgs<ExtArgs>
   receivedPayments?: boolean | Prisma.User$receivedPaymentsArgs<ExtArgs>
@@ -1864,16 +2307,23 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   processedRefunds?: boolean | Prisma.User$processedRefundsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
-export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
-export type UserIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
+export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  role?: boolean | Prisma.RoleDefaultArgs<ExtArgs>
+  roleAssigner?: boolean | Prisma.User$roleAssignerArgs<ExtArgs>
+}
+export type UserIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  role?: boolean | Prisma.RoleDefaultArgs<ExtArgs>
+  roleAssigner?: boolean | Prisma.User$roleAssignerArgs<ExtArgs>
+}
 
 export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "User"
   objects: {
     patientProfile: Prisma.$PatientPayload<ExtArgs> | null
     doctorProfile: Prisma.$DoctorPayload<ExtArgs> | null
-    roles: Prisma.$UserRolePayload<ExtArgs>[]
-    assignedRoles: Prisma.$UserRolePayload<ExtArgs>[]
+    role: Prisma.$RolePayload<ExtArgs>
+    roleAssigner: Prisma.$UserPayload<ExtArgs> | null
+    assignedUsers: Prisma.$UserPayload<ExtArgs>[]
     createdAppointments: Prisma.$AppointmentPayload<ExtArgs>[]
     createdInvoices: Prisma.$InvoicePayload<ExtArgs>[]
     receivedPayments: Prisma.$PaymentPayload<ExtArgs>[]
@@ -1892,6 +2342,9 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     emailVerified: boolean
     createdAt: Date
     updatedAt: Date
+    roleId: string
+    roleAssignedAt: Date
+    roleAssignedBy: string | null
   }, ExtArgs["result"]["user"]>
   composites: {}
 }
@@ -2288,8 +2741,9 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   readonly [Symbol.toStringTag]: "PrismaPromise"
   patientProfile<T extends Prisma.User$patientProfileArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$patientProfileArgs<ExtArgs>>): Prisma.Prisma__PatientClient<runtime.Types.Result.GetResult<Prisma.$PatientPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   doctorProfile<T extends Prisma.User$doctorProfileArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$doctorProfileArgs<ExtArgs>>): Prisma.Prisma__DoctorClient<runtime.Types.Result.GetResult<Prisma.$DoctorPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-  roles<T extends Prisma.User$rolesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$rolesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserRolePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-  assignedRoles<T extends Prisma.User$assignedRolesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$assignedRolesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserRolePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  role<T extends Prisma.RoleDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.RoleDefaultArgs<ExtArgs>>): Prisma.Prisma__RoleClient<runtime.Types.Result.GetResult<Prisma.$RolePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  roleAssigner<T extends Prisma.User$roleAssignerArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$roleAssignerArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  assignedUsers<T extends Prisma.User$assignedUsersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$assignedUsersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   createdAppointments<T extends Prisma.User$createdAppointmentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$createdAppointmentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AppointmentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   createdInvoices<T extends Prisma.User$createdInvoicesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$createdInvoicesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$InvoicePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   receivedPayments<T extends Prisma.User$receivedPaymentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$receivedPaymentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PaymentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -2335,6 +2789,9 @@ export interface UserFieldRefs {
   readonly emailVerified: Prisma.FieldRef<"User", 'Boolean'>
   readonly createdAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"User", 'DateTime'>
+  readonly roleId: Prisma.FieldRef<"User", 'String'>
+  readonly roleAssignedAt: Prisma.FieldRef<"User", 'DateTime'>
+  readonly roleAssignedBy: Prisma.FieldRef<"User", 'String'>
 }
     
 
@@ -2589,6 +3046,10 @@ export type UserCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensions
    */
   data: Prisma.UserCreateManyInput | Prisma.UserCreateManyInput[]
   skipDuplicates?: boolean
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserIncludeCreateManyAndReturn<ExtArgs> | null
 }
 
 /**
@@ -2659,6 +3120,10 @@ export type UserUpdateManyAndReturnArgs<ExtArgs extends runtime.Types.Extensions
    * Limit how many Users to update.
    */
   limit?: number
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserIncludeUpdateManyAndReturn<ExtArgs> | null
 }
 
 /**
@@ -2766,51 +3231,46 @@ export type User$doctorProfileArgs<ExtArgs extends runtime.Types.Extensions.Inte
 }
 
 /**
- * User.roles
+ * User.roleAssigner
  */
-export type User$rolesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type User$roleAssignerArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the UserRole
+   * Select specific fields to fetch from the User
    */
-  select?: Prisma.UserRoleSelect<ExtArgs> | null
+  select?: Prisma.UserSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the UserRole
+   * Omit specific fields from the User
    */
-  omit?: Prisma.UserRoleOmit<ExtArgs> | null
+  omit?: Prisma.UserOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.UserRoleInclude<ExtArgs> | null
-  where?: Prisma.UserRoleWhereInput
-  orderBy?: Prisma.UserRoleOrderByWithRelationInput | Prisma.UserRoleOrderByWithRelationInput[]
-  cursor?: Prisma.UserRoleWhereUniqueInput
-  take?: number
-  skip?: number
-  distinct?: Prisma.UserRoleScalarFieldEnum | Prisma.UserRoleScalarFieldEnum[]
+  include?: Prisma.UserInclude<ExtArgs> | null
+  where?: Prisma.UserWhereInput
 }
 
 /**
- * User.assignedRoles
+ * User.assignedUsers
  */
-export type User$assignedRolesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type User$assignedUsersArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the UserRole
+   * Select specific fields to fetch from the User
    */
-  select?: Prisma.UserRoleSelect<ExtArgs> | null
+  select?: Prisma.UserSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the UserRole
+   * Omit specific fields from the User
    */
-  omit?: Prisma.UserRoleOmit<ExtArgs> | null
+  omit?: Prisma.UserOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.UserRoleInclude<ExtArgs> | null
-  where?: Prisma.UserRoleWhereInput
-  orderBy?: Prisma.UserRoleOrderByWithRelationInput | Prisma.UserRoleOrderByWithRelationInput[]
-  cursor?: Prisma.UserRoleWhereUniqueInput
+  include?: Prisma.UserInclude<ExtArgs> | null
+  where?: Prisma.UserWhereInput
+  orderBy?: Prisma.UserOrderByWithRelationInput | Prisma.UserOrderByWithRelationInput[]
+  cursor?: Prisma.UserWhereUniqueInput
   take?: number
   skip?: number
-  distinct?: Prisma.UserRoleScalarFieldEnum | Prisma.UserRoleScalarFieldEnum[]
+  distinct?: Prisma.UserScalarFieldEnum | Prisma.UserScalarFieldEnum[]
 }
 
 /**
