@@ -1,11 +1,4 @@
-import { Text, View } from 'react-native';
+import PatientRecordsScreen from './screens/PatientRecordsScreen';
 
-const ReportScreen = () => {
-  return (
-    <View>
-      <Text>ReportScreen</Text>
-    </View>
-  );
-};
-
-export default ReportScreen;
+export default PatientRecordsScreen;
+export { PatientRecordsScreen };

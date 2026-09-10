@@ -7,7 +7,7 @@ import {
   useState,
 } from 'react';
 import { io, Socket } from 'socket.io-client';
-import Config from 'react-native-config';
+import { getSocketUrl } from '~src/config';
 interface socketProviderProps {
   children: ReactNode;
   token: string | null;
@@ -33,7 +33,7 @@ export const SocketProvider = ({ children, token }: socketProviderProps) => {
       return;
     }
 
-    const socketInstance = io(Config.BACKEND_URL, {
+    const socketInstance = io(getSocketUrl(), {
       auth: { token },
       transports: ['websocket'],
     });

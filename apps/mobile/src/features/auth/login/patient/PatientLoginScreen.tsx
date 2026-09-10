@@ -4,6 +4,8 @@ import LoginForm from '../components/LoginForm';
 const PatientLoginScreen = () => (
   <LoginForm
     accentColor="#0875D1"
+    initialEmail="patient01@smartdental.test"
+    initialPassword="Test@123456"
     role="PATIENT"
     showPatientActions
     subtitle="Đăng nhập để tiếp tục chăm sóc nụ cười của bạn"

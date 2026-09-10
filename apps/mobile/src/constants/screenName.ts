@@ -12,4 +12,10 @@ export const SCREEN_NAME = {
   AI: 'AI',
   REPORT: 'Report',
   PERSONAL: 'Personal',
-};
+  PATIENT_SERVICES: 'PatientServices',
+  PATIENT_DOCTORS: 'PatientDoctors',
+  PATIENT_CONSULTATION: 'PatientConsultation',
+  PATIENT_PAYMENT: 'PatientPayment',
+  PATIENT_NOTIFICATIONS: 'PatientNotifications',
+  PATIENT_PROMOTIONS: 'PatientPromotions',
+} as const;

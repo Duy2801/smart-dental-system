@@ -1,11 +1,6 @@
-import { Text, View } from 'react-native';
+import React from 'react';
+import AppointmentWorkspaceScreen from '../appointment/screens/AppointmentWorkspaceScreen';
 
-const FunctionScreen = () => {
-  return (
-    <View>
-      <Text>FunctionScreen</Text>
-    </View>
-  );
-};
-
-export default FunctionScreen;
+export default function FunctionScreen(props: any) {
+  return <AppointmentWorkspaceScreen {...props} />;
+}

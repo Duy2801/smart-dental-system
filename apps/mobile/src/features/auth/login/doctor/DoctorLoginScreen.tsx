@@ -1,6 +1,6 @@
 import React from 'react';
-import LoginForm from '../components/LoginForm';
 import { SECONDARY_COLOR } from '~src/constants/color';
+import LoginForm from '../components/LoginForm';
 
 const DoctorLoginScreen = () => (
   <LoginForm

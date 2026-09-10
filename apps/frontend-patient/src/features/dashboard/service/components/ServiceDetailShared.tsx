@@ -60,7 +60,7 @@ export function SectionHeading({
 
 export function EmptyContent({ label }: { label: string }) {
   return (
-    <div className="max-w-full break-words rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500 sm:p-5">
+    <div className="flex h-full min-h-[90px] w-full items-center justify-center max-w-full break-words rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-4 text-center text-sm text-slate-500 sm:p-5">
       {label} chưa được cập nhật trong hệ thống.
     </div>
   );

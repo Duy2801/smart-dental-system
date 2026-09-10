@@ -1,23 +1,13 @@
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import React, { useEffect } from 'react';
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  useWindowDimensions,
-  View,
-} from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from 'react-native-reanimated';
+import React from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SCREEN_NAME } from '~src/constants/screenName';
 
 type IconName =
-  | 'chart-column'
+  | 'calendar-days'
+  | 'file-lines'
   | 'house'
   | 'robot'
   | 'table-cells-large'
@@ -25,14 +15,12 @@ type IconName =
 
 const ICON_MAP: Record<string, IconName> = {
   [SCREEN_NAME.HOME]: 'house',
-  [SCREEN_NAME.FUNCTION]: 'table-cells-large',
+  [SCREEN_NAME.FUNCTION]: 'calendar-days',
+  [SCREEN_NAME.PATIENT_SERVICES]: 'table-cells-large',
   [SCREEN_NAME.AI]: 'robot',
-  [SCREEN_NAME.REPORT]: 'chart-column',
+  [SCREEN_NAME.REPORT]: 'file-lines',
   [SCREEN_NAME.PERSONAL]: 'user',
 };
-
-const HORIZONTAL_MARGIN = 16;
-const INNER_PADDING = 6;
 
 const CustomTabBar = ({
   descriptors,
@@ -40,48 +28,27 @@ const CustomTabBar = ({
   state,
 }: BottomTabBarProps) => {
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
-  const translateX = useSharedValue(0);
-  const tabWidth =
-    (width - HORIZONTAL_MARGIN * 2 - INNER_PADDING * 2) / state.routes.length;
   const currentParams = state.routes[state.index]?.params as
     | { hideTabBar?: boolean }
     | undefined;
 
-  useEffect(() => {
-    translateX.value = withSpring(state.index * tabWidth, {
-      damping: 24,
-      mass: 0.7,
-      overshootClamping: true,
-      stiffness: 150,
-    });
-  }, [state.index, tabWidth, translateX]);
-
-  const indicatorStyle = useAnimatedStyle(() => ({
-    opacity: state.routes[state.index]?.name === SCREEN_NAME.AI ? 0 : 1,
-    transform: [{ translateX: translateX.value }],
-    width: tabWidth,
-  }));
-
   if (currentParams?.hideTabBar) return null;
 
   return (
-    <View
-      pointerEvents="box-none"
-      style={[styles.wrapper, { paddingBottom: Math.max(insets.bottom, 10) }]}
-    >
+    <View style={[styles.wrapper, { paddingBottom: Math.max(insets.bottom, 6) }]}>
       <View style={styles.container}>
-        <Animated.View style={[styles.activePill, indicatorStyle]} />
         {state.routes.map((route, index) => {
           const options = descriptors[route.key].options;
+          if ((options.tabBarItemStyle as any)?.display === 'none') {
+            return null;
+          }
           const label =
             typeof options.tabBarLabel === 'string'
               ? options.tabBarLabel
               : typeof options.title === 'string'
-              ? options.title
-              : route.name;
+                ? options.title
+                : route.name;
           const isFocused = state.index === index;
-          const isAI = route.name === SCREEN_NAME.AI;
 
           const onPress = () => {
             const event = navigation.emit({
@@ -90,7 +57,11 @@ const CustomTabBar = ({
               type: 'tabPress',
             });
             if (!isFocused && !event.defaultPrevented) {
-              navigation.navigate(route.name, route.params);
+              navigation.navigate({
+                name: route.name,
+                params: route.params,
+                merge: true,
+              });
             }
           };
 
@@ -98,45 +69,26 @@ const CustomTabBar = ({
             <TouchableOpacity
               accessibilityRole="button"
               accessibilityState={isFocused ? { selected: true } : {}}
-              activeOpacity={0.8}
+              activeOpacity={0.82}
               key={route.key}
               onLongPress={() =>
                 navigation.emit({ target: route.key, type: 'tabLongPress' })
               }
               onPress={onPress}
-              style={[styles.tabItem, isAI && styles.aiTabItem]}
+              style={styles.tabItem}
             >
-              {isAI ? (
-                <View
-                  style={[
-                    styles.aiButtonBorder,
-                    isFocused && styles.aiButtonBorderFocused,
-                  ]}
-                >
-                  <View style={styles.aiButton}>
-                    <FontAwesome6
-                      color="#FFFFFF"
-                      iconStyle="solid"
-                      name="robot"
-                      size={23}
-                    />
-                  </View>
-                </View>
-              ) : (
+              {isFocused ? <View style={styles.activeIndicator} /> : null}
+              <View style={[styles.iconBox, isFocused && styles.activeIconBox]}>
                 <FontAwesome6
-                  color={isFocused ? '#FFFFFF' : '#667085'}
+                  color={isFocused ? '#0058bc' : '#94A3B8'}
                   iconStyle="solid"
-                  name={ICON_MAP[route.name] || 'house'}
+                  name={(ICON_MAP[route.name] || 'house') as never}
                   size={18}
                 />
-              )}
+              </View>
               <Text
                 numberOfLines={1}
-                style={[
-                  styles.label,
-                  isFocused && styles.activeLabel,
-                  isAI && styles.aiLabel,
-                ]}
+                style={[styles.label, isFocused && styles.activeLabel]}
               >
                 {label}
               </Text>
@@ -149,85 +101,55 @@ const CustomTabBar = ({
 };
 
 const styles = StyleSheet.create({
-  wrapper: {
-    backgroundColor: 'transparent',
-    paddingHorizontal: HORIZONTAL_MARGIN,
-    paddingTop: 22,
+  activeIconBox: {
+    backgroundColor: '#EFF7FF',
+  },
+  activeIndicator: {
+    backgroundColor: '#0863C5',
+    borderRadius: 999,
+    height: 3,
+    position: 'absolute',
+    top: 0,
+    width: 30,
+  },
+  activeLabel: {
+    color: '#0863C5',
+    fontWeight: '800',
   },
   container: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E7ECF3',
-    borderRadius: 22,
-    borderWidth: 1,
-    elevation: 10,
+    backgroundColor: 'rgba(255,255,255,0.97)',
+    borderTopColor: '#E2E8F0',
+    borderTopWidth: 1,
     flexDirection: 'row',
-    height: 66,
-    paddingHorizontal: INNER_PADDING,
-    shadowColor: '#101828',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
+    height: 62,
+    paddingHorizontal: 4,
   },
-  activePill: {
-    backgroundColor: '#0875D1',
-    borderRadius: 17,
-    bottom: INNER_PADDING,
-    left: INNER_PADDING,
-    position: 'absolute',
-    top: INNER_PADDING,
+  iconBox: {
+    alignItems: 'center',
+    borderRadius: 12,
+    height: 34,
+    justifyContent: 'center',
+    width: 38,
+  },
+  label: {
+    color: '#98A2B3',
+    fontSize: 10,
+    fontWeight: '600',
+    lineHeight: 12,
+    maxWidth: '96%',
   },
   tabItem: {
     alignItems: 'center',
     flex: 1,
-    gap: 5,
-    height: 54,
+    gap: 2,
+    height: 62,
     justifyContent: 'center',
-    zIndex: 1,
+    position: 'relative',
   },
-  aiTabItem: {
-    overflow: 'visible',
+  wrapper: {
+    backgroundColor: 'rgba(255,255,255,0.97)',
   },
-  aiButtonBorder: {
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderColor: '#D7E9FF',
-    borderRadius: 34,
-    borderWidth: 2,
-    height: 60,
-    justifyContent: 'center',
-    position: 'absolute',
-    top: -22,
-    width: 60,
-  },
-  aiButtonBorderFocused: {
-    borderColor: '#87BEFF',
-    elevation: 12,
-    shadowColor: '#0875D1',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-  },
-  aiButton: {
-    alignItems: 'center',
-    backgroundColor: '#0875D1',
-    borderRadius: 26,
-    height: 50,
-    justifyContent: 'center',
-    width: 50,
-  },
-  label: {
-    color: '#667085',
-    fontSize: 10,
-    fontWeight: '600',
-    maxWidth: '92%',
-  },
-  aiLabel: {
-    color: '#0875D1',
-    fontWeight: '800',
-    marginTop: 29,
-  },
-  activeLabel: { color: '#FFFFFF', fontWeight: '800' },
 });
 
 export default CustomTabBar;

@@ -21,6 +21,18 @@ export const getAuthErrorMessage = (error: unknown) => {
     : response?.message || response?.error;
 
   if (!rawMessage) {
+    if (error.response?.status === 401) {
+      return messages['auth.invalid_credentials'];
+    }
+
+    if (error.response?.status === 403) {
+      return 'Bạn không có quyền truy cập chức năng này';
+    }
+
+    if (error.response) {
+      return `Máy chủ trả về lỗi ${error.response.status}`;
+    }
+
     return error.code === 'ECONNABORTED'
       ? 'Kết nối máy chủ quá thời gian'
       : 'Không thể kết nối đến máy chủ';

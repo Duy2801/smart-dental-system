@@ -28,6 +28,15 @@ export class UserService {
     if (await this.findByEmail(email)) {
       throw new ConflictException('auth.email_exists');
     }
+    const patientRole = await this.prisma.role.upsert({
+      where: { code: 'PATIENT' },
+      update: {},
+      create: {
+        code: 'PATIENT',
+        name: 'Patient',
+        description: 'Patient portal account',
+      },
+    });
     const user = await this.prisma.user.create({
       data: {
         email,
@@ -35,6 +44,7 @@ export class UserService {
         fullName: dto.fullName.trim(),
         phone: dto.phone,
         status: dto.status,
+        roleId: patientRole.id,
       },
     });
     return this.toResponse(user);
@@ -75,12 +85,6 @@ export class UserService {
           passwordHash: await bcrypt.hash(dto.password, 10),
           emailVerified: true,
           status: 'ACTIVE',
-        },
-      });
-
-      await tx.userRole.create({
-        data: {
-          userId: user.id,
           roleId: role.id,
         },
       });
@@ -88,7 +92,7 @@ export class UserService {
       const staff = await tx.user.findUnique({
         where: { id: user.id },
         include: {
-          roles: { include: { role: true } },
+          role: true,
           doctorProfile: true,
         },
       });
@@ -102,7 +106,7 @@ export class UserService {
         status: staff!.status,
         createdAt: staff!.createdAt,
         updatedAt: staff!.updatedAt,
-        roles: staff!.roles.map(({ role }) => role.code),
+        roles: [staff!.role.code],
         role: role.code,
         doctorProfile: staff!.doctorProfile,
       };
@@ -114,7 +118,7 @@ export class UserService {
     const [data, total] = await this.prisma.$transaction([
       this.prisma.user.findMany({
         where,
-        include: { roles: { include: { role: true } } },
+        include: { role: true },
         skip: (query.page - 1) * query.limit,
         take: query.limit,
         orderBy: { createdAt: 'desc' },
@@ -125,7 +129,7 @@ export class UserService {
       data: data.map((user) =>
         this.toResponse({
           ...user,
-          roles: user.roles.map(({ role }) => role.code),
+          roles: [user.role.code],
         }),
       ),
       meta: {
@@ -148,13 +152,9 @@ export class UserService {
 
     const where = {
       status: query.status,
-      roles: {
-        some: {
-          role: {
-            code: {
-              in: roleCodes,
-            },
-          },
+      role: {
+        code: {
+          in: roleCodes,
         },
       },
       OR: search
@@ -170,7 +170,7 @@ export class UserService {
       this.prisma.user.findMany({
         where,
         include: {
-          roles: { include: { role: true } },
+          role: true,
           doctorProfile: true,
         },
         skip: (query.page - 1) * query.limit,
@@ -190,11 +190,11 @@ export class UserService {
         status: user.status,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
-        roles: user.roles.map(({ role }) => role.code),
+        roles: [user.role.code],
         role:
-          user.roles.find(({ role }) =>
-            staffRoles.includes(role.code as StaffRoleCode),
-          )?.role.code ?? null,
+          staffRoles.includes(user.role.code as StaffRoleCode)
+            ? user.role.code
+            : null,
         doctorProfile: user.doctorProfile,
       })),
       meta: {
@@ -210,7 +210,7 @@ export class UserService {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
-        roles: { include: { role: true } },
+        role: true,
         doctorProfile: true,
       },
     });
@@ -226,15 +226,15 @@ export class UserService {
       status: user.status,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
-      roles: user.roles.map(({ role }) => role.code),
+      roles: [user.role.code],
       role:
-        user.roles.find(({ role }) =>
-          [
-            StaffRoleCode.ADMIN,
-            StaffRoleCode.DOCTOR,
-            StaffRoleCode.RECEPTIONIST,
-          ].includes(role.code as StaffRoleCode),
-        )?.role.code ?? null,
+        [
+          StaffRoleCode.ADMIN,
+          StaffRoleCode.DOCTOR,
+          StaffRoleCode.RECEPTIONIST,
+        ].includes(user.role.code as StaffRoleCode)
+          ? user.role.code
+          : null,
       doctorProfile: user.doctorProfile,
     };
   }
@@ -242,12 +242,12 @@ export class UserService {
   async findOne(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      include: { roles: { include: { role: true } } },
+      include: { role: true },
     });
     if (!user) throw new NotFoundException('user.not_found');
     return this.toResponse({
       ...user,
-      roles: user.roles.map(({ role }) => role.code),
+      roles: [user.role.code],
     });
   }
 
@@ -257,6 +257,7 @@ export class UserService {
     const { password, roleCode, ...data } = dto;
     const email = data.email?.trim().toLowerCase();
     const phone = data.phone?.trim();
+    let nextRoleId: string | undefined;
 
     const user = await this.prisma.$transaction(async (tx) => {
       if (email || phone) {
@@ -285,19 +286,14 @@ export class UserService {
           throw new BadRequestException('role.not_found');
         }
 
-        await tx.userRole.deleteMany({ where: { userId: id } });
-        await tx.userRole.create({
-          data: {
-            userId: id,
-            roleId: role.id,
-          },
-        });
+        nextRoleId = role.id;
       }
 
       return tx.user.update({
         where: { id },
         data: {
           ...data,
+          roleId: nextRoleId,
           email,
           phone,
           fullName: data.fullName?.trim(),

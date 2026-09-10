@@ -7,6 +7,7 @@
 
 import 'react-native-reanimated';
 import 'react-native-get-random-values';
+import './global.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SocketProvider } from './src/service/useSocket';
 import { Provider, useDispatch, useSelector } from 'react-redux';
@@ -17,6 +18,10 @@ import ApplicationNavigator from '~src/routes';
 import { useEffect } from 'react';
 import { loadAuthSession } from '~src/features/auth/session';
 import { hydrateSession } from '~src/reducers/loginReducer';
+import { LogBox } from 'react-native';
+import { paperLightTheme } from '~src/constants/theme';
+
+LogBox.ignoreAllLogs();
 
 const queryClient = new QueryClient();
 
@@ -47,7 +52,7 @@ function App() {
       <Provider store={store}>
         <AuthBootstrap>
           <SocketWrapper>
-            <PaperProvider>
+            <PaperProvider theme={paperLightTheme}>
               <Layout>
                 <ApplicationNavigator />
               </Layout>
