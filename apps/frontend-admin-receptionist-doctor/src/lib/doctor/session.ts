@@ -4,13 +4,13 @@ export function getDoctorIdFromCookie(): string | null {
   return getDoctorInfoFromCookie().doctorId;
 }
 
-/** Đọc cả doctorId và doctorName từ cookie user_info */
 export function getDoctorInfoFromCookie(): {
   doctorId: string | null;
   doctorName: string | null;
+  fullName: string | null;
 } {
   if (typeof document === "undefined") {
-    return { doctorId: null, doctorName: null };
+    return { doctorId: null, doctorName: null, fullName: null };
   }
   const raw = document.cookie
     .split("; ")
@@ -18,19 +18,21 @@ export function getDoctorInfoFromCookie(): {
     ?.split("=")
     .slice(1)
     .join("=");
-  if (!raw) return { doctorId: null, doctorName: null };
+  if (!raw) return { doctorId: null, doctorName: null, fullName: null };
   try {
     const info = JSON.parse(decodeURIComponent(raw)) as {
       doctorId?: string | null;
       fullName?: string | null;
       name?: string | null;
     };
+    const name = info.fullName ?? info.name ?? null;
     return {
       doctorId: info.doctorId ?? null,
-      doctorName: info.fullName ?? info.name ?? null,
+      doctorName: name,
+      fullName: name,
     };
   } catch {
-    return { doctorId: null, doctorName: null };
+    return { doctorId: null, doctorName: null, fullName: null };
   }
 }
 

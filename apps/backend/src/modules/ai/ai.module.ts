@@ -6,6 +6,7 @@ import { AiClientService } from './ai-client.service';
 import { AiController } from './ai.controller';
 import { AiService } from './ai.service';
 import { AiRateLimitService } from './ai-rate-limit.service';
+import { ReceptionistAiController } from './receptionist-ai.controller';
 
 @Module({
   imports: [
@@ -13,7 +14,7 @@ import { AiRateLimitService } from './ai-rate-limit.service';
     MailModule,
     SocketModule,
   ],
-  controllers: [AiController],
+  controllers: [AiController, ReceptionistAiController],
   providers: [AiClientService, AiRateLimitService, AiService],
   exports: [AiService, AiClientService],
 })

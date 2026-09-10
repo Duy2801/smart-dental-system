@@ -53,7 +53,13 @@ const appointmentInclude = {
   treatmentMethod: { include: { service: true } },
   medicalRecords: { select: { id: true }, take: 1 },
   invoices: {
-    select: { id: true, invoiceType: true, status: true, finalAmount: true },
+    select: {
+      id: true,
+      invoiceType: true,
+      status: true,
+      finalAmount: true,
+      issuedAt: true,
+    },
   },
 };
 
@@ -443,6 +449,16 @@ export class AppointmentService {
   }
 
   async confirmAppointment(appointmentId: string) {
+    const appointment = await this.prisma.appointment.findUnique({
+      where: { id: appointmentId },
+      select: { scheduledAt: true },
+    });
+    if (!appointment) {
+      throw new BadRequestException('appointment.not_found');
+    }
+    if (this.formatDateId(appointment.scheduledAt) < this.formatDateId(new Date())) {
+      throw new BadRequestException('appointment.cannot_confirm_past_appointment');
+    }
     const updated = await this.transitionAppointment(
       appointmentId,
       [AppointmentStatus.PENDING],
@@ -456,13 +472,25 @@ export class AppointmentService {
     return updated;
   }
 
-  async checkInAppointment(appointmentId: string, notes?: string) {
+  async checkInAppointment(
+    appointmentId: string,
+    notes?: string,
+    medicalHistoryConfirmed = false,
+  ) {
+    if (!medicalHistoryConfirmed) {
+      throw new BadRequestException(
+        'appointment.medical_history_confirmation_required',
+      );
+    }
     const current = await this.prisma.appointment.findUnique({
       where: { id: appointmentId },
-      select: { notes: true },
+      select: { notes: true, scheduledAt: true },
     });
     if (!current) {
       throw new BadRequestException('appointment.not_found');
+    }
+    if (this.formatDateId(current.scheduledAt) !== this.formatDateId(new Date())) {
+      throw new BadRequestException('appointment.check_in_today_only');
     }
 
     const staffNote = notes?.trim();
@@ -470,16 +498,36 @@ export class AppointmentService {
       ? [current.notes, `[Check-in] ${staffNote}`].filter(Boolean).join('\n')
       : undefined;
 
-    const updated = await this.transitionAppointment(
-      appointmentId,
-      [AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED],
-      {
+    const claimed = await this.prisma.appointment.updateMany({
+      where: {
+        id: appointmentId,
+        status: {
+          in: [AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED],
+        },
+      },
+      data: {
         status: AppointmentStatus.CHECKED_IN,
         checkedInAt: new Date(),
         ...(mergedNotes ? { notes: mergedNotes } : {}),
       },
-      'appointment.must_be_confirmed_to_check_in',
+    });
+    if (claimed.count !== 1) {
+      throw new BadRequestException(
+        'appointment.must_be_confirmed_to_check_in',
+      );
+    }
+    const appointment = await this.prisma.appointment.findUnique({
+      where: { id: appointmentId },
+      include: appointmentInclude,
+    });
+    if (!appointment) {
+      throw new BadRequestException('appointment.not_found');
+    }
+    void this.invalidateBookingCache(
+      appointment.createdBy,
+      appointment.patientId || undefined,
     );
+    const updated = this.withDerivedService(appointment);
     void this.dispatchAppointmentCheckInNotification(updated);
     return updated;
   }
@@ -510,19 +558,23 @@ export class AppointmentService {
   }
 
   async cancelByStaff(appointmentId: string, reason?: string) {
+    const cancellationReason =
+      typeof reason === 'string' && reason.trim()
+        ? reason.trim().slice(0, 500)
+        : 'Cancelled by staff';
     const updated = await this.transitionAppointment(
       appointmentId,
       [AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED],
       {
         status: AppointmentStatus.CANCELLED,
         cancelledAt: new Date(),
-        cancellationReason: reason || 'Cancelled by staff',
+        cancellationReason,
       },
       'appointment.cannot_cancel',
     );
     void this.dispatchAppointmentCancelledNotification(
       updated,
-      reason || 'Phòng khám hủy lịch theo yêu cầu',
+      cancellationReason,
     );
     return updated;
   }
@@ -540,7 +592,6 @@ export class AppointmentService {
     if (!appointment) {
       throw new BadRequestException('appointment.not_found');
     }
-
     const reschedulable: AppointmentStatus[] = [
       AppointmentStatus.PENDING,
       AppointmentStatus.CONFIRMED,
@@ -618,6 +669,9 @@ export class AppointmentService {
     });
     if (!appointment) {
       throw new BadRequestException('appointment.not_found');
+    }
+    if (appointment.scheduledAt.getTime() <= Date.now()) {
+      throw new BadRequestException('appointment.cannot_remind_past_appointment');
     }
 
     const patient = appointment.patient;
@@ -936,6 +990,10 @@ export class AppointmentService {
       throw new BadRequestException('appointment.not_found');
     }
 
+    if (this.formatDateId(appointment.scheduledAt) !== this.formatDateId(new Date())) {
+      throw new BadRequestException('appointment.start_today_only');
+    }
+
     if (appointment.status !== AppointmentStatus.CHECKED_IN) {
       throw new BadRequestException('appointment.must_be_checked_in_to_start');
     }
@@ -1172,7 +1230,7 @@ export class AppointmentService {
         invoiceType: InvoiceType.STEP_PAYMENT,
         items: [
           {
-            description: `Dot ${step.stepOrder}: ${step.title}`,
+            description: `Đợt ${step.stepOrder}: ${step.title}`,
             qty: 1,
             unit_price: amount,
             amount,

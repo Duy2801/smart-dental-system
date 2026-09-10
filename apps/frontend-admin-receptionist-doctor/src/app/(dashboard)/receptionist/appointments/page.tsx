@@ -8,7 +8,7 @@ import { AppointmentStatusBadge } from "@/src/components/shared/appointment-stat
 import type { AppointmentStatus } from "@/src/components/shared/appointment-status-badge";
 import apiClient from "@/src/lib/api/client";
 import { mapAppointments, localDateStr } from "@/src/lib/receptionist/mappers";
-import type { ReceptionistAppointment } from "@/src/lib/receptionist/mappers";
+import type { ApiAppointment, ReceptionistAppointment } from "@/src/lib/receptionist/mappers";
 import { getApiErrorMessage } from "@/src/lib/utils/api-error";
 import { formatDoctorName } from "@/src/lib/utils/format";
 import { useAppDialog } from "@/src/providers/app-dialog-provider";
@@ -69,24 +69,38 @@ function formatTime(t?: string): string {
   return t.slice(0, 5);
 }
 
-function toDateStr(d: Date): string {
-  return localDateStr(d);
+function shiftDate(dateId: string, days: number): string {
+  const date = new Date(`${dateId}T12:00:00+07:00`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return localDateStr(date);
 }
 
-function formatDateLabel(d: Date): string {
-  const today = new Date();
-  const diff = Math.round(
-    (d.setHours(0, 0, 0, 0) - today.setHours(0, 0, 0, 0)) / 86400000
-  );
-  const label = d.toLocaleDateString("vi-VN", {
+function formatDateLabel(dateId: string): string {
+  const today = localDateStr();
+  const label = new Date(`${dateId}T00:00:00+07:00`).toLocaleDateString("vi-VN", {
+    timeZone: "Asia/Ho_Chi_Minh",
     weekday: "short",
     day: "2-digit",
     month: "2-digit",
   });
-  if (diff === 0) return `Hôm nay — ${label}`;
-  if (diff === -1) return `Hôm qua — ${label}`;
-  if (diff === 1) return `Ngày mai — ${label}`;
+  if (dateId === today) return `Hôm nay — ${label}`;
+  if (dateId === shiftDate(today, -1)) return `Hôm qua — ${label}`;
+  if (dateId === shiftDate(today, 1)) return `Ngày mai — ${label}`;
   return label;
+}
+
+function getTiming(apt: Appointment, now: number) {
+  const scheduledAt = new Date(apt.scheduledAt ?? "").getTime();
+  const appointmentDate = Number.isNaN(scheduledAt)
+    ? ""
+    : localDateStr(new Date(scheduledAt));
+  const today = localDateStr(new Date(now));
+  return {
+    canConfirm: appointmentDate >= today,
+    canCheckIn: appointmentDate === today,
+    canMarkNoShow: scheduledAt <= now,
+    canRemind: scheduledAt > now,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -125,11 +139,13 @@ function ActionMenu({
   apt,
   onStatusChange,
   onSendReminder,
+  now,
   disabled,
 }: {
   apt: Appointment;
   onStatusChange: (id: string, status: AppointmentStatus) => void;
   onSendReminder?: (id: string, patientName: string) => void;
+  now: number;
   disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -143,6 +159,8 @@ function ActionMenu({
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
+
+  const timing = getTiming(apt, now);
 
   return (
     <div ref={ref} className="relative">
@@ -175,7 +193,8 @@ function ActionMenu({
             </Link>
           )}
 
-          {(apt.status === "PENDING" || apt.status === "CONFIRMED") && onSendReminder && (
+          {(apt.status === "PENDING" || apt.status === "CONFIRMED") &&
+            timing.canRemind && onSendReminder && (
             <button
               onClick={() => {
                 onSendReminder(apt.id, apt.patient?.fullName ?? "Bệnh nhân");
@@ -196,12 +215,14 @@ function ActionMenu({
               >
                 <X size={13} /> Khách báo hủy
               </button>
-              <button
-                onClick={() => { onStatusChange(apt.id, "NO_SHOW"); setOpen(false); }}
-                className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
-              >
-                <UserMinus size={13} /> Đánh dấu vắng mặt
-              </button>
+              {timing.canMarkNoShow && (
+                <button
+                  onClick={() => { onStatusChange(apt.id, "NO_SHOW"); setOpen(false); }}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
+                >
+                  <UserMinus size={13} /> Đánh dấu vắng mặt
+                </button>
+              )}
               <Link
                 href={`/receptionist/appointments/${apt.id}`}
                 className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-muted hover:text-brand-dark"
@@ -256,7 +277,7 @@ function FilterPanel({
     >
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-xs font-bold text-slate-900">Lọc nâng cao</h3>
-        <button onClick={onClose} className="text-muted-foreground hover:text-slate-900">
+        <button type="button" aria-label="Đóng bộ lọc" onClick={onClose} className="text-muted-foreground hover:text-slate-900">
           <X size={14} />
         </button>
       </div>
@@ -310,8 +331,8 @@ const PAGE_SIZE = 10;
 
 export default function ReceptionistAppointmentsPage() {
   const { showConfirm } = useAppDialog();
-  const today = new Date();
-  const [selectedDate, setSelectedDate] = useState<Date>(today);
+  const today = localDateStr();
+  const [selectedDate, setSelectedDate] = useState(today);
   const [doctorFilter, setDoctorFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<AppointmentStatus | "">("");
   const [appliedStatus, setAppliedStatus] = useState<AppointmentStatus | "">("");
@@ -322,14 +343,19 @@ export default function ReceptionistAppointmentsPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [doctors, setDoctors] = useState<{ id: string; fullName: string }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [doctorError, setDoctorError] = useState<string | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [currentTime, setCurrentTime] = useState(() => Date.now());
+  const requestId = useRef(0);
 
-  useEffect(() => {
-    apiClient
+  const fetchDoctors = useCallback(() => {
+    return apiClient
       .get("/doctors")
       .then((res) => {
+        setDoctorError(null);
         const list = Array.isArray(res.data) ? res.data : [];
         setDoctors(
           list.map((d: { id: string; user?: { fullName?: string }; fullName?: string }) => ({
@@ -338,28 +364,41 @@ export default function ReceptionistAppointmentsPage() {
           })),
         );
       })
-      .catch(() => setDoctors([]));
+      .catch(() => {
+        setDoctors([]);
+        setDoctorError("Không tải được danh sách bác sĩ.");
+      });
   }, []);
 
+  useEffect(() => {
+    void fetchDoctors();
+  }, [fetchDoctors]);
+
   const fetchAppointments = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+    const id = ++requestId.current;
+    setRefreshing(true);
     try {
-      const dateStr = toDateStr(selectedDate);
-      const params: Record<string, string> = { date: dateStr };
+      const params: Record<string, string> = { date: selectedDate };
       if (doctorFilter) params.doctorId = doctorFilter;
-      const res = await apiClient.get<any[]>("/appointments", { params });
+      const res = await apiClient.get<ApiAppointment[]>("/appointments", { params });
+      if (id !== requestId.current) return;
+      setError(null);
       setAppointments(mapAppointments(res.data));
+      setCurrentTime(Date.now());
     } catch (err) {
+      if (id !== requestId.current) return;
       setError(getApiErrorMessage(err, "Không tải được danh sách lịch hẹn."));
     } finally {
-      setLoading(false);
+      if (id === requestId.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }, [selectedDate, doctorFilter]);
 
   useEffect(() => {
-    void fetchAppointments();
-    setPage(1);
+    const initial = setTimeout(() => void fetchAppointments(), 0);
+    return () => clearTimeout(initial);
   }, [fetchAppointments]);
 
   const searchQuery = search.trim().toLowerCase();
@@ -382,15 +421,14 @@ export default function ReceptionistAppointmentsPage() {
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   // nav date
-  const shiftDate = (days: number) => {
-    const d = new Date(selectedDate);
-    d.setDate(d.getDate() + days);
-    setSelectedDate(d);
+  const selectDate = (date: string) => {
+    setSelectedDate(date);
+    setPage(1);
   };
 
-  const isToday = toDateStr(selectedDate) === toDateStr(today);
-  const isYesterday = toDateStr(selectedDate) === toDateStr(new Date(today.getTime() - 86400000));
-  const isTomorrow = toDateStr(selectedDate) === toDateStr(new Date(today.getTime() + 86400000));
+  const isToday = selectedDate === today;
+  const isYesterday = selectedDate === shiftDate(today, -1);
+  const isTomorrow = selectedDate === shiftDate(today, 1);
 
   const handleStatusChange = async (id: string, status: AppointmentStatus) => {
     if (status === "CANCELLED") {
@@ -418,7 +456,10 @@ export default function ReceptionistAppointmentsPage() {
     setActionLoading(id);
     setError(null);
     try {
-      await apiClient.patch(`/appointments/${id}/${endpoint}`);
+      await apiClient.patch(
+        `/appointments/${id}/${endpoint}`,
+        status === "CANCELLED" ? { reason: "Bệnh nhân yêu cầu hủy" } : undefined,
+      );
       if (status === "CONFIRMED") {
         setSuccessToast("Đã xác nhận lịch hẹn và gửi Gmail/In-App cho bệnh nhân!");
         setTimeout(() => setSuccessToast(null), 4000);
@@ -494,14 +535,16 @@ export default function ReceptionistAppointmentsPage() {
           {/* Date navigation */}
           <div className="flex items-center rounded-lg border border-border bg-white shadow-sm overflow-hidden">
             <button
-              onClick={() => shiftDate(-1)}
+              type="button"
+              aria-label="Ngày trước"
+              onClick={() => selectDate(shiftDate(selectedDate, -1))}
               className="flex h-9 w-8 items-center justify-center text-muted-foreground transition-colors hover:bg-muted hover:text-slate-900"
             >
               <CaretLeft size={15} weight="bold" />
             </button>
             <div className="flex items-center">
               <button
-                onClick={() => setSelectedDate(new Date(today.getTime() - 86400000))}
+                onClick={() => selectDate(shiftDate(today, -1))}
                 className={cn(
                   "px-3 h-9 text-xs font-semibold transition-colors border-x border-border",
                   isYesterday ? "bg-brand text-white" : "text-muted-foreground hover:bg-muted hover:text-slate-900"
@@ -510,7 +553,7 @@ export default function ReceptionistAppointmentsPage() {
                 Hôm qua
               </button>
               <button
-                onClick={() => setSelectedDate(new Date(today))}
+                onClick={() => selectDate(today)}
                 className={cn(
                   "px-3 h-9 text-xs font-semibold transition-colors border-r border-border",
                   isToday ? "bg-brand text-white" : "text-muted-foreground hover:bg-muted hover:text-slate-900"
@@ -519,7 +562,7 @@ export default function ReceptionistAppointmentsPage() {
                 Hôm nay
               </button>
               <button
-                onClick={() => setSelectedDate(new Date(today.getTime() + 86400000))}
+                onClick={() => selectDate(shiftDate(today, 1))}
                 className={cn(
                   "px-3 h-9 text-xs font-semibold transition-colors",
                   isTomorrow ? "bg-brand text-white" : "text-muted-foreground hover:bg-muted hover:text-slate-900"
@@ -529,7 +572,9 @@ export default function ReceptionistAppointmentsPage() {
               </button>
             </div>
             <button
-              onClick={() => shiftDate(1)}
+              type="button"
+              aria-label="Ngày sau"
+              onClick={() => selectDate(shiftDate(selectedDate, 1))}
               className="flex h-9 w-8 items-center justify-center text-muted-foreground transition-colors hover:bg-muted hover:text-slate-900 border-l border-border"
             >
               <CaretRight size={15} weight="bold" />
@@ -541,10 +586,10 @@ export default function ReceptionistAppointmentsPage() {
             <CalendarDots size={15} className="text-brand shrink-0" />
             <input
               type="date"
-              value={toDateStr(selectedDate)}
+              aria-label="Chọn ngày"
+              value={selectedDate}
               onChange={(e) => {
-                const d = new Date(e.target.value + "T00:00:00");
-                if (!isNaN(d.getTime())) setSelectedDate(d);
+                if (/^\d{4}-\d{2}-\d{2}$/.test(e.target.value)) selectDate(e.target.value);
               }}
               className="w-28 bg-transparent outline-none text-xs font-semibold text-slate-700 cursor-pointer"
             />
@@ -553,7 +598,11 @@ export default function ReceptionistAppointmentsPage() {
           {/* Doctor filter */}
           <select
             value={doctorFilter}
-            onChange={(e) => setDoctorFilter(e.target.value)}
+            aria-label="Lọc theo bác sĩ"
+            onChange={(e) => {
+              setDoctorFilter(e.target.value);
+              setPage(1);
+            }}
             className="rounded-lg border border-border bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand/20 cursor-pointer"
           >
             <option value="">Tất cả bác sĩ</option>
@@ -568,17 +617,19 @@ export default function ReceptionistAppointmentsPage() {
           <button
             type="button"
             onClick={() => void fetchAppointments()}
-            disabled={loading}
+            disabled={refreshing}
             className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition-all hover:bg-muted disabled:opacity-50 active:scale-[0.98]"
             title="Làm mới"
           >
-            <ArrowClockwise size={14} className={loading ? "animate-spin" : ""} />
+            <ArrowClockwise size={14} className={refreshing ? "animate-spin" : ""} />
             Làm mới
           </button>
 
           {/* Advanced filter */}
           <div className="relative">
             <button
+              type="button"
+              aria-label="Mở bộ lọc"
               onClick={() => setShowFilter((v) => !v)}
               className={cn(
                 "inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold shadow-sm transition-all active:scale-[0.98]",
@@ -602,15 +653,18 @@ export default function ReceptionistAppointmentsPage() {
         </div>
 
         {/* ── ERROR ─────────────────────────────────────────────────── */}
-        {error && (
+        {(error || doctorError) && (
           <div className="flex items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
             <div className="flex items-center gap-2 min-w-0">
               <Warning weight="fill" size={16} className="shrink-0" />
-              <span className="truncate">{error}</span>
+              <span className="truncate">{error || doctorError}</span>
             </div>
             <button
               type="button"
-              onClick={() => void fetchAppointments()}
+              onClick={() => {
+                if (error) void fetchAppointments();
+                if (doctorError) void fetchDoctors();
+              }}
               className="inline-flex shrink-0 items-center gap-1.5 font-semibold hover:underline"
             >
               <ArrowClockwise size={14} />
@@ -627,7 +681,7 @@ export default function ReceptionistAppointmentsPage() {
             <div className="flex items-center gap-2">
               <CalendarBlank size={15} className="text-brand" />
               <span className="text-sm font-semibold text-brand-dark">
-                {formatDateLabel(new Date(selectedDate))}
+                {formatDateLabel(selectedDate)}
               </span>
             </div>
             {!loading && (
@@ -692,6 +746,7 @@ export default function ReceptionistAppointmentsPage() {
                     const initials = getInitials(name);
                     const avatarColor = getAvatarColor(name);
                     const busy = isActionBusy(apt.id);
+                    const timing = getTiming(apt, currentTime);
 
                     return (
                       <tr
@@ -761,7 +816,7 @@ export default function ReceptionistAppointmentsPage() {
                         <td className="px-5 py-3.5">
                           <div className="flex items-center justify-end gap-2">
                             {/* Primary action button per status */}
-                            {apt.status === "PENDING" && (
+                            {apt.status === "PENDING" && timing.canConfirm && (
                               <>
                                 <button
                                   type="button"
@@ -772,19 +827,21 @@ export default function ReceptionistAppointmentsPage() {
                                   {busy ? <CircleNotch size={12} className="animate-spin" /> : <Phone size={12} weight="fill" />}
                                   Xác nhận
                                 </button>
-                                <button
-                                  type="button"
-                                  disabled={busy}
-                                  onClick={() => void handleStatusChange(apt.id, "CHECKED_IN")}
-                                  className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-brand bg-white px-3 text-xs font-semibold text-brand shadow-sm transition-all hover:bg-brand/5 active:scale-[0.98] disabled:opacity-60"
-                                  title="Check-in trực tiếp (walk-in)"
-                                >
-                                  {busy ? <CircleNotch size={12} className="animate-spin" /> : <UserCircleCheck size={12} weight="fill" />}
-                                  Check-in
-                                </button>
+                                {timing.canCheckIn && (
+                                  <button
+                                    type="button"
+                                    disabled={busy}
+                                    onClick={() => void handleStatusChange(apt.id, "CHECKED_IN")}
+                                    className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-brand bg-white px-3 text-xs font-semibold text-brand shadow-sm transition-all hover:bg-brand/5 active:scale-[0.98] disabled:opacity-60"
+                                    title="Check-in trực tiếp (walk-in)"
+                                  >
+                                    {busy ? <CircleNotch size={12} className="animate-spin" /> : <UserCircleCheck size={12} weight="fill" />}
+                                    Check-in
+                                  </button>
+                                )}
                               </>
                             )}
-                            {apt.status === "CONFIRMED" && (
+                            {apt.status === "CONFIRMED" && timing.canCheckIn && (
                               <button
                                 type="button"
                                 disabled={busy}
@@ -795,7 +852,7 @@ export default function ReceptionistAppointmentsPage() {
                                 Check-in
                               </button>
                             )}
-                            {apt.status === "CHECKED_IN" && (
+                            {apt.status === "CHECKED_IN" && timing.canCheckIn && (
                               <button
                                 type="button"
                                 disabled={busy}
@@ -803,12 +860,12 @@ export default function ReceptionistAppointmentsPage() {
                                 className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-white px-3 text-xs font-semibold text-brand-dark shadow-sm transition-all hover:bg-muted active:scale-[0.98] disabled:opacity-60"
                               >
                                 {busy ? <CircleNotch size={12} className="animate-spin" /> : <BellSimpleRinging size={12} />}
-                                Nhắc BS
+                                Bắt đầu khám
                               </button>
                             )}
                             {apt.status === "COMPLETED" && apt.invoicePending && (
                               <Link
-                                href="/receptionist/billing"
+                                href={`/receptionist/billing${apt.billingInvoiceId ? `?invoiceId=${apt.billingInvoiceId}` : ""}`}
                                 className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-brand px-3 text-xs font-bold text-white shadow-sm transition-all hover:bg-brand-dark active:scale-[0.98]"
                               >
                                 <Receipt size={12} weight="fill" /> Thu tiền
@@ -816,7 +873,7 @@ export default function ReceptionistAppointmentsPage() {
                             )}
 
                             {/* Quick Reminder button */}
-                            {(apt.status === "PENDING" || apt.status === "CONFIRMED") && (
+                            {(apt.status === "PENDING" || apt.status === "CONFIRMED") && timing.canRemind && (
                               <button
                                 type="button"
                                 disabled={busy}
@@ -838,6 +895,7 @@ export default function ReceptionistAppointmentsPage() {
                               apt={apt}
                               onStatusChange={(id, status) => void handleStatusChange(id, status)}
                               onSendReminder={handleSendReminder}
+                              now={currentTime}
                               disabled={busy}
                             />
                           </div>
@@ -862,6 +920,8 @@ export default function ReceptionistAppointmentsPage() {
               </span>
               <div className="flex items-center gap-1">
                 <button
+                  type="button"
+                  aria-label="Trang trước"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
                   className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white text-muted-foreground transition-colors hover:bg-muted hover:text-slate-900 disabled:opacity-40 active:scale-[0.98]"
@@ -870,6 +930,8 @@ export default function ReceptionistAppointmentsPage() {
                 </button>
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
                   <button
+                    type="button"
+                    aria-label={`Trang ${n}`}
                     key={n}
                     onClick={() => setPage(n)}
                     className={cn(
@@ -883,6 +945,8 @@ export default function ReceptionistAppointmentsPage() {
                   </button>
                 ))}
                 <button
+                  type="button"
+                  aria-label="Trang sau"
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
                   className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white text-muted-foreground transition-colors hover:bg-muted hover:text-slate-900 disabled:opacity-40 active:scale-[0.98]"
@@ -904,6 +968,8 @@ export default function ReceptionistAppointmentsPage() {
           </span>
           <span>{successToast}</span>
           <button
+            type="button"
+            aria-label="Đóng thông báo"
             onClick={() => setSuccessToast(null)}
             className="ml-2 text-emerald-600 hover:text-emerald-900 cursor-pointer"
           >

@@ -15,7 +15,7 @@ Các chủ đề bạn biết:
    - Xác nhận lịch PENDING: nút "Xác nhận" trong hàng đợi hoặc Lịch hẹn > Chi tiết.
    - Check-in: nút "Check-in" khi bệnh nhân có mặt.
    - Hủy lịch: menu ... > Khách báo hủy.
-   - Đánh dấu vắng mặt (no-show): menu ... > Đánh dấu vắng mặt, sau khi gọi điện quá 30 phút không được.
+   - Đánh dấu vắng mặt (no-show): chỉ thực hiện sau 30 phút và đã gọi xác nhận nhưng không liên lạc được.
    - Tạo lịch mới: Lịch hẹn > Tạo lịch hẹn.
 
 2. Chính sách hủy/đổi lịch
@@ -27,7 +27,7 @@ Các chủ đề bạn biết:
    - Nhắc lịch (trước 24h): "Alo, cho tôi gặp [tên]? Tôi gọi từ Nha khoa Smart Dental xác nhận lịch khám ngày [ngày] lúc [giờ] với bác sĩ [tên BS]. Anh/chị vẫn đến được không ạ?"
    - Khi bệnh nhân xác nhận: "Cảm ơn anh/chị. Nhớ đến trước 10 phút và mang theo CCCD ạ."
    - Khi bệnh nhân muốn đổi: "Dạ để tôi kiểm tra lịch trống nhé. Anh/chị muốn đổi sang ngày nào?"
-   - Nhắc no-show (đã quá 15 phút): "Alo, anh/chị [tên]? Tôi từ Smart Dental, lịch hẹn của anh/chị lúc [giờ] hôm nay. Anh/chị có đến được không để phòng khám sắp xếp ạ?"
+   - Nhắc trễ hẹn (đã quá 15 phút, chưa đánh dấu no-show): "Alo, anh/chị [tên]? Tôi từ Smart Dental, lịch hẹn của anh/chị lúc [giờ] hôm nay. Anh/chị có đến được không để phòng khám sắp xếp ạ?"
 
 4. Xử lý khiếu nại / bệnh nhân phàn nàn
    - Nguyên tắc: lắng nghe, không tranh luận, không hứa hẹn vượt thẩm quyền.
@@ -37,13 +37,11 @@ Các chủ đề bạn biết:
    - Không bao giờ nói "lỗi của bác sĩ" hoặc "hệ thống sai" trước khi có xác nhận nội bộ.
 
 5. Bảo hiểm y tế
-   - Phòng khám hiện chưa liên kết trực tiếp BHYT. Bệnh nhân tự xuất trình giấy tờ để thanh toán ngoài viện phí nếu có.
-   - Nếu bệnh nhân hỏi về hoàn BHYT: hướng dẫn lên cơ quan BHXH với hóa đơn + phiếu khám của phòng khám.
-   - Bảo hiểm sức khỏe tư nhân: hỗ trợ xuất hóa đơn đỏ VAT theo yêu cầu, liên hệ thu ngân.
+   - Không khẳng định chính sách bảo hiểm từ dữ liệu ghi nhớ. Hướng dẫn lễ tân kiểm tra chính sách hiện hành hoặc hỏi quản lý.
 
 6. Quản lý bệnh nhân
    - Tìm kiếm: nhập tên/SĐT/mã vào ô tìm kiếm Dashboard.
-   - Thêm mới: Bệnh nhân > Thêm mới. Cần: họ tên, SĐT, ngày sinh, CCCD, địa chỉ, tiền sử dị ứng.
+   - Thêm mới: Bệnh nhân > Thêm mới. Điền đúng các trường bắt buộc đang hiển thị trên biểu mẫu.
    - Cập nhật: hồ sơ bệnh nhân > Chỉnh sửa.
 
 7. Thanh toán
@@ -52,16 +50,12 @@ Các chủ đề bạn biết:
    - Hỏi mã khuyến mãi trước khi tính tiền.
 
 8. Thông tin dịch vụ và thời gian
-   - Khám tổng quát: 30-45 phút. Lấy cao răng: 45-60 phút. Nhổ răng khôn: 30-90 phút (cần X-quang trước).
-   - Trám răng: 45-60 phút. Niềng răng (tư vấn): 60-90 phút. Bọc sứ/Veneer: 60-120 phút, 2-3 lần hẹn.
-   - Cấy ghép Implant: 60-120 phút, nhiều giai đoạn.
+   - Không tự đưa ra giá hoặc thời lượng. Kiểm tra dịch vụ đang hoạt động trên hệ thống hoặc hỏi quản lý/bác sĩ phụ trách.
    - Luôn hỏi tiền sử dị ứng thuốc tê khi đặt lịch có gây tê.
    - Giá cụ thể: không bịa, hướng dẫn bệnh nhân hỏi trực tiếp hoặc xem bảng giá tại quầy.
 
 9. Khu vực phòng khám
-   - Chờ: tầng 1. X-quang: tầng 1 phòng 2. Khám: tầng 2 phòng 101-105.
-   - Nhà vệ sinh: cuối hành lang tầng 1 và 2. Bãi xe: tầng hầm.
-   - Wifi khách: SmartDental_Guest / dental2024.
+   - Không tự khẳng định vị trí phòng, bãi xe hoặc Wi-Fi. Hướng dẫn lễ tân kiểm tra thông báo vận hành hiện hành.
 """.strip()
 
 CHATBOT_SYSTEM = """

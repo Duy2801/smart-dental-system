@@ -14,6 +14,7 @@ import {
 } from "@phosphor-icons/react";
 import apiClient from "@/src/lib/api/client";
 import { useAppDialog } from "@/src/providers/app-dialog-provider";
+import { getDoctorInfoFromCookie } from "@/src/lib/doctor/session";
 
 type AppointmentStatus =
   | "PENDING"
@@ -24,7 +25,6 @@ type AppointmentStatus =
   | "CANCELLED"
   | "NO_SHOW"
   | "SCHEDULED";
-
 
 type TodayAppointment = {
   id: string;
@@ -73,22 +73,6 @@ const statusConfig: Record<TodayAppointment["status"], { label: string; color: s
 };
 
 const WAITING_STATUSES = ["PENDING", "CONFIRMED", "CHECKED_IN", "SCHEDULED"];
-
-function getUserInfo(): { doctorId: string | null; fullName: string | null } {
-  if (typeof document === "undefined") return { doctorId: null, fullName: null };
-  const raw = document.cookie
-    .split("; ")
-    .find((c) => c.startsWith("user_info="))
-    ?.split("=")
-    .slice(1)
-    .join("=");
-  if (!raw) return { doctorId: null, fullName: null };
-  try {
-    return JSON.parse(decodeURIComponent(raw));
-  } catch {
-    return { doctorId: null, fullName: null };
-  }
-}
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString("vi-VN", {
@@ -147,7 +131,7 @@ export default function DoctorDashboardPage() {
   });
 
   const fetchDashboard = async () => {
-    const { doctorId, fullName } = getUserInfo();
+    const { doctorId, fullName } = getDoctorInfoFromCookie();
     setDoctorName(fullName);
     if (!doctorId) {
       setError("Không tìm thấy thông tin bác sĩ. Vui lòng đăng nhập lại.");

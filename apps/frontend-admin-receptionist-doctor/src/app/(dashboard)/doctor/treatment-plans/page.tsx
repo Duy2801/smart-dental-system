@@ -432,27 +432,32 @@ export default function TreatmentPlansPage() {
                 return (
                   <div
                     key={plan.id}
-                    className="group relative flex flex-col rounded-2xl border border-border bg-white p-5 shadow-sm transition-all hover:border-brand/30 hover:shadow-md"
+                    onClick={() => router.push(`/doctor/treatment-plans/${plan.id}`)}
+                    className="group relative flex flex-col rounded-2xl border border-border bg-white p-5 shadow-sm transition-all hover:border-brand/40 hover:shadow-md cursor-pointer"
                   >
                     {/* Action buttons */}
-                    <div className="absolute right-4 top-4 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                    <div className="absolute right-3.5 top-3.5 flex items-center gap-1.5 z-10">
                       <button
                         type="button"
-                        onClick={() =>
-                          router.push(`/doctor/treatment-plans/${plan.id}/edit`)
-                        }
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/doctor/treatment-plans/${plan.id}/edit`);
+                        }}
                         title="Sửa kế hoạch"
-                        className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-brand/10 hover:text-brand cursor-pointer"
+                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200/80 bg-white/95 text-slate-500 shadow-2xs backdrop-blur-xs transition-colors hover:border-brand/40 hover:bg-brand/10 hover:text-brand cursor-pointer"
                       >
-                        <PencilSimple size={14} />
+                        <PencilSimple size={15} />
                       </button>
                       <button
                         type="button"
-                        onClick={() => setDeleteTarget(plan)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteTarget(plan);
+                        }}
                         title="Xóa kế hoạch"
-                        className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 cursor-pointer"
+                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200/80 bg-white/95 text-slate-500 shadow-2xs backdrop-blur-xs transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600 cursor-pointer"
                       >
-                        <Trash size={14} />
+                        <Trash size={15} />
                       </button>
                     </div>
 
@@ -461,9 +466,15 @@ export default function TreatmentPlansPage() {
                         <span className="font-mono text-xs text-muted-foreground">
                           #{plan.id.slice(-6).toUpperCase()}
                         </span>
-                        <h3 className="mt-1 text-base font-semibold leading-tight text-slate-900">
-                          {plan.title}
-                        </h3>
+                        <Link
+                          href={`/doctor/treatment-plans/${plan.id}`}
+                          className="block group/title"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <h3 className="mt-1 text-base font-semibold leading-tight text-slate-900 transition-colors group-hover:text-brand group-hover/title:underline underline-offset-2">
+                            {plan.title}
+                          </h3>
+                        </Link>
                         <div className="mt-1.5 flex items-center gap-1.5">
                           <Link
                             href={`/doctor/patients/${plan.patientId}`}
@@ -531,10 +542,19 @@ export default function TreatmentPlansPage() {
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
-                            onClick={() => handleSendEmail(plan)}
-                            disabled={sendingId === plan.id}
-                            title="Gửi phác đồ điều trị và dự toán chi phí qua email cho bệnh nhân"
-                            className="inline-flex items-center gap-1 rounded-md px-2 py-1 font-semibold text-emerald-600 transition-colors hover:bg-emerald-50 hover:text-emerald-700 disabled:opacity-50 cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSendEmail(plan);
+                            }}
+                            disabled={sendingId === plan.id || plan.status === "CANCELLED" || plan.totalSteps === 0}
+                            title={
+                              plan.status === "CANCELLED"
+                                ? "Không thể gửi email cho kế hoạch đã hủy"
+                                : plan.totalSteps === 0
+                                ? "Kế hoạch chưa có bước điều trị nào để gửi"
+                                : "Gửi phác đồ điều trị và dự toán chi phí qua email cho bệnh nhân"
+                            }
+                            className="inline-flex items-center gap-1 rounded-md px-2 py-1 font-semibold text-emerald-600 transition-colors hover:bg-emerald-50 hover:text-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                           >
                             <PaperPlaneTilt
                               size={12}
@@ -546,6 +566,7 @@ export default function TreatmentPlansPage() {
                           <Link
                             href={`/doctor/treatment-plans/${plan.id}`}
                             className="inline-flex items-center gap-1 font-medium text-brand hover:underline"
+                            onClick={(e) => e.stopPropagation()}
                           >
                             Chi tiết <ArrowUpRight size={12} />
                           </Link>

@@ -16,6 +16,7 @@ import {
 } from "@phosphor-icons/react";
 import apiClient from "@/src/lib/api/client";
 import { localDateStr } from "@/src/lib/receptionist/mappers";
+import { getDoctorIdFromCookie } from "@/src/lib/doctor/session";
 import { WeekCalendar } from "./_components/WeekCalendar";
 import { AppointmentList } from "./_components/AppointmentList";
 import { TimeOffModal } from "./_components/TimeOffModal";
@@ -51,22 +52,6 @@ function buildWeekDays(from: Date) {
       isToday,
     };
   });
-}
-
-function getUserInfo(): { doctorId: string | null } {
-  if (typeof document === "undefined") return { doctorId: null };
-  const raw = document.cookie
-    .split("; ")
-    .find((c) => c.startsWith("user_info="))
-    ?.split("=")
-    .slice(1)
-    .join("=");
-  if (!raw) return { doctorId: null };
-  try {
-    return JSON.parse(decodeURIComponent(raw));
-  } catch {
-    return { doctorId: null };
-  }
 }
 
 function toScheduleAppointment(raw: Record<string, unknown>): ScheduleAppointment {
@@ -130,7 +115,7 @@ export default function DoctorSchedulePage() {
   const weekDays = buildWeekDays(from);
   const weekLabel = `${from.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" })} - ${to.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" })}, ${to.getFullYear()}`;
 
-  const doctorId = getUserInfo().doctorId;
+  const doctorId = getDoctorIdFromCookie();
   const fromStr = localDateStr(from);
   const toStr = localDateStr(to);
 

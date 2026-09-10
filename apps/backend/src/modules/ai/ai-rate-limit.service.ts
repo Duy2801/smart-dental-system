@@ -9,6 +9,11 @@ export class AiRateLimitService {
   private readonly windowMs = 60_000;
 
   consume(key: string, now = Date.now()): void {
+    if (this.counters.size > 1000) {
+      for (const [storedKey, counter] of this.counters) {
+        if (counter.resetsAt <= now) this.counters.delete(storedKey);
+      }
+    }
     const current = this.counters.get(key);
     if (!current || current.resetsAt <= now) {
       this.counters.set(key, { count: 1, resetsAt: now + this.windowMs });
@@ -20,7 +25,7 @@ export class AiRateLimitService {
         {
           statusCode: HttpStatus.TOO_MANY_REQUESTS,
           errorStatus: 'RATE_LIMITED',
-          message: 'Tối đa 5 lượt phân tích X-quang mỗi phút.',
+          message: 'Đã vượt quá giới hạn 5 yêu cầu AI mỗi phút.',
           retryAfterSeconds: Math.ceil((current.resetsAt - now) / 1000),
         },
         HttpStatus.TOO_MANY_REQUESTS,

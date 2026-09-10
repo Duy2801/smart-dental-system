@@ -17,6 +17,8 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { CreateStaffAppointmentDto } from './dto/create-staff-appointment.dto';
+import { CancelAppointmentDto } from './dto/cancel-appointment.dto';
+import { CheckInAppointmentDto } from './dto/check-in-appointment.dto';
 import { RescheduleAppointmentDto } from './dto/reschedule-appointment.dto';
 import { AppointmentService } from './appointment.service';
 
@@ -55,7 +57,11 @@ export class AppointmentController {
   @Patch(':id/cancel')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('PATIENT', 'RECEPTIONIST', 'ADMIN')
-  cancel(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+  cancel(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() body?: CancelAppointmentDto,
+  ) {
     const isStaff =
       user.roles.includes('RECEPTIONIST') ||
       user.roles.includes('ADMIN');
@@ -65,7 +71,7 @@ export class AppointmentController {
         id,
       );
     }
-    return this.appointmentService.cancelByStaff(id);
+    return this.appointmentService.cancelByStaff(id, body?.reason);
   }
 
   @Patch(':id/reschedule')
@@ -108,9 +114,13 @@ export class AppointmentController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   checkInAppointment(
     @Param('id') id: string,
-    @Body() body?: { notes?: string },
+    @Body() body: CheckInAppointmentDto,
   ) {
-    return this.appointmentService.checkInAppointment(id, body?.notes);
+    return this.appointmentService.checkInAppointment(
+      id,
+      body.notes,
+      body.medicalHistoryConfirmed,
+    );
   }
 
   @Patch(':id/no-show')

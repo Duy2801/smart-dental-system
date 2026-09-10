@@ -18,6 +18,7 @@ describe("doctor session utilities", () => {
     const info = getDoctorInfoFromCookie();
     expect(info.doctorId).toBe("doc-123");
     expect(info.doctorName).toBe("Bác sĩ Hậu");
+    expect(info.fullName).toBe("Bác sĩ Hậu");
     expect(getDoctorIdFromCookie()).toBe("doc-123");
   });
 
@@ -31,6 +32,7 @@ describe("doctor session utilities", () => {
     const info = getDoctorInfoFromCookie();
     expect(info.doctorId).toBe("doc-456");
     expect(info.doctorName).toBe("Bác sĩ Minh");
+    expect(info.fullName).toBe("Bác sĩ Minh");
   });
 
   it("returns nulls when user_info cookie is missing or corrupted", () => {
@@ -38,6 +40,7 @@ describe("doctor session utilities", () => {
     expect(getDoctorInfoFromCookie()).toEqual({
       doctorId: null,
       doctorName: null,
+      fullName: null,
     });
   });
 

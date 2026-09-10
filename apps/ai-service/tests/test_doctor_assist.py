@@ -19,16 +19,15 @@ class DoctorAssistTest(unittest.TestCase):
             {"ok": True, "nested": {"x": 1}},
         )
 
-    def test_doctor_routes_require_key_but_chatbot_stays_compatible(self):
+    def test_internal_ai_routes_require_key(self):
         self.assertEqual(
             self.client.post("/api/v1/doctor/summarize-patient", json={}).status_code,
             401,
         )
-        self.assertNotEqual(
+        self.assertEqual(
             self.client.post(
                 "/api/v1/chatbot/receptionist-chat", json={"message": "test"}
-            ).status_code,
-            401,
+            ).status_code, 401
         )
 
     def test_production_rejects_the_shared_development_key(self):

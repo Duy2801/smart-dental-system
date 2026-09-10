@@ -231,3 +231,126 @@ describe('PatientService doctor patient list', () => {
   });
 });
 
+describe('PatientService receptionist patient rules', () => {
+  it('lists only completed past appointments as visits and does not cap the result', async () => {
+    const findMany = jest.fn().mockResolvedValue([
+      {
+        id: 'patient-1',
+        patientCode: 'PAT-001',
+        fullName: 'Nguyen An',
+        phone: '0900000000',
+        email: null,
+        dateOfBirth: null,
+        gender: 'UNKNOWN',
+        medicalHistory: null,
+        user: null,
+        appointments: [{ scheduledAt: new Date('2026-09-01T02:00:00.000Z') }],
+        _count: { appointments: 1 },
+      },
+    ]);
+    const service = new PatientService(
+      { patient: { findMany } } as never,
+      {} as never,
+      {} as never,
+    );
+
+    const [patient] = await service.findPatients();
+
+    expect(patient.totalVisits).toBe(1);
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: expect.objectContaining({
+          appointments: expect.objectContaining({
+            where: expect.objectContaining({ status: 'COMPLETED' }),
+          }),
+          _count: {
+            select: {
+              appointments: expect.objectContaining({
+                where: expect.objectContaining({ status: 'COMPLETED' }),
+              }),
+            },
+          },
+        }),
+      }),
+    );
+    expect(findMany.mock.calls[0][0]).not.toHaveProperty('take');
+  });
+
+  it('selects bulk reminders from completed visits only', async () => {
+    const patientFindMany = jest.fn().mockResolvedValue([]);
+    const service = new PatientService(
+      {
+        notification: { findMany: jest.fn().mockResolvedValue([]) },
+        patient: { findMany: patientFindMany },
+      } as never,
+      {} as never,
+      { add: jest.fn() } as never,
+    );
+
+    await service.sendBulkPeriodicCheckupReminders();
+
+    expect(patientFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: expect.arrayContaining([
+            { appointments: { some: expect.objectContaining({ status: 'COMPLETED' }) } },
+            { appointments: { none: expect.objectContaining({ status: 'COMPLETED' }) } },
+          ]),
+        }),
+      }),
+    );
+  });
+
+  it('rejects a future date of birth at the service boundary', async () => {
+    const service = new PatientService({} as never, {} as never, {} as never);
+
+    await expect(
+      service.createPatient({
+        fullName: 'Nguyen An',
+        phone: '0900000000',
+        dateOfBirth: '2999-01-01',
+      }),
+    ).rejects.toThrow('patient.date_of_birth_future');
+  });
+
+  it('rejects updating a patient to a future date of birth', async () => {
+    const service = new PatientService({} as never, {} as never, {} as never);
+
+    await expect(
+      service.updatePatient('patient-1', { dateOfBirth: '2999-01-01' }),
+    ).rejects.toThrow('patient.date_of_birth_future');
+  });
+
+  it('reports failed bulk reminder jobs without recording a sent notification', async () => {
+    const createMany = jest.fn();
+    const service = new PatientService(
+      {
+        notification: {
+          findMany: jest.fn().mockResolvedValue([]),
+          createMany,
+        },
+        patient: {
+          findMany: jest.fn().mockResolvedValue([
+            {
+              id: 'patient-1',
+              patientCode: 'PAT-001',
+              fullName: 'Nguyen An',
+              email: 'an@example.com',
+              user: null,
+              appointments: [{ scheduledAt: new Date('2025-01-01T00:00:00.000Z') }],
+            },
+          ]),
+        },
+      } as never,
+      {} as never,
+      { add: jest.fn().mockRejectedValue(new Error('queue down')) } as never,
+    );
+
+    await expect(service.sendBulkPeriodicCheckupReminders()).resolves.toMatchObject({
+      success: false,
+      sentCount: 0,
+      failedCount: 1,
+    });
+    expect(createMany).not.toHaveBeenCalled();
+  });
+});

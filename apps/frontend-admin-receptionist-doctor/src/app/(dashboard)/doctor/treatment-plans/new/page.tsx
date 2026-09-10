@@ -19,6 +19,7 @@ import {
 } from "@phosphor-icons/react";
 import axios from "axios";
 import apiClient from "@/src/lib/api/client";
+import { getDoctorInfoFromCookie } from "@/src/lib/doctor/session";
 
 type Patient = {
   id: string;
@@ -34,22 +35,6 @@ type Step = {
   expectedDate: string;
   description: string;
 };
-
-function getUserInfo(): { doctorId: string | null } {
-  if (typeof document === "undefined") return { doctorId: null };
-  const raw = document.cookie
-    .split("; ")
-    .find((c) => c.startsWith("user_info="))
-    ?.split("=")
-    .slice(1)
-    .join("=");
-  if (!raw) return { doctorId: null };
-  try {
-    return JSON.parse(decodeURIComponent(raw));
-  } catch {
-    return { doctorId: null };
-  }
-}
 
 function NewTreatmentPlanContent() {
   const router = useRouter();
@@ -72,13 +57,46 @@ function NewTreatmentPlanContent() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const doctorId = getUserInfo().doctorId;
+  const [doctorId, setDoctorId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const doc = getDoctorInfoFromCookie();
+    if (doc?.doctorId) {
+      setDoctorId(doc.doctorId);
+    }
+  }, []);
+
+  // Tải thông tin bệnh nhân nếu có initPatientId từ URL để đảm bảo dropdown không bị trắng
+  useEffect(() => {
+    if (!initPatientId) return;
+    apiClient
+      .get<Patient>(`/patients/${initPatientId}`)
+      .then((res) => {
+        if (res.data?.id) {
+          setPatients((prev) => {
+            if (prev.some((p) => p.id === res.data.id)) return prev;
+            return [res.data, ...prev];
+          });
+          setPatientId(res.data.id);
+        }
+      })
+      .catch((err) => {
+        console.error("Không thể tải thông tin bệnh nhân từ URL:", err);
+      });
+  }, [initPatientId]);
 
   useEffect(() => {
     if (!doctorId) return;
     apiClient
       .get<Patient[]>(`/patients?doctorId=${doctorId}`)
-      .then((res) => setPatients(res.data))
+      .then((res) => {
+        setPatients((prev) => {
+          const map = new Map<string, Patient>();
+          prev.forEach((p) => map.set(p.id, p));
+          res.data.forEach((p) => map.set(p.id, p));
+          return Array.from(map.values());
+        });
+      })
       .catch(() => setError("Không thể tải danh sách bệnh nhân."));
   }, [doctorId]);
 
@@ -447,31 +465,37 @@ function NewTreatmentPlanContent() {
 
                         <div className="flex items-center gap-1">
                           <button
+                            type="button"
                             onClick={() => moveUp(index)}
                             disabled={index === 0}
+                            title="Di chuyển bước lên"
                             className={cn(
-                              "rounded p-1 text-muted-foreground transition-opacity hover:bg-muted cursor-pointer",
-                              index === 0 ? "opacity-0 pointer-events-none" : "opacity-0 group-hover:opacity-100",
+                              "rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 cursor-pointer",
+                              index === 0 ? "opacity-20 pointer-events-none" : "",
                             )}
                           >
-                            <ArrowUp size={14} />
+                            <ArrowUp size={15} />
                           </button>
                           <button
+                            type="button"
                             onClick={() => moveDown(index)}
                             disabled={index === steps.length - 1}
+                            title="Di chuyển bước xuống"
                             className={cn(
-                              "rounded p-1 text-muted-foreground transition-opacity hover:bg-muted cursor-pointer",
-                              index === steps.length - 1 ? "opacity-0 pointer-events-none" : "opacity-0 group-hover:opacity-100",
+                              "rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 cursor-pointer",
+                              index === steps.length - 1 ? "opacity-20 pointer-events-none" : "",
                             )}
                           >
-                            <ArrowDown size={14} />
+                            <ArrowDown size={15} />
                           </button>
                           <button
+                            type="button"
                             onClick={() => removeStep(step.key)}
                             disabled={steps.length === 1}
-                            className="rounded p-1 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-red-600 disabled:hidden cursor-pointer"
+                            title="Xóa bước này"
+                            className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:hidden cursor-pointer"
                           >
-                            <Trash size={14} />
+                            <Trash size={15} />
                           </button>
                         </div>
                       </div>

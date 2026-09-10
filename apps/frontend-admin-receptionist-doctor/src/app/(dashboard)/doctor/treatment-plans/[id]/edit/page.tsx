@@ -356,31 +356,34 @@ export default function EditTreatmentPlanPage() {
                             type="button"
                             onClick={() => moveUp(index)}
                             disabled={index === 0}
+                            title="Di chuyển bước lên"
                             className={cn(
-                              "rounded p-1 text-muted-foreground transition-opacity hover:bg-muted cursor-pointer",
-                              index === 0 ? "pointer-events-none opacity-0" : "opacity-0 group-hover:opacity-100",
+                              "rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 cursor-pointer",
+                              index === 0 ? "pointer-events-none opacity-20" : "",
                             )}
                           >
-                            <ArrowUp size={14} />
+                            <ArrowUp size={15} />
                           </button>
                           <button
                             type="button"
                             onClick={() => moveDown(index)}
                             disabled={index === steps.length - 1}
+                            title="Di chuyển bước xuống"
                             className={cn(
-                              "rounded p-1 text-muted-foreground transition-opacity hover:bg-muted cursor-pointer",
-                              index === steps.length - 1 ? "pointer-events-none opacity-0" : "opacity-0 group-hover:opacity-100",
+                              "rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 cursor-pointer",
+                              index === steps.length - 1 ? "pointer-events-none opacity-20" : "",
                             )}
                           >
-                            <ArrowDown size={14} />
+                            <ArrowDown size={15} />
                           </button>
                           <button
                             type="button"
                             onClick={() => removeStep(step.key)}
                             disabled={steps.length === 1}
-                            className="rounded p-1 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-red-600 disabled:hidden cursor-pointer"
+                            title="Xóa bước này"
+                            className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:hidden cursor-pointer"
                           >
-                            <Trash size={14} />
+                            <Trash size={15} />
                           </button>
                         </div>
                       </div>

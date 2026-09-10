@@ -77,6 +77,7 @@ export class PaymentService {
     }
 
     if (
+      invoice.status === InvoiceStatus.DRAFT ||
       invoice.status === InvoiceStatus.PAID ||
       invoice.status === InvoiceStatus.CANCELLED ||
       invoice.status === InvoiceStatus.REFUNDED
@@ -87,6 +88,7 @@ export class PaymentService {
     let discountAmount = Number(invoice.discountAmount);
     let promotionId = invoice.promotionId;
     let finalAmount = Number(invoice.finalAmount);
+    const paidSoFar = await this.sumSuccessfulPayments(invoice.id, db);
 
     if (dto.promotionCode?.trim()) {
       const promo = await this.applyPromotion(
@@ -99,6 +101,12 @@ export class PaymentService {
         0,
         Number((Number(invoice.subtotal) - discountAmount).toFixed(2)),
       );
+      if (finalAmount < paidSoFar) {
+        throw new BadRequestException('promotion.discount_below_paid_amount');
+      }
+      if (paidSoFar > 0 && promotionId !== invoice.promotionId) {
+        throw new BadRequestException('promotion.cannot_change_after_payment');
+      }
 
       await db.invoice.update({
         where: { id: invoice.id },
@@ -110,7 +118,6 @@ export class PaymentService {
       });
     }
 
-    const paidSoFar = await this.sumSuccessfulPayments(invoice.id, db);
     const remaining = Number((finalAmount - paidSoFar).toFixed(2));
     if (remaining <= 0) {
       throw new BadRequestException('invoice.already_paid');
@@ -121,7 +128,10 @@ export class PaymentService {
     if (requested <= 0) {
       throw new BadRequestException('payment.invalid_amount');
     }
-    const amount = Number(Math.min(requested, remaining).toFixed(2));
+    if (requested > remaining) {
+      throw new BadRequestException('payment.amount_exceeds_remaining');
+    }
+    const amount = Number(requested.toFixed(2));
 
     if (dto.method === 'CASH') {
       return this.markPaid({
@@ -369,6 +379,9 @@ export class PaymentService {
     externalRef?: string;
   }) {
     const result = await this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw(
+        Prisma.sql`SELECT id FROM "invoices" WHERE id = ${input.invoiceId}::uuid FOR UPDATE`,
+      );
       const invoice = await tx.invoice.findUnique({
         where: { id: input.invoiceId },
       });
@@ -388,13 +401,42 @@ export class PaymentService {
       });
       const paidBefore = Number(prior._sum.amount ?? 0);
       const finalAmount = Number(invoice.finalAmount);
-      const payAmount = Number(
-        Math.min(input.amount, Math.max(0, finalAmount - paidBefore)).toFixed(
-          2,
-        ),
-      );
+      const remainingAtCommit = Math.max(0, finalAmount - paidBefore);
+      if (input.amount > remainingAtCommit + 0.01) {
+        throw new BadRequestException('payment.amount_exceeds_remaining');
+      }
+      const payAmount = Number(input.amount.toFixed(2));
       if (payAmount <= 0) {
         throw new BadRequestException('invoice.already_paid');
+      }
+
+      if (invoice.promotionId && paidBefore === 0) {
+        const promotion = await tx.promotion.findUnique({
+          where: { id: invoice.promotionId },
+          select: { maxUses: true },
+        });
+        if (!promotion) {
+          throw new BadRequestException('promotion.not_found');
+        }
+        if (promotion.maxUses != null) {
+          const consumed = await tx.promotion.updateMany({
+            where: {
+              id: invoice.promotionId,
+              usedCount: { lt: promotion.maxUses },
+            },
+            data: { usedCount: { increment: 1 } },
+          });
+          if (consumed.count !== 1) {
+            this.logger.warn(
+              `Promotion ${invoice.promotionId} reached capacity after the invoice discount was committed; recording received payment without incrementing usage`,
+            );
+          }
+        } else {
+          await tx.promotion.update({
+            where: { id: invoice.promotionId },
+            data: { usedCount: { increment: 1 } },
+          });
+        }
       }
 
       if (input.existingPaymentId) {
@@ -679,24 +721,6 @@ export class PaymentService {
       promo.discountType === DiscountType.PERCENTAGE
         ? Number(((subtotal * value) / 100).toFixed(2))
         : Math.min(value, subtotal);
-
-    if (promo.maxUses != null) {
-      const updated = await this.prisma.promotion.updateMany({
-        where: {
-          id: promo.id,
-          usedCount: { lt: promo.maxUses },
-        },
-        data: { usedCount: { increment: 1 } },
-      });
-      if (updated.count === 0) {
-        throw new BadRequestException('promotion.exhausted');
-      }
-    } else {
-      await this.prisma.promotion.update({
-        where: { id: promo.id },
-        data: { usedCount: { increment: 1 } },
-      });
-    }
 
     return { promotionId: promo.id, discountAmount };
   }

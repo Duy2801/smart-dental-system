@@ -2,8 +2,8 @@ from pydantic import BaseModel, Field
 
 
 class ChatMessage(BaseModel):
-    role: str = Field(description="user | assistant | system")
-    content: str
+    role: str = Field(pattern="^(user|assistant)$")
+    content: str = Field(max_length=4000)
     metadata: dict = Field(default_factory=dict)
 
 
@@ -12,9 +12,9 @@ class ChatRequest(BaseModel):
     patient_id: str | None = None
     patient_name: str | None = None
     patient_phone: str | None = None
-    message: str
+    message: str = Field(min_length=1, max_length=2000)
     metadata: dict = Field(default_factory=dict)
-    history: list[ChatMessage] = Field(default_factory=list)
+    history: list[ChatMessage] = Field(default_factory=list, max_length=10)
     locale: str = "vi"
 
 

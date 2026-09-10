@@ -129,10 +129,12 @@ function QueueRowSkeleton() {
 function QueueActionMenu({
   apt,
   onStatusChange,
+  now,
   disabled,
 }: {
   apt: Appointment;
   onStatusChange: (id: string, status: AppointmentStatus) => void;
+  now: number;
   disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -180,16 +182,18 @@ function QueueActionMenu({
               >
                 <X size={13} /> Khách báo hủy
               </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onStatusChange(apt.id, "NO_SHOW");
-                  setOpen(false);
-                }}
-                className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
-              >
-                <UserMinus size={13} /> Đánh dấu vắng mặt
-              </button>
+              {apt.scheduledAt && new Date(apt.scheduledAt).getTime() <= now && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onStatusChange(apt.id, "NO_SHOW");
+                    setOpen(false);
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
+                >
+                  <UserMinus size={13} /> Đánh dấu vắng mặt
+                </button>
+              )}
             </>
           )}
         </div>
@@ -210,27 +214,32 @@ export default function ReceptionistDashboard() {
   const [activeTab, setActiveTab] = useState<QueueTab>("ALL");
   const [search, setSearch] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [currentTime, setCurrentTime] = useState(() => Date.now());
 
   const fetchDashboard = useCallback(async () => {
     const today = localDateStr();
     try {
-      setLoading(true);
-      setError(null);
-
       const apptRes = await apiClient.get(`/appointments?date=${today}`);
+      setError(null);
       setAppointments(mapAppointments(apptRes.data));
     } catch (err) {
       setError(getApiErrorMessage(err, "Không tải được dữ liệu từ máy chủ."));
-      setAppointments([]);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    void fetchDashboard();
-    const timer = setInterval(() => void fetchDashboard(), REFRESH_MS);
-    return () => clearInterval(timer);
+    const refresh = () => {
+      setCurrentTime(Date.now());
+      void fetchDashboard();
+    };
+    const initial = setTimeout(refresh, 0);
+    const timer = setInterval(refresh, REFRESH_MS);
+    return () => {
+      clearTimeout(initial);
+      clearInterval(timer);
+    };
   }, [fetchDashboard]);
 
   const total = appointments.length;
@@ -281,7 +290,10 @@ export default function ReceptionistDashboard() {
     setActionLoading(id);
     setError(null);
     try {
-      await apiClient.patch(`/appointments/${id}/${endpoint}`);
+      await apiClient.patch(
+        `/appointments/${id}/${endpoint}`,
+        status === "CANCELLED" ? { reason: "Bệnh nhân yêu cầu hủy" } : undefined,
+      );
       await fetchDashboard();
     } catch (err) {
       setError(getApiErrorMessage(err, "Cập nhật trạng thái thất bại."));
@@ -396,7 +408,7 @@ export default function ReceptionistDashboard() {
             <div className="rounded-2xl border border-border bg-white shadow-sm">
               <div className="border-b border-border px-5 pt-4">
                 <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-sm font-bold text-brand-dark">Hàng đợi hôm nay</h2>
+                  <h2 className="text-sm font-bold text-brand-dark">Lịch hẹn hôm nay</h2>
                   <div className="flex items-center gap-3">
                     <button
                       type="button"
@@ -475,7 +487,7 @@ export default function ReceptionistDashboard() {
               ) : filtered.length === 0 ? (
                 <div className="flex flex-col items-center justify-center gap-3 py-14 text-muted-foreground">
                   <CalendarBlank size={36} className="text-slate-300" />
-                  <p className="text-sm font-medium">Hàng đợi trống hôm nay</p>
+                  <p className="text-sm font-medium">Không có lịch hẹn phù hợp hôm nay</p>
                   <Link
                     href="/receptionist/appointments/new"
                     className="text-xs font-bold text-brand hover:underline"
@@ -494,6 +506,8 @@ export default function ReceptionistDashboard() {
                     return (
                       <div
                         key={apt.id}
+                        role="group"
+                        aria-label={`Lịch hẹn ${apt.appointmentCode}`}
                         className="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-muted"
                       >
                         <div
@@ -591,12 +605,12 @@ export default function ReceptionistDashboard() {
                               ) : (
                                 <BellRinging size={13} />
                               )}
-                              Nhắc BS
+                              Bắt đầu khám
                             </button>
                           )}
                           {apt.status === "COMPLETED" && apt.invoicePending && (
                             <Link
-                              href="/receptionist/billing"
+                              href={`/receptionist/billing${apt.billingInvoiceId ? `?invoiceId=${apt.billingInvoiceId}` : ""}`}
                               className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-brand px-3 text-xs font-bold text-white shadow-sm transition-all hover:bg-brand-dark active:scale-[0.98]"
                             >
                               <Receipt size={13} weight="fill" />
@@ -621,6 +635,7 @@ export default function ReceptionistDashboard() {
                             <QueueActionMenu
                               apt={apt}
                               onStatusChange={(id, status) => void handleStatusChange(id, status)}
+                              now={currentTime}
                               disabled={busy}
                             />
                           )}

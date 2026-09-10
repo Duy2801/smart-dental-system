@@ -30,6 +30,7 @@ describe('TreatmentPlanService', () => {
         findMany: jest.fn(),
         create: jest.fn(),
         update: jest.fn(),
+        updateMany: jest.fn(),
         deleteMany: jest.fn(),
       },
       doctor: {
@@ -73,16 +74,45 @@ describe('TreatmentPlanService', () => {
       ).rejects.toThrow(NotFoundException);
     });
 
+    it('throws BadRequestException when treatment plan status is CANCELLED', async () => {
+      prismaMock.treatmentPlan.findUnique.mockResolvedValueOnce({
+        id: 'tp-1',
+        doctorId: 'doc-1',
+        status: 'CANCELLED',
+        patient: { email: 'patient@gmail.com' },
+        steps: [{ id: 'step-1' }],
+      });
+
+      await expect(
+        service.sendTreatmentPlanEmail('tp-1', doctorUser),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('throws BadRequestException when treatment plan has 0 steps', async () => {
+      prismaMock.treatmentPlan.findUnique.mockResolvedValueOnce({
+        id: 'tp-1',
+        doctorId: 'doc-1',
+        status: 'PLANNED',
+        patient: { email: 'patient@gmail.com' },
+        steps: [],
+      });
+
+      await expect(
+        service.sendTreatmentPlanEmail('tp-1', doctorUser),
+      ).rejects.toThrow(BadRequestException);
+    });
+
     it('throws BadRequestException when patient email is missing or @clinic.local', async () => {
       prismaMock.treatmentPlan.findUnique.mockResolvedValueOnce({
         id: 'tp-1',
         doctorId: 'doc-1',
+        status: 'IN_PROGRESS',
         patient: {
           email: 'test@clinic.local',
           user: { email: 'test@clinic.local' },
         },
         doctor: { user: { fullName: 'Nguyễn Văn B' } },
-        steps: [],
+        steps: [{ id: 'step-1' }],
       });
 
       await expect(
@@ -253,6 +283,31 @@ describe('TreatmentPlanService', () => {
         data: { status: 'IN_PROGRESS' },
       });
     });
+
+    it('throws BadRequestException when attempting to cancel a step that is already PAID', async () => {
+      prismaMock.treatmentPlan.findUnique.mockResolvedValueOnce({
+        id: 'tp-3',
+        doctorId: 'doc-1',
+        status: 'IN_PROGRESS',
+      });
+
+      prismaMock.treatmentPlanStep.findFirst.mockResolvedValueOnce({
+        id: 'step-paid',
+        treatmentPlanId: 'tp-3',
+        status: 'COMPLETED',
+        paymentStatus: 'PAID',
+        stepOrder: 1,
+      });
+
+      await expect(
+        service.updateStep(
+          'tp-3',
+          'step-paid',
+          { status: 'CANCELLED' as any },
+          doctorUser,
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
   });
 
   describe('create', () => {
@@ -270,6 +325,97 @@ describe('TreatmentPlanService', () => {
           doctorUser,
         ),
       ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('update', () => {
+    it('throws BadRequestException if patched startDate is after existing expectedEndDate', async () => {
+      prismaMock.treatmentPlan.findUnique.mockResolvedValueOnce({
+        id: 'tp-1',
+        doctorId: 'doc-1',
+        startDate: new Date('2026-09-01'),
+        expectedEndDate: new Date('2026-09-30'),
+        steps: [],
+      });
+
+      await expect(
+        service.update(
+          'tp-1',
+          { startDate: '2026-10-01' },
+          doctorUser,
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('throws BadRequestException if patched expectedEndDate is before existing startDate', async () => {
+      prismaMock.treatmentPlan.findUnique.mockResolvedValueOnce({
+        id: 'tp-1',
+        doctorId: 'doc-1',
+        startDate: new Date('2026-09-15'),
+        expectedEndDate: new Date('2026-10-15'),
+        steps: [],
+      });
+
+      await expect(
+        service.update(
+          'tp-1',
+          { expectedEndDate: '2026-09-01' },
+          doctorUser,
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('offsets existing steps by incrementing stepOrder before applying new step orders', async () => {
+      prismaMock.treatmentPlan.findUnique.mockResolvedValueOnce({
+        id: 'tp-1',
+        doctorId: 'doc-1',
+        startDate: new Date('2026-09-01'),
+        expectedEndDate: new Date('2026-10-01'),
+        steps: [
+          { id: 'step-1', stepOrder: 1, title: 'Bước 1' },
+          { id: 'step-2', stepOrder: 2, title: 'Bước 2' },
+        ],
+      });
+
+      prismaMock.treatmentPlan.update.mockResolvedValueOnce({
+        id: 'tp-1',
+        title: 'Kế hoạch',
+        doctorId: 'doc-1',
+        status: 'PLANNED',
+        steps: [
+          { id: 'step-2', stepOrder: 1, title: 'Bước 2' },
+          { id: 'step-1', stepOrder: 2, title: 'Bước 1' },
+        ],
+      });
+
+      await service.update(
+        'tp-1',
+        {
+          steps: [
+            { id: 'step-2', title: 'Bước 2' },
+            { id: 'step-1', title: 'Bước 1' },
+          ],
+        },
+        doctorUser,
+      );
+
+      // Verify that stepOrder was offset by incrementing before updating
+      expect(prismaMock.treatmentPlanStep.updateMany).toHaveBeenCalledWith({
+        where: { treatmentPlanId: 'tp-1' },
+        data: { stepOrder: { increment: 10000 } },
+      });
+      expect(prismaMock.treatmentPlanStep.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'step-2' },
+          data: expect.objectContaining({ stepOrder: 1 }),
+        }),
+      );
+      expect(prismaMock.treatmentPlanStep.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'step-1' },
+          data: expect.objectContaining({ stepOrder: 2 }),
+        }),
+      );
     });
   });
 });

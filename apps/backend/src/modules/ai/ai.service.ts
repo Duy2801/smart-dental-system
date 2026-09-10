@@ -24,6 +24,7 @@ import {
 } from './dto/doctor-ai.dto';
 import { SummarizePatientDto } from './dto/summarize-patient.dto';
 import { ReviewPatientAiBriefDto } from './dto/review-patient-ai-brief.dto';
+import { ReceptionistChatDto } from './dto/receptionist-chat.dto';
 
 type AiSummarizeResponse = {
   bullet_points: string[];
@@ -545,6 +546,18 @@ export class AiService {
     @InjectQueue('mail-queue')
     private readonly mailQueue: Queue,
   ) {}
+
+  async receptionistChat(user: AuthenticatedUser, dto: ReceptionistChatDto) {
+    this.rateLimit.consume(`receptionist:${user.userId}`);
+    const result = await this.aiClient.post<{ reply: string }>(
+      '/api/v1/chatbot/receptionist-chat',
+      { created_by_user_id: user.userId, message: dto.message.trim(), history: dto.history.slice(-10), locale: 'vi' },
+    );
+    if (!result || typeof result.reply !== 'string' || !result.reply.trim()) {
+      throw new BadRequestException('AI không trả về nội dung hợp lệ');
+    }
+    return { reply: result.reply.trim() };
+  }
 
   async summarizePatient(user: AuthenticatedUser, dto: SummarizePatientDto) {
     if (!dto.consultationId && !dto.patientId) {

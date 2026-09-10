@@ -201,11 +201,20 @@ export class TreatmentPlanService {
     const plan = await this.findPlanOrThrow(id);
     await this.ensureCanAccess(plan.doctorId, user);
 
-    if (
-      dto.startDate &&
-      dto.expectedEndDate &&
-      new Date(dto.startDate) > new Date(dto.expectedEndDate)
-    ) {
+    const effectiveStart =
+      dto.startDate !== undefined
+        ? dto.startDate
+          ? new Date(dto.startDate)
+          : null
+        : plan.startDate;
+    const effectiveEnd =
+      dto.expectedEndDate !== undefined
+        ? dto.expectedEndDate
+          ? new Date(dto.expectedEndDate)
+          : null
+        : plan.expectedEndDate;
+
+    if (effectiveStart && effectiveEnd && effectiveStart > effectiveEnd) {
       throw new BadRequestException(
         'Ngày kết thúc dự kiến phải sau ngày bắt đầu',
       );
@@ -230,6 +239,15 @@ export class TreatmentPlanService {
         if (toDelete.length > 0) {
           await tx.treatmentPlanStep.deleteMany({
             where: { id: { in: toDelete }, treatmentPlanId: id },
+          });
+        }
+
+        // Tạm thời dịch chuyển stepOrder của các bước hiện có để tránh vi phạm
+        // ràng buộc duy nhất @@unique([treatmentPlanId, stepOrder]) khi reorder
+        if (existingIds.size > 0) {
+          await tx.treatmentPlanStep.updateMany({
+            where: { treatmentPlanId: id },
+            data: { stepOrder: { increment: 10000 } },
           });
         }
 
@@ -305,6 +323,15 @@ export class TreatmentPlanService {
       where: { id: stepId, treatmentPlanId: planId },
     });
     if (!step) throw new NotFoundException('Không tìm thấy bước điều trị');
+
+    if (
+      step.paymentStatus === TreatmentStepPaymentStatus.PAID &&
+      dto.status === 'CANCELLED'
+    ) {
+      throw new BadRequestException(
+        'Không thể hủy bước điều trị đã thanh toán. Vui lòng liên hệ lễ tân thực hiện hoàn tiền trước.',
+      );
+    }
 
     const isCompleting =
       dto.status === 'COMPLETED' && step.status !== 'COMPLETED';
@@ -415,7 +442,7 @@ export class TreatmentPlanService {
         invoiceType: InvoiceType.STEP_PAYMENT,
         items: [
           {
-            description: `Dot ${input.stepOrder}: ${input.title}`,
+            description: `Đợt ${input.stepOrder}: ${input.title}`,
             qty: 1,
             unit_price: input.amount,
             amount: input.amount,
@@ -497,6 +524,18 @@ export class TreatmentPlanService {
     const doctorName = rawDoctorName
       ? (rawDoctorName.startsWith('BS') ? rawDoctorName : `BS. ${rawDoctorName}`)
       : 'Bác sĩ Nha Khoa Smart Dental';
+
+    if (plan.status === 'CANCELLED') {
+      throw new BadRequestException(
+        'Không thể gửi email cho kế hoạch điều trị đã hủy',
+      );
+    }
+
+    if (!plan.steps || plan.steps.length === 0) {
+      throw new BadRequestException(
+        'Kế hoạch điều trị chưa có bước điều trị nào để gửi',
+      );
+    }
 
     if (!email || email.endsWith('@clinic.local')) {
       throw new BadRequestException(

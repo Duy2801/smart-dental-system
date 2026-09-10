@@ -186,6 +186,7 @@ export class PatientService {
 
   async findPatients(search?: string) {
     const q = search?.trim();
+    const now = new Date();
     const patients = await this.prisma.patient.findMany({
       where: q
         ? {
@@ -213,14 +214,26 @@ export class PatientService {
       include: {
         user: { select: { fullName: true, phone: true, email: true } },
         appointments: {
+          where: {
+            status: AppointmentStatus.COMPLETED,
+            scheduledAt: { lte: now },
+          },
           orderBy: { scheduledAt: 'desc' },
           take: 1,
           select: { scheduledAt: true },
         },
-        _count: { select: { appointments: true } },
+        _count: {
+          select: {
+            appointments: {
+              where: {
+                status: AppointmentStatus.COMPLETED,
+                scheduledAt: { lte: now },
+              },
+            },
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
-      take: 100,
     });
 
     return patients.map((p) => {
@@ -246,6 +259,7 @@ export class PatientService {
   }
 
   async createPatient(dto: CreatePatientDto) {
+    this.assertDateOfBirthIsNotFuture(dto.dateOfBirth);
     const phone = dto.phone.trim();
     const fullName = dto.fullName.trim();
     const email =
@@ -407,6 +421,10 @@ export class PatientService {
       include: {
         user: { select: { id: true, fullName: true, email: true } },
         appointments: {
+          where: {
+            status: AppointmentStatus.COMPLETED,
+            scheduledAt: { lte: new Date() },
+          },
           orderBy: { scheduledAt: 'desc' },
           take: 1,
           select: { scheduledAt: true },
@@ -451,7 +469,8 @@ export class PatientService {
 
   /** Gửi hàng loạt thông báo nhắc tái khám cho tất cả bệnh nhân đến hạn */
   async sendBulkPeriodicCheckupReminders() {
-    const sixMonthsAgo = new Date();
+    const now = new Date();
+    const sixMonthsAgo = new Date(now);
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
     const thirtyDaysAgo = new Date();
@@ -474,11 +493,24 @@ export class PatientService {
     // 2. DB-level filtering: Chỉ lọc bệnh nhân không có lịch hẹn nào trong 6 tháng qua
     const eligiblePatients = await this.prisma.patient.findMany({
       where: {
-        appointments: {
-          none: {
-            scheduledAt: { gte: sixMonthsAgo },
+        AND: [
+          {
+            appointments: {
+              some: {
+                status: AppointmentStatus.COMPLETED,
+                scheduledAt: { lt: sixMonthsAgo },
+              },
+            },
           },
-        },
+          {
+            appointments: {
+              none: {
+                status: AppointmentStatus.COMPLETED,
+                scheduledAt: { gte: sixMonthsAgo, lte: now },
+              },
+            },
+          },
+        ],
         OR: [
           { email: { not: null } },
           { user: { isNot: null } },
@@ -487,6 +519,10 @@ export class PatientService {
       include: {
         user: { select: { id: true, fullName: true, email: true } },
         appointments: {
+          where: {
+            status: AppointmentStatus.COMPLETED,
+            scheduledAt: { lte: now },
+          },
           orderBy: { scheduledAt: 'desc' },
           take: 1,
           select: { scheduledAt: true },
@@ -495,6 +531,7 @@ export class PatientService {
     });
 
     let sentCount = 0;
+    let failedCount = 0;
     const notificationsToCreate: Array<{
       userId: string;
       type: 'SYSTEM';
@@ -504,8 +541,6 @@ export class PatientService {
       status: 'SENT';
       sentAt: Date;
     }> = [];
-    const mailJobs: Array<Promise<any>> = [];
-
     for (const patient of eligiblePatients) {
       const email = patient.user?.email || patient.email;
       if (!email || email.endsWith('@clinic.local')) continue;
@@ -518,14 +553,19 @@ export class PatientService {
       const name = patient.user?.fullName || patient.fullName;
       const lastVisit = patient.appointments[0]?.scheduledAt;
 
-      mailJobs.push(
-        this.mailQueue.add('send-periodic-checkup-reminder', {
+      try {
+        await this.mailQueue.add('send-periodic-checkup-reminder', {
           name,
           email,
           patientCode: patient.patientCode,
           lastVisitDate: lastVisit?.toISOString(),
-        }),
-      );
+        }, {
+          jobId: `periodic-checkup-${patient.id}-${lastVisit?.toISOString().slice(0, 10)}`,
+        });
+      } catch {
+        failedCount++;
+        continue;
+      }
 
       if (patient.user?.id) {
         recentNotifiedUserIds.add(patient.user.id);
@@ -549,16 +589,16 @@ export class PatientService {
       });
     }
 
-    await Promise.all(mailJobs);
-
     return {
-      success: true,
+      success: failedCount === 0,
       sentCount,
+      failedCount,
       message: `Đã gửi lời nhắc tái khám định kỳ đến ${sentCount} bệnh nhân`,
     };
   }
 
   async updatePatient(patientId: string, dto: UpdatePatientDto) {
+    this.assertDateOfBirthIsNotFuture(dto.dateOfBirth);
     const patient = await this.prisma.patient.findUnique({
       where: { id: patientId },
       select: { id: true, userId: true, medicalHistory: true, phone: true, email: true },
@@ -1641,5 +1681,11 @@ export class PatientService {
     const value = new Date(date);
     value.setDate(value.getDate() + days);
     return value;
+  }
+
+  private assertDateOfBirthIsNotFuture(value?: string | null) {
+    if (value && new Date(value) > new Date()) {
+      throw new BadRequestException('patient.date_of_birth_future');
+    }
   }
 }

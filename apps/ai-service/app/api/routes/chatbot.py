@@ -1,9 +1,10 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from app.schemas.chatbot import ChatRequest, ChatResponse
 from app.services.chatbot_service import ChatbotService
 from app.core import llm
 from app.core.prompts import RECEPTIONIST_SYSTEM
+from app.api.routes.doctor_assist import require_api_key
 
 router = APIRouter()
 service = ChatbotService()
@@ -23,7 +24,7 @@ async def agent_chat(body: ChatRequest):
     return await agent.process_chat(body)
 
 
-@router.post("/receptionist-chat", response_model=ChatResponse)
+@router.post("/receptionist-chat", response_model=ChatResponse, dependencies=[Depends(require_api_key)])
 async def receptionist_chat(body: ChatRequest):
     """Trợ lý lễ tân nội bộ: nghiệp vụ, lịch hẹn, check-in, thanh toán."""
     history_txt = "\n".join(

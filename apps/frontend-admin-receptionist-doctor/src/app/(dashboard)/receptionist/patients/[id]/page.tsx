@@ -164,7 +164,8 @@ function PatientDetailContent() {
   };
 
   useEffect(() => {
-    void loadPatient();
+    const timer = setTimeout(() => void loadPatient(), 0);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -586,7 +587,7 @@ function PatientDetailContent() {
                     </h2>
                   </div>
                   <Link
-                    href="/receptionist/billing"
+                    href={`/receptionist/billing?patientId=${patient.id}`}
                     className="text-xs font-semibold text-brand hover:underline"
                   >
                     Đến thanh toán
