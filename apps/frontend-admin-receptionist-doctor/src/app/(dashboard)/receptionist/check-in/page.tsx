@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/src/lib/utils/cn";
 import { Header } from "@/src/components/layout/header";
@@ -14,7 +14,6 @@ import {
 import { formatDoctorName } from "@/src/lib/utils/format";
 import {
   ArrowLeft,
-  QrCode,
   CheckCircle,
   Clock,
   Stethoscope,
@@ -100,6 +99,7 @@ function Toast({
 }) {
   return (
     <div
+      role={type === "error" ? "alert" : "status"}
       className={cn(
         "fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-xl border px-4 py-3 shadow-xl",
         type === "success"
@@ -113,7 +113,12 @@ function Toast({
         <Warning size={16} weight="fill" className="shrink-0 text-red-500" />
       )}
       <span className="text-sm font-semibold">{message}</span>
-      <button onClick={onClose} className="ml-2 text-current opacity-60 hover:opacity-100">
+      <button
+        type="button"
+        aria-label="Đóng thông báo"
+        onClick={onClose}
+        className="ml-2 text-current opacity-60 hover:opacity-100"
+      >
         <X size={14} />
       </button>
     </div>
@@ -122,7 +127,6 @@ function Toast({
 
 export default function CheckInPage() {
   const [mode, setMode] = useState<Mode>("search");
-  const [isQRMode, setIsQRMode] = useState(false);
   const [searchValue, setSearchValue] = useState("");
   const [searching, setSearching] = useState(false);
   const [candidates, setCandidates] = useState<AppointmentInfo[]>([]);
@@ -135,103 +139,18 @@ export default function CheckInPage() {
     type: "success" | "error";
   } | null>(null);
   const [searchError, setSearchError] = useState("");
-  const [cameraError, setCameraError] = useState("");
-  const [cameraReady, setCameraReady] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  const searchRequestId = useRef(0);
 
   const showToast = (message: string, type: "success" | "error") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3500);
   };
 
-  const stopCamera = () => {
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    streamRef.current = null;
-    setCameraReady(false);
-  };
-
-  useEffect(() => {
-    if (!isQRMode) {
-      stopCamera();
-      setCameraError("");
-      return;
-    }
-
-    let cancelled = false;
-    let timer: ReturnType<typeof setInterval> | undefined;
-
-    const start = async () => {
-      setCameraError("");
-      setCameraReady(false);
-      const Detector = (
-        window as unknown as {
-          BarcodeDetector?: new (opts: {
-            formats: string[];
-          }) => {
-            detect: (source: ImageBitmapSource) => Promise<{ rawValue: string }[]>;
-          };
-        }
-      ).BarcodeDetector;
-
-      if (!Detector || !navigator.mediaDevices?.getUserMedia) {
-        setCameraError(
-          "Trình duyệt không hỗ trợ quét QR. Nhập mã lịch bên dưới.",
-        );
-        return;
-      }
-
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" },
-          audio: false,
-        });
-        if (cancelled) {
-          stream.getTracks().forEach((t) => t.stop());
-          return;
-        }
-        streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          await videoRef.current.play();
-        }
-        setCameraReady(true);
-
-        const detector = new Detector({ formats: ["qr_code"] });
-        timer = setInterval(async () => {
-          const video = videoRef.current;
-          if (!video || video.readyState < 2) return;
-          try {
-            const codes = await detector.detect(video);
-            const raw = codes[0]?.rawValue?.trim();
-            if (!raw) return;
-            stopCamera();
-            setIsQRMode(false);
-            setSearchValue(raw);
-            void runSearch(raw);
-          } catch {
-            // ignore frame errors
-          }
-        }, 600);
-      } catch {
-        setCameraError(
-          "Không mở được camera. Cho phép quyền camera hoặc nhập mã lịch thủ công.",
-        );
-      }
-    };
-
-    void start();
-    return () => {
-      cancelled = true;
-      if (timer) clearInterval(timer);
-      stopCamera();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isQRMode]);
-
   const runSearch = async (query: string) => {
     const q = query.trim();
+    const requestId = ++searchRequestId.current;
     if (q.length < MIN_SEARCH_LEN) {
+      setSearching(false);
       setSearchError(`Nhập ít nhất ${MIN_SEARCH_LEN} ký tự để tìm kiếm.`);
       setMode("search");
       return;
@@ -248,6 +167,8 @@ export default function CheckInPage() {
       const list = mapAppointments(res.data)
         .filter((a) => a.status === "PENDING" || a.status === "CONFIRMED")
         .map(toInfo);
+
+      if (requestId !== searchRequestId.current) return;
 
       if (list.length === 0) {
         setSearchError(
@@ -268,12 +189,13 @@ export default function CheckInPage() {
       setCandidates(list);
       setMode("pick");
     } catch (err) {
+      if (requestId !== searchRequestId.current) return;
       setSearchError(
         getApiErrorMessage(err, "Không tải được lịch hẹn từ máy chủ."),
       );
       setMode("search");
     } finally {
-      setSearching(false);
+      if (requestId === searchRequestId.current) setSearching(false);
     }
   };
 
@@ -288,6 +210,7 @@ export default function CheckInPage() {
     setSubmitting(true);
     try {
       await apiClient.patch(`/appointments/${appointment.id}/check-in`, {
+        medicalHistoryConfirmed: historyOk,
         notes: notes.trim().slice(0, MAX_NOTES_LEN) || undefined,
       });
       setMode("done");
@@ -306,112 +229,16 @@ export default function CheckInPage() {
   };
 
   const resetAll = () => {
-    stopCamera();
+    searchRequestId.current += 1;
     setMode("search");
-    setIsQRMode(false);
+    setSearching(false);
     setSearchValue("");
     setAppointment(null);
     setCandidates([]);
     setNotes("");
     setHistoryOk(false);
     setSearchError("");
-    setCameraError("");
   };
-
-  if (isQRMode) {
-    return (
-      <>
-        <Header
-          title="Check-in"
-          description="Quét mã QR hoặc nhập mã lịch hẹn."
-        />
-        <div className="bg-muted flex flex-1 items-center justify-center p-6">
-          <div className="w-full max-w-md rounded-2xl border border-border bg-white p-8 shadow-sm text-center space-y-5">
-            <div className="relative mx-auto h-60 w-60 overflow-hidden rounded-2xl border-2 border-dashed border-brand bg-slate-900">
-              <video
-                ref={videoRef}
-                className="h-full w-full object-cover"
-                muted
-                playsInline
-              />
-              {!cameraReady && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-white/70">
-                  <QrCode size={48} className="text-white/40" />
-                  <p className="text-xs font-semibold px-4">
-                    {cameraError || "Đang mở camera..."}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <div>
-              <h2 className="text-base font-bold text-brand-dark">
-                Quét mã QR lịch hẹn
-              </h2>
-              <p className="mt-1.5 text-xs text-muted-foreground">
-                Mã QR chứa mã lịch (vd. APT-SEED-001) hoặc SĐT bệnh nhân.
-              </p>
-            </div>
-
-            <div className="space-y-2 text-left">
-              <label className="text-xs font-semibold text-muted-foreground">
-                Hoặc nhập mã thủ công
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={searchValue}
-                  onChange={(e) => setSearchValue(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && searchValue.trim().length >= MIN_SEARCH_LEN) {
-                      setIsQRMode(false);
-                      void runSearch(searchValue);
-                    }
-                  }}
-                  placeholder="APT-SEED-001"
-                  minLength={MIN_SEARCH_LEN}
-                  className="flex-1 rounded-lg border border-border bg-muted px-3 py-2 text-sm font-medium outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
-                />
-                <button
-                  type="button"
-                  disabled={
-                    searchValue.trim().length < MIN_SEARCH_LEN || searching
-                  }
-                  onClick={() => {
-                    setIsQRMode(false);
-                    void runSearch(searchValue);
-                  }}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {searching ? (
-                    <CircleNotch size={14} className="animate-spin" />
-                  ) : null}
-                  Tìm
-                </button>
-              </div>
-            </div>
-
-            <button
-              onClick={() => {
-                stopCamera();
-                setIsQRMode(false);
-              }}
-              className="text-sm font-bold text-brand transition-colors hover:text-brand-dark hover:underline"
-            >
-              Quay lại tìm kiếm thủ công
-            </button>
-          </div>
-        </div>
-        {toast && (
-          <Toast
-            message={toast.message}
-            type={toast.type}
-            onClose={() => setToast(null)}
-          />
-        )}
-      </>
-    );
-  }
 
   if (mode === "done" && appointment) {
     return (
@@ -433,6 +260,7 @@ export default function CheckInPage() {
             </p>
             <div className="mt-6 flex gap-3">
               <button
+                type="button"
                 onClick={resetAll}
                 className="flex-1 rounded-lg border border-border bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-muted"
               >
@@ -463,15 +291,7 @@ export default function CheckInPage() {
       <Header
         title="Check-in bệnh nhân"
         description="Xác nhận bệnh nhân đã có mặt để chuyển vào phòng chờ."
-      >
-        <button
-          onClick={() => setIsQRMode(true)}
-          className="inline-flex items-center gap-2 rounded-lg bg-brand-dark px-4 py-2 text-xs font-bold text-white shadow-sm hover:opacity-90 active:scale-[0.98]"
-        >
-          <QrCode size={15} weight="fill" />
-          Quét mã QR
-        </button>
-      </Header>
+      />
 
       <div className="bg-muted p-6">
         <div className="mx-auto max-w-xl space-y-5">
@@ -497,6 +317,7 @@ export default function CheckInPage() {
                   />
                   <input
                     type="search"
+                    aria-label="Tìm lịch hẹn hôm nay"
                     value={searchValue}
                     onChange={(e) => {
                       setSearchValue(e.target.value);
@@ -511,7 +332,7 @@ export default function CheckInPage() {
                 </div>
 
                 {searchError && (
-                  <div className="flex items-start justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs font-medium text-amber-800">
+                  <div role="alert" className="flex items-start justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs font-medium text-amber-800">
                     <div className="flex items-start gap-2 min-w-0">
                       <Warning
                         weight="fill"
@@ -535,6 +356,7 @@ export default function CheckInPage() {
                 )}
 
                 <button
+                  type="button"
                   onClick={handleSearch}
                   disabled={searching || searchValue.trim().length < MIN_SEARCH_LEN}
                   className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-brand py-3 text-sm font-bold text-white shadow-sm hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-50"
@@ -548,16 +370,6 @@ export default function CheckInPage() {
                     "Tìm lịch hẹn"
                   )}
                 </button>
-
-                <p className="text-center text-xs text-muted-foreground">
-                  Hoặc{" "}
-                  <button
-                    onClick={() => setIsQRMode(true)}
-                    className="font-bold text-brand hover:underline"
-                  >
-                    quét mã QR
-                  </button>
-                </p>
               </div>
             </div>
           )}
@@ -574,6 +386,7 @@ export default function CheckInPage() {
                   </p>
                 </div>
                 <button
+                  type="button"
                   onClick={resetAll}
                   className="text-xs font-semibold text-muted-foreground hover:text-brand-dark"
                 >
@@ -620,6 +433,7 @@ export default function CheckInPage() {
               <div className="border-b border-border bg-brand/5 px-6 py-5">
                 <div className="flex items-center justify-between">
                   <button
+                    type="button"
                     onClick={() => {
                       if (candidates.length > 1) {
                         setMode("pick");
@@ -737,11 +551,15 @@ export default function CheckInPage() {
                 </label>
 
                 <div className="space-y-1.5">
-                  <label className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                  <label
+                    htmlFor="receptionist-check-in-notes"
+                    className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"
+                  >
                     <NotePencil size={13} />
                     Ghi chú lễ tân (tuỳ chọn)
                   </label>
                   <textarea
+                    id="receptionist-check-in-notes"
                     rows={2}
                     value={notes}
                     maxLength={MAX_NOTES_LEN}
@@ -756,6 +574,7 @@ export default function CheckInPage() {
 
                 <div className="flex items-center justify-end gap-3 border-t border-border pt-5">
                   <button
+                    type="button"
                     onClick={resetAll}
                     className="rounded-lg px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-muted"
                   >

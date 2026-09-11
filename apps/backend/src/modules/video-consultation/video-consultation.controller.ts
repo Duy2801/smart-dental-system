@@ -156,7 +156,12 @@ export class VideoConsultationController {
     @CurrentUser() user: AuthenticatedUser,
     @Body() body: UpdateVideoConsultationNotesDto,
   ) {
-    return this.service.updateNotes(id, user, body.notes ?? null);
+    return this.service.updateNotes(
+      id,
+      user,
+      body.notes ?? null,
+      body.previousNotes ?? null,
+    );
   }
 
   @Post(':id/send-reminder')

@@ -1,20 +1,38 @@
 /** Đọc doctorId từ cookie user_info (đồng bộ với backend JWT). */
 export function getDoctorIdFromCookie(): string | null {
   if (typeof document === "undefined") return null;
+  return getDoctorInfoFromCookie().doctorId;
+}
+
+export function getDoctorInfoFromCookie(): {
+  doctorId: string | null;
+  doctorName: string | null;
+  fullName: string | null;
+} {
+  if (typeof document === "undefined") {
+    return { doctorId: null, doctorName: null, fullName: null };
+  }
   const raw = document.cookie
     .split("; ")
     .find((c) => c.startsWith("user_info="))
     ?.split("=")
     .slice(1)
     .join("=");
-  if (!raw) return null;
+  if (!raw) return { doctorId: null, doctorName: null, fullName: null };
   try {
     const info = JSON.parse(decodeURIComponent(raw)) as {
       doctorId?: string | null;
+      fullName?: string | null;
+      name?: string | null;
     };
-    return info.doctorId ?? null;
+    const name = info.fullName ?? info.name ?? null;
+    return {
+      doctorId: info.doctorId ?? null,
+      doctorName: name,
+      fullName: name,
+    };
   } catch {
-    return null;
+    return { doctorId: null, doctorName: null, fullName: null };
   }
 }
 

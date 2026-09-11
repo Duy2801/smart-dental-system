@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { Image as ImageIcon, Trash, SpinnerGap, Sparkle, UploadSimple } from "@phosphor-icons/react";
 import axios from "axios";
 import apiClient from "@/src/lib/api/client";
+import { useAppDialog } from "@/src/providers/app-dialog-provider";
 import { DoctorXrayAnalysisModal } from "./DoctorXrayAnalysisModal";
 
 export type RecordImage = {
@@ -25,8 +26,9 @@ type Props = {
   patientName?: string;
   value: RecordImage[];
   onChange: (next: RecordImage[]) => void;
-  onUploaded?: (detailImages: RecordImage[]) => void;
+  onUploaded?: (detailImages: RecordImage[], updatedAt?: string) => void;
   onApplyAiDiagnosis?: (diagnosis: string, treatmentNotes: string) => void;
+  readOnly?: boolean;
 };
 
 export function MedicalRecordImages({
@@ -37,7 +39,9 @@ export function MedicalRecordImages({
   onChange,
   onUploaded,
   onApplyAiDiagnosis,
+  readOnly = false,
 }: Props) {
+  const { showConfirm } = useAppDialog();
   const fileRef = useRef<HTMLInputElement>(null);
   const [caption, setCaption] = useState("");
   const [type, setType] = useState<"xray" | "intraoral" | "other">("xray");
@@ -47,12 +51,12 @@ export function MedicalRecordImages({
 
   const onFile = async (file: File | undefined) => {
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      setErr("Chỉ chọn file ảnh (JPG, PNG, DICOM, WEBP).");
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setErr("Chỉ chọn file ảnh JPG, PNG hoặc WEBP.");
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      setErr("Dung lượng ảnh tối đa 5MB.");
+    if (file.size > 3 * 1024 * 1024) {
+      setErr("Dung lượng ảnh tối đa 3MB.");
       return;
     }
     if (value.length >= 20) {
@@ -67,7 +71,7 @@ export function MedicalRecordImages({
       form.append("file", file);
       if (caption.trim()) form.append("caption", caption.trim());
       form.append("type", type);
-      const res = await apiClient.post<{ images: RecordImage[] }>(
+      const res = await apiClient.post<{ images: RecordImage[]; updatedAt?: string }>(
         `/medical-records/${recordId}/images`,
         form,
         {
@@ -88,7 +92,7 @@ export function MedicalRecordImages({
       );
       const images = res.data.images ?? [];
       onChange(images);
-      onUploaded?.(images);
+      onUploaded?.(images, res.data.updatedAt);
       setCaption("");
       if (fileRef.current) fileRef.current.value = "";
     } catch (e) {
@@ -111,7 +115,7 @@ export function MedicalRecordImages({
   return (
     <div className="space-y-4">
       {/* 1. UPLOAD CONTROLS BAR (CHỈ CHỌN FILE) */}
-      <div className="rounded-2xl border border-border bg-slate-50/70 p-4 space-y-3">
+      {!readOnly && <div className="rounded-2xl border border-border bg-slate-50/70 p-4 space-y-3">
         <div className="flex flex-wrap items-center gap-3">
           {/* Select Type */}
           <div className="w-full sm:w-auto">
@@ -155,7 +159,7 @@ export function MedicalRecordImages({
           <input
             ref={fileRef}
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp"
             className="hidden"
             onChange={(e) => void onFile(e.target.files?.[0])}
           />
@@ -163,9 +167,9 @@ export function MedicalRecordImages({
 
         {err && <p className="text-xs font-medium text-red-600">{err}</p>}
         <p className="text-[11px] text-muted-foreground">
-          Định dạng hỗ trợ: JPG, PNG, WEBP (Tối đa 5MB/ảnh). Ảnh sẽ được tải lên Cloudinary và lưu tự động vào bệnh án.
+          Định dạng hỗ trợ: JPG, PNG, WEBP (Tối đa 3MB/ảnh). Ảnh sẽ được tải lên Cloudinary và lưu tự động vào bệnh án.
         </p>
-      </div>
+      </div>}
 
       {/* 2. GALLERY LIST */}
       {value.length === 0 ? (
@@ -175,7 +179,7 @@ export function MedicalRecordImages({
             Chưa có ảnh nào được lưu cho bệnh án này
           </p>
           <p className="text-xs text-muted-foreground mt-1 max-w-sm">
-            Chọn loại ảnh ở trên và bấm "Chọn file ảnh từ máy tính" để đính kèm phim X-quang hoặc ảnh chụp trong miệng.
+            Chọn loại ảnh ở trên và bấm &quot;Chọn file ảnh từ máy tính&quot; để đính kèm phim X-quang hoặc ảnh chụp trong miệng.
           </p>
         </div>
       ) : (
@@ -203,7 +207,7 @@ export function MedicalRecordImages({
                     {img.caption || "Không có chú thích"}
                   </p>
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0">
+                {!readOnly && <div className="flex items-center gap-1.5 shrink-0">
                   <button
                     type="button"
                     onClick={() => img.id && setAnalyzingImage(img)}
@@ -215,13 +219,24 @@ export function MedicalRecordImages({
                   </button>
                   <button
                     type="button"
-                    onClick={() => onChange(value.filter((_, j) => j !== i))}
+                    onClick={async () => {
+                      const name = img.caption ? `"${img.caption}"` : `ảnh #${i + 1}`;
+                      const confirmed = await showConfirm({
+                        title: "Xóa hình ảnh?",
+                        description: `Bạn có chắc muốn xóa ${name} khỏi hồ sơ không?`,
+                        confirmLabel: "Xóa ảnh",
+                        tone: "danger",
+                      });
+                      if (confirmed) {
+                        onChange(value.filter((_, j) => j !== i));
+                      }
+                    }}
                     className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 transition cursor-pointer"
                     aria-label="Xóa ảnh"
                   >
                     <Trash size={15} />
                   </button>
-                </div>
+                </div>}
               </div>
             </li>
           ))}
@@ -229,7 +244,7 @@ export function MedicalRecordImages({
       )}
 
       {/* 3. MODAL KÍNH SOI AI */}
-      {analyzingImage && (
+      {!readOnly && analyzingImage && (
         <DoctorXrayAnalysisModal
           imageId={analyzingImage.id!}
           imageUrl={analyzingImage.url}

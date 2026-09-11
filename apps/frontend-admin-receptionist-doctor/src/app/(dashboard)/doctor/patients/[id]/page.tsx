@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useParams } from "next/navigation";
 import { cn } from "@/src/lib/utils/cn";
 import {
@@ -20,9 +21,14 @@ import {
   Sparkle,
   FileText,
   Pill,
+  VideoCamera,
   X,
+  Copy,
+  Check,
 } from "@phosphor-icons/react";
 import apiClient from "@/src/lib/api/client";
+import { formatDate } from "@/src/lib/utils/date";
+import { patientQuickLinks } from "../patient-list";
 import { PatientAiBrief } from "@/src/components/doctor/patient-ai-brief";
 import {
   genderLabel,
@@ -37,7 +43,12 @@ type AppointmentStatus =
   | "IN_PROGRESS"
   | "COMPLETED"
   | "CANCELLED"
-  | "NO_SHOW";
+  | "NO_SHOW"
+  | "SCHEDULED"
+  | "PENDING_PAYMENT"
+  | "EXPIRED"
+  | "DOCTOR_MISSED"
+  | "UNKNOWN";
 
 const statusConfig: Record<
   AppointmentStatus,
@@ -50,6 +61,11 @@ const statusConfig: Record<
   COMPLETED: { label: "Hoàn thành", color: "bg-green-100 text-green-700" },
   CANCELLED: { label: "Đã hủy", color: "bg-red-100 text-red-600" },
   NO_SHOW: { label: "Không đến", color: "bg-slate-100 text-slate-600" },
+  SCHEDULED: { label: "Đã đặt lịch", color: "bg-blue-100 text-blue-700" },
+  PENDING_PAYMENT: { label: "Chờ thanh toán", color: "bg-amber-100 text-amber-700" },
+  EXPIRED: { label: "Hết hạn", color: "bg-slate-100 text-slate-600" },
+  DOCTOR_MISSED: { label: "BS vắng mặt", color: "bg-rose-100 text-rose-700" },
+  UNKNOWN: { label: "Không xác định", color: "bg-slate-100 text-slate-600" },
 };
 
 type PatientDetail = {
@@ -65,6 +81,8 @@ type PatientDetail = {
   medicalHistory: string | null;
   emergencyContactName: string | null;
   emergencyContactPhone: string | null;
+  totalVisits?: number;
+  totalAppointments?: number;
   activeTreatmentPlan: {
     id: string;
     title: string;
@@ -82,6 +100,8 @@ type PatientDetail = {
     serviceName: string;
     doctorName: string;
     recordId: string | null;
+    type?: "OFFLINE" | "ONLINE";
+    meetingUrl?: string | null;
   }[];
 };
 
@@ -100,14 +120,14 @@ function InfoRow({
 }: {
   icon: React.ReactNode;
   label: string;
-  value: string;
+  value: React.ReactNode;
 }) {
   return (
     <div className="flex items-start gap-3 text-sm">
       <span className="mt-0.5 shrink-0 text-brand">{icon}</span>
       <div>
         <p className="text-[11px] text-muted-foreground">{label}</p>
-        <p className="text-slate-800 font-medium">{value}</p>
+        <div className="text-slate-800 font-medium">{value}</div>
       </div>
     </div>
   );
@@ -126,62 +146,67 @@ export default function DoctorPatientDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<XrayItem | null>(null);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [aptFilter, setAptFilter] = useState<"ALL" | "COMPLETED" | "ACTIVE" | "CANCELLED">("ALL");
+
+  const copyToClipboard = async (text: string, key: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedKey(key);
+    } catch {
+      return;
+    }
+    setTimeout(() => {
+      setCopiedKey((curr) => (curr === key ? null : curr));
+    }, 1800);
+  };
 
   const doctorId = getDoctorIdFromCookie();
+  const validationError = !id || !isUuid(id)
+    ? "Mã bệnh nhân không hợp lệ."
+    : !doctorId
+      ? "Không tìm thấy thông tin bác sĩ. Vui lòng đăng nhập lại."
+      : null;
 
   useEffect(() => {
     if (!id || !isUuid(id)) {
-      setError("Mã bệnh nhân không hợp lệ.");
-      setLoading(false);
       return;
     }
     if (!doctorId) {
-      setError("Không tìm thấy thông tin bác sĩ. Vui lòng đăng nhập lại.");
-      setLoading(false);
       return;
     }
 
-    Promise.all([
+    Promise.allSettled([
       apiClient.get<PatientDetail>(`/patients/${id}?doctorId=${doctorId}`),
       apiClient.get<Record<string, unknown>[]>(`/medical-records?doctorId=${doctorId}&patientId=${id}`),
     ])
-      .then(([ptRes, recRes]) => {
+      .then(([ptResult, recResult]) => {
+        if (ptResult.status === "rejected") throw ptResult.reason;
+        const ptRes = ptResult.value;
         if (!ptRes.data) {
           setError("Không tìm thấy bệnh nhân.");
           return;
         }
         setPatient(ptRes.data);
 
-        // Aggregate X-rays from all past medical records
+        // Aggregate X-rays safely from all past medical records
         const allImages: XrayItem[] = [];
-        const records = Array.isArray(recRes.data) ? recRes.data : [];
+        const records =
+          recResult.status === "fulfilled" && Array.isArray(recResult.value.data)
+            ? recResult.value.data
+            : [];
         records.forEach((rec) => {
-          const imgs = (rec.images as XrayItem[]) || [];
+          const imgs = Array.isArray(rec.images) ? (rec.images as XrayItem[]) : [];
           imgs.forEach((img) => {
-            allImages.push({
-              ...img,
-              createdAt: (rec.scheduledAt as string) || (rec.createdAt as string),
-            });
+            if (img && typeof img.url === "string" && img.url.trim().length > 0) {
+              allImages.push({
+                ...img,
+                createdAt:
+                  (rec.scheduledAt as string) || (rec.createdAt as string),
+              });
+            }
           });
         });
-
-        // Default mock if none uploaded yet
-        if (allImages.length === 0) {
-          allImages.push(
-            {
-              url: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Panoramic_dental_X-ray.jpg/1280px-Panoramic_dental_X-ray.jpg",
-              caption: "Phim Panorama OPG toàn cảnh (Lần khám 1)",
-              type: "xray",
-              createdAt: "23/08/2026",
-            },
-            {
-              url: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/Orthopantomogram.jpg/1280px-Orthopantomogram.jpg",
-              caption: "Phim Cánh bướm Bitewing R36-R38",
-              type: "xray",
-              createdAt: "15/06/2026",
-            }
-          );
-        }
 
         setXrayAlbum(allImages);
       })
@@ -198,7 +223,16 @@ export default function DoctorPatientDetailPage() {
       .finally(() => setLoading(false));
   }, [id, doctorId]);
 
-  if (loading) {
+  useEffect(() => {
+    if (!previewImage) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPreviewImage(null);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [previewImage]);
+
+  if (!validationError && loading) {
     return (
       <div className="flex h-64 items-center justify-center">
         <SpinnerGap size={32} className="animate-spin text-brand" />
@@ -206,7 +240,7 @@ export default function DoctorPatientDetailPage() {
     );
   }
 
-  if (error || !patient) {
+  if (validationError || error || !patient) {
     return (
       <div className="p-8">
         <Link
@@ -217,7 +251,7 @@ export default function DoctorPatientDetailPage() {
         </Link>
         <div className="flex items-center gap-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-inset ring-red-200">
           <Warning size={18} className="shrink-0" />
-          {error ?? "Không tìm thấy bệnh nhân."}
+          {validationError ?? error ?? "Không tìm thấy bệnh nhân."}
         </div>
       </div>
     );
@@ -233,6 +267,31 @@ export default function DoctorPatientDetailPage() {
     plan && plan.totalSteps > 0
       ? Math.round((plan.completedSteps / plan.totalSteps) * 100)
       : 0;
+  const quickLinks = patientQuickLinks(patient.id);
+
+  const allAppointments = patient.appointments;
+  const completedAptCount =
+    patient.totalVisits ??
+    allAppointments.filter((a) => a.status === "COMPLETED").length;
+  const activeAptCount = allAppointments.filter((a) =>
+    ["PENDING", "CONFIRMED", "CHECKED_IN", "IN_PROGRESS", "SCHEDULED", "PENDING_PAYMENT"].includes(a.status),
+  ).length;
+  const cancelledAptCount = allAppointments.filter((a) =>
+    ["CANCELLED", "NO_SHOW", "EXPIRED", "DOCTOR_MISSED"].includes(a.status),
+  ).length;
+
+  const visibleAppointments =
+    aptFilter === "COMPLETED"
+      ? allAppointments.filter((a) => a.status === "COMPLETED")
+      : aptFilter === "ACTIVE"
+        ? allAppointments.filter((a) =>
+            ["PENDING", "CONFIRMED", "CHECKED_IN", "IN_PROGRESS", "SCHEDULED", "PENDING_PAYMENT"].includes(a.status),
+          )
+        : aptFilter === "CANCELLED"
+          ? allAppointments.filter((a) =>
+              ["CANCELLED", "NO_SHOW", "EXPIRED", "DOCTOR_MISSED"].includes(a.status),
+            )
+          : allAppointments;
 
   return (
     <div className="space-y-6 p-6 md:p-8">
@@ -249,15 +308,15 @@ export default function DoctorPatientDetailPage() {
         {/* Quick Action Shortcuts */}
         <div className="flex flex-wrap items-center gap-2.5">
           <Link
-            href={`/doctor/medical-records?patientId=${patient.id}`}
+            href={quickLinks.records}
             className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs transition hover:border-brand/40 hover:bg-brand/5 hover:text-brand cursor-pointer"
           >
             <FileText size={15} className="text-brand" />
-            <span>Tạo Bệnh Án</span>
+            <span>Xem Bệnh Án</span>
           </Link>
 
           <Link
-            href={`/doctor/prescriptions?patientId=${patient.id}`}
+            href={quickLinks.prescription}
             className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 cursor-pointer"
           >
             <Pill size={15} className="text-blue-600" />
@@ -265,7 +324,7 @@ export default function DoctorPatientDetailPage() {
           </Link>
 
           <Link
-            href={`/doctor/treatment-plans/new?patientId=${patient.id}`}
+            href={quickLinks.treatmentPlan}
             className="inline-flex items-center gap-1.5 rounded-xl bg-brand px-4 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-brand-dark cursor-pointer"
           >
             <Plus size={14} weight="bold" />
@@ -288,8 +347,38 @@ export default function DoctorPatientDetailPage() {
                 <h1 className="text-lg font-bold text-slate-900">
                   {patient.fullName}
                 </h1>
-                <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
+                <button
+                  type="button"
+                  onClick={() => copyToClipboard(patient.patientCode, "code")}
+                  className="mt-1 inline-flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground transition hover:bg-slate-200 hover:text-slate-900 cursor-pointer"
+                  title="Sao chép mã bệnh nhân"
+                >
                   {patient.patientCode}
+                  {copiedKey === "code" ? (
+                    <Check size={11} className="text-emerald-600" />
+                  ) : (
+                    <Copy size={11} />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Visit Counters mirroring outside table */}
+            <div className="mb-5 grid grid-cols-2 gap-2.5 rounded-xl border border-border/80 bg-slate-50/70 p-2.5">
+              <div className="flex flex-col items-center justify-center rounded-lg bg-white py-2 px-1 text-center shadow-2xs">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">
+                  Đã khám
+                </span>
+                <span className="mt-0.5 font-mono text-lg font-black text-emerald-600">
+                  {completedAptCount}
+                </span>
+              </div>
+              <div className="flex flex-col items-center justify-center rounded-lg bg-white py-2 px-1 text-center shadow-2xs">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  Lượt hẹn
+                </span>
+                <span className="mt-0.5 font-mono text-lg font-black text-slate-800">
+                  {allAppointments.length}
                 </span>
               </div>
             </div>
@@ -299,7 +388,21 @@ export default function DoctorPatientDetailPage() {
                 <InfoRow
                   icon={<Phone size={15} />}
                   label="Số điện thoại"
-                  value={patient.phone}
+                  value={
+                    <button
+                      type="button"
+                      onClick={() => copyToClipboard(patient.phone!, "phone")}
+                      className="inline-flex items-center gap-1 text-slate-800 font-medium hover:text-brand cursor-pointer transition"
+                      title="Sao chép số điện thoại"
+                    >
+                      {patient.phone}
+                      {copiedKey === "phone" ? (
+                        <Check size={12} className="text-emerald-600" />
+                      ) : (
+                        <Copy size={12} className="text-muted-foreground" />
+                      )}
+                    </button>
+                  }
                 />
               )}
               {patient.email && (
@@ -374,15 +477,27 @@ export default function DoctorPatientDetailPage() {
           {/* Active Treatment Plan Card */}
           {plan ? (
             <div className="rounded-2xl border border-border bg-white p-5 shadow-xs">
-              <div className="mb-4 flex items-center gap-2">
-                <Stethoscope
-                  size={16}
-                  className="text-brand"
-                  weight="duotone"
-                />
-                <h3 className="text-sm font-semibold text-brand-dark">
-                  Kế hoạch điều trị đang thực hiện
-                </h3>
+              <div className="mb-4 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Stethoscope
+                    size={16}
+                    className="text-brand"
+                    weight="duotone"
+                  />
+                  <h3 className="text-sm font-semibold text-brand-dark">
+                    Kế hoạch điều trị
+                  </h3>
+                </div>
+                <span
+                  className={cn(
+                    "rounded-full px-2 py-0.5 text-[10px] font-bold ring-1 ring-inset",
+                    plan.status === "IN_PROGRESS"
+                      ? "bg-blue-50 text-blue-700 ring-blue-200"
+                      : "bg-amber-50 text-amber-700 ring-amber-200",
+                  )}
+                >
+                  {plan.status === "IN_PROGRESS" ? "Đang thực hiện" : "Lên phác đồ"}
+                </span>
               </div>
               <p className="mb-1 font-bold text-slate-900 text-sm">{plan.title}</p>
               {(plan.startDate || plan.expectedEndDate) && (
@@ -472,10 +587,10 @@ export default function DoctorPatientDetailPage() {
                 </h3>
               </div>
               <Link
-                href={`/doctor/medical-records?patientId=${patient.id}`}
+                href={quickLinks.records}
                 className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:underline cursor-pointer"
               >
-                <Sparkle size={13} weight="fill" /> Mở Kính Soi AI
+                <Sparkle size={13} weight="fill" /> Xem hồ sơ hình ảnh
               </Link>
             </div>
 
@@ -492,16 +607,21 @@ export default function DoctorPatientDetailPage() {
                     className="group relative cursor-pointer overflow-hidden rounded-xl border border-slate-200 bg-slate-900 transition hover:border-blue-500 hover:shadow-md"
                   >
                     <div className="aspect-4/3 w-full overflow-hidden">
-                      <img
+                      <Image
                         src={img.url}
                         alt={img.caption || `X-ray ${idx + 1}`}
+                        width={480}
+                        height={360}
+                        unoptimized
                         className="h-full w-full object-cover opacity-90 transition duration-300 group-hover:scale-105 group-hover:opacity-100"
                       />
                     </div>
                     <div className="bg-slate-900/90 p-2 text-white">
                       <p className="truncate text-[11px] font-bold">{img.caption || `Phim X-quang #${idx + 1}`}</p>
                       {img.createdAt && (
-                        <p className="text-[9px] text-slate-400">{img.createdAt}</p>
+                        <p className="font-mono text-[9px] text-slate-400">
+                          {formatDate(img.createdAt)}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -512,31 +632,98 @@ export default function DoctorPatientDetailPage() {
 
           {/* Appointment History */}
           <div className="rounded-2xl border border-border bg-white shadow-xs">
-            <div className="flex items-center justify-between border-b border-border p-5">
-              <h2 className="text-base font-bold text-brand-dark">
-                Lịch sử các lần khám ({patient.appointments.length})
-              </h2>
+            <div className="flex flex-col gap-3 border-b border-border p-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-base font-bold text-brand-dark">
+                  Lịch hẹn & Lần khám với bạn
+                </h2>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setAptFilter("ALL")}
+                    className={cn(
+                      "rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors cursor-pointer",
+                      aptFilter === "ALL"
+                        ? "bg-brand text-white shadow-xs"
+                        : "bg-slate-100 text-slate-600 hover:bg-slate-200",
+                    )}
+                  >
+                    Tất cả ({allAppointments.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAptFilter("COMPLETED")}
+                    className={cn(
+                      "rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors cursor-pointer",
+                      aptFilter === "COMPLETED"
+                        ? "bg-emerald-600 text-white shadow-xs"
+                        : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100",
+                    )}
+                  >
+                    Đã khám ({completedAptCount})
+                  </button>
+                  {activeAptCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setAptFilter("ACTIVE")}
+                      className={cn(
+                        "rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors cursor-pointer",
+                        aptFilter === "ACTIVE"
+                          ? "bg-blue-600 text-white shadow-xs"
+                          : "bg-blue-50 text-blue-700 hover:bg-blue-100",
+                      )}
+                    >
+                      Chờ khám ({activeAptCount})
+                    </button>
+                  )}
+                  {cancelledAptCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setAptFilter("CANCELLED")}
+                      className={cn(
+                        "rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors cursor-pointer",
+                        aptFilter === "CANCELLED"
+                          ? "bg-red-600 text-white shadow-xs"
+                          : "bg-red-50 text-red-700 hover:bg-red-100",
+                      )}
+                    >
+                      Đã hủy ({cancelledAptCount})
+                    </button>
+                  )}
+                </div>
+              </div>
               <Link
                 href={`/doctor/patients/${patient.id}/records`}
-                className="inline-flex items-center gap-1 rounded-xl border border-border bg-white px-3 py-1.5 text-xs font-bold text-brand-dark transition-colors hover:border-brand/40 hover:text-brand cursor-pointer"
+                className="inline-flex shrink-0 items-center gap-1 rounded-xl border border-border bg-white px-3 py-1.5 text-xs font-bold text-brand-dark transition-colors hover:border-brand/40 hover:text-brand cursor-pointer"
               >
                 Hồ sơ bệnh án EMR <ArrowUpRight size={12} />
               </Link>
             </div>
 
-            {patient.appointments.length === 0 ? (
+            {allAppointments.length === 0 ? (
               <div className="flex flex-col items-center gap-2 py-16 text-center text-muted-foreground">
                 <CalendarBlank
                   size={36}
                   className="text-slate-300"
                   weight="duotone"
                 />
-                <p className="text-sm">Chưa có lịch sử khám nào</p>
+                <p className="text-sm">Chưa có lịch hẹn hoặc lần khám nào với bạn</p>
+              </div>
+            ) : visibleAppointments.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 py-12 text-center text-muted-foreground">
+                <p className="text-xs">Không có lịch hẹn nào phù hợp với bộ lọc này.</p>
+                <button
+                  type="button"
+                  onClick={() => setAptFilter("ALL")}
+                  className="text-xs font-bold text-brand hover:underline cursor-pointer"
+                >
+                  Xem tất cả ({allAppointments.length})
+                </button>
               </div>
             ) : (
               <div className="divide-y divide-border/50">
-                {patient.appointments.map((apt) => {
-                  const cfg = statusConfig[apt.status] ?? statusConfig.PENDING;
+                {visibleAppointments.map((apt) => {
+                  const cfg = statusConfig[apt.status] ?? statusConfig.UNKNOWN;
                   return (
                     <div
                       key={apt.id}
@@ -552,6 +739,12 @@ export default function DoctorPatientDetailPage() {
                           >
                             {cfg.label}
                           </span>
+                          {apt.type === "ONLINE" && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-teal-50 px-2 py-0.5 text-xs font-semibold text-teal-700 ring-1 ring-inset ring-teal-200">
+                              <VideoCamera size={12} weight="bold" />
+                              Trực tuyến
+                            </span>
+                          )}
                         </div>
                         <p className="font-semibold text-slate-900 text-sm">
                           {apt.serviceName}
@@ -567,7 +760,13 @@ export default function DoctorPatientDetailPage() {
                             })}
                           </span>
                           <span>•</span>
-                          <span>BS. {apt.doctorName}</span>
+                          <span>
+                            {apt.doctorName.startsWith("BS") ||
+                            apt.doctorName.startsWith("ThS") ||
+                            apt.doctorName.startsWith("TS")
+                              ? apt.doctorName
+                              : `BS. ${apt.doctorName}`}
+                          </span>
                           <span>•</span>
                           <span className="font-mono">
                             {apt.appointmentCode}
@@ -575,14 +774,52 @@ export default function DoctorPatientDetailPage() {
                         </div>
                       </div>
 
-                      {apt.status === "COMPLETED" && apt.recordId && (
+                      {apt.type === "ONLINE" ? (
+                        apt.status === "SCHEDULED" || apt.status === "IN_PROGRESS" ? (
+                          <Link
+                            href={`/doctor/consultations/${apt.id}`}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-teal-300 bg-teal-50 px-3 py-1.5 text-xs font-bold text-teal-800 transition-colors hover:bg-teal-100 cursor-pointer"
+                          >
+                            Vào phòng tư vấn <ArrowUpRight size={12} />
+                          </Link>
+                        ) : apt.status === "COMPLETED" ? (
+                          <Link
+                            href={`/doctor/consultations/${apt.id}`}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-bold text-slate-700 transition-colors hover:border-brand/40 hover:text-brand cursor-pointer"
+                          >
+                            Chi tiết tư vấn <ArrowUpRight size={12} />
+                          </Link>
+                        ) : null
+                      ) : apt.status === "COMPLETED" ? (
                         <Link
-                          href={`/doctor/medical-records?recordId=${apt.recordId}`}
+                          href={
+                            apt.recordId
+                              ? `/doctor/medical-records?recordId=${apt.recordId}`
+                              : `/doctor/patients/${patient.id}/records`
+                          }
                           className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-bold text-brand-dark transition-colors hover:border-brand/40 hover:text-brand cursor-pointer"
                         >
                           Xem hồ sơ <ArrowUpRight size={12} />
                         </Link>
-                      )}
+                      ) : apt.status === "IN_PROGRESS" && apt.recordId ? (
+                        <Link
+                          href={`/doctor/medical-records?recordId=${apt.recordId}`}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800 transition-colors hover:bg-amber-100 cursor-pointer"
+                        >
+                          Tiếp tục khám <ArrowUpRight size={12} />
+                        </Link>
+                      ) : apt.status === "CHECKED_IN" ? (
+                        <Link
+                          href={
+                            apt.recordId
+                              ? `/doctor/medical-records?recordId=${apt.recordId}`
+                              : `/doctor/medical-records?appointmentId=${apt.id}&patientId=${patient.id}`
+                          }
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-blue-300 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-800 transition-colors hover:bg-blue-100 cursor-pointer"
+                        >
+                          Vào khám <ArrowUpRight size={12} />
+                        </Link>
+                      ) : null}
                     </div>
                   );
                 })}
@@ -594,8 +831,14 @@ export default function DoctorPatientDetailPage() {
 
       {/* LIGHTBOX MODAL: FULL PREVIEW IMAGE */}
       {previewImage && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-xs">
-          <div className="relative max-w-3xl overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 p-4 shadow-2xl">
+        <div
+          onClick={() => setPreviewImage(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-xs cursor-pointer"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative max-w-3xl overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 p-4 shadow-2xl cursor-default"
+          >
             <div className="mb-3 flex items-center justify-between border-b border-slate-800 pb-2">
               <span className="text-xs font-bold text-white">
                 {previewImage.caption || "Ảnh X-quang nha khoa"}
@@ -608,9 +851,12 @@ export default function DoctorPatientDetailPage() {
                 <X size={18} />
               </button>
             </div>
-            <img
+            <Image
               src={previewImage.url}
               alt="Preview X-ray"
+              width={1200}
+              height={900}
+              unoptimized
               className="max-h-[500px] w-auto max-w-full rounded-xl object-contain mx-auto"
             />
           </div>

@@ -10,9 +10,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { CurrentUser } from '../../common/decorators/curent-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface';
 import { AvailabilityApprovalStatus } from '../../../prisma/generated/client';
 import { AutoWeeklyAvailabilityDto } from './dto/auto-weekly-availability.dto';
 import { CreateDoctorAvailabilityDto } from './dto/create-doctor-availability.dto';
@@ -62,17 +64,21 @@ export class DoctorAvailabilityController {
   @Roles('ADMIN', 'RECEPTIONIST', 'DOCTOR')
   @UseGuards(JwtAuthGuard, RolesGuard)
   create(
+    @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreateDoctorAvailabilityDto,
     @Query('force') force?: string,
   ) {
-    return this.doctorAvailabilityService.create(dto, force === 'true');
+    return this.doctorAvailabilityService.create(user, dto, force === 'true');
   }
 
   @Post('auto-weekly')
   @Roles('ADMIN', 'RECEPTIONIST', 'DOCTOR')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  autoCreateWeekly(@Body() dto: AutoWeeklyAvailabilityDto) {
-    return this.doctorAvailabilityService.autoCreateWeekly(dto);
+  autoCreateWeekly(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: AutoWeeklyAvailabilityDto,
+  ) {
+    return this.doctorAvailabilityService.autoCreateWeekly(user, dto);
   }
 
   @Patch(':id/approval')
@@ -91,16 +97,22 @@ export class DoctorAvailabilityController {
   @Patch(':id')
   @Roles('ADMIN', 'RECEPTIONIST', 'DOCTOR')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  update(@Param('id') id: string, @Body() dto: UpdateDoctorAvailabilityDto) {
-    return this.doctorAvailabilityService.update(id, dto);
+  update(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() dto: UpdateDoctorAvailabilityDto,
+  ) {
+    return this.doctorAvailabilityService.update(user, id, dto);
   }
 
   @Delete(':id')
   @Roles('ADMIN', 'RECEPTIONIST', 'DOCTOR')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  remove(@Param('id') id: string, @Query('force') force?: string) {
-    return this.doctorAvailabilityService.remove(id, force === 'true');
+  remove(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Query('force') force?: string,
+  ) {
+    return this.doctorAvailabilityService.remove(user, id, force === 'true');
   }
 }
-
-

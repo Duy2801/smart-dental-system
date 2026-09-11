@@ -11,6 +11,7 @@ import type { Request } from 'express';
 type RefreshPayload = {
   sub: string;
   email: string;
+  sid?: string;
   tokenType: 'refresh';
 };
 

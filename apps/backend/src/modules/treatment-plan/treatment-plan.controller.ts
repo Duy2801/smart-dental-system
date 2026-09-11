@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   Query,
@@ -42,7 +43,7 @@ export class TreatmentPlanController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   findOne(
     @CurrentUser() user: AuthenticatedUser,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.service.findOne(id, user);
   }
@@ -64,7 +65,7 @@ export class TreatmentPlanController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   update(
     @CurrentUser() user: AuthenticatedUser,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateTreatmentPlanDto,
   ) {
     return this.service.update(id, dto, user);
@@ -75,7 +76,7 @@ export class TreatmentPlanController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   remove(
     @CurrentUser() user: AuthenticatedUser,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.service.remove(id, user);
   }
@@ -85,8 +86,8 @@ export class TreatmentPlanController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   updateStep(
     @CurrentUser() user: AuthenticatedUser,
-    @Param('id') id: string,
-    @Param('stepId') stepId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('stepId', ParseUUIDPipe) stepId: string,
     @Body() dto: UpdateTreatmentPlanStepDto,
   ) {
     return this.service.updateStep(id, stepId, dto, user);
@@ -97,7 +98,7 @@ export class TreatmentPlanController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   sendEmail(
     @CurrentUser() user: AuthenticatedUser,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.service.sendTreatmentPlanEmail(id, user);
   }

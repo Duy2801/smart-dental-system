@@ -24,10 +24,13 @@ import axios from "axios";
 type RecordSummary = {
   id: string;
   patientId: string;
+  doctorId?: string | null;
+  doctorName?: string | null;
   patientName: string;
   patientCode: string;
   diagnosis: string | null;
   chiefComplaint: string | null;
+  treatmentNotes?: string | null;
   serviceName: string | null;
   scheduledAt: string | null;
   followUpDate: string | null;
@@ -74,16 +77,17 @@ export default function PatientRecordsPage() {
   const [error, setError] = useState<string | null>(null);
 
   const doctorId = getDoctorIdFromCookie();
+  const validationError = !id || !isUuid(id)
+    ? "Mã bệnh nhân không hợp lệ."
+    : !doctorId
+      ? "Không tìm thấy thông tin bác sĩ. Vui lòng đăng nhập lại."
+      : null;
 
   useEffect(() => {
     if (!id || !isUuid(id)) {
-      setError("Mã bệnh nhân không hợp lệ.");
-      setLoading(false);
       return;
     }
     if (!doctorId) {
-      setError("Không tìm thấy thông tin bác sĩ. Vui lòng đăng nhập lại.");
-      setLoading(false);
       return;
     }
 
@@ -132,14 +136,14 @@ export default function PatientRecordsPage() {
         Quay lại hồ sơ bệnh nhân
       </Link>
 
-      {error && (
+      {(validationError || error) && (
         <div className="mb-6 flex items-center gap-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-inset ring-red-200">
           <Warning size={18} className="shrink-0" />
-          {error}
+          {validationError || error}
         </div>
       )}
 
-      {loading ? (
+      {!validationError && loading ? (
         <div className="flex h-48 items-center justify-center">
           <SpinnerGap size={32} className="animate-spin text-brand" />
         </div>
@@ -176,7 +180,7 @@ export default function PatientRecordsPage() {
 
             <div className="space-y-3">
               <h2 className="text-base font-semibold text-brand-dark">
-                Lịch sử hồ sơ bệnh án
+                Lịch sử hồ sơ bệnh án do bạn phụ trách
               </h2>
 
               {records.length === 0 ? (
@@ -205,7 +209,7 @@ export default function PatientRecordsPage() {
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="flex items-center gap-1.5 text-sm font-medium text-slate-900">
                             <CalendarBlank size={14} className="text-brand" />
-                            {formatDateTime(r.scheduledAt)}
+                            {formatDateTime(r.scheduledAt || r.createdAt)}
                           </span>
                           {r.serviceName && (
                             <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">

@@ -6,7 +6,10 @@ export type AppointmentStatus =
   | "COMPLETED"
   | "CANCELLED"
   | "NO_SHOW"
-  | "SCHEDULED";
+  | "SCHEDULED"
+  | "PENDING_PAYMENT"
+  | "EXPIRED"
+  | "DOCTOR_MISSED";
 
 export type ScheduleAppointment = {
   id: string;
@@ -31,6 +34,7 @@ export type TimeOffRecord = {
   startTime: string;
   endTime: string;
   reason: string | null;
+  approvalStatus: "PENDING" | "APPROVED" | "REJECTED";
 };
 
 export const statusConfig: Record<
@@ -77,4 +81,7 @@ export const statusConfig: Record<
     color: "bg-blue-50 text-blue-700",
     ring: "ring-1 ring-inset ring-blue-600/20",
   },
+  PENDING_PAYMENT: { label: "Chờ thanh toán", color: "bg-amber-50 text-amber-700", ring: "ring-1 ring-inset ring-amber-600/20" },
+  EXPIRED: { label: "Đã hết hạn", color: "bg-slate-50 text-slate-600", ring: "ring-1 ring-inset ring-slate-500/20" },
+  DOCTOR_MISSED: { label: "Bác sĩ vắng mặt", color: "bg-red-50 text-red-700", ring: "ring-1 ring-inset ring-red-600/20" },
 };

@@ -279,6 +279,7 @@ export type VideoConsultationWhereInput = {
   patient?: Prisma.XOR<Prisma.PatientScalarRelationFilter, Prisma.PatientWhereInput>
   doctor?: Prisma.XOR<Prisma.DoctorScalarRelationFilter, Prisma.DoctorWhereInput>
   refundRequests?: Prisma.RefundRequestListRelationFilter
+  aiBriefs?: Prisma.PatientAiBriefListRelationFilter
 }
 
 export type VideoConsultationOrderByWithRelationInput = {
@@ -297,6 +298,7 @@ export type VideoConsultationOrderByWithRelationInput = {
   patient?: Prisma.PatientOrderByWithRelationInput
   doctor?: Prisma.DoctorOrderByWithRelationInput
   refundRequests?: Prisma.RefundRequestOrderByRelationAggregateInput
+  aiBriefs?: Prisma.PatientAiBriefOrderByRelationAggregateInput
 }
 
 export type VideoConsultationWhereUniqueInput = Prisma.AtLeast<{
@@ -318,6 +320,7 @@ export type VideoConsultationWhereUniqueInput = Prisma.AtLeast<{
   patient?: Prisma.XOR<Prisma.PatientScalarRelationFilter, Prisma.PatientWhereInput>
   doctor?: Prisma.XOR<Prisma.DoctorScalarRelationFilter, Prisma.DoctorWhereInput>
   refundRequests?: Prisma.RefundRequestListRelationFilter
+  aiBriefs?: Prisma.PatientAiBriefListRelationFilter
 }, "id">
 
 export type VideoConsultationOrderByWithAggregationInput = {
@@ -372,6 +375,7 @@ export type VideoConsultationCreateInput = {
   patient: Prisma.PatientCreateNestedOneWithoutVideoConsultationsInput
   doctor: Prisma.DoctorCreateNestedOneWithoutVideoConsultationsInput
   refundRequests?: Prisma.RefundRequestCreateNestedManyWithoutVideoConsultationInput
+  aiBriefs?: Prisma.PatientAiBriefCreateNestedManyWithoutConsultationInput
 }
 
 export type VideoConsultationUncheckedCreateInput = {
@@ -388,6 +392,7 @@ export type VideoConsultationUncheckedCreateInput = {
   notes?: string | null
   createdAt?: Date | string
   refundRequests?: Prisma.RefundRequestUncheckedCreateNestedManyWithoutVideoConsultationInput
+  aiBriefs?: Prisma.PatientAiBriefUncheckedCreateNestedManyWithoutConsultationInput
 }
 
 export type VideoConsultationUpdateInput = {
@@ -404,6 +409,7 @@ export type VideoConsultationUpdateInput = {
   patient?: Prisma.PatientUpdateOneRequiredWithoutVideoConsultationsNestedInput
   doctor?: Prisma.DoctorUpdateOneRequiredWithoutVideoConsultationsNestedInput
   refundRequests?: Prisma.RefundRequestUpdateManyWithoutVideoConsultationNestedInput
+  aiBriefs?: Prisma.PatientAiBriefUpdateManyWithoutConsultationNestedInput
 }
 
 export type VideoConsultationUncheckedUpdateInput = {
@@ -420,6 +426,7 @@ export type VideoConsultationUncheckedUpdateInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   refundRequests?: Prisma.RefundRequestUncheckedUpdateManyWithoutVideoConsultationNestedInput
+  aiBriefs?: Prisma.PatientAiBriefUncheckedUpdateManyWithoutConsultationNestedInput
 }
 
 export type VideoConsultationCreateManyInput = {
@@ -623,6 +630,22 @@ export type EnumVideoConsultationStatusFieldUpdateOperationsInput = {
   set?: $Enums.VideoConsultationStatus
 }
 
+export type VideoConsultationCreateNestedOneWithoutAiBriefsInput = {
+  create?: Prisma.XOR<Prisma.VideoConsultationCreateWithoutAiBriefsInput, Prisma.VideoConsultationUncheckedCreateWithoutAiBriefsInput>
+  connectOrCreate?: Prisma.VideoConsultationCreateOrConnectWithoutAiBriefsInput
+  connect?: Prisma.VideoConsultationWhereUniqueInput
+}
+
+export type VideoConsultationUpdateOneWithoutAiBriefsNestedInput = {
+  create?: Prisma.XOR<Prisma.VideoConsultationCreateWithoutAiBriefsInput, Prisma.VideoConsultationUncheckedCreateWithoutAiBriefsInput>
+  connectOrCreate?: Prisma.VideoConsultationCreateOrConnectWithoutAiBriefsInput
+  upsert?: Prisma.VideoConsultationUpsertWithoutAiBriefsInput
+  disconnect?: Prisma.VideoConsultationWhereInput | boolean
+  delete?: Prisma.VideoConsultationWhereInput | boolean
+  connect?: Prisma.VideoConsultationWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.VideoConsultationUpdateToOneWithWhereWithoutAiBriefsInput, Prisma.VideoConsultationUpdateWithoutAiBriefsInput>, Prisma.VideoConsultationUncheckedUpdateWithoutAiBriefsInput>
+}
+
 export type VideoConsultationCreateNestedOneWithoutRefundRequestsInput = {
   create?: Prisma.XOR<Prisma.VideoConsultationCreateWithoutRefundRequestsInput, Prisma.VideoConsultationUncheckedCreateWithoutRefundRequestsInput>
   connectOrCreate?: Prisma.VideoConsultationCreateOrConnectWithoutRefundRequestsInput
@@ -652,6 +675,7 @@ export type VideoConsultationCreateWithoutPatientInput = {
   createdAt?: Date | string
   doctor: Prisma.DoctorCreateNestedOneWithoutVideoConsultationsInput
   refundRequests?: Prisma.RefundRequestCreateNestedManyWithoutVideoConsultationInput
+  aiBriefs?: Prisma.PatientAiBriefCreateNestedManyWithoutConsultationInput
 }
 
 export type VideoConsultationUncheckedCreateWithoutPatientInput = {
@@ -667,6 +691,7 @@ export type VideoConsultationUncheckedCreateWithoutPatientInput = {
   notes?: string | null
   createdAt?: Date | string
   refundRequests?: Prisma.RefundRequestUncheckedCreateNestedManyWithoutVideoConsultationInput
+  aiBriefs?: Prisma.PatientAiBriefUncheckedCreateNestedManyWithoutConsultationInput
 }
 
 export type VideoConsultationCreateOrConnectWithoutPatientInput = {
@@ -726,6 +751,7 @@ export type VideoConsultationCreateWithoutDoctorInput = {
   createdAt?: Date | string
   patient: Prisma.PatientCreateNestedOneWithoutVideoConsultationsInput
   refundRequests?: Prisma.RefundRequestCreateNestedManyWithoutVideoConsultationInput
+  aiBriefs?: Prisma.PatientAiBriefCreateNestedManyWithoutConsultationInput
 }
 
 export type VideoConsultationUncheckedCreateWithoutDoctorInput = {
@@ -741,6 +767,7 @@ export type VideoConsultationUncheckedCreateWithoutDoctorInput = {
   notes?: string | null
   createdAt?: Date | string
   refundRequests?: Prisma.RefundRequestUncheckedCreateNestedManyWithoutVideoConsultationInput
+  aiBriefs?: Prisma.PatientAiBriefUncheckedCreateNestedManyWithoutConsultationInput
 }
 
 export type VideoConsultationCreateOrConnectWithoutDoctorInput = {
@@ -769,6 +796,86 @@ export type VideoConsultationUpdateManyWithWhereWithoutDoctorInput = {
   data: Prisma.XOR<Prisma.VideoConsultationUpdateManyMutationInput, Prisma.VideoConsultationUncheckedUpdateManyWithoutDoctorInput>
 }
 
+export type VideoConsultationCreateWithoutAiBriefsInput = {
+  id?: string
+  scheduledAt: Date | string
+  durationMinutes: number
+  status?: $Enums.VideoConsultationStatus
+  expiresAt?: Date | string | null
+  meetingUrl?: string | null
+  fee: runtime.Decimal | runtime.DecimalJsLike | number | string
+  isPaid?: boolean
+  notes?: string | null
+  createdAt?: Date | string
+  patient: Prisma.PatientCreateNestedOneWithoutVideoConsultationsInput
+  doctor: Prisma.DoctorCreateNestedOneWithoutVideoConsultationsInput
+  refundRequests?: Prisma.RefundRequestCreateNestedManyWithoutVideoConsultationInput
+}
+
+export type VideoConsultationUncheckedCreateWithoutAiBriefsInput = {
+  id?: string
+  patientId: string
+  doctorId: string
+  scheduledAt: Date | string
+  durationMinutes: number
+  status?: $Enums.VideoConsultationStatus
+  expiresAt?: Date | string | null
+  meetingUrl?: string | null
+  fee: runtime.Decimal | runtime.DecimalJsLike | number | string
+  isPaid?: boolean
+  notes?: string | null
+  createdAt?: Date | string
+  refundRequests?: Prisma.RefundRequestUncheckedCreateNestedManyWithoutVideoConsultationInput
+}
+
+export type VideoConsultationCreateOrConnectWithoutAiBriefsInput = {
+  where: Prisma.VideoConsultationWhereUniqueInput
+  create: Prisma.XOR<Prisma.VideoConsultationCreateWithoutAiBriefsInput, Prisma.VideoConsultationUncheckedCreateWithoutAiBriefsInput>
+}
+
+export type VideoConsultationUpsertWithoutAiBriefsInput = {
+  update: Prisma.XOR<Prisma.VideoConsultationUpdateWithoutAiBriefsInput, Prisma.VideoConsultationUncheckedUpdateWithoutAiBriefsInput>
+  create: Prisma.XOR<Prisma.VideoConsultationCreateWithoutAiBriefsInput, Prisma.VideoConsultationUncheckedCreateWithoutAiBriefsInput>
+  where?: Prisma.VideoConsultationWhereInput
+}
+
+export type VideoConsultationUpdateToOneWithWhereWithoutAiBriefsInput = {
+  where?: Prisma.VideoConsultationWhereInput
+  data: Prisma.XOR<Prisma.VideoConsultationUpdateWithoutAiBriefsInput, Prisma.VideoConsultationUncheckedUpdateWithoutAiBriefsInput>
+}
+
+export type VideoConsultationUpdateWithoutAiBriefsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  durationMinutes?: Prisma.IntFieldUpdateOperationsInput | number
+  status?: Prisma.EnumVideoConsultationStatusFieldUpdateOperationsInput | $Enums.VideoConsultationStatus
+  expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  meetingUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fee?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  isPaid?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  patient?: Prisma.PatientUpdateOneRequiredWithoutVideoConsultationsNestedInput
+  doctor?: Prisma.DoctorUpdateOneRequiredWithoutVideoConsultationsNestedInput
+  refundRequests?: Prisma.RefundRequestUpdateManyWithoutVideoConsultationNestedInput
+}
+
+export type VideoConsultationUncheckedUpdateWithoutAiBriefsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  patientId?: Prisma.StringFieldUpdateOperationsInput | string
+  doctorId?: Prisma.StringFieldUpdateOperationsInput | string
+  scheduledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  durationMinutes?: Prisma.IntFieldUpdateOperationsInput | number
+  status?: Prisma.EnumVideoConsultationStatusFieldUpdateOperationsInput | $Enums.VideoConsultationStatus
+  expiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  meetingUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fee?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  isPaid?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  refundRequests?: Prisma.RefundRequestUncheckedUpdateManyWithoutVideoConsultationNestedInput
+}
+
 export type VideoConsultationCreateWithoutRefundRequestsInput = {
   id?: string
   scheduledAt: Date | string
@@ -782,6 +889,7 @@ export type VideoConsultationCreateWithoutRefundRequestsInput = {
   createdAt?: Date | string
   patient: Prisma.PatientCreateNestedOneWithoutVideoConsultationsInput
   doctor: Prisma.DoctorCreateNestedOneWithoutVideoConsultationsInput
+  aiBriefs?: Prisma.PatientAiBriefCreateNestedManyWithoutConsultationInput
 }
 
 export type VideoConsultationUncheckedCreateWithoutRefundRequestsInput = {
@@ -797,6 +905,7 @@ export type VideoConsultationUncheckedCreateWithoutRefundRequestsInput = {
   isPaid?: boolean
   notes?: string | null
   createdAt?: Date | string
+  aiBriefs?: Prisma.PatientAiBriefUncheckedCreateNestedManyWithoutConsultationInput
 }
 
 export type VideoConsultationCreateOrConnectWithoutRefundRequestsInput = {
@@ -828,6 +937,7 @@ export type VideoConsultationUpdateWithoutRefundRequestsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   patient?: Prisma.PatientUpdateOneRequiredWithoutVideoConsultationsNestedInput
   doctor?: Prisma.DoctorUpdateOneRequiredWithoutVideoConsultationsNestedInput
+  aiBriefs?: Prisma.PatientAiBriefUpdateManyWithoutConsultationNestedInput
 }
 
 export type VideoConsultationUncheckedUpdateWithoutRefundRequestsInput = {
@@ -843,6 +953,7 @@ export type VideoConsultationUncheckedUpdateWithoutRefundRequestsInput = {
   isPaid?: Prisma.BoolFieldUpdateOperationsInput | boolean
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  aiBriefs?: Prisma.PatientAiBriefUncheckedUpdateManyWithoutConsultationNestedInput
 }
 
 export type VideoConsultationCreateManyPatientInput = {
@@ -872,6 +983,7 @@ export type VideoConsultationUpdateWithoutPatientInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   doctor?: Prisma.DoctorUpdateOneRequiredWithoutVideoConsultationsNestedInput
   refundRequests?: Prisma.RefundRequestUpdateManyWithoutVideoConsultationNestedInput
+  aiBriefs?: Prisma.PatientAiBriefUpdateManyWithoutConsultationNestedInput
 }
 
 export type VideoConsultationUncheckedUpdateWithoutPatientInput = {
@@ -887,6 +999,7 @@ export type VideoConsultationUncheckedUpdateWithoutPatientInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   refundRequests?: Prisma.RefundRequestUncheckedUpdateManyWithoutVideoConsultationNestedInput
+  aiBriefs?: Prisma.PatientAiBriefUncheckedUpdateManyWithoutConsultationNestedInput
 }
 
 export type VideoConsultationUncheckedUpdateManyWithoutPatientInput = {
@@ -930,6 +1043,7 @@ export type VideoConsultationUpdateWithoutDoctorInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   patient?: Prisma.PatientUpdateOneRequiredWithoutVideoConsultationsNestedInput
   refundRequests?: Prisma.RefundRequestUpdateManyWithoutVideoConsultationNestedInput
+  aiBriefs?: Prisma.PatientAiBriefUpdateManyWithoutConsultationNestedInput
 }
 
 export type VideoConsultationUncheckedUpdateWithoutDoctorInput = {
@@ -945,6 +1059,7 @@ export type VideoConsultationUncheckedUpdateWithoutDoctorInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   refundRequests?: Prisma.RefundRequestUncheckedUpdateManyWithoutVideoConsultationNestedInput
+  aiBriefs?: Prisma.PatientAiBriefUncheckedUpdateManyWithoutConsultationNestedInput
 }
 
 export type VideoConsultationUncheckedUpdateManyWithoutDoctorInput = {
@@ -968,10 +1083,12 @@ export type VideoConsultationUncheckedUpdateManyWithoutDoctorInput = {
 
 export type VideoConsultationCountOutputType = {
   refundRequests: number
+  aiBriefs: number
 }
 
 export type VideoConsultationCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   refundRequests?: boolean | VideoConsultationCountOutputTypeCountRefundRequestsArgs
+  aiBriefs?: boolean | VideoConsultationCountOutputTypeCountAiBriefsArgs
 }
 
 /**
@@ -991,6 +1108,13 @@ export type VideoConsultationCountOutputTypeCountRefundRequestsArgs<ExtArgs exte
   where?: Prisma.RefundRequestWhereInput
 }
 
+/**
+ * VideoConsultationCountOutputType without action
+ */
+export type VideoConsultationCountOutputTypeCountAiBriefsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.PatientAiBriefWhereInput
+}
+
 
 export type VideoConsultationSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1008,6 +1132,7 @@ export type VideoConsultationSelect<ExtArgs extends runtime.Types.Extensions.Int
   patient?: boolean | Prisma.PatientDefaultArgs<ExtArgs>
   doctor?: boolean | Prisma.DoctorDefaultArgs<ExtArgs>
   refundRequests?: boolean | Prisma.VideoConsultation$refundRequestsArgs<ExtArgs>
+  aiBriefs?: boolean | Prisma.VideoConsultation$aiBriefsArgs<ExtArgs>
   _count?: boolean | Prisma.VideoConsultationCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["videoConsultation"]>
 
@@ -1065,6 +1190,7 @@ export type VideoConsultationInclude<ExtArgs extends runtime.Types.Extensions.In
   patient?: boolean | Prisma.PatientDefaultArgs<ExtArgs>
   doctor?: boolean | Prisma.DoctorDefaultArgs<ExtArgs>
   refundRequests?: boolean | Prisma.VideoConsultation$refundRequestsArgs<ExtArgs>
+  aiBriefs?: boolean | Prisma.VideoConsultation$aiBriefsArgs<ExtArgs>
   _count?: boolean | Prisma.VideoConsultationCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type VideoConsultationIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1082,6 +1208,7 @@ export type $VideoConsultationPayload<ExtArgs extends runtime.Types.Extensions.I
     patient: Prisma.$PatientPayload<ExtArgs>
     doctor: Prisma.$DoctorPayload<ExtArgs>
     refundRequests: Prisma.$RefundRequestPayload<ExtArgs>[]
+    aiBriefs: Prisma.$PatientAiBriefPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1493,6 +1620,7 @@ export interface Prisma__VideoConsultationClient<T, Null = never, ExtArgs extend
   patient<T extends Prisma.PatientDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.PatientDefaultArgs<ExtArgs>>): Prisma.Prisma__PatientClient<runtime.Types.Result.GetResult<Prisma.$PatientPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   doctor<T extends Prisma.DoctorDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DoctorDefaultArgs<ExtArgs>>): Prisma.Prisma__DoctorClient<runtime.Types.Result.GetResult<Prisma.$DoctorPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   refundRequests<T extends Prisma.VideoConsultation$refundRequestsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.VideoConsultation$refundRequestsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RefundRequestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  aiBriefs<T extends Prisma.VideoConsultation$aiBriefsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.VideoConsultation$aiBriefsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PatientAiBriefPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1956,6 +2084,30 @@ export type VideoConsultation$refundRequestsArgs<ExtArgs extends runtime.Types.E
   take?: number
   skip?: number
   distinct?: Prisma.RefundRequestScalarFieldEnum | Prisma.RefundRequestScalarFieldEnum[]
+}
+
+/**
+ * VideoConsultation.aiBriefs
+ */
+export type VideoConsultation$aiBriefsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the PatientAiBrief
+   */
+  select?: Prisma.PatientAiBriefSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the PatientAiBrief
+   */
+  omit?: Prisma.PatientAiBriefOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.PatientAiBriefInclude<ExtArgs> | null
+  where?: Prisma.PatientAiBriefWhereInput
+  orderBy?: Prisma.PatientAiBriefOrderByWithRelationInput | Prisma.PatientAiBriefOrderByWithRelationInput[]
+  cursor?: Prisma.PatientAiBriefWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.PatientAiBriefScalarFieldEnum | Prisma.PatientAiBriefScalarFieldEnum[]
 }
 
 /**

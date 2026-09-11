@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { cn } from "@/src/lib/utils/cn";
 import { Header } from "@/src/components/layout/header";
-import { PatientAiBrief } from "@/src/components/doctor/patient-ai-brief";
 import Link from "next/link";
 import {
   CalendarCheck,
@@ -14,6 +13,9 @@ import {
   Storefront,
 } from "@phosphor-icons/react";
 import apiClient from "@/src/lib/api/client";
+import { useAppDialog } from "@/src/providers/app-dialog-provider";
+import { getDoctorInfoFromCookie } from "@/src/lib/doctor/session";
+import { getApiErrorMessage } from "@/src/lib/utils/api-error";
 
 type AppointmentStatus =
   | "PENDING"
@@ -24,7 +26,6 @@ type AppointmentStatus =
   | "CANCELLED"
   | "NO_SHOW"
   | "SCHEDULED";
-
 
 type TodayAppointment = {
   id: string;
@@ -74,22 +75,6 @@ const statusConfig: Record<TodayAppointment["status"], { label: string; color: s
 
 const WAITING_STATUSES = ["PENDING", "CONFIRMED", "CHECKED_IN", "SCHEDULED"];
 
-function getUserInfo(): { doctorId: string | null; fullName: string | null } {
-  if (typeof document === "undefined") return { doctorId: null, fullName: null };
-  const raw = document.cookie
-    .split("; ")
-    .find((c) => c.startsWith("user_info="))
-    ?.split("=")
-    .slice(1)
-    .join("=");
-  if (!raw) return { doctorId: null, fullName: null };
-  try {
-    return JSON.parse(decodeURIComponent(raw));
-  } catch {
-    return { doctorId: null, fullName: null };
-  }
-}
-
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString("vi-VN", {
     hour: "2-digit",
@@ -132,6 +117,7 @@ function AppointmentSkeleton() {
 }
 
 export default function DoctorDashboardPage() {
+  const { showAlert } = useAppDialog();
   const [appointments, setAppointments] = useState<TodayAppointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -146,7 +132,7 @@ export default function DoctorDashboardPage() {
   });
 
   const fetchDashboard = async () => {
-    const { doctorId, fullName } = getUserInfo();
+    const { doctorId, fullName } = getDoctorInfoFromCookie();
     setDoctorName(fullName);
     if (!doctorId) {
       setError("Không tìm thấy thông tin bác sĩ. Vui lòng đăng nhập lại.");
@@ -219,7 +205,11 @@ export default function DoctorDashboardPage() {
       await apiClient.patch(`/appointments/${id}/start`);
       await fetchDashboard();
     } catch {
-      alert("Không thể bắt đầu ca khám. Vui lòng thử lại.");
+      await showAlert({
+        title: "Không thể bắt đầu ca khám",
+        description: "Vui lòng thử lại sau.",
+        tone: "danger",
+      });
     } finally {
       setActionLoading(null);
     }
@@ -230,8 +220,12 @@ export default function DoctorDashboardPage() {
     try {
       await apiClient.patch(`/appointments/${id}/complete`);
       await fetchDashboard();
-    } catch {
-      alert("Không thể kết thúc ca khám. Vui lòng thử lại.");
+    } catch (error) {
+      await showAlert({
+        title: "Không thể kết thúc ca khám",
+        description: getApiErrorMessage(error, "Vui lòng thử lại sau."),
+        tone: "danger",
+      });
     } finally {
       setActionLoading(null);
     }
@@ -244,13 +238,6 @@ export default function DoctorDashboardPage() {
   const totalCount = appointments.length;
   const waitingCount = appointments.filter((a) => WAITING_STATUSES.includes(a.status)).length;
   const completedCount = appointments.filter((a) => a.status === "COMPLETED").length;
-  const briefAppointment = appointments.find(
-    (appointment) =>
-      (appointment.type === "ONLINE" || appointment.patientId) &&
-      (WAITING_STATUSES.includes(appointment.status) ||
-        appointment.status === "IN_PROGRESS"),
-  );
-
   const statCards = [
     {
       label: "Tổng ca hôm nay",
@@ -322,18 +309,6 @@ export default function DoctorDashboardPage() {
                 );
               })}
         </div>
-
-        {briefAppointment && (
-          <PatientAiBrief
-            key={briefAppointment.id}
-            patientId={briefAppointment.patientId}
-            consultationId={
-              briefAppointment.type === "ONLINE" ? briefAppointment.id : null
-            }
-            patientName={briefAppointment.patient_name}
-            className="shadow-sm"
-          />
-        )}
 
         <div className="flex flex-col rounded-2xl border border-border bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-border p-5">
@@ -409,13 +384,23 @@ export default function DoctorDashboardPage() {
                             </button>
                           )}
                           {item.type === "OFFLINE" && item.status === "IN_PROGRESS" && (
-                            <button
-                              onClick={() => handleCompleteAppointment(item.id)}
-                              disabled={actionLoading === item.id}
-                              className="inline-flex items-center justify-center rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-600 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
-                            >
-                              {actionLoading === item.id ? "Đang xử lý..." : "Kết thúc khám"}
-                            </button>
+                            <div className="flex gap-2">
+                              <Link
+                                href={item.recordId
+                                  ? `/doctor/medical-records?recordId=${item.recordId}`
+                                  : "/doctor/medical-records"}
+                                className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                              >
+                                Ghi bệnh án
+                              </Link>
+                              <button
+                                onClick={() => handleCompleteAppointment(item.id)}
+                                disabled={actionLoading === item.id}
+                                className="inline-flex items-center justify-center rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-600 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+                              >
+                                {actionLoading === item.id ? "Đang xử lý..." : "Kết thúc khám"}
+                              </button>
+                            </div>
                           )}
                           {item.type === "OFFLINE" && item.status === "COMPLETED" && (
                             <Link

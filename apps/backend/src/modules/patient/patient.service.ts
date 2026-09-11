@@ -22,6 +22,7 @@ import {
   TreatmentPlanStatus,
   TreatmentStepPaymentStatus,
   TreatmentStepStatus,
+  VideoConsultationStatus,
 } from '../../../prisma/generated/enums';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
@@ -36,7 +37,7 @@ export class PatientService {
     private readonly redis: RedisService,
     @InjectQueue('mail-queue')
     private readonly mailQueue: Queue,
-  ) { }
+  ) {}
 
   async invalidatePatientCache(patientId?: string, userId?: string) {
     try {
@@ -185,41 +186,54 @@ export class PatientService {
 
   async findPatients(search?: string) {
     const q = search?.trim();
+    const now = new Date();
     const patients = await this.prisma.patient.findMany({
       where: q
         ? {
-          OR: [
-            { patientCode: { contains: q, mode: 'insensitive' } },
-            {
-              fullName: { contains: q, mode: 'insensitive' },
-            },
-            { phone: { contains: q } },
-            { email: { contains: q, mode: 'insensitive' } },
-            {
-              user: {
-                is: {
-                  OR: [
-                    { fullName: { contains: q, mode: 'insensitive' } },
-                    { phone: { contains: q } },
-                    { email: { contains: q, mode: 'insensitive' } },
-                  ],
+            OR: [
+              { patientCode: { contains: q, mode: 'insensitive' } },
+              {
+                fullName: { contains: q, mode: 'insensitive' },
+              },
+              { phone: { contains: q } },
+              { email: { contains: q, mode: 'insensitive' } },
+              {
+                user: {
+                  is: {
+                    OR: [
+                      { fullName: { contains: q, mode: 'insensitive' } },
+                      { phone: { contains: q } },
+                      { email: { contains: q, mode: 'insensitive' } },
+                    ],
+                  },
                 },
               },
-            },
-          ],
-        }
+            ],
+          }
         : undefined,
       include: {
         user: { select: { fullName: true, phone: true, email: true } },
         appointments: {
+          where: {
+            status: AppointmentStatus.COMPLETED,
+            scheduledAt: { lte: now },
+          },
           orderBy: { scheduledAt: 'desc' },
           take: 1,
           select: { scheduledAt: true },
         },
-        _count: { select: { appointments: true } },
+        _count: {
+          select: {
+            appointments: {
+              where: {
+                status: AppointmentStatus.COMPLETED,
+                scheduledAt: { lte: now },
+              },
+            },
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
-      take: 100,
     });
 
     return patients.map((p) => {
@@ -245,6 +259,7 @@ export class PatientService {
   }
 
   async createPatient(dto: CreatePatientDto) {
+    this.assertDateOfBirthIsNotFuture(dto.dateOfBirth);
     const phone = dto.phone.trim();
     const fullName = dto.fullName.trim();
     const email =
@@ -255,8 +270,14 @@ export class PatientService {
       await Promise.all([
         this.prisma.user.findUnique({ where: { phone }, select: { id: true } }),
         this.prisma.user.findUnique({ where: { email }, select: { id: true } }),
-        this.prisma.patient.findFirst({ where: { phone }, select: { id: true } }),
-        this.prisma.patient.findFirst({ where: { email }, select: { id: true } }),
+        this.prisma.patient.findFirst({
+          where: { phone },
+          select: { id: true },
+        }),
+        this.prisma.patient.findFirst({
+          where: { email },
+          select: { id: true },
+        }),
       ]);
 
     if (userPhone || patientPhone) {
@@ -362,17 +383,22 @@ export class PatientService {
     const patient = await this.prisma.patient.findUnique({
       where: { id: patientId },
       include: {
-        user: { select: { id: true, fullName: true, email: true, phone: true } },
+        user: {
+          select: { id: true, fullName: true, email: true, phone: true },
+        },
       },
     });
-    if (!patient) throw new NotFoundException('Không tìm thấy thông tin bệnh nhân');
+    if (!patient)
+      throw new NotFoundException('Không tìm thấy thông tin bệnh nhân');
 
     const email = patient.user?.email || patient.email;
     const name = patient.user?.fullName || patient.fullName;
     const phone = patient.user?.phone || patient.phone;
 
     if (!email || email.endsWith('@clinic.local')) {
-      throw new BadRequestException('Bệnh nhân chưa đăng ký địa chỉ email hợp lệ');
+      throw new BadRequestException(
+        'Bệnh nhân chưa đăng ký địa chỉ email hợp lệ',
+      );
     }
 
     await this.mailQueue.add('send-patient-welcome', {
@@ -406,13 +432,18 @@ export class PatientService {
       include: {
         user: { select: { id: true, fullName: true, email: true } },
         appointments: {
+          where: {
+            status: AppointmentStatus.COMPLETED,
+            scheduledAt: { lte: new Date() },
+          },
           orderBy: { scheduledAt: 'desc' },
           take: 1,
           select: { scheduledAt: true },
         },
       },
     });
-    if (!patient) throw new NotFoundException('Không tìm thấy thông tin bệnh nhân');
+    if (!patient)
+      throw new NotFoundException('Không tìm thấy thông tin bệnh nhân');
 
     const email = patient.user?.email || patient.email;
     const name = patient.user?.fullName || patient.fullName;
@@ -421,7 +452,9 @@ export class PatientService {
       : undefined;
 
     if (!email || email.endsWith('@clinic.local')) {
-      throw new BadRequestException('Bệnh nhân chưa đăng ký địa chỉ email hợp lệ để gửi thông báo');
+      throw new BadRequestException(
+        'Bệnh nhân chưa đăng ký địa chỉ email hợp lệ để gửi thông báo',
+      );
     }
 
     await this.mailQueue.add('send-periodic-checkup-reminder', {
@@ -445,12 +478,16 @@ export class PatientService {
       });
     }
 
-    return { success: true, message: `Đã gửi lời nhắc tái khám định kỳ đến ${email}` };
+    return {
+      success: true,
+      message: `Đã gửi lời nhắc tái khám định kỳ đến ${email}`,
+    };
   }
 
   /** Gửi hàng loạt thông báo nhắc tái khám cho tất cả bệnh nhân đến hạn */
   async sendBulkPeriodicCheckupReminders() {
-    const sixMonthsAgo = new Date();
+    const now = new Date();
+    const sixMonthsAgo = new Date(now);
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
     const thirtyDaysAgo = new Date();
@@ -473,19 +510,33 @@ export class PatientService {
     // 2. DB-level filtering: Chỉ lọc bệnh nhân không có lịch hẹn nào trong 6 tháng qua
     const eligiblePatients = await this.prisma.patient.findMany({
       where: {
-        appointments: {
-          none: {
-            scheduledAt: { gte: sixMonthsAgo },
+        AND: [
+          {
+            appointments: {
+              some: {
+                status: AppointmentStatus.COMPLETED,
+                scheduledAt: { lt: sixMonthsAgo },
+              },
+            },
           },
-        },
-        OR: [
-          { email: { not: null } },
-          { user: { isNot: null } },
+          {
+            appointments: {
+              none: {
+                status: AppointmentStatus.COMPLETED,
+                scheduledAt: { gte: sixMonthsAgo, lte: now },
+              },
+            },
+          },
         ],
+        OR: [{ email: { not: null } }, { user: { isNot: null } }],
       },
       include: {
         user: { select: { id: true, fullName: true, email: true } },
         appointments: {
+          where: {
+            status: AppointmentStatus.COMPLETED,
+            scheduledAt: { lte: now },
+          },
           orderBy: { scheduledAt: 'desc' },
           take: 1,
           select: { scheduledAt: true },
@@ -494,6 +545,7 @@ export class PatientService {
     });
 
     let sentCount = 0;
+    let failedCount = 0;
     const notificationsToCreate: Array<{
       userId: string;
       type: 'SYSTEM';
@@ -503,8 +555,6 @@ export class PatientService {
       status: 'SENT';
       sentAt: Date;
     }> = [];
-    const mailJobs: Array<Promise<any>> = [];
-
     for (const patient of eligiblePatients) {
       const email = patient.user?.email || patient.email;
       if (!email || email.endsWith('@clinic.local')) continue;
@@ -517,14 +567,23 @@ export class PatientService {
       const name = patient.user?.fullName || patient.fullName;
       const lastVisit = patient.appointments[0]?.scheduledAt;
 
-      mailJobs.push(
-        this.mailQueue.add('send-periodic-checkup-reminder', {
-          name,
-          email,
-          patientCode: patient.patientCode,
-          lastVisitDate: lastVisit?.toISOString(),
-        }),
-      );
+      try {
+        await this.mailQueue.add(
+          'send-periodic-checkup-reminder',
+          {
+            name,
+            email,
+            patientCode: patient.patientCode,
+            lastVisitDate: lastVisit?.toISOString(),
+          },
+          {
+            jobId: `periodic-checkup-${patient.id}-${lastVisit?.toISOString().slice(0, 10)}`,
+          },
+        );
+      } catch {
+        failedCount++;
+        continue;
+      }
 
       if (patient.user?.id) {
         recentNotifiedUserIds.add(patient.user.id);
@@ -548,29 +607,42 @@ export class PatientService {
       });
     }
 
-    await Promise.all(mailJobs);
-
     return {
-      success: true,
+      success: failedCount === 0,
       sentCount,
+      failedCount,
       message: `Đã gửi lời nhắc tái khám định kỳ đến ${sentCount} bệnh nhân`,
     };
   }
 
   async updatePatient(patientId: string, dto: UpdatePatientDto) {
+    this.assertDateOfBirthIsNotFuture(dto.dateOfBirth);
     const patient = await this.prisma.patient.findUnique({
       where: { id: patientId },
-      select: { id: true, userId: true, medicalHistory: true, phone: true, email: true },
+      select: {
+        id: true,
+        userId: true,
+        medicalHistory: true,
+        phone: true,
+        email: true,
+      },
     });
     if (!patient) throw new BadRequestException('patient.not_found');
 
-    const newPhone = dto.phone !== undefined ? dto.phone?.trim() || null : undefined;
-    const newEmail = dto.email !== undefined ? dto.email?.trim().toLowerCase() || null : undefined;
+    const newPhone =
+      dto.phone !== undefined ? dto.phone?.trim() || null : undefined;
+    const newEmail =
+      dto.email !== undefined
+        ? dto.email?.trim().toLowerCase() || null
+        : undefined;
 
     if (newPhone) {
       const [existingUserPhone, existingPatientPhone] = await Promise.all([
         this.prisma.user.findFirst({
-          where: { phone: newPhone, ...(patient.userId ? { id: { not: patient.userId } } : {}) },
+          where: {
+            phone: newPhone,
+            ...(patient.userId ? { id: { not: patient.userId } } : {}),
+          },
           select: { id: true },
         }),
         this.prisma.patient.findFirst({
@@ -586,7 +658,10 @@ export class PatientService {
     if (newEmail) {
       const [existingUserEmail, existingPatientEmail] = await Promise.all([
         this.prisma.user.findFirst({
-          where: { email: newEmail, ...(patient.userId ? { id: { not: patient.userId } } : {}) },
+          where: {
+            email: newEmail,
+            ...(patient.userId ? { id: { not: patient.userId } } : {}),
+          },
           select: { id: true },
         }),
         this.prisma.patient.findFirst({
@@ -634,23 +709,20 @@ export class PatientService {
           medicalHistory,
           ...(dto.dateOfBirth !== undefined
             ? {
-              dateOfBirth: dto.dateOfBirth
-                ? new Date(dto.dateOfBirth)
-                : null,
-            }
+                dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : null,
+              }
             : {}),
           ...(dto.gender ? { gender: dto.gender } : {}),
           ...(dto.emergencyContactName !== undefined
             ? {
-              emergencyContactName:
-                dto.emergencyContactName?.trim() || null,
-            }
+                emergencyContactName: dto.emergencyContactName?.trim() || null,
+              }
             : {}),
           ...(dto.emergencyContactPhone !== undefined
             ? {
-              emergencyContactPhone:
-                dto.emergencyContactPhone?.trim() || null,
-            }
+                emergencyContactPhone:
+                  dto.emergencyContactPhone?.trim() || null,
+              }
             : {}),
         },
       });
@@ -662,9 +734,7 @@ export class PatientService {
   async updateMyProfile(userId: string, dto: UpdatePatientDto) {
     const patient = await this.findOrCreatePatientProfile(userId);
     const newPhone =
-      dto.phone !== undefined
-        ? (this.cleanText(dto.phone) ?? null)
-        : undefined;
+      dto.phone !== undefined ? (this.cleanText(dto.phone) ?? null) : undefined;
     const newEmail =
       dto.email !== undefined
         ? (this.cleanText(dto.email)?.toLowerCase() ?? null)
@@ -741,10 +811,8 @@ export class PatientService {
           medicalHistory,
           ...(dto.dateOfBirth !== undefined
             ? {
-              dateOfBirth: dto.dateOfBirth
-                ? new Date(dto.dateOfBirth)
-                : null,
-            }
+                dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : null,
+              }
             : {}),
           ...(dto.gender ? { gender: dto.gender } : {}),
         },
@@ -766,9 +834,7 @@ export class PatientService {
 
   private stripAllergyLine(medicalHistory?: string | null): string {
     if (!medicalHistory) return '';
-    return medicalHistory
-      .replace(/Dị ứng:\s*.+(?:\n|$)/gi, '')
-      .trim();
+    return medicalHistory.replace(/Dị ứng:\s*.+(?:\n|$)/gi, '').trim();
   }
 
   private mergeMedicalHistory(
@@ -791,7 +857,11 @@ export class PatientService {
     fullName?: string | null;
     phone?: string | null;
     email?: string | null;
-    user?: { fullName: string; phone: string | null; email: string | null } | null;
+    user?: {
+      fullName: string;
+      phone: string | null;
+      email: string | null;
+    } | null;
   }) {
     return {
       fullName: patient.fullName ?? patient.user?.fullName ?? 'Bệnh nhân',
@@ -833,97 +903,221 @@ export class PatientService {
     return doctor.id;
   }
 
-  async findPatientsByDoctor(doctorId: string, search?: string) {
-    const q = search?.trim().toLowerCase();
+  async findPatientsByDoctor(
+    doctorId: string,
+    search?: string,
+    now: Date = new Date(),
+  ) {
+    const q = search?.trim();
 
     const patients = await this.prisma.patient.findMany({
       where: {
         OR: [
-          { appointments: { some: { doctorId } } },
-          { videoConsultations: { some: { doctorId } } }
-        ]
+          {
+            appointments: {
+              some: {
+                doctorId,
+                status: {
+                  in: [
+                    AppointmentStatus.CONFIRMED,
+                    AppointmentStatus.CHECKED_IN,
+                    AppointmentStatus.IN_PROGRESS,
+                    AppointmentStatus.COMPLETED,
+                  ],
+                },
+              },
+            },
+          },
+          {
+            videoConsultations: {
+              some: {
+                doctorId,
+                status: {
+                  in: [
+                    VideoConsultationStatus.SCHEDULED,
+                    VideoConsultationStatus.IN_PROGRESS,
+                    VideoConsultationStatus.COMPLETED,
+                  ],
+                },
+              },
+            },
+          },
+          { treatmentPlans: { some: { doctorId } } },
+          { medicalRecords: { some: { doctorId } } },
+        ],
       },
       include: {
         user: { select: { fullName: true, phone: true, email: true } },
         appointments: {
           where: { doctorId },
-          select: { scheduledAt: true, status: true, service: { select: { name: true } } },
+          select: {
+            scheduledAt: true,
+            status: true,
+            service: { select: { name: true } },
+          },
         },
         videoConsultations: {
           where: { doctorId },
           select: { scheduledAt: true, status: true, durationMinutes: true },
         },
-      }
+        treatmentPlans: {
+          where: {
+            doctorId,
+            status: {
+              in: [
+                TreatmentPlanStatus.PLANNED,
+                TreatmentPlanStatus.IN_PROGRESS,
+              ],
+            },
+          },
+          select: { id: true },
+        },
+      },
     });
 
-    return patients.map((p) => {
-      const identity = this.getPatientIdentity(p);
-      const age = p.dateOfBirth
-        ? new Date().getFullYear() - new Date(p.dateOfBirth).getFullYear()
-        : null;
+    const normalize = (str: string) =>
+      str
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'd');
 
-      // Combine both types of visits
-      const offlineVisits = p.appointments.map(a => ({
-        scheduledAt: a.scheduledAt,
-        serviceName: a.service?.name ?? 'Khám trực tiếp',
-        status: a.status
-      }));
+    const normQ = q ? normalize(q) : '';
 
-      const onlineVisits = p.videoConsultations.map(vc => ({
-        scheduledAt: vc.scheduledAt,
-        serviceName: `Tư vấn trực tuyến (${vc.durationMinutes} phút)`,
-        status: vc.status
-      }));
+    return patients
+      .map((p) => {
+        const identity = this.getPatientIdentity(p);
+        const age = this.calculateAge(p.dateOfBirth, now);
 
-      const allVisits = [...offlineVisits, ...onlineVisits].sort(
-        (a, b) => b.scheduledAt.getTime() - a.scheduledAt.getTime()
-      );
+        // Combine both types of visits
+        const offlineVisits = p.appointments.map((a) => ({
+          scheduledAt: a.scheduledAt,
+          serviceName: a.service?.name ?? 'Khám trực tiếp',
+          status: a.status,
+        }));
 
-      const lastVisit = allVisits[0];
+        const onlineVisits = p.videoConsultations.map((vc) => ({
+          scheduledAt: vc.scheduledAt,
+          serviceName: `Tư vấn trực tuyến (${vc.durationMinutes} phút)`,
+          status: vc.status,
+        }));
 
-      return {
-        id: p.id,
-        patientCode: p.patientCode,
-        fullName: identity.fullName,
-        phone: identity.phone,
-        email: identity.email,
-        gender: p.gender,
-        age,
-        lastVisitDate: lastVisit?.scheduledAt ?? null,
-        lastService: lastVisit?.serviceName ?? '—',
-        lastStatus: lastVisit?.status ?? '—',
-        totalVisits: allVisits.length,
-        medicalHistory: p.medicalHistory,
-      };
-    })
+        const allVisits = [...offlineVisits, ...onlineVisits].sort(
+          (a, b) => b.scheduledAt.getTime() - a.scheduledAt.getTime(),
+        );
+
+        const completedVisits = allVisits.filter(
+          (visit) =>
+            visit.status === AppointmentStatus.COMPLETED &&
+            visit.scheduledAt.getTime() <= now.getTime(),
+        );
+        const lastVisit = completedVisits[0];
+        const todayStart = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate(),
+        );
+        const upcomingWindowEnd = new Date(todayStart);
+        upcomingWindowEnd.setDate(upcomingWindowEnd.getDate() + 8);
+        upcomingWindowEnd.setMilliseconds(-1);
+        const activeUpcomingStatuses = new Set<string>([
+          AppointmentStatus.PENDING,
+          AppointmentStatus.CONFIRMED,
+          AppointmentStatus.CHECKED_IN,
+          'PENDING_PAYMENT',
+          'SCHEDULED',
+        ]);
+        const upcomingVisitsInNext7Days = allVisits.filter(
+          (visit) =>
+            activeUpcomingStatuses.has(visit.status) &&
+            visit.scheduledAt.getTime() >= todayStart.getTime() &&
+            visit.scheduledAt.getTime() <= upcomingWindowEnd.getTime(),
+        ).length;
+
+        return {
+          id: p.id,
+          patientCode: p.patientCode,
+          fullName: identity.fullName,
+          phone: identity.phone,
+          email: identity.email,
+          gender: p.gender,
+          age,
+          lastVisitDate: lastVisit?.scheduledAt ?? null,
+          lastService: lastVisit?.serviceName ?? '—',
+          lastStatus: lastVisit?.status ?? null,
+          totalVisits: completedVisits.length,
+          totalAppointments: allVisits.length,
+          hasActiveTreatmentPlan: p.treatmentPlans.length > 0,
+          upcomingVisitsInNext7Days,
+          medicalHistory: p.medicalHistory,
+        };
+      })
       .filter((p) => {
-        if (!q) return true;
+        if (!normQ) return true;
         return (
-          p.fullName.toLowerCase().includes(q) ||
-          p.patientCode.toLowerCase().includes(q) ||
-          (p.phone ?? '').includes(q) ||
-          (p.email ?? '').toLowerCase().includes(q)
+          normalize(p.fullName).includes(normQ) ||
+          normalize(p.patientCode).includes(normQ) ||
+          (p.phone ?? '').includes(q ?? '') ||
+          (p.email ?? '').toLowerCase().includes(normQ)
         );
       });
   }
 
   async findPatientDetail(patientId: string, doctorId?: string) {
     if (doctorId) {
-      const [relatedAppt, relatedVideo] = await Promise.all([
-        this.prisma.appointment.findFirst({
-          where: { patientId, doctorId },
-          select: { id: true },
-        }),
-        this.prisma.videoConsultation.findFirst({
-          where: { patientId, doctorId },
-          select: { id: true },
-        })
-      ]);
+      const [relatedAppt, relatedVideo, relatedPlan, relatedRecord] =
+        await Promise.all([
+          this.prisma.appointment.findFirst({
+            where: {
+              patientId,
+              doctorId,
+              status: {
+                in: [
+                  AppointmentStatus.CONFIRMED,
+                  AppointmentStatus.CHECKED_IN,
+                  AppointmentStatus.IN_PROGRESS,
+                  AppointmentStatus.COMPLETED,
+                ],
+              },
+            },
+            select: { id: true },
+          }),
+          this.prisma.videoConsultation.findFirst({
+            where: {
+              patientId,
+              doctorId,
+              status: {
+                in: [
+                  VideoConsultationStatus.SCHEDULED,
+                  VideoConsultationStatus.IN_PROGRESS,
+                  VideoConsultationStatus.COMPLETED,
+                ],
+              },
+            },
+            select: { id: true },
+          }),
+          this.prisma.treatmentPlan.findFirst({
+            where: {
+              patientId,
+              doctorId,
+              status: {
+                in: [
+                  TreatmentPlanStatus.PLANNED,
+                  TreatmentPlanStatus.IN_PROGRESS,
+                ],
+              },
+            },
+            select: { id: true },
+          }),
+          this.prisma.medicalRecord.findFirst({
+            where: { patientId, doctorId },
+            select: { id: true },
+          }),
+        ]);
 
-      if (!relatedAppt && !relatedVideo) {
-        throw new ForbiddenException(
-          'Bạn không có quyền xem bệnh nhân này',
-        );
+      if (!relatedAppt && !relatedVideo && !relatedPlan && !relatedRecord) {
+        throw new ForbiddenException('Bạn không có quyền xem bệnh nhân này');
       }
     }
 
@@ -966,45 +1160,97 @@ export class PatientService {
       throw new NotFoundException('Không tìm thấy bệnh nhân');
     }
 
-    const appointments = await this.prisma.appointment.findMany({
-      where: {
-        patientId,
-        ...(doctorId ? { doctorId } : {}),
-      },
-      select: {
-        id: true,
-        appointmentCode: true,
-        scheduledAt: true,
-        status: true,
-        service: { select: { name: true } },
-        doctor: { select: { user: { select: { fullName: true } } } },
-        medicalRecords: { select: { id: true }, take: 1 },
-      },
-      orderBy: { scheduledAt: 'desc' },
-    });
+    const [appointments, videoConsultations] = await Promise.all([
+      this.prisma.appointment.findMany({
+        where: {
+          patientId,
+          ...(doctorId ? { doctorId } : {}),
+        },
+        select: {
+          id: true,
+          appointmentCode: true,
+          scheduledAt: true,
+          status: true,
+          service: { select: { name: true } },
+          doctor: { select: { user: { select: { fullName: true } } } },
+          medicalRecords: { select: { id: true }, take: 1 },
+        },
+        orderBy: { scheduledAt: 'desc' },
+      }),
+      this.prisma.videoConsultation.findMany({
+        where: {
+          patientId,
+          ...(doctorId ? { doctorId } : {}),
+        },
+        select: {
+          id: true,
+          scheduledAt: true,
+          status: true,
+          durationMinutes: true,
+          meetingUrl: true,
+          doctor: { select: { user: { select: { fullName: true } } } },
+        },
+        orderBy: { scheduledAt: 'desc' },
+      }),
+    ]);
 
-    const age = patient.dateOfBirth
-      ? new Date().getFullYear() - new Date(patient.dateOfBirth).getFullYear()
-      : null;
+    const now = new Date();
+
+    const offlineVisits = appointments.map((a) => ({
+      id: a.id,
+      appointmentCode: a.appointmentCode,
+      scheduledAt: a.scheduledAt,
+      status: a.status as string,
+      serviceName: a.service?.name ?? 'Khám trực tiếp',
+      doctorName: a.doctor?.user.fullName ?? '—',
+      recordId: a.medicalRecords[0]?.id ?? null,
+      type: 'OFFLINE' as const,
+      meetingUrl: null,
+    }));
+
+    const onlineVisits = videoConsultations.map((vc) => ({
+      id: vc.id,
+      appointmentCode: `VC-${vc.id.slice(0, 8).toUpperCase()}`,
+      scheduledAt: vc.scheduledAt,
+      status: vc.status as string,
+      serviceName: `Tư vấn trực tuyến (${vc.durationMinutes} phút)`,
+      doctorName: vc.doctor?.user.fullName ?? '—',
+      recordId: null,
+      type: 'ONLINE' as const,
+      meetingUrl: vc.meetingUrl ?? null,
+    }));
+
+    const allVisits = [...offlineVisits, ...onlineVisits].sort(
+      (a, b) =>
+        new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime(),
+    );
+
+    const completedVisits = allVisits.filter(
+      (visit) =>
+        visit.status === 'COMPLETED' &&
+        new Date(visit.scheduledAt).getTime() <= now.getTime(),
+    );
+
+    const age = this.calculateAge(patient.dateOfBirth);
 
     const activePlan = patient.treatmentPlans[0] ?? null;
     const planItems = Array.isArray(activePlan?.items)
       ? (activePlan.items as {
-        service?: string;
-        tooth?: string;
-        estimatedCost?: string;
-      }[])
+          service?: string;
+          tooth?: string;
+          estimatedCost?: string;
+        }[])
       : [];
     const steps = activePlan?.steps ?? [];
-    const totalSteps =
-      steps.length > 0 ? steps.length : planItems.length;
+    const totalSteps = steps.length > 0 ? steps.length : planItems.length;
     const completedSteps =
       steps.length > 0
-        ? steps.filter((s) => s.status === TreatmentStepStatus.COMPLETED)
-          .length
+        ? steps.filter((s) => s.status === TreatmentStepStatus.COMPLETED).length
         : 0;
 
-    const finance = await this.getPatientFinance(patientId, activePlan?.id);
+    const finance = doctorId
+      ? undefined
+      : await this.getPatientFinance(patientId, activePlan?.id);
     const identity = this.getPatientIdentity(patient);
 
     return {
@@ -1021,28 +1267,22 @@ export class PatientService {
       allergies: this.parseAllergies(patient.medicalHistory),
       emergencyContactName: patient.emergencyContactName,
       emergencyContactPhone: patient.emergencyContactPhone,
-      finance,
+      ...(finance ? { finance } : {}),
       activeTreatmentPlan: activePlan
         ? {
-          id: activePlan.id,
-          title: activePlan.title,
-          status: activePlan.status,
-          startDate: activePlan.startDate,
-          expectedEndDate: activePlan.expectedEndDate,
-          totalSteps,
-          completedSteps,
-          estimatedTotal: finance.planTotal,
-        }
+            id: activePlan.id,
+            title: activePlan.title,
+            status: activePlan.status,
+            startDate: activePlan.startDate,
+            expectedEndDate: activePlan.expectedEndDate,
+            totalSteps,
+            completedSteps,
+            ...(finance ? { estimatedTotal: finance.planTotal } : {}),
+          }
         : null,
-      appointments: appointments.map((a) => ({
-        id: a.id,
-        appointmentCode: a.appointmentCode,
-        scheduledAt: a.scheduledAt,
-        status: a.status,
-        serviceName: a.service.name,
-        doctorName: a.doctor?.user.fullName ?? '—',
-        recordId: a.medicalRecords[0]?.id ?? null,
-      })),
+      totalVisits: completedVisits.length,
+      totalAppointments: allVisits.length,
+      appointments: allVisits,
     };
   }
 
@@ -1228,29 +1468,27 @@ export class PatientService {
       updatedAt: user.updatedAt,
       patientProfile: user.patientProfile
         ? {
-          id: user.patientProfile.id,
-          patientCode: user.patientProfile.patientCode,
-          dateOfBirth: user.patientProfile.dateOfBirth,
-          gender: user.patientProfile.gender,
-          address: user.patientProfile.address,
-          emergencyContactName: user.patientProfile.emergencyContactName,
-          emergencyContactPhone: user.patientProfile.emergencyContactPhone,
-          medicalHistory: user.patientProfile.medicalHistory,
-        }
+            id: user.patientProfile.id,
+            patientCode: user.patientProfile.patientCode,
+            dateOfBirth: user.patientProfile.dateOfBirth,
+            gender: user.patientProfile.gender,
+            address: user.patientProfile.address,
+            emergencyContactName: user.patientProfile.emergencyContactName,
+            emergencyContactPhone: user.patientProfile.emergencyContactPhone,
+            medicalHistory: user.patientProfile.medicalHistory,
+          }
         : null,
       lastAppointment: lastAppointment
         ? {
-          id: lastAppointment.id,
-          scheduledAt: lastAppointment.scheduledAt,
-          status: lastAppointment.status,
-          serviceName: lastAppointment.service.name,
-          doctorName: lastAppointment.doctor.user.fullName,
-        }
+            id: lastAppointment.id,
+            scheduledAt: lastAppointment.scheduledAt,
+            status: lastAppointment.status,
+            serviceName: lastAppointment.service.name,
+            doctorName: lastAppointment.doctor.user.fullName,
+          }
         : null,
     };
   }
-
-
 
   private async buildPatientRecordResponse(patientId: string) {
     const patient = await this.prisma.patient.findUniqueOrThrow({
@@ -1415,7 +1653,11 @@ export class PatientService {
     invoiceType: InvoiceType;
     finalAmount: unknown;
     status: InvoiceStatus;
-    payments: Array<{ status: PaymentStatus; amount: unknown; paidAt: Date | null }>;
+    payments: Array<{
+      status: PaymentStatus;
+      amount: unknown;
+      paidAt: Date | null;
+    }>;
   }) {
     return {
       id: invoice.id,
@@ -1427,14 +1669,14 @@ export class PatientService {
         .filter((payment) => payment.status === PaymentStatus.SUCCESS)
         .reduce((total, payment) => total + Number(payment.amount), 0),
       paidAt:
-        invoice.payments.find((payment) => payment.status === PaymentStatus.SUCCESS)
+        invoice.payments
+          .find((payment) => payment.status === PaymentStatus.SUCCESS)
           ?.paidAt?.toISOString() ?? null,
     };
   }
 
-  private calculateAge(dateOfBirth?: Date | null) {
+  private calculateAge(dateOfBirth?: Date | null, today: Date = new Date()) {
     if (!dateOfBirth) return null;
-    const today = new Date();
     let age = today.getFullYear() - dateOfBirth.getFullYear();
     const monthDiff = today.getMonth() - dateOfBirth.getMonth();
     if (
@@ -1474,7 +1716,9 @@ export class PatientService {
     return `DOC-${Date.now()}`;
   }
 
-  private async generateAppointmentCode(tx: Pick<PrismaService, 'appointment'>) {
+  private async generateAppointmentCode(
+    tx: Pick<PrismaService, 'appointment'>,
+  ) {
     const today = new Date().toISOString().slice(0, 10).replaceAll('-', '');
     const count = await tx.appointment.count({
       where: { appointmentCode: { startsWith: `APT-${today}` } },
@@ -1494,5 +1738,11 @@ export class PatientService {
     const value = new Date(date);
     value.setDate(value.getDate() + days);
     return value;
+  }
+
+  private assertDateOfBirthIsNotFuture(value?: string | null) {
+    if (value && new Date(value) > new Date()) {
+      throw new BadRequestException('patient.date_of_birth_future');
+    }
   }
 }

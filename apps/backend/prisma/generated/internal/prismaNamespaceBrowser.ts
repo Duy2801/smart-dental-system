@@ -73,17 +73,21 @@ export const ModelName = {
   DoctorAvailability: 'DoctorAvailability',
   Appointment: 'Appointment',
   MedicalRecord: 'MedicalRecord',
+  MedicalRecordAudit: 'MedicalRecordAudit',
   AiXrayAnalysisAudit: 'AiXrayAnalysisAudit',
   TreatmentPlan: 'TreatmentPlan',
+  TreatmentPlanAudit: 'TreatmentPlanAudit',
   TreatmentPlanStep: 'TreatmentPlanStep',
   ClinicalCase: 'ClinicalCase',
   Invoice: 'Invoice',
   Prescription: 'Prescription',
+  PrescriptionAudit: 'PrescriptionAudit',
   PrescriptionItem: 'PrescriptionItem',
   Payment: 'Payment',
   Review: 'Review',
   ChatbotConversation: 'ChatbotConversation',
   VideoConsultation: 'VideoConsultation',
+  PatientAiBrief: 'PatientAiBrief',
   Notification: 'Notification',
   Banner: 'Banner',
   ConsultationPackage: 'ConsultationPackage',
@@ -469,6 +473,17 @@ export const MedicalRecordScalarFieldEnum = {
 export type MedicalRecordScalarFieldEnum = (typeof MedicalRecordScalarFieldEnum)[keyof typeof MedicalRecordScalarFieldEnum]
 
 
+export const MedicalRecordAuditScalarFieldEnum = {
+  id: 'id',
+  medicalRecordId: 'medicalRecordId',
+  changedBy: 'changedBy',
+  previousData: 'previousData',
+  createdAt: 'createdAt'
+} as const
+
+export type MedicalRecordAuditScalarFieldEnum = (typeof MedicalRecordAuditScalarFieldEnum)[keyof typeof MedicalRecordAuditScalarFieldEnum]
+
+
 export const AiXrayAnalysisAuditScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -503,10 +518,23 @@ export const TreatmentPlanScalarFieldEnum = {
   scheduleConfirmedAt: 'scheduleConfirmedAt',
   items: 'items',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  emailQueuedAt: 'emailQueuedAt'
 } as const
 
 export type TreatmentPlanScalarFieldEnum = (typeof TreatmentPlanScalarFieldEnum)[keyof typeof TreatmentPlanScalarFieldEnum]
+
+
+export const TreatmentPlanAuditScalarFieldEnum = {
+  id: 'id',
+  treatmentPlanId: 'treatmentPlanId',
+  action: 'action',
+  changedBy: 'changedBy',
+  previousData: 'previousData',
+  createdAt: 'createdAt'
+} as const
+
+export type TreatmentPlanAuditScalarFieldEnum = (typeof TreatmentPlanAuditScalarFieldEnum)[keyof typeof TreatmentPlanAuditScalarFieldEnum]
 
 
 export const TreatmentPlanStepScalarFieldEnum = {
@@ -585,10 +613,27 @@ export const PrescriptionScalarFieldEnum = {
   patientId: 'patientId',
   notes: 'notes',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  cancelledAt: 'cancelledAt',
+  cancelledBy: 'cancelledBy',
+  emailQueuedAt: 'emailQueuedAt',
+  safetyConfirmedAt: 'safetyConfirmedAt',
+  safetyOverride: 'safetyOverride'
 } as const
 
 export type PrescriptionScalarFieldEnum = (typeof PrescriptionScalarFieldEnum)[keyof typeof PrescriptionScalarFieldEnum]
+
+
+export const PrescriptionAuditScalarFieldEnum = {
+  id: 'id',
+  prescriptionId: 'prescriptionId',
+  action: 'action',
+  changedBy: 'changedBy',
+  previousData: 'previousData',
+  createdAt: 'createdAt'
+} as const
+
+export type PrescriptionAuditScalarFieldEnum = (typeof PrescriptionAuditScalarFieldEnum)[keyof typeof PrescriptionAuditScalarFieldEnum]
 
 
 export const PrescriptionItemScalarFieldEnum = {
@@ -662,6 +707,29 @@ export const VideoConsultationScalarFieldEnum = {
 } as const
 
 export type VideoConsultationScalarFieldEnum = (typeof VideoConsultationScalarFieldEnum)[keyof typeof VideoConsultationScalarFieldEnum]
+
+
+export const PatientAiBriefScalarFieldEnum = {
+  id: 'id',
+  patientId: 'patientId',
+  doctorId: 'doctorId',
+  createdBy: 'createdBy',
+  consultationId: 'consultationId',
+  patientName: 'patientName',
+  bulletPoints: 'bulletPoints',
+  questionsToAsk: 'questionsToAsk',
+  riskFlags: 'riskFlags',
+  disclaimer: 'disclaimer',
+  sourceData: 'sourceData',
+  provider: 'provider',
+  model: 'model',
+  feedback: 'feedback',
+  feedbackNote: 'feedbackNote',
+  reviewedAt: 'reviewedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type PatientAiBriefScalarFieldEnum = (typeof PatientAiBriefScalarFieldEnum)[keyof typeof PatientAiBriefScalarFieldEnum]
 
 
 export const NotificationScalarFieldEnum = {

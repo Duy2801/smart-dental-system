@@ -26,7 +26,6 @@ import {
   ArrowClockwise,
   EnvelopeSimple,
   BellSimpleRinging,
-  CheckCircle,
 } from "@phosphor-icons/react";
 
 // ---------------------------------------------------------------------------
@@ -123,7 +122,7 @@ function PatientMenu({
   onShowToast,
 }: {
   patient: Patient;
-  onShowToast: (msg: string, type?: "success" | "info") => void;
+  onShowToast: (msg: string, type?: "success" | "info" | "error") => void;
 }) {
   const [open, setOpen] = useState(false);
   const [loadingAction, setLoadingAction] = useState(false);
@@ -143,8 +142,8 @@ function PatientMenu({
     try {
       await apiClient.post(`/patients/${patient.id}/send-reminder`);
       onShowToast(`✓ Đã gửi Email & Thông báo nhắc tái khám 6 tháng cho ${patient.fullName}!`, "success");
-    } catch {
-      onShowToast(`✓ Đã gửi lời nhắc tái khám cho ${patient.fullName}!`, "info");
+    } catch (err) {
+      onShowToast(getApiErrorMessage(err, `Không gửi được lời nhắc cho ${patient.fullName}.`), "error");
     } finally {
       setLoadingAction(false);
       setOpen(false);
@@ -156,8 +155,8 @@ function PatientMenu({
     try {
       await apiClient.post(`/patients/${patient.id}/send-welcome`);
       onShowToast(`✓ Đã gửi lại Thư chào mừng & Mã hồ sơ cho ${patient.fullName}!`, "success");
-    } catch {
-      onShowToast(`✓ Đã gửi thông tin mã hồ sơ cho ${patient.fullName}!`, "info");
+    } catch (err) {
+      onShowToast(getApiErrorMessage(err, `Không gửi được thư chào mừng cho ${patient.fullName}.`), "error");
     } finally {
       setLoadingAction(false);
       setOpen(false);
@@ -167,6 +166,8 @@ function PatientMenu({
   return (
     <div ref={ref} className="relative">
       <button
+        type="button"
+        aria-label={`Thao tác bệnh nhân ${patient.fullName}`}
         onClick={() => setOpen((v) => !v)}
         className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-slate-100 hover:text-slate-900 active:scale-[0.98] cursor-pointer"
       >
@@ -330,14 +331,16 @@ export default function ReceptionistPatientsPage() {
   const router = useRouter();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [sendingBulk, setSendingBulk] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [showFilter, setShowFilter] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type: "success" | "info" } | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "info" | "error" } | null>(null);
+  const requestId = useRef(0);
 
-  const showToast = (message: string, type: "success" | "info" = "success") => {
+  const showToast = (message: string, type: "success" | "info" | "error" = "success") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 4500);
   };
@@ -345,11 +348,16 @@ export default function ReceptionistPatientsPage() {
   const handleSendBulkReminders = async () => {
     setSendingBulk(true);
     try {
-      const res = await apiClient.post<{ sentCount?: number }>("/patients/send-bulk-reminders");
+      const res = await apiClient.post<{ success?: boolean; sentCount?: number; failedCount?: number }>("/patients/send-bulk-reminders");
       const count = res.data?.sentCount ?? 0;
+      const failedCount = res.data?.failedCount ?? 0;
+      if (res.data?.success === false || failedCount > 0) {
+        showToast(`Đã gửi ${count} bệnh nhân, ${failedCount} lượt gửi thất bại.`, "error");
+        return;
+      }
       showToast(`✓ Đã gửi tự động Email & Thông báo nhắc tái khám 6 tháng cho ${count} bệnh nhân đến hạn!`, "success");
-    } catch {
-      showToast("✓ Đã gửi lời nhắc tái khám định kỳ đến danh sách bệnh nhân đến hạn!", "info");
+    } catch (err) {
+      showToast(getApiErrorMessage(err, "Không gửi được lời nhắc tái khám hàng loạt."), "error");
     } finally {
       setSendingBulk(false);
     }
@@ -363,14 +371,16 @@ export default function ReceptionistPatientsPage() {
   const [appliedVisit, setAppliedVisit] = useState<VisitFilter>("");
 
   const fetchPatients = useCallback(async (query: string) => {
+    const id = ++requestId.current;
     try {
-      setLoading(true);
-      setError(null);
+      setRefreshing(true);
       const params = new URLSearchParams();
       const q = query.trim();
       if (q) params.set("search", q);
       const res = await apiClient.get(`/patients?${params}`);
+      if (id !== requestId.current) return;
       const list = Array.isArray(res.data) ? res.data : [];
+      setError(null);
       setPatients(
         list.map(
           (p: {
@@ -400,10 +410,13 @@ export default function ReceptionistPatientsPage() {
         ),
       );
     } catch (err) {
+      if (id !== requestId.current) return;
       setError(getApiErrorMessage(err, "Không tải được danh sách bệnh nhân từ máy chủ."));
-      setPatients([]);
     } finally {
-      setLoading(false);
+      if (id === requestId.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }, []);
 
@@ -472,11 +485,11 @@ export default function ReceptionistPatientsPage() {
           <button
             type="button"
             onClick={() => void fetchPatients(search)}
-            disabled={loading}
+            disabled={refreshing}
             className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition-all hover:bg-muted disabled:opacity-50 active:scale-[0.98] cursor-pointer"
             title="Làm mới danh sách"
           >
-            <ArrowClockwise size={14} className={loading ? "animate-spin" : ""} />
+            <ArrowClockwise size={14} className={refreshing ? "animate-spin" : ""} />
             Làm mới
           </button>
 
@@ -837,22 +850,26 @@ export default function ReceptionistPatientsPage() {
 
       </div>
 
-      {/* FLOATING SUCCESS / INFO TOAST */}
+      {/* FLOATING STATUS TOAST */}
       {toast && (
-        <div className={cn(
+        <div role={toast.type === "error" ? "alert" : "status"} className={cn(
           "fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-2xl border px-4 py-3 text-xs font-bold shadow-xl backdrop-blur-xs animate-in fade-in slide-in-from-bottom-4",
           toast.type === "success"
             ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-            : "border-blue-200 bg-blue-50 text-blue-800"
+            : toast.type === "error"
+              ? "border-red-200 bg-red-50 text-red-800"
+              : "border-blue-200 bg-blue-50 text-blue-800"
         )}>
           <span className={cn(
             "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-white text-[10px]",
-            toast.type === "success" ? "bg-emerald-600" : "bg-blue-600"
+            toast.type === "success" ? "bg-emerald-600" : toast.type === "error" ? "bg-red-600" : "bg-blue-600"
           )}>
-            {toast.type === "success" ? "✓" : "ℹ"}
+            {toast.type === "success" ? "✓" : toast.type === "error" ? "!" : "ℹ"}
           </span>
           <span>{toast.message}</span>
           <button
+            type="button"
+            aria-label="Đóng thông báo"
             onClick={() => setToast(null)}
             className="ml-2 text-slate-500 hover:text-slate-900 cursor-pointer"
           >

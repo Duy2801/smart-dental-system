@@ -150,6 +150,11 @@ export type Appointment = Prisma.AppointmentModel
  */
 export type MedicalRecord = Prisma.MedicalRecordModel
 /**
+ * Model MedicalRecordAudit
+ * 
+ */
+export type MedicalRecordAudit = Prisma.MedicalRecordAuditModel
+/**
  * Model AiXrayAnalysisAudit
  * 
  */
@@ -159,6 +164,11 @@ export type AiXrayAnalysisAudit = Prisma.AiXrayAnalysisAuditModel
  * 
  */
 export type TreatmentPlan = Prisma.TreatmentPlanModel
+/**
+ * Model TreatmentPlanAudit
+ * 
+ */
+export type TreatmentPlanAudit = Prisma.TreatmentPlanAuditModel
 /**
  * Model TreatmentPlanStep
  * 
@@ -179,6 +189,11 @@ export type Invoice = Prisma.InvoiceModel
  * 
  */
 export type Prescription = Prisma.PrescriptionModel
+/**
+ * Model PrescriptionAudit
+ * 
+ */
+export type PrescriptionAudit = Prisma.PrescriptionAuditModel
 /**
  * Model PrescriptionItem
  * 
@@ -204,6 +219,11 @@ export type ChatbotConversation = Prisma.ChatbotConversationModel
  * 
  */
 export type VideoConsultation = Prisma.VideoConsultationModel
+/**
+ * Model PatientAiBrief
+ * 
+ */
+export type PatientAiBrief = Prisma.PatientAiBriefModel
 /**
  * Model Notification
  * 

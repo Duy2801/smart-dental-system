@@ -1,11 +1,15 @@
 import type { AppointmentStatus } from "@/src/components/shared/appointment-status-badge";
 
-/** YYYY-MM-DD theo giờ máy local (tránh lệch UTC của toISOString). */
+/** YYYY-MM-DD theo múi giờ phòng khám. */
 export function localDateStr(d: Date = new Date()): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(d);
+  const value = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+  return `${value.year}-${value.month}-${value.day}`;
 }
 
 /** Prisma appointment include shape from backend */
@@ -18,6 +22,12 @@ export type ApiAppointment = {
   notes?: string | null;
   paymentStatus?: string | null;
   bookingSource?: string | null;
+  invoices?: {
+    id: string;
+    status: string;
+    invoiceType?: string;
+    issuedAt?: string | null;
+  }[];
   patient?: {
     id: string;
     fullName?: string | null;
@@ -41,6 +51,7 @@ export type ReceptionistAppointment = {
   status: AppointmentStatus;
   notes?: string | null;
   invoicePending?: boolean;
+  billingInvoiceId?: string;
   bookingSource?: string | null;
   allergies: string[];
   patient?: { id: string; fullName: string; phone: string } | null;
@@ -52,7 +63,13 @@ function timeFromIso(iso?: string | null): string {
   if (!iso) return "";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso.slice(11, 19) || iso.slice(0, 5);
-  return d.toTimeString().slice(0, 8);
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).format(d);
 }
 
 function parseAllergies(medicalHistory?: string | null): string[] {
@@ -71,8 +88,22 @@ const PAID_PAYMENT_STATUSES = new Set([
   "WAIVED",
 ]);
 
+const INVOICE_PRIORITY = ["FINAL_PAYMENT", "STEP_PAYMENT", "SERVICE", "DEPOSIT"];
+
+function invoicePriority(type?: string): number {
+  const index = INVOICE_PRIORITY.indexOf(type ?? "");
+  return index === -1 ? INVOICE_PRIORITY.length : index;
+}
+
 export function mapAppointment(raw: ApiAppointment): ReceptionistAppointment {
   const paymentStatus = raw.paymentStatus ?? "";
+  const billingInvoiceId = raw.invoices
+    ?.filter((invoice) => ["DRAFT", "ISSUED", "PARTIALLY_PAID"].includes(invoice.status))
+    .sort((a, b) => {
+      const typeOrder = invoicePriority(a.invoiceType) - invoicePriority(b.invoiceType);
+      if (typeOrder) return typeOrder;
+      return (b.issuedAt ?? "").localeCompare(a.issuedAt ?? "");
+    })[0]?.id;
   return {
     id: raw.id,
     appointmentCode: raw.appointmentCode ?? raw.id.slice(0, 8).toUpperCase(),
@@ -85,6 +116,7 @@ export function mapAppointment(raw: ApiAppointment): ReceptionistAppointment {
     allergies: parseAllergies(raw.patient?.medicalHistory),
     invoicePending:
       raw.status === "COMPLETED" && !PAID_PAYMENT_STATUSES.has(paymentStatus),
+    billingInvoiceId,
     patient: raw.patient
       ? {
           id: raw.patient.id,

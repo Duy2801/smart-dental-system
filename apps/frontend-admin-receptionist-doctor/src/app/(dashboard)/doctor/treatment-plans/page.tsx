@@ -17,12 +17,21 @@ import {
   X,
   Funnel,
   PaperPlaneTilt,
+  ArrowClockwise,
+  CaretLeft,
+  CaretRight,
+  CaretDown,
+  CurrencyCircleDollar,
 } from "@phosphor-icons/react";
 import apiClient from "@/src/lib/api/client";
+import { getDoctorInfoFromCookie } from "@/src/lib/doctor/session";
 
 type PlanStatus = "PLANNED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
 
-const statusMap: Record<PlanStatus, { label: string; color: string; dot: string }> = {
+const statusMap: Record<
+  PlanStatus,
+  { label: string; color: string; dot: string }
+> = {
   PLANNED: {
     label: "Chưa bắt đầu",
     color: "bg-slate-100 text-slate-600 ring-slate-600/20",
@@ -45,7 +54,12 @@ const statusMap: Record<PlanStatus, { label: string; color: string; dot: string 
   },
 };
 
-const ALL_STATUSES: PlanStatus[] = ["PLANNED", "IN_PROGRESS", "COMPLETED", "CANCELLED"];
+const ALL_STATUSES: PlanStatus[] = [
+  "PLANNED",
+  "IN_PROGRESS",
+  "COMPLETED",
+  "CANCELLED",
+];
 
 type Plan = {
   id: string;
@@ -60,28 +74,26 @@ type Plan = {
   totalSteps: number;
   completedSteps: number;
   progressPercent: number;
+  totalEstimatedCost?: number | null;
   createdAt: string;
 };
 
-function getUserInfo(): { doctorId: string | null } {
-  if (typeof document === "undefined") return { doctorId: null };
-  const raw = document.cookie
-    .split("; ")
-    .find((c) => c.startsWith("user_info="))
-    ?.split("=")
-    .slice(1)
-    .join("=");
-  if (!raw) return { doctorId: null };
-  try {
-    return JSON.parse(decodeURIComponent(raw));
-  } catch {
-    return { doctorId: null };
-  }
+function cleanSearchText(str: string) {
+  return str
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d");
 }
 
 function formatDate(iso: string | null) {
-  if (!iso) return "?";
+  if (!iso) return "—";
   return new Date(iso).toLocaleDateString("vi-VN");
+}
+
+function formatCurrency(n?: number | null) {
+  if (n == null || n <= 0) return null;
+  return n.toLocaleString("vi-VN") + " đ";
 }
 
 function DeleteModal({
@@ -103,7 +115,9 @@ function DeleteModal({
             <Trash size={18} className="text-red-600" />
           </div>
           <div>
-            <h3 className="font-semibold text-brand-dark">Xóa kế hoạch điều trị?</h3>
+            <h3 className="font-semibold text-brand-dark">
+              Xóa kế hoạch điều trị?
+            </h3>
             <p className="mt-1 text-sm text-muted-foreground">
               Kế hoạch <strong>"{plan.title}"</strong> của bệnh nhân{" "}
               <strong>{plan.patientName}</strong> sẽ bị xóa vĩnh viễn cùng tất
@@ -145,9 +159,46 @@ export default function TreatmentPlansPage() {
   const [deleteTarget, setDeleteTarget] = useState<Plan | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [sendingId, setSendingId] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error";
+  } | null>(null);
 
-  const doctorId = getUserInfo().doctorId;
+  const [doctorId, setDoctorId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const pageSize = 12;
+
+  useEffect(() => {
+    const doc = getDoctorInfoFromCookie();
+    if (doc?.doctorId) {
+      setDoctorId(doc.doctorId);
+    } else {
+      setError("Không tìm thấy thông tin bác sĩ. Vui lòng đăng nhập lại.");
+      setLoading(false);
+    }
+  }, []);
+
+  const loadPlans = () => {
+    if (!doctorId) return;
+    setLoading(true);
+    setError(null);
+    apiClient
+      .get<Plan[]>(`/treatment-plans?doctorId=${doctorId}`)
+      .then((res) => setPlans(res.data))
+      .catch((err: any) => {
+        const msg =
+          err.response?.data?.message ||
+          "Không thể tải danh sách kế hoạch điều trị.";
+        setError(Array.isArray(msg) ? msg[0] : msg);
+      })
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    if (doctorId) {
+      loadPlans();
+    }
+  }, [doctorId]);
 
   const handleSendEmail = async (plan: Plan) => {
     setSendingId(plan.id);
@@ -160,8 +211,7 @@ export default function TreatmentPlansPage() {
       setTimeout(() => setToast(null), 4500);
     } catch (err: any) {
       const msg =
-        err.response?.data?.message ||
-        "Không thể gửi email phác đồ điều trị.";
+        err.response?.data?.message || "Không thể gửi email phác đồ điều trị.";
       setToast({
         message: Array.isArray(msg) ? msg[0] : msg,
         type: "error",
@@ -172,28 +222,16 @@ export default function TreatmentPlansPage() {
     }
   };
 
-  useEffect(() => {
-    if (!doctorId) {
-      setError("Không tìm thấy thông tin bác sĩ. Vui lòng đăng nhập lại.");
-      setLoading(false);
-      return;
-    }
-    apiClient
-      .get<Plan[]>(`/treatment-plans?doctorId=${doctorId}`)
-      .then((res) => setPlans(res.data))
-      .catch(() => setError("Không thể tải danh sách kế hoạch điều trị."))
-      .finally(() => setLoading(false));
-  }, [doctorId]);
-
   const filtered = useMemo(() => {
     let data = plans;
     if (search.trim()) {
-      const q = search.trim().toLowerCase();
+      const q = cleanSearchText(search.trim());
       data = data.filter(
         (p) =>
-          p.title.toLowerCase().includes(q) ||
-          p.patientName.toLowerCase().includes(q) ||
-          p.patientCode.toLowerCase().includes(q),
+          cleanSearchText(p.title).includes(q) ||
+          cleanSearchText(p.patientName).includes(q) ||
+          cleanSearchText(p.patientCode).includes(q) ||
+          (p.description ? cleanSearchText(p.description).includes(q) : false),
       );
     }
     if (filterStatus) {
@@ -202,22 +240,47 @@ export default function TreatmentPlansPage() {
     return data;
   }, [plans, search, filterStatus]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [search, filterStatus]);
+
+  const totalPages = Math.ceil(filtered.length / pageSize) || 1;
+  const paginatedPlans = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, page, pageSize]);
+
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
       await apiClient.delete(`/treatment-plans/${deleteTarget.id}`);
       setPlans((prev) => prev.filter((p) => p.id !== deleteTarget.id));
+      setToast({
+        message: `✓ Đã xóa kế hoạch điều trị "${deleteTarget.title}"`,
+        type: "success",
+      });
+      setTimeout(() => setToast(null), 4000);
       setDeleteTarget(null);
-    } catch {
-      setError("Xóa kế hoạch thất bại. Vui lòng thử lại.");
+    } catch (err: any) {
+      const msg =
+        err.response?.data?.message ||
+        "Xóa kế hoạch thất bại. Vui lòng thử lại.";
+      setToast({
+        message: Array.isArray(msg) ? msg[0] : msg,
+        type: "error",
+      });
+      setTimeout(() => setToast(null), 4000);
       setDeleteTarget(null);
     } finally {
       setDeleting(false);
     }
   };
 
-  const clearFilters = () => { setSearch(""); setFilterStatus(""); };
+  const clearFilters = () => {
+    setSearch("");
+    setFilterStatus("");
+  };
   const hasFilter = search.trim() || filterStatus;
 
   return (
@@ -246,57 +309,91 @@ export default function TreatmentPlansPage() {
 
       <div className="p-6 md:p-8">
         {error && (
-          <div className="mb-4 flex items-center gap-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-inset ring-red-200">
-            <Warning size={18} className="shrink-0" />
-            {error}
+          <div className="mb-4 flex items-center justify-between gap-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-inset ring-red-200">
+            <div className="flex items-center gap-2.5">
+              <Warning size={18} className="shrink-0" />
+              <span>{error}</span>
+            </div>
+            {doctorId && (
+              <button
+                onClick={loadPlans}
+                className="inline-flex items-center gap-1 text-xs font-semibold text-red-700 underline hover:text-red-900 cursor-pointer"
+              >
+                <ArrowClockwise size={13} />
+                Thử lại
+              </button>
+            )}
           </div>
         )}
 
         {/* Search + filter bar */}
         {!loading && !error && (
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="relative flex-1">
+            <div className="relative flex-1 min-w-0">
               <MagnifyingGlass
                 size={16}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
               />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Tìm theo tên kế hoạch, bệnh nhân, mã BN..."
-                className="w-full rounded-xl border border-border bg-white py-2.5 pl-9 pr-4 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand"
+                className="w-full rounded-xl border border-border bg-white py-2.5 pl-9 pr-9 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand"
               />
               {search && (
                 <button
+                  type="button"
                   onClick={() => setSearch("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-brand"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-0.5 text-muted-foreground transition-colors hover:text-brand cursor-pointer"
+                  title="Xóa tìm kiếm"
                 >
                   <X size={14} />
                 </button>
               )}
             </div>
 
-            <div className="flex items-center gap-2">
-              <Funnel size={15} className="shrink-0 text-muted-foreground" />
+            <div className="relative w-full sm:w-56 sm:shrink-0">
+              <Funnel
+                size={14}
+                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+              />
               <select
                 value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value as PlanStatus | "")}
-                className="rounded-xl border border-border bg-white py-2.5 pl-3 pr-7 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand"
+                onChange={(e) =>
+                  setFilterStatus(e.target.value as PlanStatus | "")
+                }
+                className={cn(
+                  "w-full appearance-none rounded-xl border border-border bg-white py-2.5 pl-9 pr-9 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand cursor-pointer",
+                  filterStatus &&
+                    "border-brand/40 bg-brand-50/20 font-medium text-brand-dark",
+                )}
               >
                 <option value="">Tất cả trạng thái</option>
                 {ALL_STATUSES.map((s) => (
-                  <option key={s} value={s}>{statusMap[s].label}</option>
+                  <option key={s} value={s}>
+                    {statusMap[s].label}
+                  </option>
                 ))}
               </select>
-              {hasFilter && (
+              {filterStatus ? (
                 <button
-                  onClick={clearFilters}
-                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-white text-muted-foreground transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600"
-                  title="Xóa bộ lọc"
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setFilterStatus("");
+                  }}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-slate-100 hover:text-red-600 z-10 cursor-pointer"
+                  title="Bỏ chọn trạng thái"
                 >
-                  <X size={14} />
+                  <X size={13} weight="bold" />
                 </button>
+              ) : (
+                <CaretDown
+                  size={14}
+                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                />
               )}
             </div>
           </div>
@@ -308,7 +405,11 @@ export default function TreatmentPlansPage() {
           </div>
         ) : !error && filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-2xl border border-border bg-white py-24 shadow-sm">
-            <ClipboardText size={48} className="mb-4 text-slate-300" weight="duotone" />
+            <ClipboardText
+              size={48}
+              className="mb-4 text-slate-300"
+              weight="duotone"
+            />
             <p className="text-sm text-muted-foreground">
               {plans.length === 0
                 ? "Chưa có kế hoạch điều trị nào"
@@ -332,51 +433,64 @@ export default function TreatmentPlansPage() {
           </div>
         ) : !error ? (
           <>
-            <p className="mb-3 text-xs text-muted-foreground">
-              Hiển thị{" "}
-              <strong className="text-brand-dark">{filtered.length}</strong> /{" "}
-              {plans.length} kế hoạch
-            </p>
+            <div className="mb-3 flex items-center justify-between text-xs text-muted-foreground">
+              <p>
+                Hiển thị{" "}
+                <strong className="text-brand-dark">
+                  {paginatedPlans.length}
+                </strong>{" "}
+                / {filtered.length} kế hoạch
+                {filtered.length !== plans.length &&
+                  ` (lọc từ ${plans.length})`}
+              </p>
+              {hasFilter && (
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="text-xs font-medium text-brand hover:underline cursor-pointer"
+                >
+                  Xóa tất cả bộ lọc
+                </button>
+              )}
+            </div>
 
             <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-              {filtered.map((plan) => {
+              {paginatedPlans.map((plan) => {
                 const pct = plan.progressPercent;
                 const s = statusMap[plan.status] ?? statusMap.PLANNED;
                 return (
                   <div
                     key={plan.id}
-                    className="group relative flex flex-col rounded-2xl border border-border bg-white p-5 shadow-sm transition-all hover:border-brand/30 hover:shadow-md"
+                    onClick={() =>
+                      router.push(`/doctor/treatment-plans/${plan.id}`)
+                    }
+                    className="group relative flex flex-col rounded-2xl border border-border bg-white p-5 shadow-sm transition-all hover:border-brand/40 hover:shadow-md cursor-pointer"
                   >
                     {/* Action buttons */}
-                    <div className="absolute right-4 top-4 flex items-center gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+                    <div className="absolute right-3.5 top-3.5 flex items-center gap-1.5 z-10">
                       <button
-                        onClick={() => handleSendEmail(plan)}
-                        disabled={sendingId === plan.id}
-                        title="Gửi Phác đồ điều trị & Dự toán chi phí qua Gmail cho bệnh nhân"
-                        className="flex h-7 items-center gap-1 rounded-lg border border-emerald-300 bg-emerald-50 px-2 text-[11px] font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:opacity-50 cursor-pointer"
-                      >
-                        <PaperPlaneTilt
-                          size={12}
-                          weight="bold"
-                          className={sendingId === plan.id ? "animate-spin" : ""}
-                        />
-                        {sendingId === plan.id ? "Đang gửi..." : "Gửi Gmail"}
-                      </button>
-                      <button
-                        onClick={() =>
-                          router.push(`/doctor/treatment-plans/${plan.id}/edit`)
-                        }
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(
+                            `/doctor/treatment-plans/${plan.id}/edit`,
+                          );
+                        }}
                         title="Sửa kế hoạch"
-                        className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-brand/10 hover:text-brand cursor-pointer"
+                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200/80 bg-white/95 text-slate-500 shadow-2xs backdrop-blur-xs transition-colors hover:border-brand/40 hover:bg-brand/10 hover:text-brand cursor-pointer"
                       >
-                        <PencilSimple size={13} />
+                        <PencilSimple size={15} />
                       </button>
                       <button
-                        onClick={() => setDeleteTarget(plan)}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteTarget(plan);
+                        }}
                         title="Xóa kế hoạch"
-                        className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600 cursor-pointer"
+                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200/80 bg-white/95 text-slate-500 shadow-2xs backdrop-blur-xs transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600 cursor-pointer"
                       >
-                        <Trash size={13} />
+                        <Trash size={15} />
                       </button>
                     </div>
 
@@ -385,9 +499,15 @@ export default function TreatmentPlansPage() {
                         <span className="font-mono text-xs text-muted-foreground">
                           #{plan.id.slice(-6).toUpperCase()}
                         </span>
-                        <h3 className="mt-1 text-base font-semibold leading-tight text-slate-900">
-                          {plan.title}
-                        </h3>
+                        <Link
+                          href={`/doctor/treatment-plans/${plan.id}`}
+                          className="block group/title"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <h3 className="mt-1 text-base font-semibold leading-tight text-slate-900 transition-colors group-hover:text-brand group-hover/title:underline underline-offset-2">
+                            {plan.title}
+                          </h3>
+                        </Link>
                         <div className="mt-1.5 flex items-center gap-1.5">
                           <Link
                             href={`/doctor/patients/${plan.patientId}`}
@@ -408,24 +528,38 @@ export default function TreatmentPlansPage() {
                       </div>
                     </div>
 
-                    {/* Status badge */}
-                    <span
-                      className={cn(
-                        "mb-3 inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider ring-1 ring-inset",
-                        s.color,
-                      )}
-                    >
-                      <span className={cn("h-1.5 w-1.5 rounded-full", s.dot)} />
-                      {s.label}
-                    </span>
+                    {/* Status badge & Cost badge */}
+                    <div className="mb-3 flex flex-wrap items-center gap-2">
+                      <span
+                        className={cn(
+                          "inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider ring-1 ring-inset",
+                          s.color,
+                        )}
+                      >
+                        <span
+                          className={cn("h-1.5 w-1.5 rounded-full", s.dot)}
+                        />
+                        {s.label}
+                      </span>
+                      {plan.totalEstimatedCost != null &&
+                        plan.totalEstimatedCost > 0 && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
+                            <CurrencyCircleDollar size={13} weight="bold" />
+                            {formatCurrency(plan.totalEstimatedCost)}
+                          </span>
+                        )}
+                    </div>
 
                     <div className="mt-auto space-y-4">
                       {plan.totalSteps > 0 && (
                         <div>
                           <div className="mb-1.5 flex items-center justify-between text-xs">
-                            <span className="text-muted-foreground">Tiến độ</span>
+                            <span className="text-muted-foreground">
+                              Tiến độ
+                            </span>
                             <span className="font-semibold text-brand-dark">
-                              {plan.completedSteps}/{plan.totalSteps} bước ({pct}%)
+                              {plan.completedSteps}/{plan.totalSteps} bước (
+                              {pct}%)
                             </span>
                           </div>
                           <div className="h-2 overflow-hidden rounded-full bg-slate-100">
@@ -442,20 +576,47 @@ export default function TreatmentPlansPage() {
 
                       <div className="flex items-center justify-between border-t border-border/50 pt-4 text-xs text-muted-foreground">
                         <span>
-                          {formatDate(plan.startDate)} → {formatDate(plan.expectedEndDate)}
+                          {formatDate(plan.startDate)} →{" "}
+                          {formatDate(plan.expectedEndDate)}
                         </span>
                         <div className="flex items-center gap-2">
                           <button
-                            onClick={() => handleSendEmail(plan)}
-                            disabled={sendingId === plan.id}
-                            className="inline-flex items-center gap-1 font-semibold text-emerald-600 hover:text-emerald-700 cursor-pointer"
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSendEmail(plan);
+                            }}
+                            disabled={
+                              sendingId === plan.id ||
+                              plan.status === "CANCELLED" ||
+                              plan.totalSteps === 0
+                            }
+                            title={
+                              plan.status === "CANCELLED"
+                                ? "Không thể gửi email cho kế hoạch đã hủy"
+                                : plan.totalSteps === 0
+                                  ? "Kế hoạch chưa có bước điều trị nào để gửi"
+                                  : "Gửi phác đồ điều trị và dự toán chi phí qua email cho bệnh nhân"
+                            }
+                            className="inline-flex items-center gap-1 rounded-md px-2 py-1 font-semibold text-emerald-600 transition-colors hover:bg-emerald-50 hover:text-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                           >
-                            <PaperPlaneTilt size={11} weight="bold" />
-                            Gửi email
+                            <PaperPlaneTilt
+                              size={12}
+                              weight="bold"
+                              className={
+                                sendingId === plan.id ? "animate-spin" : ""
+                              }
+                            />
+                            <span>
+                              {sendingId === plan.id
+                                ? "Đang gửi..."
+                                : "Gửi email"}
+                            </span>
                           </button>
                           <Link
                             href={`/doctor/treatment-plans/${plan.id}`}
                             className="inline-flex items-center gap-1 font-medium text-brand hover:underline"
+                            onClick={(e) => e.stopPropagation()}
                           >
                             Chi tiết <ArrowUpRight size={12} />
                           </Link>
@@ -466,6 +627,36 @@ export default function TreatmentPlansPage() {
                 );
               })}
             </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="mt-8 flex items-center justify-between border-t border-border pt-4">
+                <p className="text-xs text-muted-foreground">
+                  Trang{" "}
+                  <span className="font-semibold text-brand-dark">{page}</span>{" "}
+                  /{" "}
+                  <span className="font-semibold text-brand-dark">
+                    {totalPages}
+                  </span>
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    className="inline-flex h-9 items-center gap-1 rounded-xl border border-border bg-white px-3 text-xs font-medium text-slate-700 shadow-2xs hover:bg-slate-50 disabled:opacity-40 cursor-pointer"
+                  >
+                    <CaretLeft size={14} /> Trước
+                  </button>
+                  <button
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                    className="inline-flex h-9 items-center gap-1 rounded-xl border border-border bg-white px-3 text-xs font-medium text-slate-700 shadow-2xs hover:bg-slate-50 disabled:opacity-40 cursor-pointer"
+                  >
+                    Sau <CaretRight size={14} />
+                  </button>
+                </div>
+              </div>
+            )}
           </>
         ) : null}
       </div>

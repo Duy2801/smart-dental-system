@@ -22,4 +22,19 @@ describe("applyXrayFindingsToDentalChart", () => {
       { number: 14, status: "implant" },
     ]);
   });
+
+  it("safely ignores non-FDI tooth numbers such as 19, 20, 29, 99", () => {
+    const result = applyXrayFindingsToDentalChart(
+      [],
+      [
+        { fdiToothNumber: 19, findingType: "Caries" },
+        { fdiToothNumber: 20, findingType: "Caries" },
+        { fdiToothNumber: 29, findingType: "Caries" },
+        { fdiToothNumber: 99, findingType: "Caries" },
+        { fdiToothNumber: 21, findingType: "Caries" },
+      ]
+    );
+
+    expect(result).toEqual([{ number: 21, status: "caries" }]);
+  });
 });

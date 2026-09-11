@@ -37,6 +37,8 @@ class Settings(BaseSettings):
     nvidia_api_key: str = ""
     nvidia_model: str = "meta/llama-3.3-70b-instruct"
     nvidia_base_url: str = "https://integrate.api.nvidia.com/v1/chat/completions"
+    # Keep each provider attempt short enough for the API proxy to try fallbacks.
+    llm_timeout_seconds: float = 20.0
     groq_api_key: str = ""
     groq_model: str = "llama-3.3-70b-versatile"
     openai_api_key: str = ""

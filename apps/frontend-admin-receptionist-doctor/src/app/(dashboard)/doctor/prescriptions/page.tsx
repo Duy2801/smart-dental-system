@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, Fragment } from "react";
+import { useEffect, useState, Fragment, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Header } from "@/src/components/layout/header";
@@ -10,7 +10,9 @@ import {
   SpinnerGap,
   Warning,
   CaretDown,
+  CaretLeft,
   CaretRight,
+  ArrowClockwise,
   MagnifyingGlass,
   PencilSimple,
   Trash,
@@ -21,6 +23,7 @@ import {
   CheckCircle,
 } from "@phosphor-icons/react";
 import apiClient from "@/src/lib/api/client";
+import { getDoctorInfoFromCookie } from "@/src/lib/doctor/session";
 
 type PrescriptionItem = {
   id: string;
@@ -44,22 +47,6 @@ type Prescription = {
   createdAt: string;
 };
 
-function getUserInfo(): { doctorId: string | null } {
-  if (typeof document === "undefined") return { doctorId: null };
-  const raw = document.cookie
-    .split("; ")
-    .find((c) => c.startsWith("user_info="))
-    ?.split("=")
-    .slice(1)
-    .join("=");
-  if (!raw) return { doctorId: null };
-  try {
-    return JSON.parse(decodeURIComponent(raw));
-  } catch {
-    return { doctorId: null };
-  }
-}
-
 function formatDate(iso: string | null) {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("vi-VN");
@@ -75,9 +62,18 @@ function formatDateFull(iso: string | null) {
 }
 
 const MONTHS = [
-  "Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4",
-  "Tháng 5", "Tháng 6", "Tháng 7", "Tháng 8",
-  "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12",
+  "Tháng 1",
+  "Tháng 2",
+  "Tháng 3",
+  "Tháng 4",
+  "Tháng 5",
+  "Tháng 6",
+  "Tháng 7",
+  "Tháng 8",
+  "Tháng 9",
+  "Tháng 10",
+  "Tháng 11",
+  "Tháng 12",
 ];
 
 const currentYear = new Date().getFullYear();
@@ -91,15 +87,31 @@ function MonthYearFilter({
   onChange: (v: string) => void;
 }) {
   const [month, setMonth] = useState(value ? value.slice(5) : "");
-  const [year, setYear] = useState(value ? value.slice(0, 4) : String(currentYear));
+  const [year, setYear] = useState(
+    value ? value.slice(0, 4) : String(currentYear),
+  );
+
+  useEffect(() => {
+    setMonth(value ? value.slice(5) : "");
+    setYear(value ? value.slice(0, 4) : String(currentYear));
+  }, [value]);
 
   const commit = (m: string, y: string) => {
     onChange(m ? `${y}-${m}` : "");
   };
 
-  const handleMonth = (m: string) => { setMonth(m); commit(m, year); };
-  const handleYear = (y: string) => { setYear(y); if (month) commit(month, y); };
-  const handleClear = () => { setMonth(""); onChange(""); };
+  const handleMonth = (m: string) => {
+    setMonth(m);
+    commit(m, year);
+  };
+  const handleYear = (y: string) => {
+    setYear(y);
+    if (month) commit(month, y);
+  };
+  const handleClear = () => {
+    setMonth("");
+    onChange("");
+  };
 
   return (
     <div className="flex items-center gap-1.5">
@@ -111,7 +123,11 @@ function MonthYearFilter({
         <option value="">-- Tháng --</option>
         {MONTHS.map((label, i) => {
           const val = String(i + 1).padStart(2, "0");
-          return <option key={val} value={val}>{label}</option>;
+          return (
+            <option key={val} value={val}>
+              {label}
+            </option>
+          );
         })}
       </select>
       <select
@@ -120,7 +136,9 @@ function MonthYearFilter({
         className="rounded-xl border border-border bg-white py-2.5 pl-3 pr-7 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand"
       >
         {YEARS.map((y) => (
-          <option key={y} value={y}>{y}</option>
+          <option key={y} value={y}>
+            {y}
+          </option>
         ))}
       </select>
       {month && (
@@ -156,11 +174,11 @@ function DeleteModal({
             <Trash size={18} className="text-red-600" />
           </div>
           <div>
-            <h3 className="font-semibold text-brand-dark">Xóa đơn thuốc?</h3>
+            <h3 className="font-semibold text-brand-dark">Hủy đơn thuốc?</h3>
             <p className="mt-1 text-sm text-muted-foreground">
               Đơn thuốc của <strong>{rx.patientName}</strong> kê ngày{" "}
-              {formatDateFull(rx.scheduledAt ?? rx.createdAt)} sẽ bị xóa vĩnh
-              viễn và không thể khôi phục.
+              {formatDateFull(rx.createdAt)} sẽ được hủy và giữ lại trong lịch
+              sử điều trị.
             </p>
           </div>
         </div>
@@ -178,7 +196,7 @@ function DeleteModal({
             className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-60"
           >
             {deleting && <SpinnerGap size={14} className="animate-spin" />}
-            Xóa đơn thuốc
+            Hủy đơn thuốc
           </button>
         </div>
       </div>
@@ -189,11 +207,13 @@ function DeleteModal({
 // Modal in đơn thuốc
 function PrintModal({
   rx,
+  doctorName,
   onClose,
   onSendEmail,
   sendingEmail,
 }: {
   rx: Prescription;
+  doctorName?: string | null;
   onClose: () => void;
   onSendEmail?: (rx: Prescription) => void;
   sendingEmail?: boolean;
@@ -201,33 +221,33 @@ function PrintModal({
   const handlePrint = () => window.print();
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm print:static print:bg-transparent print:p-0">
-      <div className="mx-4 flex w-full max-w-2xl flex-col rounded-2xl border border-border bg-white shadow-xl print:mx-0 print:max-w-none print:rounded-none print:border-0 print:shadow-none">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-5 backdrop-blur-xs print:static print:bg-transparent print:p-0">
+      <div className="relative flex w-full max-w-2xl max-h-[90vh] sm:max-h-[88vh] flex-col overflow-hidden rounded-2xl border border-border bg-white shadow-2xl print:mx-0 print:max-h-none print:w-full print:max-w-none print:rounded-none print:border-0 print:shadow-none">
         {/* Header modal — ẩn khi in */}
-        <div className="flex items-center justify-between border-b border-border px-6 py-4 print:hidden">
-          <h3 className="font-semibold text-brand-dark">Xem trước đơn thuốc</h3>
+        <div className="shrink-0 flex items-center justify-between border-b border-border px-6 py-3.5 print:hidden">
+          <h3 className="font-bold text-slate-900">Xem trước đơn thuốc</h3>
           <div className="flex items-center gap-2">
             {onSendEmail && (
               <button
                 type="button"
                 disabled={sendingEmail}
                 onClick={() => onSendEmail(rx)}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50 cursor-pointer"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs transition hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-50 cursor-pointer"
               >
-                <PaperPlaneTilt size={15} weight="bold" />
+                <PaperPlaneTilt size={14} weight="bold" />
                 {sendingEmail ? "Đang gửi..." : "Gửi Gmail cho BN"}
               </button>
             )}
             <button
               onClick={handlePrint}
-              className="inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-dark cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-brand px-3.5 py-1.5 text-xs font-bold text-white shadow-xs transition hover:bg-brand-dark active:scale-[0.98] cursor-pointer"
             >
-              <Printer size={15} weight="bold" />
+              <Printer size={14} weight="bold" />
               In đơn
             </button>
             <button
               onClick={onClose}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-slate-100 cursor-pointer"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition cursor-pointer"
             >
               <X size={16} />
             </button>
@@ -237,7 +257,7 @@ function PrintModal({
         {/* Nội dung đơn */}
         <div
           id="print-area"
-          className="overflow-y-auto p-8 text-sm text-slate-800"
+          className="flex-1 min-h-0 overflow-y-auto p-6 sm:p-8 text-sm text-slate-800 [scrollbar-width:thin] print:overflow-visible print:p-6"
         >
           <div className="mb-6 text-center">
             <p className="text-xs uppercase tracking-widest text-muted-foreground">
@@ -247,7 +267,7 @@ function PrintModal({
               ĐƠN THUỐC ĐIỆN TỬ
             </h2>
             <p className="mt-1 text-xs text-muted-foreground">
-              Ngày kê: {formatDateFull(rx.scheduledAt ?? rx.createdAt)}
+              Ngày kê: {formatDateFull(rx.createdAt)}
             </p>
           </div>
 
@@ -312,11 +332,20 @@ function PrintModal({
 
           <div className="mt-8 text-right text-sm">
             <p className="text-muted-foreground">
-              Ngày {new Date().getDate()} tháng {new Date().getMonth() + 1} năm{" "}
-              {new Date().getFullYear()}
+              {(() => {
+                const d = new Date(rx.createdAt);
+                return `Ngày ${d.getDate()} tháng ${d.getMonth() + 1} năm ${d.getFullYear()}`;
+              })()}
             </p>
-            <p className="mt-1 font-medium">Bác sĩ điều trị</p>
-            <p className="mt-10 text-xs text-muted-foreground">
+            <p className="mt-1 font-medium text-slate-700">Bác sĩ điều trị</p>
+            <p className="mt-8 font-semibold text-slate-900">
+              {doctorName
+                ? doctorName.startsWith("BS")
+                  ? doctorName
+                  : `BS. ${doctorName}`
+                : "Bác sĩ điều trị"}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
               (Ký và ghi rõ họ tên)
             </p>
           </div>
@@ -328,19 +357,24 @@ function PrintModal({
 
 export default function PrescriptionsPage() {
   const router = useRouter();
-  const doctorId = getUserInfo().doctorId;
+  const { doctorId, doctorName } = getDoctorInfoFromCookie();
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
-  const [loading, setLoading] = useState(!!doctorId);
+  const [total, setTotal] = useState(0);
+  const requestSequence = useRef(0);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(
     !doctorId
       ? "Không tìm thấy thông tin bác sĩ. Vui lòng đăng nhập lại."
       : null,
   );
+  const [fetchFailed, setFetchFailed] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  // Search & filter
+  // Search, filter & pagination
   const [search, setSearch] = useState("");
   const [filterMonth, setFilterMonth] = useState(""); // "YYYY-MM"
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
   // Delete
   const [deleteTarget, setDeleteTarget] = useState<Prescription | null>(null);
@@ -349,7 +383,10 @@ export default function PrescriptionsPage() {
   // Print & Send Email
   const [printTarget, setPrintTarget] = useState<Prescription | null>(null);
   const [sendingId, setSendingId] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error";
+  } | null>(null);
 
   const handleSendEmail = async (rx: Prescription) => {
     setSendingId(rx.id);
@@ -361,7 +398,9 @@ export default function PrescriptionsPage() {
       });
       setTimeout(() => setToast(null), 4500);
     } catch (err: any) {
-      const msg = err.response?.data?.message || "Không thể gửi email đơn thuốc. Bệnh nhân có thể chưa có email hợp lệ.";
+      const msg =
+        err.response?.data?.message ||
+        "Không thể gửi email đơn thuốc. Bệnh nhân có thể chưa có email hợp lệ.";
       setToast({
         message: Array.isArray(msg) ? msg[0] : msg,
         type: "error",
@@ -372,36 +411,57 @@ export default function PrescriptionsPage() {
     }
   };
 
+  const loadPrescriptions = async () => {
+    const sequence = ++requestSequence.current;
+    if (!doctorId) {
+      setError(
+        "Không tìm thấy thông tin phiên làm việc bác sĩ. Vui lòng đăng nhập lại.",
+      );
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    setFetchFailed(false);
+    try {
+      const params = new URLSearchParams({
+        doctorId,
+        page: String(page),
+        pageSize: String(pageSize),
+      });
+      if (search.trim()) params.set("search", search.trim());
+      if (filterMonth) params.set("month", filterMonth);
+      const res = await apiClient.get<{ items: Prescription[]; total: number }>(
+        `/prescriptions/page?${params.toString()}`,
+      );
+      if (sequence !== requestSequence.current) return;
+      setPrescriptions(res.data.items);
+      setTotal(res.data.total);
+    } catch (err: any) {
+      if (sequence !== requestSequence.current) return;
+      const msg =
+        err.response?.data?.message || "Không thể tải danh sách đơn thuốc.";
+      setError(Array.isArray(msg) ? msg[0] : msg);
+      setFetchFailed(true);
+    } finally {
+      if (sequence === requestSequence.current) setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    if (!doctorId) return;
-    apiClient
-      .get<Prescription[]>(`/prescriptions?doctorId=${doctorId}`)
-      .then((res) => setPrescriptions(res.data))
-      .catch(() => setError("Không thể tải danh sách đơn thuốc."))
-      .finally(() => setLoading(false));
-  }, [doctorId]);
+    const timer = window.setTimeout(() => void loadPrescriptions(), 250);
+    return () => window.clearTimeout(timer);
+  }, [doctorId, page, search, filterMonth]);
 
   // Lọc dữ liệu theo search + tháng
-  const filtered = useMemo(() => {
-    let data = prescriptions;
-    if (search.trim()) {
-      const q = search.trim().toLowerCase();
-      data = data.filter(
-        (rx) =>
-          rx.patientName.toLowerCase().includes(q) ||
-          rx.patientCode.toLowerCase().includes(q) ||
-          (rx.diagnosis ?? "").toLowerCase().includes(q),
-      );
-    }
-    if (filterMonth) {
-      data = data.filter((rx) => {
-        const d = new Date(rx.scheduledAt ?? rx.createdAt);
-        const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-        return ym === filterMonth;
-      });
-    }
-    return data;
-  }, [prescriptions, search, filterMonth]);
+  // Reset page to 1 whenever search or filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [search, filterMonth]);
+
+  const filtered = prescriptions;
+  const paginated = prescriptions;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -409,10 +469,24 @@ export default function PrescriptionsPage() {
     try {
       await apiClient.delete(`/prescriptions/${deleteTarget.id}`);
       setPrescriptions((prev) => prev.filter((r) => r.id !== deleteTarget.id));
+      setTotal((value) => Math.max(0, value - 1));
+      if (prescriptions.length === 1 && page > 1) setPage((value) => value - 1);
       setDeleteTarget(null);
       if (expandedId === deleteTarget.id) setExpandedId(null);
-    } catch {
-      setError("Xóa đơn thuốc thất bại. Vui lòng thử lại.");
+      setToast({
+        message: "Đã hủy đơn thuốc và lưu vào lịch sử!",
+        type: "success",
+      });
+      setTimeout(() => setToast(null), 3000);
+    } catch (err: any) {
+      const msg =
+        err.response?.data?.message ||
+        "Hủy đơn thuốc thất bại. Vui lòng thử lại.";
+      setToast({
+        message: Array.isArray(msg) ? msg[0] : msg,
+        type: "error",
+      });
+      setTimeout(() => setToast(null), 4000);
       setDeleteTarget(null);
     } finally {
       setDeleting(false);
@@ -433,291 +507,405 @@ export default function PrescriptionsPage() {
       {printTarget && (
         <PrintModal
           rx={printTarget}
+          doctorName={doctorName}
           onClose={() => setPrintTarget(null)}
           onSendEmail={handleSendEmail}
           sendingEmail={sendingId === printTarget.id}
         />
       )}
 
-      <Header
-        title="Đơn thuốc điện tử"
-        description="Kê đơn và theo dõi đơn thuốc cho bệnh nhân"
-      >
-        <Link
-          href="/doctor/prescriptions/new"
-          className="ml-auto inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-dark active:scale-[0.98]"
+      <div className="print:hidden">
+        <Header
+          title="Đơn thuốc điện tử"
+          description="Kê đơn và theo dõi đơn thuốc cho bệnh nhân"
         >
-          <Plus size={16} weight="bold" />
-          Kê đơn mới
-        </Link>
-      </Header>
+          <Link
+            href="/doctor/prescriptions/new"
+            className="ml-auto inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-dark active:scale-[0.98]"
+          >
+            <Plus size={16} weight="bold" />
+            Kê đơn mới
+          </Link>
+        </Header>
 
-      <div className="p-6 md:p-8">
-        {error && (
-          <div className="mb-4 flex items-center gap-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-inset ring-red-200">
-            <Warning size={18} className="shrink-0" />
-            {error}
-          </div>
-        )}
-
-        {/* Search & Filter bar */}
-        {!loading && !error && (
-          <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center">
-            {/* Tìm kiếm */}
-            <div className="relative flex-1">
-              <MagnifyingGlass
-                size={16}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
-              />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Tìm theo tên bệnh nhân, mã BN, chẩn đoán..."
-                className="w-full rounded-xl border border-border bg-white py-2.5 pl-9 pr-4 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand"
-              />
-              {search && (
+        <div className="p-6 md:p-8">
+          {error && (
+            <div className="mb-4 flex items-center justify-between gap-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-inset ring-red-200">
+              <div className="flex items-center gap-3">
+                <Warning size={18} className="shrink-0 text-red-600" />
+                <span>{error}</span>
+              </div>
+              {fetchFailed && (
                 <button
-                  onClick={() => setSearch("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-brand"
+                  type="button"
+                  onClick={loadPrescriptions}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-800 transition hover:bg-red-200 cursor-pointer"
                 >
-                  <X size={14} />
+                  <ArrowClockwise size={13} />
+                  Thử lại
                 </button>
               )}
             </div>
+          )}
 
-            {/* Lọc tháng/năm — dùng select tránh vấn đề locale trình duyệt */}
-            <MonthYearFilter value={filterMonth} onChange={setFilterMonth} />
-          </div>
-        )}
+          {/* Search & Filter bar */}
+          {!loading && !fetchFailed && (
+            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+              {/* Tìm kiếm */}
+              <div className="relative flex-1">
+                <MagnifyingGlass
+                  size={16}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+                />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Tìm theo tên bệnh nhân, mã BN, chẩn đoán..."
+                  className="w-full rounded-xl border border-border bg-white py-2.5 pl-9 pr-4 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand"
+                />
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => setSearch("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-brand cursor-pointer"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
 
-        {loading ? (
-          <div className="flex h-48 items-center justify-center rounded-2xl border border-border bg-white shadow-sm">
-            <SpinnerGap size={28} className="animate-spin text-brand" />
-          </div>
-        ) : !error && filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-2xl border border-border bg-white py-24 shadow-sm">
-            <Pill size={48} className="mb-4 text-slate-300" weight="duotone" />
-            <p className="text-sm text-muted-foreground">
-              {prescriptions.length === 0
-                ? "Chưa có đơn thuốc nào"
-                : "Không tìm thấy đơn thuốc phù hợp"}
-            </p>
-            {prescriptions.length === 0 && (
-              <Link
-                href="/doctor/prescriptions/new"
-                className="mt-4 inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-dark"
-              >
-                Kê đơn mới
-              </Link>
-            )}
-            {prescriptions.length > 0 && (
-              <button
-                onClick={() => { setSearch(""); setFilterMonth(""); }}
-                className="mt-3 text-sm text-brand hover:underline"
-              >
-                Xóa bộ lọc
-              </button>
-            )}
-          </div>
-        ) : !error ? (
-          <>
-            {/* Tổng kết */}
-            <p className="mb-3 text-xs text-muted-foreground">
-              Hiển thị{" "}
-              <strong className="text-brand-dark">{filtered.length}</strong> /{" "}
-              {prescriptions.length} đơn thuốc
-            </p>
+              {/* Lọc tháng/năm */}
+              <MonthYearFilter value={filterMonth} onChange={setFilterMonth} />
+            </div>
+          )}
 
-            <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead className="border-b border-border bg-slate-50/50 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    <tr>
-                      <th className="w-8 px-3 py-3.5" />
-                      <th className="px-5 py-3.5">Ngày kê</th>
-                      <th className="px-5 py-3.5">Bệnh nhân</th>
-                      <th className="px-5 py-3.5">Chẩn đoán</th>
-                      <th className="px-5 py-3.5 text-center">Số thuốc</th>
-                      <th className="px-5 py-3.5">Ghi chú</th>
-                      <th className="px-5 py-3.5 text-right">Thao tác</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.map((rx) => (
-                      <Fragment key={rx.id}>
-                        <tr
-                          className="cursor-pointer border-b border-border/50 transition-colors hover:bg-slate-50/50"
-                          onClick={() =>
-                            setExpandedId((prev) =>
-                              prev === rx.id ? null : rx.id,
-                            )
-                          }
-                        >
-                          <td className="pl-4 pr-0 py-4">
-                            {expandedId === rx.id ? (
-                              <CaretDown
-                                size={13}
-                                className="text-muted-foreground"
-                              />
-                            ) : (
-                              <CaretRight
-                                size={13}
-                                className="text-muted-foreground"
-                              />
-                            )}
-                          </td>
-                          <td className="px-5 py-4 text-muted-foreground">
-                            {formatDate(rx.scheduledAt ?? rx.createdAt)}
-                          </td>
-                          <td className="px-5 py-4">
-                            <p className="font-medium text-slate-900">
-                              {rx.patientName}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {rx.patientCode}
-                            </p>
-                          </td>
-                          <td className="px-5 py-4 text-muted-foreground">
-                            {rx.diagnosis ?? "—"}
-                          </td>
-                          <td className="px-5 py-4 text-center">
-                            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-brand/10 text-xs font-bold text-brand">
-                              {rx.itemCount}
-                            </span>
-                          </td>
-                          <td className="px-5 py-4 text-sm italic text-slate-500">
-                            {rx.notes ?? "—"}
-                          </td>
-                          <td className="px-5 py-4">
-                            {/* Action buttons — ngăn event bubble */}
-                            <div
-                              className="flex items-center justify-end gap-1"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <button
-                                onClick={() => handleSendEmail(rx)}
-                                disabled={sendingId === rx.id}
-                                title="Gửi Toa thuốc & Hướng dẫn qua Gmail cho bệnh nhân"
-                                className="flex h-8 w-8 items-center justify-center rounded-lg text-emerald-600 transition-colors hover:bg-emerald-50 hover:text-emerald-700 disabled:opacity-50 cursor-pointer"
-                              >
-                                <PaperPlaneTilt
-                                  size={14}
-                                  weight="bold"
-                                  className={sendingId === rx.id ? "animate-spin" : ""}
+          {loading ? (
+            <div className="flex h-48 items-center justify-center rounded-2xl border border-border bg-white shadow-sm">
+              <SpinnerGap size={28} className="animate-spin text-brand" />
+            </div>
+          ) : fetchFailed ? null : filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-border bg-white py-24 shadow-sm">
+              <Pill
+                size={48}
+                className="mb-4 text-slate-300"
+                weight="duotone"
+              />
+              <p className="text-sm text-muted-foreground">
+                {total === 0
+                  ? "Chưa có đơn thuốc nào"
+                  : "Không tìm thấy đơn thuốc phù hợp"}
+              </p>
+              {total === 0 && (
+                <Link
+                  href="/doctor/prescriptions/new"
+                  className="mt-4 inline-flex items-center gap-2 rounded-xl bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-dark"
+                >
+                  Kê đơn mới
+                </Link>
+              )}
+              {total > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearch("");
+                    setFilterMonth("");
+                  }}
+                  className="mt-3 text-sm text-brand hover:underline cursor-pointer"
+                >
+                  Xóa bộ lọc
+                </button>
+              )}
+            </div>
+          ) : (
+            <>
+              {/* Tổng kết */}
+              <p className="mb-3 text-xs text-muted-foreground">
+                Hiển thị{" "}
+                <strong className="text-brand-dark">{paginated.length}</strong>{" "}
+                / {total} đơn thuốc
+              </p>
+
+              <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead className="border-b border-border bg-slate-50/50 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      <tr>
+                        <th className="w-8 px-3 py-3.5" />
+                        <th className="px-5 py-3.5">Ngày kê</th>
+                        <th className="px-5 py-3.5">Bệnh nhân</th>
+                        <th className="px-5 py-3.5">Chẩn đoán</th>
+                        <th className="px-5 py-3.5 text-center">Số thuốc</th>
+                        <th className="px-5 py-3.5">Ghi chú</th>
+                        <th className="px-5 py-3.5 text-right">Thao tác</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paginated.map((rx) => (
+                        <Fragment key={rx.id}>
+                          <tr
+                            className="cursor-pointer border-b border-border/50 transition-colors hover:bg-slate-50/50"
+                            onClick={() =>
+                              setExpandedId((prev) =>
+                                prev === rx.id ? null : rx.id,
+                              )
+                            }
+                          >
+                            <td className="pl-4 pr-0 py-4">
+                              {expandedId === rx.id ? (
+                                <CaretDown
+                                  size={13}
+                                  className="text-muted-foreground"
                                 />
-                              </button>
-                              <button
-                                onClick={() =>
-                                  router.push(
-                                    `/doctor/prescriptions/${rx.id}/edit`,
-                                  )
-                                }
-                                title="Sửa đơn thuốc"
-                                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-brand/10 hover:text-brand cursor-pointer"
+                              ) : (
+                                <CaretRight
+                                  size={13}
+                                  className="text-muted-foreground"
+                                />
+                              )}
+                            </td>
+                            <td className="px-5 py-4 text-muted-foreground">
+                              {formatDate(rx.createdAt)}
+                            </td>
+                            <td className="px-5 py-4">
+                              <p className="font-medium text-slate-900">
+                                {rx.patientName}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {rx.patientCode}
+                              </p>
+                            </td>
+                            <td className="px-5 py-4 text-muted-foreground">
+                              {rx.diagnosis ?? "—"}
+                            </td>
+                            <td className="px-5 py-4 text-center">
+                              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-brand/10 text-xs font-bold text-brand">
+                                {rx.itemCount}
+                              </span>
+                            </td>
+                            <td className="px-5 py-4 text-sm italic text-slate-500">
+                              {rx.notes ?? "—"}
+                            </td>
+                            <td className="px-5 py-4">
+                              {/* Action buttons — ngăn event bubble */}
+                              <div
+                                className="flex items-center justify-end gap-1"
+                                onClick={(e) => e.stopPropagation()}
                               >
-                                <PencilSimple size={14} />
-                              </button>
-                              <button
-                                onClick={() => setPrintTarget(rx)}
-                                title="In đơn thuốc"
-                                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-slate-100 hover:text-slate-700 cursor-pointer"
-                              >
-                                <Printer size={14} />
-                              </button>
-                              <button
-                                onClick={() => setDeleteTarget(rx)}
-                                title="Xóa đơn thuốc"
-                                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600 cursor-pointer"
-                              >
-                                <Trash size={14} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-
-                        {expandedId === rx.id && (
-                          <tr className="border-b border-border/50 bg-slate-50/80">
-                            <td />
-                            <td colSpan={6} className="px-5 py-4">
-                              <div className="overflow-hidden rounded-xl border border-border bg-white p-4 space-y-3">
-                                <table className="w-full text-sm">
-                                  <thead className="border-b border-border bg-slate-50 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                                    <tr>
-                                      <th className="px-4 py-2.5">#</th>
-                                      <th className="px-4 py-2.5">Tên thuốc</th>
-                                      <th className="px-4 py-2.5">Liều dùng</th>
-                                      <th className="px-4 py-2.5">Tần suất</th>
-                                      <th className="px-4 py-2.5">Thời gian</th>
-                                      <th className="px-4 py-2.5">Hướng dẫn</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody className="divide-y divide-border/50">
-                                    {rx.items.map((item, i) => (
-                                      <tr key={item.id}>
-                                        <td className="px-4 py-2.5 text-xs text-muted-foreground">
-                                          {i + 1}
-                                        </td>
-                                        <td className="px-4 py-2.5 font-medium text-slate-900">
-                                          {item.medicineName}
-                                        </td>
-                                        <td className="px-4 py-2.5 text-muted-foreground">
-                                          {item.dosage}
-                                        </td>
-                                        <td className="px-4 py-2.5 text-muted-foreground">
-                                          {item.frequency ?? "—"}
-                                        </td>
-                                        <td className="px-4 py-2.5 text-muted-foreground">
-                                          {item.duration ?? "—"}
-                                        </td>
-                                        <td className="px-4 py-2.5 italic text-slate-500">
-                                          {item.instruction ?? "—"}
-                                        </td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-
-                                {/* Action bar inside expanded row */}
-                                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
-                                  <p className="text-xs text-muted-foreground italic">
-                                    💡 Email gửi từ BS. Nguyễn Đức Hậu kèm liều dùng và chỉ dẫn an toàn khi sử dụng thuốc.
-                                  </p>
-                                  <div className="flex items-center gap-2">
-                                    <button
-                                      type="button"
-                                      disabled={sendingId === rx.id}
-                                      onClick={() => handleSendEmail(rx)}
-                                      className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:opacity-50 cursor-pointer"
-                                    >
-                                      <PaperPlaneTilt
-                                        size={13}
-                                        weight="bold"
-                                        className={sendingId === rx.id ? "animate-spin" : ""}
-                                      />
-                                      {sendingId === rx.id ? "Đang gửi..." : "Gửi Toa thuốc qua Gmail cho BN"}
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => setPrintTarget(rx)}
-                                      className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-muted cursor-pointer"
-                                    >
-                                      <Printer size={13} /> In đơn
-                                    </button>
-                                  </div>
-                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleSendEmail(rx)}
+                                  disabled={sendingId === rx.id}
+                                  title="Gửi Toa thuốc & Hướng dẫn qua Gmail cho bệnh nhân"
+                                  className="flex h-8 w-8 items-center justify-center rounded-lg text-emerald-600 transition-colors hover:bg-emerald-50 hover:text-emerald-700 disabled:opacity-50 cursor-pointer"
+                                >
+                                  <PaperPlaneTilt
+                                    size={14}
+                                    weight="bold"
+                                    className={
+                                      sendingId === rx.id ? "animate-spin" : ""
+                                    }
+                                  />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    router.push(
+                                      `/doctor/prescriptions/${rx.id}/edit`,
+                                    )
+                                  }
+                                  title="Sửa đơn thuốc"
+                                  className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-brand/10 hover:text-brand cursor-pointer"
+                                >
+                                  <PencilSimple size={14} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setPrintTarget(rx)}
+                                  title="In đơn thuốc"
+                                  className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-slate-100 hover:text-slate-700 cursor-pointer"
+                                >
+                                  <Printer size={14} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setDeleteTarget(rx)}
+                                  title="Hủy đơn thuốc"
+                                  className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600 cursor-pointer"
+                                >
+                                  <Trash size={14} />
+                                </button>
                               </div>
                             </td>
                           </tr>
-                        )}
-                      </Fragment>
-                    ))}
-                  </tbody>
-                </table>
+
+                          {expandedId === rx.id && (
+                            <tr className="border-b border-border/50 bg-slate-50/80">
+                              <td />
+                              <td colSpan={6} className="px-5 py-4">
+                                <div className="overflow-hidden rounded-xl border border-border bg-white p-4 space-y-3">
+                                  <table className="w-full text-sm">
+                                    <thead className="border-b border-border bg-slate-50 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                      <tr>
+                                        <th className="px-4 py-2.5">#</th>
+                                        <th className="px-4 py-2.5">
+                                          Tên thuốc
+                                        </th>
+                                        <th className="px-4 py-2.5">
+                                          Liều dùng
+                                        </th>
+                                        <th className="px-4 py-2.5">
+                                          Tần suất
+                                        </th>
+                                        <th className="px-4 py-2.5">
+                                          Thời gian
+                                        </th>
+                                        <th className="px-4 py-2.5">
+                                          Hướng dẫn
+                                        </th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-border/50">
+                                      {rx.items.map((item, i) => (
+                                        <tr key={item.id}>
+                                          <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                                            {i + 1}
+                                          </td>
+                                          <td className="px-4 py-2.5 font-medium text-slate-900">
+                                            {item.medicineName}
+                                          </td>
+                                          <td className="px-4 py-2.5 text-muted-foreground">
+                                            {item.dosage}
+                                          </td>
+                                          <td className="px-4 py-2.5 text-muted-foreground">
+                                            {item.frequency ?? "—"}
+                                          </td>
+                                          <td className="px-4 py-2.5 text-muted-foreground">
+                                            {item.duration ?? "—"}
+                                          </td>
+                                          <td className="px-4 py-2.5 italic text-slate-500">
+                                            {item.instruction ?? "—"}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+
+                                  {/* Action bar inside expanded row */}
+                                  <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
+                                    <p className="text-xs text-muted-foreground italic">
+                                      💡 Email gửi từ{" "}
+                                      {doctorName
+                                        ? doctorName.startsWith("BS")
+                                          ? doctorName
+                                          : `BS. ${doctorName}`
+                                        : "bác sĩ phụ trách"}{" "}
+                                      kèm liều dùng và chỉ dẫn an toàn khi sử
+                                      dụng thuốc.
+                                    </p>
+                                    <div className="flex items-center gap-2">
+                                      <button
+                                        type="button"
+                                        disabled={sendingId === rx.id}
+                                        onClick={() => handleSendEmail(rx)}
+                                        className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:opacity-50 cursor-pointer"
+                                      >
+                                        <PaperPlaneTilt
+                                          size={13}
+                                          weight="bold"
+                                          className={
+                                            sendingId === rx.id
+                                              ? "animate-spin"
+                                              : ""
+                                          }
+                                        />
+                                        {sendingId === rx.id
+                                          ? "Đang gửi..."
+                                          : "Gửi Toa thuốc qua Gmail cho BN"}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => setPrintTarget(rx)}
+                                        className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-muted cursor-pointer"
+                                      >
+                                        <Printer size={13} /> In đơn
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </Fragment>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Pagination controls */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between border-t border-border bg-slate-50/50 px-5 py-3 text-xs text-muted-foreground">
+                    <span>
+                      Trang <strong className="text-slate-900">{page}</strong> /{" "}
+                      {totalPages} (Tổng cộng {filtered.length} đơn)
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        disabled={page <= 1}
+                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white text-slate-700 transition hover:bg-slate-100 disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+                        title="Trang trước"
+                      >
+                        <CaretLeft size={14} />
+                      </button>
+                      {Array.from({ length: totalPages }, (_, i) => i + 1)
+                        .filter(
+                          (p) =>
+                            p === 1 ||
+                            p === totalPages ||
+                            Math.abs(p - page) <= 1,
+                        )
+                        .map((p, idx, arr) => {
+                          const prev = arr[idx - 1];
+                          const showEllipsis = prev && p - prev > 1;
+                          return (
+                            <Fragment key={p}>
+                              {showEllipsis && (
+                                <span className="px-1 text-slate-400">...</span>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => setPage(p)}
+                                className={`h-8 min-w-8 rounded-lg px-2 text-xs font-semibold transition cursor-pointer ${
+                                  p === page
+                                    ? "bg-brand text-white shadow-xs"
+                                    : "border border-border bg-white text-slate-700 hover:bg-slate-100"
+                                }`}
+                              >
+                                {p}
+                              </button>
+                            </Fragment>
+                          );
+                        })}
+                      <button
+                        type="button"
+                        disabled={page >= totalPages}
+                        onClick={() =>
+                          setPage((p) => Math.min(totalPages, p + 1))
+                        }
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white text-slate-700 transition hover:bg-slate-100 disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+                        title="Trang kế tiếp"
+                      >
+                        <CaretRight size={14} />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          </>
-        ) : null}
+            </>
+          )}
+        </div>
       </div>
 
       {/* FLOATING SUCCESS / ERROR TOAST */}

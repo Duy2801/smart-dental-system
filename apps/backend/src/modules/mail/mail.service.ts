@@ -1216,6 +1216,12 @@ export class MailService {
     serviceName?: string | null;
     content: string;
   }) {
+    const sanitizedContent = (data.content || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\r?\n/g, '<br />');
+
     return this.staffTransporter.sendMail({
       from: this.config.doctorFrom,
       to: data.email,
@@ -1237,7 +1243,7 @@ export class MailService {
             </tr>
             ${data.diagnosis ? `
             <tr style="border-top: 1px solid #e2e8f0;">
-              <td style="color: #64748b;">🩺 Chuẩn đoán:</td>
+              <td style="color: #64748b;">🩺 Chẩn đoán:</td>
               <td style="color: #0f172a; font-weight: 600;">${data.diagnosis}</td>
             </tr>` : ''}
             ${data.serviceName ? `
@@ -1248,7 +1254,7 @@ export class MailService {
           </table>
 
           <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 20px; font-size: 13px; line-height: 1.7; color: #1e293b; white-space: pre-line;">
-            ${data.content}
+            ${sanitizedContent}
           </div>
 
           <div style="background-color: #fefce8; border: 1px solid #fef08a; border-radius: 10px; padding: 14px 16px; margin: 16px 0; font-size: 12px; color: #854d0e;">

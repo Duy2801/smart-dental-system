@@ -1,9 +1,11 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '../../../prisma/generated/client';
 import { InjectQueue } from '@nestjs/bull';
 import type { Queue } from 'bull';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface';
@@ -68,9 +70,7 @@ export class PrescriptionService {
     if (user.roles.includes('ADMIN')) return;
     const ownId = await this.resolveDoctorIdByUserId(user.userId);
     if (ownId !== prescriptionDoctorId) {
-      throw new ForbiddenException(
-        'Bạn không có quyền truy cập đơn thuốc này',
-      );
+      throw new ForbiddenException('Bạn không có quyền truy cập đơn thuốc này');
     }
   }
 
@@ -96,6 +96,7 @@ export class PrescriptionService {
       },
     });
     if (!rx) throw new NotFoundException('Không tìm thấy đơn thuốc');
+    if (rx.cancelledAt) throw new NotFoundException('Đơn thuốc đã bị hủy');
     return rx;
   }
 
@@ -103,7 +104,10 @@ export class PrescriptionService {
     return {
       id: p.id,
       patientId: p.patientId,
-      patientName: (p.patient as any)?.fullName ?? p.patient?.user?.fullName ?? 'Bệnh nhân',
+      patientName:
+        (p.patient as any)?.fullName ??
+        p.patient?.user?.fullName ??
+        'Bệnh nhân',
       patientCode: p.patient?.patientCode ?? '—',
       medicalRecordId: p.medicalRecordId,
       diagnosis: p.medicalRecord?.diagnosis ?? null,
@@ -124,7 +128,7 @@ export class PrescriptionService {
 
   async findByDoctor(doctorId: string) {
     const prescriptions = await this.prisma.prescription.findMany({
-      where: { doctorId },
+      where: { doctorId, cancelledAt: null },
       include: {
         items: true,
         patient: {
@@ -147,7 +151,10 @@ export class PrescriptionService {
     return prescriptions.map((p) => ({
       id: p.id,
       patientId: p.patientId,
-      patientName: (p.patient as any)?.fullName ?? p.patient?.user?.fullName ?? 'Bệnh nhân',
+      patientName:
+        (p.patient as any)?.fullName ??
+        p.patient?.user?.fullName ??
+        'Bệnh nhân',
       patientCode: p.patient?.patientCode ?? '—',
       diagnosis: p.medicalRecord?.diagnosis ?? null,
       scheduledAt: p.medicalRecord?.appointment?.scheduledAt ?? null,
@@ -158,12 +165,103 @@ export class PrescriptionService {
     }));
   }
 
+  async findPageByDoctor(
+    doctorId: string,
+    page: number,
+    pageSize: number,
+    search?: string,
+    month?: string,
+  ) {
+    const monthStart = month
+      ? new Date(
+          Date.UTC(
+            Number(month.slice(0, 4)),
+            Number(month.slice(5, 7)) - 1,
+            1,
+          ) -
+            7 * 60 * 60 * 1000,
+        )
+      : null;
+    const nextMonthStart = month
+      ? new Date(
+          Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 1) -
+            7 * 60 * 60 * 1000,
+        )
+      : null;
+    const where: Prisma.PrescriptionWhereInput = {
+      doctorId,
+      cancelledAt: null,
+      ...(search?.trim()
+        ? {
+            OR: [
+              {
+                patient: {
+                  fullName: { contains: search.trim(), mode: 'insensitive' },
+                },
+              },
+              {
+                patient: {
+                  patientCode: { contains: search.trim(), mode: 'insensitive' },
+                },
+              },
+              {
+                medicalRecord: {
+                  diagnosis: { contains: search.trim(), mode: 'insensitive' },
+                },
+              },
+            ],
+          }
+        : {}),
+      ...(month
+        ? {
+            createdAt: {
+              gte: monthStart!,
+              lt: nextMonthStart!,
+            },
+          }
+        : {}),
+    };
+    const [total, rows] = await this.prisma.$transaction([
+      this.prisma.prescription.count({ where }),
+      this.prisma.prescription.findMany({
+        where,
+        include: {
+          items: true,
+          patient: {
+            select: {
+              id: true,
+              patientCode: true,
+              fullName: true,
+              user: { select: { fullName: true } },
+            },
+          },
+          medicalRecord: { select: { diagnosis: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+    ]);
+    return {
+      items: rows.map((p) => ({
+        ...this.toDetail(p as Awaited<ReturnType<typeof this.findOneOrThrow>>),
+        scheduledAt: null,
+      })),
+      total,
+      page,
+      pageSize,
+    };
+  }
+
   async create(
     doctorId: string,
     dto: CreatePrescriptionDto,
     user: AuthenticatedUser,
   ) {
     await this.ensureCanAccess(doctorId, user);
+    if (!dto.safetyAcknowledged) {
+      throw new BadRequestException('Cần xác nhận kiểm tra an toàn đơn thuốc');
+    }
 
     const record = await this.prisma.medicalRecord.findUnique({
       where: { id: dto.medicalRecordId },
@@ -178,9 +276,7 @@ export class PrescriptionService {
       );
     }
     if (record.patientId !== dto.patientId) {
-      throw new BadRequestException(
-        'Bệnh nhân không khớp với hồ sơ bệnh án',
-      );
+      throw new BadRequestException('Bệnh nhân không khớp với hồ sơ bệnh án');
     }
 
     const items = dto.items.map((item) => ({
@@ -192,20 +288,29 @@ export class PrescriptionService {
     }));
 
     if (items.some((i) => !i.medicineName || !i.dosage)) {
-      throw new BadRequestException(
-        'Mỗi thuốc cần có tên thuốc và liều dùng',
-      );
+      throw new BadRequestException('Mỗi thuốc cần có tên thuốc và liều dùng');
     }
 
-    return this.prisma.prescription.create({
-      data: {
-        doctorId,
-        patientId: dto.patientId,
-        medicalRecordId: dto.medicalRecordId,
-        notes: dto.notes?.trim() || null,
-        items: { create: items },
-      },
-      include: { items: true },
+    return this.prisma.$transaction(async (tx) => {
+      const created = await tx.prescription.create({
+        data: {
+          doctorId,
+          patientId: dto.patientId,
+          medicalRecordId: dto.medicalRecordId,
+          notes: dto.notes?.trim() || null,
+          safetyOverride: dto.safetyOverride === true,
+          items: { create: items },
+        },
+        include: { items: true },
+      });
+      await tx.prescriptionAudit.create({
+        data: {
+          prescriptionId: created.id,
+          action: 'CREATED',
+          changedBy: user.userId,
+        },
+      });
+      return created;
     });
   }
 
@@ -216,8 +321,27 @@ export class PrescriptionService {
   ) {
     const existing = await this.findOneOrThrow(id);
     await this.ensureCanAccess(existing.doctorId, user);
+    if (!dto.safetyAcknowledged) {
+      throw new BadRequestException('Cần xác nhận kiểm tra an toàn đơn thuốc');
+    }
+    if (
+      existing.updatedAt.getTime() !== new Date(dto.expectedUpdatedAt).getTime()
+    ) {
+      throw new ConflictException('Đơn thuốc vừa được cập nhật ở nơi khác');
+    }
 
     return this.prisma.$transaction(async (tx) => {
+      const write = await tx.prescription.updateMany({
+        where: { id, updatedAt: existing.updatedAt, cancelledAt: null },
+        data: {
+          ...(dto.notes !== undefined && { notes: dto.notes.trim() || null }),
+          safetyConfirmedAt: new Date(),
+          safetyOverride: dto.safetyOverride === true,
+        },
+      });
+      if (write.count !== 1) {
+        throw new ConflictException('Đơn thuốc vừa được cập nhật ở nơi khác');
+      }
       if (dto.items !== undefined) {
         const items = dto.items.map((item) => ({
           prescriptionId: id,
@@ -238,13 +362,19 @@ export class PrescriptionService {
         await tx.prescriptionItem.createMany({ data: items });
       }
 
-      return tx.prescription.update({
-        where: { id },
+      await tx.prescriptionAudit.create({
         data: {
-          ...(dto.notes !== undefined && {
-            notes: dto.notes?.trim() || null,
-          }),
+          prescriptionId: id,
+          action: 'UPDATED',
+          changedBy: user.userId,
+          previousData: {
+            notes: existing.notes,
+            items: existing.items,
+          } as Prisma.InputJsonValue,
         },
+      });
+      return tx.prescription.findUniqueOrThrow({
+        where: { id },
         include: { items: true },
       });
     });
@@ -253,8 +383,24 @@ export class PrescriptionService {
   async remove(id: string, user: AuthenticatedUser) {
     const existing = await this.findOneOrThrow(id);
     await this.ensureCanAccess(existing.doctorId, user);
-    await this.prisma.prescription.delete({ where: { id } });
-    return { success: true };
+    await this.prisma.$transaction(async (tx) => {
+      await tx.prescription.update({
+        where: { id },
+        data: { cancelledAt: new Date(), cancelledBy: user.userId },
+      });
+      await tx.prescriptionAudit.create({
+        data: {
+          prescriptionId: id,
+          action: 'CANCELLED',
+          changedBy: user.userId,
+          previousData: {
+            notes: existing.notes,
+            items: existing.items,
+          } as Prisma.InputJsonValue,
+        },
+      });
+    });
+    return { success: true, cancelled: true };
   }
 
   /** Gửi Toa thuốc điện tử & Hướng dẫn sử dụng qua Gmail cho bệnh nhân */
@@ -265,7 +411,9 @@ export class PrescriptionService {
         items: true,
         patient: {
           include: {
-            user: { select: { id: true, fullName: true, email: true, phone: true } },
+            user: {
+              select: { id: true, fullName: true, email: true, phone: true },
+            },
           },
         },
         doctor: {
@@ -293,46 +441,83 @@ export class PrescriptionService {
 
     await this.ensureCanAccess(rx.doctorId, user);
 
+    if (rx.cancelledAt) {
+      throw new BadRequestException('Không thể gửi đơn thuốc đã hủy');
+    }
+    if (rx.emailQueuedAt) {
+      throw new ConflictException('Đơn thuốc này đã được xếp hàng gửi email');
+    }
+
     const email = rx.patient?.user?.email || rx.patient?.email;
-    const patientName = (rx.patient as any)?.fullName || rx.patient?.user?.fullName || 'Quý khách';
+    const patientName =
+      (rx.patient as any)?.fullName ||
+      rx.patient?.user?.fullName ||
+      'Quý khách';
     const patientCode = rx.patient?.patientCode || 'PAT-0000';
-    const doctorName = rx.doctor?.user?.fullName || 'BS. Nguyễn Đức Hậu';
+    const doctorName = rx.doctor?.user?.fullName
+      ? rx.doctor.user.fullName.startsWith('BS')
+        ? rx.doctor.user.fullName
+        : `BS. ${rx.doctor.user.fullName}`
+      : 'Bác sĩ điều trị';
     const diagnosis = rx.medicalRecord?.diagnosis || 'Khám & Điều trị nha khoa';
     const notes = rx.notes;
 
     if (!email || email.endsWith('@clinic.local')) {
-      throw new BadRequestException('Bệnh nhân chưa có địa chỉ email hợp lệ để nhận toa thuốc');
+      throw new BadRequestException(
+        'Bệnh nhân chưa có địa chỉ email hợp lệ để nhận toa thuốc',
+      );
     }
 
-    await this.mailQueue.add('send-prescription', {
-      name: patientName,
-      email,
-      patientCode,
-      doctorName,
-      diagnosis,
-      notes,
-      items: rx.items.map((item) => ({
-        medicineName: item.medicineName,
-        dosage: item.dosage,
-        frequency: item.frequency,
-        duration: item.duration,
-        instruction: item.instruction,
-      })),
-      createdAt: rx.createdAt.toISOString(),
+    const claimed = await this.prisma.prescription.updateMany({
+      where: { id, emailQueuedAt: null, cancelledAt: null },
+      data: { emailQueuedAt: new Date() },
     });
+    if (claimed.count !== 1) {
+      throw new ConflictException('Đơn thuốc này đã được xếp hàng gửi email');
+    }
+
+    try {
+      await this.mailQueue.add('send-prescription', {
+        name: patientName,
+        email,
+        patientCode,
+        doctorName,
+        diagnosis,
+        notes,
+        items: rx.items.map((item) => ({
+          medicineName: item.medicineName,
+          dosage: item.dosage,
+          frequency: item.frequency,
+          duration: item.duration,
+          instruction: item.instruction,
+        })),
+        createdAt: (rx.createdAt
+          ? new Date(rx.createdAt)
+          : new Date()
+        ).toISOString(),
+      });
+    } catch (error) {
+      await this.prisma.prescription.update({
+        where: { id },
+        data: { emailQueuedAt: null },
+      });
+      throw error;
+    }
 
     if (rx.patient?.user?.id) {
-      await this.prisma.notification.create({
-        data: {
-          userId: rx.patient.user.id,
-          type: 'SYSTEM',
-          title: '💊 Toa thuốc điện tử từ Bác sĩ điều trị',
-          content: `${doctorName} đã gửi Toa thuốc điện tử cho bạn. Vui lòng kiểm tra email và làm theo hướng dẫn sử dụng thuốc an toàn.`,
-          channel: 'IN_APP',
-          status: 'SENT',
-          sentAt: new Date(),
-        },
-      });
+      await this.prisma.notification
+        .create({
+          data: {
+            userId: rx.patient.user.id,
+            type: 'SYSTEM',
+            title: '💊 Toa thuốc điện tử từ Bác sĩ điều trị',
+            content: `${doctorName} đã gửi Toa thuốc điện tử cho bạn. Vui lòng kiểm tra email và làm theo hướng dẫn sử dụng thuốc an toàn.`,
+            channel: 'IN_APP',
+            status: 'SENT',
+            sentAt: new Date(),
+          },
+        })
+        .catch(() => undefined);
     }
 
     return {

@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
+  ArrayMaxSize,
   IsArray,
   IsDateString,
   IsNotEmpty,
@@ -11,6 +12,7 @@ import {
   IsUUID,
   MaxLength,
   Min,
+  Max,
   ValidateNested,
 } from 'class-validator';
 
@@ -43,6 +45,7 @@ export class TreatmentPlanStepInputDto {
   @Type(() => Number)
   @IsNumber()
   @Min(0)
+  @Max(9999999999)
   estimatedCost?: number;
 
   @ApiPropertyOptional()
@@ -81,6 +84,7 @@ export class CreateTreatmentPlanDto {
   @ApiProperty({ type: [TreatmentPlanStepInputDto] })
   @IsArray()
   @ArrayMinSize(1, { message: 'Kế hoạch cần ít nhất một bước điều trị' })
+  @ArrayMaxSize(100)
   @ValidateNested({ each: true })
   @Type(() => TreatmentPlanStepInputDto)
   steps: TreatmentPlanStepInputDto[];

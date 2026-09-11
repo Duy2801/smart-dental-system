@@ -235,6 +235,15 @@ export const VideoConsultationStatus = {
 export type VideoConsultationStatus = (typeof VideoConsultationStatus)[keyof typeof VideoConsultationStatus]
 
 
+export const AiBriefFeedback = {
+  HELPFUL: 'HELPFUL',
+  INACCURATE: 'INACCURATE',
+  MISSED_RISK: 'MISSED_RISK'
+} as const
+
+export type AiBriefFeedback = (typeof AiBriefFeedback)[keyof typeof AiBriefFeedback]
+
+
 export const NotificationChannel = {
   IN_APP: 'IN_APP',
   EMAIL: 'EMAIL',

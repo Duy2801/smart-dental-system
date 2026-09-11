@@ -35,9 +35,17 @@ export class MedicalRecordController {
     @CurrentUser() user: AuthenticatedUser,
     @Query('doctorId') doctorId?: string,
     @Query('patientId') patientId?: string,
+    @Query('appointmentId') appointmentId?: string,
+    @Query('allDoctors') allDoctors?: string,
   ) {
     const resolved = await this.service.resolveListDoctorId(user, doctorId);
-    return this.service.findByDoctor(resolved, patientId);
+    return this.service.findByDoctor(
+      resolved,
+      patientId,
+      appointmentId,
+      user,
+      allDoctors === 'true' || (allDoctors === undefined && !!patientId && !doctorId),
+    );
   }
 
   @Get(':id')

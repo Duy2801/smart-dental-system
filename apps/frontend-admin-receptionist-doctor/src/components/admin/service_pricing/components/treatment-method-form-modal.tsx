@@ -158,7 +158,7 @@ export function TreatmentMethodFormModal({
       >
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <AdminInput
-            label="Tên phương pháp điều trị *"
+            label="Tên phương pháp điều trị"
             required
             value={form.name}
             onChange={(e) => setField("name", e.target.value)}
@@ -174,7 +174,7 @@ export function TreatmentMethodFormModal({
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <AdminInput
-            label="Giá cơ bản (VND) *"
+            label="Giá cơ bản (VND)"
             type="number"
             required
             min={0}
@@ -184,7 +184,7 @@ export function TreatmentMethodFormModal({
             className="text-right font-mono"
           />
           <AdminInput
-            label="Thời lượng (Phút) *"
+            label="Thời lượng (Phút)"
             type="number"
             required
             min={1}

@@ -8,4 +8,10 @@ export class UpdateVideoConsultationNotesDto {
   @IsString({ message: 'Ghi chú phải là chuỗi' })
   @MaxLength(10000, { message: 'Ghi chú tối đa 10.000 ký tự' })
   notes?: string | null;
+
+  @ApiPropertyOptional({ nullable: true, maxLength: 10000 })
+  @ValidateIf((_, v) => v !== null)
+  @IsString({ message: 'Ghi chú trước đó phải là chuỗi' })
+  @MaxLength(10000)
+  previousNotes!: string | null;
 }

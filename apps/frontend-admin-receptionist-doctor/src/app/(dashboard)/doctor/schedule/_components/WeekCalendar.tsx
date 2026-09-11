@@ -1,9 +1,20 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState } from "react";
 import { cn } from "@/src/lib/utils/cn";
-import { SpinnerGap, X, VideoCamera, Storefront } from "@phosphor-icons/react";
-import type { ScheduleAppointment, AppointmentStatus, TimeOffRecord } from "./types";
+import {
+  SpinnerGap,
+  X,
+  VideoCamera,
+  Storefront,
+  Trash,
+  WarningCircle,
+} from "@phosphor-icons/react";
+import type {
+  ScheduleAppointment,
+  AppointmentStatus,
+  TimeOffRecord,
+} from "./types";
 import { statusConfig } from "./types";
 import { AppointmentDetailPanel } from "./AppointmentDetailPanel";
 
@@ -17,6 +28,24 @@ type Props = {
 };
 
 const hours = Array.from({ length: 12 }, (_, i) => i + 7);
+
+const timeOffStatusConfig = {
+  PENDING: {
+    label: "Chờ duyệt",
+    block: "border-slate-400 bg-slate-100/95 text-slate-800",
+    badge: "bg-amber-100 text-amber-800 ring-amber-600/20",
+  },
+  APPROVED: {
+    label: "Đã duyệt",
+    block: "border-emerald-300 bg-emerald-50/90 text-emerald-950",
+    badge: "bg-emerald-100 text-emerald-800 ring-emerald-600/20",
+  },
+  REJECTED: {
+    label: "Bị từ chối",
+    block: "border-rose-300 bg-rose-50/90 text-rose-950",
+    badge: "bg-rose-100 text-rose-800 ring-rose-600/20",
+  },
+} as const;
 
 function parseHm(hm: string) {
   const [h, m] = hm.split(":").map(Number);
@@ -47,37 +76,20 @@ export function WeekCalendar({
 }: Props) {
   const [selected, setSelected] = useState<ScheduleAppointment | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [currentTime, setCurrentTime] = useState<Date>(() => new Date());
+  const [pendingDelete, setPendingDelete] = useState<TimeOffRecord | null>(
+    null,
+  );
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  // Update current time every minute for the red indicator line
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 60000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const todayIdx = useMemo(() => {
-    return weekDays.findIndex((d) => d.isToday);
-  }, [weekDays]);
-
-  const currentHours = useMemo(() => {
-    return currentTime.getHours() + currentTime.getMinutes() / 60;
-  }, [currentTime]);
-
-  const currentTimeLabel = useMemo(() => {
-    return currentTime.toLocaleTimeString("vi-VN", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
-  }, [currentTime]);
-
-  async function handleDeleteTimeOff(id: string) {
-    if (!confirm("Xóa đăng ký nghỉ này?")) return;
-    setDeletingId(id);
+  async function handleDeleteTimeOff() {
+    if (!pendingDelete) return;
+    setDeleteError(null);
+    setDeletingId(pendingDelete.id);
     try {
-      await onDeleteTimeOff(id);
+      await onDeleteTimeOff(pendingDelete.id);
+      setPendingDelete(null);
+    } catch {
+      setDeleteError("Không thể xóa ngày nghỉ. Vui lòng thử lại.");
     } finally {
       setDeletingId(null);
     }
@@ -116,9 +128,6 @@ export function WeekCalendar({
                 )}
               >
                 <span>{day.date}</span>
-                {day.isToday && (
-                  <span className="h-2 w-2 rounded-full bg-brand animate-pulse" />
-                )}
               </div>
             </div>
           ))}
@@ -166,30 +175,12 @@ export function WeekCalendar({
                     className="h-[144px] w-full border-b border-border/20"
                   />
                 ))}
-
-                {/* ELEGANT CURRENT TIME INDICATOR (CONFINED TO TODAY COLUMN ONLY) */}
-                {day.isToday && currentHours >= 7 && currentHours <= 19 && (
-                  <div
-                    style={{
-                      top: `${(currentHours - 7) * 144}px`,
-                    }}
-                    className="pointer-events-none absolute left-0 right-0 z-30 flex items-center"
-                  >
-                    {/* Small Pulsing Brand Dot */}
-                    <span className="h-2 w-2 -ml-1 rounded-full bg-blue-600 ring-2 ring-white shadow-xs" />
-                    {/* Thin subtle brand line */}
-                    <span className="h-[1.5px] flex-1 bg-blue-600/70" />
-                    {/* Tiny time pill badge at the right edge */}
-                    <span className="rounded bg-blue-600/90 px-1 py-0.2 text-[9px] font-mono font-bold text-white shadow-xs">
-                      {currentTimeLabel}
-                    </span>
-                  </div>
-                )}
               </div>
             ))}
 
             {/* Time Off Blocks */}
             {timeOffs.map((off) => {
+              const approval = timeOffStatusConfig[off.approvalStatus];
               const dayIdx = weekDays.findIndex((d) => d.iso === off.dayIso);
               if (dayIdx < 0) return null;
               const start = Math.max(7, parseHm(off.startTime));
@@ -200,21 +191,36 @@ export function WeekCalendar({
               return (
                 <div
                   key={off.id}
-                  className="relative m-0.5 overflow-hidden rounded-xl border border-dashed border-slate-300 bg-slate-100/90 p-2 text-xs text-slate-600 shadow-2xs"
+                  className={cn(
+                    "relative m-0.5 overflow-hidden rounded-xl border border-dashed p-2 text-xs shadow-2xs",
+                    approval.block,
+                  )}
                   style={{
                     gridColumn: dayIdx + 2,
                     gridRow: `${Math.max(1, Math.round(gridRow))} / span ${Math.max(1, Math.round(span))}`,
                   }}
-                  title={off.reason ?? "Nghỉ"}
+                  title={`${approval.label}${off.reason ? ` · ${off.reason}` : ""}`}
                 >
                   <div className="flex items-start justify-between gap-1">
                     <div>
-                      <span className="block font-bold leading-tight text-slate-800">Nghỉ phép</span>
-                      <span className="block font-mono text-[10px] text-slate-500 mt-0.5">
+                      <span className="block font-bold leading-tight">
+                        {off.approvalStatus === "APPROVED"
+                          ? "Nghỉ phép"
+                          : "Yêu cầu nghỉ"}
+                      </span>
+                      <span
+                        className={cn(
+                          "mt-1 inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-bold ring-1 ring-inset",
+                          approval.badge,
+                        )}
+                      >
+                        {approval.label}
+                      </span>
+                      <span className="mt-1 block font-mono text-[10px] opacity-70">
                         {off.startTime} - {off.endTime}
                       </span>
                       {off.reason && (
-                        <span className="mt-1 block truncate text-[10px] text-slate-600 italic">
+                        <span className="mt-1 block truncate text-[10px] italic opacity-75">
                           {off.reason}
                         </span>
                       )}
@@ -224,7 +230,8 @@ export function WeekCalendar({
                       disabled={deletingId === off.id}
                       onClick={(e) => {
                         e.stopPropagation();
-                        void handleDeleteTimeOff(off.id);
+                        setDeleteError(null);
+                        setPendingDelete(off);
                       }}
                       className="rounded p-0.5 text-slate-400 hover:bg-white hover:text-red-600 disabled:opacity-50 cursor-pointer"
                       title="Xóa nghỉ"
@@ -242,21 +249,29 @@ export function WeekCalendar({
 
             {/* Appointment Blocks with Online / Offline Icon Badges */}
             {(() => {
-              const placed: { dayIdx: number; start: number; end: number }[] = [];
+              const placed: { dayIdx: number; start: number; end: number }[] =
+                [];
               const sorted = [...appointments].sort(
-                (a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()
+                (a, b) =>
+                  new Date(a.scheduledAt).getTime() -
+                  new Date(b.scheduledAt).getTime(),
               );
 
               return sorted.map((apt) => {
                 const dayIdx = weekDays.findIndex((d) => d.iso === apt.dayIso);
                 if (dayIdx < 0) return null;
-                const config = statusConfig[apt.status as AppointmentStatus] ?? statusConfig.PENDING;
+                const config =
+                  statusConfig[apt.status as AppointmentStatus] ??
+                  statusConfig.PENDING;
                 const gridRow = getGridRowFromIso(apt.scheduledAt);
                 const span = getDuration(apt.durationMinutes);
 
                 // Calculate overlap
                 const overlaps = placed.filter(
-                  (p) => p.dayIdx === dayIdx && p.start < gridRow + span && p.end > gridRow
+                  (p) =>
+                    p.dayIdx === dayIdx &&
+                    p.start < gridRow + span &&
+                    p.end > gridRow,
                 );
                 const colIndex = overlaps.length;
                 placed.push({ dayIdx, start: gridRow, end: gridRow + span });
@@ -269,7 +284,9 @@ export function WeekCalendar({
                       "cursor-pointer overflow-hidden rounded-xl p-2 text-xs shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md border-[1.5px] border-white flex flex-col justify-between",
                       config.color,
                       config.ring,
-                      selected?.id === apt.id ? "ring-2 ring-brand z-30" : "z-10",
+                      selected?.id === apt.id
+                        ? "ring-2 ring-brand z-30"
+                        : "z-10",
                     )}
                     style={{
                       gridColumn: dayIdx + 2,
@@ -285,10 +302,13 @@ export function WeekCalendar({
                       {/* Top Time Row & Icon Badge */}
                       <div className="flex items-center justify-between gap-1 mb-1">
                         <span className="font-mono text-[10px] font-bold opacity-75 leading-none">
-                          {new Date(apt.scheduledAt).toLocaleTimeString("vi-VN", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
+                          {new Date(apt.scheduledAt).toLocaleTimeString(
+                            "vi-VN",
+                            {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            },
+                          )}
                         </span>
 
                         {/* 2. ICON NHỎ TRÊN KHỐI LỊCH (ONLINE VIDEO / OFFLINE) */}
@@ -332,6 +352,98 @@ export function WeekCalendar({
             setSelected(null);
           }}
         />
+      )}
+
+      {pendingDelete && (
+        <div
+          className="fixed inset-0 z-70 flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-xs"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !deletingId) {
+              setPendingDelete(null);
+            }
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-time-off-title"
+            className="w-full max-w-md rounded-2xl border border-slate-200/80 bg-white p-6 shadow-2xl"
+          >
+            <div className="flex items-start gap-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-rose-50 text-rose-600">
+                <WarningCircle size={24} weight="duotone" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3
+                      id="delete-time-off-title"
+                      className="text-lg font-bold text-brand-dark"
+                    >
+                      Xóa đăng ký nghỉ?
+                    </h3>
+                    <p className="mt-1 text-sm leading-relaxed text-slate-600">
+                      Khoảng nghỉ này sẽ bị xóa khỏi lịch làm việc của bạn.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    title="Đóng"
+                    disabled={Boolean(deletingId)}
+                    onClick={() => setPendingDelete(null)}
+                    className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/80 p-3">
+                  <p className="font-mono text-sm font-bold tracking-tight text-slate-900">
+                    {new Date(
+                      `${pendingDelete.dayIso}T00:00:00`,
+                    ).toLocaleDateString("vi-VN")}{" "}
+                    · {pendingDelete.startTime}–{pendingDelete.endTime}
+                  </p>
+                  {pendingDelete.reason && (
+                    <p className="mt-1.5 text-sm text-slate-600">
+                      {pendingDelete.reason}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {deleteError && (
+              <p className="mt-4 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700 ring-1 ring-inset ring-rose-200">
+                {deleteError}
+              </p>
+            )}
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                disabled={Boolean(deletingId)}
+                onClick={() => setPendingDelete(null)}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50"
+              >
+                Giữ lại
+              </button>
+              <button
+                type="button"
+                disabled={Boolean(deletingId)}
+                onClick={() => void handleDeleteTimeOff()}
+                className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow-xs transition-all hover:bg-rose-700 active:scale-[0.98] disabled:opacity-60"
+              >
+                {deletingId ? (
+                  <SpinnerGap size={16} className="animate-spin" />
+                ) : (
+                  <Trash size={16} weight="bold" />
+                )}
+                {deletingId ? "Đang xóa..." : "Xóa ngày nghỉ"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

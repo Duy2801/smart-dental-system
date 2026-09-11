@@ -417,7 +417,7 @@ export function RefundManagementModal({ onClose }: RefundManagementModalProps) {
                 ) : (
                   <div>
                     <label className="block font-semibold text-slate-700 mb-1">
-                      Lý do từ chối (*)
+                      Lý do từ chối <span className="text-rose-500" aria-hidden="true">*</span>
                     </label>
                     <textarea
                       rows={3}

@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { Header } from "@/src/components/layout/header";
+import apiClient from "@/src/lib/api/client";
 import {
   Robot,
   PaperPlaneTilt,
@@ -15,10 +15,8 @@ import {
   ChatTeardropDots,
   Sparkle,
   WifiSlash,
-  ArrowRight,
   CaretDown,
   CaretUp,
-  UserCircleCheck,
   Copy,
   Check,
 } from "@phosphor-icons/react";
@@ -41,72 +39,18 @@ interface Message {
 // AI Service — fix 3: env var, fix 4: 30s timeout
 // ---------------------------------------------------------------------------
 
-const AI_BASE =
-  process.env.AI_SERVICE_URL;
-const AI_URL = `${AI_BASE}/api/v1/chatbot/receptionist-chat`;
-
-async function callAI(message: string, history: Message[]): Promise<string> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 30_000); // fix 4
-  try {
-    const res = await fetch(AI_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      signal: controller.signal,
-      body: JSON.stringify({
+async function callAI(message: string, history: Message[], signal: AbortSignal): Promise<string> {
+    const response = await apiClient.post<{ reply: string }>("/ai/receptionist/chat", {
         message,
         history: history.map((m) => ({ role: m.role, content: m.content })),
-        locale: "vi",
-      }),
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = (await res.json()) as { reply: string };
-    return data.reply;
-  } finally {
-    clearTimeout(timer);
-  }
+      }, { signal });
+    if (typeof response.data?.reply !== "string" || !response.data.reply.trim()) throw new Error("INVALID_AI_RESPONSE");
+    return response.data.reply.trim();
 }
 
 // ---------------------------------------------------------------------------
 // Action shortcuts — keyword → route
 // ---------------------------------------------------------------------------
-
-const ACTION_MAP = [
-  {
-    keywords: ["lịch hẹn", "lịch", "hẹn", "hàng đợi", "xác nhận", "vắng mặt", "no-show"],
-    label: "Mở Lịch hẹn",
-    href: "/receptionist/appointments",
-    icon: <CalendarBlank size={12} weight="bold" />,
-  },
-  {
-    keywords: ["bệnh nhân", "hồ sơ", "tìm kiếm bệnh nhân", "thêm bệnh nhân"],
-    label: "Mở Bệnh nhân",
-    href: "/receptionist/patients",
-    icon: <UserPlus size={12} weight="bold" />,
-  },
-  {
-    keywords: ["thanh toán", "hóa đơn", "thu tiền", "thu ngân", "in hóa đơn"],
-    label: "Mở Thanh toán",
-    href: "/receptionist/billing",
-    icon: <Receipt size={12} weight="bold" />,
-  },
-  {
-    keywords: ["tiếp nhận", "check-in", "check in"],
-    label: "Mở Tiếp nhận",
-    href: "/receptionist/check-in",
-    icon: <UserCircleCheck size={12} weight="bold" />,
-  },
-];
-
-function getActions(content: string) {
-  const lower = content.toLowerCase();
-  const seen = new Set<string>();
-  return ACTION_MAP.filter((a) => {
-    if (seen.has(a.href)) return false;
-    if (a.keywords.some((k) => lower.includes(k))) { seen.add(a.href); return true; }
-    return false;
-  }).slice(0, 2);
-}
 
 // ---------------------------------------------------------------------------
 // Quick prompts
@@ -138,20 +82,30 @@ function makeWelcome(): Message {
   };
 }
 
-function loadMessages(): Message[] {
+function isMessage(value: unknown): value is Message {
+  if (!value || typeof value !== "object") return false;
+  const message = value as Partial<Message>;
+  return typeof message.id === "string" &&
+    (message.role === "user" || message.role === "assistant") &&
+    typeof message.content === "string" &&
+    typeof message.timestamp === "string" && !Number.isNaN(Date.parse(message.timestamp));
+}
+
+function loadMessages(storageKey: string): Message[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(storageKey);
     if (!raw) return [makeWelcome()];
-    const parsed = JSON.parse(raw) as Message[];
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed) || !parsed.every(isMessage)) return [makeWelcome()];
     return parsed.length ? parsed : [makeWelcome()];
   } catch {
     return [makeWelcome()];
   }
 }
 
-function saveMessages(msgs: Message[]) {
+function saveMessages(storageKey: string, msgs: Message[]) {
   const capped = msgs.length > 60 ? [msgs[0], ...msgs.slice(-59)] : msgs;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(capped));
+  try { localStorage.setItem(storageKey, JSON.stringify(capped)); } catch { /* storage unavailable/full */ }
 }
 
 // ---------------------------------------------------------------------------
@@ -181,9 +135,11 @@ function isSameDay(a: string, b: string) {
 function CopyBtn({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
   async function copy() {
-    await navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch { /* clipboard unavailable */ }
   }
   return (
     <button
@@ -205,6 +161,7 @@ function CopyBtn({ text }: { text: string }) {
 export default function AIAssistantPage() {
   const [messages, setMessages] = useState<Message[]>([makeWelcome()]);
   const [userInitials, setUserInitials] = useState("LT");
+  const [storageKey, setStorageKey] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -215,6 +172,9 @@ export default function AIAssistantPage() {
         if (user?.fullName) {
           const initials = user.fullName.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
           setUserInitials(initials);
+        }
+        if (typeof user?.id === "string" || typeof user?.userId === "string") {
+          setStorageKey(`${STORAGE_KEY}:${user.id ?? user.userId}`);
         }
       }
     } catch {
@@ -228,39 +188,50 @@ export default function AIAssistantPage() {
   const [isLoaded, setIsLoaded] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const requestRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    setMessages(loadMessages());
+    if (!storageKey) return;
+    setMessages(loadMessages(storageKey));
     setIsLoaded(true);
-  }, []);
+  }, [storageKey]);
 
   useEffect(() => {
-    if (isLoaded && messages.length > 0) saveMessages(messages);
-  }, [messages, isLoaded]);
+    if (storageKey && isLoaded && messages.length > 0) saveMessages(storageKey, messages);
+  }, [messages, isLoaded, storageKey]);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, typing]);
   useEffect(() => { textareaRef.current?.focus(); }, []);
 
-  async function send(text: string) {
+  async function send(text: string, retry = false) {
     const trimmed = text.trim();
     if (!trimmed || typing) return;
 
     const userMsg: Message = { id: `u${Date.now()}`, role: "user", content: trimmed, timestamp: new Date().toISOString() };
-    setMessages((p) => [...p, userMsg]);
+    setMessages((p) => retry ? p.filter((message) => !message.isError) : [...p, userMsg]);
     setInput("");
     setAiError(null);
     setTyping(true);
     if (textareaRef.current) textareaRef.current.style.height = "auto";
 
-    const history = messages.filter((m) => m.id !== "w");
+    const history = messages.filter((m) => m.id !== "w" && !m.isError);
+    if (history.at(-1)?.role === "user" && history.at(-1)?.content === trimmed) history.pop();
+    const controller = new AbortController();
+    requestRef.current = controller;
     try {
-      const reply = await callAI(trimmed, history);
+      const reply = await callAI(trimmed, history.slice(-10), controller.signal);
       setMessages((p) => [...p, { id: `a${Date.now()}`, role: "assistant", content: reply, timestamp: new Date().toISOString() }]);
     } catch (err) {
-      const isTimeout = err instanceof Error && err.name === "AbortError";
-      setAiError(isTimeout
-        ? "AI service không phản hồi sau 30 giây. Thử lại hoặc kiểm tra kết nối."
-        : "Không kết nối được AI service (port 8001). Kiểm tra ai-service đang chạy.");
+      if (controller.signal.aborted) return;
+      const failure = err as { code?: string; response?: { status?: number } };
+      const status = failure.response?.status;
+      setAiError(status === 429
+        ? "Bạn đã gửi quá nhiều yêu cầu. Vui lòng chờ một phút rồi thử lại."
+        : status === 401 || status === 403
+          ? "Phiên đăng nhập không còn quyền sử dụng Trợ lý AI."
+          : failure.code === "ECONNABORTED"
+            ? "Trợ lý AI không phản hồi sau 30 giây. Vui lòng thử lại."
+            : "Trợ lý AI tạm thời không khả dụng. Vui lòng thử lại sau.");
       setMessages((p) => [...p, {
         id: `a${Date.now()}`, role: "assistant",
         content: "Xin lỗi, tôi đang không thể kết nối. Vui lòng thử lại sau.",
@@ -268,6 +239,7 @@ export default function AIAssistantPage() {
         isError: true,
       }]);
     } finally {
+      if (requestRef.current === controller) requestRef.current = null;
       setTyping(false);
     }
   }
@@ -277,10 +249,12 @@ export default function AIAssistantPage() {
   }
 
   function clearChat() {
+    requestRef.current?.abort();
+    requestRef.current = null;
     setMessages([makeWelcome()]);
     setInput("");
     setAiError(null);
-    localStorage.removeItem(STORAGE_KEY);
+    if (storageKey) localStorage.removeItem(storageKey);
   }
 
   return (
@@ -311,7 +285,7 @@ export default function AIAssistantPage() {
 
         {/* Error banner */}
         {aiError && (
-          <div className="flex items-center gap-2 border-b border-amber-200 bg-amber-50 px-6 py-2">
+          <div role="alert" className="flex items-center gap-2 border-b border-amber-200 bg-amber-50 px-6 py-2">
             <WifiSlash size={14} className="shrink-0 text-amber-600" weight="fill" />
             <p className="text-xs font-medium text-amber-700">{aiError}</p>
           </div>
@@ -323,7 +297,6 @@ export default function AIAssistantPage() {
             // fix 7: date separator
             const showDate = i === 0 || !isSameDay(messages[i - 1].timestamp, msg.timestamp);
             // fix 2: extract actions to variable
-            const actions = msg.role === "assistant" && msg.id !== "w" ? getActions(msg.content) : [];
 
             return (
               <div key={msg.id}>
@@ -366,7 +339,7 @@ export default function AIAssistantPage() {
                             type="button"
                             onClick={() => {
                               const lastUserMsg = [...messages].reverse().find(m => m.role === "user");
-                              if (lastUserMsg) void send(lastUserMsg.content);
+                              if (lastUserMsg) void send(lastUserMsg.content, true);
                             }}
                             className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold text-amber-600 transition-colors hover:bg-amber-50"
                           >
@@ -374,17 +347,6 @@ export default function AIAssistantPage() {
                             Thử lại
                           </button>
                         )}
-                        {actions.map((a) => (
-                          <Link
-                            key={a.href}
-                            href={a.href}
-                            className="inline-flex items-center gap-1 rounded-lg border border-brand/20 bg-brand-light px-2.5 py-1 text-[11px] font-semibold text-brand transition-colors hover:bg-brand hover:text-white"
-                          >
-                            {a.icon}
-                            {a.label}
-                            <ArrowRight size={10} weight="bold" />
-                          </Link>
-                        ))}
                       </div>
                     )}
                   </div>
@@ -401,7 +363,7 @@ export default function AIAssistantPage() {
 
           {/* Typing indicator */}
           {typing && (
-            <div className="flex gap-3 justify-start">
+            <div className="flex gap-3 justify-start" role="status" aria-label="Trợ lý AI đang trả lời">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-brand text-white shadow-sm">
                 <Robot size={15} weight="fill" />
               </div>
@@ -424,6 +386,7 @@ export default function AIAssistantPage() {
           <button
             type="button"
             onClick={() => setShowPrompts((v) => !v)}
+            aria-expanded={showPrompts}
             className="flex w-full items-center justify-between px-4 py-2 text-xs font-semibold text-muted-foreground hover:text-brand-dark md:px-10"
           >
             <span className="flex items-center gap-1.5">
@@ -460,6 +423,7 @@ export default function AIAssistantPage() {
               id="ai-chat-input"
               value={input}
               rows={1}
+              maxLength={2000}
               disabled={typing}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={onKey}

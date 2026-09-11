@@ -8,6 +8,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsISO8601,
   MaxLength,
   ValidateNested,
 } from 'class-validator';
@@ -15,6 +16,9 @@ import { TreatmentPlanStatus } from '../../../../prisma/generated/enums';
 import { TreatmentPlanStepInputDto } from './create-treatment-plan.dto';
 
 export class UpdateTreatmentPlanDto {
+  @ApiPropertyOptional()
+  @IsISO8601()
+  expectedUpdatedAt?: string;
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()

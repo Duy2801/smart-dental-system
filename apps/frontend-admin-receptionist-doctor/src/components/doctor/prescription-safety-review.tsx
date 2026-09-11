@@ -87,6 +87,7 @@ export function usePrescriptionSafetyReview({
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [criticalConfirmed, setCriticalConfirmed] = useState(false);
+  const [overrideConfirmed, setOverrideConfirmed] = useState(false);
 
   const fingerprint = useMemo(
     () =>
@@ -121,6 +122,7 @@ export function usePrescriptionSafetyReview({
     setError(null);
     setMessage(null);
     setCriticalConfirmed(false);
+    setOverrideConfirmed(false);
     const requestedFingerprint = fingerprint;
     try {
       const response = await apiClient.post<PrescriptionSafetyResult>(
@@ -149,10 +151,17 @@ export function usePrescriptionSafetyReview({
 
   const ensureReadyToSave = async () => {
     if (!isCurrent) {
+      if (error && overrideConfirmed) {
+        return true;
+      }
       const reviewed = await runReview();
       if (reviewed) {
         setMessage(
           "Đã kiểm tra đơn thuốc. Xem kết quả rồi bấm lưu thêm một lần để xác nhận.",
+        );
+      } else {
+        setMessage(
+          "Dịch vụ kiểm tra an toàn AI chưa phản hồi. Bác sĩ có thể tích chọn xác nhận chuyên môn bên dưới để tiếp tục lưu đơn.",
         );
       }
       return false;
@@ -172,8 +181,13 @@ export function usePrescriptionSafetyReview({
     message,
     hasCritical,
     criticalConfirmed,
+    overrideConfirmed,
     setCriticalConfirmed: (confirmed: boolean) => {
       setCriticalConfirmed(confirmed);
+      if (confirmed) setMessage(null);
+    },
+    setOverrideConfirmed: (confirmed: boolean) => {
+      setOverrideConfirmed(confirmed);
       if (confirmed) setMessage(null);
     },
     runReview,
@@ -291,12 +305,30 @@ export function PrescriptionSafetyReview({
 
       <div className="space-y-4 p-5">
         {controller.error && (
-          <div
-            role="alert"
-            className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3.5 py-3 text-sm text-red-700"
-          >
-            <Warning size={17} className="mt-0.5 shrink-0" />
-            <span>{controller.error}</span>
+          <div className="space-y-3">
+            <div
+              role="alert"
+              className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-sm text-amber-800"
+            >
+              <Warning size={17} className="mt-0.5 shrink-0 text-amber-600" />
+              <div>
+                <p className="font-semibold">{controller.error}</p>
+                <p className="mt-1 text-xs text-amber-700">
+                  Dịch vụ kiểm tra an toàn AI tạm thời không phản hồi. Bác sĩ có thể kiểm tra lại hoặc tích chọn xác nhận lâm sàng bên dưới để tiếp tục lưu đơn thuốc.
+                </p>
+              </div>
+            </div>
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-amber-300 bg-amber-50/70 px-4 py-3 text-sm text-amber-950">
+              <input
+                type="checkbox"
+                checked={controller.overrideConfirmed}
+                onChange={(e) => controller.setOverrideConfirmed(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-amber-400 text-brand focus:ring-brand"
+              />
+              <span>
+                Tôi xác nhận đã kiểm tra an toàn đơn thuốc theo chuyên môn lâm sàng và tiếp tục lưu đơn.
+              </span>
+            </label>
           </div>
         )}
 

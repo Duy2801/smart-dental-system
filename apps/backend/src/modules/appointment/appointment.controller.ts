@@ -17,6 +17,8 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { CreateStaffAppointmentDto } from './dto/create-staff-appointment.dto';
+import { CancelAppointmentDto } from './dto/cancel-appointment.dto';
+import { CheckInAppointmentDto } from './dto/check-in-appointment.dto';
 import { RescheduleAppointmentDto } from './dto/reschedule-appointment.dto';
 import { AppointmentService } from './appointment.service';
 
@@ -25,6 +27,24 @@ import { AppointmentService } from './appointment.service';
 @Controller(['appointments', 'admin/appointments'])
 export class AppointmentController {
   constructor(private appointmentService: AppointmentService) {}
+
+  private async assertDoctorOwnsAppointment(
+    user: AuthenticatedUser,
+    id: string,
+  ) {
+    if (
+      !user.roles.includes('DOCTOR') ||
+      user.roles.some((role) => role === 'ADMIN' || role === 'RECEPTIONIST')
+    )
+      return;
+    const [doctor, appointment] = await Promise.all([
+      this.appointmentService.findDoctorByUserId(user.userId),
+      this.appointmentService.findOne(id),
+    ]);
+    if (!doctor || appointment.doctorId !== doctor.id) {
+      throw new ForbiddenException('appointment.unauthorized_access');
+    }
+  }
 
   @Post()
   @Roles('PATIENT')
@@ -55,17 +75,20 @@ export class AppointmentController {
   @Patch(':id/cancel')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('PATIENT', 'RECEPTIONIST', 'ADMIN')
-  cancel(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+  cancel(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() body?: CancelAppointmentDto,
+  ) {
     const isStaff =
-      user.roles.includes('RECEPTIONIST') ||
-      user.roles.includes('ADMIN');
+      user.roles.includes('RECEPTIONIST') || user.roles.includes('ADMIN');
     if (!isStaff) {
       return this.appointmentService.cancelAppointmentForPatient(
         user.userId,
         id,
       );
     }
-    return this.appointmentService.cancelByStaff(id);
+    return this.appointmentService.cancelByStaff(id, body?.reason);
   }
 
   @Patch(':id/reschedule')
@@ -77,8 +100,7 @@ export class AppointmentController {
     @Body() dto: RescheduleAppointmentDto,
   ) {
     const isStaff =
-      user.roles.includes('RECEPTIONIST') ||
-      user.roles.includes('ADMIN');
+      user.roles.includes('RECEPTIONIST') || user.roles.includes('ADMIN');
     if (!isStaff) {
       return this.appointmentService.rescheduleAppointmentForPatient(
         user.userId,
@@ -92,45 +114,71 @@ export class AppointmentController {
   @Patch(':id/confirm')
   @Roles('DOCTOR', 'ADMIN', 'RECEPTIONIST')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  confirmAppointment(@Param('id') id: string) {
+  async confirmAppointment(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ) {
+    await this.assertDoctorOwnsAppointment(user, id);
     return this.appointmentService.confirmAppointment(id);
   }
 
   @Post(':id/remind')
   @Roles('DOCTOR', 'ADMIN', 'RECEPTIONIST')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  remindAppointment(@Param('id') id: string) {
+  async remindAppointment(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ) {
+    await this.assertDoctorOwnsAppointment(user, id);
     return this.appointmentService.sendManualReminder(id);
   }
 
   @Patch(':id/check-in')
   @Roles('DOCTOR', 'ADMIN', 'RECEPTIONIST')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  checkInAppointment(
+  async checkInAppointment(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
-    @Body() body?: { notes?: string },
+    @Body() body: CheckInAppointmentDto,
   ) {
-    return this.appointmentService.checkInAppointment(id, body?.notes);
+    await this.assertDoctorOwnsAppointment(user, id);
+    return this.appointmentService.checkInAppointment(
+      id,
+      body.notes,
+      body.medicalHistoryConfirmed,
+    );
   }
 
   @Patch(':id/no-show')
   @Roles('DOCTOR', 'ADMIN', 'RECEPTIONIST')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  markNoShow(@Param('id') id: string) {
+  async markNoShow(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ) {
+    await this.assertDoctorOwnsAppointment(user, id);
     return this.appointmentService.markNoShow(id);
   }
 
   @Patch(':id/start')
   @Roles('DOCTOR', 'ADMIN', 'RECEPTIONIST')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  startAppointment(@Param('id') id: string) {
+  async startAppointment(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ) {
+    await this.assertDoctorOwnsAppointment(user, id);
     return this.appointmentService.startAppointment(id);
   }
 
   @Patch(':id/complete')
   @Roles('DOCTOR', 'ADMIN', 'RECEPTIONIST')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  completeAppointment(@Param('id') id: string) {
+  async completeAppointment(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ) {
+    await this.assertDoctorOwnsAppointment(user, id);
     return this.appointmentService.completeAppointment(id);
   }
 
@@ -151,7 +199,9 @@ export class AppointmentController {
       !user.roles.includes('ADMIN') &&
       !user.roles.includes('RECEPTIONIST');
     if (isDoctorOnly) {
-      const doctor = await this.appointmentService.findDoctorByUserId(user.userId);
+      const doctor = await this.appointmentService.findDoctorByUserId(
+        user.userId,
+      );
       if (!doctor) {
         throw new ForbiddenException('appointment.doctor_not_found');
       }
@@ -220,7 +270,9 @@ export class AppointmentController {
       !user.roles.includes('ADMIN') &&
       !user.roles.includes('RECEPTIONIST');
     if (isDoctorOnly) {
-      const doctor = await this.appointmentService.findDoctorByUserId(user.userId);
+      const doctor = await this.appointmentService.findDoctorByUserId(
+        user.userId,
+      );
       if (!doctor || appointment.doctorId !== doctor.id) {
         throw new ForbiddenException('appointment.unauthorized_access');
       }
@@ -228,4 +280,3 @@ export class AppointmentController {
     return appointment;
   }
 }
-

@@ -406,17 +406,21 @@ export const ModelName = {
   DoctorAvailability: 'DoctorAvailability',
   Appointment: 'Appointment',
   MedicalRecord: 'MedicalRecord',
+  MedicalRecordAudit: 'MedicalRecordAudit',
   AiXrayAnalysisAudit: 'AiXrayAnalysisAudit',
   TreatmentPlan: 'TreatmentPlan',
+  TreatmentPlanAudit: 'TreatmentPlanAudit',
   TreatmentPlanStep: 'TreatmentPlanStep',
   ClinicalCase: 'ClinicalCase',
   Invoice: 'Invoice',
   Prescription: 'Prescription',
+  PrescriptionAudit: 'PrescriptionAudit',
   PrescriptionItem: 'PrescriptionItem',
   Payment: 'Payment',
   Review: 'Review',
   ChatbotConversation: 'ChatbotConversation',
   VideoConsultation: 'VideoConsultation',
+  PatientAiBrief: 'PatientAiBrief',
   Notification: 'Notification',
   Banner: 'Banner',
   ConsultationPackage: 'ConsultationPackage',
@@ -436,7 +440,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "clinicConfig" | "user" | "role" | "permission" | "rolePermission" | "service" | "specialization" | "doctorSpecialization" | "treatmentMethod" | "serviceMedia" | "serviceProcedureStep" | "serviceFaq" | "promotion" | "patient" | "patientAccount" | "doctor" | "doctorEducation" | "doctorCertificate" | "doctorMedia" | "doctorAvailability" | "appointment" | "medicalRecord" | "aiXrayAnalysisAudit" | "treatmentPlan" | "treatmentPlanStep" | "clinicalCase" | "invoice" | "prescription" | "prescriptionItem" | "payment" | "review" | "chatbotConversation" | "videoConsultation" | "notification" | "banner" | "consultationPackage" | "refundRequest"
+    modelProps: "clinicConfig" | "user" | "role" | "permission" | "rolePermission" | "service" | "specialization" | "doctorSpecialization" | "treatmentMethod" | "serviceMedia" | "serviceProcedureStep" | "serviceFaq" | "promotion" | "patient" | "patientAccount" | "doctor" | "doctorEducation" | "doctorCertificate" | "doctorMedia" | "doctorAvailability" | "appointment" | "medicalRecord" | "medicalRecordAudit" | "aiXrayAnalysisAudit" | "treatmentPlan" | "treatmentPlanAudit" | "treatmentPlanStep" | "clinicalCase" | "invoice" | "prescription" | "prescriptionAudit" | "prescriptionItem" | "payment" | "review" | "chatbotConversation" | "videoConsultation" | "patientAiBrief" | "notification" | "banner" | "consultationPackage" | "refundRequest"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2068,6 +2072,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    MedicalRecordAudit: {
+      payload: Prisma.$MedicalRecordAuditPayload<ExtArgs>
+      fields: Prisma.MedicalRecordAuditFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MedicalRecordAuditFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicalRecordAuditPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MedicalRecordAuditFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicalRecordAuditPayload>
+        }
+        findFirst: {
+          args: Prisma.MedicalRecordAuditFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicalRecordAuditPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MedicalRecordAuditFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicalRecordAuditPayload>
+        }
+        findMany: {
+          args: Prisma.MedicalRecordAuditFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicalRecordAuditPayload>[]
+        }
+        create: {
+          args: Prisma.MedicalRecordAuditCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicalRecordAuditPayload>
+        }
+        createMany: {
+          args: Prisma.MedicalRecordAuditCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MedicalRecordAuditCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicalRecordAuditPayload>[]
+        }
+        delete: {
+          args: Prisma.MedicalRecordAuditDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicalRecordAuditPayload>
+        }
+        update: {
+          args: Prisma.MedicalRecordAuditUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicalRecordAuditPayload>
+        }
+        deleteMany: {
+          args: Prisma.MedicalRecordAuditDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MedicalRecordAuditUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MedicalRecordAuditUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicalRecordAuditPayload>[]
+        }
+        upsert: {
+          args: Prisma.MedicalRecordAuditUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicalRecordAuditPayload>
+        }
+        aggregate: {
+          args: Prisma.MedicalRecordAuditAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMedicalRecordAudit>
+        }
+        groupBy: {
+          args: Prisma.MedicalRecordAuditGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MedicalRecordAuditGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MedicalRecordAuditCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MedicalRecordAuditCountAggregateOutputType> | number
+        }
+      }
+    }
     AiXrayAnalysisAudit: {
       payload: Prisma.$AiXrayAnalysisAuditPayload<ExtArgs>
       fields: Prisma.AiXrayAnalysisAuditFieldRefs
@@ -2213,6 +2291,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.TreatmentPlanCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.TreatmentPlanCountAggregateOutputType> | number
+        }
+      }
+    }
+    TreatmentPlanAudit: {
+      payload: Prisma.$TreatmentPlanAuditPayload<ExtArgs>
+      fields: Prisma.TreatmentPlanAuditFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.TreatmentPlanAuditFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TreatmentPlanAuditPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.TreatmentPlanAuditFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TreatmentPlanAuditPayload>
+        }
+        findFirst: {
+          args: Prisma.TreatmentPlanAuditFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TreatmentPlanAuditPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.TreatmentPlanAuditFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TreatmentPlanAuditPayload>
+        }
+        findMany: {
+          args: Prisma.TreatmentPlanAuditFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TreatmentPlanAuditPayload>[]
+        }
+        create: {
+          args: Prisma.TreatmentPlanAuditCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TreatmentPlanAuditPayload>
+        }
+        createMany: {
+          args: Prisma.TreatmentPlanAuditCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.TreatmentPlanAuditCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TreatmentPlanAuditPayload>[]
+        }
+        delete: {
+          args: Prisma.TreatmentPlanAuditDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TreatmentPlanAuditPayload>
+        }
+        update: {
+          args: Prisma.TreatmentPlanAuditUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TreatmentPlanAuditPayload>
+        }
+        deleteMany: {
+          args: Prisma.TreatmentPlanAuditDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.TreatmentPlanAuditUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.TreatmentPlanAuditUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TreatmentPlanAuditPayload>[]
+        }
+        upsert: {
+          args: Prisma.TreatmentPlanAuditUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$TreatmentPlanAuditPayload>
+        }
+        aggregate: {
+          args: Prisma.TreatmentPlanAuditAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateTreatmentPlanAudit>
+        }
+        groupBy: {
+          args: Prisma.TreatmentPlanAuditGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TreatmentPlanAuditGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.TreatmentPlanAuditCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.TreatmentPlanAuditCountAggregateOutputType> | number
         }
       }
     }
@@ -2509,6 +2661,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.PrescriptionCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.PrescriptionCountAggregateOutputType> | number
+        }
+      }
+    }
+    PrescriptionAudit: {
+      payload: Prisma.$PrescriptionAuditPayload<ExtArgs>
+      fields: Prisma.PrescriptionAuditFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.PrescriptionAuditFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionAuditPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.PrescriptionAuditFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionAuditPayload>
+        }
+        findFirst: {
+          args: Prisma.PrescriptionAuditFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionAuditPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.PrescriptionAuditFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionAuditPayload>
+        }
+        findMany: {
+          args: Prisma.PrescriptionAuditFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionAuditPayload>[]
+        }
+        create: {
+          args: Prisma.PrescriptionAuditCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionAuditPayload>
+        }
+        createMany: {
+          args: Prisma.PrescriptionAuditCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.PrescriptionAuditCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionAuditPayload>[]
+        }
+        delete: {
+          args: Prisma.PrescriptionAuditDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionAuditPayload>
+        }
+        update: {
+          args: Prisma.PrescriptionAuditUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionAuditPayload>
+        }
+        deleteMany: {
+          args: Prisma.PrescriptionAuditDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.PrescriptionAuditUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.PrescriptionAuditUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionAuditPayload>[]
+        }
+        upsert: {
+          args: Prisma.PrescriptionAuditUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PrescriptionAuditPayload>
+        }
+        aggregate: {
+          args: Prisma.PrescriptionAuditAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregatePrescriptionAudit>
+        }
+        groupBy: {
+          args: Prisma.PrescriptionAuditGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PrescriptionAuditGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.PrescriptionAuditCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PrescriptionAuditCountAggregateOutputType> | number
         }
       }
     }
@@ -2879,6 +3105,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.VideoConsultationCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.VideoConsultationCountAggregateOutputType> | number
+        }
+      }
+    }
+    PatientAiBrief: {
+      payload: Prisma.$PatientAiBriefPayload<ExtArgs>
+      fields: Prisma.PatientAiBriefFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.PatientAiBriefFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientAiBriefPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.PatientAiBriefFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientAiBriefPayload>
+        }
+        findFirst: {
+          args: Prisma.PatientAiBriefFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientAiBriefPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.PatientAiBriefFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientAiBriefPayload>
+        }
+        findMany: {
+          args: Prisma.PatientAiBriefFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientAiBriefPayload>[]
+        }
+        create: {
+          args: Prisma.PatientAiBriefCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientAiBriefPayload>
+        }
+        createMany: {
+          args: Prisma.PatientAiBriefCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.PatientAiBriefCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientAiBriefPayload>[]
+        }
+        delete: {
+          args: Prisma.PatientAiBriefDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientAiBriefPayload>
+        }
+        update: {
+          args: Prisma.PatientAiBriefUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientAiBriefPayload>
+        }
+        deleteMany: {
+          args: Prisma.PatientAiBriefDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.PatientAiBriefUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.PatientAiBriefUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientAiBriefPayload>[]
+        }
+        upsert: {
+          args: Prisma.PatientAiBriefUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PatientAiBriefPayload>
+        }
+        aggregate: {
+          args: Prisma.PatientAiBriefAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregatePatientAiBrief>
+        }
+        groupBy: {
+          args: Prisma.PatientAiBriefGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PatientAiBriefGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.PatientAiBriefCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PatientAiBriefCountAggregateOutputType> | number
         }
       }
     }
@@ -3580,6 +3880,17 @@ export const MedicalRecordScalarFieldEnum = {
 export type MedicalRecordScalarFieldEnum = (typeof MedicalRecordScalarFieldEnum)[keyof typeof MedicalRecordScalarFieldEnum]
 
 
+export const MedicalRecordAuditScalarFieldEnum = {
+  id: 'id',
+  medicalRecordId: 'medicalRecordId',
+  changedBy: 'changedBy',
+  previousData: 'previousData',
+  createdAt: 'createdAt'
+} as const
+
+export type MedicalRecordAuditScalarFieldEnum = (typeof MedicalRecordAuditScalarFieldEnum)[keyof typeof MedicalRecordAuditScalarFieldEnum]
+
+
 export const AiXrayAnalysisAuditScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -3614,10 +3925,23 @@ export const TreatmentPlanScalarFieldEnum = {
   scheduleConfirmedAt: 'scheduleConfirmedAt',
   items: 'items',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  emailQueuedAt: 'emailQueuedAt'
 } as const
 
 export type TreatmentPlanScalarFieldEnum = (typeof TreatmentPlanScalarFieldEnum)[keyof typeof TreatmentPlanScalarFieldEnum]
+
+
+export const TreatmentPlanAuditScalarFieldEnum = {
+  id: 'id',
+  treatmentPlanId: 'treatmentPlanId',
+  action: 'action',
+  changedBy: 'changedBy',
+  previousData: 'previousData',
+  createdAt: 'createdAt'
+} as const
+
+export type TreatmentPlanAuditScalarFieldEnum = (typeof TreatmentPlanAuditScalarFieldEnum)[keyof typeof TreatmentPlanAuditScalarFieldEnum]
 
 
 export const TreatmentPlanStepScalarFieldEnum = {
@@ -3696,10 +4020,27 @@ export const PrescriptionScalarFieldEnum = {
   patientId: 'patientId',
   notes: 'notes',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  cancelledAt: 'cancelledAt',
+  cancelledBy: 'cancelledBy',
+  emailQueuedAt: 'emailQueuedAt',
+  safetyConfirmedAt: 'safetyConfirmedAt',
+  safetyOverride: 'safetyOverride'
 } as const
 
 export type PrescriptionScalarFieldEnum = (typeof PrescriptionScalarFieldEnum)[keyof typeof PrescriptionScalarFieldEnum]
+
+
+export const PrescriptionAuditScalarFieldEnum = {
+  id: 'id',
+  prescriptionId: 'prescriptionId',
+  action: 'action',
+  changedBy: 'changedBy',
+  previousData: 'previousData',
+  createdAt: 'createdAt'
+} as const
+
+export type PrescriptionAuditScalarFieldEnum = (typeof PrescriptionAuditScalarFieldEnum)[keyof typeof PrescriptionAuditScalarFieldEnum]
 
 
 export const PrescriptionItemScalarFieldEnum = {
@@ -3773,6 +4114,29 @@ export const VideoConsultationScalarFieldEnum = {
 } as const
 
 export type VideoConsultationScalarFieldEnum = (typeof VideoConsultationScalarFieldEnum)[keyof typeof VideoConsultationScalarFieldEnum]
+
+
+export const PatientAiBriefScalarFieldEnum = {
+  id: 'id',
+  patientId: 'patientId',
+  doctorId: 'doctorId',
+  createdBy: 'createdBy',
+  consultationId: 'consultationId',
+  patientName: 'patientName',
+  bulletPoints: 'bulletPoints',
+  questionsToAsk: 'questionsToAsk',
+  riskFlags: 'riskFlags',
+  disclaimer: 'disclaimer',
+  sourceData: 'sourceData',
+  provider: 'provider',
+  model: 'model',
+  feedback: 'feedback',
+  feedbackNote: 'feedbackNote',
+  reviewedAt: 'reviewedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type PatientAiBriefScalarFieldEnum = (typeof PatientAiBriefScalarFieldEnum)[keyof typeof PatientAiBriefScalarFieldEnum]
 
 
 export const NotificationScalarFieldEnum = {
@@ -4296,6 +4660,20 @@ export type ListEnumVideoConsultationStatusFieldRefInput<$PrismaModel> = FieldRe
 
 
 /**
+ * Reference to a field of type 'AiBriefFeedback'
+ */
+export type EnumAiBriefFeedbackFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AiBriefFeedback'>
+    
+
+
+/**
+ * Reference to a field of type 'AiBriefFeedback[]'
+ */
+export type ListEnumAiBriefFeedbackFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AiBriefFeedback[]'>
+    
+
+
+/**
  * Reference to a field of type 'NotificationChannel'
  */
 export type EnumNotificationChannelFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'NotificationChannel'>
@@ -4482,17 +4860,21 @@ export type GlobalOmitConfig = {
   doctorAvailability?: Prisma.DoctorAvailabilityOmit
   appointment?: Prisma.AppointmentOmit
   medicalRecord?: Prisma.MedicalRecordOmit
+  medicalRecordAudit?: Prisma.MedicalRecordAuditOmit
   aiXrayAnalysisAudit?: Prisma.AiXrayAnalysisAuditOmit
   treatmentPlan?: Prisma.TreatmentPlanOmit
+  treatmentPlanAudit?: Prisma.TreatmentPlanAuditOmit
   treatmentPlanStep?: Prisma.TreatmentPlanStepOmit
   clinicalCase?: Prisma.ClinicalCaseOmit
   invoice?: Prisma.InvoiceOmit
   prescription?: Prisma.PrescriptionOmit
+  prescriptionAudit?: Prisma.PrescriptionAuditOmit
   prescriptionItem?: Prisma.PrescriptionItemOmit
   payment?: Prisma.PaymentOmit
   review?: Prisma.ReviewOmit
   chatbotConversation?: Prisma.ChatbotConversationOmit
   videoConsultation?: Prisma.VideoConsultationOmit
+  patientAiBrief?: Prisma.PatientAiBriefOmit
   notification?: Prisma.NotificationOmit
   banner?: Prisma.BannerOmit
   consultationPackage?: Prisma.ConsultationPackageOmit

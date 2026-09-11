@@ -7,6 +7,7 @@ import { Header } from "@/src/components/layout/header";
 import apiClient from "@/src/lib/api/client";
 import { getApiErrorMessage } from "@/src/lib/utils/api-error";
 import { formatDoctorName } from "@/src/lib/utils/format";
+import { useAppDialog } from "@/src/providers/app-dialog-provider";
 import { RefundManagementModal } from "@/src/components/admin/finance/components/refund-management-modal";
 import {
   MagnifyingGlass,
@@ -35,6 +36,7 @@ interface ServiceLine {
 
 interface Invoice {
   id: string;
+  patientId: string;
   code: string;
   patient: string;
   patientInitials: string;
@@ -81,6 +83,15 @@ function getInitials(name: string): string {
 
 function formatVND(amount: number): string {
   return amount.toLocaleString("vi-VN") + "đ";
+}
+
+function formatClinicDate(iso: string): string {
+  return new Intl.DateTimeFormat("vi-VN", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(new Date(iso));
 }
 
 function validatePayAmount(
@@ -224,8 +235,10 @@ function InvoiceItem({
 }
 
 export default function BillingPage() {
+  const { showConfirm } = useAppDialog();
   const searchParams = useSearchParams();
   const invoiceIdParam = searchParams.get("invoiceId");
+  const patientIdParam = searchParams.get("patientId");
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -256,6 +269,7 @@ export default function BillingPage() {
     (
       inv: {
         id: string;
+        patient_id?: string;
         invoice_code?: string;
         patient_name?: string;
         doctor_name?: string | null;
@@ -287,6 +301,7 @@ export default function BillingPage() {
         status = "PARTIAL";
       return {
         id: inv.id,
+        patientId: inv.patient_id ?? "",
         code: inv.invoice_code ?? inv.id.slice(0, 8).toUpperCase(),
         patient: name,
         patientInitials: getInitials(name),
@@ -296,7 +311,7 @@ export default function BillingPage() {
         remaining,
         discount: Number(inv.discount_amount ?? 0),
         date: inv.issued_at
-          ? new Date(inv.issued_at).toLocaleDateString("vi-VN")
+          ? formatClinicDate(inv.issued_at)
           : "",
         status,
         paymentOption: inv.payment_option,
@@ -331,6 +346,15 @@ export default function BillingPage() {
           const fromParam = all.find((i) => i.id === invoiceIdParam);
           if (fromParam) return fromParam;
         }
+        if (patientIdParam) {
+          return all.find(
+            (invoice) =>
+              invoice.patientId === patientIdParam &&
+              (activeTab === "PAID"
+                ? invoice.status === "PAID"
+                : isOpenInvoice(invoice.status)),
+          ) ?? null;
+        }
         if (prev) {
           const fresh = all.find((i) => i.id === prev.id);
           if (fresh) return fresh;
@@ -346,10 +370,11 @@ export default function BillingPage() {
     } finally {
       setLoading(false);
     }
-  }, [invoiceIdParam, mapInv]);
+  }, [activeTab, invoiceIdParam, patientIdParam, mapInv]);
 
   useEffect(() => {
-    void fetchInvoices();
+    const timer = setTimeout(() => void fetchInvoices(), 0);
+    return () => clearTimeout(timer);
   }, [fetchInvoices]);
 
   const stopPoll = () => {
@@ -399,11 +424,11 @@ export default function BillingPage() {
     invoice: Invoice,
     promo?: string,
     amountOverride?: string,
-  ) => {
+  ): Promise<boolean> => {
     const amountCheck = resolvePayAmount(invoice, amountOverride);
     if (!amountCheck.ok) {
       setPayAmountError(amountCheck.message);
-      return;
+      return false;
     }
     setPayAmountError("");
     setTransferLoading(true);
@@ -437,7 +462,7 @@ export default function BillingPage() {
           "success",
         );
         void fetchInvoices();
-        return;
+        return true;
       }
       setTransfer({
         paymentId: data.id,
@@ -465,11 +490,13 @@ export default function BillingPage() {
           // ignore poll errors
         }
       }, 4000);
+      return true;
     } catch (err) {
       showToast(
         getApiErrorMessage(err, "Không tạo được QR chuyển khoản SePay."),
         "error",
       );
+      return false;
     } finally {
       setTransferLoading(false);
     }
@@ -477,21 +504,17 @@ export default function BillingPage() {
 
   useEffect(() => {
     stopPoll();
-    setTransfer(null);
-    setDiscountCode("");
-    setPayAmountError("");
-    if (selected && isOpenInvoice(selected.status)) {
-      setPayAmount(String(Math.round(selected.remaining)));
-    } else {
-      setPayAmount("");
-    }
-    if (
-      selected &&
-      isOpenInvoice(selected.status) &&
-      paymentMethod === "TRANSFER"
-    ) {
-      void startTransfer(selected);
-    }
+    const timer = setTimeout(() => {
+      setTransfer(null);
+      setDiscountCode("");
+      setPayAmountError("");
+      if (selected && isOpenInvoice(selected.status)) {
+        setPayAmount(String(Math.round(selected.remaining)));
+      } else {
+        setPayAmount("");
+      }
+    }, 0);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected?.id, paymentMethod]);
 
@@ -530,17 +553,27 @@ export default function BillingPage() {
         );
         void fetchInvoices();
       } else if (transfer?.paymentId) {
+        const confirmed = await showConfirm({
+          title: "Xác nhận đã nhận chuyển khoản?",
+          description: `Chỉ xác nhận sau khi đã kiểm tra tài khoản nhận đủ ${formatVND(transfer.amount)} cho hóa đơn ${selected.code}.`,
+          confirmLabel: "Đã nhận đủ tiền",
+          cancelLabel: "Kiểm tra lại",
+          tone: "info",
+        });
+        if (!confirmed) return;
         await apiClient.patch(`/payments/${transfer.paymentId}/confirm`);
         showToast("Đã xác nhận chuyển khoản & gửi E-Receipt qua Gmail/App thành công!", "success");
         setTransfer(null);
         stopPoll();
         void fetchInvoices();
       } else {
-        await startTransfer(selected, discountCode);
-        showToast(
-          "Đã tạo QR. Chờ SePay hoặc bấm xác nhận sau khi nhận tiền.",
-          "success",
-        );
+        const created = await startTransfer(selected, discountCode);
+        if (created) {
+          showToast(
+            "Đã tạo QR. Chờ SePay hoặc bấm xác nhận sau khi nhận tiền.",
+            "success",
+          );
+        }
       }
     } catch (err) {
       showToast(
@@ -593,6 +626,7 @@ export default function BillingPage() {
   };
 
   const filtered = invoices.filter((inv) => {
+    if (patientIdParam && inv.patientId !== patientIdParam) return false;
     const inTab =
       activeTab === "PAID"
         ? inv.status === "PAID"
@@ -612,9 +646,14 @@ export default function BillingPage() {
   const switchTab = (tab: "UNPAID" | "PAID") => {
     setActiveTab(tab);
     const first = invoices.find((i) =>
-      tab === "PAID" ? i.status === "PAID" : isOpenInvoice(i.status),
+      (!patientIdParam || i.patientId === patientIdParam) &&
+      (tab === "PAID" ? i.status === "PAID" : isOpenInvoice(i.status)),
     );
-    if (first) setSelected(first);
+    setSelected(first ?? null);
+    setPayAmount(first && isOpenInvoice(first.status) ? String(Math.round(first.remaining)) : "");
+    setTransfer(null);
+    setDiscountCode("");
+    setPayAmountError("");
   };
 
   const copyText = async (text: string) => {
@@ -747,7 +786,18 @@ export default function BillingPage() {
                       key={inv.id}
                       inv={inv}
                       selected={selected?.id === inv.id}
-                      onClick={() => setSelected(inv)}
+                      onClick={() => {
+                        stopPoll();
+                        setSelected(inv);
+                        setPayAmount(
+                          isOpenInvoice(inv.status)
+                            ? String(Math.round(inv.remaining))
+                            : "",
+                        );
+                        setTransfer(null);
+                        setDiscountCode("");
+                        setPayAmountError("");
+                      }}
                     />
                   ))
                 )}
@@ -763,7 +813,7 @@ export default function BillingPage() {
                   </p>
                 </div>
               ) : (
-                <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
+                <div id="print-area" className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
                   <div className="flex items-center justify-between border-b border-border bg-muted/50 px-6 py-4">
                     <div>
                       <h2 className="text-base font-bold text-slate-900">
@@ -1114,7 +1164,7 @@ export default function BillingPage() {
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center justify-end gap-3 border-t border-border pt-5">
+                    <div className="flex flex-wrap items-center justify-end gap-3 border-t border-border pt-5 print:hidden">
                       <button
                         type="button"
                         onClick={() => window.print()}
@@ -1142,6 +1192,7 @@ export default function BillingPage() {
                           </button>
 
                           <button
+                            type="button"
                             onClick={() => void handleConfirm()}
                             disabled={
                               submitting ||
@@ -1161,7 +1212,9 @@ export default function BillingPage() {
                               ? "Đang xử lý..."
                               : paymentMethod === "CASH"
                                 ? "Xác nhận thu tiền mặt"
-                                : "Xác nhận đã nhận CK"}
+                                : transfer
+                                  ? "Xác nhận đã nhận CK"
+                                  : "Tạo mã QR"}
                           </button>
                         </>
                       )}

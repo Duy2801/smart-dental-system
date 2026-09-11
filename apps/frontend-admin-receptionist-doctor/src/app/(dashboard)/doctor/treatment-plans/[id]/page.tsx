@@ -114,6 +114,38 @@ const STEP_STATUS_FLOW: StepStatus[] = [
   "CANCELLED",
 ];
 
+type PaymentStatus = "UNBILLED" | "INVOICED" | "PAID" | "REFUNDED";
+
+const paymentStatusMap: Record<
+  PaymentStatus,
+  { label: string; bg: string; text: string; ring: string }
+> = {
+  UNBILLED: {
+    label: "Chưa xuất HĐ",
+    bg: "bg-slate-100",
+    text: "text-slate-600",
+    ring: "ring-slate-500/20",
+  },
+  INVOICED: {
+    label: "Chờ thu tiền",
+    bg: "bg-blue-50",
+    text: "text-blue-700",
+    ring: "ring-blue-600/20",
+  },
+  PAID: {
+    label: "Đã thanh toán",
+    bg: "bg-emerald-50",
+    text: "text-emerald-700",
+    ring: "ring-emerald-600/20",
+  },
+  REFUNDED: {
+    label: "Đã hoàn tiền",
+    bg: "bg-purple-50",
+    text: "text-purple-700",
+    ring: "ring-purple-600/20",
+  },
+};
+
 type PlanStep = {
   id: string;
   stepOrder: number;
@@ -122,6 +154,8 @@ type PlanStep = {
   targetTooth: string | null;
   status: StepStatus;
   estimatedCost: number | null;
+  paymentAmount?: number | null;
+  paymentStatus?: PaymentStatus | null;
   expectedDate: string | null;
   completedAt: string | null;
 };
@@ -141,6 +175,7 @@ type PlanDetail = {
   progressPercent: number;
   steps: PlanStep[];
   createdAt: string;
+  updatedAt: string;
 };
 
 function formatDate(iso: string | null) {
@@ -180,7 +215,10 @@ export default function TreatmentPlanDetailPage() {
   const [expandedStep, setExpandedStep] = useState<string | null>(null);
 
   const [sendingEmail, setSendingEmail] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error";
+  } | null>(null);
 
   const handleSendEmail = async () => {
     if (!plan) return;
@@ -194,8 +232,7 @@ export default function TreatmentPlanDetailPage() {
       setTimeout(() => setToast(null), 4500);
     } catch (err: any) {
       const msg =
-        err.response?.data?.message ||
-        "Không thể gửi email phác đồ điều trị.";
+        err.response?.data?.message || "Không thể gửi email phác đồ điều trị.";
       setToast({
         message: Array.isArray(msg) ? msg[0] : msg,
         type: "error",
@@ -221,6 +258,7 @@ export default function TreatmentPlanDetailPage() {
     try {
       const res = await apiClient.patch<PlanDetail>(`/treatment-plans/${id}`, {
         status: newStatus,
+        expectedUpdatedAt: plan.updatedAt,
       });
       setPlan(res.data);
     } catch {
@@ -232,6 +270,14 @@ export default function TreatmentPlanDetailPage() {
 
   const handleStepStatus = async (step: PlanStep, newStatus: StepStatus) => {
     if (!plan || newStatus === step.status) return;
+
+    if (step.paymentStatus === "PAID" && newStatus === "CANCELLED") {
+      const ok = window.confirm(
+        `Bước "${step.title}" đã được lễ tân thu tiền (Đã thanh toán). Bạn có chắc chắn muốn hủy bước này không?`,
+      );
+      if (!ok) return;
+    }
+
     setStepLoading((prev) => ({ ...prev, [step.id]: true }));
     setActionError(null);
     try {
@@ -239,7 +285,7 @@ export default function TreatmentPlanDetailPage() {
         `/treatment-plans/${id}/steps/${step.id}`,
         { status: newStatus },
       );
-      // Cập nhật plan local
+      // Cập nhật plan local và tự động đồng bộ trạng thái kế hoạch theo backend
       setPlan((prev) => {
         if (!prev) return prev;
         const newSteps = prev.steps.map((s) =>
@@ -249,8 +295,21 @@ export default function TreatmentPlanDetailPage() {
           (s) => s.status === "COMPLETED",
         ).length;
         const total = newSteps.length;
+        const allCompleted = total > 0 && completed === total;
+        const anyActive = newSteps.some(
+          (s) => s.status === "IN_PROGRESS" || s.status === "COMPLETED",
+        );
+
+        let nextPlanStatus = prev.status;
+        if (allCompleted && prev.status !== "COMPLETED") {
+          nextPlanStatus = "COMPLETED";
+        } else if (anyActive && prev.status === "PLANNED") {
+          nextPlanStatus = "IN_PROGRESS";
+        }
+
         return {
           ...prev,
+          status: nextPlanStatus,
           steps: newSteps,
           completedSteps: completed,
           progressPercent:
@@ -346,9 +405,19 @@ export default function TreatmentPlanDetailPage() {
             <div className="flex shrink-0 items-center gap-2">
               <button
                 onClick={handleSendEmail}
-                disabled={sendingEmail}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3.5 py-2 text-sm font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:opacity-60 cursor-pointer"
-                title="Gửi phác đồ điều trị & bảng dự toán chi phí qua Gmail cho bệnh nhân"
+                disabled={
+                  sendingEmail ||
+                  plan.status === "CANCELLED" ||
+                  plan.steps.length === 0
+                }
+                className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3.5 py-2 text-sm font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                title={
+                  plan.status === "CANCELLED"
+                    ? "Không thể gửi email cho kế hoạch đã hủy"
+                    : plan.steps.length === 0
+                      ? "Kế hoạch chưa có bước điều trị nào để gửi"
+                      : "Gửi phác đồ điều trị & bảng dự toán chi phí qua Gmail cho bệnh nhân"
+                }
               >
                 <PaperPlaneTilt
                   size={15}
@@ -507,13 +576,26 @@ export default function TreatmentPlanDetailPage() {
 
                       {/* Step info */}
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground/60">
                             B{step.stepOrder}
                           </span>
                           <p className="truncate font-medium text-slate-900">
                             {step.title}
                           </p>
+                          {step.paymentStatus &&
+                            paymentStatusMap[step.paymentStatus] && (
+                              <span
+                                className={cn(
+                                  "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ring-inset",
+                                  paymentStatusMap[step.paymentStatus].bg,
+                                  paymentStatusMap[step.paymentStatus].text,
+                                  paymentStatusMap[step.paymentStatus].ring,
+                                )}
+                              >
+                                {paymentStatusMap[step.paymentStatus].label}
+                              </span>
+                            )}
                         </div>
                         <div className="mt-0.5 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                           {step.targetTooth && (
@@ -619,6 +701,34 @@ export default function TreatmentPlanDetailPage() {
                             <p className="mt-1 text-slate-700">
                               {formatDate(step.completedAt)}
                             </p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                              Thanh toán
+                            </p>
+                            <div className="mt-1 flex items-center gap-2">
+                              {step.paymentStatus &&
+                              paymentStatusMap[step.paymentStatus] ? (
+                                <span
+                                  className={cn(
+                                    "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset",
+                                    paymentStatusMap[step.paymentStatus].bg,
+                                    paymentStatusMap[step.paymentStatus].text,
+                                    paymentStatusMap[step.paymentStatus].ring,
+                                  )}
+                                >
+                                  {paymentStatusMap[step.paymentStatus].label}
+                                </span>
+                              ) : (
+                                <span className="text-slate-500">—</span>
+                              )}
+                              {step.paymentAmount != null &&
+                                step.paymentAmount > 0 && (
+                                  <span className="text-xs font-semibold text-slate-700">
+                                    ({formatCurrency(step.paymentAmount)})
+                                  </span>
+                                )}
+                            </div>
                           </div>
                         </div>
                       </div>

@@ -17,7 +17,12 @@ import {
 } from "@phosphor-icons/react";
 import apiClient from "@/src/lib/api/client";
 
-type StepStatus = "PLANNED" | "SCHEDULED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+type StepStatus =
+  | "PLANNED"
+  | "SCHEDULED"
+  | "IN_PROGRESS"
+  | "COMPLETED"
+  | "CANCELLED";
 
 type PlanStep = {
   id: string;
@@ -40,6 +45,7 @@ type PlanDetail = {
   patientCode: string;
   startDate: string | null;
   expectedEndDate: string | null;
+  updatedAt: string;
   steps: PlanStep[];
 };
 
@@ -71,6 +77,7 @@ export default function EditTreatmentPlanPage() {
   const [description, setDescription] = useState("");
   const [startDate, setStartDate] = useState("");
   const [expectedEndDate, setExpectedEndDate] = useState("");
+  const [updatedAt, setUpdatedAt] = useState("");
   const [patientLabel, setPatientLabel] = useState("");
 
   // Steps
@@ -89,6 +96,7 @@ export default function EditTreatmentPlanPage() {
         setDescription(p.description ?? "");
         setStartDate(toInputDate(p.startDate));
         setExpectedEndDate(toInputDate(p.expectedEndDate));
+        setUpdatedAt(p.updatedAt);
         setPatientLabel(`${p.patientName} — ${p.patientCode}`);
         setSteps(
           p.steps.map((s, i) => ({
@@ -97,7 +105,8 @@ export default function EditTreatmentPlanPage() {
             title: s.title,
             description: s.description ?? "",
             targetTooth: s.targetTooth ?? "",
-            estimatedCost: s.estimatedCost != null ? String(s.estimatedCost) : "",
+            estimatedCost:
+              s.estimatedCost != null ? String(s.estimatedCost) : "",
             expectedDate: toInputDate(s.expectedDate),
           })),
         );
@@ -109,7 +118,14 @@ export default function EditTreatmentPlanPage() {
   const addStep = () => {
     setSteps((prev) => [
       ...prev,
-      { key: Date.now(), title: "", description: "", targetTooth: "", estimatedCost: "", expectedDate: "" },
+      {
+        key: Date.now(),
+        title: "",
+        description: "",
+        targetTooth: "",
+        estimatedCost: "",
+        expectedDate: "",
+      },
     ]);
   };
 
@@ -117,8 +133,14 @@ export default function EditTreatmentPlanPage() {
     if (steps.length > 1) setSteps((prev) => prev.filter((s) => s.key !== key));
   };
 
-  const updateStep = (key: number, field: keyof Omit<StepForm, "key">, value: string) => {
-    setSteps((prev) => prev.map((s) => (s.key === key ? { ...s, [field]: value } : s)));
+  const updateStep = (
+    key: number,
+    field: keyof Omit<StepForm, "key">,
+    value: string,
+  ) => {
+    setSteps((prev) =>
+      prev.map((s) => (s.key === key ? { ...s, [field]: value } : s)),
+    );
   };
 
   const moveUp = (index: number) => {
@@ -139,19 +161,32 @@ export default function EditTreatmentPlanPage() {
     });
   };
 
+  const totalEstimatedCost = steps.reduce((sum, s) => {
+    const val = Number(s.estimatedCost);
+    return !Number.isNaN(val) && val > 0 ? sum + val : sum;
+  }, 0);
+
   const handleSubmit = async () => {
-    if (!title.trim()) { setSaveError("Vui lòng nhập tên kế hoạch."); return; }
+    if (!title.trim()) {
+      setSaveError("Vui lòng nhập tên kế hoạch.");
+      return;
+    }
     if (startDate && expectedEndDate && startDate > expectedEndDate) {
       setSaveError("Ngày kết thúc dự kiến phải sau ngày bắt đầu.");
       return;
     }
     const validSteps = steps.filter((s) => s.title.trim());
-    if (validSteps.length === 0) { setSaveError("Vui lòng thêm ít nhất một bước điều trị."); return; }
+    if (validSteps.length === 0) {
+      setSaveError("Vui lòng thêm ít nhất một bước điều trị.");
+      return;
+    }
     const badCost = validSteps.find(
-      (s) => s.estimatedCost && Number(s.estimatedCost) < 0,
+      (s) =>
+        s.estimatedCost &&
+        (Number.isNaN(Number(s.estimatedCost)) || Number(s.estimatedCost) < 0),
     );
     if (badCost) {
-      setSaveError("Chi phí ước tính không được âm.");
+      setSaveError("Chi phí ước tính phải là số hợp lệ và không được âm.");
       return;
     }
     setSubmitting(true);
@@ -159,22 +194,26 @@ export default function EditTreatmentPlanPage() {
     try {
       await apiClient.patch(`/treatment-plans/${id}`, {
         title: title.trim(),
-        description: description.trim() || undefined,
-        startDate: startDate || undefined,
-        expectedEndDate: expectedEndDate || undefined,
+        description: description.trim(),
+        startDate: startDate ? startDate : null,
+        expectedEndDate: expectedEndDate ? expectedEndDate : null,
+        expectedUpdatedAt: updatedAt,
         steps: validSteps.map((s) => ({
           ...(s.id ? { id: s.id } : {}),
           title: s.title.trim(),
-          description: s.description.trim() || undefined,
-          targetTooth: s.targetTooth.trim() || undefined,
-          estimatedCost: s.estimatedCost ? Number(s.estimatedCost) : undefined,
-          expectedDate: s.expectedDate || undefined,
+          description: s.description.trim() || null,
+          targetTooth: s.targetTooth.trim() || null,
+          estimatedCost: s.estimatedCost ? Number(s.estimatedCost) : null,
+          expectedDate: s.expectedDate || null,
         })),
       });
       setSuccess(true);
       setTimeout(() => router.push(`/doctor/treatment-plans/${id}`), 1400);
-    } catch {
-      setSaveError("Lưu kế hoạch thất bại. Vui lòng thử lại.");
+    } catch (err: any) {
+      const msg =
+        err.response?.data?.message ||
+        "Lưu kế hoạch thất bại. Vui lòng thử lại.";
+      setSaveError(Array.isArray(msg) ? msg[0] : msg);
     } finally {
       setSubmitting(false);
     }
@@ -209,7 +248,6 @@ export default function EditTreatmentPlanPage() {
   return (
     <div className="bg-slate-50/50 px-6 py-8">
       <div className="mx-auto max-w-4xl">
-
         {/* Breadcrumb + title */}
         <div className="mb-6 space-y-4">
           <Link
@@ -222,15 +260,18 @@ export default function EditTreatmentPlanPage() {
 
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h1 className="text-2xl font-semibold text-brand-dark">Sửa kế hoạch điều trị</h1>
+              <h1 className="text-2xl font-semibold text-brand-dark">
+                Sửa kế hoạch điều trị
+              </h1>
               <p className="mt-1 text-sm text-muted-foreground">
                 Bệnh nhân: <strong>{patientLabel}</strong>
               </p>
             </div>
             <button
+              type="button"
               onClick={handleSubmit}
               disabled={submitting || success}
-              className="inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-brand-dark hover:shadow active:scale-[0.98] disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-brand-dark hover:shadow active:scale-[0.98] disabled:opacity-60 cursor-pointer"
             >
               {submitting ? (
                 <SpinnerGap size={15} className="animate-spin" />
@@ -239,7 +280,11 @@ export default function EditTreatmentPlanPage() {
               ) : (
                 <FloppyDisk size={15} weight="bold" />
               )}
-              {success ? "Đã lưu!" : submitting ? "Đang lưu..." : "Lưu thay đổi"}
+              {success
+                ? "Đã lưu!"
+                : submitting
+                  ? "Đang lưu..."
+                  : "Lưu thay đổi"}
             </button>
           </div>
         </div>
@@ -252,7 +297,6 @@ export default function EditTreatmentPlanPage() {
         )}
 
         <div className="space-y-8">
-
           {/* 1. Thông tin tổng quát */}
           <div className="rounded-2xl border border-border bg-white p-6 shadow-sm md:p-8">
             <h2 className="mb-6 text-base font-semibold text-brand-dark">
@@ -273,7 +317,9 @@ export default function EditTreatmentPlanPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-slate-900">Ngày bắt đầu</label>
+                <label className="text-sm font-semibold text-slate-900">
+                  Ngày bắt đầu
+                </label>
                 <input
                   type="date"
                   value={startDate}
@@ -283,7 +329,9 @@ export default function EditTreatmentPlanPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-slate-900">Ngày kết thúc dự kiến</label>
+                <label className="text-sm font-semibold text-slate-900">
+                  Ngày kết thúc dự kiến
+                </label>
                 <input
                   type="date"
                   value={expectedEndDate}
@@ -293,7 +341,9 @@ export default function EditTreatmentPlanPage() {
               </div>
 
               <div className="space-y-1.5 md:col-span-2">
-                <label className="text-sm font-semibold text-slate-900">Mô tả tổng quát</label>
+                <label className="text-sm font-semibold text-slate-900">
+                  Mô tả tổng quát
+                </label>
                 <textarea
                   rows={2}
                   value={description}
@@ -307,16 +357,31 @@ export default function EditTreatmentPlanPage() {
 
           {/* 2. Steps builder */}
           <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
-            <div className="border-b border-border bg-slate-50/50 p-6 flex items-center justify-between">
+            <div className="border-b border-border bg-slate-50/50 p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
-                <h2 className="text-base font-semibold text-brand-dark">2. Các bước điều trị</h2>
+                <h2 className="text-base font-semibold text-brand-dark">
+                  2. Các bước điều trị
+                </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Bước hiện có được giữ nguyên trạng thái/thanh toán; chỉ cập nhật nội dung và thứ tự.
+                  Bước hiện có được giữ nguyên trạng thái/thanh toán; chỉ cập
+                  nhật nội dung và thứ tự.
                 </p>
               </div>
-              <span className="rounded-full bg-brand/10 px-2.5 py-0.5 text-xs font-bold text-brand">
-                {steps.filter((s) => s.title.trim()).length} bước
-              </span>
+              <div className="flex items-center gap-3">
+                {totalEstimatedCost > 0 && (
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-right">
+                    <div className="text-[10px] font-medium text-emerald-600">
+                      Tổng dự toán
+                    </div>
+                    <div className="text-sm font-bold text-emerald-700">
+                      {totalEstimatedCost.toLocaleString("vi-VN")} đ
+                    </div>
+                  </div>
+                )}
+                <span className="rounded-full bg-brand/10 px-2.5 py-0.5 text-xs font-bold text-brand">
+                  {steps.filter((s) => s.title.trim()).length} bước
+                </span>
+              </div>
             </div>
 
             <div className="p-6 md:p-8">
@@ -325,7 +390,9 @@ export default function EditTreatmentPlanPage() {
                   <div key={step.key} className="group relative pl-8">
                     {/* Timeline dot */}
                     <div className="absolute -left-2.75 top-4 flex h-5 w-5 items-center justify-center rounded-full bg-muted-foreground/30 ring-4 ring-white">
-                      <span className="text-[9px] font-bold text-white">{index + 1}</span>
+                      <span className="text-[9px] font-bold text-white">
+                        {index + 1}
+                      </span>
                     </div>
 
                     <div className="rounded-xl border border-border bg-white p-5 shadow-sm transition-all hover:border-brand/30 hover:shadow-md">
@@ -336,31 +403,41 @@ export default function EditTreatmentPlanPage() {
                         </h3>
                         <div className="flex items-center gap-1">
                           <button
+                            type="button"
                             onClick={() => moveUp(index)}
                             disabled={index === 0}
+                            title="Di chuyển bước lên"
                             className={cn(
-                              "rounded p-1 text-muted-foreground transition-opacity hover:bg-muted",
-                              index === 0 ? "pointer-events-none opacity-0" : "opacity-0 group-hover:opacity-100",
+                              "rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 cursor-pointer",
+                              index === 0
+                                ? "pointer-events-none opacity-20"
+                                : "",
                             )}
                           >
-                            <ArrowUp size={14} />
+                            <ArrowUp size={15} />
                           </button>
                           <button
+                            type="button"
                             onClick={() => moveDown(index)}
                             disabled={index === steps.length - 1}
+                            title="Di chuyển bước xuống"
                             className={cn(
-                              "rounded p-1 text-muted-foreground transition-opacity hover:bg-muted",
-                              index === steps.length - 1 ? "pointer-events-none opacity-0" : "opacity-0 group-hover:opacity-100",
+                              "rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 cursor-pointer",
+                              index === steps.length - 1
+                                ? "pointer-events-none opacity-20"
+                                : "",
                             )}
                           >
-                            <ArrowDown size={14} />
+                            <ArrowDown size={15} />
                           </button>
                           <button
+                            type="button"
                             onClick={() => removeStep(step.key)}
                             disabled={steps.length === 1}
-                            className="rounded p-1 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-red-600 disabled:hidden"
+                            title="Xóa bước này"
+                            className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:hidden cursor-pointer"
                           >
-                            <Trash size={14} />
+                            <Trash size={15} />
                           </button>
                         </div>
                       </div>
@@ -373,51 +450,85 @@ export default function EditTreatmentPlanPage() {
                           <input
                             type="text"
                             value={step.title}
-                            onChange={(e) => updateStep(step.key, "title", e.target.value)}
+                            onChange={(e) =>
+                              updateStep(step.key, "title", e.target.value)
+                            }
                             placeholder="Ví dụ: Cắm trụ Implant"
                             className="w-full rounded-lg border-transparent bg-slate-50 px-3 py-2 text-sm text-brand-dark outline-none transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand"
                           />
                         </div>
 
                         <div className="space-y-1.5 md:col-span-3">
-                          <label className="text-xs font-semibold text-slate-900">Vị trí răng</label>
+                          <label className="text-xs font-semibold text-slate-900">
+                            Vị trí răng
+                          </label>
                           <input
                             type="text"
                             value={step.targetTooth}
-                            onChange={(e) => updateStep(step.key, "targetTooth", e.target.value)}
+                            onChange={(e) =>
+                              updateStep(
+                                step.key,
+                                "targetTooth",
+                                e.target.value,
+                              )
+                            }
                             placeholder="R46, R47"
                             className="w-full rounded-lg border-transparent bg-slate-50 px-3 py-2 font-mono text-sm text-brand-dark outline-none transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand"
                           />
                         </div>
 
                         <div className="space-y-1.5 md:col-span-3">
-                          <label className="text-xs font-semibold text-slate-900">Ngày dự kiến</label>
+                          <label className="text-xs font-semibold text-slate-900">
+                            Ngày dự kiến
+                          </label>
                           <input
                             type="date"
                             value={step.expectedDate}
-                            onChange={(e) => updateStep(step.key, "expectedDate", e.target.value)}
+                            onChange={(e) =>
+                              updateStep(
+                                step.key,
+                                "expectedDate",
+                                e.target.value,
+                              )
+                            }
                             className="w-full rounded-lg border-transparent bg-slate-50 px-3 py-2 text-sm text-brand-dark outline-none transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand"
                           />
                         </div>
 
                         <div className="space-y-1.5 md:col-span-6">
-                          <label className="text-xs font-semibold text-slate-900">Mô tả bước</label>
+                          <label className="text-xs font-semibold text-slate-900">
+                            Mô tả bước
+                          </label>
                           <input
                             type="text"
                             value={step.description}
-                            onChange={(e) => updateStep(step.key, "description", e.target.value)}
+                            onChange={(e) =>
+                              updateStep(
+                                step.key,
+                                "description",
+                                e.target.value,
+                              )
+                            }
                             placeholder="Mô tả ngắn..."
                             className="w-full rounded-lg border-transparent bg-slate-50 px-3 py-2 text-sm text-brand-dark outline-none transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand"
                           />
                         </div>
 
                         <div className="space-y-1.5 md:col-span-6">
-                          <label className="text-xs font-semibold text-slate-900">Chi phí ước tính (VNĐ)</label>
+                          <label className="text-xs font-semibold text-slate-900">
+                            Chi phí ước tính (VNĐ)
+                          </label>
                           <input
                             type="number"
                             min={0}
                             value={step.estimatedCost}
-                            onChange={(e) => updateStep(step.key, "estimatedCost", e.target.value)}
+                            onChange={(e) =>
+                              updateStep(
+                                step.key,
+                                "estimatedCost",
+                                e.target.value,
+                              )
+                            }
                             placeholder="5000000"
                             className="w-full rounded-lg border-transparent bg-slate-50 px-3 py-2 text-sm text-brand-dark outline-none transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand"
                           />
@@ -429,8 +540,9 @@ export default function EditTreatmentPlanPage() {
 
                 <div className="relative pl-8 pt-2">
                   <button
+                    type="button"
                     onClick={addStep}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border py-4 text-sm font-medium text-muted-foreground transition-all hover:border-brand hover:bg-brand/5 hover:text-brand active:scale-[0.99]"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border py-4 text-sm font-medium text-muted-foreground transition-all hover:border-brand hover:bg-brand/5 hover:text-brand active:scale-[0.99] cursor-pointer"
                   >
                     <Plus size={18} weight="bold" />
                     Thêm bước điều trị mới
@@ -444,14 +556,15 @@ export default function EditTreatmentPlanPage() {
           <div className="flex items-center justify-between rounded-2xl border border-border bg-white px-6 py-4 shadow-sm">
             <Link
               href={`/doctor/treatment-plans/${id}`}
-              className="text-sm text-muted-foreground hover:text-brand"
+              className="text-sm text-muted-foreground hover:text-brand cursor-pointer"
             >
               Hủy thay đổi
             </Link>
             <button
+              type="button"
               onClick={handleSubmit}
               disabled={submitting || success}
-              className="inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-brand-dark hover:shadow active:scale-[0.98] disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-brand-dark hover:shadow active:scale-[0.98] disabled:opacity-60 cursor-pointer"
             >
               {submitting ? (
                 <SpinnerGap size={15} className="animate-spin" />
@@ -460,7 +573,11 @@ export default function EditTreatmentPlanPage() {
               ) : (
                 <FloppyDisk size={15} weight="bold" />
               )}
-              {success ? "Đã lưu!" : submitting ? "Đang lưu..." : "Lưu thay đổi"}
+              {success
+                ? "Đã lưu!"
+                : submitting
+                  ? "Đang lưu..."
+                  : "Lưu thay đổi"}
             </button>
           </div>
         </div>

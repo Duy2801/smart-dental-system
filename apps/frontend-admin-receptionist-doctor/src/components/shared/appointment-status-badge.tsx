@@ -8,7 +8,11 @@ export type AppointmentStatus =
   | "COMPLETED"
   | "CANCELLED"
   | "NO_SHOW"
-  | "RESCHEDULED";
+  | "RESCHEDULED"
+  | "SCHEDULED"
+  | "PENDING_PAYMENT"
+  | "EXPIRED"
+  | "DOCTOR_MISSED";
 
 const STATUS_MAP: Record<
   AppointmentStatus,
@@ -46,6 +50,22 @@ const STATUS_MAP: Record<
   RESCHEDULED: {
     label: "Đổi lịch",
     className: "bg-orange-50 text-orange-700 ring-orange-600/20",
+  },
+  SCHEDULED: {
+    label: "Đã đặt lịch",
+    className: "bg-blue-50 text-blue-700 ring-blue-600/20",
+  },
+  PENDING_PAYMENT: {
+    label: "Chờ thanh toán",
+    className: "bg-amber-50 text-amber-700 ring-amber-600/20",
+  },
+  EXPIRED: {
+    label: "Hết hạn",
+    className: "bg-slate-100 text-slate-600 ring-slate-500/10",
+  },
+  DOCTOR_MISSED: {
+    label: "BS vắng mặt",
+    className: "bg-rose-50 text-rose-700 ring-rose-600/20",
   },
 };
 

@@ -19,6 +19,7 @@ import {
 } from "@phosphor-icons/react";
 import axios from "axios";
 import apiClient from "@/src/lib/api/client";
+import { getDoctorInfoFromCookie } from "@/src/lib/doctor/session";
 
 type Patient = {
   id: string;
@@ -35,22 +36,6 @@ type Step = {
   description: string;
 };
 
-function getUserInfo(): { doctorId: string | null } {
-  if (typeof document === "undefined") return { doctorId: null };
-  const raw = document.cookie
-    .split("; ")
-    .find((c) => c.startsWith("user_info="))
-    ?.split("=")
-    .slice(1)
-    .join("=");
-  if (!raw) return { doctorId: null };
-  try {
-    return JSON.parse(decodeURIComponent(raw));
-  } catch {
-    return { doctorId: null };
-  }
-}
-
 function NewTreatmentPlanContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -63,7 +48,14 @@ function NewTreatmentPlanContent() {
   const [startDate, setStartDate] = useState("");
   const [expectedEndDate, setExpectedEndDate] = useState("");
   const [steps, setSteps] = useState<Step[]>([
-    { key: 1, title: "", targetTooth: "", estimatedCost: "", expectedDate: "", description: "" },
+    {
+      key: 1,
+      title: "",
+      targetTooth: "",
+      estimatedCost: "",
+      expectedDate: "",
+      description: "",
+    },
   ]);
   const [submitting, setSubmitting] = useState(false);
   const [autoSendEmail, setAutoSendEmail] = useState(true);
@@ -72,20 +64,60 @@ function NewTreatmentPlanContent() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const doctorId = getUserInfo().doctorId;
+  const [doctorId, setDoctorId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const doc = getDoctorInfoFromCookie();
+    if (doc?.doctorId) {
+      setDoctorId(doc.doctorId);
+    }
+  }, []);
+
+  // Tải thông tin bệnh nhân nếu có initPatientId từ URL để đảm bảo dropdown không bị trắng
+  useEffect(() => {
+    if (!initPatientId) return;
+    apiClient
+      .get<Patient>(`/patients/${initPatientId}`)
+      .then((res) => {
+        if (res.data?.id) {
+          setPatients((prev) => {
+            if (prev.some((p) => p.id === res.data.id)) return prev;
+            return [res.data, ...prev];
+          });
+          setPatientId(res.data.id);
+        }
+      })
+      .catch((err) => {
+        console.error("Không thể tải thông tin bệnh nhân từ URL:", err);
+      });
+  }, [initPatientId]);
 
   useEffect(() => {
     if (!doctorId) return;
     apiClient
       .get<Patient[]>(`/patients?doctorId=${doctorId}`)
-      .then((res) => setPatients(res.data))
+      .then((res) => {
+        setPatients((prev) => {
+          const map = new Map<string, Patient>();
+          prev.forEach((p) => map.set(p.id, p));
+          res.data.forEach((p) => map.set(p.id, p));
+          return Array.from(map.values());
+        });
+      })
       .catch(() => setError("Không thể tải danh sách bệnh nhân."));
   }, [doctorId]);
 
   const addStep = () => {
     setSteps((prev) => [
       ...prev,
-      { key: Date.now(), title: "", targetTooth: "", estimatedCost: "", expectedDate: "", description: "" },
+      {
+        key: Date.now(),
+        title: "",
+        targetTooth: "",
+        estimatedCost: "",
+        expectedDate: "",
+        description: "",
+      },
     ]);
   };
 
@@ -95,7 +127,11 @@ function NewTreatmentPlanContent() {
     }
   };
 
-  const updateStep = (key: number, field: keyof Omit<Step, "key">, value: string) => {
+  const updateStep = (
+    key: number,
+    field: keyof Omit<Step, "key">,
+    value: string,
+  ) => {
     setSteps((prev) =>
       prev.map((s) => (s.key === key ? { ...s, [field]: value } : s)),
     );
@@ -156,7 +192,8 @@ function NewTreatmentPlanContent() {
         return;
       }
       if (res.data.title?.trim()) setTitle(res.data.title.trim());
-      if (res.data.description?.trim()) setDescription(res.data.description.trim());
+      if (res.data.description?.trim())
+        setDescription(res.data.description.trim());
       if (res.data.startDate) setStartDate(res.data.startDate.slice(0, 10));
       if (res.data.expectedEndDate) {
         setExpectedEndDate(res.data.expectedEndDate.slice(0, 10));
@@ -164,7 +201,10 @@ function NewTreatmentPlanContent() {
       setSteps(
         draftSteps.map((s, i) => {
           const hint = s.durationHint?.trim();
-          const desc = [s.description?.trim(), hint ? `Thời lượng: ${hint}` : ""]
+          const desc = [
+            s.description?.trim(),
+            hint ? `Thời lượng: ${hint}` : "",
+          ]
             .filter(Boolean)
             .join("\n");
           return {
@@ -183,13 +223,10 @@ function NewTreatmentPlanContent() {
         }),
       );
       setAiNote(
-        res.data.disclaimer ||
-          "Bản nháp AI. Chỉnh sửa rồi bấm Lưu kế hoạch.",
+        res.data.disclaimer || "Bản nháp AI. Chỉnh sửa rồi bấm Lưu kế hoạch.",
       );
     } catch (err) {
-      const msg = axios.isAxiosError(err)
-        ? err.response?.data?.message
-        : null;
+      const msg = axios.isAxiosError(err) ? err.response?.data?.message : null;
       setError(
         typeof msg === "string" && msg.trim()
           ? msg
@@ -223,7 +260,9 @@ function NewTreatmentPlanContent() {
       return;
     }
     const badCost = validSteps.find(
-      (s) => s.estimatedCost && Number(s.estimatedCost) < 0,
+      (s) =>
+        s.estimatedCost &&
+        (Number.isNaN(Number(s.estimatedCost)) || Number(s.estimatedCost) < 0),
     );
     if (badCost) {
       setError("Chi phí ước tính không được âm.");
@@ -232,26 +271,35 @@ function NewTreatmentPlanContent() {
     setSubmitting(true);
     setError(null);
     try {
-      const res = await apiClient.post<any>(`/treatment-plans?doctorId=${doctorId}`, {
-        patientId,
-        title: title.trim(),
-        description: description.trim() || undefined,
-        startDate: startDate || undefined,
-        expectedEndDate: expectedEndDate || undefined,
-        steps: validSteps.map((s) => ({
-          title: s.title.trim(),
-          description: s.description.trim() || undefined,
-          targetTooth: s.targetTooth.trim() || undefined,
-          estimatedCost: s.estimatedCost ? Number(s.estimatedCost) : undefined,
-          expectedDate: s.expectedDate || undefined,
-        })),
-      });
+      const res = await apiClient.post<any>(
+        `/treatment-plans?doctorId=${doctorId}`,
+        {
+          patientId,
+          title: title.trim(),
+          description: description.trim() || undefined,
+          startDate: startDate || undefined,
+          expectedEndDate: expectedEndDate || undefined,
+          steps: validSteps.map((s) => ({
+            title: s.title.trim(),
+            description: s.description.trim() || undefined,
+            targetTooth: s.targetTooth.trim() || undefined,
+            estimatedCost: s.estimatedCost
+              ? Number(s.estimatedCost)
+              : undefined,
+            expectedDate: s.expectedDate || undefined,
+          })),
+        },
+      );
 
       if (autoSendEmail && res.data?.id) {
         try {
           await apiClient.post(`/treatment-plans/${res.data.id}/send-email`);
         } catch (emailErr) {
-          console.error("Auto send treatment plan email error:", emailErr);
+          setSuccess(true);
+          setError(
+            "Kế hoạch đã được lưu nhưng chưa gửi được email. Bạn có thể gửi lại từ danh sách.",
+          );
+          return;
         }
       }
 
@@ -304,14 +352,18 @@ function NewTreatmentPlanContent() {
                 disabled={submitting || success}
                 className="inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-brand-dark hover:shadow active:scale-[0.98] disabled:opacity-60 cursor-pointer"
               >
-              {submitting ? (
-                <SpinnerGap size={15} className="animate-spin" />
-              ) : success ? (
-                <CheckCircle size={15} weight="fill" />
-              ) : (
-                <Lightning size={15} weight="fill" />
-              )}
-              {success ? "Đã tạo!" : submitting ? "Đang lưu..." : "Lưu kế hoạch"}
+                {submitting ? (
+                  <SpinnerGap size={15} className="animate-spin" />
+                ) : success ? (
+                  <CheckCircle size={15} weight="fill" />
+                ) : (
+                  <Lightning size={15} weight="fill" />
+                )}
+                {success
+                  ? "Đã tạo!"
+                  : submitting
+                    ? "Đang lưu..."
+                    : "Lưu kế hoạch"}
               </button>
             </div>
           </div>
@@ -413,8 +465,12 @@ function NewTreatmentPlanContent() {
                     onChange={(e) => setAutoSendEmail(e.target.checked)}
                     className="h-4 w-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                   />
-                  <label htmlFor="autoSendEmail" className="font-semibold cursor-pointer">
-                    ✉️ Tự động gửi Phác đồ điều trị & Bảng dự toán chi phí qua Gmail cho bệnh nhân sau khi lưu
+                  <label
+                    htmlFor="autoSendEmail"
+                    className="font-semibold cursor-pointer"
+                  >
+                    ✉️ Tự động gửi Phác đồ điều trị & Bảng dự toán chi phí qua
+                    Gmail cho bệnh nhân sau khi lưu
                   </label>
                 </div>
               </div>
@@ -436,7 +492,11 @@ function NewTreatmentPlanContent() {
                 {steps.map((step, index) => (
                   <div key={step.key} className="group relative pl-8">
                     <div className="absolute -left-[11px] top-4 flex h-5 w-5 items-center justify-center rounded-full bg-muted-foreground/30 ring-4 ring-white">
-                      <Check size={11} className="text-transparent" weight="bold" />
+                      <Check
+                        size={11}
+                        className="text-transparent"
+                        weight="bold"
+                      />
                     </div>
 
                     <div className="rounded-xl border border-border bg-white p-5 shadow-sm transition-all duration-200 hover:border-brand/30 hover:shadow-md">
@@ -447,31 +507,41 @@ function NewTreatmentPlanContent() {
 
                         <div className="flex items-center gap-1">
                           <button
+                            type="button"
                             onClick={() => moveUp(index)}
                             disabled={index === 0}
+                            title="Di chuyển bước lên"
                             className={cn(
-                              "rounded p-1 text-muted-foreground transition-opacity hover:bg-muted cursor-pointer",
-                              index === 0 ? "opacity-0 pointer-events-none" : "opacity-0 group-hover:opacity-100",
+                              "rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 cursor-pointer",
+                              index === 0
+                                ? "opacity-20 pointer-events-none"
+                                : "",
                             )}
                           >
-                            <ArrowUp size={14} />
+                            <ArrowUp size={15} />
                           </button>
                           <button
+                            type="button"
                             onClick={() => moveDown(index)}
                             disabled={index === steps.length - 1}
+                            title="Di chuyển bước xuống"
                             className={cn(
-                              "rounded p-1 text-muted-foreground transition-opacity hover:bg-muted cursor-pointer",
-                              index === steps.length - 1 ? "opacity-0 pointer-events-none" : "opacity-0 group-hover:opacity-100",
+                              "rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 cursor-pointer",
+                              index === steps.length - 1
+                                ? "opacity-20 pointer-events-none"
+                                : "",
                             )}
                           >
-                            <ArrowDown size={14} />
+                            <ArrowDown size={15} />
                           </button>
                           <button
+                            type="button"
                             onClick={() => removeStep(step.key)}
                             disabled={steps.length === 1}
-                            className="rounded p-1 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-red-600 disabled:hidden cursor-pointer"
+                            title="Xóa bước này"
+                            className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:hidden cursor-pointer"
                           >
-                            <Trash size={14} />
+                            <Trash size={15} />
                           </button>
                         </div>
                       </div>
@@ -484,7 +554,9 @@ function NewTreatmentPlanContent() {
                           <input
                             type="text"
                             value={step.title}
-                            onChange={(e) => updateStep(step.key, "title", e.target.value)}
+                            onChange={(e) =>
+                              updateStep(step.key, "title", e.target.value)
+                            }
                             placeholder="Ví dụ: Cắm trụ Implant"
                             className="w-full rounded-lg border-transparent bg-slate-50 px-3 py-2 text-sm text-brand-dark outline-none transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand"
                           />
@@ -497,7 +569,13 @@ function NewTreatmentPlanContent() {
                           <input
                             type="text"
                             value={step.targetTooth}
-                            onChange={(e) => updateStep(step.key, "targetTooth", e.target.value)}
+                            onChange={(e) =>
+                              updateStep(
+                                step.key,
+                                "targetTooth",
+                                e.target.value,
+                              )
+                            }
                             placeholder="R46, R47"
                             className="w-full rounded-lg border-transparent bg-slate-50 px-3 py-2 font-mono text-sm text-brand-dark outline-none transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand"
                           />
@@ -510,7 +588,13 @@ function NewTreatmentPlanContent() {
                           <input
                             type="date"
                             value={step.expectedDate}
-                            onChange={(e) => updateStep(step.key, "expectedDate", e.target.value)}
+                            onChange={(e) =>
+                              updateStep(
+                                step.key,
+                                "expectedDate",
+                                e.target.value,
+                              )
+                            }
                             className="w-full rounded-lg border-transparent bg-slate-50 px-3 py-2 text-sm text-brand-dark outline-none transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand"
                           />
                         </div>
@@ -522,7 +606,13 @@ function NewTreatmentPlanContent() {
                           <input
                             type="text"
                             value={step.description}
-                            onChange={(e) => updateStep(step.key, "description", e.target.value)}
+                            onChange={(e) =>
+                              updateStep(
+                                step.key,
+                                "description",
+                                e.target.value,
+                              )
+                            }
                             placeholder="Mô tả ngắn..."
                             className="w-full rounded-lg border-transparent bg-slate-50 px-3 py-2 text-sm text-brand-dark outline-none transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand"
                           />
@@ -536,7 +626,13 @@ function NewTreatmentPlanContent() {
                             type="number"
                             min={0}
                             value={step.estimatedCost}
-                            onChange={(e) => updateStep(step.key, "estimatedCost", e.target.value)}
+                            onChange={(e) =>
+                              updateStep(
+                                step.key,
+                                "estimatedCost",
+                                e.target.value,
+                              )
+                            }
                             placeholder="5000000"
                             className="w-full rounded-lg border-transparent bg-slate-50 px-3 py-2 text-sm text-brand-dark outline-none transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand"
                           />

@@ -2,6 +2,8 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
+  ArrayMaxSize,
+  IsBoolean,
   IsArray,
   IsNotEmpty,
   IsOptional,
@@ -61,7 +63,17 @@ export class CreatePrescriptionDto {
   @ApiProperty({ type: [PrescriptionItemDto] })
   @IsArray()
   @ArrayMinSize(1, { message: 'Đơn thuốc cần ít nhất một loại thuốc' })
+  @ArrayMaxSize(50, { message: 'Đơn thuốc có tối đa 50 loại thuốc' })
   @ValidateNested({ each: true })
   @Type(() => PrescriptionItemDto)
   items: PrescriptionItemDto[];
+
+  @ApiProperty({ description: 'Bác sĩ đã hoàn tất kiểm tra an toàn đơn thuốc' })
+  @IsBoolean()
+  safetyAcknowledged: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  safetyOverride?: boolean;
 }

@@ -1,27 +1,42 @@
 """LLM client — fallback chain: nvidia -> openrouter -> groq -> gemini."""
 
 import logging
+from dataclasses import dataclass
 from app.config import get_settings
 
 logger = logging.getLogger(__name__)
 
 
+@dataclass(frozen=True)
+class LlmCompletion:
+    content: str
+    provider: str
+    model: str
+
+
 async def complete(system: str, user: str) -> str:
     """Goi LLM voi fallback tu dong: nvidia -> openrouter -> groq -> gemini."""
+    result = await complete_with_metadata(system, user)
+    return result.content
+
+
+async def complete_with_metadata(system: str, user: str) -> LlmCompletion:
+    """Gọi LLM và trả kèm provider/model thực sự đã tạo kết quả."""
     settings = get_settings()
     provider = settings.llm_provider.lower()
 
     # --- Opt-in don le (khong fallback) ---
     if provider == "openai" and settings.openai_api_key:
-        return await _openai_compatible(
+        content = await _openai_compatible(
             "https://api.openai.com/v1/chat/completions",
             settings.openai_api_key,
             settings.openai_model,
             system,
             user,
         )
+        return LlmCompletion(content, "openai", settings.openai_model)
 
-    # --- Fallback chain: nvidia -> openrouter -> groq -> gemini ---
+    # --- Fallback chain: nvidia -> gemini -> groq -> openrouter ---
     candidates = []
 
     if settings.nvidia_api_key:
@@ -31,16 +46,6 @@ async def complete(system: str, user: str) -> str:
                 settings.nvidia_base_url,
                 settings.nvidia_api_key,
                 settings.nvidia_model,
-            )
-        )
-
-    if settings.openrouter_api_key:
-        candidates.append(
-            (
-                "openrouter",
-                "https://openrouter.ai/api/v1/chat/completions",
-                settings.openrouter_api_key,
-                settings.openrouter_model,
             )
         )
 
@@ -61,29 +66,45 @@ async def complete(system: str, user: str) -> str:
             logger.info("[LLM] Trying provider: %s", name)
             result = await _openai_compatible(url, api_key, model, system, user)
             logger.info("[LLM] Success with provider: %s", name)
-            return result
+            return LlmCompletion(result, name, model)
         except Exception as exc:
             logger.warning("[LLM] Provider %s failed: %s — trying next.", name, exc)
             last_error = exc
 
-    # Fallback to Gemini if configured
+    # Fast fallback: Gemini is high-throughput & takes only ~4s
     if settings.gemini_api_key:
         try:
-            logger.info("[LLM] Trying fallback provider: gemini")
+            logger.info("[LLM] Trying fast fallback provider: gemini")
             result = await _gemini_complete(system, user, settings)
             logger.info("[LLM] Success with fallback provider: gemini")
-            return result
+            return LlmCompletion(result, "gemini", settings.gemini_model)
         except Exception as exc:
-            logger.warning("[LLM] Provider gemini failed: %s", exc)
+            logger.warning("[LLM] Provider gemini failed: %s — trying openrouter.", exc)
+            last_error = exc
+
+    # Last resort fallback: OpenRouter
+    if settings.openrouter_api_key:
+        try:
+            logger.info("[LLM] Trying fallback provider: openrouter")
+            result = await _openai_compatible(
+                "https://openrouter.ai/api/v1/chat/completions",
+                settings.openrouter_api_key,
+                settings.openrouter_model,
+                system,
+                user,
+            )
+            logger.info("[LLM] Success with fallback provider: openrouter")
+            return LlmCompletion(result, "openrouter", settings.openrouter_model)
+        except Exception as exc:
+            logger.warning("[LLM] Provider openrouter failed: %s", exc)
             last_error = exc
 
     if last_error:
         raise RuntimeError(f"Tat ca LLM provider deu that bai. Loi cuoi: {last_error}")
 
-    return (
-        "[STUB AI] Chua cau hinh API key. "
-        "Dien NVIDIA_API_KEY / OPENROUTER_API_KEY / GROQ_API_KEY / GEMINI_API_KEY vao "
-        "apps/ai-service/.env roi restart service."
+    raise RuntimeError(
+        "Chưa cấu hình LLM provider. Cần NVIDIA_API_KEY, OPENROUTER_API_KEY, "
+        "GROQ_API_KEY hoặc GEMINI_API_KEY."
     )
 
 
@@ -92,7 +113,8 @@ async def _openai_compatible(
 ) -> str:
     import httpx
 
-    async with httpx.AsyncClient(timeout=10) as client:
+    timeout = get_settings().llm_timeout_seconds
+    async with httpx.AsyncClient(timeout=timeout) as client:
         res = await client.post(
             url,
             headers={"Authorization": f"Bearer {api_key}"},
@@ -118,7 +140,7 @@ async def _gemini_complete(system: str, user: str, settings) -> str:
         f"{settings.gemini_model}:generateContent"
         f"?key={settings.gemini_api_key}"
     )
-    async with httpx.AsyncClient(timeout=10) as client:
+    async with httpx.AsyncClient(timeout=settings.llm_timeout_seconds) as client:
         res = await client.post(
             url,
             json={

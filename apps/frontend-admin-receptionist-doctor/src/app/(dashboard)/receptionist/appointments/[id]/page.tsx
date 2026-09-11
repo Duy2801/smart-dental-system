@@ -15,6 +15,7 @@ import type {
 import { formatDoctorName } from "@/src/lib/utils/format";
 import { getApiErrorMessage } from "@/src/lib/utils/api-error";
 import { cn } from "@/src/lib/utils/cn";
+import { useAppDialog } from "@/src/providers/app-dialog-provider";
 import {
   ArrowLeft,
   Phone,
@@ -44,6 +45,7 @@ function dateFromIso(iso?: string) {
 }
 
 export default function AppointmentDetailPage() {
+  const { showConfirm } = useAppDialog();
   const { id } = useParams<{ id: string }>();
   const [apt, setApt] = useState<ReceptionistAppointment | null>(null);
   const [loading, setLoading] = useState(true);
@@ -113,12 +115,42 @@ export default function AppointmentDetailPage() {
     message: string,
   ) => {
     if (!apt) return;
-    if (status === "CANCELLED" && !window.confirm("Xác nhận hủy lịch hẹn này?")) return;
-    if (status === "NO_SHOW" && !window.confirm("Đánh dấu bệnh nhân vắng mặt?")) return;
+    if (status === "CANCELLED") {
+      const confirmed = await showConfirm({
+        title: "Hủy lịch hẹn?",
+        description: "Lịch hẹn này sẽ được chuyển sang trạng thái đã hủy.",
+        confirmLabel: "Hủy lịch hẹn",
+        tone: "danger",
+      });
+      if (!confirmed) return;
+    }
+    if (status === "NO_SHOW") {
+      const confirmed = await showConfirm({
+        title: "Đánh dấu bệnh nhân vắng mặt?",
+        description: "Xác nhận bệnh nhân đã không đến theo lịch hẹn này.",
+        confirmLabel: "Xác nhận vắng mặt",
+        tone: "danger",
+      });
+      if (!confirmed) return;
+    }
+    if (status === "CHECKED_IN") {
+      const confirmed = await showConfirm({
+        title: "Xác nhận tiền sử bệnh nhân?",
+        description:
+          "Tôi đã hỏi và đối chiếu thông tin dị ứng, bệnh nền và thuốc bệnh nhân đang sử dụng.",
+        confirmLabel: "Xác nhận và check-in",
+      });
+      if (!confirmed) return;
+    }
     setActing(true);
     setError(null);
     try {
-      await apiClient.patch(`/appointments/${apt.id}/${endpoint}`);
+      await apiClient.patch(
+        `/appointments/${apt.id}/${endpoint}`,
+        status === "CHECKED_IN"
+          ? { medicalHistoryConfirmed: true }
+          : undefined,
+      );
       await loadAppointment();
       setToast(message);
       setTimeout(() => setToast(null), 2500);

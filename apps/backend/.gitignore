@@ -56,5 +56,9 @@ pids
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
-/prisma/generated
+/prisma/generated/*
+!/prisma/generated/models/
+/prisma/generated/models/*
+!/prisma/generated/models/PrescriptionAudit.ts
+!/prisma/generated/models/TreatmentPlanAudit.ts
 *.tsbuildinfo

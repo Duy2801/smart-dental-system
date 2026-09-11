@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -39,6 +39,7 @@ type PrescriptionDetail = {
   notes: string | null;
   items: PrescriptionItem[];
   createdAt: string;
+  updatedAt: string;
 };
 
 type MedItem = {
@@ -71,6 +72,8 @@ export default function EditPrescriptionPage() {
   const [submitting, setSubmitting] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const savedSnapshot = useRef("");
+  const currentSnapshot = JSON.stringify({ notes, medications });
   const safetyReview = usePrescriptionSafetyReview({
     patientId: prescription?.patientId,
     medicalRecordId: prescription?.medicalRecordId,
@@ -86,22 +89,57 @@ export default function EditPrescriptionPage() {
         const rx = res.data;
         setPrescription(rx);
         setNotes(rx.notes ?? "");
-        setMedications(
-          rx.items.map((item, i) => ({
-            key: i + 1,
-            medicineName: item.medicineName,
-            dosage: item.dosage,
-            frequency: item.frequency ?? "",
-            duration: item.duration ?? "",
-            instruction: item.instruction ?? "",
-          })),
-        );
+        const loadedMedications = rx.items.map((item, i) => ({
+          key: i + 1,
+          medicineName: item.medicineName,
+          dosage: item.dosage,
+          frequency: item.frequency ?? "",
+          duration: item.duration ?? "",
+          instruction: item.instruction ?? "",
+        }));
+        setMedications(loadedMedications);
+        savedSnapshot.current = JSON.stringify({
+          notes: rx.notes ?? "",
+          medications: loadedMedications,
+        });
       })
       .catch(() => setFetchError("Không thể tải thông tin đơn thuốc."))
       .finally(() => setLoading(false));
   }, [id]);
 
+  useEffect(() => {
+    if (
+      !savedSnapshot.current ||
+      currentSnapshot === savedSnapshot.current ||
+      success
+    )
+      return;
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    const guardLinks = (event: MouseEvent) => {
+      if (event.defaultPrevented || event.button !== 0) return;
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const anchor = target.closest<HTMLAnchorElement>("a[href]");
+      if (!anchor || anchor.origin !== window.location.origin) return;
+      if (
+        !window.confirm(
+          "Đơn thuốc có thay đổi chưa lưu. Bạn có chắc muốn rời trang?",
+        )
+      ) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
+    window.addEventListener("beforeunload", warn);
+    document.addEventListener("click", guardLinks);
+    return () => {
+      window.removeEventListener("beforeunload", warn);
+      document.removeEventListener("click", guardLinks);
+    };
+  }, [currentSnapshot, success]);
+
   const addMedication = () => {
+    if (medications.length >= 50) return;
     setMedications((prev) => [
       ...prev,
       {
@@ -132,20 +170,27 @@ export default function EditPrescriptionPage() {
   };
 
   const handleSubmit = async () => {
-    const filled = medications.filter(
-      (m) => m.medicineName.trim() || m.dosage.trim(),
+    if (!prescription) return;
+    const activeMeds = medications.filter(
+      (m) =>
+        m.medicineName.trim() ||
+        m.dosage.trim() ||
+        m.frequency.trim() ||
+        m.duration.trim() ||
+        m.instruction.trim(),
     );
-    if (filled.length === 0) {
+    if (activeMeds.length === 0) {
       setSaveError("Vui lòng thêm ít nhất một loại thuốc.");
       return;
     }
-    const incomplete = filled.find(
+    const incomplete = activeMeds.find(
       (m) => !m.medicineName.trim() || !m.dosage.trim(),
     );
     if (incomplete) {
-      setSaveError("Mỗi thuốc cần có tên thuốc và liều dùng.");
+      setSaveError("Mỗi thuốc cần có đầy đủ tên thuốc và liều dùng.");
       return;
     }
+    const filled = activeMeds;
     setSaveError(null);
     if (!(await safetyReview.ensureReadyToSave())) {
       document
@@ -156,7 +201,7 @@ export default function EditPrescriptionPage() {
     setSubmitting(true);
     try {
       await apiClient.patch(`/prescriptions/${id}`, {
-        notes: notes.trim() || undefined,
+        notes: notes.trim(),
         items: filled.map((m) => ({
           medicineName: m.medicineName.trim(),
           dosage: m.dosage.trim(),
@@ -164,11 +209,25 @@ export default function EditPrescriptionPage() {
           duration: m.duration.trim() || undefined,
           instruction: m.instruction.trim() || undefined,
         })),
+        expectedUpdatedAt: prescription.updatedAt,
+        safetyAcknowledged: true,
+        safetyOverride: safetyReview.overrideConfirmed,
       });
       setSuccess(true);
-      setTimeout(() => router.push("/doctor/prescriptions"), 1500);
-    } catch {
-      setSaveError("Lưu đơn thuốc thất bại. Vui lòng thử lại.");
+      setTimeout(() => {
+        if (prescription?.medicalRecordId) {
+          router.push(
+            `/doctor/medical-records?recordId=${prescription.medicalRecordId}`,
+          );
+        } else {
+          router.push("/doctor/prescriptions");
+        }
+      }, 1500);
+    } catch (err: any) {
+      const msg =
+        err.response?.data?.message ||
+        "Lưu đơn thuốc thất bại. Vui lòng thử lại.";
+      setSaveError(Array.isArray(msg) ? msg[0] : msg);
     } finally {
       setSubmitting(false);
     }
@@ -208,11 +267,17 @@ export default function EditPrescriptionPage() {
         {/* Breadcrumb + tiêu đề */}
         <div className="mb-6 space-y-4">
           <Link
-            href="/doctor/prescriptions"
+            href={
+              prescription.medicalRecordId
+                ? `/doctor/medical-records?recordId=${prescription.medicalRecordId}`
+                : "/doctor/prescriptions"
+            }
             className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-brand-dark"
           >
             <ArrowLeft size={16} />
-            Quay lại danh sách
+            {prescription.medicalRecordId
+              ? "Quay lại bệnh án"
+              : "Quay lại danh sách"}
           </Link>
 
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -225,9 +290,10 @@ export default function EditPrescriptionPage() {
               </p>
             </div>
             <button
+              type="button"
               onClick={handleSubmit}
               disabled={submitting || safetyReview.loading || success}
-              className="inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-brand-dark hover:shadow active:scale-[0.98] disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-brand-dark hover:shadow active:scale-[0.98] disabled:opacity-60 cursor-pointer"
             >
               {submitting ? (
                 <SpinnerGap size={15} className="animate-spin" />
@@ -413,9 +479,10 @@ export default function EditPrescriptionPage() {
                       </td>
                       <td className="py-2.5 text-center">
                         <button
+                          type="button"
                           onClick={() => removeMedication(med.key)}
                           disabled={medications.length === 1}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded text-muted-foreground opacity-30 transition-all hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 disabled:opacity-0 active:scale-95"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded text-muted-foreground opacity-30 transition-all hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 disabled:opacity-0 active:scale-95 cursor-pointer"
                         >
                           <Trash size={14} />
                         </button>
@@ -427,8 +494,10 @@ export default function EditPrescriptionPage() {
 
               <div className="mt-4 border-t border-border/50 pt-4">
                 <button
+                  type="button"
                   onClick={addMedication}
-                  className="inline-flex items-center gap-1.5 text-sm font-medium text-brand transition-colors hover:text-brand-dark"
+                  disabled={medications.length >= 50}
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-brand transition-colors hover:text-brand-dark cursor-pointer"
                 >
                   <Plus size={15} weight="bold" />
                   Thêm thuốc
@@ -441,14 +510,15 @@ export default function EditPrescriptionPage() {
           <div className="flex items-center justify-between rounded-2xl border border-border bg-white px-6 py-4 shadow-sm">
             <Link
               href="/doctor/prescriptions"
-              className="text-sm text-muted-foreground hover:text-brand"
+              className="text-sm text-muted-foreground hover:text-brand cursor-pointer"
             >
               Hủy thay đổi
             </Link>
             <button
+              type="button"
               onClick={handleSubmit}
               disabled={submitting || safetyReview.loading || success}
-              className="inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-brand-dark hover:shadow active:scale-[0.98] disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-brand-dark hover:shadow active:scale-[0.98] disabled:opacity-60 cursor-pointer"
             >
               {submitting ? (
                 <SpinnerGap size={15} className="animate-spin" />

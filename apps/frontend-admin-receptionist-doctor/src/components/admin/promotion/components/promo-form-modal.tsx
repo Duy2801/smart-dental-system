@@ -214,7 +214,7 @@ export function PromoFormModal({
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <AdminInput
-            label="Mã Voucher Code *"
+            label="Mã Voucher Code"
             required
             disabled={isEditing}
             className="uppercase font-mono tracking-wider font-bold"
@@ -226,8 +226,8 @@ export function PromoFormModal({
             <AdminInput
               label={
                 isEditing
-                  ? `Giới hạn số lượt dùng * (Đã dùng: ${usedCount})`
-                  : "Giới hạn số lượt dùng *"
+                  ? `Giới hạn số lượt dùng (Đã dùng: ${usedCount})`
+                  : "Giới hạn số lượt dùng"
               }
               type="number"
               required
@@ -246,7 +246,7 @@ export function PromoFormModal({
         </div>
 
         <AdminInput
-          label="Tên chương trình khuyến mãi *"
+          label="Tên chương trình khuyến mãi"
           required
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -263,7 +263,8 @@ export function PromoFormModal({
 
         <div className="grid grid-cols-1 gap-4 rounded-xl border border-border bg-slate-50/70 p-4 sm:grid-cols-3">
           <AdminSelect
-            label="Loại giảm giá *"
+            label="Loại giảm giá"
+            required
             value={discountType}
             onChange={(e) => setDiscountType(e.target.value as DiscountType)}
           >
@@ -274,8 +275,8 @@ export function PromoFormModal({
           <AdminInput
             label={
               discountType === "PERCENTAGE"
-                ? "Mức giảm (%) *"
-                : "Mức giảm (VNĐ) *"
+                ? "Mức giảm (%)"
+                : "Mức giảm (VNĐ)"
             }
             type="number"
             required
@@ -343,7 +344,8 @@ export function PromoFormModal({
           {scopeType === "SERVICE" && (
             <div className="mt-2">
               <AdminSelect
-                label="Chọn nhóm dịch vụ áp dụng *"
+                label="Chọn nhóm dịch vụ áp dụng"
+                required
                 value={selectedServiceSlug}
                 onChange={(e) => setSelectedServiceSlug(e.target.value)}
               >
@@ -360,7 +362,8 @@ export function PromoFormModal({
           {scopeType === "METHOD" && (
             <div className="mt-2">
               <AdminSelect
-                label="Chọn phương pháp điều trị cụ thể *"
+                label="Chọn phương pháp điều trị cụ thể"
+                required
                 value={selectedMethodId}
                 onChange={(e) => setSelectedMethodId(e.target.value)}
               >
@@ -377,14 +380,14 @@ export function PromoFormModal({
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <AdminInput
-            label="Từ ngày *"
+            label="Từ ngày"
             type="date"
             required
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
           />
           <AdminInput
-            label="Đến ngày *"
+            label="Đến ngày"
             type="date"
             required
             value={endDate}

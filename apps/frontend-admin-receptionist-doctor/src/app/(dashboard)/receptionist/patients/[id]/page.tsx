@@ -57,6 +57,7 @@ type PatientDetail = {
     status: AppointmentStatus;
     serviceName: string;
     doctorName: string;
+    type?: "OFFLINE" | "ONLINE";
   }[];
 };
 
@@ -163,7 +164,8 @@ function PatientDetailContent() {
   };
 
   useEffect(() => {
-    void loadPatient();
+    const timer = setTimeout(() => void loadPatient(), 0);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -585,7 +587,7 @@ function PatientDetailContent() {
                     </h2>
                   </div>
                   <Link
-                    href="/receptionist/billing"
+                    href={`/receptionist/billing?patientId=${patient.id}`}
                     className="text-xs font-semibold text-brand hover:underline"
                   >
                     Đến thanh toán
@@ -656,6 +658,11 @@ function PatientDetailContent() {
                       <div className="min-w-0 space-y-1">
                         <div className="flex items-center gap-2">
                           <AppointmentStatusBadge status={apt.status} />
+                          {apt.type === "ONLINE" && (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-teal-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-teal-700 ring-1 ring-inset ring-teal-600/20">
+                              Trực tuyến
+                            </span>
+                          )}
                           <span className="font-mono text-[11px] text-muted-foreground">
                             {apt.appointmentCode}
                           </span>
@@ -675,15 +682,17 @@ function PatientDetailContent() {
                           {doctorLabel(apt.doctorName)}
                         </p>
                       </div>
-                      <Link
-                        href={`/receptionist/appointments/${apt.id}`}
-                        className={cn(
-                          "shrink-0 rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm",
-                          "hover:border-brand hover:text-brand transition-colors",
-                        )}
-                      >
-                        Chi tiết
-                      </Link>
+                      {apt.type !== "ONLINE" && (
+                        <Link
+                          href={`/receptionist/appointments/${apt.id}`}
+                          className={cn(
+                            "shrink-0 rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm",
+                            "hover:border-brand hover:text-brand transition-colors",
+                          )}
+                        >
+                          Chi tiết
+                        </Link>
+                      )}
                     </div>
                   ))}
                 </div>

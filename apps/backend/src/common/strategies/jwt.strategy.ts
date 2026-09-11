@@ -7,6 +7,7 @@ import { PrismaService } from '../../modules/prisma/prisma.service';
 type AccessTokenPayload = {
   sub: string;
   email: string;
+  sid?: string;
   tokenType: 'access' | 'refresh';
 };
 
@@ -42,6 +43,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     return {
       userId: user.id,
       email: user.email,
+      sessionId: payload.sid,
       roles: [user.role.code],
       permissions: user.role.permissions.map(
         ({ permission }) => permission.code,

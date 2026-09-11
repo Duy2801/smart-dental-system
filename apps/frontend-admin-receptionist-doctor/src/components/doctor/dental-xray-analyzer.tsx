@@ -30,13 +30,7 @@ import {
 } from "@phosphor-icons/react";
 import apiClient from "@/src/lib/api/client";
 import axios from "axios";
-import {
-  getVisibleFindings,
-  readImageDimensions,
-  validateXrayDimensions,
-  validateXrayFile,
-  validateXraySignature,
-} from "./dental-xray-analysis-utils";
+import { getVisibleFindings } from "./dental-xray-analysis-utils";
 
 export interface DentalFinding {
   fdiToothNumber: number;
@@ -83,7 +77,48 @@ interface DentalXrayAnalyzerProps {
   patientImages?: PatientXrayItem[];
   onApplyToMedicalRecord?: (findingsSummary: string) => void;
   onApplyToDentalChart?: (findings: DentalFinding[]) => void;
+  onApplyDiagnosis?: (diagnosis: string) => void;
+  onRequestUpload?: () => void;
 }
+
+export const FDI_TOOTH_OPTIONS = [
+  // Hàm trên - Phải (Quadrant 1)
+  { value: 18, label: "18 - Răng khôn trên phải" },
+  { value: 17, label: "17 - Răng cối lớn 2 trên phải" },
+  { value: 16, label: "16 - Răng cối lớn 1 trên phải" },
+  { value: 15, label: "15 - Răng cối nhỏ 2 trên phải" },
+  { value: 14, label: "14 - Răng cối nhỏ 1 trên phải" },
+  { value: 13, label: "13 - Răng nanh trên phải" },
+  { value: 12, label: "12 - Răng cửa bên trên phải" },
+  { value: 11, label: "11 - Răng cửa giữa trên phải" },
+  // Hàm trên - Trái (Quadrant 2)
+  { value: 21, label: "21 - Răng cửa giữa trên trái" },
+  { value: 22, label: "22 - Răng cửa bên trên trái" },
+  { value: 23, label: "23 - Răng nanh trên trái" },
+  { value: 24, label: "24 - Răng cối nhỏ 1 trên trái" },
+  { value: 25, label: "25 - Răng cối nhỏ 2 trên trái" },
+  { value: 26, label: "26 - Răng cối lớn 1 trên trái" },
+  { value: 27, label: "27 - Răng cối lớn 2 trên trái" },
+  { value: 28, label: "28 - Răng khôn trên trái" },
+  // Hàm dưới - Trái (Quadrant 3)
+  { value: 38, label: "38 - Răng khôn dưới trái" },
+  { value: 37, label: "37 - Răng cối lớn 2 dưới trái" },
+  { value: 36, label: "36 - Răng cối lớn 1 dưới trái" },
+  { value: 35, label: "35 - Răng cối nhỏ 2 dưới trái" },
+  { value: 34, label: "34 - Răng cối nhỏ 1 dưới trái" },
+  { value: 33, label: "33 - Răng nanh dưới trái" },
+  { value: 32, label: "32 - Răng cửa bên dưới trái" },
+  { value: 31, label: "31 - Răng cửa giữa dưới trái" },
+  // Hàm dưới - Phải (Quadrant 4)
+  { value: 41, label: "41 - Răng cửa giữa dưới phải" },
+  { value: 42, label: "42 - Răng cửa bên dưới phải" },
+  { value: 43, label: "43 - Răng nanh dưới phải" },
+  { value: 44, label: "44 - Răng cối nhỏ 1 dưới phải" },
+  { value: 45, label: "45 - Răng cối nhỏ 2 dưới phải" },
+  { value: 46, label: "46 - Răng cối lớn 1 dưới phải" },
+  { value: 47, label: "47 - Răng cối lớn 2 dưới phải" },
+  { value: 48, label: "48 - Răng khôn dưới phải" },
+];
 
 const FINDING_CONFIG: Record<
   string,
@@ -233,11 +268,24 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
   patientImages = [],
   onApplyToMedicalRecord,
   onApplyToDentalChart,
+  onApplyDiagnosis,
+  onRequestUpload,
 }) => {
   const effectivePatientImages = patientImages;
 
   const [imageUrl, setImageUrl] = useState<string>(effectivePatientImages[0]?.url || "");
   const [imageId, setImageId] = useState<string | null>(effectivePatientImages[0]?.id ?? null);
+
+  React.useEffect(() => {
+    if (effectivePatientImages.length === 0) {
+      setImageUrl("");
+      setImageId(null);
+    } else if (!imageId || !effectivePatientImages.some((img) => img.id === imageId || img.url === imageUrl)) {
+      setImageUrl(effectivePatientImages[0].url);
+      setImageId(effectivePatientImages[0].id ?? null);
+    }
+  }, [effectivePatientImages, imageId, imageUrl]);
+
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalyzeXrayResponse | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -282,50 +330,6 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
     setResult(null);
     setApplied(false);
     setChartSynced(false);
-  };
-
-  const handleUploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-
-    setUploadError(null);
-
-    const fileError = validateXrayFile(file);
-    if (fileError) {
-      setUploadError(fileError);
-      return;
-    }
-
-    try {
-      const signature = new Uint8Array(await file.slice(0, 12).arrayBuffer());
-      const signatureError = validateXraySignature(signature, file.type);
-      if (signatureError) {
-        setUploadError(signatureError);
-        return;
-      }
-
-      const { width, height } = await readImageDimensions(file);
-      const dimensionError = validateXrayDimensions(width, height);
-      if (dimensionError) {
-        setUploadError(dimensionError);
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        const b64 = ev.target?.result as string;
-        setImageUrl(b64);
-        setImageId(null);
-        setResult(null);
-        setApplied(false);
-        setChartSynced(false);
-      };
-      reader.onerror = () => setUploadError("Không thể đọc nội dung ảnh. Vui lòng chọn ảnh khác.");
-      reader.readAsDataURL(file);
-    } catch (error) {
-      setUploadError(error instanceof Error ? error.message : "Không thể đọc nội dung ảnh.");
-    }
   };
 
   // Main Analyze Function
@@ -572,11 +576,10 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
 
         {/* Action Controls */}
         <div className="flex items-center gap-2.5">
-          <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-border bg-white px-3 py-2 text-xs font-semibold text-brand-dark shadow-xs transition-all hover:border-brand/40 hover:bg-brand-light/40 active:scale-[0.98]">
+          <button type="button" onClick={onRequestUpload} className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-border bg-white px-3 py-2 text-xs font-semibold text-brand-dark shadow-xs transition-all hover:border-brand/40 hover:bg-brand-light/40 active:scale-[0.98]">
             <FileArrowUp size={16} className="text-brand" />
-            Tải ảnh khác
-            <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleUploadImage} />
-          </label>
+            Quản lý ảnh
+          </button>
 
           <button
             type="button"
@@ -883,13 +886,12 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
                 <FileArrowUp size={32} className="mb-2 text-sky-400" />
                 <p className="text-sm font-bold">Chưa có phim X-quang</p>
                 <p className="mt-1 max-w-sm text-xs text-slate-300">
-                  Tải phim của bệnh nhân lên để bắt đầu phân tích. Hệ thống không sử dụng ảnh mẫu thay thế.
+                  Hãy tải và lưu phim trong tab Ảnh trước khi phân tích. Hệ thống không sử dụng ảnh mẫu thay thế.
                 </p>
-                <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-xl bg-brand px-4 py-2 text-xs font-bold text-white transition-all hover:bg-brand-dark active:scale-[0.98]">
+                <button type="button" onClick={onRequestUpload} className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-xl bg-brand px-4 py-2 text-xs font-bold text-white transition-all hover:bg-brand-dark active:scale-[0.98]">
                   <FileArrowUp size={16} />
-                  Tải ảnh lên
-                  <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleUploadImage} />
-                </label>
+                  Mở tab Ảnh
+                </button>
               </div>
             ) : !result && !loading ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/60 p-6 text-center text-white backdrop-blur-[2px]">
@@ -1329,13 +1331,25 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
                   </div>
 
                   {result.diagnosisSuggestion && (
-                    <div className="rounded-xl border border-brand/20 bg-brand-light/45 p-3.5">
-                      <p className="mb-1 text-[11px] font-bold uppercase tracking-wider text-brand-dark">
-                        Gợi ý chẩn đoán ICD-10:
-                      </p>
-                      <p className="whitespace-pre-line text-xs font-bold leading-relaxed text-brand-dark">
-                        {result.diagnosisSuggestion}
-                      </p>
+                    <div className="rounded-xl border border-brand/20 bg-brand-light/45 p-3.5 space-y-2">
+                      <div>
+                        <p className="mb-1 text-[11px] font-bold uppercase tracking-wider text-brand-dark">
+                          Gợi ý chẩn đoán ICD-10:
+                        </p>
+                        <p className="whitespace-pre-line text-xs font-bold leading-relaxed text-brand-dark">
+                          {result.diagnosisSuggestion}
+                        </p>
+                      </div>
+                      {onApplyDiagnosis && (
+                        <button
+                          type="button"
+                          onClick={() => onApplyDiagnosis(result.diagnosisSuggestion!)}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-teal-700 transition cursor-pointer"
+                        >
+                          <Check size={14} weight="bold" />
+                          Áp dụng vào bệnh án
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1379,7 +1393,7 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
                       {chartSynced ? (
                         <>
                           <CheckCircle size={15} weight="fill" className="text-blue-600" />
-                          <span>Đã Đồng Bộ Răng</span>
+                          <span>Đã thêm vào bản nháp</span>
                         </>
                       ) : (
                         <>
@@ -1403,7 +1417,7 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
                 {onApplyToMedicalRecord && (
                   <button
                     type="button"
-                    onClick={() => {
+                      onClick={() => {
                       const doctorApprovedSummary =
                         `\n--- KẾT QUẢ X-QUANG (BÁC SĨ ĐÃ PHÊ DUYỆT ${acceptedFindings.length} TỔN THƯƠNG) ---\n` +
                         acceptedFindings
@@ -1422,8 +1436,9 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
 
                       onApplyToMedicalRecord(doctorApprovedSummary);
                       setApplied(true);
-                    }}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-emerald-500/20 transition hover:from-emerald-700 hover:to-teal-700 cursor-pointer"
+                      }}
+                      disabled={applied}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-emerald-500/20 transition hover:from-emerald-700 hover:to-teal-700 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {applied ? (
                       <>
@@ -1463,15 +1478,18 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="mb-1 block font-bold text-slate-300">Răng số (Chuẩn FDI 11-48):</label>
-                <input
-                  type="number"
-                  min={11}
-                  max={48}
+                <label className="mb-1 block font-bold text-slate-300">Răng số (Chuẩn FDI):</label>
+                <select
                   value={editFdiNumber}
                   onChange={(e) => setEditFdiNumber(Number(e.target.value))}
-                  className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm font-bold text-white focus:border-sky-400 focus:outline-none"
-                />
+                  className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs font-medium text-white focus:border-sky-400 focus:outline-none"
+                >
+                  {FDI_TOOTH_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
@@ -1565,15 +1583,17 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
             <div className="space-y-3 text-xs">
               <div>
                 <label className="mb-1 block font-bold text-slate-300">Răng số (Chuẩn FDI):</label>
-                <input
-                  type="number"
-                  min={11}
-                  max={48}
+                <select
                   value={newFdiNumber}
                   onChange={(e) => setNewFdiNumber(Number(e.target.value))}
-                  className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm font-bold text-white focus:border-amber-400 focus:outline-none"
-                  placeholder="Ví dụ: 18, 48, 36..."
-                />
+                  className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs font-medium text-white focus:border-amber-400 focus:outline-none"
+                >
+                  {FDI_TOOTH_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
@@ -1639,7 +1659,7 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
       {/* MODAL: PRINTABLE REPORT */}
       {showReportModal && result && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-xs overflow-y-auto">
-          <div className="my-8 w-full max-w-3xl rounded-2xl border border-slate-700 bg-white p-8 text-slate-900 shadow-2xl">
+          <div id="print-area" className="my-8 w-full max-w-3xl rounded-2xl border border-slate-700 bg-white p-8 text-slate-900 shadow-2xl">
             <div className="mb-6 flex items-center justify-between border-b border-slate-200 pb-4 print:hidden">
               <div className="flex items-center gap-2">
                 <Printer size={20} className="text-blue-600" />

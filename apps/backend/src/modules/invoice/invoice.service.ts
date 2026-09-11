@@ -25,7 +25,6 @@ export class InvoiceService {
             : {
                 status: {
                   in: [
-                    InvoiceStatus.DRAFT,
                     InvoiceStatus.ISSUED,
                     InvoiceStatus.PARTIALLY_PAID,
                   ],
@@ -84,6 +83,7 @@ export class InvoiceService {
         id: invoice.id,
         invoice_code: invoice.invoiceCode,
         invoice_type: invoice.invoiceType,
+        patient_id: invoice.patientId,
         patient_name:
           invoice.patient.fullName ?? invoice.patient.user?.fullName ?? 'Bệnh nhân',
         doctor_name: doctorName,

@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -30,6 +31,12 @@ const recordInclude = {
       user: { select: { fullName: true, phone: true } },
     },
   },
+  doctor: {
+    select: {
+      id: true,
+      user: { select: { fullName: true } },
+    },
+  },
   appointment: {
     select: {
       id: true,
@@ -39,8 +46,30 @@ const recordInclude = {
     },
   },
   prescriptionRecords: {
-    include: { items: true },
+    select: {
+      id: true,
+      notes: true,
+      createdAt: true,
+      items: true,
+    },
   },
+} as const;
+
+const recordSummarySelect = {
+  id: true,
+  patientId: true,
+  doctorId: true,
+  diagnosis: true,
+  chiefComplaint: true,
+  treatmentNotes: true,
+  followUpDate: true,
+  images: true,
+  createdAt: true,
+  updatedAt: true,
+  patient: recordInclude.patient,
+  doctor: recordInclude.doctor,
+  appointment: recordInclude.appointment,
+  _count: { select: { prescriptionRecords: true } },
 } as const;
 
 @Injectable()
@@ -92,13 +121,66 @@ export class MedicalRecordService {
     throw new ForbiddenException('Không tìm thấy hồ sơ bác sĩ');
   }
 
-  async findByDoctor(doctorId: string, patientId?: string) {
+  async findByDoctor(
+    doctorId: string,
+    patientId?: string,
+    appointmentId?: string,
+    user?: AuthenticatedUser,
+    allDoctors?: boolean,
+  ) {
+    if (patientId && allDoctors && user && !user.roles.includes('ADMIN')) {
+      const ownDoctorId = await this.resolveDoctorIdByUserId(user.userId);
+      const [relAppt, relVideo, relPlan, relRecord] = await Promise.all([
+        this.prisma.appointment.findFirst({
+          where: {
+            patientId,
+            doctorId: ownDoctorId,
+            status: {
+              in: ['CONFIRMED', 'CHECKED_IN', 'IN_PROGRESS', 'COMPLETED'],
+            },
+          },
+          select: { id: true },
+        }),
+        this.prisma.videoConsultation.findFirst({
+          where: {
+            patientId,
+            doctorId: ownDoctorId,
+            status: { in: ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED'] },
+          },
+          select: { id: true },
+        }),
+        this.prisma.treatmentPlan.findFirst({
+          where: {
+            patientId,
+            doctorId: ownDoctorId,
+            status: { in: ['PLANNED', 'IN_PROGRESS'] },
+          },
+          select: { id: true },
+        }),
+        this.prisma.medicalRecord.findFirst({
+          where: { patientId, doctorId: ownDoctorId },
+          select: { id: true },
+        }),
+      ]);
+      if (!relAppt && !relVideo && !relPlan && !relRecord) {
+        throw new ForbiddenException(
+          'Bạn không có quyền xem hồ sơ bệnh án của bệnh nhân này',
+        );
+      }
+    }
+
+    const whereClause: Prisma.MedicalRecordWhereInput =
+      allDoctors && patientId
+        ? { patientId }
+        : {
+            doctorId,
+            ...(patientId ? { patientId } : {}),
+            ...(appointmentId ? { appointmentId } : {}),
+          };
+
     const records = await this.prisma.medicalRecord.findMany({
-      where: {
-        doctorId,
-        ...(patientId ? { patientId } : {}),
-      },
-      include: recordInclude,
+      where: whereClause,
+      select: recordSummarySelect,
       orderBy: { createdAt: 'desc' },
     });
     return records.map((r) => this.toSummary(r));
@@ -110,7 +192,7 @@ export class MedicalRecordService {
       include: recordInclude,
     });
     if (!r) throw new NotFoundException('Không tìm thấy hồ sơ bệnh án');
-    await this.ensureCanAccess(r.doctorId, user);
+    await this.ensureCanAccessRead(r, user);
     return this.toDetail(r);
   }
 
@@ -121,10 +203,29 @@ export class MedicalRecordService {
   ) {
     const exists = await this.prisma.medicalRecord.findUnique({
       where: { id },
-      select: { id: true, doctorId: true, images: true },
+      select: {
+        id: true,
+        doctorId: true,
+        images: true,
+        dentalChart: true,
+        chiefComplaint: true,
+        diagnosis: true,
+        treatmentNotes: true,
+        internalNotes: true,
+        followUpDate: true,
+        updatedAt: true,
+      },
     });
     if (!exists) throw new NotFoundException('Không tìm thấy hồ sơ bệnh án');
     await this.ensureCanAccess(exists.doctorId, user);
+    if (
+      dto.expectedUpdatedAt &&
+      exists.updatedAt.getTime() !== new Date(dto.expectedUpdatedAt).getTime()
+    ) {
+      throw new ConflictException(
+        'Hồ sơ vừa được cập nhật ở nơi khác. Vui lòng tải lại trước khi lưu.',
+      );
+    }
 
     const data: Prisma.MedicalRecordUpdateInput = {};
     if (dto.chiefComplaint !== undefined) {
@@ -140,7 +241,26 @@ export class MedicalRecordService {
       data.internalNotes = dto.internalNotes?.trim() || null;
     }
     if (dto.followUpDate !== undefined) {
-      data.followUpDate = dto.followUpDate ? new Date(dto.followUpDate) : null;
+      if (dto.followUpDate) {
+        const followUpDate = new Date(dto.followUpDate);
+        const originalDate = exists.followUpDate
+          ? new Date(exists.followUpDate)
+          : null;
+        const isUnchanged =
+          originalDate &&
+          originalDate.toISOString().slice(0, 10) ===
+            followUpDate.toISOString().slice(0, 10);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (!isUnchanged && followUpDate.getTime() < today.getTime()) {
+          throw new BadRequestException(
+            'Ngày tái khám không được trước ngày hiện tại',
+          );
+        }
+        data.followUpDate = followUpDate;
+      } else {
+        data.followUpDate = null;
+      }
     }
     if (dto.images !== undefined) {
       const storedImages = Array.isArray(exists.images)
@@ -174,10 +294,40 @@ export class MedicalRecordService {
       ) as Prisma.InputJsonValue;
     }
 
-    const updated = await this.prisma.medicalRecord.update({
-      where: { id },
-      data,
-      include: recordInclude,
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const write = await tx.medicalRecord.updateMany({
+        where: { id, updatedAt: exists.updatedAt },
+        data,
+      });
+      if (write.count !== 1) {
+        throw new ConflictException(
+          'Hồ sơ vừa được cập nhật ở nơi khác. Vui lòng tải lại trước khi lưu.',
+        );
+      }
+      await tx.medicalRecordAudit.create({
+        data: {
+          medicalRecordId: id,
+          changedBy: user.userId,
+          previousData: JSON.parse(
+            JSON.stringify({
+              chiefComplaint: exists.chiefComplaint,
+              diagnosis: exists.diagnosis,
+              treatmentNotes: exists.treatmentNotes,
+              internalNotes: exists.internalNotes,
+              followUpDate: exists.followUpDate,
+              images: exists.images,
+              dentalChart: exists.dentalChart,
+              updatedAt: exists.updatedAt,
+            }),
+          ) as Prisma.InputJsonValue,
+        },
+      });
+      const record = await tx.medicalRecord.findUnique({
+        where: { id },
+        include: recordInclude,
+      });
+      if (!record) throw new NotFoundException('Không tìm thấy hồ sơ bệnh án');
+      return record;
     });
     void this.redis.del(`patient:records:${updated.patientId}`);
     return this.toDetail(updated);
@@ -194,8 +344,30 @@ export class MedicalRecordService {
     if (!file?.buffer?.length) {
       throw new BadRequestException('Chưa chọn file ảnh');
     }
-    if (!file.mimetype.startsWith('image/')) {
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)) {
       throw new BadRequestException('Chỉ chấp nhận file ảnh');
+    }
+
+    const validSignature =
+      (file.mimetype === 'image/jpeg' &&
+        file.buffer.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff]))) ||
+      (file.mimetype === 'image/png' &&
+        file.buffer
+          .subarray(0, 8)
+          .equals(
+            Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+          )) ||
+      (file.mimetype === 'image/webp' &&
+        file.buffer.subarray(0, 4).toString() === 'RIFF' &&
+        file.buffer.subarray(8, 12).toString() === 'WEBP');
+    if (!validSignature) {
+      throw new BadRequestException('medical_record.invalid_image_content');
+    }
+    if (meta.caption && meta.caption.trim().length > 200) {
+      throw new BadRequestException('medical_record.image_caption_too_long');
+    }
+    if (meta.type && !['xray', 'intraoral', 'other'].includes(meta.type)) {
+      throw new BadRequestException('medical_record.invalid_image_type');
     }
 
     const row = await this.prisma.medicalRecord.findUnique({
@@ -217,23 +389,45 @@ export class MedicalRecordService {
       publicId: `${id.slice(0, 8)}-${randomUUID()}`,
     });
 
-    const nextImages = [
-      ...current,
-      {
-        id: randomUUID(),
-        url,
-        caption: meta.caption?.trim() || file.originalname || null,
-        type: meta.type ?? 'xray',
-      },
-    ];
-
-    const updated = await this.prisma.medicalRecord.update({
-      where: { id },
-      data: {
-        images: nextImages as unknown as Prisma.InputJsonValue,
-      },
-      include: recordInclude,
+    const uploadedImage = {
+      id: randomUUID(),
+      url,
+      caption: meta.caption?.trim() || file.originalname || null,
+      type: meta.type ?? 'xray',
+    };
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const latest = await tx.medicalRecord.findUnique({
+        where: { id },
+        select: { images: true, updatedAt: true },
+      });
+      if (!latest) throw new NotFoundException('medical_record.not_found');
+      const latestImages = Array.isArray(latest.images)
+        ? (latest.images as RecordImage[])
+        : [];
+      if (latestImages.length >= 20) {
+        throw new BadRequestException('medical_record.image_limit');
+      }
+      const nextImages = [...latestImages, uploadedImage];
+      const write = await tx.medicalRecord.updateMany({
+        where: { id, updatedAt: latest.updatedAt },
+        data: { images: nextImages as unknown as Prisma.InputJsonValue },
+      });
+      if (write.count !== 1) {
+        throw new ConflictException('medical_record.concurrent_image_upload');
+      }
+      await tx.medicalRecordAudit.create({
+        data: {
+          medicalRecordId: id,
+          changedBy: user.userId,
+          previousData: { images: latest.images } as Prisma.InputJsonValue,
+        },
+      });
+      return tx.medicalRecord.findUnique({
+        where: { id },
+        include: recordInclude,
+      });
     });
+    if (!updated) throw new NotFoundException('medical_record.not_found');
     void this.redis.del(`patient:records:${updated.patientId}`);
     return this.toDetail(updated);
   }
@@ -246,6 +440,54 @@ export class MedicalRecordService {
     const ownId = await this.resolveDoctorIdByUserId(user.userId);
     if (ownId !== recordDoctorId) {
       throw new ForbiddenException(
+        'Bạn không có quyền sửa hồ sơ bệnh án của bác sĩ khác',
+      );
+    }
+  }
+
+  private async ensureCanAccessRead(
+    record: { doctorId: string; patientId: string },
+    user: AuthenticatedUser,
+  ) {
+    if (user.roles.includes('ADMIN')) return;
+    const ownDoctorId = await this.resolveDoctorIdByUserId(user.userId);
+    if (ownDoctorId === record.doctorId) return;
+
+    // Bác sĩ có thể đọc hồ sơ nếu có bất kỳ quan hệ khám/điều trị nào với bệnh nhân này
+    const [relAppt, relVideo, relPlan, relRecord] = await Promise.all([
+      this.prisma.appointment.findFirst({
+        where: {
+          patientId: record.patientId,
+          doctorId: ownDoctorId,
+          status: {
+            in: ['CONFIRMED', 'CHECKED_IN', 'IN_PROGRESS', 'COMPLETED'],
+          },
+        },
+        select: { id: true },
+      }),
+      this.prisma.videoConsultation.findFirst({
+        where: {
+          patientId: record.patientId,
+          doctorId: ownDoctorId,
+          status: { in: ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED'] },
+        },
+        select: { id: true },
+      }),
+      this.prisma.treatmentPlan.findFirst({
+        where: {
+          patientId: record.patientId,
+          doctorId: ownDoctorId,
+          status: { in: ['PLANNED', 'IN_PROGRESS'] },
+        },
+        select: { id: true },
+      }),
+      this.prisma.medicalRecord.findFirst({
+        where: { patientId: record.patientId, doctorId: ownDoctorId },
+        select: { id: true },
+      }),
+    ]);
+    if (!relAppt && !relVideo && !relPlan && !relRecord) {
+      throw new ForbiddenException(
         'Bạn không có quyền truy cập hồ sơ bệnh án này',
       );
     }
@@ -255,16 +497,23 @@ export class MedicalRecordService {
     return {
       id: r.id,
       patientId: r.patientId,
+      doctorId: r.doctorId ?? r.doctor?.id ?? null,
+      doctorName: r.doctor?.user?.fullName ?? null,
+      appointmentId: r.appointment?.id ?? r.appointmentId ?? null,
       patientName:
         r.patient?.fullName ?? r.patient?.user?.fullName ?? 'Bệnh nhân',
       patientCode: r.patient?.patientCode ?? '—',
       diagnosis: r.diagnosis ?? null,
       chiefComplaint: r.chiefComplaint ?? null,
+      treatmentNotes: r.treatmentNotes ?? null,
       serviceName: r.appointment?.service?.name ?? null,
       scheduledAt: r.appointment?.scheduledAt ?? null,
       followUpDate: r.followUpDate ?? null,
-      prescriptionCount: r.prescriptionRecords?.length ?? 0,
+      images: Array.isArray(r.images) ? r.images : [],
+      prescriptionCount:
+        r._count?.prescriptionRecords ?? r.prescriptionRecords?.length ?? 0,
       createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
     };
   }
 
