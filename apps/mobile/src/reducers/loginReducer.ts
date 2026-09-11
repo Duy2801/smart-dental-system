@@ -36,6 +36,9 @@ const loginSlice = createSlice({
       }
       state.isHydrated = true;
     },
+    updateAccessToken: (state, action: PayloadAction<string>) => {
+      state.accessToken = action.payload;
+    },
     clearSession: state => {
       state.user = null;
       state.accessToken = '';
@@ -45,5 +48,6 @@ const loginSlice = createSlice({
   },
 });
 
-export const { clearSession, hydrateSession, setSession } = loginSlice.actions;
+export const { clearSession, hydrateSession, setSession, updateAccessToken } =
+  loginSlice.actions;
 export default loginSlice.reducer;

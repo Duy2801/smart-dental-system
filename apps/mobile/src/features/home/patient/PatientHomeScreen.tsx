@@ -51,7 +51,6 @@ import {
 } from '../api';
 
 type HomeRow =
-  | { id: 'header' }
   | { id: 'hero' }
   | { id: 'featured-service' }
   | { id: 'trust' }
@@ -70,7 +69,6 @@ type PatientHomeNavigation = NativeStackNavigationProp<
 >;
 
 const rows: HomeRow[] = [
-  { id: 'header' },
   { id: 'hero' },
   { id: 'featured-service' },
   { id: 'trust' },
@@ -384,19 +382,6 @@ export default function PatientHomeScreen() {
   }, [dispatch, navigation, role]);
 
   const renderRow = ({ item }: { item: HomeRow }) => {
-    if (item.id === 'header') {
-      return (
-        <PatientHomeHeader
-          hasNotification={true}
-          onMenuPress={() => setDrawerOpen(true)}
-          onNotificationPress={() =>
-            navigation.navigate(SCREEN_NAME.PATIENT_NOTIFICATIONS)
-          }
-          user={user}
-        />
-      );
-    }
-
     if (item.id === 'hero') {
       return (
         <PatientHomeHeroSearch
@@ -490,6 +475,14 @@ export default function PatientHomeScreen() {
 
   return (
     <Screen className="bg-background">
+      <PatientHomeHeader
+        hasNotification={true}
+        onMenuPress={() => setDrawerOpen(true)}
+        onNotificationPress={() =>
+          navigation.navigate(SCREEN_NAME.PATIENT_NOTIFICATIONS)
+        }
+        user={user}
+      />
       <View className="flex-1">
         <ScreenList
           contentContainerStyle={styles.listContent}

@@ -3,8 +3,10 @@ import { useQuery } from '@tanstack/react-query';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  FlatList,
   Image,
   ImageBackground,
+  RefreshControl,
   StyleSheet,
   TextInput,
   TouchableOpacity,
@@ -12,7 +14,7 @@ import {
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useSelector } from 'react-redux';
-import { EmptyState, Screen, ScreenList } from '~src/components/ui';
+import { EmptyState, Screen } from '~src/components/ui';
 import { SCREEN_NAME } from '~src/constants/screenName';
 import { getClinicConfigInfo } from '~src/features/home/api';
 import { FloatingChatButton } from '~src/features/home/components/FloatingChatButton';
@@ -148,6 +150,20 @@ export default function DoctorsScreen({ navigation, route }: Props) {
     });
   }, [doctors, keyword, relatedDoctors, selectedDoctorId, selectedService]);
 
+  const DOCTORS_PER_PAGE = 5;
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [keyword, selectedServiceId, selectedDoctorId]);
+
+  const totalPages = Math.ceil(visibleDoctors.length / DOCTORS_PER_PAGE) || 1;
+  const paginatedDoctors = useMemo(() => {
+    const start = (currentPage - 1) * DOCTORS_PER_PAGE;
+    return visibleDoctors.slice(start, start + DOCTORS_PER_PAGE);
+  }, [currentPage, visibleDoctors]);
+
   const isLoading = doctorsQuery.isLoading || servicesQuery.isLoading;
   const isRefreshing = doctorsQuery.isRefetching || servicesQuery.isRefetching;
 
@@ -268,6 +284,90 @@ export default function DoctorsScreen({ navigation, route }: Props) {
             />
           </TouchableOpacity>
         </View>
+      </View>
+    );
+  };
+
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+
+    return (
+      <View style={styles.paginationContainer}>
+        <TouchableOpacity
+          activeOpacity={0.8}
+          disabled={currentPage === 1}
+          onPress={() => setCurrentPage(p => Math.max(1, p - 1))}
+          style={[
+            styles.pageBtn,
+            currentPage === 1 && styles.pageBtnDisabled,
+          ]}
+        >
+          <FontAwesome6
+            color={currentPage === 1 ? '#94A3B8' : '#0875D1'}
+            iconStyle="solid"
+            name="chevron-left"
+            size={11}
+          />
+          <Text
+            style={[
+              styles.pageBtnText,
+              currentPage === 1 && styles.pageBtnTextDisabled,
+            ]}
+          >
+            Trang trước
+          </Text>
+        </TouchableOpacity>
+
+        <View style={styles.pageNumbersRow}>
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNum => {
+            const isActive = pageNum === currentPage;
+            return (
+              <TouchableOpacity
+                key={`page-${pageNum}`}
+                activeOpacity={0.8}
+                onPress={() => setCurrentPage(pageNum)}
+                style={[
+                  styles.pageNumBtn,
+                  isActive && styles.pageNumBtnActive,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.pageNumText,
+                    isActive && styles.pageNumTextActive,
+                  ]}
+                >
+                  {pageNum}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        <TouchableOpacity
+          activeOpacity={0.8}
+          disabled={currentPage === totalPages}
+          onPress={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+          style={[
+            styles.pageBtn,
+            currentPage === totalPages && styles.pageBtnDisabled,
+          ]}
+        >
+          <Text
+            style={[
+              styles.pageBtnText,
+              currentPage === totalPages && styles.pageBtnTextDisabled,
+            ]}
+          >
+            Trang sau
+          </Text>
+          <FontAwesome6
+            color={currentPage === totalPages ? '#94A3B8' : '#0875D1'}
+            iconStyle="solid"
+            name="chevron-right"
+            size={11}
+          />
+        </TouchableOpacity>
       </View>
     );
   };
@@ -475,8 +575,8 @@ export default function DoctorsScreen({ navigation, route }: Props) {
           <Text style={styles.loadingText}>Đang tải đội ngũ bác sĩ...</Text>
         </View>
       ) : (
-        <ScreenList
-          data={visibleDoctors}
+        <FlatList
+          data={paginatedDoctors}
           keyExtractor={item => item.id}
           ListEmptyComponent={
             <EmptyState
@@ -487,9 +587,21 @@ export default function DoctorsScreen({ navigation, route }: Props) {
             />
           }
           ListHeaderComponent={ListHeader}
-          ListFooterComponent={<PatientFooter clinic={clinicQuery.data} />}
-          onRefresh={handleRefresh}
-          refreshing={isRefreshing}
+          ListFooterComponent={
+            <View>
+              {renderPagination()}
+              <PatientFooter clinic={clinicQuery.data} />
+            </View>
+          }
+          refreshControl={
+            <RefreshControl
+              colors={['#0875D1']}
+              tintColor="#0875D1"
+              onRefresh={handleRefresh}
+              refreshing={Boolean(isRefreshing)}
+            />
+          }
+          showsVerticalScrollIndicator={false}
           renderItem={renderDoctor}
           contentContainerStyle={styles.listContent}
         />
@@ -704,7 +816,11 @@ const styles = StyleSheet.create({
     paddingTop: 6,
   },
   listContent: {
+    gap: 0,
+    padding: 0,
     paddingBottom: 0,
+    paddingHorizontal: 0,
+    paddingTop: 0,
   },
   listHeader: {
     paddingHorizontal: 16,
@@ -865,5 +981,64 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     lineHeight: 31,
     marginTop: 10,
+  },
+  paginationContainer: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+    marginVertical: 18,
+    paddingHorizontal: 16,
+  },
+  pageBtn: {
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  pageBtnDisabled: {
+    backgroundColor: '#F8FAFC',
+    borderColor: '#F1F5F9',
+    opacity: 0.6,
+  },
+  pageBtnText: {
+    color: '#0875D1',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  pageBtnTextDisabled: {
+    color: '#94A3B8',
+  },
+  pageNumbersRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  pageNumBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  pageNumBtnActive: {
+    backgroundColor: '#0875D1',
+    borderColor: '#0875D1',
+  },
+  pageNumText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#334155',
+  },
+  pageNumTextActive: {
+    color: '#FFFFFF',
   },
 });

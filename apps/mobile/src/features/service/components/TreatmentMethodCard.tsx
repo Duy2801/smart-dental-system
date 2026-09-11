@@ -176,9 +176,9 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   imageContainer: {
-    aspectRatio: 4 / 3,
     backgroundColor: '#F1F5F9',
-    maxHeight: 220,
+    height: 195,
+    overflow: 'hidden',
     width: '100%',
   },
   methodName: {

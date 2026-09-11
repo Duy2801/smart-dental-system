@@ -3,8 +3,10 @@ import { useQuery } from '@tanstack/react-query';
 import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  FlatList,
   Image,
   Modal,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   TextInput,
@@ -14,12 +16,15 @@ import {
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useSelector } from 'react-redux';
-import { EmptyState, Screen, ScreenList } from '~src/components/ui';
+import { EmptyState, Screen } from '~src/components/ui';
 import { SCREEN_NAME } from '~src/constants/screenName';
+import { getClinicConfigInfo } from '~src/features/home/api';
+import { FloatingChatButton } from '~src/features/home/components/FloatingChatButton';
 import { PatientDrawerModal } from '~src/features/home/components/PatientDrawerModal';
 import { PatientFooter } from '~src/features/home/components/PatientFooter';
 import { PatientHomeHeader } from '~src/features/home/components/PatientHomeHeader';
 import { usePatientDrawerActions } from '~src/features/home/hooks/usePatientDrawerActions';
+import { CACHE_TIMES, queryKeys } from '~src/config/queryClient';
 import type { RootState } from '~src/reducers/store';
 import { formatVnd, getPatientPromotions, type PatientPromotion } from '../api';
 
@@ -37,6 +42,13 @@ export default function PromotionsScreen({ navigation }: any) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const { handleDrawerNavigate, handleLogout } = usePatientDrawerActions();
+
+  const clinicQuery = useQuery({
+    queryKey: queryKeys.clinicConfig,
+    queryFn: getClinicConfigInfo,
+    staleTime: CACHE_TIMES.CLINIC_CONFIG.staleTime,
+    gcTime: CACHE_TIMES.CLINIC_CONFIG.gcTime,
+  });
 
   const promotionsQuery = useQuery({
     queryFn: () => getPatientPromotions(),
@@ -312,13 +324,16 @@ export default function PromotionsScreen({ navigation }: any) {
   return (
     <Screen>
       <PatientHomeHeader
+        hasNotification={true}
         onMenuPress={() => setDrawerVisible(true)}
         onNotificationPress={() =>
           navigation.navigate(SCREEN_NAME.PATIENT_NOTIFICATIONS as never)
         }
+        user={user}
       />
 
       <PatientDrawerModal
+        clinicPhone={clinicQuery.data?.phone}
         isOpen={drawerVisible}
         onClose={() => setDrawerVisible(false)}
         onLogout={handleLogout}
@@ -332,7 +347,7 @@ export default function PromotionsScreen({ navigation }: any) {
           <Text style={styles.loadingText}>Đang tải ưu đãi...</Text>
         </View>
       ) : (
-        <ScreenList
+        <FlatList
           contentContainerStyle={styles.listContent}
           data={filteredPromotions}
           keyExtractor={item => item.id}
@@ -365,9 +380,16 @@ export default function PromotionsScreen({ navigation }: any) {
             </View>
           }
           ListHeaderComponent={renderHeader}
-          ListFooterComponent={<PatientFooter />}
-          onRefresh={promotionsQuery.refetch}
-          refreshing={promotionsQuery.isRefetching}
+          ListFooterComponent={<PatientFooter clinic={clinicQuery.data} />}
+          refreshControl={
+            <RefreshControl
+              colors={['#0058bc']}
+              tintColor="#0058bc"
+              onRefresh={promotionsQuery.refetch}
+              refreshing={Boolean(promotionsQuery.isRefetching)}
+            />
+          }
+          showsVerticalScrollIndicator={false}
           renderItem={renderPromotionCard}
         />
       )}
@@ -618,6 +640,8 @@ export default function PromotionsScreen({ navigation }: any) {
           </View>
         </Modal>
       )}
+
+      <FloatingChatButton />
     </Screen>
   );
 }
@@ -816,17 +840,21 @@ const styles = StyleSheet.create({
   },
   imageBox: {
     backgroundColor: '#F1F5F9',
-    height: 140,
+    width: '100%',
+    aspectRatio: 16 / 9,
     overflow: 'hidden',
     position: 'relative',
-    width: '100%',
   },
   introBox: {
     paddingHorizontal: 16,
     paddingTop: 12,
   },
   listContent: {
+    gap: 0,
+    padding: 0,
     paddingBottom: 0,
+    paddingHorizontal: 0,
+    paddingTop: 0,
   },
   loadingContainer: {
     alignItems: 'center',

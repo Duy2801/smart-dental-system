@@ -53,6 +53,8 @@ export type AppointmentItem = {
   patientRelationship?: string | null;
   doctorId: string;
   serviceId: string;
+  treatmentMethodId?: string;
+  treatmentMethodName?: string;
   scheduledAt: string;
   endAt: string;
   durationMinutes: number;
@@ -107,6 +109,7 @@ export type BookingOptionsQuery = {
   doctorId?: string;
   date?: string;
   time?: string;
+  appointmentId?: string;
 };
 
 export type CreateAppointmentPayload = {

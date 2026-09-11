@@ -1,9 +1,8 @@
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Modal,
   ScrollView,
   StyleSheet,
@@ -11,9 +10,10 @@ import {
   View,
 } from 'react-native';
 import { Text } from 'react-native-paper';
-import { Button } from '~src/components/ui';
+import { Button, toast } from '~src/components/ui';
 import { getAppointmentOptions, reschedulePatientAppointment } from '../../api';
 import type { AppointmentItem } from '../../types';
+import { getBookingErrorMessage } from '../../utils/bookingErrorMessage';
 
 type RescheduleAppointmentModalProps = {
   appointment: AppointmentItem | null;
@@ -27,11 +27,36 @@ export function RescheduleAppointmentModal({
   const queryClient = useQueryClient();
   const [selectedDateId, setSelectedDateId] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
+  const activeDateId = selectedDateId || appointment?.dateId || '';
+
+  useEffect(() => {
+    setSelectedDateId(appointment?.dateId ?? '');
+    setSelectedTime('');
+  }, [appointment?.dateId, appointment?.id]);
+
+  const rescheduleParams = useMemo(
+    () => ({
+      appointmentId: appointment?.id,
+      serviceId: appointment?.serviceId,
+      treatmentMethodId: appointment?.treatmentMethodId,
+      doctorId: appointment?.doctorId,
+      date: activeDateId,
+    }),
+    [
+      activeDateId,
+      appointment?.doctorId,
+      appointment?.id,
+      appointment?.serviceId,
+      appointment?.treatmentMethodId,
+    ],
+  );
 
   const optionsQuery = useQuery({
-    queryKey: ['reschedule-options', appointment?.doctorId],
-    queryFn: () => getAppointmentOptions({ doctorId: appointment?.doctorId }),
-    enabled: Boolean(appointment?.doctorId),
+    queryKey: ['reschedule-options', rescheduleParams],
+    queryFn: () => getAppointmentOptions(rescheduleParams),
+    enabled: Boolean(appointment?.id),
+    placeholderData: previousData => previousData,
+    staleTime: 15000,
   });
 
   const rescheduleMutation = useMutation({
@@ -39,24 +64,61 @@ export function RescheduleAppointmentModal({
       reschedulePatientAppointment(appointment!.id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['patient-appointments'] });
-      Alert.alert('Thành công', 'Lịch hẹn đã được dời sang thời gian mới.');
+      toast.success(
+        'Đã đổi lịch hẹn',
+        'Lịch hẹn đã được dời sang thời gian mới.',
+      );
       onClose();
     },
     onError: (err: any) => {
-      Alert.alert('Lỗi', err?.response?.data?.message || 'Không thể dời lịch hẹn. Vui lòng thử lại.');
+      toast.error('Không thể đổi lịch', getBookingErrorMessage(err));
     },
   });
 
-  if (!appointment) return null;
+  const dates = useMemo(
+    () => optionsQuery.data?.dates ?? [],
+    [optionsQuery.data?.dates],
+  );
+  const times = useMemo(
+    () => optionsQuery.data?.timeSlots ?? [],
+    [optionsQuery.data?.timeSlots],
+  );
+  const resolvedDateId =
+    selectedDateId || dates.find(date => date.isOpen)?.id || dates[0]?.id || '';
 
-  const dates = optionsQuery.data?.dates ?? [];
-  const times = optionsQuery.data?.timeSlots ?? [];
+  useEffect(() => {
+    if (!dates.length) return;
+
+    const selectedDateIsOpen = dates.some(
+      date => date.id === selectedDateId && date.isOpen,
+    );
+    if (selectedDateId && selectedDateIsOpen) return;
+
+    const firstOpenDate = dates.find(date => date.isOpen) ?? dates[0];
+    if (firstOpenDate?.id && firstOpenDate.id !== selectedDateId) {
+      setSelectedDateId(firstOpenDate.id);
+      setSelectedTime('');
+    }
+  }, [dates, selectedDateId]);
+
+  useEffect(() => {
+    if (!times.length) {
+      if (selectedTime) setSelectedTime('');
+      return;
+    }
+
+    if (!selectedTime || !times.includes(selectedTime)) {
+      setSelectedTime(times[0]);
+    }
+  }, [selectedTime, times]);
 
   const handleConfirmReschedule = () => {
-    if (!selectedDateId || !selectedTime) return;
-    const scheduledAt = `${selectedDateId}T${selectedTime}:00`;
+    if (!resolvedDateId || !selectedTime) return;
+    const scheduledAt = `${resolvedDateId}T${selectedTime}:00`;
     rescheduleMutation.mutate({ scheduledAt });
   };
+
+  if (!appointment) return null;
 
   return (
     <Modal
@@ -81,17 +143,27 @@ export function RescheduleAppointmentModal({
               onPress={onClose}
               className="h-8 w-8 items-center justify-center rounded-full bg-slate-100"
             >
-              <FontAwesome6 color="#64748B" iconStyle="solid" name="xmark" size={14} />
+              <FontAwesome6
+                color="#64748B"
+                iconStyle="solid"
+                name="xmark"
+                size={14}
+              />
             </TouchableOpacity>
           </View>
 
           {optionsQuery.isLoading ? (
             <View className="py-10 items-center justify-center">
               <ActivityIndicator color="#0058bc" size="small" />
-              <Text className="mt-2 text-xs text-slate-400">Đang tải lịch trống của bác sĩ...</Text>
+              <Text className="mt-2 text-xs text-slate-400">
+                Đang tải lịch trống của bác sĩ...
+              </Text>
             </View>
           ) : (
-            <ScrollView showsVerticalScrollIndicator={false} className="mt-3 space-y-4">
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              className="mt-3 space-y-4"
+            >
               {/* 1. Chọn ngày mới */}
               <View>
                 <Text className="text-xs font-black uppercase tracking-wider text-slate-700 mb-2">
@@ -100,10 +172,10 @@ export function RescheduleAppointmentModal({
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ paddingVertical: 2 }}
+                  contentContainerStyle={styles.dateListContent}
                 >
                   {dates.map(date => {
-                    const isSelected = date.id === selectedDateId;
+                    const isSelected = date.id === resolvedDateId;
                     return (
                       <TouchableOpacity
                         key={date.id}
@@ -156,7 +228,9 @@ export function RescheduleAppointmentModal({
 
                 {times.length === 0 ? (
                   <Text className="py-4 text-center text-xs text-slate-400">
-                    {selectedDateId ? 'Không còn giờ trống ngày này.' : 'Chọn ngày ở trên để xem giờ.'}
+                    {resolvedDateId
+                      ? 'Không còn giờ trống ngày này.'
+                      : 'Chọn ngày ở trên để xem giờ.'}
                   </Text>
                 ) : (
                   <View className="flex-row flex-wrap gap-2">
@@ -174,7 +248,9 @@ export function RescheduleAppointmentModal({
                           <Text
                             style={[
                               styles.timeText,
-                              isSelected ? styles.timeTextSelected : styles.timeTextNormal,
+                              isSelected
+                                ? styles.timeTextSelected
+                                : styles.timeTextNormal,
                             ]}
                           >
                             {time}
@@ -189,11 +265,17 @@ export function RescheduleAppointmentModal({
               {/* Actions */}
               <View className="pt-3 pb-2 gap-2">
                 <Button
-                  disabled={!selectedDateId || !selectedTime || rescheduleMutation.isPending}
+                  disabled={
+                    !resolvedDateId ||
+                    !selectedTime ||
+                    rescheduleMutation.isPending
+                  }
                   onPress={handleConfirmReschedule}
                   className="w-full"
                 >
-                  {rescheduleMutation.isPending ? 'Đang cập nhật...' : 'Xác nhận đổi lịch'}
+                  {rescheduleMutation.isPending
+                    ? 'Đang cập nhật...'
+                    : 'Xác nhận đổi lịch'}
                 </Button>
                 <Button variant="outline" onPress={onClose} className="w-full">
                   Hủy bỏ
@@ -211,6 +293,9 @@ const styles = StyleSheet.create({
   dateDay: {
     fontSize: 15,
     fontWeight: '900',
+  },
+  dateListContent: {
+    paddingVertical: 2,
   },
   dateMonth: {
     fontSize: 9,

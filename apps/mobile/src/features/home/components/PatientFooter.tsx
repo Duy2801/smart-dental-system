@@ -18,8 +18,8 @@ function getOpenHoursText(
   const openDays = hours.filter(day => day.isOpen);
   if (!openDays.length) {
     return [
-      'Thu Hai - Thu Sau: 08:00 - 17:00',
-      'Thu Bay: 08:00 - 12:00',
+      'Thứ Hai - Thứ Sáu: 08:00 - 17:00',
+      'Thứ Bảy: 08:00 - 12:00',
     ];
   }
 

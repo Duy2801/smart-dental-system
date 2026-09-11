@@ -1,6 +1,6 @@
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6';
 import React from 'react';
-import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { Button } from '~src/components/ui';
 import type { Dentist } from '../../types';
@@ -8,7 +8,6 @@ import type { Dentist } from '../../types';
 type DoctorSelectorProps = {
   doctors: Dentist[];
   selectedId: string;
-  isCheckingAvailability?: boolean;
   canReview: boolean;
   onSelect: (id: string) => void;
   onBack: () => void;
@@ -24,7 +23,6 @@ const DOCTOR_TONES = {
 export function DoctorSelector({
   doctors = [],
   selectedId,
-  isCheckingAvailability,
   canReview,
   onSelect,
   onBack,
@@ -34,7 +32,6 @@ export function DoctorSelector({
 
   return (
     <View className="space-y-5">
-      {/* Header */}
       <View className="border-b border-slate-100 pb-3">
         <Text className="text-base font-black text-slate-900">
           4. Chọn bác sĩ phụ trách
@@ -44,10 +41,14 @@ export function DoctorSelector({
         </Text>
       </View>
 
-      {/* Doctor Cards */}
       {safeDoctors.length === 0 ? (
         <View className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 items-center justify-center">
-          <FontAwesome6 color="#94A3B8" iconStyle="solid" name="user-doctor" size={24} />
+          <FontAwesome6
+            color="#94A3B8"
+            iconStyle="solid"
+            name="user-doctor"
+            size={24}
+          />
           <Text className="mt-2 text-xs font-bold text-slate-600 text-center">
             Không có bác sĩ trong khung giờ này.
           </Text>
@@ -63,8 +64,8 @@ export function DoctorSelector({
 
             return (
               <TouchableOpacity
-                key={doctor.id}
                 activeOpacity={0.85}
+                key={doctor.id}
                 onPress={() => onSelect(doctor.id)}
                 style={[
                   styles.doctorCard,
@@ -73,17 +74,9 @@ export function DoctorSelector({
               >
                 <View className="flex-row items-center gap-3 min-w-0 flex-1">
                   <View
-                    style={[
-                      styles.avatarBadge,
-                      { backgroundColor: tone.bg },
-                    ]}
+                    style={[styles.avatarBadge, { backgroundColor: tone.bg }]}
                   >
-                    <Text
-                      style={[
-                        styles.avatarText,
-                        { color: tone.text },
-                      ]}
-                    >
+                    <Text style={[styles.avatarText, { color: tone.text }]}>
                       {doctor.initials}
                     </Text>
                   </View>
@@ -104,7 +97,12 @@ export function DoctorSelector({
                       {doctor.specialty}
                     </Text>
                     <View className="mt-1 flex-row items-center gap-1">
-                      <FontAwesome6 color="#F59E0B" iconStyle="solid" name="award" size={10} />
+                      <FontAwesome6
+                        color="#F59E0B"
+                        iconStyle="solid"
+                        name="award"
+                        size={10}
+                      />
                       <Text className="text-[10px] font-extrabold text-amber-600">
                         {doctor.experience} kinh nghiệm
                       </Text>
@@ -112,7 +110,6 @@ export function DoctorSelector({
                   </View>
                 </View>
 
-                {/* Radio Selection Indicator */}
                 <View
                   style={[
                     styles.radioOuter,
@@ -127,28 +124,12 @@ export function DoctorSelector({
         </View>
       )}
 
-      {/* Action Buttons: Back + Review */}
       <View className="flex-row gap-2.5 pt-3 border-t border-slate-100">
-        <Button
-          variant="outline"
-          onPress={onBack}
-          className="flex-1"
-        >
+        <Button variant="outline" onPress={onBack} className="flex-1">
           Quay lại
         </Button>
-        <Button
-          disabled={!canReview || Boolean(isCheckingAvailability)}
-          onPress={onOpenReview}
-          className="flex-1"
-        >
-          {isCheckingAvailability ? (
-            <View className="flex-row items-center gap-2">
-              <ActivityIndicator color="#FFFFFF" size="small" />
-              <Text className="text-white text-xs font-bold">Kiểm tra...</Text>
-            </View>
-          ) : (
-            'Đến bước xác nhận'
-          )}
+        <Button disabled={!canReview} onPress={onOpenReview} className="flex-1">
+          Đến bước xác nhận
         </Button>
       </View>
     </View>

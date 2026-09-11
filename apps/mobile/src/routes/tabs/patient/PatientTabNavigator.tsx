@@ -18,7 +18,11 @@ const renderTabBar = (props: BottomTabBarProps) => <CustomTabBar {...props} />;
 
 const PatientTabNavigator = () => (
   <Tab.Navigator
-    screenOptions={{ headerShown: false, tabBarHideOnKeyboard: true }}
+    screenOptions={{
+      headerShown: false,
+      tabBarHideOnKeyboard: true,
+      popToTopOnBlur: true,
+    }}
     tabBar={renderTabBar}
   >
     <Tab.Screen
