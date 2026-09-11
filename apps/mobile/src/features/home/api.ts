@@ -156,6 +156,7 @@ export type ClinicConfigInfo = {
   email: string;
   name: string;
   phone: string;
+  logoUrl?: string;
 };
 
 const formatVnd = (value: string | number) =>
@@ -337,12 +338,18 @@ export const getHomeClinicalCases = async () => {
 };
 
 export const getClinicConfigInfo = async (): Promise<ClinicConfigInfo> => {
-  const response = await api.get<ClinicConfigInfo>('/clinic-config');
+  const response = await api.get<any>('/clinic-config');
+  const payload = response.data?.data ?? response.data ?? {};
   return {
-    address: response.data.address || 'Chưa cập nhật địa chỉ',
-    businessHours: response.data.businessHours ?? [],
-    email: response.data.email || '',
-    name: response.data.name || 'Smart Dental',
-    phone: response.data.phone || '1900 1234',
+    address:
+      payload.address && payload.address !== 'Chưa cập nhật địa chỉ'
+        ? payload.address
+        : '123 Nguyễn Văn Linh, Nam Dương, Hải Châu, Đà Nẵng',
+    businessHours: payload.businessHours ?? [],
+    email: payload.email || 'contact@smartdental.com',
+    name: payload.name || 'Smart Dental Clinic',
+    phone: payload.phone || '1900 1234',
+    logoUrl: payload.logoUrl || '',
   };
 };
+

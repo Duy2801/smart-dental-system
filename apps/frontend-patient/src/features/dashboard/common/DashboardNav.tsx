@@ -352,11 +352,20 @@ export function DashboardNav() {
           <DashboardIcon name="grid" className="h-5 w-5 text-white" />
         </button>
 
-        <Link href={ROUTES.home} className="flex flex-col text-left leading-tight group">
-          <span className="text-[10px] font-black uppercase tracking-wider text-[#0058bc]">NHA KHOA</span>
-          <span className="text-sm font-black tracking-tight text-slate-900 group-hover:text-[#0058bc] transition">
-            Smart<span className="text-[#0058bc]">Dental</span>
+        <Link href={ROUTES.home} className="flex items-center gap-2 text-left leading-tight group">
+          <span className="grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-full bg-white shadow-xs ring-1 ring-slate-200">
+            <img
+              src={clinic?.logoUrl?.trim() ? clinic.logoUrl : "/clinic-logo.png"}
+              alt={clinic?.name || "Logo"}
+              className="h-full w-full object-cover"
+            />
           </span>
+          <div className="flex flex-col">
+            <span className="text-[10px] font-black uppercase tracking-wider text-[#0058bc]">NHA KHOA</span>
+            <span className="text-sm font-black tracking-tight text-slate-900 group-hover:text-[#0058bc] transition">
+              Smart<span className="text-[#0058bc]">Dental</span>
+            </span>
+          </div>
         </Link>
       </div>
 

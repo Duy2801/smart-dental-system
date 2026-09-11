@@ -20,6 +20,7 @@ import { PatientDrawerModal } from '~src/features/home/components/PatientDrawerM
 import { PatientFooter } from '~src/features/home/components/PatientFooter';
 import { PatientHomeHeader } from '~src/features/home/components/PatientHomeHeader';
 import { usePatientDrawerActions } from '~src/features/home/hooks/usePatientDrawerActions';
+import { CACHE_TIMES, queryKeys } from '~src/config/queryClient';
 import type { RootState } from '~src/reducers/store';
 import type { PatientHomeScreenProps } from '~src/routes/types';
 import {
@@ -85,16 +86,21 @@ export default function DoctorsScreen({ navigation, route }: Props) {
 
   const doctorsQuery = useQuery({
     queryFn: getPatientDoctors,
-    queryKey: ['patient', 'doctors'],
+    queryKey: queryKeys.doctors.all,
+    staleTime: CACHE_TIMES.CATALOG.staleTime,
+    gcTime: CACHE_TIMES.CATALOG.gcTime,
   });
   const servicesQuery = useQuery({
     queryFn: getPatientServices,
-    queryKey: ['patient', 'doctor-search-services'],
+    queryKey: ['patient-services'],
+    staleTime: CACHE_TIMES.CATALOG.staleTime,
+    gcTime: CACHE_TIMES.CATALOG.gcTime,
   });
   const clinicQuery = useQuery({
     queryFn: getClinicConfigInfo,
-    queryKey: ['clinic-config'],
-    staleTime: 5 * 60 * 1000,
+    queryKey: queryKeys.clinicConfig,
+    staleTime: CACHE_TIMES.CLINIC_CONFIG.staleTime,
+    gcTime: CACHE_TIMES.CLINIC_CONFIG.gcTime,
   });
 
   useEffect(() => {

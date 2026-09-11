@@ -6,6 +6,7 @@ import React from 'react';
 import { SCREEN_NAME } from '~src/constants/screenName';
 import AIStack from '../aiStack';
 import CustomTabBar from '../CustomTabBar';
+import ConsultationStack from '../consultationStack';
 import FunctionStack from '../functionStack';
 import PersonalStack from '../personalStack';
 import ReportStack from '../reportStack';
@@ -31,9 +32,9 @@ const PatientTabNavigator = () => (
       options={{ title: 'Lịch hẹn' }}
     />
     <Tab.Screen
-      component={ServicesStack}
-      name={SCREEN_NAME.PATIENT_SERVICES}
-      options={{ title: 'Dịch vụ' }}
+      component={ConsultationStack}
+      name={SCREEN_NAME.PATIENT_CONSULTATION}
+      options={{ title: 'Tư vấn' }}
     />
     <Tab.Screen
       component={ReportStack}
@@ -44,6 +45,14 @@ const PatientTabNavigator = () => (
       component={PersonalStack}
       name={SCREEN_NAME.PERSONAL}
       options={{ title: 'Tôi' }}
+    />
+    <Tab.Screen
+      component={ServicesStack}
+      name={SCREEN_NAME.PATIENT_SERVICES}
+      options={{
+        tabBarItemStyle: { display: 'none' },
+        title: 'Dịch vụ',
+      }}
     />
     <Tab.Screen
       component={AIStack}

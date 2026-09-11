@@ -23,6 +23,7 @@ import { PatientDrawerModal } from '~src/features/home/components/PatientDrawerM
 import { PatientFooter } from '~src/features/home/components/PatientFooter';
 import { PatientHomeHeader } from '~src/features/home/components/PatientHomeHeader';
 import { usePatientDrawerActions } from '~src/features/home/hooks/usePatientDrawerActions';
+import { CACHE_TIMES, queryKeys } from '~src/config/queryClient';
 import type { RootState } from '~src/reducers/store';
 import {
   cancelMyConsultation,
@@ -106,13 +107,17 @@ export default function ConsultationScreen({ navigation }: any) {
   // Query: Consultation Packages
   const packagesQuery = useQuery({
     queryFn: getConsultationPackages,
-    queryKey: ['consultation', 'packages'],
+    queryKey: queryKeys.consultations.packages,
+    staleTime: CACHE_TIMES.CATALOG.staleTime,
+    gcTime: CACHE_TIMES.CATALOG.gcTime,
   });
 
   // Query: Consultation Doctors
   const doctorsQuery = useQuery({
     queryFn: getConsultationDoctors,
-    queryKey: ['consultation', 'doctors'],
+    queryKey: queryKeys.consultations.doctors,
+    staleTime: CACHE_TIMES.CATALOG.staleTime,
+    gcTime: CACHE_TIMES.CATALOG.gcTime,
   });
 
   // Query: Available Slots
@@ -124,19 +129,21 @@ export default function ConsultationScreen({ navigation }: any) {
         selectedDate,
         selectedDuration,
       ),
-    queryKey: [
-      'consultation',
-      'slots',
+    queryKey: queryKeys.consultations.slots(
       selectedDoctorId,
       selectedDate,
       selectedDuration,
-    ],
+    ),
+    staleTime: CACHE_TIMES.SLOTS.staleTime,
+    gcTime: CACHE_TIMES.SLOTS.gcTime,
   });
 
   // Query: My Consultations
   const myConsultationsQuery = useQuery({
     queryFn: getPatientConsultations,
-    queryKey: ['consultation', 'my-consultations'],
+    queryKey: queryKeys.consultations.myList,
+    staleTime: CACHE_TIMES.APPOINTMENTS.staleTime,
+    gcTime: CACHE_TIMES.APPOINTMENTS.gcTime,
   });
 
   const packages = useMemo(() => {

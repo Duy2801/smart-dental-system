@@ -15,7 +15,7 @@ export const getSocketUrl = () => RESOLVED_URL.replace(/\/api\/v1$/, '');
 
 export const api = axios.create({
   baseURL: getApiBaseUrl(),
-  timeout: 15000,
+  timeout: 30000,
   withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
 });

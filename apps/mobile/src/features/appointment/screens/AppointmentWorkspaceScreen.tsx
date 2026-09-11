@@ -11,6 +11,7 @@ import { FloatingChatButton } from '~src/features/home/components/FloatingChatBu
 import { PatientDrawerModal } from '~src/features/home/components/PatientDrawerModal';
 import { PatientHomeHeader } from '~src/features/home/components/PatientHomeHeader';
 import { usePatientDrawerActions } from '~src/features/home/hooks/usePatientDrawerActions';
+import { CACHE_TIMES, queryKeys } from '~src/config/queryClient';
 import type { RootState } from '~src/reducers/store';
 import {
   cancelPatientAppointment,
@@ -55,16 +56,19 @@ export default function AppointmentWorkspaceScreen({
   const { handleDrawerNavigate, handleLogout } = usePatientDrawerActions();
 
   const clinicQuery = useQuery({
-    queryKey: ['clinic-config'],
+    queryKey: queryKeys.clinicConfig,
     queryFn: getClinicConfigInfo,
-    staleTime: 5 * 60 * 1000,
+    staleTime: CACHE_TIMES.CLINIC_CONFIG.staleTime,
+    gcTime: CACHE_TIMES.CLINIC_CONFIG.gcTime,
   });
 
   // Appointments Query
   const appointmentsQuery = useQuery({
-    queryKey: ['patient-appointments'],
+    queryKey: queryKeys.appointments.list(),
     queryFn: getPatientAppointments,
     enabled: isLoggedIn,
+    staleTime: CACHE_TIMES.APPOINTMENTS.staleTime,
+    gcTime: CACHE_TIMES.APPOINTMENTS.gcTime,
   });
 
   const upcomingAppointments = Array.isArray(appointmentsQuery.data?.upcoming)

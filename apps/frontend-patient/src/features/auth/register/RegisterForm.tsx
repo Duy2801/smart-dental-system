@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { FormEventHandler } from "react";
 import { FormField } from "../common/FormField";
 import { PrimaryButton } from "../common/PrimaryButton";
+import { useClinicConfigQuery } from "@/features/dashboard/home/hooks/useHomeQueries";
 
 type RegisterFormProps = {
   passwordVisible: boolean;
@@ -25,6 +26,10 @@ export function RegisterForm({
   onToggleConfirmPassword,
   onSubmit,
 }: RegisterFormProps) {
+  const { data: clinic } = useClinicConfigQuery();
+  const logoSrc = clinic?.logoUrl?.trim() ? clinic.logoUrl : "/clinic-logo.png";
+  const clinicName = clinic?.name || "Smart Dental System";
+
   return (
     <div className="w-full sm:max-w-[440px] flex-1 sm:flex-initial flex flex-col justify-center px-4 sm:px-0 py-6 sm:py-0">
       <section className="w-full bg-white border-0 sm:border sm:border-slate-200/80 rounded-none sm:rounded-2xl shadow-none sm:shadow-lg sm:shadow-slate-200/50 p-0 sm:p-7 transition-all">
@@ -33,15 +38,16 @@ export function RegisterForm({
           <div className="mx-auto mb-2 flex items-center justify-center gap-2">
             <span className="grid h-10 w-10 place-items-center overflow-hidden rounded-xl bg-blue-50 ring-1 ring-blue-100/90 shadow-2xs">
               <Image
-                src="/clinic-logo.png"
-                alt="Logo Smart Dental System"
+                src={logoSrc}
+                alt={`Logo ${clinicName}`}
                 width={32}
                 height={32}
+                unoptimized
                 className="h-7 w-7 object-contain"
               />
             </span>
             <span className="text-sm font-extrabold tracking-tight text-slate-800">
-              Smart Dental System
+              {clinicName}
             </span>
           </div>
 

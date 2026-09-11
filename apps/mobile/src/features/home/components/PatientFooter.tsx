@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import React from 'react';
+import { CACHE_TIMES, queryKeys } from '~src/config/queryClient';
 import {
   Linking,
   StyleProp,
@@ -84,8 +85,9 @@ export function PatientFooter({ clinic: propClinic, style }: PatientFooterProps)
   const clinicQuery = useQuery({
     enabled: !propClinic,
     queryFn: getClinicConfigInfo,
-    queryKey: ['clinic-config'],
-    staleTime: 5 * 60 * 1000,
+    queryKey: queryKeys.clinicConfig,
+    staleTime: CACHE_TIMES.CLINIC_CONFIG.staleTime,
+    gcTime: CACHE_TIMES.CLINIC_CONFIG.gcTime,
   });
 
   const clinic = propClinic ?? clinicQuery.data;

@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { Suspense } from "react";
 import { DashboardIcon } from "@/features/dashboard/common/DashboardIcon";
+import { DashboardBrandLogo } from "@/features/dashboard/common/DashboardBrandLogo";
 import { DashboardFooterClinicInfo } from "@/features/dashboard/common/DashboardFooterClinicInfo";
 import { DashboardNav } from "@/features/dashboard/common/DashboardNav";
 import { ScrollRevealProvider } from "@/features/dashboard/common/ScrollReveal";
@@ -18,19 +19,7 @@ function DashboardHeader() {
     <header className="fixed inset-x-0 top-0 z-50 border-b border-slate-200/80 bg-white/95 shadow-2xs backdrop-blur-md">
       <div className="mx-auto flex h-[68px] sm:h-[76px] w-full max-w-[1360px] items-center justify-between px-3.5 sm:px-6 lg:px-8">
         {/* Desktop Brand Logo (Hidden on Mobile, replaced by Pharmacity category style) */}
-        <Link href={ROUTES.home} className="hidden md:flex shrink-0 items-center gap-3 text-[#0863c5] group transition">
-          <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-white shadow-xs ring-1 ring-slate-200 transition duration-300 group-hover:scale-105 group-hover:shadow-md">
-            <Image
-              src="/clinic-logo.png"
-              alt="Logo Smart Dental System"
-              width={40}
-              height={40}
-              className="h-full w-full object-cover"
-              priority
-            />
-          </span>
-          <span className={`${T.brandName} transition group-hover:text-[#0863c5]`}>Smart Dental System</span>
-        </Link>
+        <DashboardBrandLogo />
 
         {/* Dashboard Navigation (Desktop links OR Mobile Pharmacity-style Category + Brand) */}
         <div className="flex h-full items-center">

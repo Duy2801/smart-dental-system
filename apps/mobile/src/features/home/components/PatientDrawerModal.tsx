@@ -25,6 +25,7 @@ type PatientDrawerModalProps = {
   clinicPhone?: string;
   isOpen: boolean;
   onClose: () => void;
+  onLogin?: () => void;
   onLogout?: () => void;
   onNavigate: (routeId: string) => void;
   user: AuthUser | null;
@@ -41,6 +42,7 @@ export function PatientDrawerModal({
   clinicPhone = '1900 1234',
   isOpen,
   onClose,
+  onLogin,
   onLogout,
   onNavigate,
   user,
@@ -48,6 +50,7 @@ export function PatientDrawerModal({
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
   const drawerWidth = Math.min(screenWidth * 0.82, 320);
+  const isGuest = !user;
   const displayName = user?.fullName || 'Khách hàng';
   const initials = getInitials(user?.fullName);
 
@@ -122,6 +125,11 @@ export function PatientDrawerModal({
     Linking.openURL(`tel:${cleanPhone}`).catch(() => {});
   };
 
+  const handleGuestAuth = () => {
+    onClose();
+    onLogin?.();
+  };
+
   return (
     <Modal
       animationType="fade"
@@ -145,17 +153,35 @@ export function PatientDrawerModal({
             },
           ]}
         >
-          {/* Header */}
           <View style={styles.header}>
             <View style={styles.userProfile}>
               <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{initials}</Text>
+                {isGuest ? (
+                  <FontAwesome6
+                    color="#FFFFFF"
+                    iconStyle="regular"
+                    name="user"
+                    size={17}
+                  />
+                ) : (
+                  <Text style={styles.avatarText}>{initials}</Text>
+                )}
               </View>
               <View style={styles.userInfo}>
-                <Text style={styles.greetingText}>Xin chào,</Text>
-                <Text numberOfLines={1} style={styles.userNameText}>
-                  {displayName}
+                <Text style={styles.greetingText}>
+                  {isGuest ? 'Hello' : 'Xin chào,'}
                 </Text>
+                {isGuest ? (
+                  <TouchableOpacity activeOpacity={0.8} onPress={handleGuestAuth}>
+                    <Text numberOfLines={1} style={styles.userNameText}>
+                      Đăng nhập/ Đăng ký
+                    </Text>
+                  </TouchableOpacity>
+                ) : (
+                  <Text numberOfLines={1} style={styles.userNameText}>
+                    {displayName}
+                  </Text>
+                )}
               </View>
             </View>
 
@@ -164,37 +190,10 @@ export function PatientDrawerModal({
               onPress={onClose}
               style={styles.closeBtn}
             >
-              <Text style={styles.closeBtnText}>✕</Text>
+              <Text style={styles.closeBtnText}>×</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Sub-banner Promo Box */}
-          <View style={styles.promoWrapper}>
-            <View style={styles.promoCard}>
-              <Text style={styles.promoText}>
-                Tải ứng dụng Smart Dental để tận hưởng trải nghiệm dịch vụ nha
-                khoa AI tốt hơn và nhận nhiều ưu đãi hấp dẫn.
-              </Text>
-              <TouchableOpacity
-                activeOpacity={0.85}
-                onPress={() => {
-                  onClose();
-                  onNavigate('appointment');
-                }}
-                style={styles.quickBookBtn}
-              >
-                <FontAwesome6
-                  color="#FFFFFF"
-                  iconStyle="solid"
-                  name="calendar-days"
-                  size={12}
-                />
-                <Text style={styles.quickBookBtnText}>Đặt lịch ngay</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Menu Items List */}
           <ScrollView
             contentContainerStyle={styles.menuScroll}
             style={styles.menuList}
@@ -213,7 +212,9 @@ export function PatientDrawerModal({
                     <View
                       style={[
                         styles.menuIconBox,
-                        isActive ? styles.activeMenuIconBox : styles.defaultMenuIconBox,
+                        isActive
+                          ? styles.activeMenuIconBox
+                          : styles.defaultMenuIconBox,
                       ]}
                     >
                       <FontAwesome6
@@ -244,7 +245,6 @@ export function PatientDrawerModal({
             })}
           </ScrollView>
 
-          {/* Bottom Hotline & Logout */}
           <View
             style={[
               styles.footer,
@@ -271,9 +271,7 @@ export function PatientDrawerModal({
                 activeOpacity={0.85}
                 onPress={() => {
                   onClose();
-                  if (onLogout) {
-                    onLogout();
-                  }
+                  onLogout?.();
                 }}
                 style={styles.logoutBtn}
               >
@@ -302,16 +300,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 32,
   },
-  defaultMenuIconBox: {
-    alignItems: 'center',
-    backgroundColor: '#F1F5F9',
-    borderRadius: 8,
-    height: 32,
-    justifyContent: 'center',
-    width: 32,
-  },
   activeMenuItem: {
-    backgroundColor: 'transparent',
+    backgroundColor: '#EFF6FF',
   },
   activeMenuItemLabel: {
     color: '#0863c5',
@@ -350,8 +340,17 @@ const styles = StyleSheet.create({
   },
   closeBtnText: {
     color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: 'bold',
+    fontSize: 24,
+    fontWeight: '500',
+    lineHeight: 28,
+  },
+  defaultMenuIconBox: {
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 8,
+    height: 32,
+    justifyContent: 'center',
+    width: 32,
   },
   drawerPanel: {
     backgroundColor: '#FFFFFF',
@@ -445,47 +444,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
   },
-  menuScroll: {
-    paddingVertical: 4,
-  },
   menuList: {
     flex: 1,
   },
+  menuScroll: {
+    paddingVertical: 4,
+  },
   modalOverlay: {
     flex: 1,
-  },
-  promoCard: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#DBEAFE',
-    borderRadius: 14,
-    borderWidth: 1,
-    padding: 12,
-  },
-  promoText: {
-    color: '#475569',
-    fontSize: 11,
-    lineHeight: 16,
-  },
-  promoWrapper: {
-    backgroundColor: '#EFF6FF',
-    borderBottomColor: '#DBEAFE',
-    borderBottomWidth: 1,
-    padding: 12,
-  },
-  quickBookBtn: {
-    alignItems: 'center',
-    backgroundColor: '#0058bc',
-    borderRadius: 10,
-    flexDirection: 'row',
-    gap: 6,
-    justifyContent: 'center',
-    marginTop: 10,
-    paddingVertical: 8,
-  },
-  quickBookBtnText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '800',
   },
   userInfo: {
     flex: 1,

@@ -6,6 +6,8 @@ const messages: Record<string, string> = {
   'auth.email_not_verified': 'Email chưa được xác thực',
   'auth.account_inactive': 'Tài khoản hiện không hoạt động',
   'auth.account_google_only': 'Tài khoản này cần đăng nhập bằng Google',
+  'auth.google_invalid_token': 'Xác thực tài khoản Google không thành công',
+  'auth.google_token_required': 'Ứng dụng chưa nhận được token Google',
   'otp.expired_or_invalid': 'Mã OTP đã hết hạn hoặc không hợp lệ',
   'otp.incorrect': 'Mã OTP không chính xác',
   'otp.too_many_requests': 'Bạn đã yêu cầu quá nhiều mã OTP',

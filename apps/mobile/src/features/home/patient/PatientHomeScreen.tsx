@@ -1,7 +1,7 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useQuery } from '@tanstack/react-query';
-import React, { useCallback, useMemo, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Keyboard, StyleSheet, View } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { Screen, ScreenList } from '~src/components/ui';
@@ -31,7 +31,12 @@ import {
   ServicesPreviewSection,
   TrustMetricsSection,
 } from '~src/features/home/components/PatientHomeSections';
-import { getPatientPromotions } from '~src/features/patient/api';
+import {
+  getConsultationDoctors,
+  getConsultationPackages,
+  getPatientPromotions,
+} from '~src/features/patient/api';
+import { CACHE_TIMES, queryKeys } from '~src/config/queryClient';
 import { clearSession } from '~src/reducers/loginReducer';
 import type { AppDispatch, RootState } from '~src/reducers/store';
 import { getLoginRoute } from '~src/routes/roleRoutes';
@@ -131,29 +136,57 @@ export default function PatientHomeScreen() {
   const [showResults, setShowResults] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
+  const queryClient = useQueryClient();
+
+  // Background prefetching for instant "Tư vấn" screen loading
+  useEffect(() => {
+    void queryClient.prefetchQuery({
+      queryKey: queryKeys.consultations.packages,
+      queryFn: getConsultationPackages,
+      staleTime: CACHE_TIMES.CATALOG.staleTime,
+    });
+    void queryClient.prefetchQuery({
+      queryKey: queryKeys.consultations.doctors,
+      queryFn: getConsultationDoctors,
+      staleTime: CACHE_TIMES.CATALOG.staleTime,
+    });
+  }, [queryClient]);
+
   const servicesQuery = useQuery({
     queryFn: getHomeServices,
-    queryKey: ['home-services'],
+    queryKey: queryKeys.home.services,
+    staleTime: CACHE_TIMES.CATALOG.staleTime,
+    gcTime: CACHE_TIMES.CATALOG.gcTime,
   });
   const doctorsQuery = useQuery({
     queryFn: getHomeDoctors,
-    queryKey: ['home-doctors'],
+    queryKey: queryKeys.home.doctors,
+    staleTime: CACHE_TIMES.CATALOG.staleTime,
+    gcTime: CACHE_TIMES.CATALOG.gcTime,
   });
   const bannersQuery = useQuery({
     queryFn: getBanners,
-    queryKey: ['home-banners'],
+    queryKey: queryKeys.home.banners,
+    staleTime: CACHE_TIMES.ALBUM.staleTime,
+    gcTime: CACHE_TIMES.ALBUM.gcTime,
   });
   const clinicalCasesQuery = useQuery({
     queryFn: getHomeClinicalCases,
-    queryKey: ['home-clinical-cases'],
+    queryKey: queryKeys.home.clinicalCases,
+    staleTime: CACHE_TIMES.ALBUM.staleTime,
+    gcTime: CACHE_TIMES.ALBUM.gcTime,
   });
   const clinicConfigQuery = useQuery({
     queryFn: getClinicConfigInfo,
-    queryKey: ['home-clinic-config'],
+    queryKey: queryKeys.clinicConfig,
+    staleTime: CACHE_TIMES.CLINIC_CONFIG.staleTime,
+    gcTime: CACHE_TIMES.CLINIC_CONFIG.gcTime,
   });
   const promotionsQuery = useQuery({
     queryFn: () => getPatientPromotions(),
-    queryKey: ['patient', 'home-promotions'],
+    queryKey: queryKeys.home.promotions,
+    staleTime: CACHE_TIMES.CATALOG.staleTime,
+    gcTime: CACHE_TIMES.CATALOG.gcTime,
   });
 
   const services = useMemo(
@@ -202,21 +235,23 @@ export default function PatientHomeScreen() {
     [navigation],
   );
 
+  const navigateRoot = useCallback(
+    (screen: string, params?: object) => {
+      let rootNavigation: any = navigation;
+      let parentNavigation = rootNavigation?.getParent?.();
+      while (parentNavigation) {
+        rootNavigation = parentNavigation;
+        parentNavigation = rootNavigation?.getParent?.();
+      }
+      rootNavigation?.navigate?.(screen as never, params as never);
+    },
+    [navigation],
+  );
+
   const refresh = useCallback(() => {
-    servicesQuery.refetch();
-    doctorsQuery.refetch();
-    bannersQuery.refetch();
-    clinicalCasesQuery.refetch();
-    clinicConfigQuery.refetch();
-    promotionsQuery.refetch();
-  }, [
-    bannersQuery,
-    clinicalCasesQuery,
-    clinicConfigQuery,
-    doctorsQuery,
-    promotionsQuery,
-    servicesQuery,
-  ]);
+    void queryClient.invalidateQueries({ queryKey: queryKeys.home.all });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.clinicConfig });
+  }, [queryClient]);
 
   const goToConsultation = useCallback(() => {
     setShowResults(false);
@@ -469,6 +504,7 @@ export default function PatientHomeScreen() {
           clinicPhone={clinicConfigQuery.data?.phone || '1900 1234'}
           isOpen={drawerOpen}
           onClose={() => setDrawerOpen(false)}
+          onLogin={() => navigateRoot(SCREEN_NAME.PATIENT_LOGIN)}
           onLogout={handleLogout}
           onNavigate={handleDrawerNavigate}
           user={user}

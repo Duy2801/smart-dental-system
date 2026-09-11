@@ -1,6 +1,7 @@
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6';
 import React, { useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   Image,
   ImageBackground,
   Linking,
@@ -8,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { WebView } from 'react-native-webview';
 import { Text } from 'react-native-paper';
 import { HOME_ASSETS } from '~src/assets';
 import type {
@@ -834,16 +836,45 @@ export function ClinicLocationPreviewSection({
     }
   };
 
+  const rawAddress = clinic?.address?.trim();
+  const clinicAddress =
+    rawAddress && rawAddress !== 'Chưa cập nhật địa chỉ'
+      ? rawAddress
+      : '123 Nguyễn Văn Linh, Nam Dương, Hải Châu, Đà Nẵng';
+
   const handleDirections = () => {
-    const address = clinic?.address;
-    if (address) {
-      Linking.openURL(
-        `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-          address,
-        )}`,
-      ).catch(() => undefined);
-    }
+    Linking.openURL(
+      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+        clinicAddress,
+      )}`,
+    ).catch(() => undefined);
   };
+
+  const mapEmbedUrl = `https://www.google.com/maps?q=${encodeURIComponent(
+    clinicAddress,
+  )}&t=&z=16&ie=UTF8&iwloc=&output=embed`;
+
+  const mapHtml = useMemo(() => {
+    return `<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 100%; height: 100%; overflow: hidden; background: #F8FAFC; }
+      iframe { width: 100%; height: 100%; border: 0; display: block; }
+    </style>
+  </head>
+  <body>
+    <iframe
+      src="${mapEmbedUrl}"
+      allowfullscreen=""
+      loading="lazy"
+      referrerpolicy="no-referrer-when-downgrade"
+    ></iframe>
+  </body>
+</html>`;
+  }, [mapEmbedUrl]);
 
   return (
     <View style={[styles.locationCard, styles.softShadow]}>
@@ -892,7 +923,7 @@ export function ClinicLocationPreviewSection({
           <View style={styles.clinicDetailTextWrap}>
             <Text style={styles.clinicDetailLabel}>ĐỊA CHỈ PHÒNG KHÁM</Text>
             <Text style={styles.clinicDetailValue}>
-              {clinic?.address || '123 Nguyen Van Linh, Da Nang'}
+              {clinicAddress}
             </Text>
             <TouchableOpacity activeOpacity={0.75} onPress={handleCopy} style={styles.copyAddressRow}>
               <Text style={[styles.copyAddressLink, copied ? styles.copiedGreen : null]}>
@@ -928,20 +959,36 @@ export function ClinicLocationPreviewSection({
         </TouchableOpacity>
       </View>
 
-      {/* 3. Card 2: Google Map */}
-      <TouchableOpacity
-        activeOpacity={0.94}
-        onPress={handleDirections}
-        style={styles.mapContainerCard}
-      >
-        <Image
-          source={HOME_ASSETS.CLINIC_MAP}
-          style={styles.mapImageCover}
-          resizeMode="cover"
+      {/* 3. Card 2: Google Map (Live Google Maps embed) */}
+      <View style={styles.mapContainerCard}>
+        <WebView
+          source={{
+            html: mapHtml,
+            baseUrl: 'https://smartdental.com',
+          }}
+          style={styles.mapWebView}
+          originWhitelist={['*']}
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
+          scalesPageToFit={false}
+          startInLoadingState={true}
+          renderLoading={() => (
+            <View style={styles.mapLoadingContainer}>
+              <ActivityIndicator size="small" color="#0058BC" />
+              <Text style={styles.mapLoadingText}>Đang tải Google Maps...</Text>
+            </View>
+          )}
+          renderError={() => (
+            <Image
+              source={HOME_ASSETS.CLINIC_MAP}
+              style={styles.mapImageCover}
+              resizeMode="cover"
+            />
+          )}
         />
 
         {/* Top Overlay Row (Pill & Directions button) */}
-        <View style={styles.mapTopOverlayRow}>
+        <View pointerEvents="box-none" style={styles.mapTopOverlayRow}>
           <View style={styles.mapClinicPill}>
             <View style={styles.mapBlueDot} />
             <Text numberOfLines={1} style={styles.mapClinicPillText}>
@@ -957,7 +1004,7 @@ export function ClinicLocationPreviewSection({
             <Text style={styles.mapDirectionsDarkBtnText}>Chỉ đường</Text>
           </TouchableOpacity>
         </View>
-      </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -2062,6 +2109,27 @@ const styles = StyleSheet.create({
   mapImageCover: {
     height: '100%',
     width: '100%',
+  },
+  mapWebView: {
+    flex: 1,
+    height: '100%',
+    width: '100%',
+  },
+  mapLoadingContainer: {
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    gap: 8,
+    justifyContent: 'center',
+  },
+  mapLoadingText: {
+    color: '#64748B',
+    fontSize: 12,
+    fontWeight: '600',
   },
   mapTopOverlayRow: {
     alignItems: 'center',

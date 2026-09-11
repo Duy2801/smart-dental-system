@@ -22,6 +22,7 @@ import { PatientDrawerModal } from '~src/features/home/components/PatientDrawerM
 import { PatientFooter } from '~src/features/home/components/PatientFooter';
 import { PatientHomeHeader } from '~src/features/home/components/PatientHomeHeader';
 import { usePatientDrawerActions } from '~src/features/home/hooks/usePatientDrawerActions';
+import { CACHE_TIMES, queryKeys } from '~src/config/queryClient';
 import { setSession } from '~src/reducers/loginReducer';
 import type { AppDispatch, RootState } from '~src/reducers/store';
 import {
@@ -58,13 +59,15 @@ export default function PersonalScreen() {
     queryKey: ['patient-profile'],
     queryFn: apiGetPatientProfile,
     enabled: isLoggedIn,
-    staleTime: 60 * 1000,
+    staleTime: CACHE_TIMES.USER_DATA.staleTime,
+    gcTime: CACHE_TIMES.USER_DATA.gcTime,
   });
 
   const clinicQuery = useQuery({
-    queryKey: ['clinic-config'],
+    queryKey: queryKeys.clinicConfig,
     queryFn: getClinicConfigInfo,
-    staleTime: 5 * 60 * 1000,
+    staleTime: CACHE_TIMES.CLINIC_CONFIG.staleTime,
+    gcTime: CACHE_TIMES.CLINIC_CONFIG.gcTime,
   });
 
   const profile = profileQuery.data;
