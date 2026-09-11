@@ -209,6 +209,71 @@ describe('VideoConsultationService', () => {
     });
   });
 
+  describe('patient booking payment', () => {
+    it('issues the invoice before creating its bank-transfer payment', async () => {
+      const scheduledAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      scheduledAt.setHours(10, 0, 0, 0);
+      prismaMock.consultationPackage = {
+        findUnique: jest.fn().mockResolvedValue({ isActive: true, price: 200000 }),
+      };
+      prismaMock.patient.findUnique.mockResolvedValue({
+        id: 'patient-1',
+        fullName: 'Bệnh nhân',
+        user: { fullName: 'Bệnh nhân' },
+      });
+      prismaMock.doctor.findUnique.mockResolvedValue({
+        id: 'doctor-1',
+        isActive: true,
+        userId: 'doctor-user-1',
+        user: { fullName: 'Bác sĩ' },
+      });
+      prismaMock.appointment = { findFirst: jest.fn().mockResolvedValue(null) };
+      prismaMock.videoConsultation.findMany.mockResolvedValue([]);
+      prismaMock.videoConsultation.create = jest.fn().mockResolvedValue({
+        ...sampleConsultation,
+        status: VideoConsultationStatus.PENDING_PAYMENT,
+        isPaid: false,
+        scheduledAt,
+      });
+      prismaMock.invoice.create = jest.fn().mockImplementation(({ data }) => ({
+        id: 'invoice-1',
+        ...data,
+      }));
+      clinicConfigServiceMock.getClinicConfig = jest.fn().mockResolvedValue({
+        specialDates: [],
+        businessHours: Array.from({ length: 7 }, (_, id) => ({
+          id,
+          isOpen: true,
+          start: '00:00',
+          end: '23:59',
+        })),
+      });
+      paymentServiceMock.createPayment = jest.fn().mockImplementation(() => {
+        const invoiceData = prismaMock.invoice.create.mock.calls[0][0].data;
+        if (invoiceData.status === 'DRAFT') {
+          throw new BadRequestException('invoice.not_payable');
+        }
+        return { id: 'payment-1' };
+      });
+
+      await service.createBooking(
+        { ...doctorUser, userId: 'patient-user-1', roles: ['PATIENT'] },
+        {
+          doctorId: 'doctor-1',
+          scheduledAt: scheduledAt.toISOString(),
+          durationMinutes: 30,
+        },
+      );
+
+      expect(prismaMock.invoice.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ status: 'ISSUED' }),
+        }),
+      );
+      expect(paymentServiceMock.createPayment).toHaveBeenCalled();
+    });
+  });
+
   describe('notes concurrency', () => {
     it('rejects overwriting notes changed by another tab', async () => {
       prismaMock.videoConsultation.updateMany.mockResolvedValueOnce({

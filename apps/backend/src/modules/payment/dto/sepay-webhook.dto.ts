@@ -25,6 +25,11 @@ export class SepayWebhookDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
+  subAccount?: string | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
   content?: string;
 
   @ApiPropertyOptional()
@@ -39,8 +44,18 @@ export class SepayWebhookDto {
 
   @ApiPropertyOptional()
   @IsOptional()
+  @IsString()
+  description?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsNumber()
   transferAmount?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  accumulated?: number;
 
   @ApiPropertyOptional()
   @IsOptional()
