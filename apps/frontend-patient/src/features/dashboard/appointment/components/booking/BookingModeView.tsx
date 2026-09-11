@@ -50,7 +50,10 @@ export function BookingModeView({
   const [selectedPatientId, setSelectedPatientId] = useState("");
   const queryClient = useQueryClient();
   const patientProfilesQuery = useManagedPatientProfilesQuery(isLoggedIn);
-  const patientProfiles = patientProfilesQuery.data ?? [];
+  const patientProfiles = useMemo(
+    () => patientProfilesQuery.data ?? [],
+    [patientProfilesQuery.data],
+  );
 
   // Tự động chọn người khám chính (chính chủ hoặc hồ sơ đầu tiên) khi danh sách tải xong
   useEffect(() => {
@@ -60,11 +63,11 @@ export function BookingModeView({
         patientProfiles.find((p) => p.canBook) ??
         patientProfiles[0];
       if (defaultPatient) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setSelectedPatientId(defaultPatient.id);
       }
     }
   }, [selectedPatientId, patientProfiles]);
-
 
   const createPatientMutation = useMutation({
     mutationFn: createManagedPatientProfile,
@@ -163,7 +166,6 @@ export function BookingModeView({
     dates,
     availableTimes: selectableAvailableTimes,
     selectedDoctorId,
-    selectedServiceId,
     selectedTreatmentMethodId: selectedMethodId,
     selectedDateId,
     selectedTime: effectiveSelectedTime,

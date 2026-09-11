@@ -76,7 +76,6 @@ export function useAppointmentScheduleQuery(params: BookingOptionsQuery) {
     enabled: Boolean(params.serviceId && params.treatmentMethodId),
     staleTime: 15 * 1000,
     gcTime: 10 * 60 * 1000,
-    placeholderData: (previousData) => previousData,
     refetchOnWindowFocus: false,
   });
 }
@@ -94,7 +93,6 @@ export function useAppointmentAvailabilityQuery(
     enabled: Boolean(enabled && params.serviceId && params.date && params.time),
     staleTime: 15 * 1000,
     gcTime: 10 * 60 * 1000,
-    placeholderData: (previousData) => previousData,
     refetchOnWindowFocus: false,
   });
 }

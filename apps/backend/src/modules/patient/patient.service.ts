@@ -1377,7 +1377,7 @@ export class PatientService {
 
   async getCachedPatientRecordResponse(patientId: string) {
     const cacheKey = `patient:records:${patientId}`;
-    return this.redis.rememberJson(cacheKey, 120, () =>
+    return this.redis.rememberJson(cacheKey, 30, () =>
       this.buildPatientRecordResponse(patientId),
     );
   }

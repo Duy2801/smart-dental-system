@@ -10,6 +10,7 @@ import { InjectQueue } from '@nestjs/bull';
 import type { Queue } from 'bull';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 import { CreatePrescriptionDto } from './dto/create-prescription.dto';
 import { UpdatePrescriptionDto } from './dto/update-prescription.dto';
 
@@ -17,9 +18,14 @@ import { UpdatePrescriptionDto } from './dto/update-prescription.dto';
 export class PrescriptionService {
   constructor(
     private prisma: PrismaService,
+    private redis: RedisService,
     @InjectQueue('mail-queue')
     private readonly mailQueue: Queue,
   ) {}
+
+  private invalidatePatientRecordsCache(patientId: string) {
+    void this.redis.del(`patient:records:${patientId}`);
+  }
 
   async resolveDoctorIdByUserId(userId: string) {
     const doctor = await this.prisma.doctor.findUnique({
@@ -291,7 +297,7 @@ export class PrescriptionService {
       throw new BadRequestException('Mỗi thuốc cần có tên thuốc và liều dùng');
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const created = await this.prisma.$transaction(async (tx) => {
       const created = await tx.prescription.create({
         data: {
           doctorId,
@@ -312,6 +318,10 @@ export class PrescriptionService {
       });
       return created;
     });
+
+    this.invalidatePatientRecordsCache(dto.patientId);
+
+    return created;
   }
 
   async update(
@@ -330,7 +340,7 @@ export class PrescriptionService {
       throw new ConflictException('Đơn thuốc vừa được cập nhật ở nơi khác');
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const updated = await this.prisma.$transaction(async (tx) => {
       const write = await tx.prescription.updateMany({
         where: { id, updatedAt: existing.updatedAt, cancelledAt: null },
         data: {
@@ -378,6 +388,10 @@ export class PrescriptionService {
         include: { items: true },
       });
     });
+
+    this.invalidatePatientRecordsCache(existing.patientId);
+
+    return updated;
   }
 
   async remove(id: string, user: AuthenticatedUser) {
@@ -400,6 +414,7 @@ export class PrescriptionService {
         },
       });
     });
+    this.invalidatePatientRecordsCache(existing.patientId);
     return { success: true, cancelled: true };
   }
 

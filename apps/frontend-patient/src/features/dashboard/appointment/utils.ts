@@ -88,6 +88,22 @@ export function getCreateAppointmentErrorMessage(error: unknown) {
   return "Không thể đặt lịch hẹn. Vui lòng chọn khung giờ khác.";
 }
 
+export function getAppointmentErrorCode(error: unknown) {
+  if (!axios.isAxiosError(error)) return null;
+
+  const rawMessage = error.response?.data?.message;
+  if (typeof rawMessage === "string") return rawMessage;
+  if (Array.isArray(rawMessage)) {
+    return (
+      rawMessage.find(
+        (message): message is string => typeof message === "string",
+      ) ?? null
+    );
+  }
+
+  return null;
+}
+
 export const appointmentStatusLabels: Record<AppointmentStatus, string> = {
   confirmed: "Đã xác nhận",
   pending: "Chờ xác nhận",

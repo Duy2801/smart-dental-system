@@ -15,6 +15,7 @@ import {
 } from '../../../prisma/generated/enums';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 import { EventsGateway } from '../socket/events.gateway';
 import { CreateTreatmentPlanDto } from './dto/create-treatment-plan.dto';
 import { UpdateTreatmentPlanDto } from './dto/update-treatment-plan.dto';
@@ -60,10 +61,15 @@ const planInclude = {
 export class TreatmentPlanService {
   constructor(
     private prisma: PrismaService,
+    private redis: RedisService,
     private eventsGateway: EventsGateway,
     @InjectQueue('mail-queue')
     private readonly mailQueue: Queue,
   ) {}
+
+  private invalidatePatientRecordsCache(patientId: string) {
+    void this.redis.del(`patient:records:${patientId}`);
+  }
 
   async resolveDoctorIdByUserId(userId: string) {
     const doctor = await this.prisma.doctor.findUnique({
@@ -200,6 +206,8 @@ export class TreatmentPlanService {
       include: planInclude,
     });
 
+    this.invalidatePatientRecordsCache(dto.patientId);
+
     return this.toDetail(created);
   }
 
@@ -259,7 +267,7 @@ export class TreatmentPlanService {
       );
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const updated = await this.prisma.$transaction(async (tx) => {
       if (dto.steps !== undefined) {
         const existingIds = new Set(plan.steps.map((s) => s.id));
         const incomingIds = new Set(
@@ -366,6 +374,10 @@ export class TreatmentPlanService {
 
       return this.toDetail(updated);
     });
+
+    this.invalidatePatientRecordsCache(plan.patientId);
+
+    return updated;
   }
 
   async remove(id: string, user: AuthenticatedUser) {
@@ -393,6 +405,7 @@ export class TreatmentPlanService {
         },
       });
     });
+    this.invalidatePatientRecordsCache(plan.patientId);
     return { success: true, cancelled: true };
   }
 
@@ -479,6 +492,7 @@ export class TreatmentPlanService {
       where: { id: planId },
       data: { emailQueuedAt: null },
     });
+    this.invalidatePatientRecordsCache(updated.treatmentPlan.patientId);
 
     if (isCompleting) {
       try {
