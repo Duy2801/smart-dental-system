@@ -3,6 +3,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import apiClient from "@/src/lib/api/client";
 import ReceptionistAppointmentsPage from "./page";
 
+const { mockShowConfirm } = vi.hoisted(() => ({
+  mockShowConfirm: vi.fn().mockResolvedValue(true),
+}));
+
 vi.mock("next/link", () => ({
   default: ({ href, children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
     <a href={String(href)} {...props}>{children}</a>
@@ -12,7 +16,7 @@ vi.mock("@/src/components/layout/header", () => ({
   Header: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
 }));
 vi.mock("@/src/providers/app-dialog-provider", () => ({
-  useAppDialog: () => ({ showConfirm: vi.fn().mockResolvedValue(true) }),
+  useAppDialog: () => ({ showConfirm: mockShowConfirm }),
 }));
 vi.mock("@/src/lib/api/client", () => ({
   default: { get: vi.fn(), patch: vi.fn(), post: vi.fn() },
@@ -21,6 +25,13 @@ vi.mock("@/src/lib/api/client", () => ({
 const mockedApi = vi.mocked(apiClient);
 const originalTimezone = process.env.TZ;
 const appointments = [
+  {
+    id: "today-confirmed",
+    appointmentCode: "APT-TODAY",
+    scheduledAt: "2026-09-09T04:00:00.000Z",
+    status: "CONFIRMED",
+    patient: { id: "patient-5", fullName: "Đỗ Em" },
+  },
   {
     id: "past",
     appointmentCode: "APT-PAST",
@@ -97,6 +108,19 @@ describe("ReceptionistAppointmentsPage", () => {
     expect(screen.getByRole("link", { name: "Thu tiền" })).toHaveAttribute(
       "href",
       "/receptionist/billing?invoiceId=invoice-open",
+    );
+  });
+
+  it("confirms medical history before sending a check-in request", async () => {
+    render(<ReceptionistAppointmentsPage />);
+    const row = await screen.findByRole("row", { name: /APT-TODAY/ });
+
+    fireEvent.click(within(row).getByRole("button", { name: "Check-in" }));
+
+    await waitFor(() => expect(mockShowConfirm).toHaveBeenCalled());
+    expect(mockedApi.patch).toHaveBeenCalledWith(
+      "/appointments/today-confirmed/check-in",
+      { medicalHistoryConfirmed: true },
     );
   });
 

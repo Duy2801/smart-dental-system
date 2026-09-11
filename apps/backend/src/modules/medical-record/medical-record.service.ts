@@ -46,7 +46,12 @@ const recordInclude = {
     },
   },
   prescriptionRecords: {
-    include: { items: true },
+    select: {
+      id: true,
+      notes: true,
+      createdAt: true,
+      items: true,
+    },
   },
 } as const;
 

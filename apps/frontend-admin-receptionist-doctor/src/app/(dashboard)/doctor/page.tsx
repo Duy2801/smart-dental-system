@@ -15,6 +15,7 @@ import {
 import apiClient from "@/src/lib/api/client";
 import { useAppDialog } from "@/src/providers/app-dialog-provider";
 import { getDoctorInfoFromCookie } from "@/src/lib/doctor/session";
+import { getApiErrorMessage } from "@/src/lib/utils/api-error";
 
 type AppointmentStatus =
   | "PENDING"
@@ -219,10 +220,10 @@ export default function DoctorDashboardPage() {
     try {
       await apiClient.patch(`/appointments/${id}/complete`);
       await fetchDashboard();
-    } catch {
+    } catch (error) {
       await showAlert({
         title: "Không thể kết thúc ca khám",
-        description: "Vui lòng thử lại sau.",
+        description: getApiErrorMessage(error, "Vui lòng thử lại sau."),
         tone: "danger",
       });
     } finally {
@@ -383,13 +384,23 @@ export default function DoctorDashboardPage() {
                             </button>
                           )}
                           {item.type === "OFFLINE" && item.status === "IN_PROGRESS" && (
-                            <button
-                              onClick={() => handleCompleteAppointment(item.id)}
-                              disabled={actionLoading === item.id}
-                              className="inline-flex items-center justify-center rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-600 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
-                            >
-                              {actionLoading === item.id ? "Đang xử lý..." : "Kết thúc khám"}
-                            </button>
+                            <div className="flex gap-2">
+                              <Link
+                                href={item.recordId
+                                  ? `/doctor/medical-records?recordId=${item.recordId}`
+                                  : "/doctor/medical-records"}
+                                className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                              >
+                                Ghi bệnh án
+                              </Link>
+                              <button
+                                onClick={() => handleCompleteAppointment(item.id)}
+                                disabled={actionLoading === item.id}
+                                className="inline-flex items-center justify-center rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-600 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+                              >
+                                {actionLoading === item.id ? "Đang xử lý..." : "Kết thúc khám"}
+                              </button>
+                            </div>
                           )}
                           {item.type === "OFFLINE" && item.status === "COMPLETED" && (
                             <Link

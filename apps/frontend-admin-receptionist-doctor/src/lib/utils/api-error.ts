@@ -20,6 +20,10 @@ const APPOINTMENT_ERRORS: Record<string, string> = {
     "Cần xác nhận dị ứng và tiền sử bệnh trước khi check-in.",
   "appointment.start_today_only":
     "Chỉ có thể bắt đầu khám cho lịch hẹn trong ngày hôm nay.",
+  "appointment.must_be_in_progress_to_complete":
+    "Chỉ ca khám đang diễn ra mới có thể kết thúc.",
+  "appointment.medical_record_required_before_complete":
+    "Vui lòng nhập và lưu chẩn đoán cùng ghi chú điều trị trước khi kết thúc khám.",
   "appointment.cannot_remind_past_appointment":
     "Không thể gửi nhắc cho lịch hẹn đã qua.",
 };

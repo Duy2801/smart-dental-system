@@ -18,6 +18,7 @@ import { cn } from "@/src/lib/utils/cn";
 import { PatientAiBrief } from "@/src/components/doctor/patient-ai-brief";
 import apiClient from "@/src/lib/api/client";
 import { getDoctorIdFromCookie } from "@/src/lib/doctor/session";
+import { getApiErrorMessage } from "@/src/lib/utils/api-error";
 import type { ScheduleAppointment, AppointmentStatus } from "./types";
 import { statusConfig } from "./types";
 
@@ -117,12 +118,13 @@ export function AppointmentDetailPanel({
     setError(null);
     try {
       await onStatusChange(apt.id, action);
-    } catch {
-      setError(
+    } catch (error) {
+      setError(getApiErrorMessage(
+        error,
         action === "start"
           ? "Không thể bắt đầu ca khám."
           : "Không thể kết thúc ca khám.",
-      );
+      ));
     } finally {
       setLoading(null);
     }

@@ -283,6 +283,15 @@ export default function ReceptionistDashboard() {
       });
       if (!confirmed) return;
     }
+    if (status === "CHECKED_IN") {
+      const confirmed = await showConfirm({
+        title: "Xác nhận tiền sử bệnh nhân?",
+        description:
+          "Tôi đã hỏi và đối chiếu thông tin dị ứng, bệnh nền và thuốc bệnh nhân đang sử dụng.",
+        confirmLabel: "Xác nhận và check-in",
+      });
+      if (!confirmed) return;
+    }
 
     const endpoint = statusEndpoint(status);
     if (!endpoint) return;
@@ -292,7 +301,11 @@ export default function ReceptionistDashboard() {
     try {
       await apiClient.patch(
         `/appointments/${id}/${endpoint}`,
-        status === "CANCELLED" ? { reason: "Bệnh nhân yêu cầu hủy" } : undefined,
+        status === "CANCELLED"
+          ? { reason: "Bệnh nhân yêu cầu hủy" }
+          : status === "CHECKED_IN"
+            ? { medicalHistoryConfirmed: true }
+            : undefined,
       );
       await fetchDashboard();
     } catch (err) {

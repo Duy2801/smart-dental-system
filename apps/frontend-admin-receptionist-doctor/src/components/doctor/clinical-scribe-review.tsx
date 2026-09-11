@@ -109,7 +109,7 @@ export function ClinicalScribeReview({
           serviceName: serviceName || undefined,
           transcript: notes.trim() || undefined,
         },
-        { timeout: 90_000 },
+        { timeout: 100_000 },
       );
       const payload = (res as any)?.data ?? res;
       setDraft(payload);

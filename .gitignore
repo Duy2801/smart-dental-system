@@ -47,6 +47,7 @@ yarn-error.log*
 !/docs/*.md
 !/docs/adr/
 !/docs/adr/*.md
+/docs/HUONG_DAN_SU_DUNG_BAC_SI_VA_LE_TAN.md
 db.md
 
 # ai

@@ -17,6 +17,7 @@ import {
 import apiClient from "@/src/lib/api/client";
 import { localDateStr } from "@/src/lib/receptionist/mappers";
 import { getDoctorIdFromCookie } from "@/src/lib/doctor/session";
+import { getApiErrorMessage } from "@/src/lib/utils/api-error";
 import { WeekCalendar } from "./_components/WeekCalendar";
 import { AppointmentList } from "./_components/AppointmentList";
 import { TimeOffModal } from "./_components/TimeOffModal";
@@ -202,13 +203,15 @@ export default function DoctorSchedulePage() {
     try {
       await apiClient.patch(endpoint);
       await fetchSchedule();
-    } catch {
-      const msg =
+    } catch (error) {
+      const msg = getApiErrorMessage(
+        error,
         action === "start"
           ? "Không thể bắt đầu ca khám. Kiểm tra bệnh nhân đã check-in chưa."
-          : "Không thể kết thúc ca khám. Vui lòng thử lại.";
+          : "Không thể kết thúc ca khám. Vui lòng thử lại.",
+      );
       setActionError(msg);
-      throw new Error(msg);
+      throw error;
     }
   }
 

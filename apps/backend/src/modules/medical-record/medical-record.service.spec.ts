@@ -205,6 +205,39 @@ describe('MedicalRecordService - followUpDate validation', () => {
     });
   });
 
+  it('loads record details without selecting unrelated prescription columns', async () => {
+    prismaMock.medicalRecord.findUnique.mockResolvedValueOnce({
+      id: 'rec-1',
+      patientId: 'pat-1',
+      doctorId: 'doc-1',
+      patient: { fullName: 'Nguyen Van A', patientCode: 'P01' },
+      doctor: { id: 'doc-1', user: { fullName: 'BS. Tran Thi B' } },
+      appointment: null,
+      prescriptionRecords: [],
+      images: [],
+      dentalChart: { teeth: [] },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    await service.findOne('rec-1', adminUser);
+
+    expect(prismaMock.medicalRecord.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: expect.objectContaining({
+          prescriptionRecords: {
+            select: {
+              id: true,
+              notes: true,
+              createdAt: true,
+              items: true,
+            },
+          },
+        }),
+      }),
+    );
+  });
+
   it('rejects a file whose content does not match its declared image type', async () => {
     await expect(
       service.uploadImage(

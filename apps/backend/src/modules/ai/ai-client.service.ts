@@ -19,6 +19,11 @@ export class AiClientService {
     return this.config.get<string>('AI_SERVICE_API_KEY') || 'dev-local-key';
   }
 
+  private timeoutMs() {
+    const configured = Number(this.config.get<string>('AI_SERVICE_TIMEOUT_MS'));
+    return Number.isFinite(configured) && configured > 0 ? configured : 90_000;
+  }
+
   async post<T>(path: string, body: unknown): Promise<T> {
     const url = `${this.baseUrl()}${path.startsWith('/') ? path : `/${path}`}`;
     const headers: Record<string, string> = {
@@ -33,7 +38,7 @@ export class AiClientService {
         method: 'POST',
         headers,
         body: JSON.stringify(body),
-        signal: AbortSignal.timeout(60_000),
+        signal: AbortSignal.timeout(this.timeoutMs()),
       });
     } catch (err: any) {
       console.error('[AiClientService] fetch failed for URL:', url, 'Error:', err?.message || err);

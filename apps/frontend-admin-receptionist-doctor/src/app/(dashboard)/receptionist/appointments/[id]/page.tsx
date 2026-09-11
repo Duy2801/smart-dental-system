@@ -133,10 +133,24 @@ export default function AppointmentDetailPage() {
       });
       if (!confirmed) return;
     }
+    if (status === "CHECKED_IN") {
+      const confirmed = await showConfirm({
+        title: "Xác nhận tiền sử bệnh nhân?",
+        description:
+          "Tôi đã hỏi và đối chiếu thông tin dị ứng, bệnh nền và thuốc bệnh nhân đang sử dụng.",
+        confirmLabel: "Xác nhận và check-in",
+      });
+      if (!confirmed) return;
+    }
     setActing(true);
     setError(null);
     try {
-      await apiClient.patch(`/appointments/${apt.id}/${endpoint}`);
+      await apiClient.patch(
+        `/appointments/${apt.id}/${endpoint}`,
+        status === "CHECKED_IN"
+          ? { medicalHistoryConfirmed: true }
+          : undefined,
+      );
       await loadAppointment();
       setToast(message);
       setTimeout(() => setToast(null), 2500);
