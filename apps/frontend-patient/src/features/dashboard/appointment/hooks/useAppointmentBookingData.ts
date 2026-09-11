@@ -24,7 +24,7 @@ export function useAppointmentBookingData({
   selectedDateId,
   selectedTime,
 }: UseAppointmentBookingDataParams) {
-  const doctorIdForQuery = dedicatedDoctorId || selectedDoctorId || undefined;
+  const doctorIdForQuery = dedicatedDoctorId || undefined;
   const baseOptionsQueryParams: BookingOptionsQuery = useMemo(
     () => ({
       doctorId: doctorIdForQuery,
@@ -69,7 +69,10 @@ export function useAppointmentBookingData({
     ],
   );
 
-  const scheduleDoctors = scheduleQuery.data?.doctors ?? [];
+  const scheduleDoctors = useMemo(
+    () => scheduleQuery.data?.doctors ?? [],
+    [scheduleQuery.data],
+  );
   const hasSlotInfo = useMemo(
     () =>
       scheduleDoctors.some(
@@ -124,11 +127,11 @@ export function useAppointmentBookingData({
 
     return scheduleQuery.data?.doctors ?? baseOptionsQuery.data?.doctors ?? [];
   }, [
-    availabilityQuery.data?.doctors,
-    baseOptionsQuery.data?.doctors,
+    availabilityQuery.data,
+    baseOptionsQuery.data,
     dedicatedDoctorId,
     hasSlotInfo,
-    scheduleQuery.data?.doctors,
+    scheduleQuery.data,
     selectedDateId,
     selectedServiceId,
     selectedTime,

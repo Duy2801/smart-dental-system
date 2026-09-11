@@ -1971,6 +1971,7 @@ export class AppointmentService {
         ...this.buildAppointmentOwnerWhere(patientId, createdBy),
         treatmentMethodId,
         status: { in: incompleteAppointmentStatuses },
+        endAt: { gt: new Date() },
       },
       select: { id: true },
     });
