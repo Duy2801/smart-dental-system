@@ -4,3 +4,4 @@ export * from './Chip';
 export * from './EmptyState';
 export * from './Screen';
 export * from './ScreenHeader';
+export * from './Toast';

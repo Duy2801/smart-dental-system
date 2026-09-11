@@ -62,6 +62,12 @@ type AppointmentDto = {
   patientId?: string | null;
   doctorId: string;
   serviceId: string;
+  treatmentMethodId?: string | null;
+  treatmentMethod?: {
+    id: string;
+    name: string;
+    durationMinutes?: number | null;
+  } | null;
   scheduledAt: string;
   endAt: string;
   status: string;
@@ -121,13 +127,16 @@ export const formatCurrency = (value?: number | string | null) => {
 export const formatTimeRange = (time: string, durationMinutes = 30) => {
   if (!time) return '--:--';
   const parts = time.split(':').map(Number);
-  if (parts.length < 2 || Number.isNaN(parts[0]) || Number.isNaN(parts[1])) return time;
+  if (parts.length < 2 || Number.isNaN(parts[0]) || Number.isNaN(parts[1]))
+    return time;
   const [hour, minute] = parts;
   const startMin = hour * 60 + minute;
   const endMin = startMin + durationMinutes;
   const endHour = Math.floor(endMin / 60) % 24;
   const endMinute = endMin % 60;
-  const endStr = `${String(endHour).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}`;
+  const endStr = `${String(endHour).padStart(2, '0')}:${String(
+    endMinute,
+  ).padStart(2, '0')}`;
   return `${time} - ${endStr}`;
 };
 
@@ -135,18 +144,26 @@ const mapAppointment = (item: AppointmentDto): AppointmentItem => {
   const scheduledAt = new Date(item.scheduledAt);
   const doctorName = item.doctor?.user?.fullName ?? 'Bác sĩ phòng khám';
   const serviceName = item.service?.name ?? 'Dịch vụ nha khoa';
-  const patientName = item.patient?.fullName ?? item.patient?.user?.fullName ?? null;
+  const patientName =
+    item.patient?.fullName ?? item.patient?.user?.fullName ?? null;
 
   return {
     id: item.id,
     patientId: item.patientId ?? item.patient?.id ?? null,
     patientName,
-    patientRelationship: item.patient?.patientAccounts?.[0]?.relationship ?? null,
+    patientRelationship:
+      item.patient?.patientAccounts?.[0]?.relationship ?? null,
     doctorId: item.doctorId,
     serviceId: item.serviceId,
+    treatmentMethodId:
+      item.treatmentMethodId ?? item.treatmentMethod?.id ?? undefined,
+    treatmentMethodName: item.treatmentMethod?.name,
     scheduledAt: item.scheduledAt,
     endAt: item.endAt,
-    durationMinutes: item.service?.durationMinutes ?? 30,
+    durationMinutes:
+      item.treatmentMethod?.durationMinutes ??
+      item.service?.durationMinutes ??
+      30,
     dateId: new Intl.DateTimeFormat('en-CA', {
       timeZone: 'Asia/Ho_Chi_Minh',
     }).format(scheduledAt),
@@ -168,7 +185,9 @@ const mapAppointment = (item: AppointmentDto): AppointmentItem => {
     initials: getInitials(doctorName) || 'BS',
     paymentOption: item.paymentOption,
     paymentStatus: item.paymentStatus,
-    rescheduleCount: Array.isArray(item.rescheduleHistory) ? item.rescheduleHistory.length : 0,
+    rescheduleCount: Array.isArray(item.rescheduleHistory)
+      ? item.rescheduleHistory.length
+      : 0,
     preparation: [
       'Đến trước giờ hẹn 10-15 phút để làm thủ tục check-in tại quầy',
       'Mang theo hồ sơ điều trị hoặc kết quả chụp phim gần nhất nếu có',
@@ -194,7 +213,10 @@ const mapService = (item: ServiceDto): AppointmentService => ({
   id: item.id,
   name: item.name,
   category: item.category,
-  description: item.shortDescription || item.description || 'Dịch vụ nha khoa chuyên nghiệp.',
+  description:
+    item.shortDescription ||
+    item.description ||
+    'Dịch vụ nha khoa chuyên nghiệp.',
   icon: item.icon ?? 'tooth',
   href: `/service/${item.id}`,
   treatmentMethods: (item.treatmentMethods ?? []).map(mapTreatmentMethod),
@@ -251,22 +273,18 @@ export async function getAppointmentOptions(query: BookingOptionsQuery = {}) {
 
 export async function getPatientAppointments(): Promise<PatientAppointmentsData> {
   const [upcomingResponse, historyResponse] = await Promise.all([
-    api
-      .get('/appointments/upcoming')
-      .catch((error: unknown) => {
-        if (axios.isAxiosError(error) && error.response?.status === 404) {
-          return { data: [] };
-        }
-        throw error;
-      }),
-    api
-      .get('/appointments/history')
-      .catch((error: unknown) => {
-        if (axios.isAxiosError(error) && error.response?.status === 404) {
-          return { data: [] };
-        }
-        throw error;
-      }),
+    api.get('/appointments/upcoming').catch((error: unknown) => {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        return { data: [] };
+      }
+      throw error;
+    }),
+    api.get('/appointments/history').catch((error: unknown) => {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        return { data: [] };
+      }
+      throw error;
+    }),
   ]);
 
   const rawUpcoming = unwrapData<AppointmentDto[]>(upcomingResponse);
@@ -281,7 +299,9 @@ export async function getPatientAppointments(): Promise<PatientAppointmentsData>
   };
 }
 
-export async function createPatientAppointment(payload: CreateAppointmentPayload) {
+export async function createPatientAppointment(
+  payload: CreateAppointmentPayload,
+) {
   const response = await api.post('/appointments', payload);
   const data = unwrapData<AppointmentDto>(response);
   return mapAppointment(data);
@@ -332,14 +352,29 @@ export async function getPromotions(): Promise<PromotionDto[]> {
       name: item.name || item.title || '',
       description: item.description || '',
       image_url: item.imageUrl || item.image_url || null,
-      applicable_service_slug: item.applicableServiceSlug || item.applicable_service_slug || null,
+      applicable_service_slug:
+        item.applicableServiceSlug || item.applicable_service_slug || null,
       applicable_treatment_method_id:
-        item.applicableTreatmentMethodId || item.applicable_treatment_method_id || null,
-      applicable_treatment_method: item.applicableTreatmentMethod || item.applicable_treatment_method || null,
-      discount_type: (item.discountType || item.discount_type || 'PERCENTAGE').toUpperCase(),
+        item.applicableTreatmentMethodId ||
+        item.applicable_treatment_method_id ||
+        null,
+      applicable_treatment_method:
+        item.applicableTreatmentMethod ||
+        item.applicable_treatment_method ||
+        null,
+      discount_type: (
+        item.discountType ||
+        item.discount_type ||
+        'PERCENTAGE'
+      ).toUpperCase(),
       discount_value: Number(item.discountValue ?? item.discount_value ?? 0),
-      min_order_amount: Number(item.minOrderAmount ?? item.min_order_amount ?? 0),
-      max_discount_amount: item.maxDiscountAmount || item.max_discount_amount ? Number(item.maxDiscountAmount || item.max_discount_amount) : null,
+      min_order_amount: Number(
+        item.minOrderAmount ?? item.min_order_amount ?? 0,
+      ),
+      max_discount_amount:
+        item.maxDiscountAmount || item.max_discount_amount
+          ? Number(item.maxDiscountAmount || item.max_discount_amount)
+          : null,
       max_uses: Number(item.maxUses ?? item.max_uses ?? 0),
       used_count: Number(item.usedCount ?? item.used_count ?? 0),
       start_date: item.startDate || item.start_date || '',
@@ -412,10 +447,16 @@ export function isPromotionApplicable(
   return true;
 }
 
-export function pickBestPromotion(promotions: PromotionDto[], basePrice: number) {
+export function pickBestPromotion(
+  promotions: PromotionDto[],
+  basePrice: number,
+) {
   return promotions.reduce<PromotionDto | null>((best, promotion) => {
     if (!best) return promotion;
-    const currentDiscount = calculateDiscount(promotion, basePrice).discountAmount;
+    const currentDiscount = calculateDiscount(
+      promotion,
+      basePrice,
+    ).discountAmount;
     const bestDiscount = calculateDiscount(best, basePrice).discountAmount;
     return currentDiscount > bestDiscount ? promotion : best;
   }, null);

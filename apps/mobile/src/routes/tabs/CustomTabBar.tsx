@@ -1,5 +1,6 @@
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { StackActions } from '@react-navigation/native';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -54,17 +55,35 @@ const CustomTabBar = ({
           const isCenter = route.name === SCREEN_NAME.PATIENT_CONSULTATION;
 
           const onPress = () => {
+            if (isCenter) {
+              // Để trống đường dẫn theo yêu cầu, xử lý tính năng tư vấn sau
+              return;
+            }
             const event = navigation.emit({
               canPreventDefault: true,
               target: route.key,
               type: 'tabPress',
             });
-            if (!isFocused && !event.defaultPrevented) {
-              navigation.navigate({
-                name: route.name,
-                params: route.params,
-                merge: true,
-              });
+            if (!event.defaultPrevented) {
+              const childState = route.state;
+              if (childState?.key && (childState.index ?? 0) > 0) {
+                navigation.dispatch({
+                  ...StackActions.popToTop(),
+                  target: childState.key,
+                });
+              }
+
+              if (route.name === SCREEN_NAME.HOME) {
+                navigation.navigate(SCREEN_NAME.HOME, {
+                  screen: SCREEN_NAME.HOME,
+                });
+              } else if (!isFocused) {
+                navigation.navigate({
+                  name: route.name,
+                  params: route.params,
+                  merge: true,
+                });
+              }
             }
           };
 
@@ -75,9 +94,9 @@ const CustomTabBar = ({
                 accessibilityState={isFocused ? { selected: true } : {}}
                 activeOpacity={0.88}
                 key={route.key}
-                onLongPress={() =>
-                  navigation.emit({ target: route.key, type: 'tabLongPress' })
-                }
+                onLongPress={() => {
+                  // Để trống
+                }}
                 onPress={onPress}
                 style={styles.centerTabItem}
               >

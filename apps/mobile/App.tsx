@@ -21,6 +21,7 @@ import { loadAuthSession } from '~src/features/auth/session';
 import { hydrateSession } from '~src/reducers/loginReducer';
 import { LogBox } from 'react-native';
 import { paperLightTheme } from '~src/constants/theme';
+import { ToastProvider } from '~src/components/ui';
 
 LogBox.ignoreAllLogs();
 
@@ -55,6 +56,7 @@ function App() {
               <Layout>
                 <ApplicationNavigator />
               </Layout>
+              <ToastProvider />
             </PaperProvider>
           </SocketWrapper>
         </AuthBootstrap>

@@ -1,7 +1,6 @@
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   Modal,
   StyleSheet,
   TouchableOpacity,
@@ -16,7 +15,6 @@ type SchedulePickerProps = {
   blockedRanges?: string[];
   blockedTimes?: string[];
   dates: BookingDate[];
-  isLoadingTimes?: boolean;
   onBack: () => void;
   onContinue: () => void;
   onSelectDate: (id: string) => void;
@@ -62,7 +60,6 @@ export function SchedulePicker({
   times = [],
   blockedTimes = [],
   blockedRanges = [],
-  isLoadingTimes = false,
   slotIntervalMinutes = 30,
   selectedDateId,
   selectedTime,
@@ -95,8 +92,7 @@ export function SchedulePicker({
   const selectedDateLabel = selectedDateId
     ? formatDisplayDate(selectedDateId)
     : 'Chọn ngày';
-  const isStepComplete =
-    Boolean(selectedDateId) && Boolean(selectedTime) && !isLoadingTimes;
+  const isStepComplete = Boolean(selectedDateId) && Boolean(selectedTime);
 
   const calendarDays = useMemo(() => {
     const firstDayIndex = new Date(calendarYear, calendarMonth, 1).getDay();
@@ -180,14 +176,7 @@ export function SchedulePicker({
           </View>
         ) : null}
 
-        {isLoadingTimes && selectedDateId ? (
-          <View style={styles.timeLoadingBox}>
-            <ActivityIndicator color="#0058bc" size="small" />
-            <Text style={styles.timeLoadingText}>
-              Đang tải khung giờ trống thật từ phòng khám...
-            </Text>
-          </View>
-        ) : visibleTimes.length === 0 ? (
+        {visibleTimes.length === 0 ? (
           <View className="mt-4 rounded-xl bg-slate-50 p-6 items-center justify-center">
             <FontAwesome6
               color="#94A3B8"
@@ -225,8 +214,8 @@ export function SchedulePicker({
                       isSelected
                         ? styles.timeTextSelected
                         : isBlocked
-                          ? styles.timeTextBlocked
-                          : styles.timeTextNormal,
+                        ? styles.timeTextBlocked
+                        : styles.timeTextNormal,
                     ]}
                   >
                     {time}
@@ -242,7 +231,11 @@ export function SchedulePicker({
         <Button variant="outline" onPress={onBack} className="flex-1">
           Quay lại
         </Button>
-        <Button disabled={!isStepComplete} onPress={onContinue} className="flex-1">
+        <Button
+          disabled={!isStepComplete}
+          onPress={onContinue}
+          className="flex-1"
+        >
           Tiếp tục: Chọn bác sĩ
         </Button>
       </View>
@@ -372,7 +365,9 @@ export function SchedulePicker({
             <View style={styles.calendarGrid}>
               {calendarDays.map((item, index) => {
                 if (!item) {
-                  return <View key={`empty-${index}`} style={styles.calDayCell} />;
+                  return (
+                    <View key={`empty-${index}`} style={styles.calDayCell} />
+                  );
                 }
 
                 const isSelected = selectedDateId === item.dateStr;
@@ -649,24 +644,6 @@ const styles = StyleSheet.create({
   timeChipSelected: {
     backgroundColor: '#EFF6FF',
     borderColor: '#0058bc',
-  },
-  timeLoadingBox: {
-    alignItems: 'center',
-    backgroundColor: '#EFF6FF',
-    borderColor: '#BFDBFE',
-    borderRadius: 14,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 14,
-  },
-  timeLoadingText: {
-    color: '#0058bc',
-    flex: 1,
-    fontSize: 12,
-    fontWeight: '800',
   },
   timeText: {
     fontSize: 12,
