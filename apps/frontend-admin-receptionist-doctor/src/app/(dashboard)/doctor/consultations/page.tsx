@@ -12,7 +12,6 @@ import {
   ArrowRight,
   XCircle,
   PaperPlaneTilt,
-  CheckCircle,
   CaretLeft,
   CaretRight,
   ArrowClockwise,
@@ -169,8 +168,8 @@ export default function DoctorConsultationsPage() {
         type: "success",
       });
       setTimeout(() => setToast(null), 4500);
-    } catch (err: any) {
-      const msg = err.response?.data?.message || "Không thể gửi email lời nhắc phòng tư vấn.";
+    } catch (err: unknown) {
+      const msg = apiErrorMessage(err, "Không thể gửi email lời nhắc phòng tư vấn.");
       setToast({
         message: Array.isArray(msg) ? msg[0] : msg,
         type: "error",
@@ -184,6 +183,7 @@ export default function DoctorConsultationsPage() {
   useEffect(() => {
     const doctorInfo = getDoctorInfoFromCookie();
     const id = doctorInfo?.doctorId ?? getDoctorIdFromCookie();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDoctorId(id);
     if (!id) {
       setError("Không tìm thấy thông tin bác sĩ. Vui lòng đăng nhập lại.");
@@ -208,6 +208,7 @@ export default function DoctorConsultationsPage() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (doctorId) load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [doctorId]);
@@ -398,7 +399,7 @@ export default function DoctorConsultationsPage() {
                     </div>
 
                     <div className="flex shrink-0 flex-wrap items-center gap-2">
-                      {item.status !== "CANCELLED" && item.status !== "COMPLETED" && (
+                      {item.status === "SCHEDULED" && item.isPaid && (
                         <button
                           type="button"
                           onClick={() => handleSendReminder(item)}

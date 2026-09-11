@@ -23,7 +23,7 @@ describe('VideoConsultationService', () => {
     id: 'consult-1',
     patientId: 'patient-1',
     doctorId: 'doctor-1',
-    scheduledAt: new Date('2026-09-10T10:00:00Z'),
+    scheduledAt: new Date(Date.now() + 60 * 60 * 1000),
     durationMinutes: 30,
     status: VideoConsultationStatus.SCHEDULED,
     meetingUrl: 'https://meet.jit.si/sds-room-1#sdsPin=123456',
@@ -61,6 +61,7 @@ describe('VideoConsultationService', () => {
           ...sampleConsultation,
           ...data,
         })),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
       doctor: {
         findUnique: jest.fn().mockResolvedValue({ id: 'doctor-1' }),
@@ -93,7 +94,10 @@ describe('VideoConsultationService', () => {
             endedAt: new Date('2026-09-05T09:15:00Z'),
             messages: [
               { role: 'user', content: 'Tôi bị đau răng hàm dưới' },
-              { role: 'assistant', content: 'Bạn nên đến khám trực tiếp hoặc đặt tư vấn video' },
+              {
+                role: 'assistant',
+                content: 'Bạn nên đến khám trực tiếp hoặc đặt tư vấn video',
+              },
             ],
           },
         ]),
@@ -104,7 +108,13 @@ describe('VideoConsultationService', () => {
     paymentServiceMock = {};
     clinicConfigServiceMock = {};
     eventsGatewayMock = { emitToUser: jest.fn() };
-    redisMock = { del: jest.fn(), get: jest.fn(), set: jest.fn() };
+    redisMock = {
+      del: jest.fn(),
+      get: jest.fn(),
+      set: jest.fn(),
+      incr: jest.fn().mockResolvedValue(1),
+      expire: jest.fn(),
+    };
     mailQueueMock = { add: jest.fn().mockResolvedValue({}) };
 
     service = new VideoConsultationService(
@@ -139,6 +149,7 @@ describe('VideoConsultationService', () => {
           }),
         }),
       );
+      expect(prismaMock.invoice.update).not.toHaveBeenCalled();
     });
 
     it('should throw BadRequestException if consultation is already cancelled', async () => {
@@ -150,6 +161,68 @@ describe('VideoConsultationService', () => {
       await expect(service.cancel('consult-1', doctorUser)).rejects.toThrow(
         BadRequestException,
       );
+    });
+  });
+
+  describe('consultation state transitions', () => {
+    it('rejects starting a consultation that is still pending payment', async () => {
+      prismaMock.videoConsultation.findUnique.mockResolvedValueOnce({
+        ...sampleConsultation,
+        status: VideoConsultationStatus.PENDING_PAYMENT,
+        isPaid: false,
+      });
+
+      await expect(service.start('consult-1', doctorUser)).rejects.toThrow(
+        'Chỉ có thể bắt đầu lịch đã thanh toán',
+      );
+    });
+
+    it('rejects completing a consultation that is not in progress', async () => {
+      await expect(service.complete('consult-1', doctorUser)).rejects.toThrow(
+        'Chỉ có thể hoàn thành buổi tư vấn đang diễn ra',
+      );
+    });
+
+    it('starts a paid consultation inside the allowed window with an unguessable link', async () => {
+      prismaMock.videoConsultation.findUnique.mockResolvedValueOnce({
+        ...sampleConsultation,
+        scheduledAt: new Date(Date.now() + 5 * 60 * 1000),
+        meetingUrl: null,
+      });
+
+      const result = await service.start('consult-1', doctorUser);
+
+      expect(result.status).toBe(VideoConsultationStatus.IN_PROGRESS);
+      expect(result.meetingUrl).toMatch(
+        /^https:\/\/meet\.jit\.si\/sds-consult-[0-9a-f-]{36}$/,
+      );
+      expect(result.roomPin).toBeNull();
+    });
+
+    it('does not let a patient join before the doctor starts', async () => {
+      await expect(
+        service.joinPatientRoom(
+          { ...doctorUser, roles: ['PATIENT'] },
+          'consult-1',
+        ),
+      ).rejects.toThrow('Phòng tư vấn chưa sẵn sàng');
+    });
+  });
+
+  describe('notes concurrency', () => {
+    it('rejects overwriting notes changed by another tab', async () => {
+      prismaMock.videoConsultation.updateMany.mockResolvedValueOnce({
+        count: 0,
+      });
+
+      await expect(
+        service.updateNotes(
+          'consult-1',
+          doctorUser,
+          'Ghi chú mới',
+          sampleConsultation.notes,
+        ),
+      ).rejects.toThrow('Ghi chú đã được cập nhật ở nơi khác');
     });
   });
 
@@ -178,6 +251,15 @@ describe('VideoConsultationService', () => {
         }),
       );
     });
+
+    it('rate limits repeated reminders', async () => {
+      redisMock.incr.mockResolvedValueOnce(2);
+
+      await expect(
+        service.sendConsultationReminderToPatient('consult-1', doctorUser),
+      ).rejects.toThrow('Vừa gửi lời nhắc');
+      expect(prismaMock.notification.create).not.toHaveBeenCalled();
+    });
   });
 
   describe('findOne', () => {
@@ -192,4 +274,3 @@ describe('VideoConsultationService', () => {
     });
   });
 });
-

@@ -7,7 +7,6 @@ import axios from "axios";
 import {
   ArrowLeft,
   ChatCircleDots,
-  Copy,
   FloppyDisk,
   PhoneDisconnect,
   SpinnerGap,
@@ -131,6 +130,7 @@ export default function ConsultationRoomPage() {
   const [error, setError] = useState<string | null>(null);
   const [sideTab, setSideTab] = useState<SideTab>("chatbot");
   const [notes, setNotes] = useState("");
+  const [savedNotes, setSavedNotes] = useState("");
   const [notesError, setNotesError] = useState<string | null>(null);
   const [savingNotes, setSavingNotes] = useState(false);
   const [notesSaved, setNotesSaved] = useState(false);
@@ -140,7 +140,6 @@ export default function ConsultationRoomPage() {
   const [inCall, setInCall] = useState(false);
   const [callStartedAt, setCallStartedAt] = useState<number | null>(null);
   const [tick, setTick] = useState(0);
-  const [pinCopied, setPinCopied] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSummary, setAiSummary] = useState<{
     bulletPoints: string[];
@@ -158,6 +157,7 @@ export default function ConsultationRoomPage() {
       );
       setDetail(res.data);
       setNotes(res.data.notes ?? "");
+      setSavedNotes(res.data.notes ?? "");
       if (res.data.status === "IN_PROGRESS" && res.data.meetingUrl) {
         setInCall(true);
         setCallStartedAt((prev) => prev ?? Date.now());
@@ -174,6 +174,7 @@ export default function ConsultationRoomPage() {
 
   useEffect(() => {
     if (id) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAiSummary(null);
       load();
 
@@ -207,6 +208,15 @@ export default function ConsultationRoomPage() {
     return () => clearInterval(t);
   }, [inCall]);
 
+  useEffect(() => {
+    const warn = (event: BeforeUnloadEvent) => {
+      if (notes === savedNotes) return;
+      event.preventDefault();
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [notes, savedNotes]);
+
   const localSummary = useMemo(
     () => buildSummary(detail?.chatbotSessions ?? []),
     [detail],
@@ -221,8 +231,8 @@ export default function ConsultationRoomPage() {
         type: "success",
       });
       setTimeout(() => setToast(null), 4500);
-    } catch (err: any) {
-      const msg = err.response?.data?.message || "Không thể gửi email lời nhắc phòng tư vấn.";
+    } catch (err: unknown) {
+      const msg = apiErrorMessage(err, "Không thể gửi email lời nhắc phòng tư vấn.");
       setToast({
         message: Array.isArray(msg) ? msg[0] : msg,
         type: "error",
@@ -265,14 +275,6 @@ export default function ConsultationRoomPage() {
 
   const handleStart = async () => {
     if (!detail) return;
-    if (!detail.isPaid) {
-      const ok = await showConfirm({
-        title: "Buổi tư vấn chưa thanh toán",
-        description: "Bạn vẫn muốn bắt đầu buổi tư vấn này?",
-        confirmLabel: "Vẫn bắt đầu",
-      });
-      if (!ok) return;
-    }
     setActionLoading(true);
     try {
       const res = await apiClient.patch<
@@ -372,8 +374,11 @@ export default function ConsultationRoomPage() {
     try {
       await apiClient.patch(`/video-consultations/${id}/notes`, {
         notes: notes.trim() || null,
+        previousNotes: savedNotes || null,
       });
       setNotes(notes.trim());
+      setSavedNotes(notes.trim());
+      setDetail((prev) => prev ? { ...prev, notes: notes.trim() || null } : prev);
       setNotesSaved(true);
       setTimeout(() => setNotesSaved(false), 2500);
       setToast({
@@ -392,19 +397,17 @@ export default function ConsultationRoomPage() {
     }
   };
 
-  const handleCopyPin = async () => {
-    if (!detail?.roomPin) return;
-    try {
-      await navigator.clipboard.writeText(detail.roomPin);
-      setPinCopied(true);
-      setTimeout(() => setPinCopied(false), 2000);
-    } catch {
-      await showAlert({
-        title: "Mã PIN phòng tư vấn",
-        description: detail.roomPin,
-        closeLabel: "Đã nhớ",
+  const handleBack = async () => {
+    if (notes !== savedNotes) {
+      const leave = await showConfirm({
+        title: "Rời trang khi chưa lưu?",
+        description: "Các thay đổi trong ghi chú sẽ bị mất.",
+        confirmLabel: "Rời trang",
+        tone: "danger",
       });
+      if (!leave) return;
     }
+    router.push(ROUTES.DOCTOR.CONSULTATIONS);
   };
 
   if (loading) {
@@ -443,9 +446,8 @@ export default function ConsultationRoomPage() {
   }
 
   const cfg = STATUS_CFG[detail.status];
-  const canStart =
-    detail.status === "SCHEDULED" ||
-    (detail.status === "IN_PROGRESS" && !detail.meetingUrl);
+  const canStart = detail.status === "SCHEDULED" && detail.isPaid;
+  const canRemind = detail.status === "SCHEDULED" && detail.isPaid;
   const canCancel =
     detail.status === "SCHEDULED" || detail.status === "IN_PROGRESS";
   const notesEditable =
@@ -461,7 +463,7 @@ export default function ConsultationRoomPage() {
           <div className="min-w-0 space-y-1">
             <button
               type="button"
-              onClick={() => router.push(ROUTES.DOCTOR.CONSULTATIONS)}
+              onClick={handleBack}
               className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-brand cursor-pointer"
             >
               <ArrowLeft size={12} />
@@ -506,31 +508,10 @@ export default function ConsultationRoomPage() {
               })() : null}
               <span className="sr-only">{tick}</span>
             </p>
-            {showCall && detail.roomPin ? (
-              <p className="flex flex-wrap items-center gap-2 text-sm text-brand-dark">
-                <span>
-                  Mã PIN phòng:{" "}
-                  <span className="font-mono text-base font-bold tracking-widest">
-                    {detail.roomPin}
-                  </span>
-                </span>
-                <button
-                  type="button"
-                  onClick={handleCopyPin}
-                  className="inline-flex items-center gap-1 rounded-md bg-brand/10 px-2 py-0.5 text-xs font-semibold text-brand hover:bg-brand/15 cursor-pointer"
-                >
-                  <Copy size={12} />
-                  {pinCopied ? "Đã copy" : "Copy PIN"}
-                </button>
-                <span className="text-xs font-normal text-muted-foreground">
-                  (gửi cho bệnh nhân)
-                </span>
-              </p>
-            ) : null}
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {canStart && (
+            {canRemind && (
               <button
                 type="button"
                 onClick={handleSendReminder}
@@ -607,7 +588,7 @@ export default function ConsultationRoomPage() {
                       ? "Link phòng đã hết hạn và không thể vào lại."
                       : detail.status === "CANCELLED"
                         ? "Không thể bắt đầu buổi đã hủy."
-                        : 'Xem lịch sử Chatbot bên phải trước khi gọi. Khi sẵn sàng, bấm "Bắt đầu tư vấn" để hệ thống tạo phòng ngẫu nhiên và mã PIN.'}
+                        : 'Xem lịch sử Chatbot bên phải trước khi gọi. Khi sẵn sàng, bấm "Bắt đầu tư vấn" để hệ thống tạo phòng bảo mật bằng liên kết riêng.'}
                   </p>
                 </div>
               </div>
