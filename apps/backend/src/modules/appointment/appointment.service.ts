@@ -43,7 +43,6 @@ const patientCancelableStatuses: AppointmentStatus[] = [
 const patientReschedulableStatuses: AppointmentStatus[] = [
   ...patientCancelableStatuses,
 ];
-const patientCancelNoticeHours = 12;
 const patientRescheduleNoticeHours = 6;
 const noShowOnlineBookingBlockedThreshold = 3;
 
@@ -69,6 +68,7 @@ type BookingOptionQuery = {
   doctorId?: string;
   date?: string;
   time?: string;
+  appointmentId?: string;
 };
 
 type AvailabilityRecordSnapshot = {
@@ -81,6 +81,7 @@ type AvailabilityRecordSnapshot = {
 };
 
 type AppointmentSlotSnapshot = {
+  id?: string;
   doctorId: string;
   scheduledAt: Date;
   endAt: Date;
@@ -328,6 +329,16 @@ export class AppointmentService {
       },
       include: appointmentInclude,
     });
+    await this.prisma.invoice.updateMany({
+      where: {
+        appointmentId: appointment.id,
+        status: { in: [InvoiceStatus.DRAFT, InvoiceStatus.ISSUED] },
+      },
+      data: {
+        status: InvoiceStatus.CANCELLED,
+      },
+    });
+
     void this.invalidateBookingCache(
       userId,
       appointment.patientId || undefined,
@@ -1452,6 +1463,7 @@ export class AppointmentService {
         ).map(([docId, apps]) => [
           docId,
           apps.map((a) => ({
+            id: a.id,
             doctorId: a.doctorId,
             scheduledAt: a.scheduledAt.toISOString(),
             endAt: a.endAt.toISOString(),
@@ -1459,6 +1471,7 @@ export class AppointmentService {
         ]),
         availabilityRecords: data.availabilityRecords,
         activeAppointments: data.activeAppointments.map((a) => ({
+          id: a.id,
           doctorId: a.doctorId,
           scheduledAt: a.scheduledAt.toISOString(),
           endAt: a.endAt.toISOString(),
@@ -1474,6 +1487,7 @@ export class AppointmentService {
       appointmentsByDoctor.set(
         docId,
         apps.map((a: any) => ({
+          id: a.id,
           doctorId: a.doctorId,
           scheduledAt: new Date(a.scheduledAt),
           endAt: new Date(a.endAt),
@@ -1486,6 +1500,7 @@ export class AppointmentService {
       appointmentsByDoctor,
       availabilityRecords: raw.availabilityRecords,
       activeAppointments: (raw.activeAppointments as any[]).map((a: any) => ({
+        id: a.id,
         doctorId: a.doctorId,
         scheduledAt: new Date(a.scheduledAt),
         endAt: new Date(a.endAt),
@@ -1494,7 +1509,7 @@ export class AppointmentService {
   }
 
   async getBookingOptions(query: BookingOptionQuery) {
-    const fullCacheKey = `booking:options:${query.serviceId || 'default'}:${query.treatmentMethodId || 'default'}:${query.doctorId || 'all'}:${query.date || 'default'}:${query.time || 'default'}`;
+    const fullCacheKey = `booking:options:${query.serviceId || 'default'}:${query.treatmentMethodId || 'default'}:${query.doctorId || 'all'}:${query.date || 'default'}:${query.time || 'default'}${query.appointmentId ? `:${query.appointmentId}` : ''}`;
 
     return this.redis.rememberJson(fullCacheKey, 45, async () => {
       const [clinicConfig, services] = await Promise.all([
@@ -1520,8 +1535,22 @@ export class AppointmentService {
       const doctorIds = doctors.map((doctor) => doctor.id);
       const bookingWindow = await this.getCachedBookingWindowData(doctorIds);
 
+      let effectiveAppointmentsByDoctor = bookingWindow.appointmentsByDoctor;
+      if (query.appointmentId) {
+        effectiveAppointmentsByDoctor = new Map();
+        for (const [
+          docId,
+          apps,
+        ] of bookingWindow.appointmentsByDoctor.entries()) {
+          effectiveAppointmentsByDoctor.set(
+            docId,
+            apps.filter((a) => a.id !== query.appointmentId),
+          );
+        }
+      }
+
       const duration = selectedTreatmentMethod?.durationMinutes ?? 30;
-      const datesCacheKey = `booking:dates:${duration}:${query.doctorId || 'all'}`;
+      const datesCacheKey = `booking:dates:${duration}:${query.doctorId || 'all'}${query.appointmentId ? `:${query.appointmentId}` : ''}`;
 
       const dates = await this.redis.rememberJson(datesCacheKey, 45, () =>
         this.buildBookingDates(
@@ -1531,7 +1560,7 @@ export class AppointmentService {
           clinicConfig.specialDates,
           clinicConfig.slotIntervalMinutes,
           bookingWindow.recordsByDoctor,
-          bookingWindow.appointmentsByDoctor,
+          effectiveAppointmentsByDoctor,
         ),
       );
 
@@ -1542,7 +1571,7 @@ export class AppointmentService {
       let doctorsWithAvailableSlots: any[] = [];
 
       if (selectedDateId && selectedService && selectedTreatmentMethod) {
-        const slotCacheKey = `booking:slots:${selectedService.id}:${selectedTreatmentMethod.id}:${query.doctorId || 'all'}:${selectedDateId}`;
+        const slotCacheKey = `booking:slots:${selectedService.id}:${selectedTreatmentMethod.id}:${query.doctorId || 'all'}:${selectedDateId}${query.appointmentId ? `:${query.appointmentId}` : ''}`;
 
         const slotCalc = await this.redis.rememberJson(
           slotCacheKey,
@@ -1556,7 +1585,7 @@ export class AppointmentService {
               specialDates: clinicConfig.specialDates,
               slotIntervalMinutes: clinicConfig.slotIntervalMinutes,
               recordsByDoctor: bookingWindow.recordsByDoctor,
-              appointmentsByDoctor: bookingWindow.appointmentsByDoctor,
+              appointmentsByDoctor: effectiveAppointmentsByDoctor,
             });
 
             const docSlots = doctors.map((doctor) => ({
@@ -1577,7 +1606,7 @@ export class AppointmentService {
                   slotStart,
                   slotEnd,
                   bookingWindow.recordsByDoctor,
-                  bookingWindow.appointmentsByDoctor,
+                  effectiveAppointmentsByDoctor,
                   selectedDateId,
                   businessHour?.start,
                   businessHour?.end,
@@ -2211,19 +2240,9 @@ export class AppointmentService {
 
   private ensurePatientCancellationAllowed(appointment: {
     status: AppointmentStatus;
-    scheduledAt: Date;
   }) {
     if (!patientCancelableStatuses.includes(appointment.status)) {
       throw new ConflictException('appointment.cancel_not_allowed');
-    }
-
-    if (
-      !this.hasRequiredNoticeBeforeAppointment(
-        appointment.scheduledAt,
-        patientCancelNoticeHours,
-      )
-    ) {
-      throw new ConflictException('appointment.cancel_deadline_passed');
     }
   }
 
@@ -2369,6 +2388,7 @@ export class AppointmentService {
             endAt: { gt: start },
           },
           select: {
+            id: true,
             doctorId: true,
             scheduledAt: true,
             endAt: true,

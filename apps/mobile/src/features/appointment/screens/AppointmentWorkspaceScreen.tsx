@@ -1,10 +1,11 @@
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useCallback, useState } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useSelector } from 'react-redux';
-import { Button, Screen } from '~src/components/ui';
+import { Button, Screen, toast } from '~src/components/ui';
+import { CACHE_TIMES, queryKeys } from '~src/config/queryClient';
 import { SCREEN_NAME } from '~src/constants/screenName';
 import { getClinicConfigInfo } from '~src/features/home/api';
 import { FloatingChatButton } from '~src/features/home/components/FloatingChatButton';
@@ -12,13 +13,14 @@ import { PatientDrawerModal } from '~src/features/home/components/PatientDrawerM
 import { PatientHomeHeader } from '~src/features/home/components/PatientHomeHeader';
 import { usePatientDrawerActions } from '~src/features/home/hooks/usePatientDrawerActions';
 import type { RootState } from '~src/reducers/store';
+import { cancelPatientAppointment, getPatientAppointments } from '../api';
 import {
-  cancelPatientAppointment,
-  getPatientAppointments,
-} from '../api';
-import { AppointmentWorkspaceHeader, AppointmentWorkspaceMode } from '../components/AppointmentWorkspaceHeader';
+  AppointmentWorkspaceHeader,
+  AppointmentWorkspaceMode,
+} from '../components/AppointmentWorkspaceHeader';
 import { BookingModeView } from '../components/booking/BookingModeView';
 import { ManageModeView } from '../components/workspace/ManageModeView';
+import { getBookingErrorMessage } from '../utils/bookingErrorMessage';
 
 type AppointmentWorkspaceScreenProps = {
   navigation?: any;
@@ -55,16 +57,18 @@ export default function AppointmentWorkspaceScreen({
   const { handleDrawerNavigate, handleLogout } = usePatientDrawerActions();
 
   const clinicQuery = useQuery({
-    queryKey: ['clinic-config'],
+    queryKey: queryKeys.clinicConfig,
     queryFn: getClinicConfigInfo,
-    staleTime: 5 * 60 * 1000,
+    staleTime: CACHE_TIMES.CLINIC_CONFIG.staleTime,
+    gcTime: CACHE_TIMES.CLINIC_CONFIG.gcTime,
   });
 
-  // Appointments Query
   const appointmentsQuery = useQuery({
-    queryKey: ['patient-appointments'],
+    queryKey: queryKeys.appointments.list(),
     queryFn: getPatientAppointments,
     enabled: isLoggedIn,
+    staleTime: CACHE_TIMES.APPOINTMENTS.staleTime,
+    gcTime: CACHE_TIMES.APPOINTMENTS.gcTime,
   });
 
   const upcomingAppointments = Array.isArray(appointmentsQuery.data?.upcoming)
@@ -75,7 +79,6 @@ export default function AppointmentWorkspaceScreen({
     : [];
   const allAppointments = [...upcomingAppointments, ...historyAppointments];
 
-  // Cancel Appointment Mutation
   const cancelMutation = useMutation({
     mutationFn: (appointmentId: string) => {
       setCancellingId(appointmentId);
@@ -83,15 +86,14 @@ export default function AppointmentWorkspaceScreen({
     },
     onSuccess: () => {
       setCancellingId(null);
-      queryClient.invalidateQueries({ queryKey: ['patient-appointments'] });
-      Alert.alert('Thành công', 'Lịch hẹn đã được hủy.');
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.appointments.list(),
+      });
+      toast.success('Đã hủy lịch hẹn', 'Lịch hẹn đã được cập nhật.');
     },
     onError: (err: any) => {
       setCancellingId(null);
-      Alert.alert(
-        'Không thể hủy',
-        err?.response?.data?.message || 'Có lỗi xảy ra khi hủy lịch hẹn. Vui lòng liên hệ phòng khám.',
-      );
+      toast.error('Không thể hủy lịch', getBookingErrorMessage(err));
     },
   });
 
@@ -129,24 +131,29 @@ export default function AppointmentWorkspaceScreen({
     />
   );
 
-  // Unauthenticated Banner
   if (isHydrated && !isLoggedIn) {
     return (
       <Screen>
         {renderTopHeader()}
         <View style={styles.loginRequiredContainer}>
           <View className="h-16 w-16 items-center justify-center rounded-3xl bg-blue-50 mb-4">
-            <FontAwesome6 color="#0058bc" iconStyle="solid" name="calendar-days" size={28} />
+            <FontAwesome6
+              color="#0058bc"
+              iconStyle="solid"
+              name="calendar-days"
+              size={28}
+            />
           </View>
           <Text className="text-xl font-black text-slate-900 text-center">
             Đặt lịch khám nha khoa
           </Text>
           <Text className="mt-2 text-xs text-slate-500 text-center leading-5 max-w-[280px]">
-            Đăng nhập để chọn người khám, dịch vụ, bác sĩ và khung giờ phù hợp. Tài khoản giúp phòng khám lưu hồ sơ và thông báo lịch hẹn cho bạn.
+            Đăng nhập để chọn người khám, dịch vụ, bác sĩ và khung giờ phù hợp.
+            Tài khoản giúp phòng khám lưu hồ sơ và thông báo lịch hẹn cho bạn.
           </Text>
           <Button
-            onPress={() => navigation?.navigate(SCREEN_NAME.PATIENT_LOGIN)}
             className="mt-6 w-full max-w-[260px]"
+            onPress={() => navigation?.navigate(SCREEN_NAME.PATIENT_LOGIN)}
           >
             Đăng nhập để tiếp tục
           </Button>
@@ -162,41 +169,37 @@ export default function AppointmentWorkspaceScreen({
       <View className="flex-1 px-4 pt-3">
         <AppointmentWorkspaceHeader
           mode={mode}
-          title={
-            mode === 'booking'
-              ? 'Đặt lịch khám mới'
-              : 'Quản lý lịch hẹn'
-          }
+          onSelectBooking={() => setMode('booking')}
+          onSelectManage={() => setMode('manage')}
           subtitle={
             mode === 'booking'
               ? 'Chọn dịch vụ, thời gian và bác sĩ phù hợp với bạn.'
               : 'Theo dõi lịch khám sắp tới, đổi lịch hoặc xem lịch sử các lần thăm khám.'
           }
-          onSelectBooking={() => setMode('booking')}
-          onSelectManage={() => setMode('manage')}
+          title={mode === 'booking' ? 'Đặt lịch khám mới' : 'Quản lý lịch hẹn'}
         />
 
         {mode === 'booking' ? (
           <BookingModeView
             dedicatedDoctorId={dedicatedDoctorId}
-            initialServiceId={initialServiceId}
             initialMethodId={initialMethodId}
+            initialServiceId={initialServiceId}
             isLoggedIn={isLoggedIn}
-            upcomingAppointments={upcomingAppointments}
-            onCancelBooking={() => setMode('manage')}
             onBookingComplete={() => setMode('manage')}
+            onCancelBooking={() => setMode('manage')}
+            upcomingAppointments={upcomingAppointments}
           />
         ) : (
           <ManageModeView
             appointments={allAppointments}
-            upcoming={upcomingAppointments}
-            historyItems={historyAppointments}
-            loading={appointmentsQuery.isLoading}
-            onRefresh={appointmentsQuery.refetch}
-            isRefreshing={appointmentsQuery.isRefetching}
-            onOpenBooking={() => setMode('booking')}
-            onCancelAppointment={handleCancelAppointment}
             cancellingAppointmentId={cancellingId}
+            historyItems={historyAppointments}
+            isRefreshing={appointmentsQuery.isRefetching}
+            loading={appointmentsQuery.isLoading}
+            onCancelAppointment={handleCancelAppointment}
+            onOpenBooking={() => setMode('booking')}
+            onRefresh={appointmentsQuery.refetch}
+            upcoming={upcomingAppointments}
           />
         )}
       </View>

@@ -1,4 +1,4 @@
-import FontAwesome6 from '@react-native-vector-icons/fontawesome6';
+﻿import FontAwesome6 from '@react-native-vector-icons/fontawesome6';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
@@ -17,12 +17,13 @@ import {
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useSelector } from 'react-redux';
-import { EmptyState, Screen, ScreenList } from '~src/components/ui';
+import { Screen, toast } from '~src/components/ui';
 import { SCREEN_NAME } from '~src/constants/screenName';
 import { PatientDrawerModal } from '~src/features/home/components/PatientDrawerModal';
 import { PatientFooter } from '~src/features/home/components/PatientFooter';
 import { PatientHomeHeader } from '~src/features/home/components/PatientHomeHeader';
 import { usePatientDrawerActions } from '~src/features/home/hooks/usePatientDrawerActions';
+import { CACHE_TIMES, queryKeys } from '~src/config/queryClient';
 import type { RootState } from '~src/reducers/store';
 import {
   cancelMyConsultation,
@@ -45,7 +46,7 @@ const DOCTORS_PER_PAGE = 4;
 const CONSULTATIONS_PER_PAGE = 10;
 
 function formatDisplayDate(dateStr: string) {
-  if (!dateStr) return 'Chọn ngày';
+  if (!dateStr) return 'Chá»n ngÃ y';
   const parts = dateStr.split('-');
   if (parts.length === 3) {
     return `${parts[2]}/${parts[1]}/${parts[0]}`;
@@ -106,13 +107,17 @@ export default function ConsultationScreen({ navigation }: any) {
   // Query: Consultation Packages
   const packagesQuery = useQuery({
     queryFn: getConsultationPackages,
-    queryKey: ['consultation', 'packages'],
+    queryKey: queryKeys.consultations.packages,
+    staleTime: CACHE_TIMES.CATALOG.staleTime,
+    gcTime: CACHE_TIMES.CATALOG.gcTime,
   });
 
   // Query: Consultation Doctors
   const doctorsQuery = useQuery({
     queryFn: getConsultationDoctors,
-    queryKey: ['consultation', 'doctors'],
+    queryKey: queryKeys.consultations.doctors,
+    staleTime: CACHE_TIMES.CATALOG.staleTime,
+    gcTime: CACHE_TIMES.CATALOG.gcTime,
   });
 
   // Query: Available Slots
@@ -124,19 +129,21 @@ export default function ConsultationScreen({ navigation }: any) {
         selectedDate,
         selectedDuration,
       ),
-    queryKey: [
-      'consultation',
-      'slots',
+    queryKey: queryKeys.consultations.slots(
       selectedDoctorId,
       selectedDate,
       selectedDuration,
-    ],
+    ),
+    staleTime: CACHE_TIMES.SLOTS.staleTime,
+    gcTime: CACHE_TIMES.SLOTS.gcTime,
   });
 
   // Query: My Consultations
   const myConsultationsQuery = useQuery({
     queryFn: getPatientConsultations,
-    queryKey: ['consultation', 'my-consultations'],
+    queryKey: queryKeys.consultations.myList,
+    staleTime: CACHE_TIMES.APPOINTMENTS.staleTime,
+    gcTime: CACHE_TIMES.APPOINTMENTS.gcTime,
   });
 
   const packages = useMemo(() => {
@@ -154,8 +161,7 @@ export default function ConsultationScreen({ navigation }: any) {
   );
 
   // Paginated Slices
-  const totalPackagePages =
-    Math.ceil(packages.length / PACKAGES_PER_PAGE) || 1;
+  const totalPackagePages = Math.ceil(packages.length / PACKAGES_PER_PAGE) || 1;
   const displayedPackages = useMemo(() => {
     const start = (packagePage - 1) * PACKAGES_PER_PAGE;
     return packages.slice(start, start + PACKAGES_PER_PAGE);
@@ -183,17 +189,15 @@ export default function ConsultationScreen({ navigation }: any) {
 
   const selectedDurationOption = useMemo(
     () =>
-      packages.find(p => p.minutes === selectedDuration) ||
-      packages[0] ||
-      null,
+      packages.find(p => p.minutes === selectedDuration) || packages[0] || null,
     [packages, selectedDuration],
   );
 
   const handleBookingSubmit = async () => {
     if (!selectedDoctorId || !selectedDate || !selectedSlot) {
-      Alert.alert(
+      toast.warning(
         'Thông tin chưa đầy đủ',
-        'Vui lòng chọn Bác sĩ, Ngày và Khung giờ tư vấn.',
+        'Vui lòng chọn bác sĩ, ngày và khung giờ tư vấn.',
       );
       return;
     }
@@ -219,8 +223,11 @@ export default function ConsultationScreen({ navigation }: any) {
       const msg =
         err?.response?.data?.message ||
         err?.message ||
-        'Có lỗi xảy ra khi tạo đơn đặt tư vấn. Vui lòng thử lại.';
-      Alert.alert('Đặt lịch thất bại', Array.isArray(msg) ? msg.join(', ') : msg);
+        'CÃ³ lá»—i xáº£y ra khi táº¡o Ä‘Æ¡n Ä‘áº·t tÆ° váº¥n. Vui lÃ²ng thá»­ láº¡i.';
+      toast.error(
+        'Đặt lịch thất bại',
+        Array.isArray(msg) ? msg.join(', ') : msg,
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -228,13 +235,13 @@ export default function ConsultationScreen({ navigation }: any) {
 
   const handleCancelBooking = async (id: string) => {
     Alert.alert(
-      'Xác nhận hủy lịch',
-      'Bạn có chắc chắn muốn hủy lịch tư vấn trực tuyến này?',
+      'XÃ¡c nháº­n há»§y lá»‹ch',
+      'Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n há»§y lá»‹ch tÆ° váº¥n trá»±c tuyáº¿n nÃ y?',
       [
-        { text: 'Bỏ qua', style: 'cancel' },
+        { text: 'Bá» qua', style: 'cancel' },
         {
           style: 'destructive',
-          text: 'Hủy lịch',
+          text: 'Há»§y lá»‹ch',
           onPress: async () => {
             setCancellingId(id);
             try {
@@ -242,11 +249,14 @@ export default function ConsultationScreen({ navigation }: any) {
               await queryClient.invalidateQueries({
                 queryKey: ['consultation', 'my-consultations'],
               });
-              Alert.alert('Thành công', 'Đã hủy lịch tư vấn thành công.');
+              toast.success(
+                'Đã hủy lịch tư vấn',
+                'Lịch tư vấn đã được cập nhật.',
+              );
             } catch (err: any) {
-              Alert.alert(
-                'Lỗi hủy lịch',
-                err?.response?.data?.message || 'Không thể hủy lịch tư vấn.',
+              toast.error(
+                'Không thể hủy lịch',
+                err?.response?.data?.message || 'Vui lòng thử lại sau.',
               );
             } finally {
               setCancellingId(null);
@@ -260,12 +270,12 @@ export default function ConsultationScreen({ navigation }: any) {
   const handleJoinVideoRoom = (item: PatientConsultation) => {
     if (item.meetingUrl) {
       Linking.openURL(item.meetingUrl).catch(() => {
-        Alert.alert('Lỗi', 'Không thể mở liên kết phòng video call.');
+        toast.error('Không thể mở phòng video', 'Vui lòng thử lại sau.');
       });
     } else {
-      Alert.alert(
+      toast.info(
         'Phòng tư vấn video',
-        'Phòng tư vấn đang được Bác sĩ kích hoạt. Vui lòng quay lại trước giờ hẹn 5 phút.',
+        'Phòng tư vấn đang được bác sĩ kích hoạt. Vui lòng quay lại trước giờ hẹn 5 phút.',
       );
     }
   };
@@ -307,27 +317,27 @@ export default function ConsultationScreen({ navigation }: any) {
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.successTitle}>
-            Khởi Tạo Đơn Tư Vấn Thành Công!
+            Khá»Ÿi Táº¡o ÄÆ¡n TÆ° Váº¥n ThÃ nh CÃ´ng!
           </Text>
           <Text style={styles.successSub}>
-            Mã đơn: #{bookingResult?.consultation?.id?.slice?.(0, 8) || 'SD'}
+            MÃ£ Ä‘Æ¡n: #{bookingResult?.consultation?.id?.slice?.(0, 8) || 'SD'}
           </Text>
         </View>
       </View>
 
       <View style={styles.successInfoBox}>
         <Text style={styles.successInfoRow}>
-          Thời gian: {formatDisplayDate(selectedDate)} lúc {selectedSlot}
+          Thá»i gian: {formatDisplayDate(selectedDate)} lÃºc {selectedSlot}
         </Text>
         <Text style={styles.successInfoRow}>
-          Thời lượng: {selectedDuration} phút
+          Thá»i lÆ°á»£ng: {selectedDuration} phÃºt
         </Text>
         <Text style={styles.successInfoRow}>
-          Tổng phí:{' '}
+          Tá»•ng phÃ­:{' '}
           {selectedDurationOption?.formattedPrice ||
             (selectedDurationOption
               ? formatVnd(selectedDurationOption.price)
-              : '0 đ')}
+              : '0 Ä‘')}
         </Text>
       </View>
 
@@ -341,7 +351,7 @@ export default function ConsultationScreen({ navigation }: any) {
           style={styles.successPrimaryBtn}
         >
           <Text style={styles.successPrimaryBtnText}>
-            Xem Lịch Tư Vấn Của Tôi
+            Xem Lá»‹ch TÆ° Váº¥n Cá»§a TÃ´i
           </Text>
         </TouchableOpacity>
 
@@ -355,7 +365,7 @@ export default function ConsultationScreen({ navigation }: any) {
           style={styles.successSecondaryBtn}
         >
           <Text style={styles.successSecondaryBtnText}>
-            Đặt Buổi Tư Vấn Khác
+            Äáº·t Buá»•i TÆ° Váº¥n KhÃ¡c
           </Text>
         </TouchableOpacity>
       </View>
@@ -364,456 +374,451 @@ export default function ConsultationScreen({ navigation }: any) {
 
   const renderBookingFormCard = () => (
     <View style={styles.formCard}>
-      {/* BƯỚC 1: Chọn gói thời lượng (Lưới 2 cột căn chỉnh đẹp) */}
+      {/* BÆ¯á»šC 1: Chá»n gÃ³i thá»i lÆ°á»£ng (LÆ°á»›i 2 cá»™t cÄƒn chá»‰nh Ä‘áº¹p) */}
       <View style={[styles.stepSection, { borderTopWidth: 0, paddingTop: 0 }]}>
-            <View style={styles.stepTitleRow}>
-              <View style={styles.stepNumberBadge}>
-                <Text style={styles.stepNumberText}>1</Text>
-              </View>
-              <Text style={styles.stepTitle}>Chọn Gói Thời Lượng Tư Vấn</Text>
-            </View>
-
-            {packagesQuery.isLoading ? (
-              <View style={styles.slotLoadingBox}>
-                <ActivityIndicator color="#0058bc" size="small" />
-                <Text style={styles.slotLoadingText}>
-                  Đang tải danh sách gói tư vấn từ hệ thống...
-                </Text>
-              </View>
-            ) : packagesQuery.isError ? (
-              <View style={styles.slotEmptyBox}>
-                <Text style={styles.slotEmptyText}>
-                  Không thể tải danh sách gói tư vấn từ máy chủ.
-                </Text>
-                <TouchableOpacity
-                  onPress={() => packagesQuery.refetch()}
-                  style={styles.retryBtn}
-                >
-                  <Text style={styles.retryBtnText}>Thử lại</Text>
-                </TouchableOpacity>
-              </View>
-            ) : packages.length === 0 ? (
-              <View style={styles.slotEmptyBox}>
-                <Text style={styles.slotEmptyText}>
-                  Hiện chưa có gói tư vấn nào trong hệ thống.
-                </Text>
-              </View>
-            ) : (
-              <View style={styles.packagesGrid}>
-                {displayedPackages.map((pkg: ConsultationDurationOption) => {
-                  const isSelected = selectedDuration === pkg.minutes;
-                  return (
-                    <TouchableOpacity
-                      activeOpacity={0.84}
-                      key={pkg.minutes}
-                      onPress={() => setSelectedDuration(pkg.minutes)}
-                      style={[
-                        styles.packageCard,
-                        isSelected && styles.packageCardSelected,
-                      ]}
-                    >
-                      <View style={styles.packageCardHeader}>
-                        <Text
-                          style={[
-                            styles.packageLabel,
-                            isSelected && styles.packageLabelSelected,
-                          ]}
-                        >
-                          {pkg.label}
-                        </Text>
-
-                        {Boolean(pkg.tag) && (
-                          <View
-                            style={[
-                              styles.packageTag,
-                              isSelected && styles.packageTagSelected,
-                            ]}
-                          >
-                            <Text
-                              style={[
-                                styles.packageTagText,
-                                isSelected && styles.packageTagTextSelected,
-                              ]}
-                            >
-                              {pkg.tag}
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-
-                      <Text style={styles.packageDesc}>
-                        {pkg.description}
-                      </Text>
-
-                      <View style={styles.packageBottomRow}>
-                        <Text style={styles.packagePayNote}>Thanh toán 100%</Text>
-                        <Text style={styles.packagePrice}>
-                          {pkg.formattedPrice}
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            )}
-
-            {/* Phân trang gói thời lượng nếu nhiều hơn 10 */}
-            {packages.length > PACKAGES_PER_PAGE && (
-              <View style={styles.paginationRow}>
-                <TouchableOpacity
-                  disabled={packagePage === 1}
-                  onPress={() => setPackagePage(p => Math.max(1, p - 1))}
-                  style={[
-                    styles.pageBtn,
-                    packagePage === 1 && styles.pageBtnDisabled,
-                  ]}
-                >
-                  <FontAwesome6
-                    color={packagePage === 1 ? '#94A3B8' : '#0058bc'}
-                    iconStyle="solid"
-                    name="chevron-left"
-                    size={11}
-                  />
-                  <Text
-                    style={[
-                      styles.pageBtnText,
-                      packagePage === 1 && styles.pageBtnTextDisabled,
-                    ]}
-                  >
-                    Trước
-                  </Text>
-                </TouchableOpacity>
-
-                <Text style={styles.pageInfoText}>
-                  Trang {packagePage} / {totalPackagePages}
-                </Text>
-
-                <TouchableOpacity
-                  disabled={packagePage === totalPackagePages}
-                  onPress={() =>
-                    setPackagePage(p => Math.min(totalPackagePages, p + 1))
-                  }
-                  style={[
-                    styles.pageBtn,
-                    packagePage === totalPackagePages && styles.pageBtnDisabled,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.pageBtnText,
-                      packagePage === totalPackagePages &&
-                        styles.pageBtnTextDisabled,
-                    ]}
-                  >
-                    Sau
-                  </Text>
-                  <FontAwesome6
-                    color={
-                      packagePage === totalPackagePages ? '#94A3B8' : '#0058bc'
-                    }
-                    iconStyle="solid"
-                    name="chevron-right"
-                    size={11}
-                  />
-                </TouchableOpacity>
-              </View>
-            )}
+        <View style={styles.stepTitleRow}>
+          <View style={styles.stepNumberBadge}>
+            <Text style={styles.stepNumberText}>1</Text>
           </View>
+          <Text style={styles.stepTitle}>
+            Chá»n GÃ³i Thá»i LÆ°á»£ng TÆ° Váº¥n
+          </Text>
+        </View>
 
-          {/* BƯỚC 2: Chọn bác sĩ (Chia làm 2 cột / hàng có phân trang) */}
-          <View style={styles.stepSection}>
-            <View style={styles.stepTitleRow}>
-              <View style={styles.stepNumberBadge}>
-                <Text style={styles.stepNumberText}>2</Text>
-              </View>
-              <Text style={styles.stepTitle}>Chọn Bác Sĩ Tư Vấn</Text>
-            </View>
-
-            {doctorsQuery.isLoading ? (
-              <View style={styles.slotLoadingBox}>
-                <ActivityIndicator color="#0058bc" size="small" />
-                <Text style={styles.slotLoadingText}>
-                  Đang tải danh sách bác sĩ tư vấn...
-                </Text>
-              </View>
-            ) : doctorsQuery.isError ? (
-              <View style={styles.slotEmptyBox}>
-                <Text style={styles.slotEmptyText}>
-                  Không thể tải danh sách bác sĩ từ máy chủ.
-                </Text>
-                <TouchableOpacity
-                  onPress={() => doctorsQuery.refetch()}
-                  style={styles.retryBtn}
-                >
-                  <Text style={styles.retryBtnText}>Thử lại</Text>
-                </TouchableOpacity>
-              </View>
-            ) : doctors.length === 0 ? (
-              <View style={styles.slotEmptyBox}>
-                <Text style={styles.slotEmptyText}>
-                  Hiện chưa có bác sĩ tư vấn trực tuyến.
-                </Text>
-              </View>
-            ) : (
-              <View style={styles.doctorsGrid}>
-                {displayedDoctors.map((doctor: ConsultationDoctor) => {
-                  const isSelected = selectedDoctorId === doctor.id;
-                  const initials = doctor.fullName
-                    .split(' ')
-                    .filter(Boolean)
-                    .slice(-2)
-                    .map(p => p[0])
-                    .join('')
-                    .toUpperCase();
-
-                  return (
-                    <TouchableOpacity
-                      activeOpacity={0.84}
-                      key={doctor.id}
-                      onPress={() => setSelectedDoctorId(doctor.id)}
-                      style={[
-                        styles.doctorGridCard,
-                        isSelected && styles.doctorGridCardSelected,
-                      ]}
-                    >
-                      <View style={styles.doctorAvatarBox}>
-                        {doctor.avatarUrl ? (
-                          <Image
-                            resizeMode="cover"
-                            source={{ uri: doctor.avatarUrl }}
-                            style={styles.doctorAvatarImg}
-                          />
-                        ) : (
-                          <View style={styles.doctorInitialAvatar}>
-                            <Text style={styles.doctorInitialText}>
-                              {initials || 'BS'}
-                            </Text>
-                          </View>
-                        )}
-                      </View>
-                      <Text numberOfLines={1} style={styles.doctorGridName}>
-                        {doctor.fullName}
-                      </Text>
-                      <Text numberOfLines={1} style={styles.doctorGridSpec}>
-                        {doctor.specialization}
-                      </Text>
-                      <Text style={styles.doctorGridExp}>
-                        {doctor.yearsExperience} năm KN
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            )}
-
-            {/* Phân trang danh sách bác sĩ nếu nhiều hơn DOCTORS_PER_PAGE */}
-            {doctors.length > DOCTORS_PER_PAGE && (
-              <View style={styles.paginationRow}>
-                <TouchableOpacity
-                  disabled={doctorPage === 1}
-                  onPress={() => setDoctorPage(p => Math.max(1, p - 1))}
-                  style={[
-                    styles.pageBtn,
-                    doctorPage === 1 && styles.pageBtnDisabled,
-                  ]}
-                >
-                  <FontAwesome6
-                    color={doctorPage === 1 ? '#94A3B8' : '#0058bc'}
-                    iconStyle="solid"
-                    name="chevron-left"
-                    size={11}
-                  />
-                  <Text
-                    style={[
-                      styles.pageBtnText,
-                      doctorPage === 1 && styles.pageBtnTextDisabled,
-                    ]}
-                  >
-                    Trước
-                  </Text>
-                </TouchableOpacity>
-
-                <Text style={styles.pageInfoText}>
-                  Trang {doctorPage} / {totalDoctorPages}
-                </Text>
-
-                <TouchableOpacity
-                  disabled={doctorPage === totalDoctorPages}
-                  onPress={() =>
-                    setDoctorPage(p => Math.min(totalDoctorPages, p + 1))
-                  }
-                  style={[
-                    styles.pageBtn,
-                    doctorPage === totalDoctorPages && styles.pageBtnDisabled,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.pageBtnText,
-                      doctorPage === totalDoctorPages &&
-                        styles.pageBtnTextDisabled,
-                    ]}
-                  >
-                    Sau
-                  </Text>
-                  <FontAwesome6
-                    color={
-                      doctorPage === totalDoctorPages ? '#94A3B8' : '#0058bc'
-                    }
-                    iconStyle="solid"
-                    name="chevron-right"
-                    size={11}
-                  />
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-
-          {/* BƯỚC 3: Chọn ngày & slot (Nút chọn ngày tinh gọn giống web) */}
-          <View style={styles.stepSection}>
-            <View style={styles.stepHeaderBetween}>
-              <View style={styles.stepTitleRow}>
-                <View style={styles.stepNumberBadge}>
-                  <Text style={styles.stepNumberText}>3</Text>
-                </View>
-                <Text style={styles.stepTitle}>Chọn Ngày & Khung Giờ</Text>
-              </View>
-
-              {/* Nút chọn ngày kiểu web [ 09/06/2026 📅 ] */}
-              <TouchableOpacity
-                activeOpacity={0.82}
-                onPress={() => setDateModalVisible(true)}
-                style={styles.datePickerBtn}
-              >
-                <Text style={styles.datePickerBtnText}>
-                  {formatDisplayDate(selectedDate)}
-                </Text>
-                <FontAwesome6
-                  color="#334155"
-                  iconStyle="regular"
-                  name="calendar"
-                  size={13}
-                />
-              </TouchableOpacity>
-            </View>
-
-            {/* Slots Grid */}
-            <Text style={styles.slotSectionSubtitle}>
-              Khung giờ khả dụng ({formatDisplayDate(selectedDate)}):
-            </Text>
-
-            {slotsQuery.isLoading ? (
-              <View style={styles.slotLoadingBox}>
-                <ActivityIndicator color="#0058bc" size="small" />
-                <Text style={styles.slotLoadingText}>
-                  Đang tìm khung giờ rảnh...
-                </Text>
-              </View>
-            ) : availableSlots.length === 0 ? (
-              <View style={styles.slotEmptyBox}>
-                <Text style={styles.slotEmptyText}>
-                  Ngày này không còn khung giờ tư vấn rảnh. Vui lòng chọn ngày
-                  khác.
-                </Text>
-              </View>
-            ) : (
-              <View style={styles.slotGrid}>
-                {availableSlots.map(slot => {
-                  const isSelected = selectedSlot === slot;
-                  return (
-                    <TouchableOpacity
-                      activeOpacity={0.8}
-                      key={slot}
-                      onPress={() => setSelectedSlot(slot)}
-                      style={[
-                        styles.slotBtn,
-                        isSelected && styles.slotBtnSelected,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.slotBtnText,
-                          isSelected && styles.slotBtnTextSelected,
-                        ]}
-                      >
-                        {slot}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            )}
-          </View>
-
-          {/* BƯỚC 4: Lý do khám & Triệu chứng */}
-          <View style={styles.stepSection}>
-            <View style={styles.stepTitleRow}>
-              <View style={styles.stepNumberBadge}>
-                <Text style={styles.stepNumberText}>4</Text>
-              </View>
-              <Text style={styles.stepTitle}>Lý Do Khám & Triệu Chứng</Text>
-            </View>
-
-            <TextInput
-              multiline
-              numberOfLines={3}
-              onChangeText={setNotes}
-              placeholder="Nhập mô tả chi tiết về tình trạng răng miệng hoặc thắc mắc bạn cần Bác sĩ giải đáp..."
-              placeholderTextColor="#94A3B8"
-              style={styles.notesInput}
-              value={notes}
-            />
-          </View>
-
-          {/* Policy Information */}
-          <View style={styles.policyBox}>
-            <Text style={styles.policyTitle}>
-              ℹ️ Chính sách Hủy lịch & Thông báo:
-            </Text>
-            <Text style={styles.policyItem}>
-              • Hệ thống tự động gửi thông báo nhắc lịch trước 10 phút.
-            </Text>
-            <Text style={styles.policyItem}>
-              • Hủy trước &gt;24 tiếng: Hoàn 100% phí dịch vụ.
-            </Text>
-            <Text style={styles.policyItem}>
-              • Hủy từ 4 - 24 tiếng: Hoàn 50% phí dịch vụ.
-            </Text>
-            <Text style={styles.policyItem}>
-              • Hủy dưới 4 tiếng hoặc vắng mặt: Không hoàn tiền.
+        {packagesQuery.isLoading ? (
+          <View style={styles.slotLoadingBox}>
+            <ActivityIndicator color="#0058bc" size="small" />
+            <Text style={styles.slotLoadingText}>
+              Äang táº£i danh sÃ¡ch gÃ³i tÆ° váº¥n tá»« há»‡ thá»‘ng...
             </Text>
           </View>
-
-          {/* Summary & Submit Action */}
-          <View style={styles.submitSection}>
-            <View>
-              <Text style={styles.submitTotalLabel}>
-                Tổng chi phí (Thanh toán 100%):
-              </Text>
-              <Text style={styles.submitTotalPrice}>
-                {selectedDurationOption?.formattedPrice ||
-                  (selectedDurationOption
-                    ? formatVnd(selectedDurationOption.price)
-                    : '0 đ')}
-              </Text>
-            </View>
-
+        ) : packagesQuery.isError ? (
+          <View style={styles.slotEmptyBox}>
+            <Text style={styles.slotEmptyText}>
+              KhÃ´ng thá»ƒ táº£i danh sÃ¡ch gÃ³i tÆ° váº¥n tá»« mÃ¡y chá»§.
+            </Text>
             <TouchableOpacity
-              activeOpacity={0.88}
-              disabled={isSubmitting || !selectedSlot}
-              onPress={handleBookingSubmit}
-              style={[
-                styles.submitBtn,
-                (!selectedSlot || isSubmitting) && styles.submitBtnDisabled,
-              ]}
+              onPress={() => packagesQuery.refetch()}
+              style={styles.retryBtn}
             >
-              {isSubmitting ? (
-                <ActivityIndicator color="#FFFFFF" size="small" />
-              ) : (
-                <Text style={styles.submitBtnText}>Xác Nhận & Đặt Lịch</Text>
-              )}
+              <Text style={styles.retryBtnText}>Thá»­ láº¡i</Text>
             </TouchableOpacity>
           </View>
+        ) : packages.length === 0 ? (
+          <View style={styles.slotEmptyBox}>
+            <Text style={styles.slotEmptyText}>
+              Hiá»‡n chÆ°a cÃ³ gÃ³i tÆ° váº¥n nÃ o trong há»‡ thá»‘ng.
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.packagesGrid}>
+            {displayedPackages.map((pkg: ConsultationDurationOption) => {
+              const isSelected = selectedDuration === pkg.minutes;
+              return (
+                <TouchableOpacity
+                  activeOpacity={0.84}
+                  key={pkg.minutes}
+                  onPress={() => setSelectedDuration(pkg.minutes)}
+                  style={[
+                    styles.packageCard,
+                    isSelected && styles.packageCardSelected,
+                  ]}
+                >
+                  <View style={styles.packageCardHeader}>
+                    <Text
+                      style={[
+                        styles.packageLabel,
+                        isSelected && styles.packageLabelSelected,
+                      ]}
+                    >
+                      {pkg.label}
+                    </Text>
+
+                    {Boolean(pkg.tag) && (
+                      <View
+                        style={[
+                          styles.packageTag,
+                          isSelected && styles.packageTagSelected,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.packageTagText,
+                            isSelected && styles.packageTagTextSelected,
+                          ]}
+                        >
+                          {pkg.tag}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+
+                  <Text style={styles.packageDesc}>{pkg.description}</Text>
+
+                  <View style={styles.packageBottomRow}>
+                    <Text style={styles.packagePayNote}>Thanh toÃ¡n 100%</Text>
+                    <Text style={styles.packagePrice}>
+                      {pkg.formattedPrice}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
+
+        {/* PhÃ¢n trang gÃ³i thá»i lÆ°á»£ng náº¿u nhiá»u hÆ¡n 10 */}
+        {packages.length > PACKAGES_PER_PAGE && (
+          <View style={styles.paginationRow}>
+            <TouchableOpacity
+              disabled={packagePage === 1}
+              onPress={() => setPackagePage(p => Math.max(1, p - 1))}
+              style={[
+                styles.pageBtn,
+                packagePage === 1 && styles.pageBtnDisabled,
+              ]}
+            >
+              <FontAwesome6
+                color={packagePage === 1 ? '#94A3B8' : '#0058bc'}
+                iconStyle="solid"
+                name="chevron-left"
+                size={11}
+              />
+              <Text
+                style={[
+                  styles.pageBtnText,
+                  packagePage === 1 && styles.pageBtnTextDisabled,
+                ]}
+              >
+                TrÆ°á»›c
+              </Text>
+            </TouchableOpacity>
+
+            <Text style={styles.pageInfoText}>
+              Trang {packagePage} / {totalPackagePages}
+            </Text>
+
+            <TouchableOpacity
+              disabled={packagePage === totalPackagePages}
+              onPress={() =>
+                setPackagePage(p => Math.min(totalPackagePages, p + 1))
+              }
+              style={[
+                styles.pageBtn,
+                packagePage === totalPackagePages && styles.pageBtnDisabled,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.pageBtnText,
+                  packagePage === totalPackagePages &&
+                    styles.pageBtnTextDisabled,
+                ]}
+              >
+                Sau
+              </Text>
+              <FontAwesome6
+                color={
+                  packagePage === totalPackagePages ? '#94A3B8' : '#0058bc'
+                }
+                iconStyle="solid"
+                name="chevron-right"
+                size={11}
+              />
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+
+      {/* BÆ¯á»šC 2: Chá»n bÃ¡c sÄ© (Chia lÃ m 2 cá»™t / hÃ ng cÃ³ phÃ¢n trang) */}
+      <View style={styles.stepSection}>
+        <View style={styles.stepTitleRow}>
+          <View style={styles.stepNumberBadge}>
+            <Text style={styles.stepNumberText}>2</Text>
+          </View>
+          <Text style={styles.stepTitle}>Chá»n BÃ¡c SÄ© TÆ° Váº¥n</Text>
+        </View>
+
+        {doctorsQuery.isLoading ? (
+          <View style={styles.slotLoadingBox}>
+            <ActivityIndicator color="#0058bc" size="small" />
+            <Text style={styles.slotLoadingText}>
+              Äang táº£i danh sÃ¡ch bÃ¡c sÄ© tÆ° váº¥n...
+            </Text>
+          </View>
+        ) : doctorsQuery.isError ? (
+          <View style={styles.slotEmptyBox}>
+            <Text style={styles.slotEmptyText}>
+              KhÃ´ng thá»ƒ táº£i danh sÃ¡ch bÃ¡c sÄ© tá»« mÃ¡y chá»§.
+            </Text>
+            <TouchableOpacity
+              onPress={() => doctorsQuery.refetch()}
+              style={styles.retryBtn}
+            >
+              <Text style={styles.retryBtnText}>Thá»­ láº¡i</Text>
+            </TouchableOpacity>
+          </View>
+        ) : doctors.length === 0 ? (
+          <View style={styles.slotEmptyBox}>
+            <Text style={styles.slotEmptyText}>
+              Hiá»‡n chÆ°a cÃ³ bÃ¡c sÄ© tÆ° váº¥n trá»±c tuyáº¿n.
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.doctorsGrid}>
+            {displayedDoctors.map((doctor: ConsultationDoctor) => {
+              const isSelected = selectedDoctorId === doctor.id;
+              const initials = doctor.fullName
+                .split(' ')
+                .filter(Boolean)
+                .slice(-2)
+                .map(p => p[0])
+                .join('')
+                .toUpperCase();
+
+              return (
+                <TouchableOpacity
+                  activeOpacity={0.84}
+                  key={doctor.id}
+                  onPress={() => setSelectedDoctorId(doctor.id)}
+                  style={[
+                    styles.doctorGridCard,
+                    isSelected && styles.doctorGridCardSelected,
+                  ]}
+                >
+                  <View style={styles.doctorAvatarBox}>
+                    {doctor.avatarUrl ? (
+                      <Image
+                        resizeMode="cover"
+                        source={{ uri: doctor.avatarUrl }}
+                        style={styles.doctorAvatarImg}
+                      />
+                    ) : (
+                      <View style={styles.doctorInitialAvatar}>
+                        <Text style={styles.doctorInitialText}>
+                          {initials || 'BS'}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text numberOfLines={1} style={styles.doctorGridName}>
+                    {doctor.fullName}
+                  </Text>
+                  <Text numberOfLines={1} style={styles.doctorGridSpec}>
+                    {doctor.specialization}
+                  </Text>
+                  <Text style={styles.doctorGridExp}>
+                    {doctor.yearsExperience} nÄƒm KN
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
+
+        {/* PhÃ¢n trang danh sÃ¡ch bÃ¡c sÄ© náº¿u nhiá»u hÆ¡n DOCTORS_PER_PAGE */}
+        {doctors.length > DOCTORS_PER_PAGE && (
+          <View style={styles.paginationRow}>
+            <TouchableOpacity
+              disabled={doctorPage === 1}
+              onPress={() => setDoctorPage(p => Math.max(1, p - 1))}
+              style={[
+                styles.pageBtn,
+                doctorPage === 1 && styles.pageBtnDisabled,
+              ]}
+            >
+              <FontAwesome6
+                color={doctorPage === 1 ? '#94A3B8' : '#0058bc'}
+                iconStyle="solid"
+                name="chevron-left"
+                size={11}
+              />
+              <Text
+                style={[
+                  styles.pageBtnText,
+                  doctorPage === 1 && styles.pageBtnTextDisabled,
+                ]}
+              >
+                TrÆ°á»›c
+              </Text>
+            </TouchableOpacity>
+
+            <Text style={styles.pageInfoText}>
+              Trang {doctorPage} / {totalDoctorPages}
+            </Text>
+
+            <TouchableOpacity
+              disabled={doctorPage === totalDoctorPages}
+              onPress={() =>
+                setDoctorPage(p => Math.min(totalDoctorPages, p + 1))
+              }
+              style={[
+                styles.pageBtn,
+                doctorPage === totalDoctorPages && styles.pageBtnDisabled,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.pageBtnText,
+                  doctorPage === totalDoctorPages && styles.pageBtnTextDisabled,
+                ]}
+              >
+                Sau
+              </Text>
+              <FontAwesome6
+                color={doctorPage === totalDoctorPages ? '#94A3B8' : '#0058bc'}
+                iconStyle="solid"
+                name="chevron-right"
+                size={11}
+              />
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+
+      {/* BÆ¯á»šC 3: Chá»n ngÃ y & slot (NÃºt chá»n ngÃ y tinh gá»n giá»‘ng web) */}
+      <View style={styles.stepSection}>
+        <View style={styles.stepHeaderBetween}>
+          <View style={styles.stepTitleRow}>
+            <View style={styles.stepNumberBadge}>
+              <Text style={styles.stepNumberText}>3</Text>
+            </View>
+            <Text style={styles.stepTitle}>Chá»n NgÃ y & Khung Giá»</Text>
+          </View>
+
+          {/* NÃºt chá»n ngÃ y kiá»ƒu web [ 09/06/2026 ðŸ“… ] */}
+          <TouchableOpacity
+            activeOpacity={0.82}
+            onPress={() => setDateModalVisible(true)}
+            style={styles.datePickerBtn}
+          >
+            <Text style={styles.datePickerBtnText}>
+              {formatDisplayDate(selectedDate)}
+            </Text>
+            <FontAwesome6
+              color="#334155"
+              iconStyle="regular"
+              name="calendar"
+              size={13}
+            />
+          </TouchableOpacity>
+        </View>
+
+        {/* Slots Grid */}
+        <Text style={styles.slotSectionSubtitle}>
+          Khung giá» kháº£ dá»¥ng ({formatDisplayDate(selectedDate)}):
+        </Text>
+
+        {slotsQuery.isLoading ? (
+          <View style={styles.slotLoadingBox}>
+            <ActivityIndicator color="#0058bc" size="small" />
+            <Text style={styles.slotLoadingText}>
+              Äang tÃ¬m khung giá» ráº£nh...
+            </Text>
+          </View>
+        ) : availableSlots.length === 0 ? (
+          <View style={styles.slotEmptyBox}>
+            <Text style={styles.slotEmptyText}>
+              NgÃ y nÃ y khÃ´ng cÃ²n khung giá» tÆ° váº¥n ráº£nh. Vui lÃ²ng
+              chá»n ngÃ y khÃ¡c.
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.slotGrid}>
+            {availableSlots.map(slot => {
+              const isSelected = selectedSlot === slot;
+              return (
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  key={slot}
+                  onPress={() => setSelectedSlot(slot)}
+                  style={[styles.slotBtn, isSelected && styles.slotBtnSelected]}
+                >
+                  <Text
+                    style={[
+                      styles.slotBtnText,
+                      isSelected && styles.slotBtnTextSelected,
+                    ]}
+                  >
+                    {slot}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
+      </View>
+
+      {/* BÆ¯á»šC 4: LÃ½ do khÃ¡m & Triá»‡u chá»©ng */}
+      <View style={styles.stepSection}>
+        <View style={styles.stepTitleRow}>
+          <View style={styles.stepNumberBadge}>
+            <Text style={styles.stepNumberText}>4</Text>
+          </View>
+          <Text style={styles.stepTitle}>LÃ½ Do KhÃ¡m & Triá»‡u Chá»©ng</Text>
+        </View>
+
+        <TextInput
+          multiline
+          numberOfLines={3}
+          onChangeText={setNotes}
+          placeholder="Nháº­p mÃ´ táº£ chi tiáº¿t vá» tÃ¬nh tráº¡ng rÄƒng miá»‡ng hoáº·c tháº¯c máº¯c báº¡n cáº§n BÃ¡c sÄ© giáº£i Ä‘Ã¡p..."
+          placeholderTextColor="#94A3B8"
+          style={styles.notesInput}
+          value={notes}
+        />
+      </View>
+
+      {/* Policy Information */}
+      <View style={styles.policyBox}>
+        <Text style={styles.policyTitle}>
+          â„¹ï¸ ChÃ­nh sÃ¡ch Há»§y lá»‹ch & ThÃ´ng bÃ¡o:
+        </Text>
+        <Text style={styles.policyItem}>
+          â€¢ Há»‡ thá»‘ng tá»± Ä‘á»™ng gá»­i thÃ´ng bÃ¡o nháº¯c lá»‹ch trÆ°á»›c
+          10 phÃºt.
+        </Text>
+        <Text style={styles.policyItem}>
+          â€¢ Há»§y trÆ°á»›c &gt;24 tiáº¿ng: HoÃ n 100% phÃ­ dá»‹ch vá»¥.
+        </Text>
+        <Text style={styles.policyItem}>
+          â€¢ Há»§y tá»« 4 - 24 tiáº¿ng: HoÃ n 50% phÃ­ dá»‹ch vá»¥.
+        </Text>
+        <Text style={styles.policyItem}>
+          â€¢ Há»§y dÆ°á»›i 4 tiáº¿ng hoáº·c váº¯ng máº·t: KhÃ´ng hoÃ n tiá»n.
+        </Text>
+      </View>
+
+      {/* Summary & Submit Action */}
+      <View style={styles.submitSection}>
+        <View>
+          <Text style={styles.submitTotalLabel}>
+            Tá»•ng chi phÃ­ (Thanh toÃ¡n 100%):
+          </Text>
+          <Text style={styles.submitTotalPrice}>
+            {selectedDurationOption?.formattedPrice ||
+              (selectedDurationOption
+                ? formatVnd(selectedDurationOption.price)
+                : '0 Ä‘')}
+          </Text>
+        </View>
+
+        <TouchableOpacity
+          activeOpacity={0.88}
+          disabled={isSubmitting || !selectedSlot}
+          onPress={handleBookingSubmit}
+          style={[
+            styles.submitBtn,
+            (!selectedSlot || isSubmitting) && styles.submitBtnDisabled,
+          ]}
+        >
+          {isSubmitting ? (
+            <ActivityIndicator color="#FFFFFF" size="small" />
+          ) : (
+            <Text style={styles.submitBtnText}>XÃ¡c Nháº­n & Äáº·t Lá»‹ch</Text>
+          )}
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
@@ -835,7 +840,7 @@ export default function ConsultationScreen({ navigation }: any) {
               </View>
             </View>
             <Text style={styles.consultDoctorSpec}>
-              {item.doctorSpecialization || 'Bác sĩ Răng Hàm Mặt'}
+              {item.doctorSpecialization || 'BÃ¡c sÄ© RÄƒng HÃ m Máº·t'}
             </Text>
           </View>
 
@@ -864,12 +869,12 @@ export default function ConsultationScreen({ navigation }: any) {
               ]}
             >
               {isCancelled
-                ? 'Đã hủy'
+                ? 'ÄÃ£ há»§y'
                 : isCompleted
-                ? 'Đã hoàn thành'
+                ? 'ÄÃ£ hoÃ n thÃ nh'
                 : isPaid
-                ? 'Đã thanh toán 100%'
-                : 'Chờ thanh toán'}
+                ? 'ÄÃ£ thanh toÃ¡n 100%'
+                : 'Chá» thanh toÃ¡n'}
             </Text>
           </View>
         </View>
@@ -882,7 +887,8 @@ export default function ConsultationScreen({ navigation }: any) {
             size={12}
           />
           <Text style={styles.consultTimeText}>
-            Thời gian hẹn: <Text style={styles.consultTimeBold}>{item.time}</Text>
+            Thá»i gian háº¹n:{' '}
+            <Text style={styles.consultTimeBold}>{item.time}</Text>
           </Text>
         </View>
 
@@ -901,7 +907,7 @@ export default function ConsultationScreen({ navigation }: any) {
             onPress={() => setSelectedConsultation(item)}
             style={styles.consultDetailBtn}
           >
-            <Text style={styles.consultDetailBtnText}>Chi tiết</Text>
+            <Text style={styles.consultDetailBtnText}>Chi tiáº¿t</Text>
           </TouchableOpacity>
 
           <View style={styles.consultActionRightGroup}>
@@ -918,7 +924,7 @@ export default function ConsultationScreen({ navigation }: any) {
                     name="qrcode"
                     size={11}
                   />
-                  <Text style={styles.consultPayBtnText}>Thanh toán</Text>
+                  <Text style={styles.consultPayBtnText}>Thanh toÃ¡n</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -928,7 +934,7 @@ export default function ConsultationScreen({ navigation }: any) {
                   style={styles.consultCancelBtn}
                 >
                   <Text style={styles.consultCancelBtnText}>
-                    {cancellingId === item.id ? 'Đang hủy...' : 'Hủy đơn'}
+                    {cancellingId === item.id ? 'Äang há»§y...' : 'Há»§y Ä‘Æ¡n'}
                   </Text>
                 </TouchableOpacity>
               </>
@@ -946,7 +952,7 @@ export default function ConsultationScreen({ navigation }: any) {
                   name="video"
                   size={12}
                 />
-                <Text style={styles.consultJoinBtnText}>Vào Video Call</Text>
+                <Text style={styles.consultJoinBtnText}>VÃ o Video Call</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -957,10 +963,10 @@ export default function ConsultationScreen({ navigation }: any) {
 
   const renderMyConsultationsCard = () => (
     <View style={styles.formCard}>
-      {/* Tiêu đề & Nút làm mới */}
+      {/* TiÃªu Ä‘á» & NÃºt lÃ m má»›i */}
       <View style={styles.myConsultHeaderRow}>
         <Text style={styles.myConsultHeaderTitle}>
-          Danh Sách Buổi Tư Vấn Của Tôi
+          Danh SÃ¡ch Buá»•i TÆ° Váº¥n Cá»§a TÃ´i
         </Text>
         <TouchableOpacity
           activeOpacity={0.7}
@@ -973,7 +979,7 @@ export default function ConsultationScreen({ navigation }: any) {
             name="arrows-rotate"
             size={11}
           />
-          <Text style={styles.myConsultRefreshText}>Làm mới</Text>
+          <Text style={styles.myConsultRefreshText}>LÃ m má»›i</Text>
         </TouchableOpacity>
       </View>
 
@@ -981,19 +987,19 @@ export default function ConsultationScreen({ navigation }: any) {
         <View style={styles.slotLoadingBox}>
           <ActivityIndicator color="#0058bc" size="small" />
           <Text style={styles.slotLoadingText}>
-            Đang tải danh sách lịch tư vấn...
+            Äang táº£i danh sÃ¡ch lá»‹ch tÆ° váº¥n...
           </Text>
         </View>
       ) : myConsultationsQuery.isError ? (
         <View style={styles.slotEmptyBox}>
           <Text style={styles.slotEmptyText}>
-            Không thể tải danh sách lịch tư vấn từ máy chủ.
+            KhÃ´ng thá»ƒ táº£i danh sÃ¡ch lá»‹ch tÆ° váº¥n tá»« mÃ¡y chá»§.
           </Text>
           <TouchableOpacity
             onPress={() => void myConsultationsQuery.refetch()}
             style={styles.retryBtn}
           >
-            <Text style={styles.retryBtnText}>Thử lại</Text>
+            <Text style={styles.retryBtnText}>Thá»­ láº¡i</Text>
           </TouchableOpacity>
         </View>
       ) : myConsultations.length === 0 ? (
@@ -1006,10 +1012,12 @@ export default function ConsultationScreen({ navigation }: any) {
               size={28}
             />
           </View>
-          <Text style={styles.emptyConsultTitle}>Chưa có lịch tư vấn nào</Text>
+          <Text style={styles.emptyConsultTitle}>
+            ChÆ°a cÃ³ lá»‹ch tÆ° váº¥n nÃ o
+          </Text>
           <Text style={styles.emptyConsultDesc}>
-            Bạn chưa có buổi tư vấn trực tuyến nào. Hãy đặt lịch để nhận tư vấn
-            từ Bác sĩ ngay!
+            Báº¡n chÆ°a cÃ³ buá»•i tÆ° váº¥n trá»±c tuyáº¿n nÃ o. HÃ£y Ä‘áº·t
+            lá»‹ch Ä‘á»ƒ nháº­n tÆ° váº¥n tá»« BÃ¡c sÄ© ngay!
           </Text>
           <TouchableOpacity
             activeOpacity={0.84}
@@ -1017,7 +1025,7 @@ export default function ConsultationScreen({ navigation }: any) {
             style={styles.emptyConsultBookBtn}
           >
             <Text style={styles.emptyConsultBookBtnText}>
-              Đặt Lịch Tư Vấn Ngay
+              Äáº·t Lá»‹ch TÆ° Váº¥n Ngay
             </Text>
           </TouchableOpacity>
         </View>
@@ -1031,7 +1039,7 @@ export default function ConsultationScreen({ navigation }: any) {
         </View>
       )}
 
-      {/* Phân trang lịch tư vấn */}
+      {/* PhÃ¢n trang lá»‹ch tÆ° váº¥n */}
       {renderMyConsultationsFooter()}
     </View>
   );
@@ -1057,7 +1065,7 @@ export default function ConsultationScreen({ navigation }: any) {
               consultPage === 1 && styles.pageBtnTextDisabled,
             ]}
           >
-            Trước
+            TrÆ°á»›c
           </Text>
         </TouchableOpacity>
 
@@ -1078,8 +1086,7 @@ export default function ConsultationScreen({ navigation }: any) {
           <Text
             style={[
               styles.pageBtnText,
-              consultPage === totalConsultPages &&
-                styles.pageBtnTextDisabled,
+              consultPage === totalConsultPages && styles.pageBtnTextDisabled,
             ]}
           >
             Sau
@@ -1131,7 +1138,7 @@ export default function ConsultationScreen({ navigation }: any) {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.formContainer}>
-          {/* Header Info - CỐ ĐỊNH CHO CẢ 2 BÊN */}
+          {/* Header Info - Cá» Äá»ŠNH CHO Cáº¢ 2 BÃŠN */}
           <View style={styles.introHeader}>
             <View style={styles.badge}>
               <FontAwesome6
@@ -1142,14 +1149,15 @@ export default function ConsultationScreen({ navigation }: any) {
               />
               <Text style={styles.badgeText}>Telehealth Center</Text>
             </View>
-            <Text style={styles.title}>Tư Vấn Nha Khoa Trực Tuyến</Text>
+            <Text style={styles.title}>TÆ° Váº¥n Nha Khoa Trá»±c Tuyáº¿n</Text>
             <Text style={styles.subtitle}>
-              Kết nối trực tiếp Video Call 1-1 với Bác sĩ chuyên khoa nha khoa
-              hàng đầu để được chẩn đoán và tư vấn tận tâm.
+              Káº¿t ná»‘i trá»±c tiáº¿p Video Call 1-1 vá»›i BÃ¡c sÄ© chuyÃªn
+              khoa nha khoa hÃ ng Ä‘áº§u Ä‘á»ƒ Ä‘Æ°á»£c cháº©n Ä‘oÃ¡n vÃ  tÆ°
+              váº¥n táº­n tÃ¢m.
             </Text>
           </View>
 
-          {/* Tabs Switcher - CỐ ĐỊNH CHO CẢ 2 BÊN */}
+          {/* Tabs Switcher - Cá» Äá»ŠNH CHO Cáº¢ 2 BÃŠN */}
           <View style={styles.tabSwitcher}>
             <TouchableOpacity
               activeOpacity={0.8}
@@ -1171,7 +1179,7 @@ export default function ConsultationScreen({ navigation }: any) {
                   activeTab === 'book' && styles.tabBtnTextActive,
                 ]}
               >
-                Đặt lịch mới
+                Äáº·t lá»‹ch má»›i
               </Text>
             </TouchableOpacity>
 
@@ -1195,27 +1203,23 @@ export default function ConsultationScreen({ navigation }: any) {
                   activeTab === 'my-consultations' && styles.tabBtnTextActive,
                 ]}
               >
-                Lịch của tôi ({myConsultations.length})
+                Lá»‹ch cá»§a tÃ´i ({myConsultations.length})
               </Text>
             </TouchableOpacity>
           </View>
 
-          {/* SƯỜN BÊN NGOÀI ĐỒNG NHẤT: CẢ 2 BÊN ĐỀU NẰM TRONG formCard */}
-          {activeTab === 'book' ? (
-            bookingResult ? (
-              renderBookingSuccess()
-            ) : (
-              renderBookingFormCard()
-            )
-          ) : (
-            renderMyConsultationsCard()
-          )}
+          {/* SÆ¯á»œN BÃŠN NGOÃ€I Äá»’NG NHáº¤T: Cáº¢ 2 BÃŠN Äá»€U Náº°M TRONG formCard */}
+          {activeTab === 'book'
+            ? bookingResult
+              ? renderBookingSuccess()
+              : renderBookingFormCard()
+            : renderMyConsultationsCard()}
         </View>
 
         <PatientFooter />
       </ScrollView>
 
-      {/* Date Picker Modal (Tương ứng nút 09/06/2026 📅) */}
+      {/* Date Picker Modal (TÆ°Æ¡ng á»©ng nÃºt 09/06/2026 ðŸ“…) */}
       <Modal
         animationType="fade"
         hardwareAccelerated
@@ -1231,7 +1235,7 @@ export default function ConsultationScreen({ navigation }: any) {
 
           <View style={styles.dateModalSheet}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalHeaderTitle}>Chọn Ngày Tư Vấn</Text>
+              <Text style={styles.modalHeaderTitle}>Chá»n NgÃ y TÆ° Váº¥n</Text>
               <TouchableOpacity
                 hitSlop={{ bottom: 8, left: 8, right: 8, top: 8 }}
                 onPress={() => setDateModalVisible(false)}
@@ -1249,10 +1253,10 @@ export default function ConsultationScreen({ navigation }: any) {
             {/* Quick date choices */}
             <View style={styles.quickDateRow}>
               {[
-                { label: 'Hôm nay', offset: 0 },
-                { label: 'Ngày mai', offset: 1 },
-                { label: 'Sau 3 ngày', offset: 3 },
-                { label: 'Tuần sau', offset: 7 },
+                { label: 'HÃ´m nay', offset: 0 },
+                { label: 'NgÃ y mai', offset: 1 },
+                { label: 'Sau 3 ngÃ y', offset: 3 },
+                { label: 'Tuáº§n sau', offset: 7 },
               ].map(q => {
                 const target = new Date();
                 target.setDate(target.getDate() + q.offset);
@@ -1307,7 +1311,7 @@ export default function ConsultationScreen({ navigation }: any) {
               </TouchableOpacity>
 
               <Text style={styles.calendarMonthText}>
-                Tháng {String(calendarMonth + 1).padStart(2, '0')} /{' '}
+                ThÃ¡ng {String(calendarMonth + 1).padStart(2, '0')} /{' '}
                 {calendarYear}
               </Text>
 
@@ -1344,7 +1348,9 @@ export default function ConsultationScreen({ navigation }: any) {
             <View style={styles.calendarGrid}>
               {calendarDays.map((item, idx) => {
                 if (!item) {
-                  return <View key={`empty-${idx}`} style={styles.calDayCell} />;
+                  return (
+                    <View key={`empty-${idx}`} style={styles.calDayCell} />
+                  );
                 }
                 const isSelected = selectedDate === item.dateStr;
                 const isPast =
@@ -1400,7 +1406,7 @@ export default function ConsultationScreen({ navigation }: any) {
             <View style={styles.modalSheet}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalHeaderTitle}>
-                  Chi Tiết Buổi Tư Vấn
+                  Chi Tiáº¿t Buá»•i TÆ° Váº¥n
                 </Text>
                 <TouchableOpacity
                   hitSlop={{ bottom: 8, left: 8, right: 8, top: 8 }}
@@ -1418,45 +1424,47 @@ export default function ConsultationScreen({ navigation }: any) {
 
               <ScrollView contentContainerStyle={styles.modalBody}>
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Bác sĩ tư vấn:</Text>
+                  <Text style={styles.detailLabel}>BÃ¡c sÄ© tÆ° váº¥n:</Text>
                   <Text style={styles.detailValue}>
                     {selectedConsultation.doctor}
                   </Text>
                 </View>
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Chuyên khoa:</Text>
+                  <Text style={styles.detailLabel}>ChuyÃªn khoa:</Text>
                   <Text style={styles.detailValue}>
                     {selectedConsultation.doctorSpecialization ||
-                      'Răng Hàm Mặt'}
+                      'RÄƒng HÃ m Máº·t'}
                   </Text>
                 </View>
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Thời gian hẹn:</Text>
+                  <Text style={styles.detailLabel}>Thá»i gian háº¹n:</Text>
                   <Text style={styles.detailValue}>
                     {selectedConsultation.time}
                   </Text>
                 </View>
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Thời lượng:</Text>
+                  <Text style={styles.detailLabel}>Thá»i lÆ°á»£ng:</Text>
                   <Text style={styles.detailValue}>
                     {selectedConsultation.duration}
                   </Text>
                 </View>
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Trạng thái:</Text>
+                  <Text style={styles.detailLabel}>Tráº¡ng thÃ¡i:</Text>
                   <Text style={styles.detailValue}>
                     {selectedConsultation.status === 'CANCELLED'
-                      ? 'Đã hủy'
+                      ? 'ÄÃ£ há»§y'
                       : selectedConsultation.status === 'COMPLETED'
-                      ? 'Đã hoàn thành'
+                      ? 'ÄÃ£ hoÃ n thÃ nh'
                       : selectedConsultation.isPaid
-                      ? 'Đã thanh toán 100%'
-                      : 'Chờ thanh toán'}
+                      ? 'ÄÃ£ thanh toÃ¡n 100%'
+                      : 'Chá» thanh toÃ¡n'}
                   </Text>
                 </View>
                 {Boolean(selectedConsultation.notes) && (
                   <View style={{ marginTop: 10 }}>
-                    <Text style={styles.detailLabel}>Ghi chú triệu chứng:</Text>
+                    <Text style={styles.detailLabel}>
+                      Ghi chÃº triá»‡u chá»©ng:
+                    </Text>
                     <Text style={styles.detailNotesText}>
                       "{selectedConsultation.notes}"
                     </Text>
@@ -1479,16 +1487,14 @@ export default function ConsultationScreen({ navigation }: any) {
           visible={Boolean(paymentModalItem)}
         >
           <View style={styles.modalOverlay}>
-            <TouchableWithoutFeedback
-              onPress={() => setPaymentModalItem(null)}
-            >
+            <TouchableWithoutFeedback onPress={() => setPaymentModalItem(null)}>
               <View style={styles.modalBackdrop} />
             </TouchableWithoutFeedback>
 
             <View style={styles.modalSheet}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalHeaderTitle}>
-                  Thanh Toán Tư Vấn Trực Tuyến
+                  Thanh ToÃ¡n TÆ° Váº¥n Trá»±c Tuyáº¿n
                 </Text>
                 <TouchableOpacity
                   hitSlop={{ bottom: 8, left: 8, right: 8, top: 8 }}
@@ -1507,29 +1513,31 @@ export default function ConsultationScreen({ navigation }: any) {
               <ScrollView contentContainerStyle={styles.modalBody}>
                 <View style={styles.qrInfoBox}>
                   <Text style={styles.qrTitle}>
-                    Quét mã VietQR hoặc chuyển khoản:
+                    QuÃ©t mÃ£ VietQR hoáº·c chuyá»ƒn khoáº£n:
                   </Text>
                   <View style={styles.qrBankDetails}>
                     <Text style={styles.qrTextRow}>
-                      Ngân hàng: <Text style={styles.qrBold}>MB Bank (Quân Đội)</Text>
+                      NgÃ¢n hÃ ng:{' '}
+                      <Text style={styles.qrBold}>MB Bank (QuÃ¢n Äá»™i)</Text>
                     </Text>
                     <Text style={styles.qrTextRow}>
-                      Số tài khoản: <Text style={styles.qrBold}>09012345678</Text>
+                      Sá»‘ tÃ i khoáº£n:{' '}
+                      <Text style={styles.qrBold}>09012345678</Text>
                     </Text>
                     <Text style={styles.qrTextRow}>
-                      Chủ tài khoản:{' '}
+                      Chá»§ tÃ i khoáº£n:{' '}
                       <Text style={styles.qrBold}>NHA KHOA SMART DENTAL</Text>
                     </Text>
                     <Text style={styles.qrTextRow}>
-                      Số tiền:{' '}
+                      Sá»‘ tiá»n:{' '}
                       <Text style={[styles.qrBold, { color: '#0058bc' }]}>
                         {paymentModalItem.fee
                           ? formatVnd(paymentModalItem.fee)
-                          : '100.000 đ'}
+                          : '100.000 Ä‘'}
                       </Text>
                     </Text>
                     <Text style={styles.qrTextRow}>
-                      Nội dung:{' '}
+                      Ná»™i dung:{' '}
                       <Text style={[styles.qrBold, { color: '#16A34A' }]}>
                         TV {paymentModalItem.id.slice(0, 8)}
                       </Text>
@@ -1541,7 +1549,7 @@ export default function ConsultationScreen({ navigation }: any) {
                   activeOpacity={0.88}
                   onPress={() => {
                     setPaymentModalItem(null);
-                    Alert.alert(
+                    toast.info(
                       'Đã ghi nhận thanh toán',
                       'Hệ thống đang kiểm tra giao dịch chuyển khoản của bạn.',
                     );
@@ -1549,7 +1557,9 @@ export default function ConsultationScreen({ navigation }: any) {
                   }}
                   style={styles.qrDoneBtn}
                 >
-                  <Text style={styles.qrDoneBtnText}>Tôi Đã Chuyển Khoản</Text>
+                  <Text style={styles.qrDoneBtnText}>
+                    TÃ´i ÄÃ£ Chuyá»ƒn Khoáº£n
+                  </Text>
                 </TouchableOpacity>
               </ScrollView>
             </View>

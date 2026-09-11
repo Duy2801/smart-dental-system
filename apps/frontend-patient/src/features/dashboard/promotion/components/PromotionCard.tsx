@@ -49,11 +49,11 @@ export function PromotionCard({
   return (
     <div className="group grid h-full overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs transition duration-300 hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md sm:grid-cols-[180px_1fr]">
       {/* Left Column: Image Container (Square / 4:3 on mobile) */}
-      <div className="relative aspect-[4/3] sm:aspect-square w-full sm:w-[180px] overflow-hidden bg-slate-100 shrink-0">
+      <div className="relative flex aspect-[4/3] w-full shrink-0 items-center justify-center overflow-hidden bg-slate-100 sm:aspect-square sm:w-[180px]">
         <img
           src={defaultCardImage}
           alt={promotion.name}
-          className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+          className="h-full w-full object-contain object-center transition duration-500 group-hover:scale-105"
         />
         {/* Discount Badge on Image */}
         <span className="absolute top-2.5 left-2.5 rounded-lg bg-[#0058bc] px-2.5 py-1 text-[11px] font-black uppercase text-white shadow-xs">

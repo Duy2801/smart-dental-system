@@ -100,7 +100,7 @@ export function FloatingChatButton({ onPress }: FloatingChatButtonProps) {
       setInput('');
       setLoading(true);
 
-      const history: AiChatHistoryItem[] = nextMessages.slice(-8).map(item => ({
+      const history: AiChatHistoryItem[] = messages.slice(-8).map(item => ({
         content: item.text,
         metadata: item.metadata || {},
         role: item.sender === 'user' ? 'user' : 'assistant',

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
+import { CACHE_TIMES } from '~src/config/queryClient';
 import { getPatientServices } from '../api';
 import type { DentalService, FaqMatch, MethodMatch } from '../types';
 
@@ -40,7 +41,8 @@ export function usePatientServices(initialKeyword = '') {
   const servicesQuery = useQuery({
     queryKey: ['patient-services'],
     queryFn: getPatientServices,
-    staleTime: 60000,
+    staleTime: CACHE_TIMES.CATALOG.staleTime,
+    gcTime: CACHE_TIMES.CATALOG.gcTime,
   });
 
   const rawServices = useMemo(() => {

@@ -40,10 +40,17 @@ export function useRescheduleAppointment({
     () => ({
       appointmentId: appointment?.id,
       serviceId: appointment?.serviceId,
+      treatmentMethodId: appointment?.treatmentMethodId,
       doctorId: appointment?.doctorId,
       date: activeDateId,
     }),
-    [appointment?.doctorId, appointment?.id, appointment?.serviceId, activeDateId],
+    [
+      appointment?.doctorId,
+      appointment?.id,
+      appointment?.serviceId,
+      appointment?.treatmentMethodId,
+      activeDateId,
+    ],
   );
 
   const optionsQuery = useAppointmentRescheduleOptionsQuery(rescheduleParams);

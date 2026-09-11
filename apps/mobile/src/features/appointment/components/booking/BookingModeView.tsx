@@ -1,6 +1,12 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+﻿import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import {
   createManagedPatientProfile,
   createPatientAppointment,
@@ -8,10 +14,9 @@ import {
   getPromotions,
 } from '../../api';
 import { useAppointmentBookingData } from '../../hooks/useAppointmentBookingData';
-import type {
-  AppointmentItem,
-  CreatePatientProfilePayload,
-} from '../../types';
+import type { AppointmentItem, CreatePatientProfilePayload } from '../../types';
+import { getBookingErrorMessage } from '../../utils/bookingErrorMessage';
+import { toast as appToast } from '~src/components/ui';
 import { PatientFooter } from '~src/features/home/components/PatientFooter';
 import { BookingConfirmationView } from './BookingConfirmationView';
 import { BookingSelectedSummary } from './BookingSelectedSummary';
@@ -41,7 +46,9 @@ export function BookingModeView({
   onBookingComplete,
 }: BookingModeViewProps) {
   const [viewStep, setViewStep] = useState<'form' | 'confirmation'>('form');
-  const [activeStep, setActiveStep] = useState<number>(initialServiceId ? 2 : 1);
+  const [activeStep, setActiveStep] = useState<number>(
+    initialServiceId ? 2 : 1,
+  );
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [selectedServiceId, setSelectedServiceId] = useState(initialServiceId);
   const [selectedMethodId, setSelectedMethodId] = useState(initialMethodId);
@@ -50,6 +57,10 @@ export function BookingModeView({
   const [selectedTime, setSelectedTime] = useState('');
   const [selectedPromotionCode, setSelectedPromotionCode] = useState('');
   const [selectedPatientId, setSelectedPatientId] = useState('');
+  const scrollViewRef = useRef<ScrollView>(null);
+  const bookingCompleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   const queryClient = useQueryClient();
 
@@ -74,7 +85,7 @@ export function BookingModeView({
     ? promotionsQuery.data
     : [];
 
-  // Tự động chọn hồ sơ chính chủ khi tải xong
+  // Tá»± Ä‘á»™ng chá»n há»“ sÆ¡ chÃ­nh chá»§ khi táº£i xong
   useEffect(() => {
     if (!selectedPatientId && patientProfiles.length > 0) {
       const defaultPatient =
@@ -93,12 +104,10 @@ export function BookingModeView({
     onSuccess: async profile => {
       setSelectedPatientId(profile.id);
       await queryClient.invalidateQueries({ queryKey: ['patient-profiles'] });
+      appToast.success('Đã lưu hồ sơ người khám');
     },
     onError: (err: any) => {
-      Alert.alert(
-        'Lỗi tạo hồ sơ',
-        err?.response?.data?.message || 'Không thể tạo hồ sơ mới. Vui lòng thử lại.',
-      );
+      appToast.error('Không thể tạo hồ sơ', getBookingErrorMessage(err));
     },
   });
 
@@ -113,7 +122,6 @@ export function BookingModeView({
     selectedTreatmentMethod,
     selectedDoctor,
     selectedDate,
-    checkingAvailability,
   } = useAppointmentBookingData({
     selectedServiceId,
     selectedTreatmentMethodId: selectedMethodId,
@@ -136,6 +144,22 @@ export function BookingModeView({
     }
   }, [dates, selectedDateId, selectedMethodId]);
 
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      scrollViewRef.current?.scrollTo({ animated: true, y: 0 });
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [activeStep, viewStep]);
+
+  useEffect(() => {
+    return () => {
+      if (bookingCompleteTimerRef.current) {
+        clearTimeout(bookingCompleteTimerRef.current);
+      }
+    };
+  }, []);
+
   const selectedPatient = useMemo(
     () => patientProfiles.find(patient => patient.id === selectedPatientId),
     [patientProfiles, selectedPatientId],
@@ -148,7 +172,8 @@ export function BookingModeView({
 
   // Blocked Times calculation for overlapping appointments
   const blockedBookingTimes = useMemo(() => {
-    if (!selectedDateId) return { times: [] as string[], ranges: [] as string[] };
+    if (!selectedDateId)
+      return { times: [] as string[], ranges: [] as string[] };
     return collectBlockedTimeData(
       safeUpcomingAppointments.filter(
         appointment => appointment.patientId === selectedPatientId,
@@ -179,8 +204,10 @@ export function BookingModeView({
 
   // Validation
   const isStep1Complete = Boolean(selectedPatientId);
-  const isStep2Complete = Boolean(selectedServiceId) && Boolean(selectedMethodId);
-  const isStep3Complete = Boolean(selectedDateId) && Boolean(effectiveSelectedTime);
+  const isStep2Complete =
+    Boolean(selectedServiceId) && Boolean(selectedMethodId);
+  const isStep3Complete =
+    Boolean(selectedDateId) && Boolean(effectiveSelectedTime);
   const isStep4Complete = Boolean(dedicatedDoctorId || selectedDoctorId);
 
   const completedSteps = [
@@ -196,8 +223,7 @@ export function BookingModeView({
     Boolean(selectedTreatmentMethod) &&
     Boolean(selectedDoctor || dedicatedDoctorId) &&
     Boolean(selectedDate) &&
-    Boolean(effectiveSelectedTime) &&
-    !checkingAvailability;
+    Boolean(effectiveSelectedTime);
 
   // Create Appointment Mutation
   const createAppointmentMutation = useMutation({
@@ -213,17 +239,14 @@ export function BookingModeView({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['patient-appointments'] });
-      Alert.alert(
-        'Đặt lịch thành công!',
-        'Lịch hẹn của bạn đã được ghi nhận. Bạn có thể theo dõi chi tiết ở tab Lịch khám của tôi.',
-        [{ text: 'Đồng ý', onPress: onBookingComplete }],
+      appToast.success(
+        'Đặt lịch thành công',
+        'Bạn có thể theo dõi chi tiết ở tab Lịch khám của tôi.',
       );
+      bookingCompleteTimerRef.current = setTimeout(onBookingComplete, 900);
     },
     onError: (err: any) => {
-      Alert.alert(
-        'Không thể đặt lịch',
-        err?.response?.data?.message || 'Có lỗi xảy ra khi tạo lịch hẹn. Vui lòng thử lại.',
-      );
+      appToast.error('Không thể đặt lịch', getBookingErrorMessage(err));
     },
   });
 
@@ -232,124 +255,129 @@ export function BookingModeView({
   }, []);
 
   return (
-    <ScrollView
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={styles.scrollContent}
-    >
-      {viewStep === 'form' ? (
-        <View>
-          {/* Stepper Bar */}
-          <BookingStepper
-            activeStep={activeStep}
-            completedSteps={completedSteps}
-            onSelectStep={setActiveStep}
-          />
+    <>
+      <ScrollView
+        ref={scrollViewRef}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {viewStep === 'form' ? (
+          <View>
+            {/* Stepper Bar */}
+            <BookingStepper
+              activeStep={activeStep}
+              completedSteps={completedSteps}
+              onSelectStep={setActiveStep}
+            />
 
-          {/* Selected Summary Chips */}
-          <BookingSelectedSummary
+            {/* Selected Summary Chips */}
+            <BookingSelectedSummary
+              selectedPatient={selectedPatient}
+              selectedService={selectedService}
+              selectedMethod={selectedTreatmentMethod}
+              selectedDate={selectedDate}
+              selectedTime={effectiveSelectedTime}
+              selectedDoctor={selectedDoctor}
+            />
+
+            {/* Step 1: Chá»n ngÆ°á»i khÃ¡m */}
+            {activeStep === 1 && (
+              <PatientSelector
+                patients={patientProfiles}
+                selectedPatientId={selectedPatientId}
+                isLoading={patientProfilesQuery.isLoading}
+                isCreating={createPatientMutation.isPending}
+                onSelectPatient={handleSelectPatient}
+                onCreatePatient={async (
+                  payload: CreatePatientProfilePayload,
+                ) => {
+                  await createPatientMutation.mutateAsync(payload);
+                }}
+                onContinue={() => setActiveStep(2)}
+              />
+            )}
+
+            {/* Step 2: Chá»n dá»‹ch vá»¥ & Ä‘iá»u trá»‹ */}
+            {activeStep === 2 && (
+              <ServiceSelector
+                services={services}
+                selectedServiceId={selectedServiceId}
+                selectedMethodId={selectedMethodId}
+                onSelectService={id => {
+                  setSelectedServiceId(id);
+                  setSelectedMethodId('');
+                  setSelectedDoctorId(dedicatedDoctorId);
+                  setSelectedDateId('');
+                  setSelectedTime('');
+                }}
+                onSelectMethod={id => {
+                  setSelectedMethodId(id);
+                  setSelectedDoctorId(dedicatedDoctorId);
+                  setSelectedDateId('');
+                  setSelectedTime('');
+                }}
+                onBack={() => setActiveStep(1)}
+                onContinue={() => setActiveStep(3)}
+              />
+            )}
+
+            {/* Step 3: Chá»n ngÃ y vÃ  giá» khÃ¡m */}
+            {activeStep === 3 && (
+              <SchedulePicker
+                dates={dates}
+                times={selectableAvailableTimes}
+                blockedTimes={blockedBookingTimes.times}
+                blockedRanges={blockedBookingTimes.ranges}
+                slotIntervalMinutes={slotIntervalMinutes}
+                selectedDateId={selectedDateId}
+                selectedTime={effectiveSelectedTime}
+                onSelectDate={id => {
+                  setSelectedDateId(id);
+                  setSelectedTime('');
+                }}
+                onSelectTime={time => setSelectedTime(time)}
+                onBack={() => setActiveStep(2)}
+                onContinue={() => setActiveStep(4)}
+              />
+            )}
+
+            {/* Step 4: Chá»n bÃ¡c sÄ© */}
+            {activeStep === 4 && (
+              <DoctorSelector
+                doctors={doctors}
+                selectedId={dedicatedDoctorId || selectedDoctorId}
+                canReview={canReview}
+                onSelect={id => setSelectedDoctorId(dedicatedDoctorId || id)}
+                onBack={() => setActiveStep(3)}
+                onOpenReview={() => setViewStep('confirmation')}
+              />
+            )}
+          </View>
+        ) : (
+          /* Confirmation Screen */
+          <BookingConfirmationView
             selectedPatient={selectedPatient}
             selectedService={selectedService}
-            selectedMethod={selectedTreatmentMethod}
+            selectedTreatmentMethod={selectedTreatmentMethod}
+            selectedDoctor={selectedDoctor}
             selectedDate={selectedDate}
             selectedTime={effectiveSelectedTime}
-            selectedDoctor={selectedDoctor}
+            promotions={promotions}
+            selectedPromotionCode={selectedPromotionCode}
+            onSelectPromotionCode={setSelectedPromotionCode}
+            acceptedTerms={acceptedTerms}
+            onToggleTerms={setAcceptedTerms}
+            isSubmitting={createAppointmentMutation.isPending}
+            onConfirmBooking={promoCode =>
+              createAppointmentMutation.mutate(promoCode)
+            }
+            onBackToEdit={() => setViewStep('form')}
           />
+        )}
 
-          {/* Step 1: Chọn người khám */}
-          {activeStep === 1 && (
-            <PatientSelector
-              patients={patientProfiles}
-              selectedPatientId={selectedPatientId}
-              isLoading={patientProfilesQuery.isLoading}
-              isCreating={createPatientMutation.isPending}
-              onSelectPatient={handleSelectPatient}
-              onCreatePatient={async (payload: CreatePatientProfilePayload) => {
-                await createPatientMutation.mutateAsync(payload);
-              }}
-              onContinue={() => setActiveStep(2)}
-            />
-          )}
-
-          {/* Step 2: Chọn dịch vụ & điều trị */}
-          {activeStep === 2 && (
-            <ServiceSelector
-              services={services}
-              selectedServiceId={selectedServiceId}
-              selectedMethodId={selectedMethodId}
-              onSelectService={id => {
-                setSelectedServiceId(id);
-                setSelectedMethodId('');
-                setSelectedDoctorId(dedicatedDoctorId);
-                setSelectedDateId('');
-                setSelectedTime('');
-              }}
-              onSelectMethod={id => {
-                setSelectedMethodId(id);
-                setSelectedDoctorId(dedicatedDoctorId);
-                setSelectedDateId('');
-                setSelectedTime('');
-              }}
-              onBack={() => setActiveStep(1)}
-              onContinue={() => setActiveStep(3)}
-            />
-          )}
-
-          {/* Step 3: Chọn ngày và giờ khám */}
-          {activeStep === 3 && (
-            <SchedulePicker
-              dates={dates}
-              times={selectableAvailableTimes}
-              blockedTimes={blockedBookingTimes.times}
-              blockedRanges={blockedBookingTimes.ranges}
-              isLoadingTimes={checkingAvailability}
-              slotIntervalMinutes={slotIntervalMinutes}
-              selectedDateId={selectedDateId}
-              selectedTime={effectiveSelectedTime}
-              onSelectDate={id => {
-                setSelectedDateId(id);
-                setSelectedTime('');
-              }}
-              onSelectTime={time => setSelectedTime(time)}
-              onBack={() => setActiveStep(2)}
-              onContinue={() => setActiveStep(4)}
-            />
-          )}
-
-          {/* Step 4: Chọn bác sĩ */}
-          {activeStep === 4 && (
-            <DoctorSelector
-              doctors={doctors}
-              selectedId={dedicatedDoctorId || selectedDoctorId}
-              isCheckingAvailability={checkingAvailability}
-              canReview={canReview}
-              onSelect={id => setSelectedDoctorId(dedicatedDoctorId || id)}
-              onBack={() => setActiveStep(3)}
-              onOpenReview={() => setViewStep('confirmation')}
-            />
-          )}
-        </View>
-      ) : (
-        /* Confirmation Screen */
-        <BookingConfirmationView
-          selectedPatient={selectedPatient}
-          selectedService={selectedService}
-          selectedTreatmentMethod={selectedTreatmentMethod}
-          selectedDoctor={selectedDoctor}
-          selectedDate={selectedDate}
-          selectedTime={effectiveSelectedTime}
-          promotions={promotions}
-          selectedPromotionCode={selectedPromotionCode}
-          onSelectPromotionCode={setSelectedPromotionCode}
-          acceptedTerms={acceptedTerms}
-          onToggleTerms={setAcceptedTerms}
-          isSubmitting={createAppointmentMutation.isPending}
-          onConfirmBooking={promoCode => createAppointmentMutation.mutate(promoCode)}
-          onBackToEdit={() => setViewStep('form')}
-        />
-      )}
-
-      <PatientFooter style={styles.footer} />
-    </ScrollView>
+        <PatientFooter style={styles.footer} />
+      </ScrollView>
+    </>
   );
 }
 
@@ -394,7 +422,9 @@ function collectBlockedTimeData(
     .filter(a => a?.scheduledAt && a?.endAt)
     .map(
       appointment =>
-        `${toHourMinute(appointment.scheduledAt)} - ${toHourMinute(appointment.endAt)}`,
+        `${toHourMinute(appointment.scheduledAt)} - ${toHourMinute(
+          appointment.endAt,
+        )}`,
     );
 
   return { times, ranges };

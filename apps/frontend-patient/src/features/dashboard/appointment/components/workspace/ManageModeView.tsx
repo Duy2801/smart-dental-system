@@ -200,7 +200,7 @@ export function ManageModeView({
                 const isPendingOrConfirmed =
                   item.status === "pending" || item.status === "confirmed";
 
-                const canCancel = isUpcoming && isPendingOrConfirmed && hoursUntil >= 12;
+                const canCancel = isUpcoming && isPendingOrConfirmed && hoursUntil > 0;
                 const canReschedule =
                   isUpcoming &&
                   isPendingOrConfirmed &&

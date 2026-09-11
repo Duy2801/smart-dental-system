@@ -81,7 +81,7 @@ const clinicProfileConfigs = [
   ['clinic.phone', '1900 1234'],
   ['clinic.email', 'contact@smartdental.com'],
   ['clinic.address', '123 Nguyen Van Linh, Da Nang'],
-  ['clinic.logoUrl', ''],
+  ['clinic.logoUrl', 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1789108582/smart-dental/branding/clinic-logo-1789108581437.png'],
   ['clinic.businessHours', JSON.stringify(seededBusinessHours)],
   ['clinic.slotIntervalMinutes', '30'],
   ['clinic.specialDates', '[]'],
@@ -1929,7 +1929,10 @@ async function seedRelatedData(
           serviceId: treatmentMethod?.serviceId ?? context.services[0].id,
           treatmentMethodId: treatmentMethod?.id ?? null,
           scheduledAt,
-          endAt: new Date(scheduledAt.getTime() + 45 * 60 * 1000),
+          endAt: new Date(
+            scheduledAt.getTime() +
+              (treatmentMethod?.durationMinutes ?? 30) * 60 * 1000,
+          ),
           status: appointmentStatus,
           bookingSource: bookingSources[index % bookingSources.length],
           notes:

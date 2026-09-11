@@ -4,7 +4,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -14,7 +13,7 @@ import {
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useDispatch, useSelector } from 'react-redux';
-import { Screen } from '~src/components/ui';
+import { Screen, toast } from '~src/components/ui';
 import { SCREEN_NAME } from '~src/constants/screenName';
 import { getClinicConfigInfo } from '~src/features/home/api';
 import { FloatingChatButton } from '~src/features/home/components/FloatingChatButton';
@@ -22,6 +21,7 @@ import { PatientDrawerModal } from '~src/features/home/components/PatientDrawerM
 import { PatientFooter } from '~src/features/home/components/PatientFooter';
 import { PatientHomeHeader } from '~src/features/home/components/PatientHomeHeader';
 import { usePatientDrawerActions } from '~src/features/home/hooks/usePatientDrawerActions';
+import { CACHE_TIMES, queryKeys } from '~src/config/queryClient';
 import { setSession } from '~src/reducers/loginReducer';
 import type { AppDispatch, RootState } from '~src/reducers/store';
 import {
@@ -58,13 +58,15 @@ export default function PersonalScreen() {
     queryKey: ['patient-profile'],
     queryFn: apiGetPatientProfile,
     enabled: isLoggedIn,
-    staleTime: 60 * 1000,
+    staleTime: CACHE_TIMES.USER_DATA.staleTime,
+    gcTime: CACHE_TIMES.USER_DATA.gcTime,
   });
 
   const clinicQuery = useQuery({
-    queryKey: ['clinic-config'],
+    queryKey: queryKeys.clinicConfig,
     queryFn: getClinicConfigInfo,
-    staleTime: 5 * 60 * 1000,
+    staleTime: CACHE_TIMES.CLINIC_CONFIG.staleTime,
+    gcTime: CACHE_TIMES.CLINIC_CONFIG.gcTime,
   });
 
   const profile = profileQuery.data;
@@ -109,7 +111,10 @@ export default function PersonalScreen() {
   const handleSaveProfile = async () => {
     if (saving) return;
     if (!form.fullName.trim()) {
-      setStatusMsg({ type: 'error', text: 'Họ và tên không được để trống.' });
+      setStatusMsg({
+        type: 'error',
+        text: 'Họ và tên không được để trống.',
+      });
       return;
     }
 
@@ -131,7 +136,8 @@ export default function PersonalScreen() {
       if (form.phone.trim()) payload.phone = form.phone.trim();
       if (form.email.trim()) payload.email = form.email.trim();
       if (isoDob) payload.dateOfBirth = isoDob;
-      if (form.gender && form.gender !== 'UNKNOWN') payload.gender = form.gender;
+      if (form.gender && form.gender !== 'UNKNOWN')
+        payload.gender = form.gender;
       if (form.address.trim()) payload.address = form.address.trim();
 
       const updatedUser = await apiUpdatePatientProfile(payload);
@@ -196,7 +202,12 @@ export default function PersonalScreen() {
         {!isLoggedIn ? (
           <View style={styles.loginRequiredCard}>
             <View style={styles.loginIconBox}>
-              <FontAwesome6 color="#0863c5" iconStyle="solid" name="user-lock" size={28} />
+              <FontAwesome6
+                color="#0863c5"
+                iconStyle="solid"
+                name="user-lock"
+                size={28}
+              />
             </View>
             <Text style={styles.loginTitle}>Xem thông tin cá nhân</Text>
             <Text style={styles.loginSub}>
@@ -204,7 +215,9 @@ export default function PersonalScreen() {
             </Text>
             <TouchableOpacity
               activeOpacity={0.8}
-              onPress={() => navigation.navigate(SCREEN_NAME.PATIENT_LOGIN as never)}
+              onPress={() =>
+                navigation.navigate(SCREEN_NAME.PATIENT_LOGIN as never)
+              }
               style={styles.loginBtn}
             >
               <Text style={styles.loginBtnText}>Đăng nhập ngay</Text>
@@ -213,15 +226,19 @@ export default function PersonalScreen() {
         ) : profileQuery.isLoading && !profile ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator color="#0863c5" size="large" />
-            <Text style={styles.loadingText}>Đang tải thông tin cá nhân...</Text>
+            <Text style={styles.loadingText}>
+              Đang tải thông tin cá nhân...
+            </Text>
           </View>
         ) : (
           <View style={styles.contentSection}>
-            {/* Breadcrumb matching Web (Screenshot 1) */}
+            {/* Breadcrumb */}
             <View style={styles.breadcrumbRow}>
               <TouchableOpacity
                 activeOpacity={0.7}
-                onPress={() => navigation.getParent()?.navigate(SCREEN_NAME.HOME as never)}
+                onPress={() =>
+                  navigation.getParent()?.navigate(SCREEN_NAME.HOME as never)
+                }
               >
                 <Text style={styles.breadcrumbLink}>Trang chủ</Text>
               </TouchableOpacity>
@@ -229,30 +246,35 @@ export default function PersonalScreen() {
               <Text style={styles.breadcrumbCurrent}>Thông tin cá nhân</Text>
             </View>
 
-            {/* Main Form Card matching Web (Screenshot 1) */}
+            {/* Main Form Card */}
             <View style={styles.mainCard}>
               {/* Card Header Title */}
               <Text style={styles.cardHeaderTitle}>Thông tin cá nhân</Text>
               <View style={styles.cardDivider} />
 
-              {/* Center Avatar Section matching Web (Screenshot 1) */}
+              {/* Center Avatar Section */}
               <View style={styles.avatarSection}>
                 <View style={styles.avatarWrapper}>
                   <View style={styles.avatarCircle}>
                     <Text style={styles.avatarText}>{initials}</Text>
                   </View>
-                  {/* Small Edit Pen Icon Button on bottom left */}
+                  {/* Small Edit Pen Icon Button */}
                   <TouchableOpacity
                     activeOpacity={0.8}
                     onPress={() => {
-                      Alert.alert(
+                      toast.info(
                         'Ảnh đại diện',
                         'Tính năng tải ảnh đại diện sẽ được hỗ trợ trong phiên bản tiếp theo.',
                       );
                     }}
                     style={styles.avatarEditBtn}
                   >
-                    <FontAwesome6 color="#475569" iconStyle="solid" name="pen" size={11} />
+                    <FontAwesome6
+                      color="#475569"
+                      iconStyle="solid"
+                      name="pen"
+                      size={11}
+                    />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -288,8 +310,10 @@ export default function PersonalScreen() {
                   <Text style={styles.fieldLabel}>Họ và tên</Text>
                   <TextInput
                     value={form.fullName}
-                    onChangeText={text => setForm(prev => ({ ...prev, fullName: text }))}
-                    placeholder="Khách hàng"
+                    onChangeText={text =>
+                      setForm(prev => ({ ...prev, fullName: text }))
+                    }
+                    placeholder="Họ và tên"
                     placeholderTextColor="#94A3B8"
                     style={styles.input}
                   />
@@ -300,7 +324,9 @@ export default function PersonalScreen() {
                   <Text style={styles.fieldLabel}>Số điện thoại</Text>
                   <TextInput
                     value={form.phone}
-                    onChangeText={text => setForm(prev => ({ ...prev, phone: text }))}
+                    onChangeText={text =>
+                      setForm(prev => ({ ...prev, phone: text }))
+                    }
                     placeholder="**** *** 035"
                     placeholderTextColor="#94A3B8"
                     keyboardType="phone-pad"
@@ -313,7 +339,9 @@ export default function PersonalScreen() {
                   <Text style={styles.fieldLabel}>Email</Text>
                   <TextInput
                     value={form.email}
-                    onChangeText={text => setForm(prev => ({ ...prev, email: text }))}
+                    onChangeText={text =>
+                      setForm(prev => ({ ...prev, email: text }))
+                    }
                     placeholder="Email"
                     placeholderTextColor="#94A3B8"
                     keyboardType="email-address"
@@ -328,16 +356,23 @@ export default function PersonalScreen() {
                   <View style={styles.inputWithIcon}>
                     <TextInput
                       value={form.dateOfBirth}
-                      onChangeText={text => setForm(prev => ({ ...prev, dateOfBirth: text }))}
+                      onChangeText={text =>
+                        setForm(prev => ({ ...prev, dateOfBirth: text }))
+                      }
                       placeholder="DD/MM/YYYY (ví dụ: 12/05/1990)"
                       placeholderTextColor="#94A3B8"
                       style={styles.inputInner}
                     />
-                    <FontAwesome6 color="#94A3B8" iconStyle="solid" name="calendar-days" size={15} />
+                    <FontAwesome6
+                      color="#94A3B8"
+                      iconStyle="solid"
+                      name="calendar-days"
+                      size={15}
+                    />
                   </View>
                 </View>
 
-                {/* 5. Giới tính matching Web (Screenshot 1) */}
+                {/* 5. Giới tính */}
                 <View style={styles.fieldGroup}>
                   <Text style={styles.fieldLabel}>Giới tính</Text>
                   <TouchableOpacity
@@ -348,7 +383,9 @@ export default function PersonalScreen() {
                     <Text
                       style={[
                         styles.dropdownSelectText,
-                        form.gender === 'UNKNOWN' ? styles.dropdownPlaceholderText : null,
+                        form.gender === 'UNKNOWN'
+                          ? styles.dropdownPlaceholderText
+                          : null,
                       ]}
                     >
                       {form.gender === 'MALE'
@@ -362,7 +399,9 @@ export default function PersonalScreen() {
                     <FontAwesome6
                       color="#94A3B8"
                       iconStyle="solid"
-                      name={isGenderDropdownOpen ? 'chevron-up' : 'chevron-down'}
+                      name={
+                        isGenderDropdownOpen ? 'chevron-up' : 'chevron-down'
+                      }
                       size={13}
                     />
                   </TouchableOpacity>
@@ -397,7 +436,9 @@ export default function PersonalScreen() {
                             <Text
                               style={[
                                 styles.dropdownItemText,
-                                isSelected ? styles.dropdownItemTextActive : null,
+                                isSelected
+                                  ? styles.dropdownItemTextActive
+                                  : null,
                               ]}
                             >
                               {label}
@@ -417,13 +458,20 @@ export default function PersonalScreen() {
                   )}
                 </View>
 
-                {/* 6. Mật khẩu matching Web (Screenshot 1) */}
+                {/* 6. Mật khẩu */}
                 <View style={styles.fieldGroup}>
                   <Text style={styles.fieldLabel}>Mật khẩu</Text>
                   <View style={styles.passwordRow}>
                     <View style={styles.passwordLeft}>
-                      <FontAwesome6 color="#94A3B8" iconStyle="solid" name="lock" size={14} />
-                      <Text style={styles.passwordDots}>••••••••••</Text>
+                      <FontAwesome6
+                        color="#94A3B8"
+                        iconStyle="solid"
+                        name="lock"
+                        size={14}
+                      />
+                      <Text style={styles.passwordDots}>
+                        ••••••••••
+                      </Text>
                     </View>
 
                     <TouchableOpacity
@@ -431,19 +479,29 @@ export default function PersonalScreen() {
                       onPress={() => setIsPasswordModalOpen(true)}
                       style={styles.passwordUpdateBtn}
                     >
-                      <Text style={styles.passwordUpdateText}>Cập nhật</Text>
-                      <FontAwesome6 color="#0863c5" iconStyle="solid" name="rotate" size={11} />
+                      <Text style={styles.passwordUpdateText}>
+                        Cập nhật
+                      </Text>
+                      <FontAwesome6
+                        color="#0863c5"
+                        iconStyle="solid"
+                        name="rotate"
+                        size={11}
+                      />
                     </TouchableOpacity>
                   </View>
                 </View>
 
-                {/* 7. Centered Save Button matching Web (Screenshot 1) */}
+                {/* 7. Centered Save Button */}
                 <View style={styles.saveBtnContainer}>
                   <TouchableOpacity
                     activeOpacity={0.85}
                     disabled={saving}
                     onPress={handleSaveProfile}
-                    style={[styles.saveBtn, saving ? styles.saveBtnDisabled : null]}
+                    style={[
+                      styles.saveBtn,
+                      saving ? styles.saveBtnDisabled : null,
+                    ]}
                   >
                     {saving ? (
                       <ActivityIndicator color="#FFFFFF" size="small" />

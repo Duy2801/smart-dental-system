@@ -100,21 +100,19 @@ export function BookingConfirmationView({
         <View className="flex-row items-start justify-between gap-3">
           <View className="min-w-0 flex-1">
             <View className="self-start rounded-md bg-white/15 px-2.5 py-1">
-              <Text className="text-[10px] font-black uppercase tracking-wider text-blue-100">
-                Dịch vụ đã chọn
-              </Text>
+              <Text style={styles.serviceBannerBadgeText}>Dịch vụ đã chọn</Text>
             </View>
-            <Text numberOfLines={2} className="mt-2 text-lg font-black text-white">
+            <Text numberOfLines={2} style={styles.serviceBannerTitle}>
               {selectedService?.name || 'Chưa chọn dịch vụ'}
             </Text>
           </View>
 
           <View className="items-end">
-            <Text className="text-base font-black text-white">
+            <Text style={styles.serviceBannerPrice}>
               {formatCurrency(basePrice)}
             </Text>
             {selectedTreatmentMethod?.durationMinutes ? (
-              <Text className="mt-1 text-[11px] font-bold text-blue-100">
+              <Text style={styles.serviceBannerDuration}>
                 {selectedTreatmentMethod.durationMinutes} phút
               </Text>
             ) : null}
@@ -122,9 +120,9 @@ export function BookingConfirmationView({
         </View>
 
         <View className="mt-3 border-t border-white/20 pt-2">
-          <Text numberOfLines={1} className="text-xs text-blue-100 font-medium">
+          <Text numberOfLines={1} style={styles.serviceBannerMethod}>
             Phương pháp:{' '}
-            <Text className="font-bold text-white">
+            <Text style={styles.serviceBannerMethodName}>
               {selectedTreatmentMethod?.name || '--'}
             </Text>
           </Text>
@@ -162,7 +160,10 @@ export function BookingConfirmationView({
               name="ticket"
               size={13}
             />
-            <Text numberOfLines={1} className="text-xs font-bold text-slate-800">
+            <Text
+              numberOfLines={1}
+              className="text-xs font-bold text-slate-800"
+            >
               {appliedPromotion
                 ? `${appliedPromotion.code} - ${appliedPromotion.name}`
                 : 'Chọn hoặc đổi mã giảm giá'}
@@ -221,7 +222,9 @@ export function BookingConfirmationView({
           iconTone="blue"
           label="Bác sĩ phụ trách"
           title={
-            selectedDoctor ? `BS. ${selectedDoctor.name}` : 'BS phòng khám sắp xếp'
+            selectedDoctor
+              ? `BS. ${selectedDoctor.name}`
+              : 'BS phòng khám sắp xếp'
           }
           subtitle={selectedDoctor?.specialty || 'Chuyên khoa tổng quát'}
         />
@@ -271,10 +274,7 @@ export function BookingConfirmationView({
           onPress={() => onToggleTerms(!acceptedTerms)}
         >
           <View
-            style={[
-              styles.checkBox,
-              acceptedTerms && styles.checkBoxChecked,
-            ]}
+            style={[styles.checkBox, acceptedTerms && styles.checkBoxChecked]}
           >
             {acceptedTerms ? (
               <FontAwesome6
@@ -339,7 +339,10 @@ export function BookingConfirmationView({
               </TouchableOpacity>
             </View>
 
-            <ScrollView className="mt-3 space-y-2" showsVerticalScrollIndicator={false}>
+            <ScrollView
+              className="mt-3 space-y-2"
+              showsVerticalScrollIndicator={false}
+            >
               <TouchableOpacity
                 className={`rounded-xl border p-3 ${
                   !selectedPromotionCode
@@ -358,16 +361,21 @@ export function BookingConfirmationView({
                   <Text className="mt-0.5 text-[11px] text-slate-500">
                     Mã gợi ý: {autoPromotion.code} - Giảm{' '}
                     {formatCurrency(
-                      calculateDiscount(autoPromotion, basePrice).discountAmount,
+                      calculateDiscount(autoPromotion, basePrice)
+                        .discountAmount,
                     )}
                   </Text>
                 ) : null}
               </TouchableOpacity>
 
               {availablePromotions.map(promo => {
-                const discount = calculateDiscount(promo, basePrice).discountAmount;
+                const discount = calculateDiscount(
+                  promo,
+                  basePrice,
+                ).discountAmount;
                 const isSelected =
-                  selectedPromotionCode.toLowerCase() === promo.code.toLowerCase();
+                  selectedPromotionCode.toLowerCase() ===
+                  promo.code.toLowerCase();
 
                 return (
                   <TouchableOpacity
@@ -390,7 +398,10 @@ export function BookingConfirmationView({
                         - {formatCurrency(discount)}
                       </Text>
                     </View>
-                    <Text numberOfLines={1} className="mt-1 text-xs text-slate-600">
+                    <Text
+                      numberOfLines={1}
+                      className="mt-1 text-xs text-slate-600"
+                    >
                       {promo.name}
                     </Text>
                     {promo.description ? (
@@ -510,6 +521,39 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.18,
     shadowRadius: 6,
+  },
+  serviceBannerBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
+  serviceBannerDuration: {
+    color: 'rgba(255, 255, 255, 0.92)',
+    fontSize: 11,
+    fontWeight: '800',
+    marginTop: 4,
+  },
+  serviceBannerMethod: {
+    color: 'rgba(255, 255, 255, 0.92)',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  serviceBannerMethodName: {
+    color: '#FFFFFF',
+    fontWeight: '900',
+  },
+  serviceBannerPrice: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  serviceBannerTitle: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '900',
+    marginTop: 8,
   },
   skyIcon: {
     backgroundColor: '#F0F9FF',

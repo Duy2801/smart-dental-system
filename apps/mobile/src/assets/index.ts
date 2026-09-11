@@ -8,6 +8,7 @@ export const HOME_ASSETS = {
   BANNER_HOME: require('./home/bannerhome.png'),
   BANNER_SERVICE: require('./home/bannerservice.png'),
   CLINIC_LOGO: require('./home/clinic-logo.png'),
+  GOOGLE_LOGO: require('./home/google-icon.png'),
   CLINIC_MAP: require('./home/clinic-map.png'),
   DS_BACSI: require('./home/dsbacsi.png'),
 };

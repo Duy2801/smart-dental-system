@@ -342,7 +342,7 @@ function collectBlockedTimeData(
   );
 
   const times = candidateTimes.filter((time) => {
-    const slotStart = new Date(`${dateId}T${time}:00`);
+    const slotStart = new Date(`${dateId}T${time}:00+07:00`);
     const slotEnd = new Date(
       slotStart.getTime() + serviceDurationMinutes * 60 * 1000,
     );

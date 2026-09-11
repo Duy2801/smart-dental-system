@@ -7,6 +7,7 @@ export type LoginPayload = { email: string; password: string };
 export type RegisterPayload = {
   fullName: string;
   email: string;
+  phone?: string;
   password: string;
 };
 
@@ -43,11 +44,32 @@ export const apiResendOtp = async (email: string) => {
 
 export const apiLogout = () => api.post('/auth/logout');
 
-export const apiLoginWithGoogle = async (token: string) => {
-  const response = await api.post<ApiEnvelope<AuthSession>>('/auth/google', {
-    idToken: token,
-    token,
+export const apiLoginWithGoogle = async ({
+  accessToken,
+  idToken,
+}: {
+  accessToken?: string;
+  idToken?: string;
+}) => {
+  console.log('[AuthApi] POST /auth/google', {
+    hasIdToken: Boolean(idToken),
+    idTokenLength: idToken?.length,
+    hasAccessToken: Boolean(accessToken),
+    accessTokenLength: accessToken?.length,
   });
+
+  const response = await api.post<ApiEnvelope<AuthSession>>('/auth/google', {
+    accessToken,
+    idToken,
+    token: idToken || accessToken,
+  });
+
+  console.log('[AuthApi] /auth/google success', {
+    userId: response.data.data.user.id,
+    roles: response.data.data.user.roles,
+    hasAccessToken: Boolean(response.data.data.accessToken),
+  });
+
   return response.data.data;
 };
 

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import React from 'react';
+import { CACHE_TIMES, queryKeys } from '~src/config/queryClient';
 import {
   Linking,
   StyleProp,
@@ -17,8 +18,8 @@ function getOpenHoursText(
   const openDays = hours.filter(day => day.isOpen);
   if (!openDays.length) {
     return [
-      'Thu Hai - Thu Sau: 08:00 - 17:00',
-      'Thu Bay: 08:00 - 12:00',
+      'Thứ Hai - Thứ Sáu: 08:00 - 17:00',
+      'Thứ Bảy: 08:00 - 12:00',
     ];
   }
 
@@ -84,8 +85,9 @@ export function PatientFooter({ clinic: propClinic, style }: PatientFooterProps)
   const clinicQuery = useQuery({
     enabled: !propClinic,
     queryFn: getClinicConfigInfo,
-    queryKey: ['clinic-config'],
-    staleTime: 5 * 60 * 1000,
+    queryKey: queryKeys.clinicConfig,
+    staleTime: CACHE_TIMES.CLINIC_CONFIG.staleTime,
+    gcTime: CACHE_TIMES.CLINIC_CONFIG.gcTime,
   });
 
   const clinic = propClinic ?? clinicQuery.data;

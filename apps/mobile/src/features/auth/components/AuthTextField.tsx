@@ -1,5 +1,5 @@
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6';
-import React, { useState } from 'react';
+import React, { ReactNode, useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -10,10 +10,11 @@ import {
 } from 'react-native';
 
 type AuthTextFieldProps = TextInputProps & {
-  icon: 'envelope' | 'key' | 'lock' | 'shield-halved' | 'user';
+  icon: 'envelope' | 'key' | 'lock' | 'shield-halved' | 'user' | 'phone';
   label: string;
   isPassword?: boolean;
   error?: string;
+  labelAccessory?: ReactNode;
 };
 
 const AuthTextField = ({
@@ -21,15 +22,19 @@ const AuthTextField = ({
   label,
   isPassword = false,
   error,
+  labelAccessory,
   ...inputProps
 }: AuthTextFieldProps) => {
   const [passwordVisible, setPasswordVisible] = useState(false);
 
   return (
     <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
+      <View style={styles.labelRow}>
+        <Text style={styles.label}>{label}</Text>
+        {labelAccessory}
+      </View>
       <View style={[styles.inputContainer, error && styles.inputError]}>
-        <FontAwesome6 color="#8E96A8" iconStyle="solid" name={icon} size={16} />
+        <FontAwesome6 color="#8AA0BC" iconStyle="solid" name={icon} size={15} />
         <TextInput
           {...inputProps}
           placeholderTextColor="#A8AFBD"
@@ -46,7 +51,7 @@ const AuthTextField = ({
           >
             <FontAwesome6
               color="#8E96A8"
-              iconStyle="solid"
+              iconStyle="regular"
               name={passwordVisible ? 'eye-slash' : 'eye'}
               size={16}
             />
@@ -60,27 +65,32 @@ const AuthTextField = ({
 
 const styles = StyleSheet.create({
   field: {
-    gap: 8,
+    gap: 9,
+  },
+  labelRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
   label: {
-    color: '#344054',
-    fontSize: 12,
-    fontWeight: '700',
+    color: '#18233D',
+    fontSize: 14,
+    fontWeight: '500',
   },
   inputContainer: {
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FBFCFF',
     borderColor: '#DDE3EC',
-    borderRadius: 10,
+    borderRadius: 14,
     borderWidth: 1,
     flexDirection: 'row',
-    minHeight: 50,
-    paddingHorizontal: 16,
+    minHeight: 54,
+    paddingHorizontal: 18,
   },
   input: {
-    color: '#172033',
+    color: '#071A3D',
     flex: 1,
-    fontSize: 14,
+    fontSize: 16,
     paddingHorizontal: 12,
     paddingVertical: 0,
   },

@@ -41,31 +41,43 @@ export function useAppointmentBookingData({
   const baseOptionsQuery = useQuery({
     queryKey: ['patient-appointment-booking-options', queryParams],
     queryFn: () => getAppointmentOptions(queryParams),
+    placeholderData: previousData => previousData,
     staleTime: 30000,
   });
 
   const services = useMemo(
-    () => (Array.isArray(baseOptionsQuery.data?.services) ? baseOptionsQuery.data.services : []),
+    () =>
+      Array.isArray(baseOptionsQuery.data?.services)
+        ? baseOptionsQuery.data.services
+        : [],
     [baseOptionsQuery.data?.services],
   );
 
   const dates = useMemo(
-    () => (Array.isArray(baseOptionsQuery.data?.dates) ? baseOptionsQuery.data.dates : []),
+    () =>
+      Array.isArray(baseOptionsQuery.data?.dates)
+        ? baseOptionsQuery.data.dates
+        : [],
     [baseOptionsQuery.data?.dates],
   );
 
   const allDoctors = useMemo(
-    () => (Array.isArray(baseOptionsQuery.data?.doctors) ? baseOptionsQuery.data.doctors : []),
+    () =>
+      Array.isArray(baseOptionsQuery.data?.doctors)
+        ? baseOptionsQuery.data.doctors
+        : [],
     [baseOptionsQuery.data?.doctors],
   );
 
   const availableTimes = useMemo(
-    () => (Array.isArray(baseOptionsQuery.data?.timeSlots) ? baseOptionsQuery.data.timeSlots : []),
+    () =>
+      Array.isArray(baseOptionsQuery.data?.timeSlots)
+        ? baseOptionsQuery.data.timeSlots
+        : [],
     [baseOptionsQuery.data?.timeSlots],
   );
 
-  const slotIntervalMinutes =
-    baseOptionsQuery.data?.slotIntervalMinutes ?? 30;
+  const slotIntervalMinutes = baseOptionsQuery.data?.slotIntervalMinutes ?? 30;
 
   // Lọc bác sĩ phù hợp: nếu đã chọn giờ, ưu tiên bác sĩ có khung giờ đó
   const doctors = useMemo(() => {
@@ -92,7 +104,8 @@ export function useAppointmentBookingData({
   }, [selectedService, selectedTreatmentMethodId]);
 
   const selectedDoctor = useMemo(
-    () => doctors.find(item => item.id === (dedicatedDoctorId || selectedDoctorId)),
+    () =>
+      doctors.find(item => item.id === (dedicatedDoctorId || selectedDoctorId)),
     [dedicatedDoctorId, doctors, selectedDoctorId],
   );
 
@@ -112,6 +125,11 @@ export function useAppointmentBookingData({
     selectedTreatmentMethod,
     selectedDoctor,
     selectedDate,
-    checkingAvailability: baseOptionsQuery.isFetching,
+    checkingAvailability:
+      baseOptionsQuery.isFetching &&
+      Boolean(selectedTreatmentMethodId) &&
+      Boolean(
+        selectedDateId || selectedDoctorId || dedicatedDoctorId || selectedTime,
+      ),
   };
 }

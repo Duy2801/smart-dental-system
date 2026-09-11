@@ -1,5 +1,6 @@
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { StackActions } from '@react-navigation/native';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,6 +9,7 @@ import { SCREEN_NAME } from '~src/constants/screenName';
 type IconName =
   | 'calendar-days'
   | 'file-lines'
+  | 'headset'
   | 'house'
   | 'robot'
   | 'table-cells-large'
@@ -16,6 +18,7 @@ type IconName =
 const ICON_MAP: Record<string, IconName> = {
   [SCREEN_NAME.HOME]: 'house',
   [SCREEN_NAME.FUNCTION]: 'calendar-days',
+  [SCREEN_NAME.PATIENT_CONSULTATION]: 'headset',
   [SCREEN_NAME.PATIENT_SERVICES]: 'table-cells-large',
   [SCREEN_NAME.AI]: 'robot',
   [SCREEN_NAME.REPORT]: 'file-lines',
@@ -49,21 +52,86 @@ const CustomTabBar = ({
                 ? options.title
                 : route.name;
           const isFocused = state.index === index;
+          const isCenter = route.name === SCREEN_NAME.PATIENT_CONSULTATION;
 
           const onPress = () => {
+            if (isCenter) {
+              // Để trống đường dẫn theo yêu cầu, xử lý tính năng tư vấn sau
+              return;
+            }
             const event = navigation.emit({
               canPreventDefault: true,
               target: route.key,
               type: 'tabPress',
             });
-            if (!isFocused && !event.defaultPrevented) {
-              navigation.navigate({
-                name: route.name,
-                params: route.params,
-                merge: true,
-              });
+            if (!event.defaultPrevented) {
+              const childState = route.state;
+              if (childState?.key && (childState.index ?? 0) > 0) {
+                navigation.dispatch({
+                  ...StackActions.popToTop(),
+                  target: childState.key,
+                });
+              }
+
+              if (route.name === SCREEN_NAME.HOME) {
+                navigation.navigate(SCREEN_NAME.HOME, {
+                  screen: SCREEN_NAME.HOME,
+                });
+              } else if (!isFocused) {
+                navigation.navigate({
+                  name: route.name,
+                  params: route.params,
+                  merge: true,
+                });
+              }
             }
           };
+
+          if (isCenter) {
+            return (
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityState={isFocused ? { selected: true } : {}}
+                activeOpacity={0.88}
+                key={route.key}
+                onLongPress={() => {
+                  // Để trống
+                }}
+                onPress={onPress}
+                style={styles.centerTabItem}
+              >
+                <View
+                  style={[
+                    styles.centerButtonOuter,
+                    isFocused && styles.centerButtonOuterFocused,
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.centerButton,
+                      isFocused && styles.centerButtonFocused,
+                    ]}
+                  >
+                    <FontAwesome6
+                      color="#FFFFFF"
+                      iconStyle="solid"
+                      name="headset"
+                      size={21}
+                    />
+                  </View>
+                </View>
+                <Text
+                  numberOfLines={1}
+                  style={[
+                    styles.centerLabel,
+                    isFocused && styles.activeCenterLabel,
+                  ]}
+                >
+                  {label}
+                </Text>
+              </TouchableOpacity>
+            );
+          }
 
           return (
             <TouchableOpacity
@@ -101,6 +169,10 @@ const CustomTabBar = ({
 };
 
 const styles = StyleSheet.create({
+  activeCenterLabel: {
+    color: '#0863C5',
+    fontWeight: '800',
+  },
   activeIconBox: {
     backgroundColor: '#EFF7FF',
   },
@@ -116,6 +188,54 @@ const styles = StyleSheet.create({
     color: '#0863C5',
     fontWeight: '800',
   },
+  centerButton: {
+    alignItems: 'center',
+    backgroundColor: '#0058bc',
+    borderRadius: 999,
+    height: 48,
+    justifyContent: 'center',
+    width: 48,
+  },
+  centerButtonFocused: {
+    backgroundColor: '#0863c5',
+    transform: [{ scale: 1.05 }],
+  },
+  centerButtonOuter: {
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
+    borderRadius: 999,
+    borderWidth: 1,
+    elevation: 8,
+    justifyContent: 'center',
+    padding: 3,
+    shadowColor: '#0058bc',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 7,
+  },
+  centerButtonOuterFocused: {
+    borderColor: '#BFDBFE',
+    shadowColor: '#0863C5',
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+  },
+  centerLabel: {
+    color: '#0058bc',
+    fontSize: 10,
+    fontWeight: '700',
+    lineHeight: 12,
+    marginTop: 2,
+    maxWidth: '96%',
+  },
+  centerTabItem: {
+    alignItems: 'center',
+    flex: 1,
+    height: 62,
+    justifyContent: 'center',
+    marginTop: -22,
+    position: 'relative',
+  },
   container: {
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.97)',
@@ -123,6 +243,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     flexDirection: 'row',
     height: 62,
+    overflow: 'visible',
     paddingHorizontal: 4,
   },
   iconBox: {
@@ -149,6 +270,7 @@ const styles = StyleSheet.create({
   },
   wrapper: {
     backgroundColor: 'rgba(255,255,255,0.97)',
+    overflow: 'visible',
   },
 });
 

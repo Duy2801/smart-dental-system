@@ -51,6 +51,7 @@ export type BookingOptionsQuery = {
   doctorId?: string;
   date?: string;
   time?: string;
+  appointmentId?: string;
 };
 
 export type AppointmentStatus =
@@ -67,6 +68,8 @@ export type AppointmentItem = {
   patientId?: string | null;
   patientName?: string | null;
   patientRelationship?: string | null;
+  treatmentMethodId?: string;
+  treatmentMethodName?: string;
   doctorId: string;
   serviceId: string;
   scheduledAt: string;
@@ -95,6 +98,12 @@ type AppointmentDto = {
   patientId?: string | null;
   doctorId: string;
   serviceId: string;
+  treatmentMethodId?: string | null;
+  treatmentMethod?: {
+    id: string;
+    name: string;
+    durationMinutes?: number;
+  } | null;
   scheduledAt: string;
   endAt: string;
   status: string;
@@ -219,6 +228,17 @@ function normalizeStatus(status: string): AppointmentStatus {
 
 function mapAppointment(item: AppointmentDto): AppointmentItem {
   const scheduledAt = new Date(item.scheduledAt);
+  const endAt = new Date(item.endAt);
+  const calculatedDuration =
+    !Number.isNaN(endAt.getTime()) && !Number.isNaN(scheduledAt.getTime())
+      ? Math.round((endAt.getTime() - scheduledAt.getTime()) / 60000)
+      : 30;
+  const durationMinutes =
+    item.treatmentMethod?.durationMinutes ??
+    (calculatedDuration > 0
+      ? calculatedDuration
+      : (item.service?.durationMinutes ?? 30));
+
   const doctorName = item.doctor?.user?.fullName ?? "Bác sĩ phòng khám";
   const serviceName = item.service?.name ?? "Dịch vụ nha khoa";
   const patientName =
@@ -231,9 +251,11 @@ function mapAppointment(item: AppointmentDto): AppointmentItem {
       item.patient?.patientAccounts?.[0]?.relationship ?? null,
     doctorId: item.doctorId,
     serviceId: item.serviceId,
+    treatmentMethodId: item.treatmentMethodId ?? item.treatmentMethod?.id,
+    treatmentMethodName: item.treatmentMethod?.name,
     scheduledAt: item.scheduledAt,
     endAt: item.endAt,
-    durationMinutes: item.service?.durationMinutes ?? 30,
+    durationMinutes,
     dateId: new Intl.DateTimeFormat("en-CA", {
       timeZone: "Asia/Ho_Chi_Minh",
     }).format(scheduledAt),

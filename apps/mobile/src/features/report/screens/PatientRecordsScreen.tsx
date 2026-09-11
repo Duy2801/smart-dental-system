@@ -18,6 +18,7 @@ import { PatientDrawerModal } from '~src/features/home/components/PatientDrawerM
 import { PatientHomeHeader } from '~src/features/home/components/PatientHomeHeader';
 import { PatientFooter } from '~src/features/home/components/PatientFooter';
 import { usePatientDrawerActions } from '~src/features/home/hooks/usePatientDrawerActions';
+import { CACHE_TIMES, queryKeys } from '~src/config/queryClient';
 import type { RootState } from '~src/reducers/store';
 import { LoginRequiredRecord } from '../components/LoginRequiredRecord';
 import { PatientAdminCard } from '../components/PatientAdminCard';
@@ -50,9 +51,10 @@ export function PatientRecordsScreen() {
   } = usePatientRecordsData();
 
   const clinicQuery = useQuery({
-    queryKey: ['clinic-config'],
+    queryKey: queryKeys.clinicConfig,
     queryFn: getClinicConfigInfo,
-    staleTime: 5 * 60 * 1000,
+    staleTime: CACHE_TIMES.CLINIC_CONFIG.staleTime,
+    gcTime: CACHE_TIMES.CLINIC_CONFIG.gcTime,
   });
 
   const [drawerVisible, setDrawerVisible] = useState(false);

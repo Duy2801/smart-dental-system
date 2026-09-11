@@ -8,7 +8,8 @@
 import 'react-native-reanimated';
 import 'react-native-get-random-values';
 import './global.css';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from '~src/config/queryClient';
 import { SocketProvider } from './src/service/useSocket';
 import { Provider, useDispatch, useSelector } from 'react-redux';
 import store, { AppDispatch, RootState } from '~src/reducers/store';
@@ -20,10 +21,9 @@ import { loadAuthSession } from '~src/features/auth/session';
 import { hydrateSession } from '~src/reducers/loginReducer';
 import { LogBox } from 'react-native';
 import { paperLightTheme } from '~src/constants/theme';
+import { ToastProvider } from '~src/components/ui';
 
 LogBox.ignoreAllLogs();
-
-const queryClient = new QueryClient();
 
 const SocketWrapper = ({ children }: { children: React.ReactNode }) => {
   const token = useSelector((state: RootState) => state.login.accessToken);
@@ -56,6 +56,7 @@ function App() {
               <Layout>
                 <ApplicationNavigator />
               </Layout>
+              <ToastProvider />
             </PaperProvider>
           </SocketWrapper>
         </AuthBootstrap>
