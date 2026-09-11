@@ -286,7 +286,10 @@ export class AppointmentService {
       },
       include: appointmentInclude,
     });
-    void this.invalidateBookingCache(userId, appointment.patientId || undefined);
+    void this.invalidateBookingCache(
+      userId,
+      appointment.patientId || undefined,
+    );
     const result = this.withDerivedService(updated);
     void this.dispatchAppointmentRescheduledNotification(
       result,
@@ -325,7 +328,10 @@ export class AppointmentService {
       },
       include: appointmentInclude,
     });
-    void this.invalidateBookingCache(userId, appointment.patientId || undefined);
+    void this.invalidateBookingCache(
+      userId,
+      appointment.patientId || undefined,
+    );
     const result = this.withDerivedService(updated);
     void this.dispatchAppointmentCancelledNotification(
       result,
@@ -338,9 +344,16 @@ export class AppointmentService {
     const parseBound = (raw: string, endOfDay: boolean) => {
       if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
         const [y, m, d] = raw.split('-').map(Number);
-        return endOfDay
-          ? new Date(y, m - 1, d, 23, 59, 59, 999)
-          : new Date(y, m - 1, d, 0, 0, 0, 0);
+        const utc = Date.UTC(
+          y,
+          m - 1,
+          d,
+          endOfDay ? 23 : 0,
+          endOfDay ? 59 : 0,
+          endOfDay ? 59 : 0,
+          endOfDay ? 999 : 0,
+        );
+        return new Date(utc - 7 * 60 * 60_000);
       }
       const value = new Date(raw);
       if (endOfDay) value.setHours(23, 59, 59, 999);
@@ -456,8 +469,12 @@ export class AppointmentService {
     if (!appointment) {
       throw new BadRequestException('appointment.not_found');
     }
-    if (this.formatDateId(appointment.scheduledAt) < this.formatDateId(new Date())) {
-      throw new BadRequestException('appointment.cannot_confirm_past_appointment');
+    if (
+      this.formatDateId(appointment.scheduledAt) < this.formatDateId(new Date())
+    ) {
+      throw new BadRequestException(
+        'appointment.cannot_confirm_past_appointment',
+      );
     }
     const updated = await this.transitionAppointment(
       appointmentId,
@@ -489,7 +506,9 @@ export class AppointmentService {
     if (!current) {
       throw new BadRequestException('appointment.not_found');
     }
-    if (this.formatDateId(current.scheduledAt) !== this.formatDateId(new Date())) {
+    if (
+      this.formatDateId(current.scheduledAt) !== this.formatDateId(new Date())
+    ) {
       throw new BadRequestException('appointment.check_in_today_only');
     }
 
@@ -652,7 +671,10 @@ export class AppointmentService {
       },
       include: appointmentInclude,
     });
-    void this.invalidateBookingCache(updated.createdBy, updated.patientId || undefined);
+    void this.invalidateBookingCache(
+      updated.createdBy,
+      updated.patientId || undefined,
+    );
     const result = this.withDerivedService(updated);
     void this.dispatchAppointmentRescheduledNotification(
       result,
@@ -671,7 +693,9 @@ export class AppointmentService {
       throw new BadRequestException('appointment.not_found');
     }
     if (appointment.scheduledAt.getTime() <= Date.now()) {
-      throw new BadRequestException('appointment.cannot_remind_past_appointment');
+      throw new BadRequestException(
+        'appointment.cannot_remind_past_appointment',
+      );
     }
 
     const patient = appointment.patient;
@@ -977,7 +1001,10 @@ export class AppointmentService {
       data,
       include: appointmentInclude,
     });
-    void this.invalidateBookingCache(updated.createdBy, updated.patientId || undefined);
+    void this.invalidateBookingCache(
+      updated.createdBy,
+      updated.patientId || undefined,
+    );
     return this.withDerivedService(updated);
   }
 
@@ -990,7 +1017,10 @@ export class AppointmentService {
       throw new BadRequestException('appointment.not_found');
     }
 
-    if (this.formatDateId(appointment.scheduledAt) !== this.formatDateId(new Date())) {
+    if (
+      this.formatDateId(appointment.scheduledAt) !==
+      this.formatDateId(new Date())
+    ) {
       throw new BadRequestException('appointment.start_today_only');
     }
 
@@ -1035,28 +1065,37 @@ export class AppointmentService {
 
     if (appointment.patientId) {
       const medicalRecord = await this.ensureMedicalRecord(appointment);
-      if (!medicalRecord?.diagnosis?.trim() || !medicalRecord.treatmentNotes?.trim()) {
+      if (
+        !medicalRecord?.diagnosis?.trim() ||
+        !medicalRecord.treatmentNotes?.trim()
+      ) {
         throw new BadRequestException(
           'appointment.medical_record_required_before_complete',
         );
       }
     }
 
-    const updated = await this.prisma.appointment.update({
-      where: { id: appointmentId },
-      data: {
-        status: AppointmentStatus.COMPLETED,
-        completedAt: new Date(),
-      },
-      include: appointmentInclude,
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const claimed = await tx.appointment.updateMany({
+        where: { id: appointmentId, status: AppointmentStatus.IN_PROGRESS },
+        data: { status: AppointmentStatus.COMPLETED, completedAt: new Date() },
+      });
+      if (claimed.count !== 1)
+        throw new BadRequestException(
+          'appointment.must_be_in_progress_to_complete',
+        );
+      if (appointment.patientId)
+        await this.ensureInvoiceAfterComplete(appointment, tx);
+      return tx.appointment.findUniqueOrThrow({
+        where: { id: appointmentId },
+        include: appointmentInclude,
+      });
     });
 
-    // Sau khám: tạo HĐ thu tiền phù hợp (ca ngắn / phần còn lại sau cọc)
-    if (appointment.patientId) {
-      await this.ensureInvoiceAfterComplete(appointment);
-    }
-
-    void this.invalidateBookingCache(updated.createdBy, updated.patientId || undefined);
+    void this.invalidateBookingCache(
+      updated.createdBy,
+      updated.patientId || undefined,
+    );
     return this.withDerivedService(updated);
   }
 
@@ -1087,33 +1126,39 @@ export class AppointmentService {
   }
 
   /** Ca ngắn → SERVICE. Có cọc → FINAL. Lịch gắn bước KH → STEP. */
-  private async ensureInvoiceAfterComplete(appointment: {
-    id: string;
-    patientId: string | null;
-    createdBy: string;
-    treatmentPlanStepId?: string | null;
-    treatmentMethod?: {
+  private async ensureInvoiceAfterComplete(
+    appointment: {
       id: string;
-      name: string;
-      basePrice: unknown;
-      service: { id: string; name: string };
-    } | null;
-  }) {
+      patientId: string | null;
+      createdBy: string;
+      treatmentPlanStepId?: string | null;
+      treatmentMethod?: {
+        id: string;
+        name: string;
+        basePrice: unknown;
+        service: { id: string; name: string };
+      } | null;
+    },
+    db: Prisma.TransactionClient | PrismaService = this.prisma,
+  ) {
     if (!appointment.patientId || !appointment.treatmentMethod) return;
 
     if (appointment.treatmentPlanStepId) {
-      await this.ensureStepInvoice({
-        stepId: appointment.treatmentPlanStepId,
-        appointmentId: appointment.id,
-        patientId: appointment.patientId,
-        createdBy: appointment.createdBy,
-        fallbackServiceName: appointment.treatmentMethod.name,
-        fallbackAmount: Number(appointment.treatmentMethod.basePrice),
-      });
+      await this.ensureStepInvoice(
+        {
+          stepId: appointment.treatmentPlanStepId,
+          appointmentId: appointment.id,
+          patientId: appointment.patientId,
+          createdBy: appointment.createdBy,
+          fallbackServiceName: appointment.treatmentMethod.name,
+          fallbackAmount: Number(appointment.treatmentMethod.basePrice),
+        },
+        db,
+      );
       return;
     }
 
-    const invoices = await this.prisma.invoice.findMany({
+    const invoices = await db.invoice.findMany({
       where: { appointmentId: appointment.id },
       select: {
         id: true,
@@ -1151,9 +1196,9 @@ export class AppointmentService {
     if (remaining <= 0) return;
 
     const isBalance = depositPaid > 0;
-    await this.prisma.invoice.create({
+    await db.invoice.create({
       data: {
-        invoiceCode: await this.generateInvoiceCode(),
+        invoiceCode: await this.generateInvoiceCode(db),
         patientId: appointment.patientId,
         appointmentId: appointment.id,
         invoiceType: isBalance
@@ -1182,15 +1227,18 @@ export class AppointmentService {
   }
 
   /** Tạo HĐ STEP_PAYMENT cho một bước kế hoạch (idempotent). */
-  async ensureStepInvoice(input: {
-    stepId: string;
-    appointmentId?: string | null;
-    patientId: string;
-    createdBy: string;
-    fallbackServiceName?: string;
-    fallbackAmount?: number;
-  }) {
-    const existing = await this.prisma.invoice.findFirst({
+  async ensureStepInvoice(
+    input: {
+      stepId: string;
+      appointmentId?: string | null;
+      patientId: string;
+      createdBy: string;
+      fallbackServiceName?: string;
+      fallbackAmount?: number;
+    },
+    db: Prisma.TransactionClient | PrismaService = this.prisma,
+  ) {
+    const existing = await db.invoice.findFirst({
       where: {
         treatmentPlanStepId: input.stepId,
         status: {
@@ -1201,7 +1249,7 @@ export class AppointmentService {
     });
     if (existing) return existing;
 
-    const step = await this.prisma.treatmentPlanStep.findUnique({
+    const step = await db.treatmentPlanStep.findUnique({
       where: { id: input.stepId },
       select: {
         id: true,
@@ -1220,9 +1268,9 @@ export class AppointmentService {
     );
     if (amount <= 0) return null;
 
-    const invoice = await this.prisma.invoice.create({
+    const invoice = await db.invoice.create({
       data: {
-        invoiceCode: await this.generateInvoiceCode(),
+        invoiceCode: await this.generateInvoiceCode(db),
         patientId: input.patientId,
         appointmentId: input.appointmentId ?? null,
         treatmentPlanId: step.treatmentPlanId,
@@ -1247,7 +1295,7 @@ export class AppointmentService {
     });
 
     if (step.paymentStatus === 'UNBILLED') {
-      await this.prisma.treatmentPlanStep.update({
+      await db.treatmentPlanStep.update({
         where: { id: step.id },
         data: { paymentStatus: 'INVOICED' },
       });
@@ -1264,7 +1312,9 @@ export class AppointmentService {
         this.redis.delByPrefix('booking:slots:'),
         this.redis.delByPrefix('booking:dates:'),
         this.redis.delByPrefix('patient:appointments:'),
-        patientId ? this.redis.del(`patient:records:${patientId}`) : Promise.resolve(),
+        patientId
+          ? this.redis.del(`patient:records:${patientId}`)
+          : Promise.resolve(),
       ]);
     } catch (err: any) {
       this.logger.warn(`Failed to invalidate booking cache: ${err.message}`);
@@ -1453,7 +1503,8 @@ export class AppointmentService {
       ]);
 
       const selectedService =
-        services.find((service) => service.id === query.serviceId) ?? services[0];
+        services.find((service) => service.id === query.serviceId) ??
+        services[0];
       const selectedTreatmentMethod =
         selectedService?.treatmentMethods.find(
           (method) => method.id === query.treatmentMethodId,
@@ -1493,44 +1544,53 @@ export class AppointmentService {
       if (selectedDateId && selectedService && selectedTreatmentMethod) {
         const slotCacheKey = `booking:slots:${selectedService.id}:${selectedTreatmentMethod.id}:${query.doctorId || 'all'}:${selectedDateId}`;
 
-        const slotCalc = await this.redis.rememberJson(slotCacheKey, 30, async () => {
-          const computedSlots = await this.buildTimeSlots({
-            dateId: selectedDateId,
-            serviceDurationMinutes: duration,
-            doctors,
-            businessHours: clinicConfig.businessHours,
-            specialDates: clinicConfig.specialDates,
-            slotIntervalMinutes: clinicConfig.slotIntervalMinutes,
-            recordsByDoctor: bookingWindow.recordsByDoctor,
-            appointmentsByDoctor: bookingWindow.appointmentsByDoctor,
-          });
+        const slotCalc = await this.redis.rememberJson(
+          slotCacheKey,
+          30,
+          async () => {
+            const computedSlots = await this.buildTimeSlots({
+              dateId: selectedDateId,
+              serviceDurationMinutes: duration,
+              doctors,
+              businessHours: clinicConfig.businessHours,
+              specialDates: clinicConfig.specialDates,
+              slotIntervalMinutes: clinicConfig.slotIntervalMinutes,
+              recordsByDoctor: bookingWindow.recordsByDoctor,
+              appointmentsByDoctor: bookingWindow.appointmentsByDoctor,
+            });
 
-          const docSlots = doctors.map((doctor) => ({
-            ...doctor,
-            availableTimeSlots: computedSlots.filter((time) => {
-              const slotStart = this.buildDateTime(selectedDateId, time);
-              const slotEnd = new Date(slotStart.getTime() + duration * 60 * 1000);
-              const businessHour = this.getBusinessHourForDate(
-                slotStart,
-                clinicConfig.businessHours,
-                clinicConfig.specialDates,
-              );
+            const docSlots = doctors.map((doctor) => ({
+              ...doctor,
+              availableTimeSlots: computedSlots.filter((time) => {
+                const slotStart = this.buildDateTime(selectedDateId, time);
+                const slotEnd = new Date(
+                  slotStart.getTime() + duration * 60 * 1000,
+                );
+                const businessHour = this.getBusinessHourForDate(
+                  slotStart,
+                  clinicConfig.businessHours,
+                  clinicConfig.specialDates,
+                );
 
-              return this.isDoctorBookableFromSnapshot(
-                doctor.id,
-                slotStart,
-                slotEnd,
-                bookingWindow.recordsByDoctor,
-                bookingWindow.appointmentsByDoctor,
-                selectedDateId,
-                businessHour?.start,
-                businessHour?.end,
-              );
-            }),
-          }));
+                return this.isDoctorBookableFromSnapshot(
+                  doctor.id,
+                  slotStart,
+                  slotEnd,
+                  bookingWindow.recordsByDoctor,
+                  bookingWindow.appointmentsByDoctor,
+                  selectedDateId,
+                  businessHour?.start,
+                  businessHour?.end,
+                );
+              }),
+            }));
 
-          return { timeSlots: computedSlots, doctorsWithAvailableSlots: docSlots };
-        });
+            return {
+              timeSlots: computedSlots,
+              doctorsWithAvailableSlots: docSlots,
+            };
+          },
+        );
 
         timeSlots = slotCalc.timeSlots;
         doctorsWithAvailableSlots = slotCalc.doctorsWithAvailableSlots;
@@ -1885,7 +1945,10 @@ export class AppointmentService {
       });
     }
 
-    void this.invalidateBookingCache(input.createdBy, input.patientId || undefined);
+    void this.invalidateBookingCache(
+      input.createdBy,
+      input.patientId || undefined,
+    );
 
     return {
       ...this.withDerivedService(appointment),
@@ -2909,11 +2972,13 @@ export class AppointmentService {
     return `APT-${yyyyMMdd}-${String(count + 1).padStart(4, '0')}`;
   }
 
-  private async generateInvoiceCode() {
+  private async generateInvoiceCode(
+    db: Prisma.TransactionClient | PrismaService = this.prisma,
+  ) {
     const today = new Date();
     const yyyyMMdd = today.toISOString().slice(0, 10).replaceAll('-', '');
 
-    const count = await this.prisma.invoice.count({
+    const count = await db.invoice.count({
       where: {
         invoiceCode: {
           startsWith: `INV-${yyyyMMdd}`,

@@ -1,9 +1,11 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '../../../prisma/generated/client';
 import { InjectQueue } from '@nestjs/bull';
 import type { Queue } from 'bull';
 import {
@@ -105,10 +107,7 @@ export class TreatmentPlanService {
     throw new ForbiddenException('Không tìm thấy hồ sơ bác sĩ');
   }
 
-  private async ensureCanAccess(
-    planDoctorId: string,
-    user: AuthenticatedUser,
-  ) {
+  private async ensureCanAccess(planDoctorId: string, user: AuthenticatedUser) {
     if (user.roles.includes('ADMIN')) return;
     const ownId = await this.resolveDoctorIdByUserId(user.userId);
     if (ownId !== planDoctorId) {
@@ -154,6 +153,17 @@ export class TreatmentPlanService {
       select: { id: true },
     });
     if (!patient) throw new NotFoundException('Không tìm thấy bệnh nhân');
+    if (!user.roles.includes('ADMIN')) {
+      const related = await this.prisma.medicalRecord.findFirst({
+        where: { patientId: dto.patientId, doctorId },
+        select: { id: true },
+      });
+      if (!related) {
+        throw new ForbiddenException(
+          'Bác sĩ chưa có quan hệ điều trị với bệnh nhân',
+        );
+      }
+    }
 
     if (
       dto.startDate &&
@@ -200,6 +210,35 @@ export class TreatmentPlanService {
   ) {
     const plan = await this.findPlanOrThrow(id);
     await this.ensureCanAccess(plan.doctorId, user);
+    if (
+      dto.expectedUpdatedAt &&
+      plan.updatedAt.getTime() !== new Date(dto.expectedUpdatedAt).getTime()
+    ) {
+      throw new ConflictException('Kế hoạch vừa được cập nhật ở nơi khác');
+    }
+    if (plan.status === 'CANCELLED') {
+      throw new BadRequestException('Không thể sửa kế hoạch đã hủy');
+    }
+    if (dto.status) {
+      const allowed: Record<string, string[]> = {
+        PLANNED: ['IN_PROGRESS', 'CANCELLED'],
+        IN_PROGRESS: ['COMPLETED', 'CANCELLED'],
+        COMPLETED: ['IN_PROGRESS'],
+      };
+      if (!allowed[plan.status]?.includes(dto.status)) {
+        throw new BadRequestException(
+          'Chuyển trạng thái kế hoạch không hợp lệ',
+        );
+      }
+      if (
+        dto.status === 'COMPLETED' &&
+        plan.steps.some((s) => s.status !== 'COMPLETED')
+      ) {
+        throw new BadRequestException(
+          'Chỉ hoàn thành kế hoạch khi tất cả bước đã hoàn thành',
+        );
+      }
+    }
 
     const effectiveStart =
       dto.startDate !== undefined
@@ -235,8 +274,21 @@ export class TreatmentPlanService {
           }
         }
 
-        const toDelete = [...existingIds].filter((sid) => !incomingIds.has(sid));
+        const toDelete = [...existingIds].filter(
+          (sid) => !incomingIds.has(sid),
+        );
         if (toDelete.length > 0) {
+          if (
+            plan.steps.some(
+              (s) =>
+                toDelete.includes(s.id) &&
+                (s.status !== 'PLANNED' || s.paymentStatus !== 'UNBILLED'),
+            )
+          ) {
+            throw new BadRequestException(
+              'Không thể xóa bước đã thực hiện hoặc phát sinh thanh toán',
+            );
+          }
           await tx.treatmentPlanStep.deleteMany({
             where: { id: { in: toDelete }, treatmentPlanId: id },
           });
@@ -280,8 +332,9 @@ export class TreatmentPlanService {
       }
 
       const updated = await tx.treatmentPlan.update({
-        where: { id },
+        where: { id, updatedAt: plan.updatedAt },
         data: {
+          emailQueuedAt: null,
           ...(dto.title !== undefined && { title: dto.title.trim() }),
           ...(dto.description !== undefined && {
             description: dto.description?.trim() || null,
@@ -299,6 +352,18 @@ export class TreatmentPlanService {
         include: planInclude,
       });
 
+      await tx.treatmentPlanAudit.create({
+        data: {
+          treatmentPlanId: id,
+          action: 'UPDATED',
+          changedBy: user.userId,
+          previousData: {
+            status: plan.status,
+            steps: plan.steps,
+          } as Prisma.InputJsonValue,
+        },
+      });
+
       return this.toDetail(updated);
     });
   }
@@ -306,8 +371,29 @@ export class TreatmentPlanService {
   async remove(id: string, user: AuthenticatedUser) {
     const plan = await this.findPlanOrThrow(id);
     await this.ensureCanAccess(plan.doctorId, user);
-    await this.prisma.treatmentPlan.delete({ where: { id } });
-    return { success: true };
+    if (plan.steps.some((s) => s.paymentStatus === 'PAID')) {
+      throw new BadRequestException(
+        'Không thể hủy kế hoạch còn bước đã thanh toán',
+      );
+    }
+    await this.prisma.$transaction(async (tx) => {
+      await tx.treatmentPlan.update({
+        where: { id },
+        data: { status: 'CANCELLED' },
+      });
+      await tx.treatmentPlanAudit.create({
+        data: {
+          treatmentPlanId: id,
+          action: 'CANCELLED',
+          changedBy: user.userId,
+          previousData: {
+            status: plan.status,
+            steps: plan.steps,
+          } as Prisma.InputJsonValue,
+        },
+      });
+    });
+    return { success: true, cancelled: true };
   }
 
   async updateStep(
@@ -323,6 +409,30 @@ export class TreatmentPlanService {
       where: { id: stepId, treatmentPlanId: planId },
     });
     if (!step) throw new NotFoundException('Không tìm thấy bước điều trị');
+    if (plan.status === 'CANCELLED') {
+      throw new BadRequestException(
+        'Không thể cập nhật bước của kế hoạch đã hủy',
+      );
+    }
+    if (dto.status) {
+      const allowed: Record<string, string[]> = {
+        PLANNED: ['IN_PROGRESS', 'CANCELLED'],
+        IN_PROGRESS: ['COMPLETED', 'CANCELLED'],
+        COMPLETED: ['IN_PROGRESS'],
+        CANCELLED: ['PLANNED'],
+      };
+      if (!allowed[step.status]?.includes(dto.status)) {
+        throw new BadRequestException('Chuyển trạng thái bước không hợp lệ');
+      }
+    }
+    if (
+      step.paymentStatus !== TreatmentStepPaymentStatus.UNBILLED &&
+      (dto.estimatedCost !== undefined || dto.status === 'CANCELLED')
+    ) {
+      throw new BadRequestException(
+        'Không thể đổi chi phí hoặc hủy bước đã phát sinh thanh toán',
+      );
+    }
 
     if (
       step.paymentStatus === TreatmentStepPaymentStatus.PAID &&
@@ -365,18 +475,30 @@ export class TreatmentPlanService {
         treatmentPlan: { select: { patientId: true } },
       },
     });
+    await this.prisma.treatmentPlan.update({
+      where: { id: planId },
+      data: { emailQueuedAt: null },
+    });
 
     if (isCompleting) {
-      await this.ensureStepInvoice({
-        stepId: updated.id,
-        patientId: updated.treatmentPlan.patientId,
-        treatmentPlanId: updated.treatmentPlanId,
-        createdBy: updated.doctor.userId,
-        title: updated.title,
-        stepOrder: updated.stepOrder,
-        amount: Number(updated.paymentAmount ?? updated.estimatedCost ?? 0),
-        paymentStatus: updated.paymentStatus,
-      });
+      try {
+        await this.ensureStepInvoice({
+          stepId: updated.id,
+          patientId: updated.treatmentPlan.patientId,
+          treatmentPlanId: updated.treatmentPlanId,
+          createdBy: updated.doctor.userId,
+          title: updated.title,
+          stepOrder: updated.stepOrder,
+          amount: Number(updated.paymentAmount ?? updated.estimatedCost ?? 0),
+          paymentStatus: updated.paymentStatus,
+        });
+      } catch (error) {
+        await this.prisma.treatmentPlanStep.update({
+          where: { id: stepId },
+          data: { status: step.status, completedAt: step.completedAt },
+        });
+        throw error;
+      }
     }
 
     if (dto.status !== undefined) {
@@ -395,7 +517,7 @@ export class TreatmentPlanService {
             where: { id: planId },
             data: { status: 'COMPLETED' },
           });
-        } else if (anyActive && plan.status === 'PLANNED') {
+        } else if (anyActive && plan.status !== 'IN_PROGRESS') {
           await this.prisma.treatmentPlan.update({
             where: { id: planId },
             data: { status: 'IN_PROGRESS' },
@@ -489,7 +611,8 @@ export class TreatmentPlanService {
       description: p.description ?? null,
       status: p.status,
       patientId: p.patientId,
-      patientName: p.patient?.fullName ?? p.patient?.user?.fullName ?? 'Bệnh nhân',
+      patientName:
+        p.patient?.fullName ?? p.patient?.user?.fullName ?? 'Bệnh nhân',
       patientCode: p.patient?.patientCode ?? '—',
       startDate: p.startDate ?? null,
       expectedEndDate: p.expectedEndDate ?? null,
@@ -498,6 +621,7 @@ export class TreatmentPlanService {
       progressPercent: total > 0 ? Math.round((completed / total) * 100) : 0,
       totalEstimatedCost,
       createdAt: p.createdAt,
+      updatedAt: p.updatedAt,
     };
   }
 
@@ -512,6 +636,9 @@ export class TreatmentPlanService {
   async sendTreatmentPlanEmail(id: string, user: AuthenticatedUser) {
     const plan = await this.findPlanOrThrow(id);
     await this.ensureCanAccess(plan.doctorId, user);
+    if (plan.emailQueuedAt) {
+      throw new ConflictException('Kế hoạch này đã được xếp hàng gửi email');
+    }
 
     const email =
       (plan.patient as any)?.user?.email || (plan.patient as any)?.email;
@@ -522,7 +649,9 @@ export class TreatmentPlanService {
     const patientCode = plan.patient?.patientCode ?? 'PAT-0000';
     const rawDoctorName = (plan as any)?.doctor?.user?.fullName;
     const doctorName = rawDoctorName
-      ? (rawDoctorName.startsWith('BS') ? rawDoctorName : `BS. ${rawDoctorName}`)
+      ? rawDoctorName.startsWith('BS')
+        ? rawDoctorName
+        : `BS. ${rawDoctorName}`
       : 'Bác sĩ Nha Khoa Smart Dental';
 
     if (plan.status === 'CANCELLED') {
@@ -559,41 +688,59 @@ export class TreatmentPlanService {
       0,
     );
 
-    await this.mailQueue.add('send-treatment-plan', {
-      name: patientName,
-      email,
-      patientCode,
-      doctorName,
-      title: plan.title,
-      description: plan.description,
-      status: plan.status,
-      startDate: plan.startDate ? plan.startDate.toISOString() : null,
-      expectedEndDate: plan.expectedEndDate
-        ? plan.expectedEndDate.toISOString()
-        : null,
-      totalEstimatedCost,
-      steps,
+    const claimed = await this.prisma.treatmentPlan.updateMany({
+      where: { id, emailQueuedAt: null },
+      data: { emailQueuedAt: new Date() },
     });
+    if (claimed.count !== 1) {
+      throw new ConflictException('Kế hoạch này đã được xếp hàng gửi email');
+    }
+    try {
+      await this.mailQueue.add('send-treatment-plan', {
+        name: patientName,
+        email,
+        patientCode,
+        doctorName,
+        title: plan.title,
+        description: plan.description,
+        status: plan.status,
+        startDate: plan.startDate ? plan.startDate.toISOString() : null,
+        expectedEndDate: plan.expectedEndDate
+          ? plan.expectedEndDate.toISOString()
+          : null,
+        totalEstimatedCost,
+        steps,
+      });
+    } catch (error) {
+      await this.prisma.treatmentPlan.update({
+        where: { id },
+        data: { emailQueuedAt: null },
+      });
+      throw error;
+    }
 
     const patientUserId = (plan.patient as any)?.user?.id;
     if (patientUserId) {
-      const notif = await this.prisma.notification.create({
-        data: {
-          userId: patientUserId,
-          type: 'SYSTEM',
-          title: '📑 Kế hoạch điều trị & Dự toán chi phí',
-          content: `${doctorName} đã gửi Bản phác đồ điều trị "${plan.title}" và dự toán chi phí. Vui lòng kiểm tra email để duyệt lộ trình.`,
-          channel: 'IN_APP',
-          status: 'SENT',
-          sentAt: new Date(),
-        },
-      });
+      const notif = await this.prisma.notification
+        .create({
+          data: {
+            userId: patientUserId,
+            type: 'SYSTEM',
+            title: '📑 Kế hoạch điều trị & Dự toán chi phí',
+            content: `${doctorName} đã gửi Bản phác đồ điều trị "${plan.title}" và dự toán chi phí. Vui lòng kiểm tra email để duyệt lộ trình.`,
+            channel: 'IN_APP',
+            status: 'SENT',
+            sentAt: new Date(),
+          },
+        })
+        .catch(() => null);
 
-      try {
-        this.eventsGateway.emitToUser(patientUserId, 'notification', notif);
-      } catch (err) {
-        console.error('Socket notification emit error:', err);
-      }
+      if (notif)
+        try {
+          this.eventsGateway.emitToUser(patientUserId, 'notification', notif);
+        } catch (err) {
+          console.error('Socket notification emit error:', err);
+        }
     }
 
     return {

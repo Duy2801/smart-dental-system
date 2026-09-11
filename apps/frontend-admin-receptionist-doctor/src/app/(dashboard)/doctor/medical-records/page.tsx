@@ -221,9 +221,13 @@ function MedicalRecordsContent() {
   const [printingRx, setPrintingRx] = useState<RecordDetail["prescriptions"][number] | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  const copyToClipboard = (text: string, key: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedKey(key);
+  const copyToClipboard = async (text: string, key: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedKey(key);
+    } catch {
+      return;
+    }
     setTimeout(() => {
       setCopiedKey((curr) => (curr === key ? null : curr));
     }, 1800);
@@ -251,6 +255,7 @@ function MedicalRecordsContent() {
   const [pastRecords, setPastRecords] = useState<RecordSummary[]>([]);
   const [loadingPastRecords, setLoadingPastRecords] = useState(false);
   const requestSequence = useRef(0);
+  const historyRequestSequence = useRef(0);
   const savedFormSnapshot = useRef(
     JSON.stringify({
       chiefComplaint: "",
@@ -317,18 +322,24 @@ function MedicalRecordsContent() {
     // Fetch past records of this patient across the dental clinic
     if (data.patientId && doctorId) {
       setLoadingPastRecords(true);
+      const historySequence = ++historyRequestSequence.current;
       apiClient
         .get<RecordSummary[]>(
           `/medical-records?patientId=${data.patientId}&allDoctors=true`
         )
         .then((res) => {
+          if (historySequence !== historyRequestSequence.current) return;
           const list = Array.isArray(res.data)
             ? res.data.filter((r) => r.id !== data.id)
             : [];
           setPastRecords(list);
         })
-        .catch(() => setPastRecords([]))
-        .finally(() => setLoadingPastRecords(false));
+        .catch(() => {
+          if (historySequence === historyRequestSequence.current) setPastRecords([]);
+        })
+        .finally(() => {
+          if (historySequence === historyRequestSequence.current) setLoadingPastRecords(false);
+        });
     }
 
     setRecords((prev) => {
@@ -362,7 +373,15 @@ function MedicalRecordsContent() {
         if (sequence !== requestSequence.current) return;
         if (opts?.keepTab) {
           // Chỉ làm mới metadata (đơn thuốc, updatedAt) khi reload ngầm mà không xóa đè form đang nhập dở
-          setDetail(res.data);
+          setDetail((current) =>
+            current
+              ? {
+                  ...current,
+                  prescriptions: res.data.prescriptions,
+                  prescriptionCount: res.data.prescriptionCount,
+                }
+              : current,
+          );
           setLoadedDetailId(id);
           setDetailError(null);
           setRecords((prev) =>
@@ -422,6 +441,37 @@ function MedicalRecordsContent() {
   }, [form]);
 
   useEffect(() => {
+    if (JSON.stringify(form) === savedFormSnapshot.current) return;
+    const guardInternalLinks = (event: MouseEvent) => {
+      if (
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.shiftKey ||
+        event.altKey
+      )
+        return;
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const anchor = target.closest<HTMLAnchorElement>("a[href]");
+      if (!anchor || anchor.target === "_blank" || anchor.origin !== window.location.origin) return;
+      event.preventDefault();
+      event.stopPropagation();
+      void showConfirm({
+        title: "Bỏ các thay đổi chưa lưu?",
+        description: "Hồ sơ bệnh án có thay đổi chưa được lưu. Nếu rời trang, dữ liệu vừa nhập sẽ bị mất.",
+        confirmLabel: "Rời đi",
+        tone: "danger",
+      }).then((confirmed) => {
+        if (confirmed) router.push(`${anchor.pathname}${anchor.search}${anchor.hash}`);
+      });
+    };
+    document.addEventListener("click", guardInternalLinks);
+    return () => document.removeEventListener("click", guardInternalLinks);
+  }, [form, router, showConfirm]);
+
+  useEffect(() => {
     if (!doctorId) {
       return;
     }
@@ -445,6 +495,10 @@ function MedicalRecordsContent() {
         let list = Array.isArray(res.data) ? res.data : [];
 
         let targetId: string | null = preSelectId;
+
+        if (!targetId && patientIdParam && !appointmentId) {
+          targetId = list.find((record) => record.patientId === patientIdParam)?.id ?? null;
+        }
 
         // Nếu có appointmentId được truyền vào từ Lịch hẹn hoặc Hồ sơ bệnh nhân
         if (!targetId && appointmentId) {
@@ -537,6 +591,10 @@ function MedicalRecordsContent() {
 
   const handleSave = async () => {
     if (!selectedId) return;
+    if (detail?.doctorId && detail.doctorId !== doctorId) {
+      setSaveError("Bạn chỉ có thể chỉnh sửa hồ sơ do mình phụ trách.");
+      return;
+    }
 
     const originalFollowUp = detail?.followUpDate
       ? detail.followUpDate.slice(0, 10)
@@ -1190,7 +1248,7 @@ function MedicalRecordsContent() {
                       <button
                         type="button"
                         onClick={handleSave}
-                        disabled={saving}
+                        disabled={saving || detail?.doctorId !== doctorId}
                         className="inline-flex items-center gap-2 rounded-xl bg-brand px-6 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-brand-dark active:scale-[0.98] disabled:opacity-60"
                       >
                         {saving ? (
@@ -1231,7 +1289,7 @@ function MedicalRecordsContent() {
                       <button
                         type="button"
                         onClick={handleSave}
-                        disabled={saving}
+                        disabled={saving || detail?.doctorId !== doctorId}
                         className="inline-flex items-center gap-2 rounded-xl bg-brand px-6 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-brand-dark disabled:opacity-60"
                       >
                         {saving ? (
@@ -1262,6 +1320,7 @@ function MedicalRecordsContent() {
                     </div>
                     <MedicalRecordImages
                       recordId={selectedId}
+                      readOnly={Boolean(detail?.doctorId && detail.doctorId !== doctorId)}
                       patientId={detail?.patientId}
                       patientName={detail?.patientName}
                       value={form.images}
@@ -1326,7 +1385,7 @@ function MedicalRecordsContent() {
                       <button
                         type="button"
                         onClick={handleSave}
-                        disabled={saving}
+                        disabled={saving || detail?.doctorId !== doctorId}
                         className="inline-flex items-center gap-2 rounded-xl bg-brand px-6 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-brand-dark disabled:opacity-60"
                       >
                         {saving ? (
@@ -1654,13 +1713,15 @@ function MedicalRecordsContent() {
                                   </div>
                                 </div>
 
-                                <button
-                                  type="button"
-                                  onClick={() => void selectRecord(pastRec.id)}
-                                  className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs transition hover:border-brand/40 hover:bg-brand/5 hover:text-brand cursor-pointer shrink-0"
-                                >
-                                  Mở bệnh án này <ArrowRight size={12} />
-                                </button>
+                                {pastRec.doctorId === doctorId && (
+                                  <button
+                                    type="button"
+                                    onClick={() => void selectRecord(pastRec.id)}
+                                    className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs transition hover:border-brand/40 hover:bg-brand/5 hover:text-brand cursor-pointer shrink-0"
+                                  >
+                                    Mở bệnh án này <ArrowRight size={12} />
+                                  </button>
+                                )}
                               </div>
                             </div>
                           ))}

@@ -33,6 +33,11 @@ export type PrescriptionMinAggregateOutputType = {
   notes: string | null
   createdAt: Date | null
   updatedAt: Date | null
+  cancelledAt: Date | null
+  cancelledBy: string | null
+  emailQueuedAt: Date | null
+  safetyConfirmedAt: Date | null
+  safetyOverride: boolean | null
 }
 
 export type PrescriptionMaxAggregateOutputType = {
@@ -44,6 +49,11 @@ export type PrescriptionMaxAggregateOutputType = {
   notes: string | null
   createdAt: Date | null
   updatedAt: Date | null
+  cancelledAt: Date | null
+  cancelledBy: string | null
+  emailQueuedAt: Date | null
+  safetyConfirmedAt: Date | null
+  safetyOverride: boolean | null
 }
 
 export type PrescriptionCountAggregateOutputType = {
@@ -55,6 +65,11 @@ export type PrescriptionCountAggregateOutputType = {
   notes: number
   createdAt: number
   updatedAt: number
+  cancelledAt: number
+  cancelledBy: number
+  emailQueuedAt: number
+  safetyConfirmedAt: number
+  safetyOverride: number
   _all: number
 }
 
@@ -68,6 +83,11 @@ export type PrescriptionMinAggregateInputType = {
   notes?: true
   createdAt?: true
   updatedAt?: true
+  cancelledAt?: true
+  cancelledBy?: true
+  emailQueuedAt?: true
+  safetyConfirmedAt?: true
+  safetyOverride?: true
 }
 
 export type PrescriptionMaxAggregateInputType = {
@@ -79,6 +99,11 @@ export type PrescriptionMaxAggregateInputType = {
   notes?: true
   createdAt?: true
   updatedAt?: true
+  cancelledAt?: true
+  cancelledBy?: true
+  emailQueuedAt?: true
+  safetyConfirmedAt?: true
+  safetyOverride?: true
 }
 
 export type PrescriptionCountAggregateInputType = {
@@ -90,6 +115,11 @@ export type PrescriptionCountAggregateInputType = {
   notes?: true
   createdAt?: true
   updatedAt?: true
+  cancelledAt?: true
+  cancelledBy?: true
+  emailQueuedAt?: true
+  safetyConfirmedAt?: true
+  safetyOverride?: true
   _all?: true
 }
 
@@ -174,6 +204,11 @@ export type PrescriptionGroupByOutputType = {
   notes: string | null
   createdAt: Date
   updatedAt: Date
+  cancelledAt: Date | null
+  cancelledBy: string | null
+  emailQueuedAt: Date | null
+  safetyConfirmedAt: Date
+  safetyOverride: boolean
   _count: PrescriptionCountAggregateOutputType | null
   _min: PrescriptionMinAggregateOutputType | null
   _max: PrescriptionMaxAggregateOutputType | null
@@ -206,11 +241,17 @@ export type PrescriptionWhereInput = {
   notes?: Prisma.StringNullableFilter<"Prescription"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Prescription"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Prescription"> | Date | string
+  cancelledAt?: Prisma.DateTimeNullableFilter<"Prescription"> | Date | string | null
+  cancelledBy?: Prisma.UuidNullableFilter<"Prescription"> | string | null
+  emailQueuedAt?: Prisma.DateTimeNullableFilter<"Prescription"> | Date | string | null
+  safetyConfirmedAt?: Prisma.DateTimeFilter<"Prescription"> | Date | string
+  safetyOverride?: Prisma.BoolFilter<"Prescription"> | boolean
   medicalRecord?: Prisma.XOR<Prisma.MedicalRecordScalarRelationFilter, Prisma.MedicalRecordWhereInput>
   treatmentPlanStep?: Prisma.XOR<Prisma.TreatmentPlanStepNullableScalarRelationFilter, Prisma.TreatmentPlanStepWhereInput> | null
   doctor?: Prisma.XOR<Prisma.DoctorScalarRelationFilter, Prisma.DoctorWhereInput>
   patient?: Prisma.XOR<Prisma.PatientScalarRelationFilter, Prisma.PatientWhereInput>
   items?: Prisma.PrescriptionItemListRelationFilter
+  audits?: Prisma.PrescriptionAuditListRelationFilter
 }
 
 export type PrescriptionOrderByWithRelationInput = {
@@ -222,11 +263,17 @@ export type PrescriptionOrderByWithRelationInput = {
   notes?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  cancelledAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  cancelledBy?: Prisma.SortOrderInput | Prisma.SortOrder
+  emailQueuedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  safetyConfirmedAt?: Prisma.SortOrder
+  safetyOverride?: Prisma.SortOrder
   medicalRecord?: Prisma.MedicalRecordOrderByWithRelationInput
   treatmentPlanStep?: Prisma.TreatmentPlanStepOrderByWithRelationInput
   doctor?: Prisma.DoctorOrderByWithRelationInput
   patient?: Prisma.PatientOrderByWithRelationInput
   items?: Prisma.PrescriptionItemOrderByRelationAggregateInput
+  audits?: Prisma.PrescriptionAuditOrderByRelationAggregateInput
 }
 
 export type PrescriptionWhereUniqueInput = Prisma.AtLeast<{
@@ -241,11 +288,17 @@ export type PrescriptionWhereUniqueInput = Prisma.AtLeast<{
   notes?: Prisma.StringNullableFilter<"Prescription"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Prescription"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Prescription"> | Date | string
+  cancelledAt?: Prisma.DateTimeNullableFilter<"Prescription"> | Date | string | null
+  cancelledBy?: Prisma.UuidNullableFilter<"Prescription"> | string | null
+  emailQueuedAt?: Prisma.DateTimeNullableFilter<"Prescription"> | Date | string | null
+  safetyConfirmedAt?: Prisma.DateTimeFilter<"Prescription"> | Date | string
+  safetyOverride?: Prisma.BoolFilter<"Prescription"> | boolean
   medicalRecord?: Prisma.XOR<Prisma.MedicalRecordScalarRelationFilter, Prisma.MedicalRecordWhereInput>
   treatmentPlanStep?: Prisma.XOR<Prisma.TreatmentPlanStepNullableScalarRelationFilter, Prisma.TreatmentPlanStepWhereInput> | null
   doctor?: Prisma.XOR<Prisma.DoctorScalarRelationFilter, Prisma.DoctorWhereInput>
   patient?: Prisma.XOR<Prisma.PatientScalarRelationFilter, Prisma.PatientWhereInput>
   items?: Prisma.PrescriptionItemListRelationFilter
+  audits?: Prisma.PrescriptionAuditListRelationFilter
 }, "id">
 
 export type PrescriptionOrderByWithAggregationInput = {
@@ -257,6 +310,11 @@ export type PrescriptionOrderByWithAggregationInput = {
   notes?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  cancelledAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  cancelledBy?: Prisma.SortOrderInput | Prisma.SortOrder
+  emailQueuedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  safetyConfirmedAt?: Prisma.SortOrder
+  safetyOverride?: Prisma.SortOrder
   _count?: Prisma.PrescriptionCountOrderByAggregateInput
   _max?: Prisma.PrescriptionMaxOrderByAggregateInput
   _min?: Prisma.PrescriptionMinOrderByAggregateInput
@@ -274,6 +332,11 @@ export type PrescriptionScalarWhereWithAggregatesInput = {
   notes?: Prisma.StringNullableWithAggregatesFilter<"Prescription"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Prescription"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Prescription"> | Date | string
+  cancelledAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Prescription"> | Date | string | null
+  cancelledBy?: Prisma.UuidNullableWithAggregatesFilter<"Prescription"> | string | null
+  emailQueuedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Prescription"> | Date | string | null
+  safetyConfirmedAt?: Prisma.DateTimeWithAggregatesFilter<"Prescription"> | Date | string
+  safetyOverride?: Prisma.BoolWithAggregatesFilter<"Prescription"> | boolean
 }
 
 export type PrescriptionCreateInput = {
@@ -281,11 +344,17 @@ export type PrescriptionCreateInput = {
   notes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  cancelledAt?: Date | string | null
+  cancelledBy?: string | null
+  emailQueuedAt?: Date | string | null
+  safetyConfirmedAt?: Date | string
+  safetyOverride?: boolean
   medicalRecord: Prisma.MedicalRecordCreateNestedOneWithoutPrescriptionRecordsInput
   treatmentPlanStep?: Prisma.TreatmentPlanStepCreateNestedOneWithoutPrescriptionsInput
   doctor: Prisma.DoctorCreateNestedOneWithoutPrescriptionsInput
   patient: Prisma.PatientCreateNestedOneWithoutPrescriptionsInput
   items?: Prisma.PrescriptionItemCreateNestedManyWithoutPrescriptionInput
+  audits?: Prisma.PrescriptionAuditCreateNestedManyWithoutPrescriptionInput
 }
 
 export type PrescriptionUncheckedCreateInput = {
@@ -297,7 +366,13 @@ export type PrescriptionUncheckedCreateInput = {
   notes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  cancelledAt?: Date | string | null
+  cancelledBy?: string | null
+  emailQueuedAt?: Date | string | null
+  safetyConfirmedAt?: Date | string
+  safetyOverride?: boolean
   items?: Prisma.PrescriptionItemUncheckedCreateNestedManyWithoutPrescriptionInput
+  audits?: Prisma.PrescriptionAuditUncheckedCreateNestedManyWithoutPrescriptionInput
 }
 
 export type PrescriptionUpdateInput = {
@@ -305,11 +380,17 @@ export type PrescriptionUpdateInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cancelledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelledBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailQueuedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  safetyConfirmedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  safetyOverride?: Prisma.BoolFieldUpdateOperationsInput | boolean
   medicalRecord?: Prisma.MedicalRecordUpdateOneRequiredWithoutPrescriptionRecordsNestedInput
   treatmentPlanStep?: Prisma.TreatmentPlanStepUpdateOneWithoutPrescriptionsNestedInput
   doctor?: Prisma.DoctorUpdateOneRequiredWithoutPrescriptionsNestedInput
   patient?: Prisma.PatientUpdateOneRequiredWithoutPrescriptionsNestedInput
   items?: Prisma.PrescriptionItemUpdateManyWithoutPrescriptionNestedInput
+  audits?: Prisma.PrescriptionAuditUpdateManyWithoutPrescriptionNestedInput
 }
 
 export type PrescriptionUncheckedUpdateInput = {
@@ -321,7 +402,13 @@ export type PrescriptionUncheckedUpdateInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cancelledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelledBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailQueuedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  safetyConfirmedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  safetyOverride?: Prisma.BoolFieldUpdateOperationsInput | boolean
   items?: Prisma.PrescriptionItemUncheckedUpdateManyWithoutPrescriptionNestedInput
+  audits?: Prisma.PrescriptionAuditUncheckedUpdateManyWithoutPrescriptionNestedInput
 }
 
 export type PrescriptionCreateManyInput = {
@@ -333,6 +420,11 @@ export type PrescriptionCreateManyInput = {
   notes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  cancelledAt?: Date | string | null
+  cancelledBy?: string | null
+  emailQueuedAt?: Date | string | null
+  safetyConfirmedAt?: Date | string
+  safetyOverride?: boolean
 }
 
 export type PrescriptionUpdateManyMutationInput = {
@@ -340,6 +432,11 @@ export type PrescriptionUpdateManyMutationInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cancelledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelledBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailQueuedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  safetyConfirmedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  safetyOverride?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type PrescriptionUncheckedUpdateManyInput = {
@@ -351,6 +448,11 @@ export type PrescriptionUncheckedUpdateManyInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cancelledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelledBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailQueuedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  safetyConfirmedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  safetyOverride?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type PrescriptionListRelationFilter = {
@@ -372,6 +474,11 @@ export type PrescriptionCountOrderByAggregateInput = {
   notes?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  cancelledAt?: Prisma.SortOrder
+  cancelledBy?: Prisma.SortOrder
+  emailQueuedAt?: Prisma.SortOrder
+  safetyConfirmedAt?: Prisma.SortOrder
+  safetyOverride?: Prisma.SortOrder
 }
 
 export type PrescriptionMaxOrderByAggregateInput = {
@@ -383,6 +490,11 @@ export type PrescriptionMaxOrderByAggregateInput = {
   notes?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  cancelledAt?: Prisma.SortOrder
+  cancelledBy?: Prisma.SortOrder
+  emailQueuedAt?: Prisma.SortOrder
+  safetyConfirmedAt?: Prisma.SortOrder
+  safetyOverride?: Prisma.SortOrder
 }
 
 export type PrescriptionMinOrderByAggregateInput = {
@@ -394,6 +506,11 @@ export type PrescriptionMinOrderByAggregateInput = {
   notes?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  cancelledAt?: Prisma.SortOrder
+  cancelledBy?: Prisma.SortOrder
+  emailQueuedAt?: Prisma.SortOrder
+  safetyConfirmedAt?: Prisma.SortOrder
+  safetyOverride?: Prisma.SortOrder
 }
 
 export type PrescriptionScalarRelationFilter = {
@@ -569,6 +686,20 @@ export type PrescriptionUncheckedUpdateManyWithoutTreatmentPlanStepNestedInput =
   deleteMany?: Prisma.PrescriptionScalarWhereInput | Prisma.PrescriptionScalarWhereInput[]
 }
 
+export type PrescriptionCreateNestedOneWithoutAuditsInput = {
+  create?: Prisma.XOR<Prisma.PrescriptionCreateWithoutAuditsInput, Prisma.PrescriptionUncheckedCreateWithoutAuditsInput>
+  connectOrCreate?: Prisma.PrescriptionCreateOrConnectWithoutAuditsInput
+  connect?: Prisma.PrescriptionWhereUniqueInput
+}
+
+export type PrescriptionUpdateOneRequiredWithoutAuditsNestedInput = {
+  create?: Prisma.XOR<Prisma.PrescriptionCreateWithoutAuditsInput, Prisma.PrescriptionUncheckedCreateWithoutAuditsInput>
+  connectOrCreate?: Prisma.PrescriptionCreateOrConnectWithoutAuditsInput
+  upsert?: Prisma.PrescriptionUpsertWithoutAuditsInput
+  connect?: Prisma.PrescriptionWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.PrescriptionUpdateToOneWithWhereWithoutAuditsInput, Prisma.PrescriptionUpdateWithoutAuditsInput>, Prisma.PrescriptionUncheckedUpdateWithoutAuditsInput>
+}
+
 export type PrescriptionCreateNestedOneWithoutItemsInput = {
   create?: Prisma.XOR<Prisma.PrescriptionCreateWithoutItemsInput, Prisma.PrescriptionUncheckedCreateWithoutItemsInput>
   connectOrCreate?: Prisma.PrescriptionCreateOrConnectWithoutItemsInput
@@ -588,10 +719,16 @@ export type PrescriptionCreateWithoutPatientInput = {
   notes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  cancelledAt?: Date | string | null
+  cancelledBy?: string | null
+  emailQueuedAt?: Date | string | null
+  safetyConfirmedAt?: Date | string
+  safetyOverride?: boolean
   medicalRecord: Prisma.MedicalRecordCreateNestedOneWithoutPrescriptionRecordsInput
   treatmentPlanStep?: Prisma.TreatmentPlanStepCreateNestedOneWithoutPrescriptionsInput
   doctor: Prisma.DoctorCreateNestedOneWithoutPrescriptionsInput
   items?: Prisma.PrescriptionItemCreateNestedManyWithoutPrescriptionInput
+  audits?: Prisma.PrescriptionAuditCreateNestedManyWithoutPrescriptionInput
 }
 
 export type PrescriptionUncheckedCreateWithoutPatientInput = {
@@ -602,7 +739,13 @@ export type PrescriptionUncheckedCreateWithoutPatientInput = {
   notes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  cancelledAt?: Date | string | null
+  cancelledBy?: string | null
+  emailQueuedAt?: Date | string | null
+  safetyConfirmedAt?: Date | string
+  safetyOverride?: boolean
   items?: Prisma.PrescriptionItemUncheckedCreateNestedManyWithoutPrescriptionInput
+  audits?: Prisma.PrescriptionAuditUncheckedCreateNestedManyWithoutPrescriptionInput
 }
 
 export type PrescriptionCreateOrConnectWithoutPatientInput = {
@@ -643,6 +786,11 @@ export type PrescriptionScalarWhereInput = {
   notes?: Prisma.StringNullableFilter<"Prescription"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Prescription"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Prescription"> | Date | string
+  cancelledAt?: Prisma.DateTimeNullableFilter<"Prescription"> | Date | string | null
+  cancelledBy?: Prisma.UuidNullableFilter<"Prescription"> | string | null
+  emailQueuedAt?: Prisma.DateTimeNullableFilter<"Prescription"> | Date | string | null
+  safetyConfirmedAt?: Prisma.DateTimeFilter<"Prescription"> | Date | string
+  safetyOverride?: Prisma.BoolFilter<"Prescription"> | boolean
 }
 
 export type PrescriptionCreateWithoutDoctorInput = {
@@ -650,10 +798,16 @@ export type PrescriptionCreateWithoutDoctorInput = {
   notes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  cancelledAt?: Date | string | null
+  cancelledBy?: string | null
+  emailQueuedAt?: Date | string | null
+  safetyConfirmedAt?: Date | string
+  safetyOverride?: boolean
   medicalRecord: Prisma.MedicalRecordCreateNestedOneWithoutPrescriptionRecordsInput
   treatmentPlanStep?: Prisma.TreatmentPlanStepCreateNestedOneWithoutPrescriptionsInput
   patient: Prisma.PatientCreateNestedOneWithoutPrescriptionsInput
   items?: Prisma.PrescriptionItemCreateNestedManyWithoutPrescriptionInput
+  audits?: Prisma.PrescriptionAuditCreateNestedManyWithoutPrescriptionInput
 }
 
 export type PrescriptionUncheckedCreateWithoutDoctorInput = {
@@ -664,7 +818,13 @@ export type PrescriptionUncheckedCreateWithoutDoctorInput = {
   notes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  cancelledAt?: Date | string | null
+  cancelledBy?: string | null
+  emailQueuedAt?: Date | string | null
+  safetyConfirmedAt?: Date | string
+  safetyOverride?: boolean
   items?: Prisma.PrescriptionItemUncheckedCreateNestedManyWithoutPrescriptionInput
+  audits?: Prisma.PrescriptionAuditUncheckedCreateNestedManyWithoutPrescriptionInput
 }
 
 export type PrescriptionCreateOrConnectWithoutDoctorInput = {
@@ -698,10 +858,16 @@ export type PrescriptionCreateWithoutMedicalRecordInput = {
   notes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  cancelledAt?: Date | string | null
+  cancelledBy?: string | null
+  emailQueuedAt?: Date | string | null
+  safetyConfirmedAt?: Date | string
+  safetyOverride?: boolean
   treatmentPlanStep?: Prisma.TreatmentPlanStepCreateNestedOneWithoutPrescriptionsInput
   doctor: Prisma.DoctorCreateNestedOneWithoutPrescriptionsInput
   patient: Prisma.PatientCreateNestedOneWithoutPrescriptionsInput
   items?: Prisma.PrescriptionItemCreateNestedManyWithoutPrescriptionInput
+  audits?: Prisma.PrescriptionAuditCreateNestedManyWithoutPrescriptionInput
 }
 
 export type PrescriptionUncheckedCreateWithoutMedicalRecordInput = {
@@ -712,7 +878,13 @@ export type PrescriptionUncheckedCreateWithoutMedicalRecordInput = {
   notes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  cancelledAt?: Date | string | null
+  cancelledBy?: string | null
+  emailQueuedAt?: Date | string | null
+  safetyConfirmedAt?: Date | string
+  safetyOverride?: boolean
   items?: Prisma.PrescriptionItemUncheckedCreateNestedManyWithoutPrescriptionInput
+  audits?: Prisma.PrescriptionAuditUncheckedCreateNestedManyWithoutPrescriptionInput
 }
 
 export type PrescriptionCreateOrConnectWithoutMedicalRecordInput = {
@@ -746,10 +918,16 @@ export type PrescriptionCreateWithoutTreatmentPlanStepInput = {
   notes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  cancelledAt?: Date | string | null
+  cancelledBy?: string | null
+  emailQueuedAt?: Date | string | null
+  safetyConfirmedAt?: Date | string
+  safetyOverride?: boolean
   medicalRecord: Prisma.MedicalRecordCreateNestedOneWithoutPrescriptionRecordsInput
   doctor: Prisma.DoctorCreateNestedOneWithoutPrescriptionsInput
   patient: Prisma.PatientCreateNestedOneWithoutPrescriptionsInput
   items?: Prisma.PrescriptionItemCreateNestedManyWithoutPrescriptionInput
+  audits?: Prisma.PrescriptionAuditCreateNestedManyWithoutPrescriptionInput
 }
 
 export type PrescriptionUncheckedCreateWithoutTreatmentPlanStepInput = {
@@ -760,7 +938,13 @@ export type PrescriptionUncheckedCreateWithoutTreatmentPlanStepInput = {
   notes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  cancelledAt?: Date | string | null
+  cancelledBy?: string | null
+  emailQueuedAt?: Date | string | null
+  safetyConfirmedAt?: Date | string
+  safetyOverride?: boolean
   items?: Prisma.PrescriptionItemUncheckedCreateNestedManyWithoutPrescriptionInput
+  audits?: Prisma.PrescriptionAuditUncheckedCreateNestedManyWithoutPrescriptionInput
 }
 
 export type PrescriptionCreateOrConnectWithoutTreatmentPlanStepInput = {
@@ -789,15 +973,105 @@ export type PrescriptionUpdateManyWithWhereWithoutTreatmentPlanStepInput = {
   data: Prisma.XOR<Prisma.PrescriptionUpdateManyMutationInput, Prisma.PrescriptionUncheckedUpdateManyWithoutTreatmentPlanStepInput>
 }
 
+export type PrescriptionCreateWithoutAuditsInput = {
+  id?: string
+  notes?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  cancelledAt?: Date | string | null
+  cancelledBy?: string | null
+  emailQueuedAt?: Date | string | null
+  safetyConfirmedAt?: Date | string
+  safetyOverride?: boolean
+  medicalRecord: Prisma.MedicalRecordCreateNestedOneWithoutPrescriptionRecordsInput
+  treatmentPlanStep?: Prisma.TreatmentPlanStepCreateNestedOneWithoutPrescriptionsInput
+  doctor: Prisma.DoctorCreateNestedOneWithoutPrescriptionsInput
+  patient: Prisma.PatientCreateNestedOneWithoutPrescriptionsInput
+  items?: Prisma.PrescriptionItemCreateNestedManyWithoutPrescriptionInput
+}
+
+export type PrescriptionUncheckedCreateWithoutAuditsInput = {
+  id?: string
+  medicalRecordId: string
+  treatmentPlanStepId?: string | null
+  doctorId: string
+  patientId: string
+  notes?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  cancelledAt?: Date | string | null
+  cancelledBy?: string | null
+  emailQueuedAt?: Date | string | null
+  safetyConfirmedAt?: Date | string
+  safetyOverride?: boolean
+  items?: Prisma.PrescriptionItemUncheckedCreateNestedManyWithoutPrescriptionInput
+}
+
+export type PrescriptionCreateOrConnectWithoutAuditsInput = {
+  where: Prisma.PrescriptionWhereUniqueInput
+  create: Prisma.XOR<Prisma.PrescriptionCreateWithoutAuditsInput, Prisma.PrescriptionUncheckedCreateWithoutAuditsInput>
+}
+
+export type PrescriptionUpsertWithoutAuditsInput = {
+  update: Prisma.XOR<Prisma.PrescriptionUpdateWithoutAuditsInput, Prisma.PrescriptionUncheckedUpdateWithoutAuditsInput>
+  create: Prisma.XOR<Prisma.PrescriptionCreateWithoutAuditsInput, Prisma.PrescriptionUncheckedCreateWithoutAuditsInput>
+  where?: Prisma.PrescriptionWhereInput
+}
+
+export type PrescriptionUpdateToOneWithWhereWithoutAuditsInput = {
+  where?: Prisma.PrescriptionWhereInput
+  data: Prisma.XOR<Prisma.PrescriptionUpdateWithoutAuditsInput, Prisma.PrescriptionUncheckedUpdateWithoutAuditsInput>
+}
+
+export type PrescriptionUpdateWithoutAuditsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cancelledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelledBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailQueuedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  safetyConfirmedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  safetyOverride?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  medicalRecord?: Prisma.MedicalRecordUpdateOneRequiredWithoutPrescriptionRecordsNestedInput
+  treatmentPlanStep?: Prisma.TreatmentPlanStepUpdateOneWithoutPrescriptionsNestedInput
+  doctor?: Prisma.DoctorUpdateOneRequiredWithoutPrescriptionsNestedInput
+  patient?: Prisma.PatientUpdateOneRequiredWithoutPrescriptionsNestedInput
+  items?: Prisma.PrescriptionItemUpdateManyWithoutPrescriptionNestedInput
+}
+
+export type PrescriptionUncheckedUpdateWithoutAuditsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  medicalRecordId?: Prisma.StringFieldUpdateOperationsInput | string
+  treatmentPlanStepId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  doctorId?: Prisma.StringFieldUpdateOperationsInput | string
+  patientId?: Prisma.StringFieldUpdateOperationsInput | string
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cancelledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelledBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailQueuedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  safetyConfirmedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  safetyOverride?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  items?: Prisma.PrescriptionItemUncheckedUpdateManyWithoutPrescriptionNestedInput
+}
+
 export type PrescriptionCreateWithoutItemsInput = {
   id?: string
   notes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  cancelledAt?: Date | string | null
+  cancelledBy?: string | null
+  emailQueuedAt?: Date | string | null
+  safetyConfirmedAt?: Date | string
+  safetyOverride?: boolean
   medicalRecord: Prisma.MedicalRecordCreateNestedOneWithoutPrescriptionRecordsInput
   treatmentPlanStep?: Prisma.TreatmentPlanStepCreateNestedOneWithoutPrescriptionsInput
   doctor: Prisma.DoctorCreateNestedOneWithoutPrescriptionsInput
   patient: Prisma.PatientCreateNestedOneWithoutPrescriptionsInput
+  audits?: Prisma.PrescriptionAuditCreateNestedManyWithoutPrescriptionInput
 }
 
 export type PrescriptionUncheckedCreateWithoutItemsInput = {
@@ -809,6 +1083,12 @@ export type PrescriptionUncheckedCreateWithoutItemsInput = {
   notes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  cancelledAt?: Date | string | null
+  cancelledBy?: string | null
+  emailQueuedAt?: Date | string | null
+  safetyConfirmedAt?: Date | string
+  safetyOverride?: boolean
+  audits?: Prisma.PrescriptionAuditUncheckedCreateNestedManyWithoutPrescriptionInput
 }
 
 export type PrescriptionCreateOrConnectWithoutItemsInput = {
@@ -832,10 +1112,16 @@ export type PrescriptionUpdateWithoutItemsInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cancelledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelledBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailQueuedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  safetyConfirmedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  safetyOverride?: Prisma.BoolFieldUpdateOperationsInput | boolean
   medicalRecord?: Prisma.MedicalRecordUpdateOneRequiredWithoutPrescriptionRecordsNestedInput
   treatmentPlanStep?: Prisma.TreatmentPlanStepUpdateOneWithoutPrescriptionsNestedInput
   doctor?: Prisma.DoctorUpdateOneRequiredWithoutPrescriptionsNestedInput
   patient?: Prisma.PatientUpdateOneRequiredWithoutPrescriptionsNestedInput
+  audits?: Prisma.PrescriptionAuditUpdateManyWithoutPrescriptionNestedInput
 }
 
 export type PrescriptionUncheckedUpdateWithoutItemsInput = {
@@ -847,6 +1133,12 @@ export type PrescriptionUncheckedUpdateWithoutItemsInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cancelledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelledBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailQueuedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  safetyConfirmedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  safetyOverride?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  audits?: Prisma.PrescriptionAuditUncheckedUpdateManyWithoutPrescriptionNestedInput
 }
 
 export type PrescriptionCreateManyPatientInput = {
@@ -857,6 +1149,11 @@ export type PrescriptionCreateManyPatientInput = {
   notes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  cancelledAt?: Date | string | null
+  cancelledBy?: string | null
+  emailQueuedAt?: Date | string | null
+  safetyConfirmedAt?: Date | string
+  safetyOverride?: boolean
 }
 
 export type PrescriptionUpdateWithoutPatientInput = {
@@ -864,10 +1161,16 @@ export type PrescriptionUpdateWithoutPatientInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cancelledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelledBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailQueuedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  safetyConfirmedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  safetyOverride?: Prisma.BoolFieldUpdateOperationsInput | boolean
   medicalRecord?: Prisma.MedicalRecordUpdateOneRequiredWithoutPrescriptionRecordsNestedInput
   treatmentPlanStep?: Prisma.TreatmentPlanStepUpdateOneWithoutPrescriptionsNestedInput
   doctor?: Prisma.DoctorUpdateOneRequiredWithoutPrescriptionsNestedInput
   items?: Prisma.PrescriptionItemUpdateManyWithoutPrescriptionNestedInput
+  audits?: Prisma.PrescriptionAuditUpdateManyWithoutPrescriptionNestedInput
 }
 
 export type PrescriptionUncheckedUpdateWithoutPatientInput = {
@@ -878,7 +1181,13 @@ export type PrescriptionUncheckedUpdateWithoutPatientInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cancelledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelledBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailQueuedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  safetyConfirmedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  safetyOverride?: Prisma.BoolFieldUpdateOperationsInput | boolean
   items?: Prisma.PrescriptionItemUncheckedUpdateManyWithoutPrescriptionNestedInput
+  audits?: Prisma.PrescriptionAuditUncheckedUpdateManyWithoutPrescriptionNestedInput
 }
 
 export type PrescriptionUncheckedUpdateManyWithoutPatientInput = {
@@ -889,6 +1198,11 @@ export type PrescriptionUncheckedUpdateManyWithoutPatientInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cancelledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelledBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailQueuedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  safetyConfirmedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  safetyOverride?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type PrescriptionCreateManyDoctorInput = {
@@ -899,6 +1213,11 @@ export type PrescriptionCreateManyDoctorInput = {
   notes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  cancelledAt?: Date | string | null
+  cancelledBy?: string | null
+  emailQueuedAt?: Date | string | null
+  safetyConfirmedAt?: Date | string
+  safetyOverride?: boolean
 }
 
 export type PrescriptionUpdateWithoutDoctorInput = {
@@ -906,10 +1225,16 @@ export type PrescriptionUpdateWithoutDoctorInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cancelledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelledBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailQueuedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  safetyConfirmedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  safetyOverride?: Prisma.BoolFieldUpdateOperationsInput | boolean
   medicalRecord?: Prisma.MedicalRecordUpdateOneRequiredWithoutPrescriptionRecordsNestedInput
   treatmentPlanStep?: Prisma.TreatmentPlanStepUpdateOneWithoutPrescriptionsNestedInput
   patient?: Prisma.PatientUpdateOneRequiredWithoutPrescriptionsNestedInput
   items?: Prisma.PrescriptionItemUpdateManyWithoutPrescriptionNestedInput
+  audits?: Prisma.PrescriptionAuditUpdateManyWithoutPrescriptionNestedInput
 }
 
 export type PrescriptionUncheckedUpdateWithoutDoctorInput = {
@@ -920,7 +1245,13 @@ export type PrescriptionUncheckedUpdateWithoutDoctorInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cancelledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelledBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailQueuedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  safetyConfirmedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  safetyOverride?: Prisma.BoolFieldUpdateOperationsInput | boolean
   items?: Prisma.PrescriptionItemUncheckedUpdateManyWithoutPrescriptionNestedInput
+  audits?: Prisma.PrescriptionAuditUncheckedUpdateManyWithoutPrescriptionNestedInput
 }
 
 export type PrescriptionUncheckedUpdateManyWithoutDoctorInput = {
@@ -931,6 +1262,11 @@ export type PrescriptionUncheckedUpdateManyWithoutDoctorInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cancelledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelledBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailQueuedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  safetyConfirmedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  safetyOverride?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type PrescriptionCreateManyMedicalRecordInput = {
@@ -941,6 +1277,11 @@ export type PrescriptionCreateManyMedicalRecordInput = {
   notes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  cancelledAt?: Date | string | null
+  cancelledBy?: string | null
+  emailQueuedAt?: Date | string | null
+  safetyConfirmedAt?: Date | string
+  safetyOverride?: boolean
 }
 
 export type PrescriptionUpdateWithoutMedicalRecordInput = {
@@ -948,10 +1289,16 @@ export type PrescriptionUpdateWithoutMedicalRecordInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cancelledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelledBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailQueuedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  safetyConfirmedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  safetyOverride?: Prisma.BoolFieldUpdateOperationsInput | boolean
   treatmentPlanStep?: Prisma.TreatmentPlanStepUpdateOneWithoutPrescriptionsNestedInput
   doctor?: Prisma.DoctorUpdateOneRequiredWithoutPrescriptionsNestedInput
   patient?: Prisma.PatientUpdateOneRequiredWithoutPrescriptionsNestedInput
   items?: Prisma.PrescriptionItemUpdateManyWithoutPrescriptionNestedInput
+  audits?: Prisma.PrescriptionAuditUpdateManyWithoutPrescriptionNestedInput
 }
 
 export type PrescriptionUncheckedUpdateWithoutMedicalRecordInput = {
@@ -962,7 +1309,13 @@ export type PrescriptionUncheckedUpdateWithoutMedicalRecordInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cancelledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelledBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailQueuedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  safetyConfirmedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  safetyOverride?: Prisma.BoolFieldUpdateOperationsInput | boolean
   items?: Prisma.PrescriptionItemUncheckedUpdateManyWithoutPrescriptionNestedInput
+  audits?: Prisma.PrescriptionAuditUncheckedUpdateManyWithoutPrescriptionNestedInput
 }
 
 export type PrescriptionUncheckedUpdateManyWithoutMedicalRecordInput = {
@@ -973,6 +1326,11 @@ export type PrescriptionUncheckedUpdateManyWithoutMedicalRecordInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cancelledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelledBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailQueuedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  safetyConfirmedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  safetyOverride?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type PrescriptionCreateManyTreatmentPlanStepInput = {
@@ -983,6 +1341,11 @@ export type PrescriptionCreateManyTreatmentPlanStepInput = {
   notes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  cancelledAt?: Date | string | null
+  cancelledBy?: string | null
+  emailQueuedAt?: Date | string | null
+  safetyConfirmedAt?: Date | string
+  safetyOverride?: boolean
 }
 
 export type PrescriptionUpdateWithoutTreatmentPlanStepInput = {
@@ -990,10 +1353,16 @@ export type PrescriptionUpdateWithoutTreatmentPlanStepInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cancelledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelledBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailQueuedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  safetyConfirmedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  safetyOverride?: Prisma.BoolFieldUpdateOperationsInput | boolean
   medicalRecord?: Prisma.MedicalRecordUpdateOneRequiredWithoutPrescriptionRecordsNestedInput
   doctor?: Prisma.DoctorUpdateOneRequiredWithoutPrescriptionsNestedInput
   patient?: Prisma.PatientUpdateOneRequiredWithoutPrescriptionsNestedInput
   items?: Prisma.PrescriptionItemUpdateManyWithoutPrescriptionNestedInput
+  audits?: Prisma.PrescriptionAuditUpdateManyWithoutPrescriptionNestedInput
 }
 
 export type PrescriptionUncheckedUpdateWithoutTreatmentPlanStepInput = {
@@ -1004,7 +1373,13 @@ export type PrescriptionUncheckedUpdateWithoutTreatmentPlanStepInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cancelledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelledBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailQueuedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  safetyConfirmedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  safetyOverride?: Prisma.BoolFieldUpdateOperationsInput | boolean
   items?: Prisma.PrescriptionItemUncheckedUpdateManyWithoutPrescriptionNestedInput
+  audits?: Prisma.PrescriptionAuditUncheckedUpdateManyWithoutPrescriptionNestedInput
 }
 
 export type PrescriptionUncheckedUpdateManyWithoutTreatmentPlanStepInput = {
@@ -1015,6 +1390,11 @@ export type PrescriptionUncheckedUpdateManyWithoutTreatmentPlanStepInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cancelledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelledBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailQueuedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  safetyConfirmedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  safetyOverride?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 
@@ -1024,10 +1404,12 @@ export type PrescriptionUncheckedUpdateManyWithoutTreatmentPlanStepInput = {
 
 export type PrescriptionCountOutputType = {
   items: number
+  audits: number
 }
 
 export type PrescriptionCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   items?: boolean | PrescriptionCountOutputTypeCountItemsArgs
+  audits?: boolean | PrescriptionCountOutputTypeCountAuditsArgs
 }
 
 /**
@@ -1047,6 +1429,13 @@ export type PrescriptionCountOutputTypeCountItemsArgs<ExtArgs extends runtime.Ty
   where?: Prisma.PrescriptionItemWhereInput
 }
 
+/**
+ * PrescriptionCountOutputType without action
+ */
+export type PrescriptionCountOutputTypeCountAuditsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.PrescriptionAuditWhereInput
+}
+
 
 export type PrescriptionSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1057,11 +1446,17 @@ export type PrescriptionSelect<ExtArgs extends runtime.Types.Extensions.Internal
   notes?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  cancelledAt?: boolean
+  cancelledBy?: boolean
+  emailQueuedAt?: boolean
+  safetyConfirmedAt?: boolean
+  safetyOverride?: boolean
   medicalRecord?: boolean | Prisma.MedicalRecordDefaultArgs<ExtArgs>
   treatmentPlanStep?: boolean | Prisma.Prescription$treatmentPlanStepArgs<ExtArgs>
   doctor?: boolean | Prisma.DoctorDefaultArgs<ExtArgs>
   patient?: boolean | Prisma.PatientDefaultArgs<ExtArgs>
   items?: boolean | Prisma.Prescription$itemsArgs<ExtArgs>
+  audits?: boolean | Prisma.Prescription$auditsArgs<ExtArgs>
   _count?: boolean | Prisma.PrescriptionCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["prescription"]>
 
@@ -1074,6 +1469,11 @@ export type PrescriptionSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
   notes?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  cancelledAt?: boolean
+  cancelledBy?: boolean
+  emailQueuedAt?: boolean
+  safetyConfirmedAt?: boolean
+  safetyOverride?: boolean
   medicalRecord?: boolean | Prisma.MedicalRecordDefaultArgs<ExtArgs>
   treatmentPlanStep?: boolean | Prisma.Prescription$treatmentPlanStepArgs<ExtArgs>
   doctor?: boolean | Prisma.DoctorDefaultArgs<ExtArgs>
@@ -1089,6 +1489,11 @@ export type PrescriptionSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
   notes?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  cancelledAt?: boolean
+  cancelledBy?: boolean
+  emailQueuedAt?: boolean
+  safetyConfirmedAt?: boolean
+  safetyOverride?: boolean
   medicalRecord?: boolean | Prisma.MedicalRecordDefaultArgs<ExtArgs>
   treatmentPlanStep?: boolean | Prisma.Prescription$treatmentPlanStepArgs<ExtArgs>
   doctor?: boolean | Prisma.DoctorDefaultArgs<ExtArgs>
@@ -1104,15 +1509,21 @@ export type PrescriptionSelectScalar = {
   notes?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  cancelledAt?: boolean
+  cancelledBy?: boolean
+  emailQueuedAt?: boolean
+  safetyConfirmedAt?: boolean
+  safetyOverride?: boolean
 }
 
-export type PrescriptionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "medicalRecordId" | "treatmentPlanStepId" | "doctorId" | "patientId" | "notes" | "createdAt" | "updatedAt", ExtArgs["result"]["prescription"]>
+export type PrescriptionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "medicalRecordId" | "treatmentPlanStepId" | "doctorId" | "patientId" | "notes" | "createdAt" | "updatedAt" | "cancelledAt" | "cancelledBy" | "emailQueuedAt" | "safetyConfirmedAt" | "safetyOverride", ExtArgs["result"]["prescription"]>
 export type PrescriptionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   medicalRecord?: boolean | Prisma.MedicalRecordDefaultArgs<ExtArgs>
   treatmentPlanStep?: boolean | Prisma.Prescription$treatmentPlanStepArgs<ExtArgs>
   doctor?: boolean | Prisma.DoctorDefaultArgs<ExtArgs>
   patient?: boolean | Prisma.PatientDefaultArgs<ExtArgs>
   items?: boolean | Prisma.Prescription$itemsArgs<ExtArgs>
+  audits?: boolean | Prisma.Prescription$auditsArgs<ExtArgs>
   _count?: boolean | Prisma.PrescriptionCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type PrescriptionIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1136,6 +1547,7 @@ export type $PrescriptionPayload<ExtArgs extends runtime.Types.Extensions.Intern
     doctor: Prisma.$DoctorPayload<ExtArgs>
     patient: Prisma.$PatientPayload<ExtArgs>
     items: Prisma.$PrescriptionItemPayload<ExtArgs>[]
+    audits: Prisma.$PrescriptionAuditPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1146,6 +1558,11 @@ export type $PrescriptionPayload<ExtArgs extends runtime.Types.Extensions.Intern
     notes: string | null
     createdAt: Date
     updatedAt: Date
+    cancelledAt: Date | null
+    cancelledBy: string | null
+    emailQueuedAt: Date | null
+    safetyConfirmedAt: Date
+    safetyOverride: boolean
   }, ExtArgs["result"]["prescription"]>
   composites: {}
 }
@@ -1545,6 +1962,7 @@ export interface Prisma__PrescriptionClient<T, Null = never, ExtArgs extends run
   doctor<T extends Prisma.DoctorDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DoctorDefaultArgs<ExtArgs>>): Prisma.Prisma__DoctorClient<runtime.Types.Result.GetResult<Prisma.$DoctorPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   patient<T extends Prisma.PatientDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.PatientDefaultArgs<ExtArgs>>): Prisma.Prisma__PatientClient<runtime.Types.Result.GetResult<Prisma.$PatientPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   items<T extends Prisma.Prescription$itemsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Prescription$itemsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PrescriptionItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  audits<T extends Prisma.Prescription$auditsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Prescription$auditsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PrescriptionAuditPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1582,6 +2000,11 @@ export interface PrescriptionFieldRefs {
   readonly notes: Prisma.FieldRef<"Prescription", 'String'>
   readonly createdAt: Prisma.FieldRef<"Prescription", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Prescription", 'DateTime'>
+  readonly cancelledAt: Prisma.FieldRef<"Prescription", 'DateTime'>
+  readonly cancelledBy: Prisma.FieldRef<"Prescription", 'String'>
+  readonly emailQueuedAt: Prisma.FieldRef<"Prescription", 'DateTime'>
+  readonly safetyConfirmedAt: Prisma.FieldRef<"Prescription", 'DateTime'>
+  readonly safetyOverride: Prisma.FieldRef<"Prescription", 'Boolean'>
 }
     
 
@@ -2023,6 +2446,30 @@ export type Prescription$itemsArgs<ExtArgs extends runtime.Types.Extensions.Inte
   take?: number
   skip?: number
   distinct?: Prisma.PrescriptionItemScalarFieldEnum | Prisma.PrescriptionItemScalarFieldEnum[]
+}
+
+/**
+ * Prescription.audits
+ */
+export type Prescription$auditsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the PrescriptionAudit
+   */
+  select?: Prisma.PrescriptionAuditSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the PrescriptionAudit
+   */
+  omit?: Prisma.PrescriptionAuditOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.PrescriptionAuditInclude<ExtArgs> | null
+  where?: Prisma.PrescriptionAuditWhereInput
+  orderBy?: Prisma.PrescriptionAuditOrderByWithRelationInput | Prisma.PrescriptionAuditOrderByWithRelationInput[]
+  cursor?: Prisma.PrescriptionAuditWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.PrescriptionAuditScalarFieldEnum | Prisma.PrescriptionAuditScalarFieldEnum[]
 }
 
 /**

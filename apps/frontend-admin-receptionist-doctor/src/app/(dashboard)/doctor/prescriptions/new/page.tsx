@@ -79,6 +79,13 @@ function NewPrescriptionContent() {
   const [allergyWarnings, setAllergyWarnings] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const isDirty =
+    notes.trim() !== "" ||
+    medications.some((item) =>
+      Object.entries(item).some(
+        ([key, value]) => key !== "key" && String(value).trim(),
+      ),
+    );
 
   const { doctorId } = getDoctorInfoFromCookie();
   const safetyReview = usePrescriptionSafetyReview({
@@ -98,12 +105,18 @@ function NewPrescriptionContent() {
 
   // Load medical records when patient changes
   useEffect(() => {
-    if (!doctorId || !selectedPatientId) return;
+    if (!doctorId || !selectedPatientId) {
+      setRecords([]);
+      setSelectedRecordId("");
+      return;
+    }
+    let cancelled = false;
     apiClient
       .get<RecordSummary[]>(
         `/medical-records?doctorId=${doctorId}&patientId=${encodeURIComponent(selectedPatientId)}`,
       )
       .then((res) => {
+        if (cancelled) return;
         const filtered = res.data;
         setRecords(filtered);
         // Giữ recordId từ query (HSBA) nếu còn trong danh sách; không ghi đè
@@ -112,10 +125,42 @@ function NewPrescriptionContent() {
           return filtered[0]?.id ?? "";
         });
       })
-      .catch(() => setError("Không thể tải hồ sơ bệnh án."));
+      .catch(() => {
+        if (!cancelled) setError("Không thể tải hồ sơ bệnh án.");
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [doctorId, selectedPatientId]);
 
+  useEffect(() => {
+    if (!isDirty || success) return;
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    const guardLinks = (event: MouseEvent) => {
+      if (event.defaultPrevented || event.button !== 0) return;
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const anchor = target.closest<HTMLAnchorElement>("a[href]");
+      if (!anchor || anchor.origin !== window.location.origin) return;
+      if (
+        !window.confirm(
+          "Đơn thuốc có thay đổi chưa lưu. Bạn có chắc muốn rời trang?",
+        )
+      ) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
+    window.addEventListener("beforeunload", warn);
+    document.addEventListener("click", guardLinks);
+    return () => {
+      window.removeEventListener("beforeunload", warn);
+      document.removeEventListener("click", guardLinks);
+    };
+  }, [isDirty, success]);
+
   const addMedication = () => {
+    if (medications.length >= 50) return;
     setMedications((prev) => [
       ...prev,
       {
@@ -258,22 +303,34 @@ function NewPrescriptionContent() {
             duration: m.duration.trim() || undefined,
             instruction: m.instruction.trim() || undefined,
           })),
+          safetyAcknowledged: true,
+          safetyOverride: safetyReview.overrideConfirmed,
         },
       );
-      if (sendEmailAfterSave && res.data?.id) {
-        await apiClient.post(`/prescriptions/${res.data.id}/send-email`).catch(() => {});
-      }
       setSuccess(true);
+      if (sendEmailAfterSave && res.data?.id) {
+        try {
+          await apiClient.post(`/prescriptions/${res.data.id}/send-email`);
+        } catch {
+          setError(
+            "Đơn thuốc đã được lưu nhưng chưa gửi được email. Bạn có thể gửi lại từ danh sách đơn thuốc.",
+          );
+          return;
+        }
+      }
       setTimeout(() => {
         if (initRecordId || selectedRecordId) {
-          router.push(`/doctor/medical-records?recordId=${initRecordId || selectedRecordId}`);
+          router.push(
+            `/doctor/medical-records?recordId=${initRecordId || selectedRecordId}`,
+          );
         } else {
           router.push("/doctor/prescriptions");
         }
       }, 1500);
     } catch (err: any) {
       const msg =
-        err.response?.data?.message || "Tạo đơn thuốc thất bại. Vui lòng thử lại.";
+        err.response?.data?.message ||
+        "Tạo đơn thuốc thất bại. Vui lòng thử lại.";
       setError(Array.isArray(msg) ? msg[0] : msg);
     } finally {
       setSubmitting(false);
@@ -431,7 +488,9 @@ function NewPrescriptionContent() {
                     records.map((r) => (
                       <option key={r.id} value={r.id}>
                         {formatDate(r.scheduledAt) || "Hồ sơ khám"}
-                        {r.diagnosis ? ` - ${r.diagnosis}` : " (Chưa có chẩn đoán)"}
+                        {r.diagnosis
+                          ? ` - ${r.diagnosis}`
+                          : " (Chưa có chẩn đoán)"}
                       </option>
                     ))
                   )}
@@ -456,7 +515,10 @@ function NewPrescriptionContent() {
                     onChange={(e) => setSendEmailAfterSave(e.target.checked)}
                     className="h-4 w-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                   />
-                  <span>✉️ Tự động gửi Toa thuốc điện tử & Hướng dẫn an toàn qua Gmail cho bệnh nhân sau khi lưu</span>
+                  <span>
+                    ✉️ Tự động gửi Toa thuốc điện tử & Hướng dẫn an toàn qua
+                    Gmail cho bệnh nhân sau khi lưu
+                  </span>
                 </label>
               </div>
             </div>
@@ -570,6 +632,7 @@ function NewPrescriptionContent() {
                 <button
                   type="button"
                   onClick={addMedication}
+                  disabled={medications.length >= 50}
                   className="inline-flex items-center gap-1.5 text-sm font-medium text-brand transition-colors hover:text-brand-dark cursor-pointer"
                 >
                   <Plus size={15} weight="bold" />

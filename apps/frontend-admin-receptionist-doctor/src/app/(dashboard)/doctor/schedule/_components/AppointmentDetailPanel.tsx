@@ -264,15 +264,16 @@ export function AppointmentDetailPanel({
           )}
 
           <div className="flex flex-col gap-2 pt-1">
-            {apt.type === "ONLINE" && apt.status !== "CANCELLED" && (
-              <Link
-                href={`/doctor/consultations/${apt.id}`}
-                className="flex items-center justify-center gap-2 rounded-xl bg-brand py-2.5 text-sm font-semibold text-white transition-all hover:bg-brand-dark"
-              >
-                <VideoCamera size={18} weight="fill" />
-                Mở phòng tư vấn
-              </Link>
-            )}
+            {apt.type === "ONLINE" &&
+              ["SCHEDULED", "IN_PROGRESS"].includes(apt.status) && (
+                <Link
+                  href={`/doctor/consultations/${apt.id}`}
+                  className="flex items-center justify-center gap-2 rounded-xl bg-brand py-2.5 text-sm font-semibold text-white transition-all hover:bg-brand-dark"
+                >
+                  <VideoCamera size={18} weight="fill" />
+                  Mở phòng tư vấn
+                </Link>
+              )}
 
             {apt.type === "OFFLINE" && apt.status === "CHECKED_IN" && (
               <button

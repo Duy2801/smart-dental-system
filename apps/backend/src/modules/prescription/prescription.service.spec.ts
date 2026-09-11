@@ -1,4 +1,8 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrescriptionService } from './prescription.service';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface';
 
@@ -18,6 +22,8 @@ describe('PrescriptionService - sendPrescriptionToPatient', () => {
     prismaMock = {
       prescription: {
         findUnique: jest.fn(),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+        update: jest.fn().mockResolvedValue({}),
       },
       doctor: {
         findUnique: jest.fn().mockResolvedValue({ id: 'doc-1' }),
@@ -137,5 +143,20 @@ describe('PrescriptionService - sendPrescriptionToPatient', () => {
         doctorName: 'Bác sĩ điều trị',
       }),
     );
+  });
+
+  it('does not enqueue the same prescription email twice', async () => {
+    prismaMock.prescription.findUnique.mockResolvedValueOnce({
+      id: 'rx-3',
+      doctorId: 'doc-1',
+      emailQueuedAt: new Date(),
+      patient: { email: 'patient@gmail.com', user: null },
+      items: [],
+    });
+
+    await expect(
+      service.sendPrescriptionToPatient('rx-3', doctorUser),
+    ).rejects.toThrow(ConflictException);
+    expect(mailQueueMock.add).not.toHaveBeenCalled();
   });
 });

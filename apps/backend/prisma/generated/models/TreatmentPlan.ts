@@ -52,6 +52,7 @@ export type TreatmentPlanMinAggregateOutputType = {
   scheduleConfirmedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
+  emailQueuedAt: Date | null
 }
 
 export type TreatmentPlanMaxAggregateOutputType = {
@@ -70,6 +71,7 @@ export type TreatmentPlanMaxAggregateOutputType = {
   scheduleConfirmedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
+  emailQueuedAt: Date | null
 }
 
 export type TreatmentPlanCountAggregateOutputType = {
@@ -89,6 +91,7 @@ export type TreatmentPlanCountAggregateOutputType = {
   items: number
   createdAt: number
   updatedAt: number
+  emailQueuedAt: number
   _all: number
 }
 
@@ -119,6 +122,7 @@ export type TreatmentPlanMinAggregateInputType = {
   scheduleConfirmedAt?: true
   createdAt?: true
   updatedAt?: true
+  emailQueuedAt?: true
 }
 
 export type TreatmentPlanMaxAggregateInputType = {
@@ -137,6 +141,7 @@ export type TreatmentPlanMaxAggregateInputType = {
   scheduleConfirmedAt?: true
   createdAt?: true
   updatedAt?: true
+  emailQueuedAt?: true
 }
 
 export type TreatmentPlanCountAggregateInputType = {
@@ -156,6 +161,7 @@ export type TreatmentPlanCountAggregateInputType = {
   items?: true
   createdAt?: true
   updatedAt?: true
+  emailQueuedAt?: true
   _all?: true
 }
 
@@ -262,6 +268,7 @@ export type TreatmentPlanGroupByOutputType = {
   items: runtime.JsonValue | null
   createdAt: Date
   updatedAt: Date
+  emailQueuedAt: Date | null
   _count: TreatmentPlanCountAggregateOutputType | null
   _avg: TreatmentPlanAvgAggregateOutputType | null
   _sum: TreatmentPlanSumAggregateOutputType | null
@@ -304,12 +311,14 @@ export type TreatmentPlanWhereInput = {
   items?: Prisma.JsonNullableFilter<"TreatmentPlan">
   createdAt?: Prisma.DateTimeFilter<"TreatmentPlan"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"TreatmentPlan"> | Date | string
+  emailQueuedAt?: Prisma.DateTimeNullableFilter<"TreatmentPlan"> | Date | string | null
   patient?: Prisma.XOR<Prisma.PatientScalarRelationFilter, Prisma.PatientWhereInput>
   doctor?: Prisma.XOR<Prisma.DoctorScalarRelationFilter, Prisma.DoctorWhereInput>
   steps?: Prisma.TreatmentPlanStepListRelationFilter
   clinicalCases?: Prisma.ClinicalCaseListRelationFilter
   invoices?: Prisma.InvoiceListRelationFilter
   notifications?: Prisma.NotificationListRelationFilter
+  audits?: Prisma.TreatmentPlanAuditListRelationFilter
 }
 
 export type TreatmentPlanOrderByWithRelationInput = {
@@ -329,12 +338,14 @@ export type TreatmentPlanOrderByWithRelationInput = {
   items?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  emailQueuedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   patient?: Prisma.PatientOrderByWithRelationInput
   doctor?: Prisma.DoctorOrderByWithRelationInput
   steps?: Prisma.TreatmentPlanStepOrderByRelationAggregateInput
   clinicalCases?: Prisma.ClinicalCaseOrderByRelationAggregateInput
   invoices?: Prisma.InvoiceOrderByRelationAggregateInput
   notifications?: Prisma.NotificationOrderByRelationAggregateInput
+  audits?: Prisma.TreatmentPlanAuditOrderByRelationAggregateInput
 }
 
 export type TreatmentPlanWhereUniqueInput = Prisma.AtLeast<{
@@ -357,12 +368,14 @@ export type TreatmentPlanWhereUniqueInput = Prisma.AtLeast<{
   items?: Prisma.JsonNullableFilter<"TreatmentPlan">
   createdAt?: Prisma.DateTimeFilter<"TreatmentPlan"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"TreatmentPlan"> | Date | string
+  emailQueuedAt?: Prisma.DateTimeNullableFilter<"TreatmentPlan"> | Date | string | null
   patient?: Prisma.XOR<Prisma.PatientScalarRelationFilter, Prisma.PatientWhereInput>
   doctor?: Prisma.XOR<Prisma.DoctorScalarRelationFilter, Prisma.DoctorWhereInput>
   steps?: Prisma.TreatmentPlanStepListRelationFilter
   clinicalCases?: Prisma.ClinicalCaseListRelationFilter
   invoices?: Prisma.InvoiceListRelationFilter
   notifications?: Prisma.NotificationListRelationFilter
+  audits?: Prisma.TreatmentPlanAuditListRelationFilter
 }, "id">
 
 export type TreatmentPlanOrderByWithAggregationInput = {
@@ -382,6 +395,7 @@ export type TreatmentPlanOrderByWithAggregationInput = {
   items?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  emailQueuedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.TreatmentPlanCountOrderByAggregateInput
   _avg?: Prisma.TreatmentPlanAvgOrderByAggregateInput
   _max?: Prisma.TreatmentPlanMaxOrderByAggregateInput
@@ -409,6 +423,7 @@ export type TreatmentPlanScalarWhereWithAggregatesInput = {
   items?: Prisma.JsonNullableWithAggregatesFilter<"TreatmentPlan">
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"TreatmentPlan"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"TreatmentPlan"> | Date | string
+  emailQueuedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"TreatmentPlan"> | Date | string | null
 }
 
 export type TreatmentPlanCreateInput = {
@@ -426,12 +441,14 @@ export type TreatmentPlanCreateInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  emailQueuedAt?: Date | string | null
   patient: Prisma.PatientCreateNestedOneWithoutTreatmentPlansInput
   doctor: Prisma.DoctorCreateNestedOneWithoutTreatmentPlansInput
   steps?: Prisma.TreatmentPlanStepCreateNestedManyWithoutTreatmentPlanInput
   clinicalCases?: Prisma.ClinicalCaseCreateNestedManyWithoutTreatmentPlanInput
   invoices?: Prisma.InvoiceCreateNestedManyWithoutTreatmentPlanInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutTreatmentPlanInput
+  audits?: Prisma.TreatmentPlanAuditCreateNestedManyWithoutTreatmentPlanInput
 }
 
 export type TreatmentPlanUncheckedCreateInput = {
@@ -451,10 +468,12 @@ export type TreatmentPlanUncheckedCreateInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  emailQueuedAt?: Date | string | null
   steps?: Prisma.TreatmentPlanStepUncheckedCreateNestedManyWithoutTreatmentPlanInput
   clinicalCases?: Prisma.ClinicalCaseUncheckedCreateNestedManyWithoutTreatmentPlanInput
   invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutTreatmentPlanInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTreatmentPlanInput
+  audits?: Prisma.TreatmentPlanAuditUncheckedCreateNestedManyWithoutTreatmentPlanInput
 }
 
 export type TreatmentPlanUpdateInput = {
@@ -472,12 +491,14 @@ export type TreatmentPlanUpdateInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  emailQueuedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   patient?: Prisma.PatientUpdateOneRequiredWithoutTreatmentPlansNestedInput
   doctor?: Prisma.DoctorUpdateOneRequiredWithoutTreatmentPlansNestedInput
   steps?: Prisma.TreatmentPlanStepUpdateManyWithoutTreatmentPlanNestedInput
   clinicalCases?: Prisma.ClinicalCaseUpdateManyWithoutTreatmentPlanNestedInput
   invoices?: Prisma.InvoiceUpdateManyWithoutTreatmentPlanNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutTreatmentPlanNestedInput
+  audits?: Prisma.TreatmentPlanAuditUpdateManyWithoutTreatmentPlanNestedInput
 }
 
 export type TreatmentPlanUncheckedUpdateInput = {
@@ -497,10 +518,12 @@ export type TreatmentPlanUncheckedUpdateInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  emailQueuedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   steps?: Prisma.TreatmentPlanStepUncheckedUpdateManyWithoutTreatmentPlanNestedInput
   clinicalCases?: Prisma.ClinicalCaseUncheckedUpdateManyWithoutTreatmentPlanNestedInput
   invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutTreatmentPlanNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTreatmentPlanNestedInput
+  audits?: Prisma.TreatmentPlanAuditUncheckedUpdateManyWithoutTreatmentPlanNestedInput
 }
 
 export type TreatmentPlanCreateManyInput = {
@@ -520,6 +543,7 @@ export type TreatmentPlanCreateManyInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  emailQueuedAt?: Date | string | null
 }
 
 export type TreatmentPlanUpdateManyMutationInput = {
@@ -537,6 +561,7 @@ export type TreatmentPlanUpdateManyMutationInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  emailQueuedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type TreatmentPlanUncheckedUpdateManyInput = {
@@ -556,6 +581,7 @@ export type TreatmentPlanUncheckedUpdateManyInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  emailQueuedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type TreatmentPlanListRelationFilter = {
@@ -585,6 +611,7 @@ export type TreatmentPlanCountOrderByAggregateInput = {
   items?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  emailQueuedAt?: Prisma.SortOrder
 }
 
 export type TreatmentPlanAvgOrderByAggregateInput = {
@@ -608,6 +635,7 @@ export type TreatmentPlanMaxOrderByAggregateInput = {
   scheduleConfirmedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  emailQueuedAt?: Prisma.SortOrder
 }
 
 export type TreatmentPlanMinOrderByAggregateInput = {
@@ -626,6 +654,7 @@ export type TreatmentPlanMinOrderByAggregateInput = {
   scheduleConfirmedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  emailQueuedAt?: Prisma.SortOrder
 }
 
 export type TreatmentPlanSumOrderByAggregateInput = {
@@ -739,6 +768,20 @@ export type EnumSchedulePaymentStatusFieldUpdateOperationsInput = {
   set?: $Enums.SchedulePaymentStatus
 }
 
+export type TreatmentPlanCreateNestedOneWithoutAuditsInput = {
+  create?: Prisma.XOR<Prisma.TreatmentPlanCreateWithoutAuditsInput, Prisma.TreatmentPlanUncheckedCreateWithoutAuditsInput>
+  connectOrCreate?: Prisma.TreatmentPlanCreateOrConnectWithoutAuditsInput
+  connect?: Prisma.TreatmentPlanWhereUniqueInput
+}
+
+export type TreatmentPlanUpdateOneRequiredWithoutAuditsNestedInput = {
+  create?: Prisma.XOR<Prisma.TreatmentPlanCreateWithoutAuditsInput, Prisma.TreatmentPlanUncheckedCreateWithoutAuditsInput>
+  connectOrCreate?: Prisma.TreatmentPlanCreateOrConnectWithoutAuditsInput
+  upsert?: Prisma.TreatmentPlanUpsertWithoutAuditsInput
+  connect?: Prisma.TreatmentPlanWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.TreatmentPlanUpdateToOneWithWhereWithoutAuditsInput, Prisma.TreatmentPlanUpdateWithoutAuditsInput>, Prisma.TreatmentPlanUncheckedUpdateWithoutAuditsInput>
+}
+
 export type TreatmentPlanCreateNestedOneWithoutStepsInput = {
   create?: Prisma.XOR<Prisma.TreatmentPlanCreateWithoutStepsInput, Prisma.TreatmentPlanUncheckedCreateWithoutStepsInput>
   connectOrCreate?: Prisma.TreatmentPlanCreateOrConnectWithoutStepsInput
@@ -816,11 +859,13 @@ export type TreatmentPlanCreateWithoutPatientInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  emailQueuedAt?: Date | string | null
   doctor: Prisma.DoctorCreateNestedOneWithoutTreatmentPlansInput
   steps?: Prisma.TreatmentPlanStepCreateNestedManyWithoutTreatmentPlanInput
   clinicalCases?: Prisma.ClinicalCaseCreateNestedManyWithoutTreatmentPlanInput
   invoices?: Prisma.InvoiceCreateNestedManyWithoutTreatmentPlanInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutTreatmentPlanInput
+  audits?: Prisma.TreatmentPlanAuditCreateNestedManyWithoutTreatmentPlanInput
 }
 
 export type TreatmentPlanUncheckedCreateWithoutPatientInput = {
@@ -839,10 +884,12 @@ export type TreatmentPlanUncheckedCreateWithoutPatientInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  emailQueuedAt?: Date | string | null
   steps?: Prisma.TreatmentPlanStepUncheckedCreateNestedManyWithoutTreatmentPlanInput
   clinicalCases?: Prisma.ClinicalCaseUncheckedCreateNestedManyWithoutTreatmentPlanInput
   invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutTreatmentPlanInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTreatmentPlanInput
+  audits?: Prisma.TreatmentPlanAuditUncheckedCreateNestedManyWithoutTreatmentPlanInput
 }
 
 export type TreatmentPlanCreateOrConnectWithoutPatientInput = {
@@ -891,6 +938,7 @@ export type TreatmentPlanScalarWhereInput = {
   items?: Prisma.JsonNullableFilter<"TreatmentPlan">
   createdAt?: Prisma.DateTimeFilter<"TreatmentPlan"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"TreatmentPlan"> | Date | string
+  emailQueuedAt?: Prisma.DateTimeNullableFilter<"TreatmentPlan"> | Date | string | null
 }
 
 export type TreatmentPlanCreateWithoutDoctorInput = {
@@ -908,11 +956,13 @@ export type TreatmentPlanCreateWithoutDoctorInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  emailQueuedAt?: Date | string | null
   patient: Prisma.PatientCreateNestedOneWithoutTreatmentPlansInput
   steps?: Prisma.TreatmentPlanStepCreateNestedManyWithoutTreatmentPlanInput
   clinicalCases?: Prisma.ClinicalCaseCreateNestedManyWithoutTreatmentPlanInput
   invoices?: Prisma.InvoiceCreateNestedManyWithoutTreatmentPlanInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutTreatmentPlanInput
+  audits?: Prisma.TreatmentPlanAuditCreateNestedManyWithoutTreatmentPlanInput
 }
 
 export type TreatmentPlanUncheckedCreateWithoutDoctorInput = {
@@ -931,10 +981,12 @@ export type TreatmentPlanUncheckedCreateWithoutDoctorInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  emailQueuedAt?: Date | string | null
   steps?: Prisma.TreatmentPlanStepUncheckedCreateNestedManyWithoutTreatmentPlanInput
   clinicalCases?: Prisma.ClinicalCaseUncheckedCreateNestedManyWithoutTreatmentPlanInput
   invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutTreatmentPlanInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTreatmentPlanInput
+  audits?: Prisma.TreatmentPlanAuditUncheckedCreateNestedManyWithoutTreatmentPlanInput
 }
 
 export type TreatmentPlanCreateOrConnectWithoutDoctorInput = {
@@ -963,6 +1015,118 @@ export type TreatmentPlanUpdateManyWithWhereWithoutDoctorInput = {
   data: Prisma.XOR<Prisma.TreatmentPlanUpdateManyMutationInput, Prisma.TreatmentPlanUncheckedUpdateManyWithoutDoctorInput>
 }
 
+export type TreatmentPlanCreateWithoutAuditsInput = {
+  id?: string
+  title: string
+  description?: string | null
+  status?: $Enums.TreatmentPlanStatus
+  startDate?: Date | string | null
+  expectedEndDate?: Date | string | null
+  schedulePaymentOption?: $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: $Enums.SchedulePaymentStatus
+  depositPercent?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Date | string | null
+  items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  emailQueuedAt?: Date | string | null
+  patient: Prisma.PatientCreateNestedOneWithoutTreatmentPlansInput
+  doctor: Prisma.DoctorCreateNestedOneWithoutTreatmentPlansInput
+  steps?: Prisma.TreatmentPlanStepCreateNestedManyWithoutTreatmentPlanInput
+  clinicalCases?: Prisma.ClinicalCaseCreateNestedManyWithoutTreatmentPlanInput
+  invoices?: Prisma.InvoiceCreateNestedManyWithoutTreatmentPlanInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutTreatmentPlanInput
+}
+
+export type TreatmentPlanUncheckedCreateWithoutAuditsInput = {
+  id?: string
+  patientId: string
+  doctorId: string
+  title: string
+  description?: string | null
+  status?: $Enums.TreatmentPlanStatus
+  startDate?: Date | string | null
+  expectedEndDate?: Date | string | null
+  schedulePaymentOption?: $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: $Enums.SchedulePaymentStatus
+  depositPercent?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Date | string | null
+  items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  emailQueuedAt?: Date | string | null
+  steps?: Prisma.TreatmentPlanStepUncheckedCreateNestedManyWithoutTreatmentPlanInput
+  clinicalCases?: Prisma.ClinicalCaseUncheckedCreateNestedManyWithoutTreatmentPlanInput
+  invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutTreatmentPlanInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTreatmentPlanInput
+}
+
+export type TreatmentPlanCreateOrConnectWithoutAuditsInput = {
+  where: Prisma.TreatmentPlanWhereUniqueInput
+  create: Prisma.XOR<Prisma.TreatmentPlanCreateWithoutAuditsInput, Prisma.TreatmentPlanUncheckedCreateWithoutAuditsInput>
+}
+
+export type TreatmentPlanUpsertWithoutAuditsInput = {
+  update: Prisma.XOR<Prisma.TreatmentPlanUpdateWithoutAuditsInput, Prisma.TreatmentPlanUncheckedUpdateWithoutAuditsInput>
+  create: Prisma.XOR<Prisma.TreatmentPlanCreateWithoutAuditsInput, Prisma.TreatmentPlanUncheckedCreateWithoutAuditsInput>
+  where?: Prisma.TreatmentPlanWhereInput
+}
+
+export type TreatmentPlanUpdateToOneWithWhereWithoutAuditsInput = {
+  where?: Prisma.TreatmentPlanWhereInput
+  data: Prisma.XOR<Prisma.TreatmentPlanUpdateWithoutAuditsInput, Prisma.TreatmentPlanUncheckedUpdateWithoutAuditsInput>
+}
+
+export type TreatmentPlanUpdateWithoutAuditsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumTreatmentPlanStatusFieldUpdateOperationsInput | $Enums.TreatmentPlanStatus
+  startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expectedEndDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  schedulePaymentOption?: Prisma.NullableEnumSchedulePaymentOptionFieldUpdateOperationsInput | $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: Prisma.EnumSchedulePaymentStatusFieldUpdateOperationsInput | $Enums.SchedulePaymentStatus
+  depositPercent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  emailQueuedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  patient?: Prisma.PatientUpdateOneRequiredWithoutTreatmentPlansNestedInput
+  doctor?: Prisma.DoctorUpdateOneRequiredWithoutTreatmentPlansNestedInput
+  steps?: Prisma.TreatmentPlanStepUpdateManyWithoutTreatmentPlanNestedInput
+  clinicalCases?: Prisma.ClinicalCaseUpdateManyWithoutTreatmentPlanNestedInput
+  invoices?: Prisma.InvoiceUpdateManyWithoutTreatmentPlanNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutTreatmentPlanNestedInput
+}
+
+export type TreatmentPlanUncheckedUpdateWithoutAuditsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  patientId?: Prisma.StringFieldUpdateOperationsInput | string
+  doctorId?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumTreatmentPlanStatusFieldUpdateOperationsInput | $Enums.TreatmentPlanStatus
+  startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expectedEndDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  schedulePaymentOption?: Prisma.NullableEnumSchedulePaymentOptionFieldUpdateOperationsInput | $Enums.SchedulePaymentOption | null
+  schedulePaymentStatus?: Prisma.EnumSchedulePaymentStatusFieldUpdateOperationsInput | $Enums.SchedulePaymentStatus
+  depositPercent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  depositAmount?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  scheduleConfirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  emailQueuedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  steps?: Prisma.TreatmentPlanStepUncheckedUpdateManyWithoutTreatmentPlanNestedInput
+  clinicalCases?: Prisma.ClinicalCaseUncheckedUpdateManyWithoutTreatmentPlanNestedInput
+  invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutTreatmentPlanNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTreatmentPlanNestedInput
+}
+
 export type TreatmentPlanCreateWithoutStepsInput = {
   id?: string
   title: string
@@ -978,11 +1142,13 @@ export type TreatmentPlanCreateWithoutStepsInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  emailQueuedAt?: Date | string | null
   patient: Prisma.PatientCreateNestedOneWithoutTreatmentPlansInput
   doctor: Prisma.DoctorCreateNestedOneWithoutTreatmentPlansInput
   clinicalCases?: Prisma.ClinicalCaseCreateNestedManyWithoutTreatmentPlanInput
   invoices?: Prisma.InvoiceCreateNestedManyWithoutTreatmentPlanInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutTreatmentPlanInput
+  audits?: Prisma.TreatmentPlanAuditCreateNestedManyWithoutTreatmentPlanInput
 }
 
 export type TreatmentPlanUncheckedCreateWithoutStepsInput = {
@@ -1002,9 +1168,11 @@ export type TreatmentPlanUncheckedCreateWithoutStepsInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  emailQueuedAt?: Date | string | null
   clinicalCases?: Prisma.ClinicalCaseUncheckedCreateNestedManyWithoutTreatmentPlanInput
   invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutTreatmentPlanInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTreatmentPlanInput
+  audits?: Prisma.TreatmentPlanAuditUncheckedCreateNestedManyWithoutTreatmentPlanInput
 }
 
 export type TreatmentPlanCreateOrConnectWithoutStepsInput = {
@@ -1038,11 +1206,13 @@ export type TreatmentPlanUpdateWithoutStepsInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  emailQueuedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   patient?: Prisma.PatientUpdateOneRequiredWithoutTreatmentPlansNestedInput
   doctor?: Prisma.DoctorUpdateOneRequiredWithoutTreatmentPlansNestedInput
   clinicalCases?: Prisma.ClinicalCaseUpdateManyWithoutTreatmentPlanNestedInput
   invoices?: Prisma.InvoiceUpdateManyWithoutTreatmentPlanNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutTreatmentPlanNestedInput
+  audits?: Prisma.TreatmentPlanAuditUpdateManyWithoutTreatmentPlanNestedInput
 }
 
 export type TreatmentPlanUncheckedUpdateWithoutStepsInput = {
@@ -1062,9 +1232,11 @@ export type TreatmentPlanUncheckedUpdateWithoutStepsInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  emailQueuedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   clinicalCases?: Prisma.ClinicalCaseUncheckedUpdateManyWithoutTreatmentPlanNestedInput
   invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutTreatmentPlanNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTreatmentPlanNestedInput
+  audits?: Prisma.TreatmentPlanAuditUncheckedUpdateManyWithoutTreatmentPlanNestedInput
 }
 
 export type TreatmentPlanCreateWithoutClinicalCasesInput = {
@@ -1082,11 +1254,13 @@ export type TreatmentPlanCreateWithoutClinicalCasesInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  emailQueuedAt?: Date | string | null
   patient: Prisma.PatientCreateNestedOneWithoutTreatmentPlansInput
   doctor: Prisma.DoctorCreateNestedOneWithoutTreatmentPlansInput
   steps?: Prisma.TreatmentPlanStepCreateNestedManyWithoutTreatmentPlanInput
   invoices?: Prisma.InvoiceCreateNestedManyWithoutTreatmentPlanInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutTreatmentPlanInput
+  audits?: Prisma.TreatmentPlanAuditCreateNestedManyWithoutTreatmentPlanInput
 }
 
 export type TreatmentPlanUncheckedCreateWithoutClinicalCasesInput = {
@@ -1106,9 +1280,11 @@ export type TreatmentPlanUncheckedCreateWithoutClinicalCasesInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  emailQueuedAt?: Date | string | null
   steps?: Prisma.TreatmentPlanStepUncheckedCreateNestedManyWithoutTreatmentPlanInput
   invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutTreatmentPlanInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTreatmentPlanInput
+  audits?: Prisma.TreatmentPlanAuditUncheckedCreateNestedManyWithoutTreatmentPlanInput
 }
 
 export type TreatmentPlanCreateOrConnectWithoutClinicalCasesInput = {
@@ -1142,11 +1318,13 @@ export type TreatmentPlanUpdateWithoutClinicalCasesInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  emailQueuedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   patient?: Prisma.PatientUpdateOneRequiredWithoutTreatmentPlansNestedInput
   doctor?: Prisma.DoctorUpdateOneRequiredWithoutTreatmentPlansNestedInput
   steps?: Prisma.TreatmentPlanStepUpdateManyWithoutTreatmentPlanNestedInput
   invoices?: Prisma.InvoiceUpdateManyWithoutTreatmentPlanNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutTreatmentPlanNestedInput
+  audits?: Prisma.TreatmentPlanAuditUpdateManyWithoutTreatmentPlanNestedInput
 }
 
 export type TreatmentPlanUncheckedUpdateWithoutClinicalCasesInput = {
@@ -1166,9 +1344,11 @@ export type TreatmentPlanUncheckedUpdateWithoutClinicalCasesInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  emailQueuedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   steps?: Prisma.TreatmentPlanStepUncheckedUpdateManyWithoutTreatmentPlanNestedInput
   invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutTreatmentPlanNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTreatmentPlanNestedInput
+  audits?: Prisma.TreatmentPlanAuditUncheckedUpdateManyWithoutTreatmentPlanNestedInput
 }
 
 export type TreatmentPlanCreateWithoutInvoicesInput = {
@@ -1186,11 +1366,13 @@ export type TreatmentPlanCreateWithoutInvoicesInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  emailQueuedAt?: Date | string | null
   patient: Prisma.PatientCreateNestedOneWithoutTreatmentPlansInput
   doctor: Prisma.DoctorCreateNestedOneWithoutTreatmentPlansInput
   steps?: Prisma.TreatmentPlanStepCreateNestedManyWithoutTreatmentPlanInput
   clinicalCases?: Prisma.ClinicalCaseCreateNestedManyWithoutTreatmentPlanInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutTreatmentPlanInput
+  audits?: Prisma.TreatmentPlanAuditCreateNestedManyWithoutTreatmentPlanInput
 }
 
 export type TreatmentPlanUncheckedCreateWithoutInvoicesInput = {
@@ -1210,9 +1392,11 @@ export type TreatmentPlanUncheckedCreateWithoutInvoicesInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  emailQueuedAt?: Date | string | null
   steps?: Prisma.TreatmentPlanStepUncheckedCreateNestedManyWithoutTreatmentPlanInput
   clinicalCases?: Prisma.ClinicalCaseUncheckedCreateNestedManyWithoutTreatmentPlanInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTreatmentPlanInput
+  audits?: Prisma.TreatmentPlanAuditUncheckedCreateNestedManyWithoutTreatmentPlanInput
 }
 
 export type TreatmentPlanCreateOrConnectWithoutInvoicesInput = {
@@ -1246,11 +1430,13 @@ export type TreatmentPlanUpdateWithoutInvoicesInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  emailQueuedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   patient?: Prisma.PatientUpdateOneRequiredWithoutTreatmentPlansNestedInput
   doctor?: Prisma.DoctorUpdateOneRequiredWithoutTreatmentPlansNestedInput
   steps?: Prisma.TreatmentPlanStepUpdateManyWithoutTreatmentPlanNestedInput
   clinicalCases?: Prisma.ClinicalCaseUpdateManyWithoutTreatmentPlanNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutTreatmentPlanNestedInput
+  audits?: Prisma.TreatmentPlanAuditUpdateManyWithoutTreatmentPlanNestedInput
 }
 
 export type TreatmentPlanUncheckedUpdateWithoutInvoicesInput = {
@@ -1270,9 +1456,11 @@ export type TreatmentPlanUncheckedUpdateWithoutInvoicesInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  emailQueuedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   steps?: Prisma.TreatmentPlanStepUncheckedUpdateManyWithoutTreatmentPlanNestedInput
   clinicalCases?: Prisma.ClinicalCaseUncheckedUpdateManyWithoutTreatmentPlanNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTreatmentPlanNestedInput
+  audits?: Prisma.TreatmentPlanAuditUncheckedUpdateManyWithoutTreatmentPlanNestedInput
 }
 
 export type TreatmentPlanCreateWithoutNotificationsInput = {
@@ -1290,11 +1478,13 @@ export type TreatmentPlanCreateWithoutNotificationsInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  emailQueuedAt?: Date | string | null
   patient: Prisma.PatientCreateNestedOneWithoutTreatmentPlansInput
   doctor: Prisma.DoctorCreateNestedOneWithoutTreatmentPlansInput
   steps?: Prisma.TreatmentPlanStepCreateNestedManyWithoutTreatmentPlanInput
   clinicalCases?: Prisma.ClinicalCaseCreateNestedManyWithoutTreatmentPlanInput
   invoices?: Prisma.InvoiceCreateNestedManyWithoutTreatmentPlanInput
+  audits?: Prisma.TreatmentPlanAuditCreateNestedManyWithoutTreatmentPlanInput
 }
 
 export type TreatmentPlanUncheckedCreateWithoutNotificationsInput = {
@@ -1314,9 +1504,11 @@ export type TreatmentPlanUncheckedCreateWithoutNotificationsInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  emailQueuedAt?: Date | string | null
   steps?: Prisma.TreatmentPlanStepUncheckedCreateNestedManyWithoutTreatmentPlanInput
   clinicalCases?: Prisma.ClinicalCaseUncheckedCreateNestedManyWithoutTreatmentPlanInput
   invoices?: Prisma.InvoiceUncheckedCreateNestedManyWithoutTreatmentPlanInput
+  audits?: Prisma.TreatmentPlanAuditUncheckedCreateNestedManyWithoutTreatmentPlanInput
 }
 
 export type TreatmentPlanCreateOrConnectWithoutNotificationsInput = {
@@ -1350,11 +1542,13 @@ export type TreatmentPlanUpdateWithoutNotificationsInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  emailQueuedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   patient?: Prisma.PatientUpdateOneRequiredWithoutTreatmentPlansNestedInput
   doctor?: Prisma.DoctorUpdateOneRequiredWithoutTreatmentPlansNestedInput
   steps?: Prisma.TreatmentPlanStepUpdateManyWithoutTreatmentPlanNestedInput
   clinicalCases?: Prisma.ClinicalCaseUpdateManyWithoutTreatmentPlanNestedInput
   invoices?: Prisma.InvoiceUpdateManyWithoutTreatmentPlanNestedInput
+  audits?: Prisma.TreatmentPlanAuditUpdateManyWithoutTreatmentPlanNestedInput
 }
 
 export type TreatmentPlanUncheckedUpdateWithoutNotificationsInput = {
@@ -1374,9 +1568,11 @@ export type TreatmentPlanUncheckedUpdateWithoutNotificationsInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  emailQueuedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   steps?: Prisma.TreatmentPlanStepUncheckedUpdateManyWithoutTreatmentPlanNestedInput
   clinicalCases?: Prisma.ClinicalCaseUncheckedUpdateManyWithoutTreatmentPlanNestedInput
   invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutTreatmentPlanNestedInput
+  audits?: Prisma.TreatmentPlanAuditUncheckedUpdateManyWithoutTreatmentPlanNestedInput
 }
 
 export type TreatmentPlanCreateManyPatientInput = {
@@ -1395,6 +1591,7 @@ export type TreatmentPlanCreateManyPatientInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  emailQueuedAt?: Date | string | null
 }
 
 export type TreatmentPlanUpdateWithoutPatientInput = {
@@ -1412,11 +1609,13 @@ export type TreatmentPlanUpdateWithoutPatientInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  emailQueuedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   doctor?: Prisma.DoctorUpdateOneRequiredWithoutTreatmentPlansNestedInput
   steps?: Prisma.TreatmentPlanStepUpdateManyWithoutTreatmentPlanNestedInput
   clinicalCases?: Prisma.ClinicalCaseUpdateManyWithoutTreatmentPlanNestedInput
   invoices?: Prisma.InvoiceUpdateManyWithoutTreatmentPlanNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutTreatmentPlanNestedInput
+  audits?: Prisma.TreatmentPlanAuditUpdateManyWithoutTreatmentPlanNestedInput
 }
 
 export type TreatmentPlanUncheckedUpdateWithoutPatientInput = {
@@ -1435,10 +1634,12 @@ export type TreatmentPlanUncheckedUpdateWithoutPatientInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  emailQueuedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   steps?: Prisma.TreatmentPlanStepUncheckedUpdateManyWithoutTreatmentPlanNestedInput
   clinicalCases?: Prisma.ClinicalCaseUncheckedUpdateManyWithoutTreatmentPlanNestedInput
   invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutTreatmentPlanNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTreatmentPlanNestedInput
+  audits?: Prisma.TreatmentPlanAuditUncheckedUpdateManyWithoutTreatmentPlanNestedInput
 }
 
 export type TreatmentPlanUncheckedUpdateManyWithoutPatientInput = {
@@ -1457,6 +1658,7 @@ export type TreatmentPlanUncheckedUpdateManyWithoutPatientInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  emailQueuedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type TreatmentPlanCreateManyDoctorInput = {
@@ -1475,6 +1677,7 @@ export type TreatmentPlanCreateManyDoctorInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  emailQueuedAt?: Date | string | null
 }
 
 export type TreatmentPlanUpdateWithoutDoctorInput = {
@@ -1492,11 +1695,13 @@ export type TreatmentPlanUpdateWithoutDoctorInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  emailQueuedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   patient?: Prisma.PatientUpdateOneRequiredWithoutTreatmentPlansNestedInput
   steps?: Prisma.TreatmentPlanStepUpdateManyWithoutTreatmentPlanNestedInput
   clinicalCases?: Prisma.ClinicalCaseUpdateManyWithoutTreatmentPlanNestedInput
   invoices?: Prisma.InvoiceUpdateManyWithoutTreatmentPlanNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutTreatmentPlanNestedInput
+  audits?: Prisma.TreatmentPlanAuditUpdateManyWithoutTreatmentPlanNestedInput
 }
 
 export type TreatmentPlanUncheckedUpdateWithoutDoctorInput = {
@@ -1515,10 +1720,12 @@ export type TreatmentPlanUncheckedUpdateWithoutDoctorInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  emailQueuedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   steps?: Prisma.TreatmentPlanStepUncheckedUpdateManyWithoutTreatmentPlanNestedInput
   clinicalCases?: Prisma.ClinicalCaseUncheckedUpdateManyWithoutTreatmentPlanNestedInput
   invoices?: Prisma.InvoiceUncheckedUpdateManyWithoutTreatmentPlanNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTreatmentPlanNestedInput
+  audits?: Prisma.TreatmentPlanAuditUncheckedUpdateManyWithoutTreatmentPlanNestedInput
 }
 
 export type TreatmentPlanUncheckedUpdateManyWithoutDoctorInput = {
@@ -1537,6 +1744,7 @@ export type TreatmentPlanUncheckedUpdateManyWithoutDoctorInput = {
   items?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  emailQueuedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 
@@ -1549,6 +1757,7 @@ export type TreatmentPlanCountOutputType = {
   clinicalCases: number
   invoices: number
   notifications: number
+  audits: number
 }
 
 export type TreatmentPlanCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1556,6 +1765,7 @@ export type TreatmentPlanCountOutputTypeSelect<ExtArgs extends runtime.Types.Ext
   clinicalCases?: boolean | TreatmentPlanCountOutputTypeCountClinicalCasesArgs
   invoices?: boolean | TreatmentPlanCountOutputTypeCountInvoicesArgs
   notifications?: boolean | TreatmentPlanCountOutputTypeCountNotificationsArgs
+  audits?: boolean | TreatmentPlanCountOutputTypeCountAuditsArgs
 }
 
 /**
@@ -1596,6 +1806,13 @@ export type TreatmentPlanCountOutputTypeCountNotificationsArgs<ExtArgs extends r
   where?: Prisma.NotificationWhereInput
 }
 
+/**
+ * TreatmentPlanCountOutputType without action
+ */
+export type TreatmentPlanCountOutputTypeCountAuditsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.TreatmentPlanAuditWhereInput
+}
+
 
 export type TreatmentPlanSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1614,12 +1831,14 @@ export type TreatmentPlanSelect<ExtArgs extends runtime.Types.Extensions.Interna
   items?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  emailQueuedAt?: boolean
   patient?: boolean | Prisma.PatientDefaultArgs<ExtArgs>
   doctor?: boolean | Prisma.DoctorDefaultArgs<ExtArgs>
   steps?: boolean | Prisma.TreatmentPlan$stepsArgs<ExtArgs>
   clinicalCases?: boolean | Prisma.TreatmentPlan$clinicalCasesArgs<ExtArgs>
   invoices?: boolean | Prisma.TreatmentPlan$invoicesArgs<ExtArgs>
   notifications?: boolean | Prisma.TreatmentPlan$notificationsArgs<ExtArgs>
+  audits?: boolean | Prisma.TreatmentPlan$auditsArgs<ExtArgs>
   _count?: boolean | Prisma.TreatmentPlanCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["treatmentPlan"]>
 
@@ -1640,6 +1859,7 @@ export type TreatmentPlanSelectCreateManyAndReturn<ExtArgs extends runtime.Types
   items?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  emailQueuedAt?: boolean
   patient?: boolean | Prisma.PatientDefaultArgs<ExtArgs>
   doctor?: boolean | Prisma.DoctorDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["treatmentPlan"]>
@@ -1661,6 +1881,7 @@ export type TreatmentPlanSelectUpdateManyAndReturn<ExtArgs extends runtime.Types
   items?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  emailQueuedAt?: boolean
   patient?: boolean | Prisma.PatientDefaultArgs<ExtArgs>
   doctor?: boolean | Prisma.DoctorDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["treatmentPlan"]>
@@ -1682,9 +1903,10 @@ export type TreatmentPlanSelectScalar = {
   items?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  emailQueuedAt?: boolean
 }
 
-export type TreatmentPlanOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "patientId" | "doctorId" | "title" | "description" | "status" | "startDate" | "expectedEndDate" | "schedulePaymentOption" | "schedulePaymentStatus" | "depositPercent" | "depositAmount" | "scheduleConfirmedAt" | "items" | "createdAt" | "updatedAt", ExtArgs["result"]["treatmentPlan"]>
+export type TreatmentPlanOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "patientId" | "doctorId" | "title" | "description" | "status" | "startDate" | "expectedEndDate" | "schedulePaymentOption" | "schedulePaymentStatus" | "depositPercent" | "depositAmount" | "scheduleConfirmedAt" | "items" | "createdAt" | "updatedAt" | "emailQueuedAt", ExtArgs["result"]["treatmentPlan"]>
 export type TreatmentPlanInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   patient?: boolean | Prisma.PatientDefaultArgs<ExtArgs>
   doctor?: boolean | Prisma.DoctorDefaultArgs<ExtArgs>
@@ -1692,6 +1914,7 @@ export type TreatmentPlanInclude<ExtArgs extends runtime.Types.Extensions.Intern
   clinicalCases?: boolean | Prisma.TreatmentPlan$clinicalCasesArgs<ExtArgs>
   invoices?: boolean | Prisma.TreatmentPlan$invoicesArgs<ExtArgs>
   notifications?: boolean | Prisma.TreatmentPlan$notificationsArgs<ExtArgs>
+  audits?: boolean | Prisma.TreatmentPlan$auditsArgs<ExtArgs>
   _count?: boolean | Prisma.TreatmentPlanCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type TreatmentPlanIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1712,6 +1935,7 @@ export type $TreatmentPlanPayload<ExtArgs extends runtime.Types.Extensions.Inter
     clinicalCases: Prisma.$ClinicalCasePayload<ExtArgs>[]
     invoices: Prisma.$InvoicePayload<ExtArgs>[]
     notifications: Prisma.$NotificationPayload<ExtArgs>[]
+    audits: Prisma.$TreatmentPlanAuditPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1730,6 +1954,7 @@ export type $TreatmentPlanPayload<ExtArgs extends runtime.Types.Extensions.Inter
     items: runtime.JsonValue | null
     createdAt: Date
     updatedAt: Date
+    emailQueuedAt: Date | null
   }, ExtArgs["result"]["treatmentPlan"]>
   composites: {}
 }
@@ -2130,6 +2355,7 @@ export interface Prisma__TreatmentPlanClient<T, Null = never, ExtArgs extends ru
   clinicalCases<T extends Prisma.TreatmentPlan$clinicalCasesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.TreatmentPlan$clinicalCasesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ClinicalCasePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   invoices<T extends Prisma.TreatmentPlan$invoicesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.TreatmentPlan$invoicesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$InvoicePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   notifications<T extends Prisma.TreatmentPlan$notificationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.TreatmentPlan$notificationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$NotificationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  audits<T extends Prisma.TreatmentPlan$auditsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.TreatmentPlan$auditsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TreatmentPlanAuditPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2175,6 +2401,7 @@ export interface TreatmentPlanFieldRefs {
   readonly items: Prisma.FieldRef<"TreatmentPlan", 'Json'>
   readonly createdAt: Prisma.FieldRef<"TreatmentPlan", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"TreatmentPlan", 'DateTime'>
+  readonly emailQueuedAt: Prisma.FieldRef<"TreatmentPlan", 'DateTime'>
 }
     
 
@@ -2669,6 +2896,30 @@ export type TreatmentPlan$notificationsArgs<ExtArgs extends runtime.Types.Extens
   take?: number
   skip?: number
   distinct?: Prisma.NotificationScalarFieldEnum | Prisma.NotificationScalarFieldEnum[]
+}
+
+/**
+ * TreatmentPlan.audits
+ */
+export type TreatmentPlan$auditsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the TreatmentPlanAudit
+   */
+  select?: Prisma.TreatmentPlanAuditSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the TreatmentPlanAudit
+   */
+  omit?: Prisma.TreatmentPlanAuditOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.TreatmentPlanAuditInclude<ExtArgs> | null
+  where?: Prisma.TreatmentPlanAuditWhereInput
+  orderBy?: Prisma.TreatmentPlanAuditOrderByWithRelationInput | Prisma.TreatmentPlanAuditOrderByWithRelationInput[]
+  cursor?: Prisma.TreatmentPlanAuditWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.TreatmentPlanAuditScalarFieldEnum | Prisma.TreatmentPlanAuditScalarFieldEnum[]
 }
 
 /**

@@ -2,7 +2,11 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { MagnifyingGlass, SpinnerGap, VideoCamera } from "@phosphor-icons/react";
+import {
+  MagnifyingGlass,
+  SpinnerGap,
+  VideoCamera,
+} from "@phosphor-icons/react";
 import { cn } from "@/src/lib/utils/cn";
 import type { ScheduleAppointment, AppointmentStatus } from "./types";
 import { statusConfig } from "./types";
@@ -13,7 +17,11 @@ type Props = {
   onStatusChange: (id: string, action: "start" | "complete") => Promise<void>;
 };
 
-export function AppointmentList({ appointments, loading, onStatusChange }: Props) {
+export function AppointmentList({
+  appointments,
+  loading,
+  onStatusChange,
+}: Props) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -94,7 +102,12 @@ export function AppointmentList({ appointments, loading, onStatusChange }: Props
           {grouped.map(([dayIso, items]) => {
             const dayLabel = new Date(`${dayIso}T00:00:00`).toLocaleDateString(
               "vi-VN",
-              { weekday: "long", day: "2-digit", month: "2-digit", year: "numeric" },
+              {
+                weekday: "long",
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+              },
             );
             return (
               <div key={dayIso}>
@@ -170,69 +183,85 @@ export function AppointmentList({ appointments, loading, onStatusChange }: Props
                           </span>
 
                           <div className="w-[140px] flex justify-end">
-                            {apt.type === "ONLINE" && apt.status !== "CANCELLED" && (
-                              <Link
-                                href={`/doctor/consultations/${apt.id}`}
-                                className="flex items-center gap-1.5 rounded-lg bg-brand px-4 py-1.5 text-xs font-medium text-white transition-all hover:bg-brand-dark hover:shadow-sm active:scale-[0.98]"
-                              >
-                                <VideoCamera size={14} weight="fill" />
-                                Mở phòng
-                              </Link>
-                            )}
+                            {apt.type === "ONLINE" &&
+                              apt.status !== "CANCELLED" && (
+                                <Link
+                                  href={`/doctor/consultations/${apt.id}`}
+                                  className="flex items-center gap-1.5 rounded-lg bg-brand px-4 py-1.5 text-xs font-medium text-white transition-all hover:bg-brand-dark hover:shadow-sm active:scale-[0.98]"
+                                >
+                                  <VideoCamera size={14} weight="fill" />
+                                  Mở phòng
+                                </Link>
+                              )}
 
-                            {apt.type === "OFFLINE" && apt.status === "CHECKED_IN" && (
-                              <button
-                                disabled={actionLoading === `${apt.id}-start`}
-                                onClick={() => handleAction(apt.id, "start")}
-                                className="flex items-center gap-1.5 rounded-lg bg-brand px-4 py-1.5 text-xs font-medium text-white transition-all hover:bg-brand-dark hover:shadow-sm active:scale-[0.98] disabled:opacity-60"
-                              >
-                                {actionLoading === `${apt.id}-start` && (
-                                  <SpinnerGap size={12} className="animate-spin" />
-                                )}
-                                Bắt đầu khám
-                              </button>
-                            )}
-                            {apt.type === "OFFLINE" && apt.status === "IN_PROGRESS" && (
-                              <div className="flex items-center gap-1.5">
+                            {apt.type === "OFFLINE" &&
+                              apt.status === "CHECKED_IN" && (
+                                <button
+                                  disabled={actionLoading === `${apt.id}-start`}
+                                  onClick={() => handleAction(apt.id, "start")}
+                                  className="flex items-center gap-1.5 rounded-lg bg-brand px-4 py-1.5 text-xs font-medium text-white transition-all hover:bg-brand-dark hover:shadow-sm active:scale-[0.98] disabled:opacity-60"
+                                >
+                                  {actionLoading === `${apt.id}-start` && (
+                                    <SpinnerGap
+                                      size={12}
+                                      className="animate-spin"
+                                    />
+                                  )}
+                                  Bắt đầu khám
+                                </button>
+                              )}
+                            {apt.type === "OFFLINE" &&
+                              apt.status === "IN_PROGRESS" && (
+                                <div className="flex items-center gap-1.5">
+                                  <Link
+                                    href={
+                                      apt.medicalRecordId
+                                        ? `/doctor/medical-records?recordId=${apt.medicalRecordId}`
+                                        : `/doctor/medical-records?appointmentId=${apt.id}&patientId=${apt.patientId}`
+                                    }
+                                    className="flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-blue-700 active:scale-[0.98]"
+                                  >
+                                    Khám / Ghi bệnh án
+                                  </Link>
+                                  <button
+                                    disabled={
+                                      actionLoading === `${apt.id}-complete`
+                                    }
+                                    onClick={() =>
+                                      handleAction(apt.id, "complete")
+                                    }
+                                    className="flex items-center gap-1.5 rounded-lg border border-orange-300 bg-orange-50 px-3 py-1.5 text-xs font-semibold text-orange-700 transition-all hover:bg-orange-100 active:scale-[0.98] disabled:opacity-60 cursor-pointer"
+                                  >
+                                    {actionLoading === `${apt.id}-complete` && (
+                                      <SpinnerGap
+                                        size={12}
+                                        className="animate-spin"
+                                      />
+                                    )}
+                                    Kết thúc
+                                  </button>
+                                </div>
+                              )}
+                            {apt.type === "OFFLINE" &&
+                              (apt.status === "CONFIRMED" ||
+                                apt.status === "PENDING") && (
+                                <span className="rounded-lg border border-border bg-white px-4 py-1.5 text-xs font-medium text-muted-foreground opacity-60">
+                                  Chờ check-in
+                                </span>
+                              )}
+                            {apt.type === "OFFLINE" &&
+                              apt.status === "COMPLETED" && (
                                 <Link
                                   href={
                                     apt.medicalRecordId
                                       ? `/doctor/medical-records?recordId=${apt.medicalRecordId}`
-                                      : `/doctor/medical-records?appointmentId=${apt.id}&patientId=${apt.patientId}`
+                                      : "/doctor/medical-records"
                                   }
-                                  className="flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-blue-700 active:scale-[0.98]"
+                                  className="rounded-lg bg-brand/10 px-3 py-1.5 text-xs font-medium text-brand hover:bg-brand/20"
                                 >
-                                  Khám / Ghi bệnh án
+                                  Cập nhật hồ sơ
                                 </Link>
-                                <button
-                                  disabled={actionLoading === `${apt.id}-complete`}
-                                  onClick={() => handleAction(apt.id, "complete")}
-                                  className="flex items-center gap-1.5 rounded-lg border border-orange-300 bg-orange-50 px-3 py-1.5 text-xs font-semibold text-orange-700 transition-all hover:bg-orange-100 active:scale-[0.98] disabled:opacity-60 cursor-pointer"
-                                >
-                                  {actionLoading === `${apt.id}-complete` && (
-                                    <SpinnerGap size={12} className="animate-spin" />
-                                  )}
-                                  Kết thúc
-                                </button>
-                              </div>
-                            )}
-                            {apt.type === "OFFLINE" && (apt.status === "CONFIRMED" || apt.status === "PENDING") && (
-                              <span className="rounded-lg border border-border bg-white px-4 py-1.5 text-xs font-medium text-muted-foreground opacity-60">
-                                Chờ check-in
-                              </span>
-                            )}
-                            {apt.type === "OFFLINE" && apt.status === "COMPLETED" && (
-                              <Link
-                                href={
-                                  apt.medicalRecordId
-                                    ? `/doctor/medical-records?recordId=${apt.medicalRecordId}`
-                                    : "/doctor/medical-records"
-                                }
-                                className="rounded-lg bg-brand/10 px-3 py-1.5 text-xs font-medium text-brand hover:bg-brand/20"
-                              >
-                                Cập nhật hồ sơ
-                              </Link>
-                            )}
+                              )}
                           </div>
                         </div>
                       </div>

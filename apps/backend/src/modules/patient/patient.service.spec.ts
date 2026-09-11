@@ -41,6 +41,11 @@ describe('PatientService doctor patient list', () => {
                 status: 'SCHEDULED',
                 durationMinutes: 20,
               },
+              {
+                scheduledAt: new Date('2026-09-12T16:00:00.000Z'),
+                status: 'SCHEDULED',
+                durationMinutes: 20,
+              },
             ],
           },
         ]),
@@ -63,9 +68,9 @@ describe('PatientService doctor patient list', () => {
       lastService: 'Kham tong quat',
       lastStatus: 'COMPLETED',
       totalVisits: 2,
-      totalAppointments: 5,
+      totalAppointments: 6,
       hasActiveTreatmentPlan: true,
-      upcomingVisitsInNext7Days: 2,
+      upcomingVisitsInNext7Days: 3,
     });
   });
 
@@ -181,6 +186,7 @@ describe('PatientService doctor patient list', () => {
     expect(detail.appointments).toHaveLength(3);
     expect(detail.appointments.some((a) => a.type === 'ONLINE')).toBe(true);
     expect(detail.appointments.some((a) => a.type === 'OFFLINE')).toBe(true);
+    expect(prisma.invoice.findMany).not.toHaveBeenCalled();
   });
 
   it('only includes patients with confirmed/completed appointments or active consultations', async () => {
@@ -293,8 +299,16 @@ describe('PatientService receptionist patient rules', () => {
       expect.objectContaining({
         where: expect.objectContaining({
           AND: expect.arrayContaining([
-            { appointments: { some: expect.objectContaining({ status: 'COMPLETED' }) } },
-            { appointments: { none: expect.objectContaining({ status: 'COMPLETED' }) } },
+            {
+              appointments: {
+                some: expect.objectContaining({ status: 'COMPLETED' }),
+              },
+            },
+            {
+              appointments: {
+                none: expect.objectContaining({ status: 'COMPLETED' }),
+              },
+            },
           ]),
         }),
       }),
@@ -337,7 +351,9 @@ describe('PatientService receptionist patient rules', () => {
               fullName: 'Nguyen An',
               email: 'an@example.com',
               user: null,
-              appointments: [{ scheduledAt: new Date('2025-01-01T00:00:00.000Z') }],
+              appointments: [
+                { scheduledAt: new Date('2025-01-01T00:00:00.000Z') },
+              ],
             },
           ]),
         },
@@ -346,7 +362,9 @@ describe('PatientService receptionist patient rules', () => {
       { add: jest.fn().mockRejectedValue(new Error('queue down')) } as never,
     );
 
-    await expect(service.sendBulkPeriodicCheckupReminders()).resolves.toMatchObject({
+    await expect(
+      service.sendBulkPeriodicCheckupReminders(),
+    ).resolves.toMatchObject({
       success: false,
       sentCount: 0,
       failedCount: 1,

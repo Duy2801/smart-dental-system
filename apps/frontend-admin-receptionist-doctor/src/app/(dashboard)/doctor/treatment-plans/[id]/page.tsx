@@ -175,6 +175,7 @@ type PlanDetail = {
   progressPercent: number;
   steps: PlanStep[];
   createdAt: string;
+  updatedAt: string;
 };
 
 function formatDate(iso: string | null) {
@@ -214,7 +215,10 @@ export default function TreatmentPlanDetailPage() {
   const [expandedStep, setExpandedStep] = useState<string | null>(null);
 
   const [sendingEmail, setSendingEmail] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error";
+  } | null>(null);
 
   const handleSendEmail = async () => {
     if (!plan) return;
@@ -228,8 +232,7 @@ export default function TreatmentPlanDetailPage() {
       setTimeout(() => setToast(null), 4500);
     } catch (err: any) {
       const msg =
-        err.response?.data?.message ||
-        "Không thể gửi email phác đồ điều trị.";
+        err.response?.data?.message || "Không thể gửi email phác đồ điều trị.";
       setToast({
         message: Array.isArray(msg) ? msg[0] : msg,
         type: "error",
@@ -255,6 +258,7 @@ export default function TreatmentPlanDetailPage() {
     try {
       const res = await apiClient.patch<PlanDetail>(`/treatment-plans/${id}`, {
         status: newStatus,
+        expectedUpdatedAt: plan.updatedAt,
       });
       setPlan(res.data);
     } catch {
@@ -401,14 +405,18 @@ export default function TreatmentPlanDetailPage() {
             <div className="flex shrink-0 items-center gap-2">
               <button
                 onClick={handleSendEmail}
-                disabled={sendingEmail || plan.status === "CANCELLED" || plan.steps.length === 0}
+                disabled={
+                  sendingEmail ||
+                  plan.status === "CANCELLED" ||
+                  plan.steps.length === 0
+                }
                 className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3.5 py-2 text-sm font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 title={
                   plan.status === "CANCELLED"
                     ? "Không thể gửi email cho kế hoạch đã hủy"
                     : plan.steps.length === 0
-                    ? "Kế hoạch chưa có bước điều trị nào để gửi"
-                    : "Gửi phác đồ điều trị & bảng dự toán chi phí qua Gmail cho bệnh nhân"
+                      ? "Kế hoạch chưa có bước điều trị nào để gửi"
+                      : "Gửi phác đồ điều trị & bảng dự toán chi phí qua Gmail cho bệnh nhân"
                 }
               >
                 <PaperPlaneTilt
@@ -575,18 +583,19 @@ export default function TreatmentPlanDetailPage() {
                           <p className="truncate font-medium text-slate-900">
                             {step.title}
                           </p>
-                          {step.paymentStatus && paymentStatusMap[step.paymentStatus] && (
-                            <span
-                              className={cn(
-                                "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ring-inset",
-                                paymentStatusMap[step.paymentStatus].bg,
-                                paymentStatusMap[step.paymentStatus].text,
-                                paymentStatusMap[step.paymentStatus].ring,
-                              )}
-                            >
-                              {paymentStatusMap[step.paymentStatus].label}
-                            </span>
-                          )}
+                          {step.paymentStatus &&
+                            paymentStatusMap[step.paymentStatus] && (
+                              <span
+                                className={cn(
+                                  "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ring-inset",
+                                  paymentStatusMap[step.paymentStatus].bg,
+                                  paymentStatusMap[step.paymentStatus].text,
+                                  paymentStatusMap[step.paymentStatus].ring,
+                                )}
+                              >
+                                {paymentStatusMap[step.paymentStatus].label}
+                              </span>
+                            )}
                         </div>
                         <div className="mt-0.5 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                           {step.targetTooth && (
@@ -698,7 +707,8 @@ export default function TreatmentPlanDetailPage() {
                               Thanh toán
                             </p>
                             <div className="mt-1 flex items-center gap-2">
-                              {step.paymentStatus && paymentStatusMap[step.paymentStatus] ? (
+                              {step.paymentStatus &&
+                              paymentStatusMap[step.paymentStatus] ? (
                                 <span
                                   className={cn(
                                     "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset",
@@ -712,11 +722,12 @@ export default function TreatmentPlanDetailPage() {
                               ) : (
                                 <span className="text-slate-500">—</span>
                               )}
-                              {step.paymentAmount != null && step.paymentAmount > 0 && (
-                                <span className="text-xs font-semibold text-slate-700">
-                                  ({formatCurrency(step.paymentAmount)})
-                                </span>
-                              )}
+                              {step.paymentAmount != null &&
+                                step.paymentAmount > 0 && (
+                                  <span className="text-xs font-semibold text-slate-700">
+                                    ({formatCurrency(step.paymentAmount)})
+                                  </span>
+                                )}
                             </div>
                           </div>
                         </div>

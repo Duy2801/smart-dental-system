@@ -76,10 +76,12 @@ export const ModelName = {
   MedicalRecordAudit: 'MedicalRecordAudit',
   AiXrayAnalysisAudit: 'AiXrayAnalysisAudit',
   TreatmentPlan: 'TreatmentPlan',
+  TreatmentPlanAudit: 'TreatmentPlanAudit',
   TreatmentPlanStep: 'TreatmentPlanStep',
   ClinicalCase: 'ClinicalCase',
   Invoice: 'Invoice',
   Prescription: 'Prescription',
+  PrescriptionAudit: 'PrescriptionAudit',
   PrescriptionItem: 'PrescriptionItem',
   Payment: 'Payment',
   Review: 'Review',
@@ -516,10 +518,23 @@ export const TreatmentPlanScalarFieldEnum = {
   scheduleConfirmedAt: 'scheduleConfirmedAt',
   items: 'items',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  emailQueuedAt: 'emailQueuedAt'
 } as const
 
 export type TreatmentPlanScalarFieldEnum = (typeof TreatmentPlanScalarFieldEnum)[keyof typeof TreatmentPlanScalarFieldEnum]
+
+
+export const TreatmentPlanAuditScalarFieldEnum = {
+  id: 'id',
+  treatmentPlanId: 'treatmentPlanId',
+  action: 'action',
+  changedBy: 'changedBy',
+  previousData: 'previousData',
+  createdAt: 'createdAt'
+} as const
+
+export type TreatmentPlanAuditScalarFieldEnum = (typeof TreatmentPlanAuditScalarFieldEnum)[keyof typeof TreatmentPlanAuditScalarFieldEnum]
 
 
 export const TreatmentPlanStepScalarFieldEnum = {
@@ -598,10 +613,27 @@ export const PrescriptionScalarFieldEnum = {
   patientId: 'patientId',
   notes: 'notes',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  cancelledAt: 'cancelledAt',
+  cancelledBy: 'cancelledBy',
+  emailQueuedAt: 'emailQueuedAt',
+  safetyConfirmedAt: 'safetyConfirmedAt',
+  safetyOverride: 'safetyOverride'
 } as const
 
 export type PrescriptionScalarFieldEnum = (typeof PrescriptionScalarFieldEnum)[keyof typeof PrescriptionScalarFieldEnum]
+
+
+export const PrescriptionAuditScalarFieldEnum = {
+  id: 'id',
+  prescriptionId: 'prescriptionId',
+  action: 'action',
+  changedBy: 'changedBy',
+  previousData: 'previousData',
+  createdAt: 'createdAt'
+} as const
+
+export type PrescriptionAuditScalarFieldEnum = (typeof PrescriptionAuditScalarFieldEnum)[keyof typeof PrescriptionAuditScalarFieldEnum]
 
 
 export const PrescriptionItemScalarFieldEnum = {

@@ -28,7 +28,10 @@ import { getDoctorInfoFromCookie } from "@/src/lib/doctor/session";
 
 type PlanStatus = "PLANNED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
 
-const statusMap: Record<PlanStatus, { label: string; color: string; dot: string }> = {
+const statusMap: Record<
+  PlanStatus,
+  { label: string; color: string; dot: string }
+> = {
   PLANNED: {
     label: "Chưa bắt đầu",
     color: "bg-slate-100 text-slate-600 ring-slate-600/20",
@@ -51,7 +54,12 @@ const statusMap: Record<PlanStatus, { label: string; color: string; dot: string 
   },
 };
 
-const ALL_STATUSES: PlanStatus[] = ["PLANNED", "IN_PROGRESS", "COMPLETED", "CANCELLED"];
+const ALL_STATUSES: PlanStatus[] = [
+  "PLANNED",
+  "IN_PROGRESS",
+  "COMPLETED",
+  "CANCELLED",
+];
 
 type Plan = {
   id: string;
@@ -107,7 +115,9 @@ function DeleteModal({
             <Trash size={18} className="text-red-600" />
           </div>
           <div>
-            <h3 className="font-semibold text-brand-dark">Xóa kế hoạch điều trị?</h3>
+            <h3 className="font-semibold text-brand-dark">
+              Xóa kế hoạch điều trị?
+            </h3>
             <p className="mt-1 text-sm text-muted-foreground">
               Kế hoạch <strong>"{plan.title}"</strong> của bệnh nhân{" "}
               <strong>{plan.patientName}</strong> sẽ bị xóa vĩnh viễn cùng tất
@@ -149,7 +159,10 @@ export default function TreatmentPlansPage() {
   const [deleteTarget, setDeleteTarget] = useState<Plan | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [sendingId, setSendingId] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error";
+  } | null>(null);
 
   const [doctorId, setDoctorId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
@@ -173,7 +186,9 @@ export default function TreatmentPlansPage() {
       .get<Plan[]>(`/treatment-plans?doctorId=${doctorId}`)
       .then((res) => setPlans(res.data))
       .catch((err: any) => {
-        const msg = err.response?.data?.message || "Không thể tải danh sách kế hoạch điều trị.";
+        const msg =
+          err.response?.data?.message ||
+          "Không thể tải danh sách kế hoạch điều trị.";
         setError(Array.isArray(msg) ? msg[0] : msg);
       })
       .finally(() => setLoading(false));
@@ -196,8 +211,7 @@ export default function TreatmentPlansPage() {
       setTimeout(() => setToast(null), 4500);
     } catch (err: any) {
       const msg =
-        err.response?.data?.message ||
-        "Không thể gửi email phác đồ điều trị.";
+        err.response?.data?.message || "Không thể gửi email phác đồ điều trị.";
       setToast({
         message: Array.isArray(msg) ? msg[0] : msg,
         type: "error",
@@ -249,7 +263,9 @@ export default function TreatmentPlansPage() {
       setTimeout(() => setToast(null), 4000);
       setDeleteTarget(null);
     } catch (err: any) {
-      const msg = err.response?.data?.message || "Xóa kế hoạch thất bại. Vui lòng thử lại.";
+      const msg =
+        err.response?.data?.message ||
+        "Xóa kế hoạch thất bại. Vui lòng thử lại.";
       setToast({
         message: Array.isArray(msg) ? msg[0] : msg,
         type: "error",
@@ -261,7 +277,10 @@ export default function TreatmentPlansPage() {
     }
   };
 
-  const clearFilters = () => { setSearch(""); setFilterStatus(""); };
+  const clearFilters = () => {
+    setSearch("");
+    setFilterStatus("");
+  };
   const hasFilter = search.trim() || filterStatus;
 
   return (
@@ -341,10 +360,13 @@ export default function TreatmentPlansPage() {
               />
               <select
                 value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value as PlanStatus | "")}
+                onChange={(e) =>
+                  setFilterStatus(e.target.value as PlanStatus | "")
+                }
                 className={cn(
                   "w-full appearance-none rounded-xl border border-border bg-white py-2.5 pl-9 pr-9 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand cursor-pointer",
-                  filterStatus && "border-brand/40 bg-brand-50/20 font-medium text-brand-dark"
+                  filterStatus &&
+                    "border-brand/40 bg-brand-50/20 font-medium text-brand-dark",
                 )}
               >
                 <option value="">Tất cả trạng thái</option>
@@ -383,7 +405,11 @@ export default function TreatmentPlansPage() {
           </div>
         ) : !error && filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-2xl border border-border bg-white py-24 shadow-sm">
-            <ClipboardText size={48} className="mb-4 text-slate-300" weight="duotone" />
+            <ClipboardText
+              size={48}
+              className="mb-4 text-slate-300"
+              weight="duotone"
+            />
             <p className="text-sm text-muted-foreground">
               {plans.length === 0
                 ? "Chưa có kế hoạch điều trị nào"
@@ -410,9 +436,12 @@ export default function TreatmentPlansPage() {
             <div className="mb-3 flex items-center justify-between text-xs text-muted-foreground">
               <p>
                 Hiển thị{" "}
-                <strong className="text-brand-dark">{paginatedPlans.length}</strong> /{" "}
-                {filtered.length} kế hoạch
-                {filtered.length !== plans.length && ` (lọc từ ${plans.length})`}
+                <strong className="text-brand-dark">
+                  {paginatedPlans.length}
+                </strong>{" "}
+                / {filtered.length} kế hoạch
+                {filtered.length !== plans.length &&
+                  ` (lọc từ ${plans.length})`}
               </p>
               {hasFilter && (
                 <button
@@ -432,7 +461,9 @@ export default function TreatmentPlansPage() {
                 return (
                   <div
                     key={plan.id}
-                    onClick={() => router.push(`/doctor/treatment-plans/${plan.id}`)}
+                    onClick={() =>
+                      router.push(`/doctor/treatment-plans/${plan.id}`)
+                    }
                     className="group relative flex flex-col rounded-2xl border border-border bg-white p-5 shadow-sm transition-all hover:border-brand/40 hover:shadow-md cursor-pointer"
                   >
                     {/* Action buttons */}
@@ -441,7 +472,9 @@ export default function TreatmentPlansPage() {
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          router.push(`/doctor/treatment-plans/${plan.id}/edit`);
+                          router.push(
+                            `/doctor/treatment-plans/${plan.id}/edit`,
+                          );
                         }}
                         title="Sửa kế hoạch"
                         className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200/80 bg-white/95 text-slate-500 shadow-2xs backdrop-blur-xs transition-colors hover:border-brand/40 hover:bg-brand/10 hover:text-brand cursor-pointer"
@@ -503,24 +536,30 @@ export default function TreatmentPlansPage() {
                           s.color,
                         )}
                       >
-                        <span className={cn("h-1.5 w-1.5 rounded-full", s.dot)} />
+                        <span
+                          className={cn("h-1.5 w-1.5 rounded-full", s.dot)}
+                        />
                         {s.label}
                       </span>
-                      {plan.totalEstimatedCost != null && plan.totalEstimatedCost > 0 && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
-                          <CurrencyCircleDollar size={13} weight="bold" />
-                          {formatCurrency(plan.totalEstimatedCost)}
-                        </span>
-                      )}
+                      {plan.totalEstimatedCost != null &&
+                        plan.totalEstimatedCost > 0 && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
+                            <CurrencyCircleDollar size={13} weight="bold" />
+                            {formatCurrency(plan.totalEstimatedCost)}
+                          </span>
+                        )}
                     </div>
 
                     <div className="mt-auto space-y-4">
                       {plan.totalSteps > 0 && (
                         <div>
                           <div className="mb-1.5 flex items-center justify-between text-xs">
-                            <span className="text-muted-foreground">Tiến độ</span>
+                            <span className="text-muted-foreground">
+                              Tiến độ
+                            </span>
                             <span className="font-semibold text-brand-dark">
-                              {plan.completedSteps}/{plan.totalSteps} bước ({pct}%)
+                              {plan.completedSteps}/{plan.totalSteps} bước (
+                              {pct}%)
                             </span>
                           </div>
                           <div className="h-2 overflow-hidden rounded-full bg-slate-100">
@@ -537,7 +576,8 @@ export default function TreatmentPlansPage() {
 
                       <div className="flex items-center justify-between border-t border-border/50 pt-4 text-xs text-muted-foreground">
                         <span>
-                          {formatDate(plan.startDate)} → {formatDate(plan.expectedEndDate)}
+                          {formatDate(plan.startDate)} →{" "}
+                          {formatDate(plan.expectedEndDate)}
                         </span>
                         <div className="flex items-center gap-2">
                           <button
@@ -546,22 +586,32 @@ export default function TreatmentPlansPage() {
                               e.stopPropagation();
                               handleSendEmail(plan);
                             }}
-                            disabled={sendingId === plan.id || plan.status === "CANCELLED" || plan.totalSteps === 0}
+                            disabled={
+                              sendingId === plan.id ||
+                              plan.status === "CANCELLED" ||
+                              plan.totalSteps === 0
+                            }
                             title={
                               plan.status === "CANCELLED"
                                 ? "Không thể gửi email cho kế hoạch đã hủy"
                                 : plan.totalSteps === 0
-                                ? "Kế hoạch chưa có bước điều trị nào để gửi"
-                                : "Gửi phác đồ điều trị và dự toán chi phí qua email cho bệnh nhân"
+                                  ? "Kế hoạch chưa có bước điều trị nào để gửi"
+                                  : "Gửi phác đồ điều trị và dự toán chi phí qua email cho bệnh nhân"
                             }
                             className="inline-flex items-center gap-1 rounded-md px-2 py-1 font-semibold text-emerald-600 transition-colors hover:bg-emerald-50 hover:text-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                           >
                             <PaperPlaneTilt
                               size={12}
                               weight="bold"
-                              className={sendingId === plan.id ? "animate-spin" : ""}
+                              className={
+                                sendingId === plan.id ? "animate-spin" : ""
+                              }
                             />
-                            <span>{sendingId === plan.id ? "Đang gửi..." : "Gửi email"}</span>
+                            <span>
+                              {sendingId === plan.id
+                                ? "Đang gửi..."
+                                : "Gửi email"}
+                            </span>
                           </button>
                           <Link
                             href={`/doctor/treatment-plans/${plan.id}`}
@@ -582,8 +632,12 @@ export default function TreatmentPlansPage() {
             {totalPages > 1 && (
               <div className="mt-8 flex items-center justify-between border-t border-border pt-4">
                 <p className="text-xs text-muted-foreground">
-                  Trang <span className="font-semibold text-brand-dark">{page}</span> /{" "}
-                  <span className="font-semibold text-brand-dark">{totalPages}</span>
+                  Trang{" "}
+                  <span className="font-semibold text-brand-dark">{page}</span>{" "}
+                  /{" "}
+                  <span className="font-semibold text-brand-dark">
+                    {totalPages}
+                  </span>
                 </p>
                 <div className="flex items-center gap-2">
                   <button

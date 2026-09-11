@@ -18,7 +18,8 @@ const ERROR_MAP: Record<string, string> = {
   "availability.specific_date_required": "Vui lòng chọn ngày nghỉ.",
   "availability.day_or_specific_date_required": "Vui lòng chọn ngày nghỉ.",
   "availability.time_off_in_past": "Thời gian bắt đầu nghỉ phải ở tương lai.",
-  "availability.doctor_mismatch": "Bạn chỉ có thể đăng ký ngày nghỉ cho chính mình.",
+  "availability.doctor_mismatch":
+    "Bạn chỉ có thể đăng ký ngày nghỉ cho chính mình.",
 };
 
 function eachDate(from: string, to: string): string[] {
@@ -45,7 +46,8 @@ function isPastOrCurrentStart(date: string, time: string, now = new Date()) {
 }
 
 function apiErrorMessage(err: unknown): string {
-  if (!axios.isAxiosError(err)) return "Không thể gửi yêu cầu. Vui lòng thử lại.";
+  if (!axios.isAxiosError(err))
+    return "Không thể gửi yêu cầu. Vui lòng thử lại.";
   const raw = err.response?.data?.message;
   const key = Array.isArray(raw) ? raw[0] : raw;
   if (typeof key === "string" && ERROR_MAP[key]) return ERROR_MAP[key];
@@ -102,21 +104,29 @@ export function TimeOffModal({ doctorId, onClose, onSuccess }: Props) {
     }
 
     setLoading(true);
+    const createdIds: string[] = [];
     try {
       for (const date of dates) {
-        await apiClient.post("/doctor-availability", {
-          doctorId,
-          recordType: "TIME_OFF",
-          specificDate: date,
-          startTime,
-          endTime,
-          reason: form.reason.trim(),
-          isActive: true,
-        });
+        const response = await apiClient.post<{ id: string }>(
+          "/doctor-availability",
+          {
+            doctorId,
+            recordType: "TIME_OFF",
+            specificDate: date,
+            startTime,
+            endTime,
+            reason: form.reason.trim(),
+            isActive: true,
+          },
+        );
+        createdIds.push(response.data.id);
       }
       onSuccess();
       onClose();
     } catch (err) {
+      await Promise.allSettled(
+        createdIds.map((id) => apiClient.delete(`/doctor-availability/${id}`)),
+      );
       setError(apiErrorMessage(err));
     } finally {
       setLoading(false);
@@ -147,7 +157,10 @@ export function TimeOffModal({ doctorId, onClose, onSuccess }: Props) {
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-brand-dark">
-                Từ ngày <span className="text-rose-500" aria-hidden="true">*</span>
+                Từ ngày{" "}
+                <span className="text-rose-500" aria-hidden="true">
+                  *
+                </span>
               </label>
               <input
                 type="date"
@@ -158,7 +171,8 @@ export function TimeOffModal({ doctorId, onClose, onSuccess }: Props) {
                   setForm((f) => ({
                     ...f,
                     fromDate: e.target.value,
-                    toDate: f.toDate < e.target.value ? e.target.value : f.toDate,
+                    toDate:
+                      f.toDate < e.target.value ? e.target.value : f.toDate,
                   }))
                 }
                 className="rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand"
@@ -166,7 +180,10 @@ export function TimeOffModal({ doctorId, onClose, onSuccess }: Props) {
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-brand-dark">
-                Đến ngày <span className="text-rose-500" aria-hidden="true">*</span>
+                Đến ngày{" "}
+                <span className="text-rose-500" aria-hidden="true">
+                  *
+                </span>
               </label>
               <input
                 type="date"
@@ -184,7 +201,10 @@ export function TimeOffModal({ doctorId, onClose, onSuccess }: Props) {
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-brand-dark">
-                Từ giờ <span className="text-rose-500" aria-hidden="true">*</span>
+                Từ giờ{" "}
+                <span className="text-rose-500" aria-hidden="true">
+                  *
+                </span>
               </label>
               <input
                 type="time"
@@ -201,7 +221,10 @@ export function TimeOffModal({ doctorId, onClose, onSuccess }: Props) {
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-brand-dark">
-                Đến giờ <span className="text-rose-500" aria-hidden="true">*</span>
+                Đến giờ{" "}
+                <span className="text-rose-500" aria-hidden="true">
+                  *
+                </span>
               </label>
               <input
                 type="time"
@@ -220,7 +243,10 @@ export function TimeOffModal({ doctorId, onClose, onSuccess }: Props) {
 
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-brand-dark">
-              Lý do nghỉ <span className="text-rose-500" aria-hidden="true">*</span>
+              Lý do nghỉ{" "}
+              <span className="text-rose-500" aria-hidden="true">
+                *
+              </span>
             </label>
             <textarea
               rows={3}

@@ -24,7 +24,15 @@ import type { ScheduleAppointment, TimeOffRecord } from "./_components/types";
 
 type ViewMode = "week" | "list";
 
-const DAY_LABELS = ["Chủ Nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
+const DAY_LABELS = [
+  "Chủ Nhật",
+  "Thứ 2",
+  "Thứ 3",
+  "Thứ 4",
+  "Thứ 5",
+  "Thứ 6",
+  "Thứ 7",
+];
 
 function getWeekBounds(refDate: Date) {
   const d = new Date(refDate);
@@ -54,11 +62,15 @@ function buildWeekDays(from: Date) {
   });
 }
 
-function toScheduleAppointment(raw: Record<string, unknown>): ScheduleAppointment {
+function toScheduleAppointment(
+  raw: Record<string, unknown>,
+): ScheduleAppointment {
   const scheduledAt = raw.scheduledAt as string;
   const endAt = raw.endAt as string | null;
   const durationMinutes = endAt
-    ? Math.round((new Date(endAt).getTime() - new Date(scheduledAt).getTime()) / 60000)
+    ? Math.round(
+        (new Date(endAt).getTime() - new Date(scheduledAt).getTime()) / 60000,
+      )
     : 30;
   const patient = raw.patient as Record<string, unknown> | null;
   const patientUser = patient?.user as Record<string, unknown> | null;
@@ -74,9 +86,11 @@ function toScheduleAppointment(raw: Record<string, unknown>): ScheduleAppointmen
     dayIso: localDateStr(new Date(scheduledAt)),
     status: raw.status as ScheduleAppointment["status"],
     patientId: (patient?.id as string | undefined) ?? null,
-    patientName: (patient?.fullName as string) ?? (patientUser?.fullName as string) ?? "-",
+    patientName:
+      (patient?.fullName as string) ?? (patientUser?.fullName as string) ?? "-",
     patientCode: (patient?.patientCode as string) ?? "",
-    patientPhone: (patient?.phone as string) ?? (patientUser?.phone as string) ?? "",
+    patientPhone:
+      (patient?.phone as string) ?? (patientUser?.phone as string) ?? "",
     serviceName: (service?.name as string) ?? "-",
     notes: raw.notes as string | null,
     medicalRecordId: medicalRecords?.[0]?.id ?? null,
@@ -87,10 +101,9 @@ function toTimeOff(raw: Record<string, unknown>): TimeOffRecord | null {
   if (raw.recordType !== "TIME_OFF" || !raw.isActive) return null;
   const specificDate = raw.specificDate as string | null;
   if (!specificDate) return null;
-  const approvalStatus =
-    raw.approvalStatus === "PENDING" || raw.approvalStatus === "REJECTED"
-      ? raw.approvalStatus
-      : "APPROVED";
+  if (!["PENDING", "APPROVED", "REJECTED"].includes(String(raw.approvalStatus)))
+    return null;
+  const approvalStatus = raw.approvalStatus as TimeOffRecord["approvalStatus"];
   return {
     id: raw.id as string,
     dayIso: localDateStr(new Date(specificDate)),
@@ -182,7 +195,10 @@ export default function DoctorSchedulePage() {
 
   async function handleStatusChange(id: string, action: "start" | "complete") {
     setActionError(null);
-    const endpoint = action === "start" ? `/appointments/${id}/start` : `/appointments/${id}/complete`;
+    const endpoint =
+      action === "start"
+        ? `/appointments/${id}/start`
+        : `/appointments/${id}/complete`;
     try {
       await apiClient.patch(endpoint);
       await fetchSchedule();
@@ -219,8 +235,14 @@ export default function DoctorSchedulePage() {
     const total = appointments.length;
     const offline = appointments.filter((a) => a.type === "OFFLINE").length;
     const online = appointments.filter((a) => a.type === "ONLINE").length;
-    const completed = appointments.filter((a) => a.status === "COMPLETED").length;
-    const timeOffDays = new Set(timeOffs.map((t) => t.dayIso)).size;
+    const completed = appointments.filter(
+      (a) => a.status === "COMPLETED",
+    ).length;
+    const timeOffDays = new Set(
+      timeOffs
+        .filter((t) => t.approvalStatus !== "REJECTED")
+        .map((t) => t.dayIso),
+    ).size;
 
     return { total, offline, online, completed, timeOffDays };
   }, [appointments, timeOffs]);
@@ -248,10 +270,16 @@ export default function DoctorSchedulePage() {
               <CalendarCheck size={22} weight="duotone" />
             </div>
             <div>
-              <p className="text-xs font-medium text-muted-foreground">Tổng ca tuần này</p>
+              <p className="text-xs font-medium text-muted-foreground">
+                Tổng ca tuần này
+              </p>
               <div className="flex items-baseline gap-1 mt-0.5">
-                <span className="font-mono text-xl font-extrabold text-brand-dark">{stats.total}</span>
-                <span className="text-xs text-muted-foreground font-medium">ca ({stats.offline} trực tiếp)</span>
+                <span className="font-mono text-xl font-extrabold text-brand-dark">
+                  {stats.total}
+                </span>
+                <span className="text-xs text-muted-foreground font-medium">
+                  ca ({stats.offline} trực tiếp)
+                </span>
               </div>
             </div>
           </div>
@@ -261,10 +289,16 @@ export default function DoctorSchedulePage() {
               <VideoCamera size={22} weight="duotone" />
             </div>
             <div>
-              <p className="text-xs font-medium text-muted-foreground">Tư vấn Video Online</p>
+              <p className="text-xs font-medium text-muted-foreground">
+                Tư vấn Video Online
+              </p>
               <div className="flex items-baseline gap-1 mt-0.5">
-                <span className="font-mono text-xl font-extrabold text-blue-700">{stats.online}</span>
-                <span className="text-xs text-muted-foreground font-medium">ca</span>
+                <span className="font-mono text-xl font-extrabold text-blue-700">
+                  {stats.online}
+                </span>
+                <span className="text-xs text-muted-foreground font-medium">
+                  ca
+                </span>
               </div>
             </div>
           </div>
@@ -274,10 +308,16 @@ export default function DoctorSchedulePage() {
               <CheckCircle size={22} weight="duotone" />
             </div>
             <div>
-              <p className="text-xs font-medium text-muted-foreground">Đã hoàn thành</p>
+              <p className="text-xs font-medium text-muted-foreground">
+                Đã hoàn thành
+              </p>
               <div className="flex items-baseline gap-1 mt-0.5">
-                <span className="font-mono text-xl font-extrabold text-emerald-700">{stats.completed}</span>
-                <span className="text-xs text-muted-foreground font-medium">ca khám</span>
+                <span className="font-mono text-xl font-extrabold text-emerald-700">
+                  {stats.completed}
+                </span>
+                <span className="text-xs text-muted-foreground font-medium">
+                  ca khám
+                </span>
               </div>
             </div>
           </div>
@@ -287,10 +327,16 @@ export default function DoctorSchedulePage() {
               <Clock size={22} weight="duotone" />
             </div>
             <div>
-              <p className="text-xs font-medium text-muted-foreground">Đăng ký ngày nghỉ</p>
+              <p className="text-xs font-medium text-muted-foreground">
+                Đăng ký ngày nghỉ
+              </p>
               <div className="flex items-baseline gap-1 mt-0.5">
-                <span className="font-mono text-xl font-extrabold text-amber-700">{stats.timeOffDays}</span>
-                <span className="text-xs text-muted-foreground font-medium">ngày</span>
+                <span className="font-mono text-xl font-extrabold text-amber-700">
+                  {stats.timeOffDays}
+                </span>
+                <span className="text-xs text-muted-foreground font-medium">
+                  ngày
+                </span>
               </div>
             </div>
           </div>
@@ -338,7 +384,9 @@ export default function DoctorSchedulePage() {
             >
               <CaretLeft size={16} />
             </button>
-            <span className="min-w-[160px] text-center font-bold">{weekLabel}</span>
+            <span className="min-w-[160px] text-center font-bold">
+              {weekLabel}
+            </span>
             <button
               onClick={nextWeek}
               className="rounded p-1.5 text-muted-foreground hover:bg-muted cursor-pointer"

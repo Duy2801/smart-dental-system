@@ -6,11 +6,7 @@ import { TreatmentPlanController } from './treatment-plan.controller';
 import { TreatmentPlanService } from './treatment-plan.service';
 
 @Module({
-  imports: [
-    PrismaModule,
-    MailModule,
-    SocketModule,
-  ],
+  imports: [PrismaModule, MailModule, SocketModule],
   controllers: [TreatmentPlanController],
   providers: [TreatmentPlanService],
   exports: [TreatmentPlanService],

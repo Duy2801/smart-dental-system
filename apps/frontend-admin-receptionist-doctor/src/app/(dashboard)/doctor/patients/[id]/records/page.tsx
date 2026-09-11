@@ -94,7 +94,7 @@ export default function PatientRecordsPage() {
     Promise.all([
       apiClient.get<PatientBasic>(`/patients/${id}?doctorId=${doctorId}`),
       apiClient.get<RecordSummary[]>(
-        `/medical-records?patientId=${id}&allDoctors=true`,
+        `/medical-records?doctorId=${doctorId}&patientId=${id}`,
       ),
     ])
       .then(([ptRes, recRes]) => {

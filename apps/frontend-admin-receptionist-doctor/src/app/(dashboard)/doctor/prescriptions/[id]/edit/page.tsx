@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -39,6 +39,7 @@ type PrescriptionDetail = {
   notes: string | null;
   items: PrescriptionItem[];
   createdAt: string;
+  updatedAt: string;
 };
 
 type MedItem = {
@@ -71,6 +72,8 @@ export default function EditPrescriptionPage() {
   const [submitting, setSubmitting] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const savedSnapshot = useRef("");
+  const currentSnapshot = JSON.stringify({ notes, medications });
   const safetyReview = usePrescriptionSafetyReview({
     patientId: prescription?.patientId,
     medicalRecordId: prescription?.medicalRecordId,
@@ -86,22 +89,57 @@ export default function EditPrescriptionPage() {
         const rx = res.data;
         setPrescription(rx);
         setNotes(rx.notes ?? "");
-        setMedications(
-          rx.items.map((item, i) => ({
-            key: i + 1,
-            medicineName: item.medicineName,
-            dosage: item.dosage,
-            frequency: item.frequency ?? "",
-            duration: item.duration ?? "",
-            instruction: item.instruction ?? "",
-          })),
-        );
+        const loadedMedications = rx.items.map((item, i) => ({
+          key: i + 1,
+          medicineName: item.medicineName,
+          dosage: item.dosage,
+          frequency: item.frequency ?? "",
+          duration: item.duration ?? "",
+          instruction: item.instruction ?? "",
+        }));
+        setMedications(loadedMedications);
+        savedSnapshot.current = JSON.stringify({
+          notes: rx.notes ?? "",
+          medications: loadedMedications,
+        });
       })
       .catch(() => setFetchError("Không thể tải thông tin đơn thuốc."))
       .finally(() => setLoading(false));
   }, [id]);
 
+  useEffect(() => {
+    if (
+      !savedSnapshot.current ||
+      currentSnapshot === savedSnapshot.current ||
+      success
+    )
+      return;
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    const guardLinks = (event: MouseEvent) => {
+      if (event.defaultPrevented || event.button !== 0) return;
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const anchor = target.closest<HTMLAnchorElement>("a[href]");
+      if (!anchor || anchor.origin !== window.location.origin) return;
+      if (
+        !window.confirm(
+          "Đơn thuốc có thay đổi chưa lưu. Bạn có chắc muốn rời trang?",
+        )
+      ) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
+    window.addEventListener("beforeunload", warn);
+    document.addEventListener("click", guardLinks);
+    return () => {
+      window.removeEventListener("beforeunload", warn);
+      document.removeEventListener("click", guardLinks);
+    };
+  }, [currentSnapshot, success]);
+
   const addMedication = () => {
+    if (medications.length >= 50) return;
     setMedications((prev) => [
       ...prev,
       {
@@ -132,6 +170,7 @@ export default function EditPrescriptionPage() {
   };
 
   const handleSubmit = async () => {
+    if (!prescription) return;
     const activeMeds = medications.filter(
       (m) =>
         m.medicineName.trim() ||
@@ -162,7 +201,7 @@ export default function EditPrescriptionPage() {
     setSubmitting(true);
     try {
       await apiClient.patch(`/prescriptions/${id}`, {
-        notes: notes.trim() || undefined,
+        notes: notes.trim(),
         items: filled.map((m) => ({
           medicineName: m.medicineName.trim(),
           dosage: m.dosage.trim(),
@@ -170,18 +209,24 @@ export default function EditPrescriptionPage() {
           duration: m.duration.trim() || undefined,
           instruction: m.instruction.trim() || undefined,
         })),
+        expectedUpdatedAt: prescription.updatedAt,
+        safetyAcknowledged: true,
+        safetyOverride: safetyReview.overrideConfirmed,
       });
       setSuccess(true);
       setTimeout(() => {
         if (prescription?.medicalRecordId) {
-          router.push(`/doctor/medical-records?recordId=${prescription.medicalRecordId}`);
+          router.push(
+            `/doctor/medical-records?recordId=${prescription.medicalRecordId}`,
+          );
         } else {
           router.push("/doctor/prescriptions");
         }
       }, 1500);
     } catch (err: any) {
       const msg =
-        err.response?.data?.message || "Lưu đơn thuốc thất bại. Vui lòng thử lại.";
+        err.response?.data?.message ||
+        "Lưu đơn thuốc thất bại. Vui lòng thử lại.";
       setSaveError(Array.isArray(msg) ? msg[0] : msg);
     } finally {
       setSubmitting(false);
@@ -230,7 +275,9 @@ export default function EditPrescriptionPage() {
             className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-brand-dark"
           >
             <ArrowLeft size={16} />
-            {prescription.medicalRecordId ? "Quay lại bệnh án" : "Quay lại danh sách"}
+            {prescription.medicalRecordId
+              ? "Quay lại bệnh án"
+              : "Quay lại danh sách"}
           </Link>
 
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -449,6 +496,7 @@ export default function EditPrescriptionPage() {
                 <button
                   type="button"
                   onClick={addMedication}
+                  disabled={medications.length >= 50}
                   className="inline-flex items-center gap-1.5 text-sm font-medium text-brand transition-colors hover:text-brand-dark cursor-pointer"
                 >
                   <Plus size={15} weight="bold" />

@@ -38,13 +38,26 @@ type AvailabilityRecord = {
   isActive: boolean;
 };
 
-
 @Injectable()
 export class DoctorAvailabilityService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly clinicConfigService: ClinicConfigService,
   ) {}
+
+  async assertDoctorAccess(user: AuthenticatedUser, doctorId: string) {
+    if (
+      !user.roles.includes('DOCTOR') ||
+      user.roles.some((role) => role === 'ADMIN' || role === 'RECEPTIONIST')
+    )
+      return;
+    const doctor = await this.prisma.doctor.findUnique({
+      where: { userId: user.userId },
+      select: { id: true },
+    });
+    if (!doctor || doctor.id !== doctorId)
+      throw new ForbiddenException('availability.doctor_mismatch');
+  }
 
   async findByDoctor(doctorId: string) {
     await this.ensureDoctorExists(doctorId);
@@ -72,7 +85,13 @@ export class DoctorAvailabilityService {
     startTime?: string;
     endTime?: string;
   }) {
-    const { doctorId, specificDate, dayOfWeek, startTime = '00:00', endTime = '23:59' } = query;
+    const {
+      doctorId,
+      specificDate,
+      dayOfWeek,
+      startTime = '00:00',
+      endTime = '23:59',
+    } = query;
     if (!doctorId) return { hasConflict: false, conflicts: [] };
 
     if (specificDate) {
@@ -125,7 +144,8 @@ export class DoctorAvailabilityService {
     const conflicts = appointments.filter((app) => {
       const appDay = app.scheduledAt.getUTCDay();
       const targetDay = dayOfWeek === 7 ? 0 : dayOfWeek;
-      if (targetDay !== undefined && targetDay !== null && appDay !== targetDay) return false;
+      if (targetDay !== undefined && targetDay !== null && appDay !== targetDay)
+        return false;
 
       const appStart = app.scheduledAt.toISOString().slice(11, 16);
       const appEnd = app.endAt.toISOString().slice(11, 16);
@@ -213,8 +233,11 @@ export class DoctorAvailabilityService {
     });
   }
 
-
-  async autoCreateWeekly(dto: AutoWeeklyAvailabilityDto) {
+  async autoCreateWeekly(
+    user: AuthenticatedUser,
+    dto: AutoWeeklyAvailabilityDto,
+  ) {
+    await this.assertDoctorAccess(user, dto.doctorId);
     await this.ensureDoctorExists(dto.doctorId);
 
     const daysOfWeek = [...new Set(dto.daysOfWeek)].sort((a, b) => a - b);
@@ -270,7 +293,11 @@ export class DoctorAvailabilityService {
     });
   }
 
-  async update(id: string, dto: UpdateDoctorAvailabilityDto) {
+  async update(
+    user: AuthenticatedUser,
+    id: string,
+    dto: UpdateDoctorAvailabilityDto,
+  ) {
     const current = await this.prisma.doctorAvailability.findUnique({
       where: { id },
     });
@@ -278,6 +305,7 @@ export class DoctorAvailabilityService {
     if (!current) {
       throw new NotFoundException('availability.not_found');
     }
+    await this.assertDoctorAccess(user, current.doctorId);
 
     const next = {
       doctorId: dto.doctorId ?? current.doctorId,
@@ -324,7 +352,10 @@ export class DoctorAvailabilityService {
     });
   }
 
-  async updateApprovalStatus(id: string, approvalStatus: AvailabilityApprovalStatus) {
+  async updateApprovalStatus(
+    id: string,
+    approvalStatus: AvailabilityApprovalStatus,
+  ) {
     const current = await this.prisma.doctorAvailability.findUnique({
       where: { id },
     });
@@ -379,8 +410,9 @@ export class DoctorAvailabilityService {
             a.approvalStatus === AvailabilityApprovalStatus.APPROVED,
         );
 
-
-        const isAvailable = (shifts.length > 0 || dateOverrides.length > 0) && timeOffs.length === 0;
+        const isAvailable =
+          (shifts.length > 0 || dateOverrides.length > 0) &&
+          timeOffs.length === 0;
 
         return {
           doctorId: doc.id,
@@ -393,7 +425,9 @@ export class DoctorAvailabilityService {
         };
       });
 
-      const activeDoctorCount = doctorShifts.filter((d) => d.isAvailable).length;
+      const activeDoctorCount = doctorShifts.filter(
+        (d) => d.isAvailable,
+      ).length;
 
       return {
         dayOfWeek,
@@ -408,7 +442,7 @@ export class DoctorAvailabilityService {
     return { doctors, days };
   }
 
-  async remove(id: string, force = false) {
+  async remove(user: AuthenticatedUser, id: string, force = false) {
     const current = await this.prisma.doctorAvailability.findUnique({
       where: { id },
     });
@@ -416,6 +450,7 @@ export class DoctorAvailabilityService {
     if (!current) {
       throw new NotFoundException('availability.not_found');
     }
+    await this.assertDoctorAccess(user, current.doctorId);
 
     if (!force) {
       const conflictCheck = await this.checkConflicts({
@@ -441,7 +476,6 @@ export class DoctorAvailabilityService {
 
     return { message: 'availability.deleted' };
   }
-
 
   private async ensureDoctorExists(doctorId: string) {
     const doctor = await this.prisma.doctor.findUnique({
@@ -642,8 +676,8 @@ export class DoctorAvailabilityService {
 
   private groupWeekly(records: AvailabilityRecord[]) {
     return [1, 2, 3, 4, 5, 6, 0].map((dayOfWeek) => {
-      const dayRecords = records.filter(
-        (record) => this.matchesDayOfWeek(record, dayOfWeek),
+      const dayRecords = records.filter((record) =>
+        this.matchesDayOfWeek(record, dayOfWeek),
       );
       const shifts = dayRecords.filter(
         (record) => record.recordType === AvailabilityRecordType.WEEKLY,
@@ -664,7 +698,6 @@ export class DoctorAvailabilityService {
       };
     });
   }
-
 
   private getDayLabel(dayOfWeek: number) {
     const labels: Record<number, string> = {

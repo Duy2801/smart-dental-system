@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import {
   AvailabilityApprovalStatus,
   AvailabilityRecordType,
@@ -82,5 +82,12 @@ describe('DoctorAvailabilityService.create', () => {
         approvalStatus: AvailabilityApprovalStatus.APPROVED,
       }),
     });
+  });
+
+  it('rejects a doctor accessing another doctor availability', async () => {
+    prisma.doctor.findUnique.mockResolvedValue({ id: 'another-doctor' });
+    await expect(
+      service.assertDoctorAccess(doctorUser, doctorId),
+    ).rejects.toEqual(new ForbiddenException('availability.doctor_mismatch'));
   });
 });

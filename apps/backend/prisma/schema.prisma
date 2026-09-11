@@ -733,6 +733,7 @@ model TreatmentPlan {
   items                 Json?
   createdAt             DateTime               @default(now()) @map("created_at")
   updatedAt             DateTime               @updatedAt @map("updated_at")
+  emailQueuedAt         DateTime?              @map("email_queued_at")
 
   patient       Patient             @relation(fields: [patientId], references: [id], onDelete: Restrict)
   doctor        Doctor              @relation(fields: [doctorId], references: [id], onDelete: Restrict)
@@ -740,11 +741,26 @@ model TreatmentPlan {
   clinicalCases ClinicalCase[]
   invoices      Invoice[]
   notifications Notification[]
+  audits        TreatmentPlanAudit[]
 
   @@index([patientId, status])
   @@index([doctorId])
   @@index([schedulePaymentStatus])
   @@map("treatment_plans")
+}
+
+model TreatmentPlanAudit {
+  id              String   @id @default(uuid()) @db.Uuid
+  treatmentPlanId String   @map("treatment_plan_id") @db.Uuid
+  action          String
+  changedBy       String   @map("changed_by") @db.Uuid
+  previousData    Json?    @map("previous_data")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  treatmentPlan TreatmentPlan @relation(fields: [treatmentPlanId], references: [id], onDelete: Restrict)
+
+  @@index([treatmentPlanId, createdAt])
+  @@map("treatment_plan_audits")
 }
 
 model TreatmentPlanStep {
@@ -863,18 +879,38 @@ model Prescription {
   notes               String?  @db.Text
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @updatedAt @map("updated_at")
+  cancelledAt         DateTime? @map("cancelled_at")
+  cancelledBy         String?   @map("cancelled_by") @db.Uuid
+  emailQueuedAt       DateTime? @map("email_queued_at")
+  safetyConfirmedAt   DateTime  @default(now()) @map("safety_confirmed_at")
+  safetyOverride      Boolean   @default(false) @map("safety_override")
 
-  medicalRecord     MedicalRecord      @relation(fields: [medicalRecordId], references: [id], onDelete: Cascade)
+  medicalRecord     MedicalRecord      @relation(fields: [medicalRecordId], references: [id], onDelete: Restrict)
   treatmentPlanStep TreatmentPlanStep? @relation(fields: [treatmentPlanStepId], references: [id], onDelete: SetNull)
   doctor            Doctor             @relation(fields: [doctorId], references: [id], onDelete: Restrict)
   patient           Patient            @relation(fields: [patientId], references: [id], onDelete: Restrict)
   items             PrescriptionItem[]
+  audits            PrescriptionAudit[]
 
   @@index([medicalRecordId])
   @@index([treatmentPlanStepId])
   @@index([doctorId])
   @@index([patientId, createdAt])
   @@map("prescriptions")
+}
+
+model PrescriptionAudit {
+  id             String   @id @default(uuid()) @db.Uuid
+  prescriptionId String   @map("prescription_id") @db.Uuid
+  action         String
+  changedBy      String   @map("changed_by") @db.Uuid
+  previousData   Json?    @map("previous_data")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  prescription Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Restrict)
+
+  @@index([prescriptionId, createdAt])
+  @@map("prescription_audits")
 }
 
 model PrescriptionItem {

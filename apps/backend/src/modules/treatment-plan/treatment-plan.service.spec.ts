@@ -23,6 +23,13 @@ describe('TreatmentPlanService', () => {
         create: jest.fn(),
         update: jest.fn(),
         delete: jest.fn(),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+      treatmentPlanAudit: {
+        create: jest.fn().mockResolvedValue({}),
+      },
+      medicalRecord: {
+        findFirst: jest.fn().mockResolvedValue({ id: 'record-1' }),
       },
       treatmentPlanStep: {
         findFirst: jest.fn(),
@@ -133,7 +140,11 @@ describe('TreatmentPlanService', () => {
           fullName: 'Trần Thị Khách',
           patientCode: 'BN-202',
           email: 'tranthikhach@gmail.com',
-          user: { id: 'usr-pat-1', email: 'tranthikhach@gmail.com', fullName: 'Trần Thị Khách' },
+          user: {
+            id: 'usr-pat-1',
+            email: 'tranthikhach@gmail.com',
+            fullName: 'Trần Thị Khách',
+          },
         },
         doctor: { user: { fullName: 'Trần Hữu Nam' } },
         steps: [
@@ -339,11 +350,7 @@ describe('TreatmentPlanService', () => {
       });
 
       await expect(
-        service.update(
-          'tp-1',
-          { startDate: '2026-10-01' },
-          doctorUser,
-        ),
+        service.update('tp-1', { startDate: '2026-10-01' }, doctorUser),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -357,11 +364,7 @@ describe('TreatmentPlanService', () => {
       });
 
       await expect(
-        service.update(
-          'tp-1',
-          { expectedEndDate: '2026-09-01' },
-          doctorUser,
-        ),
+        service.update('tp-1', { expectedEndDate: '2026-09-01' }, doctorUser),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -419,4 +422,3 @@ describe('TreatmentPlanService', () => {
     });
   });
 });
-

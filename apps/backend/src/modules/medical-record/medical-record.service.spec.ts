@@ -32,7 +32,9 @@ describe('MedicalRecordService - followUpDate validation', () => {
         findUnique: jest.fn(),
         update: jest.fn(),
       },
-      $transaction: jest.fn(async (cb: (tx: any) => Promise<any>) => cb(txMock)),
+      $transaction: jest.fn(async (cb: (tx: any) => Promise<any>) =>
+        cb(txMock),
+      ),
       doctor: {
         findUnique: jest.fn(),
       },
@@ -128,7 +130,11 @@ describe('MedicalRecordService - followUpDate validation', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
         patient: { fullName: 'Nguyen Van A', patientCode: 'P01' },
-        appointment: { id: 'apt-1', scheduledAt: new Date(), service: { name: 'Trám răng' } },
+        appointment: {
+          id: 'apt-1',
+          scheduledAt: new Date(),
+          service: { name: 'Trám răng' },
+        },
         _count: { prescriptionRecords: 1 },
       },
     ]);
@@ -166,12 +172,22 @@ describe('MedicalRecordService - followUpDate validation', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
         patient: { fullName: 'Nguyen Van A', patientCode: 'P01' },
-        appointment: { id: 'apt-2', scheduledAt: new Date(), service: { name: 'Chữa tủy' } },
+        appointment: {
+          id: 'apt-2',
+          scheduledAt: new Date(),
+          service: { name: 'Chữa tủy' },
+        },
         _count: { prescriptionRecords: 2 },
       },
     ]);
 
-    const list = await service.findByDoctor('doc-1', 'pat-1', undefined, adminUser, true);
+    const list = await service.findByDoctor(
+      'doc-1',
+      'pat-1',
+      undefined,
+      adminUser,
+      true,
+    );
     expect(prismaMock.medicalRecord.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
@@ -188,5 +204,21 @@ describe('MedicalRecordService - followUpDate validation', () => {
       prescriptionCount: 2,
     });
   });
-});
 
+  it('rejects a file whose content does not match its declared image type', async () => {
+    await expect(
+      service.uploadImage(
+        'rec-1',
+        adminUser,
+        {
+          buffer: Buffer.from('not a png'),
+          mimetype: 'image/png',
+          originalname: 'fake.png',
+        },
+        {},
+      ),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(prismaMock.medicalRecord.findUnique).not.toHaveBeenCalled();
+  });
+});

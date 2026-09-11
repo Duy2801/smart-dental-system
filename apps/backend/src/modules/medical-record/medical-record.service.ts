@@ -127,15 +127,29 @@ export class MedicalRecordService {
       const ownDoctorId = await this.resolveDoctorIdByUserId(user.userId);
       const [relAppt, relVideo, relPlan, relRecord] = await Promise.all([
         this.prisma.appointment.findFirst({
-          where: { patientId, doctorId: ownDoctorId },
+          where: {
+            patientId,
+            doctorId: ownDoctorId,
+            status: {
+              in: ['CONFIRMED', 'CHECKED_IN', 'IN_PROGRESS', 'COMPLETED'],
+            },
+          },
           select: { id: true },
         }),
         this.prisma.videoConsultation.findFirst({
-          where: { patientId, doctorId: ownDoctorId },
+          where: {
+            patientId,
+            doctorId: ownDoctorId,
+            status: { in: ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED'] },
+          },
           select: { id: true },
         }),
         this.prisma.treatmentPlan.findFirst({
-          where: { patientId, doctorId: ownDoctorId },
+          where: {
+            patientId,
+            doctorId: ownDoctorId,
+            status: { in: ['PLANNED', 'IN_PROGRESS'] },
+          },
           select: { id: true },
         }),
         this.prisma.medicalRecord.findFirst({
@@ -325,8 +339,30 @@ export class MedicalRecordService {
     if (!file?.buffer?.length) {
       throw new BadRequestException('Chưa chọn file ảnh');
     }
-    if (!file.mimetype.startsWith('image/')) {
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)) {
       throw new BadRequestException('Chỉ chấp nhận file ảnh');
+    }
+
+    const validSignature =
+      (file.mimetype === 'image/jpeg' &&
+        file.buffer.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff]))) ||
+      (file.mimetype === 'image/png' &&
+        file.buffer
+          .subarray(0, 8)
+          .equals(
+            Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+          )) ||
+      (file.mimetype === 'image/webp' &&
+        file.buffer.subarray(0, 4).toString() === 'RIFF' &&
+        file.buffer.subarray(8, 12).toString() === 'WEBP');
+    if (!validSignature) {
+      throw new BadRequestException('medical_record.invalid_image_content');
+    }
+    if (meta.caption && meta.caption.trim().length > 200) {
+      throw new BadRequestException('medical_record.image_caption_too_long');
+    }
+    if (meta.type && !['xray', 'intraoral', 'other'].includes(meta.type)) {
+      throw new BadRequestException('medical_record.invalid_image_type');
     }
 
     const row = await this.prisma.medicalRecord.findUnique({
@@ -348,23 +384,45 @@ export class MedicalRecordService {
       publicId: `${id.slice(0, 8)}-${randomUUID()}`,
     });
 
-    const nextImages = [
-      ...current,
-      {
-        id: randomUUID(),
-        url,
-        caption: meta.caption?.trim() || file.originalname || null,
-        type: meta.type ?? 'xray',
-      },
-    ];
-
-    const updated = await this.prisma.medicalRecord.update({
-      where: { id },
-      data: {
-        images: nextImages as unknown as Prisma.InputJsonValue,
-      },
-      include: recordInclude,
+    const uploadedImage = {
+      id: randomUUID(),
+      url,
+      caption: meta.caption?.trim() || file.originalname || null,
+      type: meta.type ?? 'xray',
+    };
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const latest = await tx.medicalRecord.findUnique({
+        where: { id },
+        select: { images: true, updatedAt: true },
+      });
+      if (!latest) throw new NotFoundException('medical_record.not_found');
+      const latestImages = Array.isArray(latest.images)
+        ? (latest.images as RecordImage[])
+        : [];
+      if (latestImages.length >= 20) {
+        throw new BadRequestException('medical_record.image_limit');
+      }
+      const nextImages = [...latestImages, uploadedImage];
+      const write = await tx.medicalRecord.updateMany({
+        where: { id, updatedAt: latest.updatedAt },
+        data: { images: nextImages as unknown as Prisma.InputJsonValue },
+      });
+      if (write.count !== 1) {
+        throw new ConflictException('medical_record.concurrent_image_upload');
+      }
+      await tx.medicalRecordAudit.create({
+        data: {
+          medicalRecordId: id,
+          changedBy: user.userId,
+          previousData: { images: latest.images } as Prisma.InputJsonValue,
+        },
+      });
+      return tx.medicalRecord.findUnique({
+        where: { id },
+        include: recordInclude,
+      });
     });
+    if (!updated) throw new NotFoundException('medical_record.not_found');
     void this.redis.del(`patient:records:${updated.patientId}`);
     return this.toDetail(updated);
   }
@@ -393,15 +451,29 @@ export class MedicalRecordService {
     // Bác sĩ có thể đọc hồ sơ nếu có bất kỳ quan hệ khám/điều trị nào với bệnh nhân này
     const [relAppt, relVideo, relPlan, relRecord] = await Promise.all([
       this.prisma.appointment.findFirst({
-        where: { patientId: record.patientId, doctorId: ownDoctorId },
+        where: {
+          patientId: record.patientId,
+          doctorId: ownDoctorId,
+          status: {
+            in: ['CONFIRMED', 'CHECKED_IN', 'IN_PROGRESS', 'COMPLETED'],
+          },
+        },
         select: { id: true },
       }),
       this.prisma.videoConsultation.findFirst({
-        where: { patientId: record.patientId, doctorId: ownDoctorId },
+        where: {
+          patientId: record.patientId,
+          doctorId: ownDoctorId,
+          status: { in: ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED'] },
+        },
         select: { id: true },
       }),
       this.prisma.treatmentPlan.findFirst({
-        where: { patientId: record.patientId, doctorId: ownDoctorId },
+        where: {
+          patientId: record.patientId,
+          doctorId: ownDoctorId,
+          status: { in: ['PLANNED', 'IN_PROGRESS'] },
+        },
         select: { id: true },
       }),
       this.prisma.medicalRecord.findFirst({

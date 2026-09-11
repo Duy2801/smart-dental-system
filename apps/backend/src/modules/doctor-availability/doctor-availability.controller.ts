@@ -74,8 +74,11 @@ export class DoctorAvailabilityController {
   @Post('auto-weekly')
   @Roles('ADMIN', 'RECEPTIONIST', 'DOCTOR')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  autoCreateWeekly(@Body() dto: AutoWeeklyAvailabilityDto) {
-    return this.doctorAvailabilityService.autoCreateWeekly(dto);
+  autoCreateWeekly(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: AutoWeeklyAvailabilityDto,
+  ) {
+    return this.doctorAvailabilityService.autoCreateWeekly(user, dto);
   }
 
   @Patch(':id/approval')
@@ -94,16 +97,22 @@ export class DoctorAvailabilityController {
   @Patch(':id')
   @Roles('ADMIN', 'RECEPTIONIST', 'DOCTOR')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  update(@Param('id') id: string, @Body() dto: UpdateDoctorAvailabilityDto) {
-    return this.doctorAvailabilityService.update(id, dto);
+  update(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() dto: UpdateDoctorAvailabilityDto,
+  ) {
+    return this.doctorAvailabilityService.update(user, id, dto);
   }
 
   @Delete(':id')
   @Roles('ADMIN', 'RECEPTIONIST', 'DOCTOR')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  remove(@Param('id') id: string, @Query('force') force?: string) {
-    return this.doctorAvailabilityService.remove(id, force === 'true');
+  remove(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Query('force') force?: string,
+  ) {
+    return this.doctorAvailabilityService.remove(user, id, force === 'true');
   }
 }
-
-

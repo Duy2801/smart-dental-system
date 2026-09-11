@@ -28,6 +28,7 @@ type Props = {
   onChange: (next: RecordImage[]) => void;
   onUploaded?: (detailImages: RecordImage[], updatedAt?: string) => void;
   onApplyAiDiagnosis?: (diagnosis: string, treatmentNotes: string) => void;
+  readOnly?: boolean;
 };
 
 export function MedicalRecordImages({
@@ -38,6 +39,7 @@ export function MedicalRecordImages({
   onChange,
   onUploaded,
   onApplyAiDiagnosis,
+  readOnly = false,
 }: Props) {
   const { showConfirm } = useAppDialog();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -49,7 +51,7 @@ export function MedicalRecordImages({
 
   const onFile = async (file: File | undefined) => {
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
       setErr("Chỉ chọn file ảnh JPG, PNG hoặc WEBP.");
       return;
     }
@@ -113,7 +115,7 @@ export function MedicalRecordImages({
   return (
     <div className="space-y-4">
       {/* 1. UPLOAD CONTROLS BAR (CHỈ CHỌN FILE) */}
-      <div className="rounded-2xl border border-border bg-slate-50/70 p-4 space-y-3">
+      {!readOnly && <div className="rounded-2xl border border-border bg-slate-50/70 p-4 space-y-3">
         <div className="flex flex-wrap items-center gap-3">
           {/* Select Type */}
           <div className="w-full sm:w-auto">
@@ -157,7 +159,7 @@ export function MedicalRecordImages({
           <input
             ref={fileRef}
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp"
             className="hidden"
             onChange={(e) => void onFile(e.target.files?.[0])}
           />
@@ -167,7 +169,7 @@ export function MedicalRecordImages({
         <p className="text-[11px] text-muted-foreground">
           Định dạng hỗ trợ: JPG, PNG, WEBP (Tối đa 3MB/ảnh). Ảnh sẽ được tải lên Cloudinary và lưu tự động vào bệnh án.
         </p>
-      </div>
+      </div>}
 
       {/* 2. GALLERY LIST */}
       {value.length === 0 ? (
@@ -205,7 +207,7 @@ export function MedicalRecordImages({
                     {img.caption || "Không có chú thích"}
                   </p>
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0">
+                {!readOnly && <div className="flex items-center gap-1.5 shrink-0">
                   <button
                     type="button"
                     onClick={() => img.id && setAnalyzingImage(img)}
@@ -234,7 +236,7 @@ export function MedicalRecordImages({
                   >
                     <Trash size={15} />
                   </button>
-                </div>
+                </div>}
               </div>
             </li>
           ))}
@@ -242,7 +244,7 @@ export function MedicalRecordImages({
       )}
 
       {/* 3. MODAL KÍNH SOI AI */}
-      {analyzingImage && (
+      {!readOnly && analyzingImage && (
         <DoctorXrayAnalysisModal
           imageId={analyzingImage.id!}
           imageUrl={analyzingImage.url}

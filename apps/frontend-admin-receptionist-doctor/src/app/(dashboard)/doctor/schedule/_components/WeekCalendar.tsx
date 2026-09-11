@@ -10,7 +10,11 @@ import {
   Trash,
   WarningCircle,
 } from "@phosphor-icons/react";
-import type { ScheduleAppointment, AppointmentStatus, TimeOffRecord } from "./types";
+import type {
+  ScheduleAppointment,
+  AppointmentStatus,
+  TimeOffRecord,
+} from "./types";
 import { statusConfig } from "./types";
 import { AppointmentDetailPanel } from "./AppointmentDetailPanel";
 
@@ -72,7 +76,9 @@ export function WeekCalendar({
 }: Props) {
   const [selected, setSelected] = useState<ScheduleAppointment | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [pendingDelete, setPendingDelete] = useState<TimeOffRecord | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<TimeOffRecord | null>(
+    null,
+  );
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   async function handleDeleteTimeOff() {
@@ -169,7 +175,6 @@ export function WeekCalendar({
                     className="h-[144px] w-full border-b border-border/20"
                   />
                 ))}
-
               </div>
             ))}
 
@@ -199,7 +204,9 @@ export function WeekCalendar({
                   <div className="flex items-start justify-between gap-1">
                     <div>
                       <span className="block font-bold leading-tight">
-                        {off.approvalStatus === "APPROVED" ? "Nghỉ phép" : "Yêu cầu nghỉ"}
+                        {off.approvalStatus === "APPROVED"
+                          ? "Nghỉ phép"
+                          : "Yêu cầu nghỉ"}
                       </span>
                       <span
                         className={cn(
@@ -242,21 +249,29 @@ export function WeekCalendar({
 
             {/* Appointment Blocks with Online / Offline Icon Badges */}
             {(() => {
-              const placed: { dayIdx: number; start: number; end: number }[] = [];
+              const placed: { dayIdx: number; start: number; end: number }[] =
+                [];
               const sorted = [...appointments].sort(
-                (a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()
+                (a, b) =>
+                  new Date(a.scheduledAt).getTime() -
+                  new Date(b.scheduledAt).getTime(),
               );
 
               return sorted.map((apt) => {
                 const dayIdx = weekDays.findIndex((d) => d.iso === apt.dayIso);
                 if (dayIdx < 0) return null;
-                const config = statusConfig[apt.status as AppointmentStatus] ?? statusConfig.PENDING;
+                const config =
+                  statusConfig[apt.status as AppointmentStatus] ??
+                  statusConfig.PENDING;
                 const gridRow = getGridRowFromIso(apt.scheduledAt);
                 const span = getDuration(apt.durationMinutes);
 
                 // Calculate overlap
                 const overlaps = placed.filter(
-                  (p) => p.dayIdx === dayIdx && p.start < gridRow + span && p.end > gridRow
+                  (p) =>
+                    p.dayIdx === dayIdx &&
+                    p.start < gridRow + span &&
+                    p.end > gridRow,
                 );
                 const colIndex = overlaps.length;
                 placed.push({ dayIdx, start: gridRow, end: gridRow + span });
@@ -269,7 +284,9 @@ export function WeekCalendar({
                       "cursor-pointer overflow-hidden rounded-xl p-2 text-xs shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md border-[1.5px] border-white flex flex-col justify-between",
                       config.color,
                       config.ring,
-                      selected?.id === apt.id ? "ring-2 ring-brand z-30" : "z-10",
+                      selected?.id === apt.id
+                        ? "ring-2 ring-brand z-30"
+                        : "z-10",
                     )}
                     style={{
                       gridColumn: dayIdx + 2,
@@ -285,10 +302,13 @@ export function WeekCalendar({
                       {/* Top Time Row & Icon Badge */}
                       <div className="flex items-center justify-between gap-1 mb-1">
                         <span className="font-mono text-[10px] font-bold opacity-75 leading-none">
-                          {new Date(apt.scheduledAt).toLocaleTimeString("vi-VN", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
+                          {new Date(apt.scheduledAt).toLocaleTimeString(
+                            "vi-VN",
+                            {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            },
+                          )}
                         </span>
 
                         {/* 2. ICON NHỎ TRÊN KHỐI LỊCH (ONLINE VIDEO / OFFLINE) */}
@@ -379,9 +399,9 @@ export function WeekCalendar({
 
                 <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/80 p-3">
                   <p className="font-mono text-sm font-bold tracking-tight text-slate-900">
-                    {new Date(`${pendingDelete.dayIso}T00:00:00`).toLocaleDateString(
-                      "vi-VN",
-                    )}{" "}
+                    {new Date(
+                      `${pendingDelete.dayIso}T00:00:00`,
+                    ).toLocaleDateString("vi-VN")}{" "}
                     · {pendingDelete.startTime}–{pendingDelete.endTime}
                   </p>
                   {pendingDelete.reason && (

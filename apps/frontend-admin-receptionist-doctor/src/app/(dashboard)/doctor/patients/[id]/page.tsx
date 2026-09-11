@@ -47,7 +47,8 @@ type AppointmentStatus =
   | "SCHEDULED"
   | "PENDING_PAYMENT"
   | "EXPIRED"
-  | "DOCTOR_MISSED";
+  | "DOCTOR_MISSED"
+  | "UNKNOWN";
 
 const statusConfig: Record<
   AppointmentStatus,
@@ -64,6 +65,7 @@ const statusConfig: Record<
   PENDING_PAYMENT: { label: "Chờ thanh toán", color: "bg-amber-100 text-amber-700" },
   EXPIRED: { label: "Hết hạn", color: "bg-slate-100 text-slate-600" },
   DOCTOR_MISSED: { label: "BS vắng mặt", color: "bg-rose-100 text-rose-700" },
+  UNKNOWN: { label: "Không xác định", color: "bg-slate-100 text-slate-600" },
 };
 
 type PatientDetail = {
@@ -147,9 +149,13 @@ export default function DoctorPatientDetailPage() {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [aptFilter, setAptFilter] = useState<"ALL" | "COMPLETED" | "ACTIVE" | "CANCELLED">("ALL");
 
-  const copyToClipboard = (text: string, key: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedKey(key);
+  const copyToClipboard = async (text: string, key: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedKey(key);
+    } catch {
+      return;
+    }
     setTimeout(() => {
       setCopiedKey((curr) => (curr === key ? null : curr));
     }, 1800);
@@ -170,11 +176,13 @@ export default function DoctorPatientDetailPage() {
       return;
     }
 
-    Promise.all([
+    Promise.allSettled([
       apiClient.get<PatientDetail>(`/patients/${id}?doctorId=${doctorId}`),
       apiClient.get<Record<string, unknown>[]>(`/medical-records?doctorId=${doctorId}&patientId=${id}`),
     ])
-      .then(([ptRes, recRes]) => {
+      .then(([ptResult, recResult]) => {
+        if (ptResult.status === "rejected") throw ptResult.reason;
+        const ptRes = ptResult.value;
         if (!ptRes.data) {
           setError("Không tìm thấy bệnh nhân.");
           return;
@@ -183,7 +191,10 @@ export default function DoctorPatientDetailPage() {
 
         // Aggregate X-rays safely from all past medical records
         const allImages: XrayItem[] = [];
-        const records = Array.isArray(recRes.data) ? recRes.data : [];
+        const records =
+          recResult.status === "fulfilled" && Array.isArray(recResult.value.data)
+            ? recResult.value.data
+            : [];
         records.forEach((rec) => {
           const imgs = Array.isArray(rec.images) ? (rec.images as XrayItem[]) : [];
           imgs.forEach((img) => {
@@ -712,7 +723,7 @@ export default function DoctorPatientDetailPage() {
             ) : (
               <div className="divide-y divide-border/50">
                 {visibleAppointments.map((apt) => {
-                  const cfg = statusConfig[apt.status] ?? statusConfig.PENDING;
+                  const cfg = statusConfig[apt.status] ?? statusConfig.UNKNOWN;
                   return (
                     <div
                       key={apt.id}
