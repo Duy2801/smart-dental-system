@@ -66,6 +66,30 @@ export class InvoiceService {
       orderBy: [{ issuedAt: 'desc' }, { invoiceCode: 'desc' }],
     });
 
+    const consultationIds = invoices.flatMap((invoice) =>
+      Array.isArray(invoice.items)
+        ? invoice.items
+            .map((item) =>
+              typeof item === 'object' && item
+                ? String((item as Record<string, unknown>).videoConsultationId ?? '')
+                : '',
+            )
+            .filter(Boolean)
+        : [],
+    );
+    const consultations = consultationIds.length
+      ? await this.prisma.videoConsultation.findMany({
+          where: { id: { in: [...new Set(consultationIds)] } },
+          select: {
+            id: true,
+            doctor: { select: { user: { select: { fullName: true } } } },
+          },
+        })
+      : [];
+    const consultationDoctors = new Map(
+      consultations.map((row) => [row.id, row.doctor.user.fullName]),
+    );
+
     return invoices.map((invoice) => {
       const paidAmount = invoice.payments.reduce(
         (sum, p) => sum + Number(p.amount),
@@ -76,8 +100,19 @@ export class InvoiceService {
         Math.max(0, finalAmount - paidAmount).toFixed(2),
       );
       const lastMethod = invoice.payments[0]?.paymentMethod;
+      const consultationId = Array.isArray(invoice.items)
+        ? invoice.items
+            .map((item) =>
+              typeof item === 'object' && item
+                ? String((item as Record<string, unknown>).videoConsultationId ?? '')
+                : '',
+            )
+            .find(Boolean)
+        : undefined;
       const doctorName =
-        invoice.appointment?.doctor?.user?.fullName ?? null;
+        invoice.appointment?.doctor?.user?.fullName ??
+        (consultationId ? consultationDoctors.get(consultationId) : null) ??
+        null;
 
       return {
         id: invoice.id,

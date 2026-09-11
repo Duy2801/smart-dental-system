@@ -22,7 +22,7 @@ import { RefundService } from './refund.service';
 
 @ApiTags('Refund Requests')
 @ApiBearerAuth()
-@Controller('refund-requests')
+@Controller(['refund-requests', 'admin/refund-requests'])
 export class RefundController {
   constructor(private service: RefundService) {}
 
