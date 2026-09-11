@@ -6,6 +6,7 @@ import axios, {
   InternalAxiosRequestConfig,
 } from "axios";
 import { logout, updateAccessToken } from "@/providers";
+import { clearPatientSession } from "@/features/auth/session-storage";
 import store from "@/providers/store";
 
 export interface ApiResponse<T = unknown> {
@@ -81,13 +82,12 @@ const clearAuthState = () => {
       window.localStorage.removeItem(key);
       window.sessionStorage.removeItem(key);
     });
+    clearPatientSession();
   }
   store.dispatch(logout());
 };
 
-const API_ORIGIN = (
-  process.env.NEXT_PUBLIC_API_URL || ""
-).replace(/\/$/, "");
+const API_ORIGIN = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
 
 const apiClient = axios.create({
   baseURL: `${API_ORIGIN}/api/v1`,
@@ -108,9 +108,7 @@ function isUnsupportedSummaryViewError(error: unknown) {
   const message = (error.response.data as { message?: unknown } | undefined)
     ?.message;
   const messages = Array.isArray(message) ? message : [message];
-  return messages.some(
-    (item) => item === "property view should not exist",
-  );
+  return messages.some((item) => item === "property view should not exist");
 }
 
 export async function getWithSummaryFallback<T>(

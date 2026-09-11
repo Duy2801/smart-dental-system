@@ -5,10 +5,16 @@ import { Provider } from "react-redux";
 import { useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import { apiMe, apiRefresh } from "@/features/auth/api";
+import { loadPatientSession } from "@/features/auth/session-storage";
 import { ToastProvider } from "@/features/dashboard/common/toast";
 import { SocketProvider } from "@/service/ws/useSocket";
 import { useAppSelector } from "./hooks";
-import { finishHydration, login, logout, updateAccessToken } from "./loginSlice";
+import {
+  finishHydration,
+  login,
+  logout,
+  updateAccessToken,
+} from "./loginSlice";
 import store from "./store";
 
 const queryClient = new QueryClient({
@@ -31,6 +37,34 @@ function AuthHydrator() {
 
     if (window.location.pathname.startsWith("/auth")) {
       store.dispatch(finishHydration());
+      return;
+    }
+
+    const storedSession = loadPatientSession();
+    if (storedSession) {
+      store.dispatch(
+        login({
+          user: storedSession.user,
+          accessToken: storedSession.accessToken,
+        }),
+      );
+
+      void apiMe()
+        .then((profileResponse) => {
+          const user = profileResponse.data;
+          const accessToken =
+            store.getState().login.accessToken || storedSession.accessToken;
+          queryClient.setQueryData(["patient", "profile"], user);
+          store.dispatch(
+            login({
+              user,
+              accessToken,
+            }),
+          );
+        })
+        .catch(() => {
+          store.dispatch(logout());
+        });
       return;
     }
 

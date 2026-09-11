@@ -10,7 +10,7 @@ export type LoginUser = {
   emailVerified: boolean;
 };
 
-type LoginState = {
+export type LoginState = {
   user: LoginUser | null;
   accessToken: string;
   role: string;
@@ -61,6 +61,7 @@ export const loginSlice = createSlice({
   },
 });
 
-export const { login, logout, updateAccessToken, finishHydration } = loginSlice.actions;
+export const { login, logout, updateAccessToken, finishHydration } =
+  loginSlice.actions;
 
 export default loginSlice.reducer;
