@@ -173,7 +173,7 @@ function PopularMethodCard({
         <h3 className="mt-1 line-clamp-2 text-base font-extrabold leading-6 text-slate-950 group-hover:text-[#0863c5]">
           {method.name}
         </h3>
-        <p className={`mt-2 line-clamp-2 sm:line-clamp-3 flex-1 ${T.body}`}>
+        <p className={`mt-2 line-clamp-2 flex-1 ${T.body}`}>
           {method.description || service.shortDescription}
         </p>
 
@@ -210,12 +210,12 @@ function MethodCard({
 
   return (
     <div className="group grid h-full overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-lg sm:grid-cols-[200px_1fr]">
-      <div className="relative aspect-[4/3] sm:aspect-square w-full sm:w-[200px] max-h-52 sm:max-h-none overflow-hidden bg-slate-100">
+      <div className="relative aspect-[4/3] sm:aspect-auto w-full sm:w-[200px] h-full min-h-[160px] overflow-hidden bg-slate-100">
         {imageUrl ? (
           <img
             src={imageUrl}
             alt={imageAlt}
-            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+            className="h-full w-full object-cover object-center transition duration-500 group-hover:scale-105"
           />
         ) : (
           <div className="flex h-full min-h-[160px] w-full items-center justify-center bg-blue-50 px-5 text-center text-sm font-extrabold text-[#0863c5]">
@@ -224,18 +224,20 @@ function MethodCard({
         )}
       </div>
 
-      <div className="flex min-w-0 flex-col p-4 sm:p-5">
-        <span className={`${T.fieldLabel}`}>
-          {service.title}
-        </span>
-        <h3 className="mt-1 line-clamp-2 text-base sm:text-lg font-extrabold leading-6 sm:leading-7 text-slate-950 group-hover:text-[#0863c5]">
-          {method.name}
-        </h3>
-        <p className={`mt-2 line-clamp-2 sm:line-clamp-3 flex-1 ${T.body}`}>
-          {method.description || service.shortDescription}
-        </p>
+      <div className="flex min-w-0 flex-col justify-between p-4 sm:py-3.5 sm:px-4.5">
+        <div>
+          <span className={`${T.fieldLabel}`}>
+            {service.title}
+          </span>
+          <h3 className="mt-1 line-clamp-1 sm:line-clamp-2 text-base sm:text-lg font-extrabold leading-6 sm:leading-7 text-slate-950 group-hover:text-[#0863c5]">
+            {method.name}
+          </h3>
+          <p className={`mt-1.5 line-clamp-2 ${T.body}`}>
+            {method.description || service.shortDescription}
+          </p>
+        </div>
 
-        <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-slate-100 pt-3">
+        <div className="mt-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 border-t border-slate-100 pt-2.5">
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
             <span className="rounded-full bg-blue-50 px-2.5 sm:px-3 py-1 text-xs font-bold text-[#0863c5]">
               {formatServicePrice(method.basePrice)}

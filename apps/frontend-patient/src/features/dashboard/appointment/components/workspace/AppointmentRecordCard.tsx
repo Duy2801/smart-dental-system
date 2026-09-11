@@ -67,8 +67,7 @@ export function AppointmentRecordCard({
   const hoursUntil = (scheduledTime - now) / (1000 * 60 * 60);
   const isUpcoming =
     appointment.status === "pending" || appointment.status === "confirmed";
-  const canCancelOnline = canCancel && hoursUntil >= 12;
-  const isUnder12Hours = isUpcoming && hoursUntil < 12 && hoursUntil > 0;
+  const canCancelOnline = canCancel && hoursUntil > 0;
 
   return (
     <article className="p-5 rounded-2xl border border-slate-200 bg-slate-50/40 hover:border-blue-200 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -164,15 +163,6 @@ export function AppointmentRecordCard({
             className="flex-1 sm:flex-none px-3.5 sm:px-4 py-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 font-bold rounded-xl text-xs transition-all disabled:opacity-60 cursor-pointer text-center"
           >
             {isCancelling ? "Đang hủy..." : "Hủy"}
-          </button>
-        ) : isUnder12Hours ? (
-          <button
-            type="button"
-            disabled
-            title="Quy định: Chỉ được hủy online trước giờ khám ít nhất 12 giờ. Vì lịch khám còn dưới 12 giờ, quý khách vui lòng liên hệ hotline phòng khám để được hỗ trợ hủy lịch gấp."
-            className="flex-1 sm:flex-none px-3 sm:px-3.5 py-2 bg-slate-100 border border-slate-200 text-slate-400 font-semibold rounded-xl text-xs cursor-not-allowed text-center"
-          >
-            Hủy (Gọi lễ tân)
           </button>
         ) : null}
       </div>

@@ -1929,7 +1929,10 @@ async function seedRelatedData(
           serviceId: treatmentMethod?.serviceId ?? context.services[0].id,
           treatmentMethodId: treatmentMethod?.id ?? null,
           scheduledAt,
-          endAt: new Date(scheduledAt.getTime() + 45 * 60 * 1000),
+          endAt: new Date(
+            scheduledAt.getTime() +
+              (treatmentMethod?.durationMinutes ?? 30) * 60 * 1000,
+          ),
           status: appointmentStatus,
           bookingSource: bookingSources[index % bookingSources.length],
           notes:

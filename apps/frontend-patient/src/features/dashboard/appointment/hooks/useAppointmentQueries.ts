@@ -19,6 +19,7 @@ export const appointmentQueryKeys = {
   rescheduleOptions: (params: {
     appointmentId?: string;
     serviceId?: string;
+    treatmentMethodId?: string;
     doctorId?: string;
     date?: string;
   }) => ["patient", "appointment-options", "reschedule", params] as const,
@@ -104,6 +105,7 @@ export function useAppointmentAvailabilityQuery(
 export function useAppointmentRescheduleOptionsQuery(params: {
   appointmentId?: string;
   serviceId?: string;
+  treatmentMethodId?: string;
   doctorId?: string;
   date?: string;
 }) {
@@ -111,7 +113,9 @@ export function useAppointmentRescheduleOptionsQuery(params: {
     queryKey: appointmentQueryKeys.rescheduleOptions(params),
     queryFn: () =>
       getAppointmentOptions({
+        appointmentId: params.appointmentId,
         serviceId: params.serviceId,
+        treatmentMethodId: params.treatmentMethodId,
         doctorId: params.doctorId,
         date: params.date,
       }),

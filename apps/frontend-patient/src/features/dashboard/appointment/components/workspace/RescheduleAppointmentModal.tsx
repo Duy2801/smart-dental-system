@@ -66,13 +66,19 @@ export function RescheduleAppointmentModal({
     }
 
     // Exclude the current appointment being rescheduled so it doesn't block itself
+    // and only check conflicts for the same patient
     const appointmentsForDate = bookedAppointments.filter(
-      (item) => item.dateId === selectedDateId && item.id !== appointment.id,
+      (item) =>
+        item.dateId === selectedDateId &&
+        item.id !== appointment.id &&
+        (!appointment.patientId || !item.patientId || item.patientId === appointment.patientId),
     );
+    const appointmentDuration = appointment.durationMinutes || 30;
+
     const times = timeSlots.filter((time) => {
-      const slotStart = new Date(`${selectedDateId}T${time}:00`);
+      const slotStart = new Date(`${selectedDateId}T${time}:00+07:00`);
       const slotEnd = new Date(
-        slotStart.getTime() + appointment.durationMinutes * 60 * 1000,
+        slotStart.getTime() + appointmentDuration * 60 * 1000,
       );
 
       return appointmentsForDate.some((item) => {

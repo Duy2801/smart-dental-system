@@ -28,9 +28,9 @@ type SendAiChatParams = {
   metadata?: Record<string, unknown>;
 };
 
-const AI_SERVICE_FALLBACK_URL = (
-  NEXT_PUBLIC_AI_SERVICE_URL
-).replace(/\/$/, '');
+const AI_SERVICE_FALLBACK_URL = 
+NEXT_PUBLIC_AI_SERVICE_URL
+.replace(/\/$/, '');
 
 const unwrapChatResponse = (payload: unknown): AiChatResponse => {
   if (!payload || typeof payload !== 'object') {
