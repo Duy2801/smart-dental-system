@@ -51,8 +51,10 @@ export class PaymentController {
     if (!expected) {
       throw new UnauthorizedException('sepay.webhook_key_missing');
     }
-    const bearer = authorization?.replace(/^Bearer\s+/i, '').trim();
-    const provided = bearer || apiKeyHeader || '';
+    const authorizationKey = authorization
+      ?.replace(/^(?:Bearer|Apikey)\s+/i, '')
+      .trim();
+    const provided = authorizationKey || apiKeyHeader || '';
     const bufProvided = Buffer.from(provided);
     const bufExpected = Buffer.from(expected);
     if (
@@ -73,7 +75,9 @@ export class PaymentController {
     @Body() dto: CreatePaymentDto,
   ) {
     await this.paymentService.ensureInvoiceAccess(user, dto.invoiceId);
-    return this.paymentService.createPayment(user.userId, dto);
+    const isStaff =
+      user.roles.includes('ADMIN') || user.roles.includes('RECEPTIONIST');
+    return this.paymentService.createPayment(user.userId, dto, undefined, isStaff);
   }
 
   @Get('invoice/:invoiceId')

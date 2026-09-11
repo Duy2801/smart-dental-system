@@ -739,7 +739,8 @@ export class VideoConsultationService implements OnModuleInit {
             subtotal: fee,
             discountAmount: 0,
             finalAmount: fee,
-            status: InvoiceStatus.DRAFT,
+            status: InvoiceStatus.ISSUED,
+            issuedAt: new Date(),
             createdBy: user.userId,
             items: [
               {
@@ -1019,7 +1020,8 @@ export class VideoConsultationService implements OnModuleInit {
           subtotal: fee,
           discountAmount: 0,
           finalAmount: fee,
-          status: InvoiceStatus.DRAFT,
+          status: InvoiceStatus.ISSUED,
+          issuedAt: new Date(),
           createdBy: user.userId,
           items: [
             {

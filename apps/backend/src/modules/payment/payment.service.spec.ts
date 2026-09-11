@@ -39,6 +39,50 @@ describe('PaymentService.createPayment', () => {
     ).rejects.toEqual(new BadRequestException('invoice.not_payable'));
   });
 
+  it('lets staff issue a legacy draft invoice before creating its QR', async () => {
+    const prisma = {
+      invoice: {
+        findUnique: jest.fn().mockResolvedValue({
+          ...invoice,
+          status: InvoiceStatus.DRAFT,
+        }),
+        update: jest.fn().mockResolvedValue({
+          ...invoice,
+          status: InvoiceStatus.ISSUED,
+        }),
+      },
+      payment: {
+        aggregate: jest.fn().mockResolvedValue({ _sum: { amount: 0 } }),
+        findFirst: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockResolvedValue({
+          id: 'payment-1',
+          amount: invoice.finalAmount,
+          status: 'PENDING',
+          transactionRef: 'SEVQRINV0001',
+        }),
+      },
+    };
+
+    const result = await serviceWith(prisma).createPayment(
+      'receptionist-1',
+      {
+        invoiceId: invoice.id,
+        method: 'BANK_TRANSFER',
+        amount: invoice.finalAmount,
+      },
+      undefined,
+      true,
+    );
+
+    expect(prisma.invoice.update).toHaveBeenCalledWith({
+      where: { id: invoice.id },
+      data: { status: InvoiceStatus.ISSUED, issuedAt: expect.any(Date) },
+    });
+    expect('qrImageUrl' in result && result.qrImageUrl).toContain(
+      'https://img.vietqr.io/image/',
+    );
+  });
+
   it('rejects an amount greater than the current balance instead of silently clipping it', async () => {
     const service = serviceWith({
       invoice: { findUnique: jest.fn().mockResolvedValue(invoice) },

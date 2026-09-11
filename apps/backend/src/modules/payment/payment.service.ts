@@ -67,8 +67,9 @@ export class PaymentService {
     userId: string,
     dto: CreatePaymentDto,
     db: Prisma.TransactionClient | PrismaService = this.prisma,
+    allowDraft = false,
   ) {
-    const invoice = await db.invoice.findUnique({
+    let invoice = await db.invoice.findUnique({
       where: { id: dto.invoiceId },
     });
 
@@ -77,12 +78,19 @@ export class PaymentService {
     }
 
     if (
-      invoice.status === InvoiceStatus.DRAFT ||
+      (invoice.status === InvoiceStatus.DRAFT && !allowDraft) ||
       invoice.status === InvoiceStatus.PAID ||
       invoice.status === InvoiceStatus.CANCELLED ||
       invoice.status === InvoiceStatus.REFUNDED
     ) {
       throw new BadRequestException('invoice.not_payable');
+    }
+
+    if (invoice.status === InvoiceStatus.DRAFT) {
+      invoice = await db.invoice.update({
+        where: { id: invoice.id },
+        data: { status: InvoiceStatus.ISSUED, issuedAt: new Date() },
+      });
     }
 
     let discountAmount = Number(invoice.discountAmount);

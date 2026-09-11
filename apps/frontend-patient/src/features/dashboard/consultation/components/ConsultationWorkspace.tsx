@@ -97,7 +97,12 @@ export function ConsultationWorkspace() {
         err?.response?.data?.message ||
         err?.message ||
         "Có lỗi xảy ra khi tạo đơn đặt tư vấn. Vui lòng thử lại.";
-      setErrorMessage(Array.isArray(serverMsg) ? serverMsg.join(", ") : serverMsg);
+      const message = Array.isArray(serverMsg) ? serverMsg.join(", ") : serverMsg;
+      setErrorMessage(
+        message === "invoice.not_payable"
+          ? "Hóa đơn tư vấn chưa sẵn sàng để thanh toán. Vui lòng thử lại."
+          : message,
+      );
     } finally {
       setIsSubmitting(false);
     }
