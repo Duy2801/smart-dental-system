@@ -1,4 +1,4 @@
-import type { BusinessHour, SettingsMenuItem } from "./types";
+import type { BusinessHour, LunchBreak, SettingsMenuItem } from "./types";
 
 export const settingsMenuItems: SettingsMenuItem[] = [
   { id: "general", label: "Cài đặt chung", icon: "settings" },
@@ -15,6 +15,12 @@ export const initialBusinessHours: BusinessHour[] = [
   { id: 0, label: "Chủ Nhật", isOpen: false, start: "08:00", end: "12:00" },
 ];
 
+export const initialLunchBreak: LunchBreak = {
+  isEnabled: true,
+  start: "12:00",
+  end: "13:30",
+};
+
 export const emptyClinicConfig = {
   name: "",
   phone: "",
@@ -22,6 +28,7 @@ export const emptyClinicConfig = {
   address: "",
   logoUrl: "",
   businessHours: [],
+  lunchBreak: initialLunchBreak,
   slotIntervalMinutes: 30,
   specialDates: [],
   isBusinessHoursConfigured: false,

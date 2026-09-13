@@ -8,6 +8,7 @@ import { StarRating } from "./star-rating";
 type ReviewListProps = {
   loading?: boolean;
   reviews: Review[];
+  pendingReviewIds?: string[];
   onDelete: (id: string) => void;
   onToggleVisibility: (id: string) => void;
 };
@@ -15,6 +16,7 @@ type ReviewListProps = {
 export function ReviewList({
   loading = false,
   reviews,
+  pendingReviewIds = [],
   onDelete,
   onToggleVisibility,
 }: ReviewListProps) {
@@ -63,7 +65,8 @@ export function ReviewList({
                     type="button"
                     title={review.is_visible ? "Ẩn bình luận" : "Hiện lại"}
                     onClick={() => onToggleVisibility(review.id)}
-                    className="rounded-lg px-2.5 py-1 text-xs font-semibold text-slate-700 transition-colors hover:bg-orange-50 hover:text-orange-600"
+                    disabled={pendingReviewIds.includes(review.id)}
+                    className="rounded-lg px-2.5 py-1 text-xs font-semibold text-slate-700 transition-colors hover:bg-orange-50 hover:text-orange-600 disabled:cursor-wait disabled:opacity-50"
                   >
                     {review.is_visible ? "Ẩn" : "Hiện"}
                   </button>
@@ -72,7 +75,8 @@ export function ReviewList({
                     type="button"
                     title="Xóa"
                     onClick={() => onDelete(review.id)}
-                    className="rounded-lg px-2.5 py-1 text-xs font-semibold text-slate-700 transition-colors hover:bg-red-50 hover:text-red-600"
+                    disabled={pendingReviewIds.includes(review.id)}
+                    className="rounded-lg px-2.5 py-1 text-xs font-semibold text-slate-700 transition-colors hover:bg-red-50 hover:text-red-600 disabled:cursor-wait disabled:opacity-50"
                   >
                     Xóa
                   </button>

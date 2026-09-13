@@ -241,6 +241,7 @@ describe('VideoConsultationService', () => {
       }));
       clinicConfigServiceMock.getClinicConfig = jest.fn().mockResolvedValue({
         specialDates: [],
+        lunchBreak: { isEnabled: false, start: '12:00', end: '13:30' },
         businessHours: Array.from({ length: 7 }, (_, id) => ({
           id,
           isOpen: true,
@@ -271,6 +272,39 @@ describe('VideoConsultationService', () => {
         }),
       );
       expect(paymentServiceMock.createPayment).toHaveBeenCalled();
+    });
+
+    it('rejects a consultation overlapping the clinic lunch break', async () => {
+      const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      const date = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Ho_Chi_Minh',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(tomorrow);
+      const scheduledAt = new Date(`${date}T12:15:00+07:00`);
+
+      clinicConfigServiceMock.getClinicConfig = jest.fn().mockResolvedValue({
+        specialDates: [],
+        lunchBreak: { isEnabled: true, start: '12:00', end: '13:30' },
+        businessHours: Array.from({ length: 7 }, (_, id) => ({
+          id,
+          isOpen: true,
+          start: '08:00',
+          end: '17:00',
+        })),
+      });
+
+      await expect(
+        service.createBooking(
+          { ...doctorUser, userId: 'patient-user-1', roles: ['PATIENT'] },
+          {
+            doctorId: 'doctor-1',
+            scheduledAt: scheduledAt.toISOString(),
+            durationMinutes: 30,
+          },
+        ),
+      ).rejects.toThrow('giờ nghỉ trưa');
     });
   });
 

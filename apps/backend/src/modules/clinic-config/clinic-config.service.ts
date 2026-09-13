@@ -4,6 +4,7 @@ import { RedisService } from '../redis/redis.service';
 import {
   BusinessHourDto,
   ClinicSpecialDateDto,
+  LunchBreakDto,
   UpdateClinicConfigDto,
 } from './dto/update-clinic-config.dto';
 import { DepositCalculationMode } from '../../../prisma/generated/enums';
@@ -11,6 +12,11 @@ import { DepositCalculationMode } from '../../../prisma/generated/enums';
 const defaultSlotIntervalMinutes = 30;
 const clinicConfigCacheKey = 'catalog:clinic-config:v1';
 const clinicConfigCacheTtlSeconds = 10 * 60;
+const defaultLunchBreak: LunchBreakDto = {
+  isEnabled: true,
+  start: '12:00',
+  end: '13:30',
+};
 
 @Injectable()
 export class ClinicConfigService {
@@ -20,11 +26,16 @@ export class ClinicConfigService {
   ) {}
 
   async getClinicConfig() {
-    return this.redis.rememberJson(
+    const config = await this.redis.rememberJson(
       clinicConfigCacheKey,
       clinicConfigCacheTtlSeconds,
       () => this.loadClinicConfig(),
     );
+
+    return {
+      ...config,
+      lunchBreak: config.lunchBreak ?? { ...defaultLunchBreak },
+    };
   }
 
   private async loadClinicConfig() {
@@ -44,6 +55,7 @@ export class ClinicConfigService {
       values['clinic.slotIntervalMinutes'],
     );
     const specialDates = this.parseSpecialDates(values['clinic.specialDates']);
+    const lunchBreak = this.parseLunchBreak(values['clinic.lunchBreak']);
     const bookingDepositEnabled =
       values['booking.deposit.enabled'] === undefined ||
       values['booking.deposit.enabled'] === null ||
@@ -64,6 +76,7 @@ export class ClinicConfigService {
       address: values['clinic.address'] ?? '',
       logoUrl: values['clinic.logoUrl'] ?? '',
       businessHours,
+      lunchBreak,
       slotIntervalMinutes,
       specialDates,
       bookingDepositEnabled,
@@ -79,46 +92,55 @@ export class ClinicConfigService {
       ...current,
       ...dto,
       businessHours: dto.businessHours ?? current.businessHours,
+      lunchBreak: dto.lunchBreak ?? current.lunchBreak,
       slotIntervalMinutes:
         dto.slotIntervalMinutes ?? current.slotIntervalMinutes,
       specialDates: dto.specialDates ?? current.specialDates,
     };
 
     this.validateBusinessHours(next.businessHours);
+    this.validateLunchBreak(next.lunchBreak);
     this.validateSlotInterval(next.slotIntervalMinutes);
     this.validateSpecialDates(next.specialDates);
 
-    await this.upsertConfig('clinic.name', next.name);
-    await this.upsertConfig('clinic.phone', next.phone);
-    await this.upsertConfig('clinic.email', next.email);
-    await this.upsertConfig('clinic.address', next.address);
-    await this.upsertConfig('clinic.logoUrl', next.logoUrl);
-    await this.upsertConfig(
-      'clinic.businessHours',
-      JSON.stringify(next.businessHours),
-    );
-    await this.upsertConfig(
-      'clinic.slotIntervalMinutes',
-      String(next.slotIntervalMinutes),
-    );
-    await this.upsertConfig(
-      'clinic.specialDates',
-      JSON.stringify(next.specialDates),
-    );
-    await this.upsertConfig(
-      'booking.deposit.enabled',
-      String(next.bookingDepositEnabled ?? false),
-    );
-    await this.upsertConfig(
-      'booking.deposit.mode',
-      next.bookingDepositCalculationMode ?? 'PERCENT',
-    );
-    await this.upsertConfig(
-      'booking.deposit.value',
-      String(next.bookingDepositValue ?? 30),
-    );
+    const businessHoursChanged =
+      JSON.stringify(next.businessHours) !==
+      JSON.stringify(current.businessHours);
 
-    if (dto.businessHours) {
+    await this.prisma.$transaction([
+      this.upsertConfig('clinic.name', next.name),
+      this.upsertConfig('clinic.phone', next.phone),
+      this.upsertConfig('clinic.email', next.email),
+      this.upsertConfig('clinic.address', next.address),
+      this.upsertConfig('clinic.logoUrl', next.logoUrl),
+      this.upsertConfig(
+        'clinic.businessHours',
+        JSON.stringify(next.businessHours),
+      ),
+      this.upsertConfig('clinic.lunchBreak', JSON.stringify(next.lunchBreak)),
+      this.upsertConfig(
+        'clinic.slotIntervalMinutes',
+        String(next.slotIntervalMinutes),
+      ),
+      this.upsertConfig(
+        'clinic.specialDates',
+        JSON.stringify(next.specialDates),
+      ),
+      this.upsertConfig(
+        'booking.deposit.enabled',
+        String(next.bookingDepositEnabled ?? false),
+      ),
+      this.upsertConfig(
+        'booking.deposit.mode',
+        next.bookingDepositCalculationMode ?? 'PERCENT',
+      ),
+      this.upsertConfig(
+        'booking.deposit.value',
+        String(next.bookingDepositValue ?? 30),
+      ),
+    ]);
+
+    if (businessHoursChanged) {
       try {
         await this.syncDoctorWeeklyAvailability(next.businessHours);
       } catch (err) {
@@ -126,7 +148,13 @@ export class ClinicConfigService {
       }
     }
 
-    await this.redis.del(clinicConfigCacheKey);
+    await Promise.all([
+      this.redis.del(clinicConfigCacheKey),
+      this.redis.delByPrefix('booking:options:'),
+      this.redis.delByPrefix('booking:dates:'),
+      this.redis.delByPrefix('booking:slots:'),
+      this.redis.delByPrefix('consultation:slots:'),
+    ]);
     return next;
   }
 
@@ -196,6 +224,7 @@ export class ClinicConfigService {
   async getClinicScheduleConfig() {
     const {
       businessHours,
+      lunchBreak,
       isBusinessHoursConfigured,
       slotIntervalMinutes,
       specialDates,
@@ -207,6 +236,7 @@ export class ClinicConfigService {
 
     return {
       businessHours,
+      lunchBreak,
       slotIntervalMinutes,
       specialDates,
     };
@@ -255,6 +285,29 @@ export class ClinicConfigService {
     }
 
     return parsed;
+  }
+
+  private parseLunchBreak(value?: string): LunchBreakDto {
+    if (!value) return { ...defaultLunchBreak };
+
+    try {
+      const parsed = JSON.parse(value) as Record<string, unknown>;
+      if (
+        typeof parsed.isEnabled !== 'boolean' ||
+        typeof parsed.start !== 'string' ||
+        typeof parsed.end !== 'string'
+      ) {
+        return { ...defaultLunchBreak };
+      }
+
+      return {
+        isEnabled: parsed.isEnabled,
+        start: parsed.start,
+        end: parsed.end,
+      };
+    } catch {
+      return { ...defaultLunchBreak };
+    }
   }
 
   private parseSpecialDates(value?: string): ClinicSpecialDateDto[] {
@@ -328,6 +381,12 @@ export class ClinicConfigService {
       slotIntervalMinutes > 240
     ) {
       throw new BadRequestException('clinic.slot_interval_invalid');
+    }
+  }
+
+  private validateLunchBreak(lunchBreak: LunchBreakDto) {
+    if (lunchBreak.isEnabled && lunchBreak.start >= lunchBreak.end) {
+      throw new BadRequestException('clinic.lunch_break_invalid_time_range');
     }
   }
 

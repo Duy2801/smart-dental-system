@@ -464,6 +464,17 @@ export class VideoConsultationService implements OnModuleInit {
 
       const busyRanges: { startMs: number; endMs: number }[] = [];
 
+      if (clinicConfig.lunchBreak?.isEnabled) {
+        busyRanges.push({
+          startMs: new Date(
+            `${formattedDateStr}T${clinicConfig.lunchBreak.start}:00.000+07:00`,
+          ).getTime(),
+          endMs: new Date(
+            `${formattedDateStr}T${clinicConfig.lunchBreak.end}:00.000+07:00`,
+          ).getTime(),
+        });
+      }
+
       for (const app of existingAppointments) {
         busyRanges.push({
           startMs: app.scheduledAt.getTime(),
@@ -586,6 +597,20 @@ export class VideoConsultationService implements OnModuleInit {
       throw new BadRequestException(
         'Thời gian tư vấn nằm ngoài giờ hoạt động của phòng khám',
       );
+    }
+
+    if (clinicConfig.lunchBreak?.isEnabled) {
+      const lunchStartMs = new Date(
+        `${formattedDateStr}T${clinicConfig.lunchBreak.start}:00.000+07:00`,
+      ).getTime();
+      const lunchEndMs = new Date(
+        `${formattedDateStr}T${clinicConfig.lunchBreak.end}:00.000+07:00`,
+      ).getTime();
+      if (scheduledAt.getTime() < lunchEndMs && scheduledEndMs > lunchStartMs) {
+        throw new BadRequestException(
+          'Thời gian tư vấn trùng với giờ nghỉ trưa của phòng khám',
+        );
+      }
     }
 
     const fee = await this.calculateConsultationFee(dto.durationMinutes);

@@ -1,4 +1,8 @@
 import axios from "axios";
+import {
+  filterSlotsOutsideLunchBreak,
+  type ClinicLunchBreak,
+} from "@/lib/clinic-schedule";
 import type { AppointmentStatus } from "./api";
 import type { BookingDate } from "./types";
 
@@ -20,11 +24,22 @@ export function isFutureSlot(dateId: string, time: string) {
   return slot.getTime() > Date.now();
 }
 
-export function getAvailableTimes(dateId: string, timeSlots: string[]) {
-  if (!dateId) return timeSlots;
-  if (dateId > getLocalDateId(new Date())) return timeSlots;
+export function getAvailableTimes(
+  dateId: string,
+  timeSlots: string[],
+  durationMinutes: number,
+  lunchBreak: ClinicLunchBreak,
+) {
+  const clinicTimeSlots = filterSlotsOutsideLunchBreak(
+    timeSlots,
+    durationMinutes,
+    lunchBreak,
+  );
+
+  if (!dateId) return clinicTimeSlots;
+  if (dateId > getLocalDateId(new Date())) return clinicTimeSlots;
   if (dateId < getLocalDateId(new Date())) return [];
-  return timeSlots.filter((time) => isFutureSlot(dateId, time));
+  return clinicTimeSlots.filter((time) => isFutureSlot(dateId, time));
 }
 
 export function pickFirstBookableDate(dates: BookingDate[]) {

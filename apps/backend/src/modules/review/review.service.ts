@@ -10,83 +10,141 @@ export class ReviewService {
     const search = query.search?.trim();
     const rating = query.rating ?? 'ALL';
     const visibility = query.visibility ?? 'ALL';
+    const page = query.page;
+    const limit = query.limit;
 
-    const reviews = await this.prisma.review.findMany({
-      where: {
-        ...(visibility === 'VISIBLE'
-          ? { isVisible: true }
-          : visibility === 'HIDDEN'
-            ? { isVisible: false }
+    const where = {
+      ...(visibility === 'VISIBLE'
+        ? { isVisible: true }
+        : visibility === 'HIDDEN'
+          ? { isVisible: false }
+          : {}),
+      ...(rating === '5'
+        ? { rating: 5 }
+        : rating === '4'
+          ? { rating: 4 }
+          : rating === '3'
+            ? { rating: { lte: 3 } }
             : {}),
-        ...(rating === '5'
-          ? { rating: 5 }
-          : rating === '4'
-            ? { rating: 4 }
-            : rating === '3'
-              ? { rating: { lte: 3 } }
-              : {}),
-        ...(search
-          ? {
-              OR: [
-                { comment: { contains: search, mode: 'insensitive' } },
-                {
-                  patient: {
-                    user: {
-                      fullName: { contains: search, mode: 'insensitive' },
+      ...(search
+        ? {
+            OR: [
+              { comment: { contains: search, mode: 'insensitive' as const } },
+              {
+                patient: {
+                  user: {
+                    fullName: {
+                      contains: search,
+                      mode: 'insensitive' as const,
                     },
                   },
                 },
-              ],
-            }
-          : {}),
-      },
-      include: {
-        patient: { include: { user: true } },
-        doctor: { include: { user: true } },
-        appointment: { include: { treatmentMethod: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+              },
+            ],
+          }
+        : {}),
+    };
 
-    return reviews.map((review) => ({
-      id: review.id,
-      patient_name: review.patient.fullName ?? review.patient.user?.fullName ?? 'Bệnh nhân',
-      doctor_name: `${review.doctor.user.fullName} (${review.appointment?.treatmentMethod?.name ?? 'Dich vu'})`,
-      rating: review.rating,
-      comment: review.comment ?? '',
-      is_visible: review.isVisible,
-      created_at: review.createdAt.toISOString(),
-    }));
+    const [reviews, filteredTotal, ratingGroups] = await Promise.all([
+      this.prisma.review.findMany({
+        where,
+        select: {
+          id: true,
+          rating: true,
+          comment: true,
+          isVisible: true,
+          createdAt: true,
+          patient: {
+            select: {
+              fullName: true,
+              user: { select: { fullName: true } },
+            },
+          },
+          doctor: { select: { user: { select: { fullName: true } } } },
+          appointment: {
+            select: {
+              treatmentMethod: { select: { name: true } },
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.review.count({ where }),
+      this.prisma.review.groupBy({
+        by: ['rating'],
+        _count: { _all: true },
+      }),
+    ]);
+
+    const ratingCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    for (const group of ratingGroups) {
+      if (group.rating >= 1 && group.rating <= 5) {
+        ratingCounts[group.rating as keyof typeof ratingCounts] =
+          group._count._all;
+      }
+    }
+
+    const totalReviews = Object.values(ratingCounts).reduce(
+      (total, count) => total + count,
+      0,
+    );
+    const ratingSum = Object.entries(ratingCounts).reduce(
+      (total, [value, count]) => total + Number(value) * count,
+      0,
+    );
+
+    return {
+      items: reviews.map((review) => ({
+        id: review.id,
+        patient_name:
+          review.patient.fullName ??
+          review.patient.user?.fullName ??
+          'Bệnh nhân',
+        doctor_name: `${review.doctor.user.fullName} (${review.appointment?.treatmentMethod?.name ?? 'Dịch vụ'})`,
+        rating: review.rating,
+        comment: review.comment ?? '',
+        is_visible: review.isVisible,
+        created_at: review.createdAt.toISOString(),
+      })),
+      summary: {
+        averageRating:
+          totalReviews === 0 ? '0.0' : (ratingSum / totalReviews).toFixed(1),
+        ratingCounts,
+        totalReviews,
+      },
+      pagination: {
+        page,
+        limit,
+        total: filteredTotal,
+        totalPages: Math.max(1, Math.ceil(filteredTotal / limit)),
+      },
+    };
   }
 
   async updateVisibility(id: string, isVisible: boolean) {
-    await this.ensureExists(id);
-
-    const review = await this.prisma.review.update({
+    const result = await this.prisma.review.updateMany({
       where: { id },
       data: { isVisible },
     });
 
+    if (result.count === 0) {
+      throw new NotFoundException('review.not_found');
+    }
+
     return {
-      id: review.id,
-      is_visible: review.isVisible,
+      id,
+      is_visible: isVisible,
     };
   }
 
   async remove(id: string) {
-    await this.ensureExists(id);
-    await this.prisma.review.delete({ where: { id } });
-    return { message: 'review.deleted' };
-  }
-
-  private async ensureExists(id: string) {
-    const review = await this.prisma.review.findUnique({
-      where: { id },
-      select: { id: true },
-    });
-
-    if (!review) {
+    const result = await this.prisma.review.deleteMany({ where: { id } });
+    if (result.count === 0) {
       throw new NotFoundException('review.not_found');
     }
+
+    return { message: 'review.deleted' };
   }
 }

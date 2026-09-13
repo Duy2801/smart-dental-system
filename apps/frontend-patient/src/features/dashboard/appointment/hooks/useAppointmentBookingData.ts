@@ -153,10 +153,6 @@ export function useAppointmentBookingData({
     hasSelectedTreatment,
     scheduleQuery.data?.timeSlots,
   ]);
-  const availableTimes = useMemo(
-    () => getAvailableTimes(selectedDateId, timeSlots),
-    [selectedDateId, timeSlots],
-  );
   const selectedService = useMemo(
     () => services.find((service) => service.id === selectedServiceId),
     [services, selectedServiceId],
@@ -167,6 +163,25 @@ export function useAppointmentBookingData({
         (m) => m.id === selectedTreatmentMethodId,
       ),
     [selectedService?.treatmentMethods, selectedTreatmentMethodId],
+  );
+  const lunchBreak =
+    scheduleQuery.data?.lunchBreak ?? baseOptionsQuery.data?.lunchBreak;
+  const availableTimes = useMemo(
+    () =>
+      lunchBreak
+        ? getAvailableTimes(
+            selectedDateId,
+            timeSlots,
+            selectedTreatmentMethod?.durationMinutes ?? 30,
+            lunchBreak,
+          )
+        : [],
+    [
+      lunchBreak,
+      selectedDateId,
+      selectedTreatmentMethod?.durationMinutes,
+      timeSlots,
+    ],
   );
   const selectedDoctor = useMemo(
     () => doctors.find((doctor) => doctor.id === selectedDoctorId),

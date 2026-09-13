@@ -1,4 +1,8 @@
 import apiClient, { getWithSummaryFallback } from "@/lib/axios";
+import {
+  normalizeClinicLunchBreak,
+  type ClinicLunchBreak,
+} from "@/lib/clinic-schedule";
 
 type PaginatedResponse<T> = {
   data: T[];
@@ -187,6 +191,7 @@ export type ClinicConfigInfo = {
     start: string;
     end: string;
   }[];
+  lunchBreak?: ClinicLunchBreak;
 };
 
 export async function getLiveClinicConfigInfo(): Promise<ClinicConfigInfo> {
@@ -199,6 +204,7 @@ export async function getLiveClinicConfigInfo(): Promise<ClinicConfigInfo> {
   return {
     ...response.data,
     businessHours: response.data.businessHours ?? [],
+    lunchBreak: normalizeClinicLunchBreak(response.data.lunchBreak),
   };
 }
 

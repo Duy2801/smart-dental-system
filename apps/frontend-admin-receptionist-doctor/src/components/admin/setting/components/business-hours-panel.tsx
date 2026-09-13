@@ -1,8 +1,10 @@
 import { cn } from "@/src/lib/utils/cn";
-import type { BusinessHour, ClinicSpecialDate } from "../types";
+import type { BusinessHour, ClinicSpecialDate, LunchBreak } from "../types";
+import { LunchBreakPanel } from "./lunch-break-panel";
 
 type BusinessHoursPanelProps = {
   businessHours: BusinessHour[];
+  lunchBreak: LunchBreak;
   slotIntervalMinutes: number;
   specialDates: ClinicSpecialDate[];
   isConfigured: boolean;
@@ -12,6 +14,10 @@ type BusinessHoursPanelProps = {
     value: string,
   ) => void;
   onChangeSlotInterval: (value: number) => void;
+  onChangeLunchBreak: (
+    field: keyof LunchBreak,
+    value: string | boolean,
+  ) => void;
   onChangeSpecialDate: (
     index: number,
     field: keyof ClinicSpecialDate,
@@ -25,11 +31,13 @@ type BusinessHoursPanelProps = {
 
 export function BusinessHoursPanel({
   businessHours,
+  lunchBreak,
   slotIntervalMinutes,
   specialDates,
   isConfigured,
   onChangeTime,
   onChangeSlotInterval,
+  onChangeLunchBreak,
   onChangeSpecialDate,
   onAddSpecialDate,
   onInitialize,
@@ -90,11 +98,16 @@ export function BusinessHoursPanel({
         </div>
       </section>
 
+      <LunchBreakPanel
+        lunchBreak={lunchBreak}
+        onChange={onChangeLunchBreak}
+      />
+
       {!isConfigured ? (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900 shadow-xs">
           <p className="font-bold text-amber-950">Chưa cấu hình giờ làm việc trong cơ sở dữ liệu.</p>
           <p className="mt-1 text-xs leading-relaxed text-amber-800">
-            Hãy khởi tạo lịch tuần chuẩn và bấm nút "Lưu thay đổi" để hệ thống cập nhật giờ hoạt động thực tế.
+            Hãy khởi tạo lịch tuần chuẩn và bấm nút &quot;Lưu thay đổi&quot; để hệ thống cập nhật giờ hoạt động thực tế.
           </p>
           <button
             type="button"

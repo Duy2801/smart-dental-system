@@ -87,27 +87,30 @@ export default function AppointmentDetailPage() {
     apiClient
       .get("/appointments/booking-options", {
         params: {
+          appointmentId: apt.id,
           doctorId: apt.doctor.id,
           serviceId: apt.service.id,
+          treatmentMethodId: apt.treatmentMethodId,
           date: rescheduleDate,
         },
       })
       .then((res) => {
         const slots = (res.data as { timeSlots?: string[] }).timeSlots ?? [];
-        const current =
-          dateFromIso(apt.scheduledAt) === rescheduleDate
-            ? formatTime(apt.startTime)
-            : "";
-        const merged =
-          current && !slots.includes(current) ? [current, ...slots] : slots;
-        setTimeSlots(merged);
-        if (merged.length && !merged.includes(rescheduleTime)) {
-          setRescheduleTime(current || "");
-        }
+        setTimeSlots(slots);
+        setRescheduleTime((current) =>
+          current && slots.includes(current) ? current : "",
+        );
       })
       .catch(() => setTimeSlots([]))
       .finally(() => setLoadingSlots(false));
-  }, [showReschedule, apt?.doctor?.id, apt?.service?.id, rescheduleDate]);
+  }, [
+    showReschedule,
+    apt?.id,
+    apt?.doctor?.id,
+    apt?.service?.id,
+    apt?.treatmentMethodId,
+    rescheduleDate,
+  ]);
 
   const updateStatus = async (
     status: AppointmentStatus,
@@ -147,9 +150,7 @@ export default function AppointmentDetailPage() {
     try {
       await apiClient.patch(
         `/appointments/${apt.id}/${endpoint}`,
-        status === "CHECKED_IN"
-          ? { medicalHistoryConfirmed: true }
-          : undefined,
+        status === "CHECKED_IN" ? { medicalHistoryConfirmed: true } : undefined,
       );
       await loadAppointment();
       setToast(message);
@@ -172,10 +173,9 @@ export default function AppointmentDetailPage() {
       const scheduledAt = new Date(
         `${rescheduleDate}T${rescheduleTime}:00`,
       ).toISOString();
-      const res = await apiClient.patch(
-        `/appointments/${apt.id}/reschedule`,
-        { scheduledAt },
-      );
+      const res = await apiClient.patch(`/appointments/${apt.id}/reschedule`, {
+        scheduledAt,
+      });
       setApt(mapAppointment(res.data as ApiAppointment));
       setShowReschedule(false);
       setToast("Đã đổi lịch hẹn");
@@ -225,8 +225,7 @@ export default function AppointmentDetailPage() {
   if (!apt) return null;
 
   const name = apt.patient?.fullName ?? "Khách vãng lai";
-  const canReschedule =
-    apt.status === "PENDING" || apt.status === "CONFIRMED";
+  const canReschedule = apt.status === "PENDING" || apt.status === "CONFIRMED";
 
   return (
     <>
@@ -473,35 +472,35 @@ export default function AppointmentDetailPage() {
               )}
 
               {(apt.status === "PENDING" || apt.status === "CONFIRMED") && (
-                  <div className="border-t border-border pt-3 space-y-2">
-                    <button
-                      disabled={acting}
-                      onClick={() =>
-                        void updateStatus(
-                          "CANCELLED",
-                          "cancel",
-                          "Đã hủy lịch hẹn",
-                        )
-                      }
-                      className="flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60"
-                    >
-                      <XCircle size={15} /> Khách báo hủy
-                    </button>
-                    <button
-                      disabled={acting}
-                      onClick={() =>
-                        void updateStatus(
-                          "NO_SHOW",
-                          "no-show",
-                          "Đã đánh dấu vắng mặt",
-                        )
-                      }
-                      className="flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60"
-                    >
-                      <UserMinus size={15} /> Vắng mặt
-                    </button>
-                  </div>
-                )}
+                <div className="border-t border-border pt-3 space-y-2">
+                  <button
+                    disabled={acting}
+                    onClick={() =>
+                      void updateStatus(
+                        "CANCELLED",
+                        "cancel",
+                        "Đã hủy lịch hẹn",
+                      )
+                    }
+                    className="flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60"
+                  >
+                    <XCircle size={15} /> Khách báo hủy
+                  </button>
+                  <button
+                    disabled={acting}
+                    onClick={() =>
+                      void updateStatus(
+                        "NO_SHOW",
+                        "no-show",
+                        "Đã đánh dấu vắng mặt",
+                      )
+                    }
+                    className="flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60"
+                  >
+                    <UserMinus size={15} /> Vắng mặt
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

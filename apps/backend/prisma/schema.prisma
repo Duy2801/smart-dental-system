@@ -964,6 +964,8 @@ model Review {
   @@unique([patientId, appointmentId])
   @@index([doctorId, isVisible])
   @@index([appointmentId])
+  @@index([createdAt])
+  @@index([isVisible, rating, createdAt])
   @@map("reviews")
 }
 
