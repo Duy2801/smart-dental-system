@@ -6,22 +6,29 @@ from app.core import llm
 from app.core.prompts import RECEPTIONIST_SYSTEM
 from app.api.routes.doctor_assist import require_api_key
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_api_key)])
 service = ChatbotService()
 
 
 @router.post("/chat", response_model=ChatResponse)
 async def chat(body: ChatRequest):
     """Chatbot bệnh nhân: FAQ / triệu chứng / gợi ý đặt lịch (RAG + LLM)."""
-    return await service.reply(body)
+    return await agent_chat(body)
 
 
 @router.post("/agent-chat", response_model=ChatResponse)
 async def agent_chat(body: ChatRequest):
     """Booking Agent bệnh nhân: tự động đặt lịch hẹn qua AI Agent."""
     from app.services.booking_agent import BookingAgent
+    from app.services.booking_tools import DataSourceUnavailable
     agent = BookingAgent()
-    return await agent.process_chat(body)
+    try:
+        return await agent.process_chat(body)
+    except DataSourceUnavailable:
+        return ChatResponse(
+            reply="Mình chưa kết nối được dữ liệu phòng khám để kiểm tra chính xác. Bạn vui lòng thử lại sau; mình chưa thể xác nhận giá hoặc lịch hẹn lúc này.",
+            metadata={"status": "unavailable"},
+        )
 
 
 @router.post("/receptionist-chat", response_model=ChatResponse, dependencies=[Depends(require_api_key)])

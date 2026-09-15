@@ -1,10 +1,20 @@
-import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Post,
+  Put,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/curent-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface';
 import { ChatbotConversationService } from './chatbot-conversation.service';
-import { PatientChatDto } from './dto/chat.dto';
+import { ChatHistoryDto, PatientChatDto } from './dto/chat.dto';
+import { ChatbotServiceKeyGuard } from './chatbot-service-key.guard';
 
 @ApiTags('Chatbot Conversation')
 @Controller('chatbot-conversations')
@@ -43,22 +53,56 @@ export class ChatbotConversationController {
     return this.service.handlePatientAgentChat(null, dto);
   }
 
+  @Get('history')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  getHistory(@CurrentUser() user: AuthenticatedUser) {
+    return this.service.getHistory(user);
+  }
+
+  @Put('history')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  putHistory(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: ChatHistoryDto,
+  ) {
+    return this.service.putHistory(user, dto);
+  }
+
+  @Delete('history')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  deleteHistory(@CurrentUser() user: AuthenticatedUser) {
+    return this.service.deleteHistory(user);
+  }
+
+  @Get('internal/clinic')
+  @UseGuards(ChatbotServiceKeyGuard)
+  getClinicInternal() {
+    return this.service.getInternalClinic();
+  }
+
   @Get('internal/services')
+  @UseGuards(ChatbotServiceKeyGuard)
   async getServicesInternal() {
     return this.service.getInternalServices();
   }
 
   @Get('internal/doctors')
+  @UseGuards(ChatbotServiceKeyGuard)
   async getDoctorsInternal() {
     return this.service.getInternalDoctors();
   }
 
   @Get('internal/patients')
+  @UseGuards(ChatbotServiceKeyGuard)
   async getPatientsInternal(@Query('userId') userId: string) {
     return this.service.getInternalPatients(userId);
   }
 
   @Post('internal/patients')
+  @UseGuards(ChatbotServiceKeyGuard)
   async createPatientInternal(@Body() body: any) {
     return this.service.createInternalPatient(body.userId, {
       fullName: body.fullName,
@@ -70,6 +114,7 @@ export class ChatbotConversationController {
   }
 
   @Get('internal/slots')
+  @UseGuards(ChatbotServiceKeyGuard)
   async getSlotsInternal(
     @Query('date') date: string,
     @Query('doctorId') doctorId?: string,
@@ -87,11 +132,13 @@ export class ChatbotConversationController {
   }
 
   @Get('internal/appointments')
+  @UseGuards(ChatbotServiceKeyGuard)
   async getAppointmentsInternal(@Query('userId') userId: string) {
     return this.service.getInternalAppointments(userId);
   }
 
   @Post('internal/book')
+  @UseGuards(ChatbotServiceKeyGuard)
   async bookInternal(@Body() body: any) {
     return this.service.bookInternalAppointment(body);
   }

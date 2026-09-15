@@ -4,7 +4,8 @@ import unicodedata
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
-from app.core import llm, rag
+from app.core import llm
+from app.services.patient_answers import general_answer, privacy_reply, appointment_question, public_topic
 from app.schemas.chatbot import ChatRequest, ChatResponse
 from app.services.booking_tools import (
     create_patient_profile,
@@ -671,16 +672,39 @@ def error_reply(error: str) -> str:
         "service.unavailable": "Dịch vụ hoặc phương pháp điều trị vừa chọn hiện không khả dụng.",
         "patient.booking_permission_denied": "Tài khoản của quý khách không có quyền đặt lịch cho hồ sơ bệnh nhân này.",
     }
-    return messages.get(error, f"Mình chưa tạo được lịch hẹn: {error}")
+    return messages.get(error, "Mình chưa xác định được kết quả đặt lịch. Bạn vui lòng kiểm tra Lịch hẹn của tôi trước khi thử đặt lại.")
 
 
 def _booking_completed_in_history(history) -> bool:
     """Check if last assistant message indicates a completed booking."""
     for msg in reversed(history):
         if msg.role == "assistant":
-            content = (msg.content or "").lower()
-            return "dat lich thanh cong" in content or "\u0111\u1eb7t l\u1ecbch th\u00e0nh c\u00f4ng" in content
+            content = normalize_text(msg.content or "")
+            success_markers = [
+                "dat lich thanh cong",
+                "dat lich hen thanh cong",
+                "xac nhan dat lich",
+                "lich kham cua quy khach da duoc giu thanh cong",
+            ]
+            return any(marker in content for marker in success_markers)
     return False
+
+
+def is_new_booking_intent(text: str) -> bool:
+    norm = normalize_text(text)
+    phrases = [
+        "dat them lich",
+        "dat lich them",
+        "dat lich moi",
+        "tao lich moi",
+        "dat them",
+        "dat lai",
+        "muon dat them",
+        "muon dat lai",
+        "toi muon dat lich tiep",
+        "dat lich tiep",
+    ]
+    return any(phrase in norm for phrase in phrases)
 
 
 def is_general_inquiry(text: str) -> bool:
@@ -704,8 +728,13 @@ def is_general_inquiry(text: str) -> bool:
         "bac si chuyen",
         "thong tin bac si",
         "danh sach bac si",
+        "danh sach dich vu",
         "co cac dich vu",
         "co nhung dich vu",
+        "co dich vu nao",
+        "dich vu nao",
+        "dich vu gi",
+        "cac dich vu",
         "co nhung bac si",
         "tu van giup",
         "gioi thieu",
@@ -720,7 +749,11 @@ class BookingAgent:
     async def process_chat(self, body: ChatRequest) -> ChatResponse:
         user_msg = body.message.strip()
         user_norm = normalize_text(user_msg)
-        full_text = " ".join([m.content for m in body.history[-8:]] + [user_msg])
+        blocked = privacy_reply(user_msg)
+        if blocked:
+            return blocked
+        if appointment_question(user_msg):
+            return await self.answer_general_question(body, [], [])
 
         # --- Detect multi-person booking intent and reject early ---
         if multi_person_intent(user_msg):
@@ -735,14 +768,12 @@ class BookingAgent:
 
         # --- After a completed booking, user wants to book again: reset state fully ---
         just_completed = _booking_completed_in_history(body.history)
-        if just_completed and booking_intent(user_msg):
-            # New booking session — ignore all previous booking state
-            body_metadata_cleared = body
+        starts_fresh_booking = is_new_booking_intent(user_msg) or (
+            just_completed and booking_intent(user_msg)
+        )
+        if just_completed or starts_fresh_booking:
+            # Ignore stale metadata from the previous completed booking.
             state: Dict[str, Any] = {}
-            if body.patient_id:
-                state["patientId"] = body.patient_id
-            if body.patient_name:
-                state["patientName"] = body.patient_name
         else:
             state = merge_state(body)
 
@@ -761,8 +792,13 @@ class BookingAgent:
         if is_inquiry:
             wants_booking = False
         else:
-            wants_booking = booking_intent(user_msg) or booking_in_progress
+            wants_booking = booking_intent(user_msg) or starts_fresh_booking or booking_in_progress
 
+        if not wants_booking:
+            topic = public_topic(user_msg)
+            services = await fetch_available_services() if topic == 'services' else []
+            doctors = await fetch_available_doctors() if topic == 'doctors' else []
+            return await self.answer_general_question(body, services, doctors)
         services = await fetch_available_services()
         doctors = await fetch_available_doctors()
         patients = await fetch_patient_profiles(body.created_by_user_id)
@@ -805,20 +841,7 @@ class BookingAgent:
         # Detect booking for someone else or creation of a new patient profile
         user_norm = normalize_text(user_msg)
 
-        is_new_booking_intent = any(
-            k in user_norm
-            for k in [
-                "dat them lich",
-                "dat lich them",
-                "dat lich moi",
-                "tao lich moi",
-                "dat them",
-                "dat lai",
-                "muon dat them",
-                "muoaan dat them",
-            ]
-        )
-        if just_completed or is_new_booking_intent:
+        if starts_fresh_booking:
             state = {}
 
         wants_book_for_other = any(
@@ -859,8 +882,7 @@ class BookingAgent:
             ]
         )
 
-        if wants_book_for_self:
-            wants_book_for_other = False
+        if wants_book_for_self and not wants_book_for_other:
             state["creatingNewPatient"] = False
             for k in ["newPatientName", "newPatientAge", "newPatientDob", "newPatientPhone", "newPatientRelationship"]:
                 state.pop(k, None)
@@ -904,7 +926,7 @@ class BookingAgent:
             )
 
         # If user explicitly wants to book for self, auto-select primary patient profile
-        if wants_book_for_self and not state.get("patientId") and patients:
+        if wants_book_for_self and not wants_book_for_other and not state.get("patientId") and patients:
             self_p = next((p for p in patients if p.get("isPrimary") or p.get("relationship") == "SELF"), None) or patients[0]
             state.update(
                 {
@@ -931,7 +953,7 @@ class BookingAgent:
                 patients = await fetch_patient_profiles(body.created_by_user_id)
             elif isinstance(res_patient, dict) and res_patient.get("error"):
                 return ChatResponse(
-                    reply=f"Chưa thể tạo hồ sơ cho người thân ({res_patient.get('error')}). Quý khách vui lòng thử lại ạ.",
+                    reply="Chưa thể xác nhận việc tạo hồ sơ cho người thân. Bạn vui lòng kiểm tra danh sách hồ sơ trước khi thử lại.",
                     should_book=True,
                     suggestions=patient_suggestions(patients, state),
                 )
@@ -1305,143 +1327,4 @@ class BookingAgent:
         services: List[Dict[str, Any]],
         doctors: List[Dict[str, Any]],
     ) -> ChatResponse:
-        user_msg = body.message.strip()
-        user_norm = normalize_text(user_msg)
-
-        # Security Guardrail: Block sensitive internal system / confidential requests
-        sensitive_keywords = [
-            "database", "db_url", "postgres", "password", "api_key", "secret",
-            "env", "mat khau", "luong bac si", "doanh thu", "system prompt",
-            "dieu khoan bao mat", "ma nguon", "source code", "private_key"
-        ]
-        if any(k in user_norm for k in sensitive_keywords):
-            return ChatResponse(
-                reply=(
-                    "Dạ, vì lý do bảo mật và quyền riêng tư nội bộ của Nha khoa Smart Dental, "
-                    "mình không thể cung cấp thông tin này ạ. Quý khách vui lòng liên hệ trực tiếp "
-                    "bộ phận Quản trị phòng khám nếu cần thêm hỗ trợ nhé!"
-                ),
-                should_book=False,
-                suggestions=[],
-            )
-
-        full_text = " ".join([m.content for m in body.history[-8:]] + [user_msg])
-
-        # First message ever: greet and offer help ONLY if user_msg is a simple greeting or empty
-        is_simple_greeting = normalize_text(user_msg) in ["hi", "hello", "xin chao", "chao", "start", "bat dau", "alô", "alo", ""]
-        is_first_message = len(body.history) == 0 and is_simple_greeting
-        if is_first_message:
-            return ChatResponse(
-                reply=(
-                    "Xin ch\u00e0o qu\u00fd kh\u00e1ch! \U0001f60a M\u00ecnh l\u00e0 Tr\u1ee3 l\u00fd AI c\u1ee7a Nha khoa Smart Dental.\n"
-                    "M\u00ecnh c\u00f3 th\u1ec3 gi\u00fap qu\u00fd kh\u00e1ch t\u01b0 v\u1ea5n d\u1ecbch v\u1ee5 ho\u1eb7c \u0111\u1eb7t l\u1ecbch kh\u00e1m.\n"
-                    "Qu\u00fd kh\u00e1ch c\u1ea7n m\u00ecnh h\u1ed7 tr\u1ee3 g\u00ec \u1ea1?"
-                ),
-                should_book=False,
-                suggestions=[
-                    {"type": "quick_reply", "label": "\u0110\u1eb7t l\u1ecbch kh\u00e1m", "value": "T\u00f4i mu\u1ed1n \u0111\u1eb7t l\u1ecbch kh\u00e1m", "metadata": {}},
-                    {"type": "quick_reply", "label": "T\u01b0 v\u1ea5n d\u1ecbch v\u1ee5", "value": "Cho t\u00f4i xem b\u1ea3ng gi\u00e1 d\u1ecbch v\u1ee5", "metadata": {}},
-                    {"type": "quick_reply", "label": "H\u1ecfi th\u00eam", "value": "T\u00f4i c\u00f3 c\u00e2u h\u1ecfi", "metadata": {}},
-                ],
-            )
-
-        # Fetch user appointments if logged in
-        user_appointments = await fetch_user_appointments(body.created_by_user_id)
-        user_appts_block = ""
-        if user_appointments:
-            appt_lines = []
-            for apt in user_appointments:
-                code = apt.get("appointmentCode", "")
-                pname = apt.get("patientName", "Bệnh nhân")
-                dname = apt.get("doctorName", "Bác sĩ")
-                sname = apt.get("serviceName", "Khám nha khoa")
-                sch = apt.get("scheduledAt", "")
-                st = apt.get("status", "")
-                appt_lines.append(f"- Mã #{code}: Bệnh nhân {pname}, Dịch vụ {sname}, Bác sĩ {dname}, Thời gian {sch}, Trạng thái: {st}")
-            user_appts_block = "Danh sách lịch hẹn hiện tại của khách hàng:\n" + "\n".join(appt_lines) + "\n\n"
-        else:
-            user_appts_block = "Khách hàng hiện tại chưa có lịch hẹn nào sắp tới trên hệ thống.\n\n" if body.created_by_user_id else "Khách hàng chưa đăng nhập (chưa có thông tin lịch hẹn cá nhân).\n\n"
-
-        # Build rich clinic context: RAG knowledge + live services + doctors + user appointments
-        rag_block = rag.build_rag_block(user_msg, top_k=5)
-
-        services_detail = []
-        for s in services:
-            methods = s.get("treatmentMethods") or []
-            method_items = []
-            for m in methods[:6]:
-                m_name = m.get("name", "")
-                price_val = m.get("finalPrice") or m.get("basePrice")
-                m_price = format_money(price_val)
-                m_disc = f" [{m.get('discountInfo')}]" if m.get("discountInfo") else ""
-                method_items.append(f"{m_name} ({m_price}{m_disc})")
-            method_lines = ", ".join(method_items)
-            s_disc = f" [{s.get('discountInfo')}]" if s.get("discountInfo") else ""
-            services_detail.append(
-                f"- {s.get('name', 'Dịch vụ')}{s_disc}: {method_lines or format_money(s.get('price'))}"
-            )
-        services_summary = "\n".join(services_detail)
-
-        doctors_detail = []
-        for d in doctors:
-            name = d.get("fullName") or d.get("name") or "Bác sĩ"
-            spec = d.get("specialization") or d.get("specialty") or "Nha khoa tổng quát"
-            exp = d.get("yearsExperience")
-            exp_str = f" ({exp} năm kinh nghiệm)" if exp else ""
-            title = d.get("title") or ""
-            title_str = f"{title} " if title and title not in name else ""
-            doctors_detail.append(f"- {title_str}{name} — Chuyên khoa: {spec}{exp_str}")
-        doctors_summary = "\n".join(doctors_detail)
-
-        system_context = (
-            "Bạn là Trợ lý AI cao cấp của Nha khoa Smart Dental (phòng khám tại Việt Nam).\n"
-            "Nhiệm vụ: Trả lời MỌI thắc mắc của khách hàng một cách RÕ RÀNG, ĐẦY ĐỦ, CHI TIẾT và CHUYÊN NGHIỆP về:\n"
-            "- Đội ngũ bác sĩ, trình độ, chuyên khoa và kinh nghiệm.\n"
-            "- Các dịch vụ nha khoa, quy trình điều trị, ưu điểm, bảng giá và các chương trình khuyến mãi/giảm giá.\n"
-            "- Tư vấn triệu chứng răng miệng, hướng dẫn chăm sóc trước/sau điều trị.\n"
-            "- Tra cứu lịch hẹn cá nhân và hướng dẫn đặt lịch khám.\n\n"
-            "QUY TẮC PHẢN HỒI:\n"
-            "1. Trả lời tiếng Việt chuẩn mực, thân thiện, lịch sự, đúng trọng tâm và trình bày Markdown đẹp mắt (gạch đầu dòng, bôi đậm tên bác sĩ/dịch vụ/giá/mã ưu đãi).\n"
-            "2. Khi khách hỏi về Bác sĩ (ví dụ: 'phòng khám có những bác sĩ nào', 'còn bác sĩ khác không', 'bác sĩ chuyên nhổ răng khôn'):\n"
-            "   - Hãy LIỆT KÊ ĐẦY ĐỦ TOÀN BỘ danh sách bác sĩ được cung cấp bên dưới kèm chuyên khoa và kinh nghiệm của từng người.\n"
-            "   - Tuyệt đối KHÔNG trả lời khẳng định cứng nhắc hay hạn chế thông tin kiểu 'Hệ thống chỉ có 2 bác sĩ này'.\n"
-            "3. Khi khách hỏi tra cứu Lịch khám cá nhân (ví dụ: 'hôm nay tôi có lịch không', 'lịch hẹn của tôi'):\n"
-            "   - Đọc dữ liệu 'Danh sách lịch hẹn hiện tại của khách hàng' bên dưới để báo chi tiết Mã hẹn, Bệnh nhân, Dịch vụ, Bác sĩ và Thời gian.\n"
-            "   - Nếu KHÔNG có lịch -> Báo rõ ràng và gợi ý bấm 'Đặt lịch khám'. Nếu chưa đăng nhập -> Nhắc khách đăng nhập tài khoản.\n"
-            "4. Khi khách hỏi giá / dịch vụ / khuyến mãi -> Liệt kê đầy đủ các gói/phương pháp điều trị kèm mức giá rõ ràng.\n"
-            "   - Nếu dịch vụ/phương pháp đó đang CÓ GIẢM GIÁ / KHUYẾN MÃI (ví dụ: [Giảm 20% (Mã: SALE20)]): Hãy THÔNG BÁO RÕ CHO KHÁCH HÀNG và cho biết hệ thống sẽ TỰ ĐỘNG ÁP DỤNG MÃ GIẢM GIÁ này khi khách đặt lịch khám!\n"
-            "5. Tuyệt đối KHÔNG bịa đặt giá cả hay lịch hẹn không tồn tại. Dựa trên dữ liệu phòng khám bên dưới để trả lời chính xác.\n"
-            "6. Nếu câu hỏi KHÔNG liên quan đến nha khoa hay phòng khám → Trả lời: \"Mình chỉ có thể hỗ trợ các thông tin liên quan đến Nha khoa Smart Dental. Quý khách vui lòng liên hệ trực tiếp phòng khám nếu cần thêm hỗ trợ.\"\n\n"
-            + user_appts_block
-            + (f"{rag_block}\n\n" if rag_block else "")
-            + f"Danh sách Dịch vụ hiện có:\n{services_summary}\n\n"
-            f"Danh sách Đội ngũ Bác sĩ phòng khám:\n{doctors_summary}\n"
-        )
-
-        try:
-            ai_reply = await llm.complete(
-                system_context,
-                f"Lịch sử chat:\n{full_text}\n\nTin nhắn mới: {user_msg}"
-            )
-        except Exception as err:
-            logger.error(f"[BookingAgent] LLM complete failed: {err}")
-            ai_reply = "Dạ, mình có thể tư vấn dịch vụ nha khoa và hỗ trợ đặt lịch khám. Quý khách cần hỗ trợ nội dung gì ạ?"
-
-        return ChatResponse(
-            reply=ai_reply,
-            should_book=False,
-            suggestions=[
-                {
-                    "type": "quick_reply",
-                    "label": "\u0110\u1eb7t l\u1ecbch kh\u00e1m",
-                    "value": "T\u00f4i mu\u1ed1n \u0111\u1eb7t l\u1ecbch kh\u00e1m",
-                    "metadata": {},
-                },
-                {
-                    "type": "quick_reply",
-                    "label": "B\u1ea3ng gi\u00e1 d\u1ecbch v\u1ee5",
-                    "value": "Cho t\u00f4i xem b\u1ea3ng gi\u00e1 d\u1ecbch v\u1ee5",
-                    "metadata": {},
-                },
-            ],
-        )
+        return await general_answer(body, services, doctors, fetch_user_appointments)
