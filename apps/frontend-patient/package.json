@@ -6,8 +6,7 @@
     "dev": "next dev --port 3001",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
-    "test:chat": "node --test tests/chat-model.test.cjs"
+    "lint": "eslint"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.12.0",

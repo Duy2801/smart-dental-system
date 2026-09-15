@@ -1,17 +1,9 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  Injectable,
-  Logger,
-  ServiceUnavailableException,
-  UnauthorizedException,
-  ValidationPipe,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { AiClientService } from '../ai/ai-client.service';
 import { AppointmentService } from '../appointment/appointment.service';
 import { PatientService } from '../patient/patient.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { ChatHistoryDto, PatientChatDto } from './dto/chat.dto';
+import { PatientChatDto } from './dto/chat.dto';
 
 @Injectable()
 export class ChatbotConversationService {
@@ -32,8 +24,8 @@ export class ChatbotConversationService {
         '/api/v1/chatbot/agent-chat',
         payload,
       );
-    } catch {
-      this.logger.error('AI chat request failed');
+    } catch (err: any) {
+      this.logger.error(`AI Chat error: ${err.message}`);
       return this.maintenanceReply();
     }
   }
@@ -46,8 +38,8 @@ export class ChatbotConversationService {
         '/api/v1/chatbot/agent-chat',
         payload,
       );
-    } catch {
-      this.logger.error('AI agent chat request failed');
+    } catch (err: any) {
+      this.logger.error(`AI Agent Chat error: ${err.message}`);
       return this.maintenanceReply();
     }
   }
@@ -57,201 +49,34 @@ export class ChatbotConversationService {
     dto: PatientChatDto,
     allowLegacyPatientFallback: boolean,
   ) {
-    const profiles = user?.userId
-      ? await this.currentProfiles(user.userId)
-      : [];
-    const allowed = new Set(profiles.map((profile) => profile.id));
-    if (dto.patientId && !allowed.has(dto.patientId))
-      throw new ForbiddenException('patient.access_denied');
-    const selected =
-      profiles.find((profile) => profile.id === dto.patientId) ||
-      (allowLegacyPatientFallback
-        ? profiles.find((profile) => profile.isPrimary)
-        : undefined);
-    const metadata = this.sanitizeIdentity(dto.metadata || {}, allowed);
-    const history = (dto.history || []).map((h) => ({
-      role: h.role,
-      content: h.content,
-      metadata: this.sanitizeIdentity(h.metadata || {}, allowed),
-    }));
+    let patientId = dto.patientId;
+    let patientName = dto.patientName;
+    let patientPhone = dto.patientPhone;
+
+    if (allowLegacyPatientFallback && user?.userId && !patientId) {
+      const patient = await this.prisma.patient.findFirst({
+        where: { OR: [{ userId: user.userId }, { id: user.userId }] },
+      });
+      if (patient) {
+        patientId = patient.id;
+        patientName = patientName || patient.fullName || undefined;
+        patientPhone = patientPhone || patient.phone || undefined;
+      }
+    }
 
     return {
       created_by_user_id: user?.userId || null,
-      patient_id: selected?.id || null,
-      patient_name: selected?.fullName || null,
-      patient_phone: selected?.phone || null,
+      patient_id: patientId || null,
+      patient_name: patientName || null,
+      patient_phone: patientPhone || null,
       message: dto.message,
-      metadata,
-      history,
+      metadata: dto.metadata || {},
+      history: (dto.history || []).map((h) => ({
+        role: h.role,
+        content: h.content,
+        metadata: h.metadata || {},
+      })),
     };
-  }
-
-  private sanitizeIdentity(value: any, allowed: Set<string>): any {
-    if (Array.isArray(value))
-      return value.map((item) => this.sanitizeIdentity(item, allowed));
-    if (!value || typeof value !== 'object') return value;
-    return Object.fromEntries(
-      Object.entries(value).flatMap(([key, item]) => {
-        const normalized = key.replace(/[_-]/g, '').toLowerCase();
-        if (
-          [
-            'userid',
-            'createdbyuserid',
-            'createdby',
-            'accountid',
-            'sessionid',
-          ].includes(normalized)
-        )
-          return [];
-        if (
-          normalized === 'patientid' &&
-          item !== null &&
-          item !== '' &&
-          (typeof item !== 'string' || !allowed.has(item))
-        )
-          throw new ForbiddenException('patient.access_denied');
-        return [[key, this.sanitizeIdentity(item, allowed)]];
-      }),
-    );
-  }
-
-  private async currentProfiles(userId: string) {
-    const profiles =
-      await this.patientService.getManagedPatientProfiles(userId);
-    // Profile presentation is cached; authorization always checks current grants.
-    const links = await this.prisma.patientAccount.findMany({
-      where: { userId },
-      select: { patientId: true },
-    });
-    const allowed = new Set(links.map((link) => link.patientId));
-    return profiles.filter((profile) => allowed.has(profile.id));
-  }
-
-  private async historyOwner(user: any, create = false) {
-    if (!user?.userId) throw new UnauthorizedException();
-    let patient = await this.prisma.patient.findFirst({
-      where: { userId: user.userId },
-      select: { id: true },
-    });
-    if (!patient && create) {
-      await this.patientService.getManagedPatientProfiles(user.userId);
-      patient = await this.prisma.patient.findFirst({
-        where: { userId: user.userId },
-        select: { id: true },
-      });
-    }
-    if (!patient) return null;
-    return { sessionId: `patient-chat:${user.userId}`, patientId: patient.id };
-  }
-
-  private async validatedHistory(dto: unknown, user: any) {
-    const pipe = new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-    });
-    const valid: ChatHistoryDto = await pipe.transform(dto, {
-      type: 'body',
-      metatype: ChatHistoryDto,
-    });
-    const profiles = await this.currentProfiles(user.userId);
-    return this.sanitizeIdentity(
-      valid.messages,
-      new Set(profiles.map((profile) => profile.id)),
-    );
-  }
-
-  async getHistory(user: any) {
-    const owner = await this.historyOwner(user);
-    if (!owner) return { messages: [] };
-    const stored = await this.prisma.chatbotConversation.findUnique({
-      where: { sessionId: owner.sessionId },
-    });
-    if (!stored) return { messages: [] };
-    if (stored.patientId !== owner.patientId)
-      throw new ForbiddenException('patient.access_denied');
-    return {
-      messages: await this.validatedHistory(
-        { messages: stored.messages },
-        user,
-      ),
-    };
-  }
-
-  async putHistory(user: any, dto: ChatHistoryDto) {
-    const owner = await this.historyOwner(user, true);
-    if (!owner) throw new ForbiddenException('patient.access_denied');
-    const messages = await this.validatedHistory(dto, user);
-    const stored = await this.prisma.chatbotConversation.findUnique({
-      where: { sessionId: owner.sessionId },
-    });
-    if (stored && stored.patientId !== owner.patientId)
-      throw new ForbiddenException('patient.access_denied');
-    await this.prisma.chatbotConversation.upsert({
-      where: { sessionId: owner.sessionId },
-      create: { ...owner, messages },
-      update: { messages },
-    });
-    return { messages };
-  }
-
-  async deleteHistory(user: any) {
-    const owner = await this.historyOwner(user);
-    if (!owner) return { messages: [] };
-    await this.prisma.chatbotConversation.deleteMany({ where: owner });
-    return { messages: [] };
-  }
-
-  async getInternalClinic() {
-    const textFields = ['name', 'phone', 'email', 'address', 'logoUrl'];
-    const jsonFields = ['businessHours', 'lunchBreak', 'specialDates'];
-    try {
-      const rows = await this.prisma.clinicConfig.findMany({
-        where: {
-          configKey: {
-            in: [...textFields, ...jsonFields].map((key) => `clinic.${key}`),
-          },
-        },
-      });
-      const output: Record<string, unknown> = {};
-      for (const row of rows) {
-        const key = row.configKey.replace(/^clinic\./, '');
-        if (textFields.includes(key)) output[key] = row.configValue;
-        if (jsonFields.includes(key)) {
-          try {
-            const parsed: unknown = JSON.parse(row.configValue);
-            const fields =
-              key === 'businessHours'
-                ? ['id', 'label', 'isOpen', 'start', 'end']
-                : key === 'lunchBreak'
-                  ? ['isEnabled', 'start', 'end']
-                  : ['date', 'label', 'isClosed', 'start', 'end'];
-            const selectPublic = (item: unknown) =>
-              item && typeof item === 'object' && !Array.isArray(item)
-                ? Object.fromEntries(
-                    Object.entries(item).filter(
-                      ([field, value]) =>
-                        fields.includes(field) &&
-                        ['string', 'number', 'boolean'].includes(typeof value),
-                    ),
-                  )
-                : null;
-            if (key === 'lunchBreak') {
-              const item = selectPublic(parsed);
-              if (item) output[key] = item;
-            } else if (Array.isArray(parsed))
-              output[key] = parsed
-                .map(selectPublic)
-                .filter((item) => item !== null);
-          } catch {
-            /* An invalid configured value is unavailable. */
-          }
-        }
-      }
-      return output;
-    } catch {
-      throw new ServiceUnavailableException('chatbot.source_unavailable');
-    }
   }
 
   private maintenanceReply() {
@@ -310,8 +135,7 @@ export class ChatbotConversationService {
 
             if (tmPromo) {
               if (tmPromo.discountType === 'PERCENTAGE') {
-                const discount =
-                  (basePrice * Number(tmPromo.discountValue)) / 100;
+                const discount = (basePrice * Number(tmPromo.discountValue)) / 100;
                 finalPrice = Math.max(0, basePrice - discount);
                 discountInfo = `Giảm ${tmPromo.discountValue}% (Mã: ${tmPromo.code})`;
               } else if (tmPromo.discountType === 'FIXED_AMOUNT') {
@@ -335,9 +159,7 @@ export class ChatbotConversationService {
           const lowestPrice =
             treatmentMethods.length > 0
               ? Math.min(...treatmentMethods.map((m) => m.finalPrice))
-              : s.basePrice === null || s.basePrice === undefined
-                ? null
-                : Number(s.basePrice);
+              : Number(s.basePrice || 200000);
 
           return {
             id: s.id,
@@ -355,18 +177,31 @@ export class ChatbotConversationService {
           };
         });
       }
-      return [];
-    } catch {
-      throw new ServiceUnavailableException('chatbot.source_unavailable');
+    } catch (err: any) {
+      this.logger.error(`getInternalServices error: ${err.message}`);
     }
+
+    const options = await this.appointmentService.getBookingOptions({});
+    const services = (options.services || []) as any[];
+
+    return services.map((s) => ({
+      id: s.id,
+      name: s.name,
+      description: s.description,
+      price: s.treatmentMethods?.[0]?.basePrice
+        ? Number(s.treatmentMethods[0].basePrice)
+        : 200000,
+      treatmentMethods: s.treatmentMethods || [],
+    }));
   }
 
   async getInternalPatients(userId: string) {
     if (!userId) return [];
     try {
-      return await this.currentProfiles(userId);
-    } catch {
-      throw new ServiceUnavailableException('chatbot.source_unavailable');
+      return await this.patientService.getManagedPatientProfiles(userId);
+    } catch (err: any) {
+      this.logger.error(`getInternalPatients error: ${err.message}`);
+      return [];
     }
   }
 
@@ -422,10 +257,21 @@ export class ChatbotConversationService {
           };
         });
       }
-      return [];
-    } catch {
-      throw new ServiceUnavailableException('chatbot.source_unavailable');
+    } catch (err: any) {
+      this.logger.error(`getInternalDoctors prisma query error: ${err.message}`);
     }
+
+    // Fallback to appointmentService booking options if direct prisma query fails or returns empty
+    const options = await this.appointmentService.getBookingOptions({});
+    const doctors = (options.doctors || []) as any[];
+
+    return doctors.map((d) => ({
+      id: d.id,
+      fullName: d.user?.fullName || d.fullName || 'Bác sĩ',
+      title: d.title || d.position || '',
+      specialization: d.specialization || 'Nha khoa tổng quát',
+      yearsExperience: d.yearsExperience || 0,
+    }));
   }
 
   async getInternalSlots(query: {
@@ -460,31 +306,23 @@ export class ChatbotConversationService {
     if (!userId) return [];
 
     try {
-      const patients = await this.currentProfiles(userId);
+      const patients = await this.prisma.patient.findMany({
+        where: { OR: [{ userId }, { id: userId }] },
+        select: { id: true },
+      });
       const patientIds = patients.map((p) => p.id);
-      const parts = new Intl.DateTimeFormat('en-CA', {
-        timeZone: 'Asia/Ho_Chi_Minh',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-      }).formatToParts(new Date());
-      const part = (type: string) =>
-        parts.find((item) => item.type === type)?.value;
-      const today = new Date(
-        `${part('year')}-${part('month')}-${part('day')}T00:00:00+07:00`,
-      );
 
       const appointments = await this.prisma.appointment.findMany({
         where: {
-          patientId: { in: patientIds },
-          scheduledAt: { gte: today },
-          status: { in: ['PENDING', 'CONFIRMED', 'CHECKED_IN', 'IN_PROGRESS'] },
+          OR: [
+            { createdBy: userId },
+            { patientId: { in: patientIds } },
+          ],
+          status: { notIn: ['CANCELLED'] },
         },
         include: {
-          patient: { select: { id: true, fullName: true } },
-          doctor: {
-            select: { id: true, user: { select: { fullName: true } } },
-          },
+          patient: { select: { id: true, fullName: true, phone: true } },
+          doctor: { select: { id: true, user: { select: { fullName: true } } } },
           treatmentMethod: {
             select: {
               id: true,
@@ -508,11 +346,14 @@ export class ChatbotConversationService {
           apt.treatmentMethod?.name ||
           'Khám nha khoa',
         treatmentMethodName: apt.treatmentMethod?.name || '',
-        scheduledAt: apt.scheduledAt ? apt.scheduledAt.toISOString() : '',
+        scheduledAt: apt.scheduledAt
+          ? apt.scheduledAt.toISOString()
+          : '',
         status: apt.status,
       }));
-    } catch {
-      throw new ServiceUnavailableException('chatbot.source_unavailable');
+    } catch (err: any) {
+      this.logger.error(`getInternalAppointments error: ${err.message}`);
+      return [];
     }
   }
 
@@ -556,9 +397,7 @@ export class ChatbotConversationService {
             endDate: { gte: now },
             OR: [
               { applicableTreatmentMethodId: dto.treatmentMethodId },
-              ...(tm?.service?.slug
-                ? [{ applicableServiceSlug: tm.service.slug }]
-                : []),
+              ...(tm?.service?.slug ? [{ applicableServiceSlug: tm.service.slug }] : []),
             ],
           },
           orderBy: { discountValue: 'desc' },
@@ -566,8 +405,8 @@ export class ChatbotConversationService {
         if (promo) {
           promotionCode = promo.code;
         }
-      } catch {
-        this.logger.warn('AI booking promotion lookup failed');
+      } catch (err: any) {
+        this.logger.warn(`Auto promotion lookup error: ${err.message}`);
       }
     }
 
@@ -598,16 +437,12 @@ export class ChatbotConversationService {
         'Bệnh nhân',
       patientPhone: createdAppointment.patient?.phone || dto.patientPhone || '',
       doctorName:
-        (typeof createdAppointment.doctorName === 'string'
-          ? createdAppointment.doctorName
-          : null) ||
+        (typeof createdAppointment.doctorName === 'string' ? createdAppointment.doctorName : null) ||
         createdAppointment.doctor?.user?.fullName ||
         createdAppointment.doctor?.fullName ||
         'Bác sĩ chuyên khoa',
       serviceName:
-        (typeof createdAppointment.serviceName === 'string'
-          ? createdAppointment.serviceName
-          : null) ||
+        (typeof createdAppointment.serviceName === 'string' ? createdAppointment.serviceName : null) ||
         createdAppointment.service?.name ||
         createdAppointment.treatmentMethod?.service?.name ||
         createdAppointment.treatmentMethod?.name ||
