@@ -14,6 +14,24 @@ def unwrap_backend_data(data: Any) -> Any:
     return data
 
 
+class DataSourceUnavailable(RuntimeError):
+    """A required clinic source could not be read; never treat as empty data."""
+
+
+async def fetch_clinic_information() -> Dict[str, Any]:
+    settings = get_settings()
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            res = await client.get(f"{settings.backend_base_url}/chatbot-conversations/internal/clinic", headers={"x-api-key": settings.ai_service_api_key})
+            res.raise_for_status()
+            data = unwrap_backend_data(res.json())
+            if not isinstance(data, dict):
+                raise ValueError("Invalid clinic data")
+            return data
+    except Exception:
+        raise DataSourceUnavailable("clinic") from None
+
+
 async def fetch_available_services() -> List[Dict[str, Any]]:
     settings = get_settings()
     url = f"{settings.backend_base_url}/chatbot-conversations/internal/services"
@@ -22,10 +40,11 @@ async def fetch_available_services() -> List[Dict[str, Any]]:
             res = await client.get(url, headers={"x-api-key": settings.ai_service_api_key})
             res.raise_for_status()
             data = unwrap_backend_data(res.json())
-            return data if isinstance(data, list) else []
-    except Exception as err:
-        logger.error(f"[booking_tools] fetch_available_services error: {err}")
-        return []
+            if not isinstance(data, list):
+                raise ValueError("Invalid source data")
+            return data
+    except Exception:
+        raise DataSourceUnavailable("fetch_available_services") from None
 
 
 async def fetch_patient_profiles(user_id: Optional[str]) -> List[Dict[str, Any]]:
@@ -43,10 +62,11 @@ async def fetch_patient_profiles(user_id: Optional[str]) -> List[Dict[str, Any]]
             )
             res.raise_for_status()
             data = unwrap_backend_data(res.json())
-            return data if isinstance(data, list) else []
-    except Exception as err:
-        logger.error(f"[booking_tools] fetch_patient_profiles error: {err}")
-        return []
+            if not isinstance(data, list):
+                raise ValueError("Invalid source data")
+            return data
+    except Exception:
+        raise DataSourceUnavailable("fetch_patient_profiles") from None
 
 
 async def fetch_user_appointments(user_id: Optional[str]) -> List[Dict[str, Any]]:
@@ -64,10 +84,11 @@ async def fetch_user_appointments(user_id: Optional[str]) -> List[Dict[str, Any]
             )
             res.raise_for_status()
             data = unwrap_backend_data(res.json())
-            return data if isinstance(data, list) else []
-    except Exception as err:
-        logger.error(f"[booking_tools] fetch_user_appointments error: {err}")
-        return []
+            if not isinstance(data, list):
+                raise ValueError("Invalid source data")
+            return data
+    except Exception:
+        raise DataSourceUnavailable("fetch_user_appointments") from None
 
 
 async def fetch_booking_options(
@@ -100,10 +121,11 @@ async def fetch_booking_options(
             )
             res.raise_for_status()
             data = unwrap_backend_data(res.json())
-            return data if isinstance(data, dict) else {}
-    except Exception as err:
-        logger.error(f"[booking_tools] fetch_booking_options error: {err}")
-        return {}
+            if not isinstance(data, dict):
+                raise ValueError('Invalid booking options')
+            return data
+    except Exception:
+        raise DataSourceUnavailable('booking_options') from None
 
 
 async def fetch_available_doctors() -> List[Dict[str, Any]]:
@@ -114,10 +136,11 @@ async def fetch_available_doctors() -> List[Dict[str, Any]]:
             res = await client.get(url, headers={"x-api-key": settings.ai_service_api_key})
             res.raise_for_status()
             data = unwrap_backend_data(res.json())
-            return data if isinstance(data, list) else []
-    except Exception as err:
-        logger.error(f"[booking_tools] fetch_available_doctors error: {err}")
-        return []
+            if not isinstance(data, list):
+                raise ValueError("Invalid source data")
+            return data
+    except Exception:
+        raise DataSourceUnavailable("fetch_available_doctors") from None
 
 
 async def check_available_slots(
@@ -143,7 +166,7 @@ async def check_available_slots(
             res.raise_for_status()
             data = unwrap_backend_data(res.json())
             if not isinstance(data, dict):
-                return {"date": date, "available_slots": [], "dates": [], "doctors": []}
+                raise ValueError('Invalid slot data')
 
             raw_slots = data.get("timeSlots", [])
             open_slots = [
@@ -159,9 +182,8 @@ async def check_available_slots(
                 "selectedDateId": data.get("selectedDateId"),
                 "doctors": data.get("doctors", []),
             }
-    except Exception as err:
-        logger.error(f"[booking_tools] check_available_slots error: {err}")
-        return {"date": date, "available_slots": [], "dates": [], "doctors": []}
+    except Exception:
+        raise DataSourceUnavailable('slots') from None
 
 
 async def execute_book_appointment(
@@ -202,11 +224,11 @@ async def execute_book_appointment(
                 error_message = error_data.get("message") or error_data.get("error")
             except Exception:
                 error_message = res.text
-            logger.error(f"[booking_tools] book error HTTP {res.status_code}: {error_message}")
+            logger.warning('[booking_tools] Booking request failed (HTTP %s)', res.status_code)
             return {"success": False, "error": error_message or f"HTTP {res.status_code}"}
-    except Exception as err:
-        logger.error(f"[booking_tools] execute_book_appointment error: {err}")
-        return {"success": False, "error": str(err)}
+    except Exception:
+        logger.warning('[booking_tools] Booking request outcome unknown')
+        return {"success": False, "error": 'booking.outcome_unknown'}
 
 
 async def create_patient_profile(
@@ -247,8 +269,8 @@ async def create_patient_profile(
                 error_message = error_data.get("message") or error_data.get("error")
             except Exception:
                 error_message = res.text
-            logger.error(f"[booking_tools] create_patient error HTTP {res.status_code}: {error_message}")
+            logger.warning('[booking_tools] Profile creation failed (HTTP %s)', res.status_code)
             return {"success": False, "error": error_message or f"HTTP {res.status_code}"}
-    except Exception as err:
-        logger.error(f"[booking_tools] create_patient_profile error: {err}")
-        return {"success": False, "error": str(err)}
+    except Exception:
+        logger.warning('[booking_tools] Profile creation outcome unknown')
+        return {"success": False, "error": 'patient.creation_outcome_unknown'}
