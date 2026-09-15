@@ -39,6 +39,26 @@ function getSafeRedirectPath() {
   return redirect;
 }
 
+type GoogleTokenClient = {
+  requestAccessToken: () => void;
+};
+
+type GoogleOAuth2 = {
+  initTokenClient: (config: {
+    client_id: string;
+    scope: string;
+    callback: (res: { access_token?: string; error?: string }) => void;
+  }) => GoogleTokenClient;
+};
+
+type GoogleWindow = Window & {
+  google?: {
+    accounts?: {
+      oauth2?: GoogleOAuth2;
+    };
+  };
+};
+
 export default function LoginPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -73,7 +93,12 @@ export default function LoginPage() {
         return;
       }
 
-      dispatch(login({ user: session.user, accessToken: session.accessToken }));
+      dispatch(
+        login({
+          user: session.user,
+          accessToken: session.accessToken,
+        }),
+      );
       const redirectPath = getSafeRedirectPath();
       router.replace(redirectPath);
     } catch (googleError) {
@@ -83,18 +108,17 @@ export default function LoginPage() {
   }
 
   function handleGoogleClick() {
-    const clientId =
-      process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
     if (!clientId) {
       setError("Hệ thống chưa cấu hình GOOGLE_CLIENT_ID cho Web.");
       return;
     }
 
-
-
-    const google = (window as unknown as { google?: any })?.google;
+    const google = (window as GoogleWindow).google;
     if (!google?.accounts?.oauth2) {
-      setError("Đang tải dịch vụ đăng nhập Google, vui lòng thử lại sau vài giây.");
+      setError(
+        "Đang tải dịch vụ đăng nhập Google, vui lòng thử lại sau vài giây.",
+      );
       return;
     }
 
@@ -114,7 +138,7 @@ export default function LoginPage() {
       });
 
       tokenClient.requestAccessToken();
-    } catch (err) {
+    } catch {
       setError("Không thể khởi tạo phiên đăng nhập Google. Vui lòng thử lại.");
     }
   }
@@ -143,7 +167,12 @@ export default function LoginPage() {
         return;
       }
 
-      dispatch(login({ user: session.user, accessToken: session.accessToken }));
+      dispatch(
+        login({
+          user: session.user,
+          accessToken: session.accessToken,
+        }),
+      );
       const redirectPath = getSafeRedirectPath();
       router.replace(redirectPath);
     } catch (loginError) {
@@ -164,4 +193,3 @@ export default function LoginPage() {
     />
   );
 }
-

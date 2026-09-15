@@ -13,7 +13,7 @@ import {
   finishHydration,
   login,
   logout,
-  updateAccessToken,
+  updateSessionTokens,
 } from "./loginSlice";
 import store from "./store";
 
@@ -62,8 +62,21 @@ function AuthHydrator() {
             }),
           );
         })
-        .catch(() => {
-          store.dispatch(logout());
+        .catch(async () => {
+          try {
+            const refreshResponse = await apiRefresh();
+            const { accessToken, user: refreshedUser } = refreshResponse.data;
+            const user = refreshedUser ?? (await apiMe()).data;
+            queryClient.setQueryData(["patient", "profile"], user);
+            store.dispatch(
+              login({
+                user,
+                accessToken,
+              }),
+            );
+          } catch {
+            store.dispatch(logout());
+          }
         });
       return;
     }
@@ -71,7 +84,7 @@ function AuthHydrator() {
     void apiRefresh()
       .then(async (refreshResponse) => {
         const { accessToken, user: refreshedUser } = refreshResponse.data;
-        store.dispatch(updateAccessToken(accessToken));
+        store.dispatch(updateSessionTokens({ accessToken }));
 
         const user = refreshedUser ?? (await apiMe()).data;
         queryClient.setQueryData(["patient", "profile"], user);

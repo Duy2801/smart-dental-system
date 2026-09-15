@@ -5,7 +5,7 @@ import axios, {
   AxiosResponse,
   InternalAxiosRequestConfig,
 } from "axios";
-import { logout, updateAccessToken } from "@/providers";
+import { logout, updateSessionTokens } from "@/providers";
 import { clearPatientSession } from "@/features/auth/session-storage";
 import store from "@/providers/store";
 
@@ -236,7 +236,11 @@ apiClient.interceptors.response.use(
       );
 
       const { accessToken } = response.data.data;
-      store.dispatch(updateAccessToken(accessToken));
+      store.dispatch(
+        updateSessionTokens({
+          accessToken,
+        }),
+      );
 
       apiClient.defaults.headers.common.Authorization = `Bearer ${accessToken}`;
       originalRequest.headers.Authorization = `Bearer ${accessToken}`;

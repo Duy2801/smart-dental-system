@@ -1,5 +1,8 @@
 import { configureStore } from "@reduxjs/toolkit";
-import { savePatientSession } from "@/features/auth/session-storage";
+import {
+  clearPatientSession,
+  savePatientSession,
+} from "@/features/auth/session-storage";
 import { loginReducer } from ".";
 
 const store = configureStore({
@@ -24,6 +27,11 @@ store.subscribe(() => {
 
   if (signature === lastPersistedSignature) return;
   lastPersistedSignature = signature;
+
+  if (!state.accessToken || !state.user || !state.isAuthenticated) {
+    clearPatientSession();
+    return;
+  }
 
   savePatientSession(state);
 });

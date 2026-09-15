@@ -24,6 +24,10 @@ type LoginPayload = {
   accessToken: string;
 };
 
+type SessionTokensPayload = {
+  accessToken: string;
+};
+
 const initialState: LoginState = {
   user: null,
   accessToken: "",
@@ -49,6 +53,13 @@ export const loginSlice = createSlice({
       state.accessToken = action.payload;
       state.isAuthenticated = Boolean(state.user && action.payload);
     },
+    updateSessionTokens: (
+      state,
+      action: PayloadAction<SessionTokensPayload>,
+    ) => {
+      state.accessToken = action.payload.accessToken;
+      state.isAuthenticated = Boolean(state.user && action.payload.accessToken);
+    },
     finishHydration: (state) => {
       state.isHydrated = true;
     },
@@ -61,7 +72,12 @@ export const loginSlice = createSlice({
   },
 });
 
-export const { login, logout, updateAccessToken, finishHydration } =
-  loginSlice.actions;
+export const {
+  login,
+  logout,
+  updateAccessToken,
+  updateSessionTokens,
+  finishHydration,
+} = loginSlice.actions;
 
 export default loginSlice.reducer;

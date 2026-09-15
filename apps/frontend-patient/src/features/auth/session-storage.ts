@@ -75,10 +75,15 @@ export function loadPatientSession() {
 export function clearPatientSession() {
   if (!isBrowser()) return;
 
-  [AUTH_STORAGE_KEY, ACCESS_TOKEN_KEY, USER_INFO_KEY, ROLE_KEY].forEach(
-    (key) => {
-      window.localStorage.removeItem(key);
-      window.sessionStorage.removeItem(key);
-    },
-  );
+  [
+    AUTH_STORAGE_KEY,
+    ACCESS_TOKEN_KEY,
+    "refreshToken",
+    "refresh_token",
+    USER_INFO_KEY,
+    ROLE_KEY,
+  ].forEach((key) => {
+    window.localStorage.removeItem(key);
+    window.sessionStorage.removeItem(key);
+  });
 }
