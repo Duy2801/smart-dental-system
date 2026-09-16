@@ -2,7 +2,6 @@
 
 import { usePatientServicesQuery } from "../../service";
 import { ServiceGroupBrowser } from "../../service/components/ServiceGroupBrowser";
-import { T } from "../../common/typography";
 
 function ServiceSkeleton() {
   return (
@@ -43,13 +42,13 @@ export function HomeServicesSection() {
   return (
     <section id="services" className="scroll-mt-24">
       <div className="relative mx-auto mb-6 sm:mb-10 max-w-3xl text-center">
-        <p className={`${T.overline} text-[#0058bc]`}>
+        <p className="text-[13px] font-semibold uppercase tracking-[0.26em] text-[#0058bc]">
           Dịch vụ nổi bật
         </p>
-        <h2 className="mx-auto mt-3 text-3xl font-black text-[#07366f] sm:text-4xl">
+        <h2 className="mx-auto mt-3 text-3xl font-bold leading-tight tracking-[-0.025em] text-[#07366f] sm:text-[40px]">
           Danh sách dịch vụ nha khoa
         </h2>
-        <p className={`mx-auto mt-3 max-w-2xl ${T.body}`}>
+        <p className="mx-auto mt-3 max-w-2xl text-[15px] leading-7 text-slate-600 sm:text-base">
           Chọn nhóm dịch vụ để xem các dịch vụ, chi phí và quy trình điều trị chi tiết.
         </p>
       </div>

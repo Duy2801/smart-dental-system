@@ -6,6 +6,7 @@ import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { DashboardIcon } from "../../common/DashboardIcon";
 import { useHomeBannersQuery, useHomeServicesQuery, useHomeDoctorsQuery } from "../hooks/useHomeQueries";
 import { ROUTES, buildRoute } from "../../common/routes";
+import { createHomeSearchSuggestions } from "../utils/homeSearchSuggestions";
 
 const SEARCH_PLACEHOLDER = "Tìm kiếm theo dịch vụ, bác sĩ, triệu chứng...";
 
@@ -177,15 +178,8 @@ export function HomeHeroSearchSlideshow() {
   };
 
   const suggestions = useMemo(() => {
-    const items: Array<{ id: string; label: string; href: string }> = [];
-    services.slice(0, 6).forEach((s) => {
-      items.push({ id: s.id, label: s.title, href: buildRoute.serviceDetail(s.id) });
-    });
-    doctors.slice(0, 2).forEach((d) => {
-      items.push({ id: d.id, label: `BS. ${d.name}`, href: buildRoute.doctorDetail(d.id) });
-    });
-    return items;
-  }, [services, doctors]);
+    return createHomeSearchSuggestions(services, buildRoute.serviceDetail);
+  }, [services]);
 
   const currentHeroBanner = activeBanners.length ? activeBanners[heroIndex % activeBanners.length] : null;
   const showDropdown = isFocused && keyword.trim().length > 0;
@@ -364,7 +358,7 @@ export function HomeHeroSearchSlideshow() {
             <span className="h-6 w-24 shrink-0 animate-pulse rounded-full bg-slate-200/80" />
           </div>
         ) : suggestions.length > 0 ? (
-          <div className="flex items-center gap-2 overflow-x-auto px-4 py-2.5 sm:px-6 text-xs text-slate-600 no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden border-b border-slate-100/60">
+          <div className="flex items-center gap-2 overflow-hidden px-4 py-2.5 sm:px-6 text-xs text-slate-600 border-b border-slate-100/60">
             <span className="font-extrabold text-slate-400 shrink-0 text-[11px] uppercase tracking-wider">Gợi ý:</span>
             {suggestions.map((item) => (
               <Link

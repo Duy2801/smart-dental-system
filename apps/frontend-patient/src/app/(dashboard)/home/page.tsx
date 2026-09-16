@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 
 export default function PatientHomePage() {
   return (
-    <div className="w-full space-y-4 sm:space-y-10 pb-6 pt-0 sm:pb-8">
+    <div className="w-full space-y-4 pb-6 pt-0 sm:space-y-10 sm:pb-8">
       {/* Full width Hero Banner Section */}
       <div className="w-full">
         <HomeHeroSlideshow />

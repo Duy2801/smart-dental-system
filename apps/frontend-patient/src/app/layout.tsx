@@ -1,20 +1,12 @@
 import type { Metadata } from "next";
-import localFont from "next/font/local";
+import { Be_Vietnam_Pro } from "next/font/google";
 import { AppProvider } from "@/providers";
 import "./globals.css";
 
-const nunito = localFont({
-  src: [
-    {
-      path: "../../public/font/Nunito/Nunito-VariableFont_wght.ttf",
-      style: "normal",
-    },
-    {
-      path: "../../public/font/Nunito/Nunito-Italic-VariableFont_wght.ttf",
-      style: "italic",
-    },
-  ],
-  variable: "--font-nunito",
+const patientFont = Be_Vietnam_Pro({
+  weight: ["400", "500", "600", "700", "800", "900"],
+  subsets: ["latin", "vietnamese"],
+  variable: "--font-patient",
   display: "swap",
 });
 
@@ -34,7 +26,7 @@ export default function RootLayout({
   return (
     <html
       lang="vi"
-      className={`${nunito.variable} ${nunito.className} h-full antialiased`}
+      className={`${patientFont.variable} ${patientFont.className} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col font-sans text-slate-900 selection:bg-blue-100 selection:text-[#0863c5]">
         <AppProvider>{children}</AppProvider>
