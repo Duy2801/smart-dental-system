@@ -303,9 +303,19 @@ export class VideoConsultationService implements OnModuleInit {
 
   /** Lấy danh sách bác sĩ tư vấn online cho bệnh nhân */
   async findDoctorsForConsultation() {
-    return this.redis.rememberJson('consultation:doctors', 600, async () => {
+    return this.redis.rememberJson('consultation:doctors:v2', 600, async () => {
       const doctors = await this.prisma.doctor.findMany({
-        where: { isActive: true },
+        where: {
+          isActive: true,
+          user: { status: 'ACTIVE' },
+          availability: {
+            some: {
+              isActive: true,
+              approvalStatus: 'APPROVED',
+              recordType: { in: ['WEEKLY', 'DATE_OVERRIDE'] },
+            },
+          },
+        },
         select: {
           id: true,
           specialization: true,
@@ -344,7 +354,7 @@ export class VideoConsultationService implements OnModuleInit {
     dateStr: string,
     durationMinutes: number,
   ): Promise<string[]> {
-    const cacheKey = `consultation:slots:${doctorId}:${dateStr}:${durationMinutes}`;
+    const cacheKey = `consultation:slots:v2:${doctorId}:${dateStr}:${durationMinutes}`;
     return this.redis.rememberJson(cacheKey, 60, async () => {
       const {
         formattedDateStr,
@@ -408,25 +418,15 @@ export class VideoConsultationService implements OnModuleInit {
         },
       });
 
-      const activeWorkingHours = availability.length
-        ? availability.map((a) => ({
-            ...a,
-            startTime: a.startTime < clinicStart ? clinicStart : a.startTime,
-            endTime: a.endTime > clinicEnd ? clinicEnd : a.endTime,
-          }))
-        : [
-            {
-              id: 'default',
-              doctorId,
-              recordType: 'WEEKLY' as const,
-              dayOfWeek,
-              specificDate: null,
-              startTime: clinicStart,
-              endTime: clinicEnd,
-              reason: null,
-              isActive: true,
-            },
-          ];
+      if (availability.length === 0) {
+        return [];
+      }
+
+      const activeWorkingHours = availability.map((a) => ({
+        ...a,
+        startTime: a.startTime < clinicStart ? clinicStart : a.startTime,
+        endTime: a.endTime > clinicEnd ? clinicEnd : a.endTime,
+      }));
 
       const timeOffs = await this.prisma.doctorAvailability.findMany({
         where: {
@@ -611,6 +611,23 @@ export class VideoConsultationService implements OnModuleInit {
           'Thời gian tư vấn trùng với giờ nghỉ trưa của phòng khám',
         );
       }
+    }
+
+    const selectedTime = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Ho_Chi_Minh',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).format(scheduledAt);
+    const availableSlots = await this.getAvailableSlots(
+      dto.doctorId,
+      formattedDateStr,
+      dto.durationMinutes,
+    );
+    if (!availableSlots.includes(selectedTime)) {
+      throw new BadRequestException(
+        'Bác sĩ không có lịch làm việc vào khung giờ này',
+      );
     }
 
     const fee = await this.calculateConsultationFee(dto.durationMinutes);

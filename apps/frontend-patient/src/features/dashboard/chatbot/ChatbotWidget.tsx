@@ -4,6 +4,7 @@ import type { FormEvent } from "react";
 import { useState, useRef, useEffect } from "react";
 import apiClient from "@/lib/axios";
 import { DashboardIcon } from "../common/DashboardIcon";
+import { presentChatbotMessage } from "./messagePresentation";
 
 import { useAppSelector } from "@/providers";
 
@@ -25,6 +26,7 @@ type ChatSuggestion = {
 type ChatbotApiPayload = {
   reply?: string;
   suggestions?: ChatSuggestion[];
+  metadata?: Record<string, unknown>;
   data?: ChatbotApiPayload;
 };
 
@@ -100,7 +102,13 @@ export function ChatbotWidget() {
             history: historyPayload,
             metadata: metadata || {},
           });
-        } catch {
+        } catch (error: unknown) {
+          const status = (
+            error as { response?: { status?: number } }
+          ).response?.status;
+          if (status !== 401 && status !== 403) {
+            throw error;
+          }
           res = await apiClient.post("/chatbot-conversations/public-agent-chat", {
             message: value,
             history: historyPayload,
@@ -125,6 +133,11 @@ export function ChatbotWidget() {
         res?.data?.suggestions ||
         res?.data?.data?.suggestions ||
         [];
+      const responseMetadata =
+        res?.metadata ||
+        res?.data?.metadata ||
+        res?.data?.data?.metadata ||
+        {};
 
       setMessages((curr) => [
         ...curr,
@@ -132,6 +145,7 @@ export function ChatbotWidget() {
           id: nextMessageId(),
           sender: "bot",
           text: botReply,
+          metadata: responseMetadata,
           suggestions,
         },
       ]);
@@ -197,7 +211,7 @@ export function ChatbotWidget() {
                       : "rounded-tr-xs bg-gradient-to-r from-[#0863c5] to-[#0779da] text-white"
                   }`}
                 >
-                  {message.text}
+                  {presentChatbotMessage(message.text)}
                 </div>
 
                 {message.sender === "bot" && Boolean(message.suggestions?.length) && (

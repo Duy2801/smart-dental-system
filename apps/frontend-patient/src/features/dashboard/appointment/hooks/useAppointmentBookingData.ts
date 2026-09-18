@@ -100,7 +100,10 @@ export function useAppointmentBookingData({
     [scheduleQuery.data?.dates, baseOptionsQuery.data?.dates],
   );
   const doctors = useMemo(() => {
-    if (dedicatedDoctorId) {
+    if (
+      dedicatedDoctorId &&
+      !(selectedServiceId && selectedDateId && selectedTime)
+    ) {
       return baseOptionsQuery.data?.doctors ?? [];
     }
 
@@ -108,22 +111,18 @@ export function useAppointmentBookingData({
       const scheduleDocs = scheduleQuery.data?.doctors ?? [];
       // 1. If doctors have availableTimeSlots (our optimized backend), filter directly client-side
       if (hasSlotInfo) {
-        const filtered = scheduleDocs.filter((doctor) =>
+        return scheduleDocs.filter((doctor) =>
           doctor.availableTimeSlots?.includes(selectedTime),
         );
-        if (filtered.length > 0) return filtered;
       }
 
       // 2. Fallback to availabilityQuery if available (e.g. Vercel backend or slot filtering on server)
-      if (
-        availabilityQuery.data?.doctors &&
-        availabilityQuery.data.doctors.length > 0
-      ) {
-        return availabilityQuery.data.doctors;
+      if (availabilityQuery.data) {
+        return availabilityQuery.data.doctors ?? [];
       }
 
-      // 3. Never show base doctors for a selected treatment while schedule data is loading.
-      return scheduleDocs;
+      // 3. Do not expose unverified doctors while availability is loading.
+      return [];
     }
 
     if (hasSelectedTreatment) {

@@ -19,6 +19,7 @@ import {
 } from './dto/auto-weekly-availability.dto';
 import { CreateDoctorAvailabilityDto } from './dto/create-doctor-availability.dto';
 import { UpdateDoctorAvailabilityDto } from './dto/update-doctor-availability.dto';
+import { RedisService } from '../redis/redis.service';
 
 type ShiftRange = {
   startTime: string;
@@ -43,6 +44,7 @@ export class DoctorAvailabilityService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly clinicConfigService: ClinicConfigService,
+    private readonly redis: RedisService,
   ) {}
 
   async assertDoctorAccess(user: AuthenticatedUser, doctorId: string) {
@@ -209,7 +211,7 @@ export class DoctorAvailabilityService {
     const existing = await this.findExistingForSameSlot(dto);
     this.ensureNoOverlap([...existing, dto]);
 
-    return this.prisma.doctorAvailability.create({
+    const availability = await this.prisma.doctorAvailability.create({
       data: {
         doctorId: dto.doctorId,
         recordType: dto.recordType,
@@ -231,6 +233,9 @@ export class DoctorAvailabilityService {
         isActive: dto.isActive ?? true,
       },
     });
+
+    await this.invalidateBookingCaches();
+    return availability;
   }
 
   async autoCreateWeekly(
@@ -252,7 +257,7 @@ export class DoctorAvailabilityService {
       );
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const availability = await this.prisma.$transaction(async (tx) => {
       if (dto.mode === AutoScheduleMode.REPLACE) {
         await tx.doctorAvailability.deleteMany({
           where: {
@@ -291,6 +296,9 @@ export class DoctorAvailabilityService {
         weekly: this.groupWeekly(records),
       };
     });
+
+    await this.invalidateBookingCaches();
+    return availability;
   }
 
   async update(
@@ -329,7 +337,7 @@ export class DoctorAvailabilityService {
     const existing = await this.findExistingForSameSlot(next, id);
     this.ensureNoOverlap([...existing, next]);
 
-    return this.prisma.doctorAvailability.update({
+    const availability = await this.prisma.doctorAvailability.update({
       where: { id },
       data: {
         doctorId: dto.doctorId,
@@ -350,6 +358,9 @@ export class DoctorAvailabilityService {
         isActive: dto.isActive,
       },
     });
+
+    await this.invalidateBookingCaches();
+    return availability;
   }
 
   async updateApprovalStatus(
@@ -364,10 +375,13 @@ export class DoctorAvailabilityService {
       throw new NotFoundException('availability.not_found');
     }
 
-    return this.prisma.doctorAvailability.update({
+    const availability = await this.prisma.doctorAvailability.update({
       where: { id },
       data: { approvalStatus },
     });
+
+    await this.invalidateBookingCaches();
+    return availability;
   }
 
   async getMatrixForAllDoctors() {
@@ -473,8 +487,20 @@ export class DoctorAvailabilityService {
     }
 
     await this.prisma.doctorAvailability.delete({ where: { id } });
+    await this.invalidateBookingCaches();
 
     return { message: 'availability.deleted' };
+  }
+
+  private async invalidateBookingCaches() {
+    await Promise.all([
+      this.redis.delByPrefix('booking:options:'),
+      this.redis.delByPrefix('booking:window:'),
+      this.redis.delByPrefix('booking:dates:'),
+      this.redis.delByPrefix('booking:slots:'),
+      this.redis.delByPrefix('consultation:doctors'),
+      this.redis.delByPrefix('consultation:slots:'),
+    ]);
   }
 
   private async ensureDoctorExists(doctorId: string) {

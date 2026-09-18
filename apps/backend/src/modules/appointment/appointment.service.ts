@@ -1612,8 +1612,6 @@ export class AppointmentService {
                   bookingWindow.recordsByDoctor,
                   effectiveAppointmentsByDoctor,
                   selectedDateId,
-                  businessHour?.start,
-                  businessHour?.end,
                 );
               }),
             }));
@@ -2484,8 +2482,6 @@ export class AppointmentService {
     recordsByDoctor: Map<string, any[]>,
     appointmentsByDoctor: Map<string, AppointmentSlotSnapshot[]>,
     dateStr: string,
-    businessHourStart?: string,
-    businessHourEnd?: string,
   ) {
     const docRecords = recordsByDoctor.get(doctorId) || [];
     const docApps = appointmentsByDoctor.get(doctorId) || [];
@@ -2520,12 +2516,8 @@ export class AppointmentService {
         isWorking = weekly.some(
           (r) => startMinutes >= r.startMin && endMinutes <= r.endMin,
         );
-      } else if (businessHourStart && businessHourEnd) {
-        isWorking =
-          startMinutes >= this.timeToMinutes(businessHourStart) &&
-          endMinutes <= this.timeToMinutes(businessHourEnd);
       } else {
-        isWorking = true;
+        isWorking = false;
       }
     }
 
@@ -2544,8 +2536,6 @@ export class AppointmentService {
     startAt: Date,
     endAt: Date,
     availabilityRecords: AvailabilityRecordSnapshot[],
-    businessHourStart?: string,
-    businessHourEnd?: string,
   ) {
     const records = this.getAvailabilityRecordsFromSnapshot(
       doctorId,
@@ -2590,14 +2580,7 @@ export class AppointmentService {
       );
     }
 
-    if (businessHourStart && businessHourEnd) {
-      return (
-        startMinutes >= this.timeToMinutes(businessHourStart) &&
-        endMinutes <= this.timeToMinutes(businessHourEnd)
-      );
-    }
-
-    return true;
+    return false;
   }
 
   private getAvailabilityRecordsFromSnapshot(
@@ -2646,22 +2629,7 @@ export class AppointmentService {
       : records.filter((record) => record.recordType === 'WEEKLY');
 
     if (!workingRecords.length) {
-      const clinicScheduleConfig =
-        await this.clinicConfigService.getClinicScheduleConfig();
-      const businessHour = this.getBusinessHourForDate(
-        startAt,
-        clinicScheduleConfig.businessHours,
-        clinicScheduleConfig.specialDates,
-      );
-
-      if (businessHour && businessHour.isOpen) {
-        return (
-          startMinutes >= this.timeToMinutes(businessHour.start) &&
-          endMinutes <= this.timeToMinutes(businessHour.end)
-        );
-      }
-
-      return true;
+      return false;
     }
 
     return workingRecords.some(
@@ -2825,8 +2793,6 @@ export class AppointmentService {
             recordsByDoctor,
             appointmentsByDoctor,
             dateStr,
-            businessHour.start,
-            businessHour.end,
           ),
         )
         .some(Boolean);
@@ -2894,8 +2860,6 @@ export class AppointmentService {
             recordsByDoctor,
             appointmentsByDoctor,
             dateStr,
-            businessHour.start,
-            businessHour.end,
           ),
         )
         .some(Boolean);

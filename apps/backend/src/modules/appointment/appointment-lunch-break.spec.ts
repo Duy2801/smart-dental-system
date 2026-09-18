@@ -30,7 +30,20 @@ describe('AppointmentService lunch break slots', () => {
       specialDates: [],
       lunchBreak: { isEnabled: true, start: '12:00', end: '13:30' },
       slotIntervalMinutes: 30,
-      recordsByDoctor: new Map(),
+      recordsByDoctor: new Map([
+        [
+          'doctor-1',
+          [
+            {
+              recordType: 'WEEKLY',
+              dayOfWeek: 1,
+              specificDateStr: null,
+              startMin: 8 * 60,
+              endMin: 17 * 60,
+            },
+          ],
+        ],
+      ]),
       appointmentsByDoctor: new Map(),
     });
 

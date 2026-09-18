@@ -65,6 +65,13 @@ describe('VideoConsultationService', () => {
       },
       doctor: {
         findUnique: jest.fn().mockResolvedValue({ id: 'doctor-1' }),
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+      doctorAvailability: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
+      appointment: {
+        findMany: jest.fn().mockResolvedValue([]),
       },
       patient: {
         findUnique: jest.fn().mockResolvedValue({ id: 'patient-1' }),
@@ -114,6 +121,8 @@ describe('VideoConsultationService', () => {
       set: jest.fn(),
       incr: jest.fn().mockResolvedValue(1),
       expire: jest.fn(),
+      rememberJson: jest.fn((_key, _ttl, loader) => loader()),
+      delByPrefix: jest.fn().mockResolvedValue(undefined),
     };
     mailQueueMock = { add: jest.fn().mockResolvedValue({}) };
 
@@ -125,6 +134,55 @@ describe('VideoConsultationService', () => {
       redisMock,
       mailQueueMock,
     );
+  });
+
+  describe('doctor schedule eligibility', () => {
+    it('only queries doctors with an approved active working schedule', async () => {
+      await service.findDoctorsForConsultation();
+
+      expect(prismaMock.doctor.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            availability: {
+              some: expect.objectContaining({
+                isActive: true,
+                approvalStatus: 'APPROVED',
+                recordType: { in: ['WEEKLY', 'DATE_OVERRIDE'] },
+              }),
+            },
+          }),
+        }),
+      );
+    });
+
+    it('returns no consultation slots when the doctor has no approved schedule', async () => {
+      const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      const date = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Ho_Chi_Minh',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(tomorrow);
+
+      prismaMock.doctor.findUnique.mockResolvedValue({
+        id: 'doctor-1',
+        isActive: true,
+      });
+      clinicConfigServiceMock.getClinicConfig = jest.fn().mockResolvedValue({
+        specialDates: [],
+        lunchBreak: { isEnabled: false, start: '12:00', end: '13:30' },
+        businessHours: Array.from({ length: 7 }, (_, id) => ({
+          id,
+          isOpen: true,
+          start: '08:00',
+          end: '17:00',
+        })),
+      });
+
+      await expect(
+        service.getAvailableSlots('doctor-1', date, 30),
+      ).resolves.toEqual([]);
+    });
   });
 
   describe('cancel by DOCTOR', () => {
@@ -227,7 +285,25 @@ describe('VideoConsultationService', () => {
         userId: 'doctor-user-1',
         user: { fullName: 'Bác sĩ' },
       });
-      prismaMock.appointment = { findFirst: jest.fn().mockResolvedValue(null) };
+      prismaMock.doctorAvailability.findMany
+        .mockResolvedValueOnce([
+          {
+            id: 'availability-1',
+            doctorId: 'doctor-1',
+            recordType: 'WEEKLY',
+            dayOfWeek: scheduledAt.getDay(),
+            specificDate: null,
+            startTime: '00:00',
+            endTime: '23:59',
+            reason: null,
+            isActive: true,
+          },
+        ])
+        .mockResolvedValueOnce([]);
+      prismaMock.appointment = {
+        findMany: jest.fn().mockResolvedValue([]),
+        findFirst: jest.fn().mockResolvedValue(null),
+      };
       prismaMock.videoConsultation.findMany.mockResolvedValue([]);
       prismaMock.videoConsultation.create = jest.fn().mockResolvedValue({
         ...sampleConsultation,
@@ -305,6 +381,45 @@ describe('VideoConsultationService', () => {
           },
         ),
       ).rejects.toThrow('giờ nghỉ trưa');
+    });
+  });
+
+  describe('booking schedule validation', () => {
+    it('rejects booking a time outside the doctor approved schedule', async () => {
+      const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      const date = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Ho_Chi_Minh',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(tomorrow);
+      const scheduledAt = new Date(`${date}T10:00:00+07:00`);
+
+      prismaMock.doctor.findUnique.mockResolvedValue({
+        id: 'doctor-1',
+        isActive: true,
+      });
+      clinicConfigServiceMock.getClinicConfig = jest.fn().mockResolvedValue({
+        specialDates: [],
+        lunchBreak: { isEnabled: false, start: '12:00', end: '13:30' },
+        businessHours: Array.from({ length: 7 }, (_, id) => ({
+          id,
+          isOpen: true,
+          start: '08:00',
+          end: '17:00',
+        })),
+      });
+
+      await expect(
+        service.createBooking(
+          { ...doctorUser, userId: 'patient-user-1', roles: ['PATIENT'] },
+          {
+            doctorId: 'doctor-1',
+            scheduledAt: scheduledAt.toISOString(),
+            durationMinutes: 30,
+          },
+        ),
+      ).rejects.toThrow('Bác sĩ không có lịch làm việc vào khung giờ này');
     });
   });
 
