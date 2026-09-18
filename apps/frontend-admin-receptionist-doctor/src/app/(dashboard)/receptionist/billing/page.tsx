@@ -509,7 +509,11 @@ export default function BillingPage() {
       setDiscountCode("");
       setPayAmountError("");
       if (selected && isOpenInvoice(selected.status)) {
-        setPayAmount(String(Math.round(selected.remaining)));
+        const fullBalance = String(Math.round(selected.remaining));
+        setPayAmount(fullBalance);
+        if (paymentMethod === "TRANSFER") {
+          void startTransfer(selected, undefined, fullBalance);
+        }
       } else {
         setPayAmount("");
       }

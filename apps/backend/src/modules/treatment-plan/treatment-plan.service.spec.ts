@@ -322,6 +322,21 @@ describe('TreatmentPlanService', () => {
   });
 
   describe('create', () => {
+    it('throws BadRequestException if startDate is in the past', async () => {
+      await expect(
+        service.create(
+          'doc-1',
+          {
+            patientId: 'pat-1',
+            title: 'Kế hoạch có ngày bắt đầu sai',
+            startDate: '2000-01-01',
+            steps: [{ title: 'Bước 1' }],
+          },
+          doctorUser,
+        ),
+      ).rejects.toThrow('Ngày bắt đầu không được nằm trong quá khứ');
+    });
+
     it('throws BadRequestException if startDate is after expectedEndDate', async () => {
       await expect(
         service.create(

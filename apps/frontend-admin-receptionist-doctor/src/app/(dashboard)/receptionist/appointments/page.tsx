@@ -1,13 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { cn } from "@/src/lib/utils/cn";
 import { Header } from "@/src/components/layout/header";
 import { AppointmentStatusBadge } from "@/src/components/shared/appointment-status-badge";
 import type { AppointmentStatus } from "@/src/components/shared/appointment-status-badge";
 import apiClient from "@/src/lib/api/client";
-import { mapAppointments, localDateStr } from "@/src/lib/receptionist/mappers";
+import {
+  canCheckInAppointment,
+  mapAppointments,
+  localDateStr,
+} from "@/src/lib/receptionist/mappers";
 import type { ApiAppointment, ReceptionistAppointment } from "@/src/lib/receptionist/mappers";
 import { getApiErrorMessage } from "@/src/lib/utils/api-error";
 import { formatDoctorName } from "@/src/lib/utils/format";
@@ -97,7 +102,7 @@ function getTiming(apt: Appointment, now: number) {
   const today = localDateStr(new Date(now));
   return {
     canConfirm: appointmentDate >= today,
-    canCheckIn: appointmentDate === today,
+    canCheckIn: canCheckInAppointment(apt.scheduledAt, now),
     canMarkNoShow: scheduledAt <= now,
     canRemind: scheduledAt > now,
   };
@@ -149,33 +154,82 @@ function ActionMenu({
   disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState({ left: 0, top: 0, opensUpward: false });
+
+  const toggleMenu = () => {
+    if (open) {
+      setOpen(false);
+      return;
+    }
+
+    const rect = buttonRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const menuWidth = 224;
+    const menuHeight = 220;
+    const gap = 4;
+    const viewportPadding = 8;
+    const hasRoomBelow = rect.bottom + gap + menuHeight <= window.innerHeight;
+
+    setPosition({
+      left: Math.max(
+        viewportPadding,
+        Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - viewportPadding),
+      ),
+      top: hasRoomBelow ? rect.bottom + gap : rect.top - gap,
+      opensUpward: !hasRoomBelow,
+    });
+    setOpen(true);
+  };
 
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      if (!buttonRef.current?.contains(target) && !menuRef.current?.contains(target)) {
+        setOpen(false);
+      }
     };
+    const closeMenu = () => setOpen(false);
     document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    window.addEventListener("resize", closeMenu);
+    window.addEventListener("scroll", closeMenu, true);
+    return () => {
+      document.removeEventListener("mousedown", handler);
+      window.removeEventListener("resize", closeMenu);
+      window.removeEventListener("scroll", closeMenu, true);
+    };
   }, [open]);
 
   const timing = getTiming(apt, now);
 
   return (
-    <div ref={ref} className="relative">
+    <div className="relative">
       <button
+        ref={buttonRef}
         type="button"
         disabled={disabled}
-        onClick={() => setOpen((v) => !v)}
+        onClick={toggleMenu}
         className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-slate-100 hover:text-slate-900 active:scale-[0.98]"
         aria-label="Tùy chọn"
       >
         <DotsThree size={18} weight="bold" />
       </button>
 
-      {open && (
-        <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-xl border border-border bg-white py-1.5 shadow-xl">
+      {open && createPortal(
+        <div
+          ref={menuRef}
+          role="menu"
+          aria-label="Tùy chọn lịch hẹn"
+          className="fixed z-50 w-56 rounded-xl border border-border bg-white py-1.5 shadow-xl"
+          style={{
+            left: position.left,
+            top: position.top,
+            transform: position.opensUpward ? "translateY(-100%)" : undefined,
+          }}
+        >
           <Link
             href={`/receptionist/appointments/${apt.id}`}
             className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-muted hover:text-brand-dark"
@@ -200,9 +254,9 @@ function ActionMenu({
                 onSendReminder(apt.id, apt.patient?.fullName ?? "Bệnh nhân");
                 setOpen(false);
               }}
-              className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold text-blue-600 transition-colors hover:bg-blue-50 cursor-pointer"
+              className="flex w-full items-center gap-2 whitespace-nowrap px-3 py-2 text-xs font-semibold text-blue-600 transition-colors hover:bg-blue-50 cursor-pointer"
             >
-              <BellSimpleRinging size={13} weight="bold" /> Gửi nhắc lịch (Gmail/App)
+              <BellSimpleRinging size={13} weight="bold" className="shrink-0" /> Gửi nhắc lịch (Gmail/App)
             </button>
           )}
 
@@ -232,7 +286,8 @@ function ActionMenu({
               </Link>
             </>
           )}
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
@@ -462,7 +517,7 @@ export default function ReceptionistAppointmentsPage() {
     const endpoint = statusEndpoint(status);
     if (!endpoint) return;
 
-    setActionLoading(id);
+    setActionLoading(`${id}:${status}`);
     setError(null);
     try {
       await apiClient.patch(
@@ -492,7 +547,7 @@ export default function ReceptionistAppointmentsPage() {
   };
 
   const handleSendReminder = async (id: string, patientName: string) => {
-    setActionLoading(id);
+    setActionLoading(`${id}:reminder`);
     setError(null);
     try {
       await apiClient.post(`/appointments/${id}/remind`);
@@ -505,7 +560,11 @@ export default function ReceptionistAppointmentsPage() {
     }
   };
 
-  const isActionBusy = (id: string) => actionLoading === id;
+  const isActionBusy = (
+    id: string,
+    action: AppointmentStatus | "reminder",
+  ) =>
+    actionLoading === `${id}:${action}`;
 
   // active filter badge count
   const filterCount = [appliedStatus].filter(Boolean).length;
@@ -758,7 +817,10 @@ export default function ReceptionistAppointmentsPage() {
                     const name = apt.patient?.fullName ?? "Khách vãng lai";
                     const initials = getInitials(name);
                     const avatarColor = getAvatarColor(name);
-                    const busy = isActionBusy(apt.id);
+                  const confirmBusy = isActionBusy(apt.id, "CONFIRMED");
+                  const checkInBusy = isActionBusy(apt.id, "CHECKED_IN");
+                  const reminderBusy = isActionBusy(apt.id, "reminder");
+                  const busy = actionLoading?.startsWith(`${apt.id}:`) ?? false;
                     const timing = getTiming(apt, currentTime);
 
                     return (
@@ -837,7 +899,7 @@ export default function ReceptionistAppointmentsPage() {
                                   onClick={() => void handleStatusChange(apt.id, "CONFIRMED")}
                                   className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-amber-500 px-3 text-xs font-bold text-white shadow-sm transition-all hover:bg-amber-600 active:scale-[0.98] disabled:opacity-60"
                                 >
-                                  {busy ? <CircleNotch size={12} className="animate-spin" /> : <Phone size={12} weight="fill" />}
+                                  {confirmBusy ? <CircleNotch size={12} className="animate-spin" /> : <Phone size={12} weight="fill" />}
                                   Xác nhận
                                 </button>
                                 {timing.canCheckIn && (
@@ -848,7 +910,7 @@ export default function ReceptionistAppointmentsPage() {
                                     className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-brand bg-white px-3 text-xs font-semibold text-brand shadow-sm transition-all hover:bg-brand/5 active:scale-[0.98] disabled:opacity-60"
                                     title="Check-in trực tiếp (walk-in)"
                                   >
-                                    {busy ? <CircleNotch size={12} className="animate-spin" /> : <UserCircleCheck size={12} weight="fill" />}
+                                    {checkInBusy ? <CircleNotch size={12} className="animate-spin" /> : <UserCircleCheck size={12} weight="fill" />}
                                     Check-in
                                   </button>
                                 )}
@@ -861,19 +923,8 @@ export default function ReceptionistAppointmentsPage() {
                                 onClick={() => void handleStatusChange(apt.id, "CHECKED_IN")}
                                 className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-brand px-3 text-xs font-bold text-white shadow-sm transition-all hover:bg-brand-dark active:scale-[0.98] disabled:opacity-60"
                               >
-                                {busy ? <CircleNotch size={12} className="animate-spin" /> : <UserCheck size={12} weight="fill" />}
+                                {checkInBusy ? <CircleNotch size={12} className="animate-spin" /> : <UserCheck size={12} weight="fill" />}
                                 Check-in
-                              </button>
-                            )}
-                            {apt.status === "CHECKED_IN" && timing.canCheckIn && (
-                              <button
-                                type="button"
-                                disabled={busy}
-                                onClick={() => void handleStatusChange(apt.id, "IN_PROGRESS")}
-                                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-white px-3 text-xs font-semibold text-brand-dark shadow-sm transition-all hover:bg-muted active:scale-[0.98] disabled:opacity-60"
-                              >
-                                {busy ? <CircleNotch size={12} className="animate-spin" /> : <BellSimpleRinging size={12} />}
-                                Bắt đầu khám
                               </button>
                             )}
                             {apt.status === "COMPLETED" && apt.invoicePending && (
@@ -894,7 +945,7 @@ export default function ReceptionistAppointmentsPage() {
                                 className="inline-flex h-8 items-center gap-1 rounded-lg border border-blue-200 bg-blue-50/80 px-2.5 text-xs font-bold text-blue-700 shadow-2xs transition-all hover:bg-blue-100 hover:text-blue-800 active:scale-[0.98] disabled:opacity-60 cursor-pointer"
                                 title="Gửi Gmail & Thông báo nhắc lịch cho bệnh nhân"
                               >
-                                {busy ? (
+                                {reminderBusy ? (
                                   <CircleNotch size={12} className="animate-spin" />
                                 ) : (
                                   <BellSimpleRinging size={13} weight="bold" />

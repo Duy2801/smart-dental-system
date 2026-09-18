@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ChatCircleDots,
   CheckCircle,
@@ -24,6 +24,9 @@ type PatientAiSummary = {
   createdAt: string;
   createdByName: string;
   sources: Array<{ key: string; label: string; available: boolean }>;
+  bulletSources: Record<string, string[]>;
+  riskSources: Record<string, string[]>;
+  isStale: boolean;
   provider: string | null;
   model: string | null;
   feedback: "HELPFUL" | "INACCURATE" | "MISSED_RISK" | null;
@@ -33,19 +36,39 @@ type PatientAiSummary = {
 type PatientAiBriefProps = {
   patientId?: string | null;
   consultationId?: string | null;
+  appointmentId?: string | null;
   patientName?: string;
   className?: string;
   compact?: boolean;
 };
 
-export function PatientAiBrief({
+export function PatientAiBrief(props: PatientAiBriefProps) {
+  const contextKey = props.consultationId
+    ? `consultation:${props.consultationId}`
+    : props.appointmentId
+      ? `appointment:${props.appointmentId}`
+      : `patient:${props.patientId ?? ""}`;
+  return <PatientAiBriefContent key={contextKey} {...props} />;
+}
+
+function PatientAiBriefContent({
   patientId,
   consultationId,
+  appointmentId,
   patientName,
   className,
   compact = false,
 }: PatientAiBriefProps) {
-  const canSummarize = Boolean(patientId || consultationId);
+  const canSummarize = Boolean(patientId || consultationId || appointmentId);
+  const contextParams = useMemo(
+    () =>
+      consultationId
+        ? { consultationId }
+        : appointmentId
+          ? { appointmentId }
+          : { patientId },
+    [appointmentId, consultationId, patientId],
+  );
   const [summary, setSummary] = useState<PatientAiSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingSaved, setLoadingSaved] = useState(canSummarize);
@@ -62,7 +85,7 @@ export function PatientAiBrief({
     let cancelled = false;
     void apiClient
       .get<PatientAiSummary | null>("/ai/doctor/summarize-patient/latest", {
-        params: consultationId ? { consultationId } : { patientId },
+        params: contextParams,
       })
       .then((res) => {
         if (!cancelled) setSummary(res.data);
@@ -77,7 +100,7 @@ export function PatientAiBrief({
     return () => {
       cancelled = true;
     };
-  }, [canSummarize, consultationId, patientId]);
+  }, [canSummarize, contextParams]);
 
   async function summarize() {
     if (!canSummarize) return;
@@ -87,7 +110,7 @@ export function PatientAiBrief({
     try {
       const res = await apiClient.post<PatientAiSummary>(
         "/ai/doctor/summarize-patient",
-        consultationId ? { consultationId } : { patientId },
+        contextParams,
         { timeout: 60_000 },
       );
       setSummary({
@@ -133,6 +156,8 @@ export function PatientAiBrief({
           icon: CheckCircle,
           color: "text-brand",
           border: "border-brand/40",
+          sourceMap: summary.bulletSources,
+          showSources: true,
         },
         {
           label: "Câu hỏi cần hỏi",
@@ -140,6 +165,8 @@ export function PatientAiBrief({
           icon: ChatCircleDots,
           color: "text-brand-dark",
           border: "border-border",
+          sourceMap: {},
+          showSources: false,
         },
         {
           label: "Cờ rủi ro",
@@ -147,6 +174,8 @@ export function PatientAiBrief({
           icon: WarningCircle,
           color: "text-amber-700",
           border: "border-amber-300",
+          sourceMap: summary.riskSources,
+          showSources: true,
         },
       ].filter((section) => section.items.length > 0)
     : [];
@@ -227,6 +256,19 @@ export function PatientAiBrief({
 
         {!loading && !loadingSaved && summary && (
           <div className="space-y-4 border-t border-border p-4">
+            {summary.isStale && (
+              <div className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                <WarningCircle
+                  size={16}
+                  className="mt-0.5 shrink-0"
+                  weight="fill"
+                />
+                <p>
+                  Hồ sơ AI này đã cũ vì dữ liệu bệnh nhân đã thay đổi. Hãy bấm
+                  &ldquo;Tạo lại&rdquo; trước khi sử dụng.
+                </p>
+              </div>
+            )}
             <p className="text-[11px] text-muted-foreground">
               Tạo bởi{" "}
               <span className="font-semibold text-slate-600">
@@ -299,7 +341,25 @@ export function PatientAiBrief({
                             className={cn("mt-0.5 shrink-0", section.color)}
                             weight="duotone"
                           />
-                          <span>{item}</span>
+                          <span className="min-w-0">
+                            <span>{item}</span>
+                            {section.showSources && (
+                              <span className="mt-0.5 block text-[10px] text-slate-400">
+                                Nguồn:{" "}
+                                {section.sourceMap?.[item]?.length > 0
+                                  ? section.sourceMap[item]
+                                      .map(
+                                        (key) =>
+                                          summary.sources.find(
+                                            (source) => source.key === key,
+                                          )?.label,
+                                      )
+                                      .filter(Boolean)
+                                      .join(", ")
+                                  : "Chưa xác định — cần đối chiếu"}
+                              </span>
+                            )}
+                          </span>
                         </li>
                       ))}
                     </ul>

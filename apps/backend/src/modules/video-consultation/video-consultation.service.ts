@@ -78,8 +78,13 @@ type ConsultRow = {
   };
 };
 
-function createMeetingUrl(): string {
-  return `https://meet.jit.si/sds-consult-${randomUUID()}`;
+const DEFAULT_JITSI_DOMAIN = process.env.JITSI_DOMAIN || 'meet.darmstadt.social';
+
+function createMeetingUrl(consultationId?: string): string {
+  const roomName = consultationId
+    ? `sds-consult-${consultationId}`
+    : `sds-consult-${randomUUID()}`;
+  return `https://${DEFAULT_JITSI_DOMAIN}/${roomName}`;
 }
 
 function unpackMeeting(raw: string | null): {
@@ -88,9 +93,14 @@ function unpackMeeting(raw: string | null): {
 } {
   if (!raw) return { meetingUrl: null, roomPin: null };
   const [base, hash = ''] = raw.split('#');
+  // Chuyển đổi meet.ffmuc.net (bị chặn iframe) & meet.jit.si (bắt đăng nhập quản trị viên) sang meet.darmstadt.social
+  let cleanBase = base || null;
+  if (cleanBase && (cleanBase.includes('meet.ffmuc.net') || cleanBase.includes('meet.jit.si'))) {
+    cleanBase = cleanBase.replace(/meet\.(ffmuc\.net|jit\.si)/, DEFAULT_JITSI_DOMAIN);
+  }
   const pinMatch = /(?:^|&)sdsPin=(\d{6})(?:&|$)/.exec(hash);
   return {
-    meetingUrl: base || null,
+    meetingUrl: cleanBase,
     roomPin: pinMatch?.[1] ?? null,
   };
 }
@@ -1000,6 +1010,14 @@ export class VideoConsultationService implements OnModuleInit {
     );
 
     void this.invalidateConsultationSlots(result.consultation.doctorId);
+    try {
+      this.eventsGateway.broadcast('consultation_updated', {
+        id: result.consultation.id,
+        status: VideoConsultationStatus.CANCELLED,
+      });
+    } catch {
+      // Ignore socket error
+    }
     return result;
   }
 
@@ -1099,26 +1117,43 @@ export class VideoConsultationService implements OnModuleInit {
     };
   }
 
-  /** Bệnh nhân vào phòng họp tư vấn */
+  /** Bệnh nhân vào phòng họp tư vấn (hỗ trợ phòng chờ khi bác sĩ chưa bắt đầu) */
   async joinPatientRoom(user: AuthenticatedUser, id: string) {
     const row = await this.getAuthorizedRow(id, user);
-    if (!row.isPaid || row.status !== VideoConsultationStatus.IN_PROGRESS) {
-      throw new BadRequestException('Phòng tư vấn chưa sẵn sàng');
+    if (!row.isPaid) {
+      throw new BadRequestException('Lịch tư vấn chưa được thanh toán');
     }
-    if (!row.meetingUrl) {
-      throw new BadRequestException(
-        'Bác sĩ chưa khởi tạo hoặc tham gia phòng tư vấn',
-      );
+
+    // Nếu ca khám đã kết thúc, đã hủy hoặc bác sĩ vắng mặt, trả về trạng thái để UI hiển thị thông điệp phù hợp thay vì quăng lỗi 400 làm sập giao diện
+    const isCompleted = row.status === VideoConsultationStatus.COMPLETED;
+    const isCancelled =
+      row.status === VideoConsultationStatus.CANCELLED ||
+      row.status === VideoConsultationStatus.EXPIRED;
+    const isDoctorMissed =
+      row.status === VideoConsultationStatus.DOCTOR_MISSED;
+
+    // Tự động gán meetingUrl cố định nếu chưa có (chỉ cho ca đang/sắp diễn ra)
+    let meetingUrl = row.meetingUrl;
+    if (!meetingUrl && !isCompleted && !isCancelled && !isDoctorMissed) {
+      meetingUrl = createMeetingUrl(row.id);
+      await this.prisma.videoConsultation.update({
+        where: { id: row.id },
+        data: { meetingUrl },
+      });
     }
-    const { meetingUrl, roomPin } = unpackMeeting(row.meetingUrl);
+
+    const { meetingUrl: cleanUrl } = unpackMeeting(meetingUrl);
     return {
       id: row.id,
-      meetingUrl,
-      roomPin,
+      meetingUrl: (isCompleted || isCancelled || isDoctorMissed) ? null : (cleanUrl ?? meetingUrl),
+      roomPin: null,
       doctorName: row.doctor.user.fullName,
+      doctorAvatarUrl: row.doctor.avatarUrl,
+      doctorSpecialization: row.doctor.specialization,
       scheduledAt: row.scheduledAt.toISOString(),
       durationMinutes: row.durationMinutes,
       status: row.status,
+      isDoctorStarted: row.status === VideoConsultationStatus.IN_PROGRESS,
     };
   }
 
@@ -1332,19 +1367,19 @@ export class VideoConsultationService implements OnModuleInit {
       );
     }
     const now = Date.now();
-    const opensAt = row.scheduledAt.getTime() - 10 * 60 * 1000;
+    // Cho phép bắt đầu từ 60 phút trước giờ hẹn đến khi hết thời lượng + 60 phút gia hạn
+    const opensAt = row.scheduledAt.getTime() - 60 * 60 * 1000;
     const closesAt =
-      row.scheduledAt.getTime() + row.durationMinutes * 60 * 1000;
+      row.scheduledAt.getTime() + (row.durationMinutes + 60) * 60 * 1000;
     if (now < opensAt || now >= closesAt) {
       throw new BadRequestException(
-        'Chỉ có thể bắt đầu từ 10 phút trước giờ hẹn đến khi hết thời lượng',
+        'Chỉ có thể bắt đầu từ trước giờ hẹn đến khi hết thời lượng ca khám',
       );
     }
 
     const existingRoom = unpackMeeting(row.meetingUrl);
-    const meetingUrl = existingRoom.roomPin
-      ? createMeetingUrl()
-      : (existingRoom.meetingUrl ?? createMeetingUrl());
+    // Tái sử dụng meetingUrl đã có, không bao giờ sinh ngẫu nhiên làm lệch phòng với bệnh nhân
+    const meetingUrl = existingRoom.meetingUrl ?? createMeetingUrl(row.id);
 
     const transitioned = await this.prisma.videoConsultation.updateMany({
       where: { id, status: VideoConsultationStatus.SCHEDULED },
@@ -1361,8 +1396,27 @@ export class VideoConsultationService implements OnModuleInit {
       meetingUrl,
     } as ConsultRow;
 
+    // Phát sự kiện WebSocket Realtime cho Bệnh nhân tự động vào phòng
+    try {
+      this.eventsGateway.broadcast('consultation_updated', {
+        id: row.id,
+        status: VideoConsultationStatus.IN_PROGRESS,
+        meetingUrl,
+      });
+      const patientUserId = row.patient.user?.id;
+      if (patientUserId) {
+        this.eventsGateway.emitToUser(patientUserId, 'consultation_updated', {
+          id: row.id,
+          status: VideoConsultationStatus.IN_PROGRESS,
+          meetingUrl,
+        });
+      }
+    } catch {
+      // Ignore socket errors
+    }
+
     return {
-      ...this.toSummary(updated, true),
+      ...this.toSummary(updated, false),
       roomPin: null,
       meetingUrl,
     };
@@ -1405,6 +1459,23 @@ export class VideoConsultationService implements OnModuleInit {
       status: VideoConsultationStatus.COMPLETED,
       notes,
     } as ConsultRow;
+
+    // Phát sự kiện WebSocket Realtime cho Bệnh nhân biết ca khám đã hoàn thành
+    try {
+      this.eventsGateway.broadcast('consultation_updated', {
+        id: row.id,
+        status: VideoConsultationStatus.COMPLETED,
+      });
+      const patientUserId = row.patient.user?.id;
+      if (patientUserId) {
+        this.eventsGateway.emitToUser(patientUserId, 'consultation_updated', {
+          id: row.id,
+          status: VideoConsultationStatus.COMPLETED,
+        });
+      }
+    } catch {
+      // Ignore socket errors
+    }
 
     return this.toSummary(updated, false);
   }
@@ -1525,6 +1596,21 @@ export class VideoConsultationService implements OnModuleInit {
     );
 
     void this.invalidateConsultationSlots(row.doctorId);
+    try {
+      this.eventsGateway.broadcast('consultation_updated', {
+        id: row.id,
+        status: VideoConsultationStatus.CANCELLED,
+      });
+      const patientUserId = row.patient.user?.id;
+      if (patientUserId) {
+        this.eventsGateway.emitToUser(patientUserId, 'consultation_updated', {
+          id: row.id,
+          status: VideoConsultationStatus.CANCELLED,
+        });
+      }
+    } catch {
+      // Ignore socket error
+    }
     return result;
   }
 

@@ -3,6 +3,10 @@ import { IsOptional, IsUUID } from 'class-validator';
 export class SummarizePatientDto {
   @IsOptional()
   @IsUUID()
+  appointmentId?: string;
+
+  @IsOptional()
+  @IsUUID()
   consultationId?: string;
 
   @IsOptional()

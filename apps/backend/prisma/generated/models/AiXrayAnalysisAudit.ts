@@ -47,6 +47,8 @@ export type AiXrayAnalysisAuditMinAggregateOutputType = {
   errorStatus: string | null
   modelVersion: string | null
   findingCount: number | null
+  reviewedBy: string | null
+  reviewedAt: Date | null
   durationMs: number | null
   createdAt: Date | null
 }
@@ -62,6 +64,8 @@ export type AiXrayAnalysisAuditMaxAggregateOutputType = {
   errorStatus: string | null
   modelVersion: string | null
   findingCount: number | null
+  reviewedBy: string | null
+  reviewedAt: Date | null
   durationMs: number | null
   createdAt: Date | null
 }
@@ -77,6 +81,11 @@ export type AiXrayAnalysisAuditCountAggregateOutputType = {
   errorStatus: number
   modelVersion: number
   findingCount: number
+  imageSnapshot: number
+  resultSnapshot: number
+  reviewedFindings: number
+  reviewedBy: number
+  reviewedAt: number
   durationMs: number
   createdAt: number
   _all: number
@@ -104,6 +113,8 @@ export type AiXrayAnalysisAuditMinAggregateInputType = {
   errorStatus?: true
   modelVersion?: true
   findingCount?: true
+  reviewedBy?: true
+  reviewedAt?: true
   durationMs?: true
   createdAt?: true
 }
@@ -119,6 +130,8 @@ export type AiXrayAnalysisAuditMaxAggregateInputType = {
   errorStatus?: true
   modelVersion?: true
   findingCount?: true
+  reviewedBy?: true
+  reviewedAt?: true
   durationMs?: true
   createdAt?: true
 }
@@ -134,6 +147,11 @@ export type AiXrayAnalysisAuditCountAggregateInputType = {
   errorStatus?: true
   modelVersion?: true
   findingCount?: true
+  imageSnapshot?: true
+  resultSnapshot?: true
+  reviewedFindings?: true
+  reviewedBy?: true
+  reviewedAt?: true
   durationMs?: true
   createdAt?: true
   _all?: true
@@ -236,6 +254,11 @@ export type AiXrayAnalysisAuditGroupByOutputType = {
   errorStatus: string | null
   modelVersion: string
   findingCount: number
+  imageSnapshot: runtime.JsonValue | null
+  resultSnapshot: runtime.JsonValue | null
+  reviewedFindings: runtime.JsonValue | null
+  reviewedBy: string | null
+  reviewedAt: Date | null
   durationMs: number
   createdAt: Date
   _count: AiXrayAnalysisAuditCountAggregateOutputType | null
@@ -274,6 +297,11 @@ export type AiXrayAnalysisAuditWhereInput = {
   errorStatus?: Prisma.StringNullableFilter<"AiXrayAnalysisAudit"> | string | null
   modelVersion?: Prisma.StringFilter<"AiXrayAnalysisAudit"> | string
   findingCount?: Prisma.IntFilter<"AiXrayAnalysisAudit"> | number
+  imageSnapshot?: Prisma.JsonNullableFilter<"AiXrayAnalysisAudit">
+  resultSnapshot?: Prisma.JsonNullableFilter<"AiXrayAnalysisAudit">
+  reviewedFindings?: Prisma.JsonNullableFilter<"AiXrayAnalysisAudit">
+  reviewedBy?: Prisma.UuidNullableFilter<"AiXrayAnalysisAudit"> | string | null
+  reviewedAt?: Prisma.DateTimeNullableFilter<"AiXrayAnalysisAudit"> | Date | string | null
   durationMs?: Prisma.IntFilter<"AiXrayAnalysisAudit"> | number
   createdAt?: Prisma.DateTimeFilter<"AiXrayAnalysisAudit"> | Date | string
 }
@@ -289,6 +317,11 @@ export type AiXrayAnalysisAuditOrderByWithRelationInput = {
   errorStatus?: Prisma.SortOrderInput | Prisma.SortOrder
   modelVersion?: Prisma.SortOrder
   findingCount?: Prisma.SortOrder
+  imageSnapshot?: Prisma.SortOrderInput | Prisma.SortOrder
+  resultSnapshot?: Prisma.SortOrderInput | Prisma.SortOrder
+  reviewedFindings?: Prisma.SortOrderInput | Prisma.SortOrder
+  reviewedBy?: Prisma.SortOrderInput | Prisma.SortOrder
+  reviewedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   durationMs?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
@@ -307,6 +340,11 @@ export type AiXrayAnalysisAuditWhereUniqueInput = Prisma.AtLeast<{
   errorStatus?: Prisma.StringNullableFilter<"AiXrayAnalysisAudit"> | string | null
   modelVersion?: Prisma.StringFilter<"AiXrayAnalysisAudit"> | string
   findingCount?: Prisma.IntFilter<"AiXrayAnalysisAudit"> | number
+  imageSnapshot?: Prisma.JsonNullableFilter<"AiXrayAnalysisAudit">
+  resultSnapshot?: Prisma.JsonNullableFilter<"AiXrayAnalysisAudit">
+  reviewedFindings?: Prisma.JsonNullableFilter<"AiXrayAnalysisAudit">
+  reviewedBy?: Prisma.UuidNullableFilter<"AiXrayAnalysisAudit"> | string | null
+  reviewedAt?: Prisma.DateTimeNullableFilter<"AiXrayAnalysisAudit"> | Date | string | null
   durationMs?: Prisma.IntFilter<"AiXrayAnalysisAudit"> | number
   createdAt?: Prisma.DateTimeFilter<"AiXrayAnalysisAudit"> | Date | string
 }, "id">
@@ -322,6 +360,11 @@ export type AiXrayAnalysisAuditOrderByWithAggregationInput = {
   errorStatus?: Prisma.SortOrderInput | Prisma.SortOrder
   modelVersion?: Prisma.SortOrder
   findingCount?: Prisma.SortOrder
+  imageSnapshot?: Prisma.SortOrderInput | Prisma.SortOrder
+  resultSnapshot?: Prisma.SortOrderInput | Prisma.SortOrder
+  reviewedFindings?: Prisma.SortOrderInput | Prisma.SortOrder
+  reviewedBy?: Prisma.SortOrderInput | Prisma.SortOrder
+  reviewedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   durationMs?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.AiXrayAnalysisAuditCountOrderByAggregateInput
@@ -345,6 +388,11 @@ export type AiXrayAnalysisAuditScalarWhereWithAggregatesInput = {
   errorStatus?: Prisma.StringNullableWithAggregatesFilter<"AiXrayAnalysisAudit"> | string | null
   modelVersion?: Prisma.StringWithAggregatesFilter<"AiXrayAnalysisAudit"> | string
   findingCount?: Prisma.IntWithAggregatesFilter<"AiXrayAnalysisAudit"> | number
+  imageSnapshot?: Prisma.JsonNullableWithAggregatesFilter<"AiXrayAnalysisAudit">
+  resultSnapshot?: Prisma.JsonNullableWithAggregatesFilter<"AiXrayAnalysisAudit">
+  reviewedFindings?: Prisma.JsonNullableWithAggregatesFilter<"AiXrayAnalysisAudit">
+  reviewedBy?: Prisma.UuidNullableWithAggregatesFilter<"AiXrayAnalysisAudit"> | string | null
+  reviewedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"AiXrayAnalysisAudit"> | Date | string | null
   durationMs?: Prisma.IntWithAggregatesFilter<"AiXrayAnalysisAudit"> | number
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"AiXrayAnalysisAudit"> | Date | string
 }
@@ -360,6 +408,11 @@ export type AiXrayAnalysisAuditCreateInput = {
   errorStatus?: string | null
   modelVersion: string
   findingCount?: number
+  imageSnapshot?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  resultSnapshot?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  reviewedFindings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  reviewedBy?: string | null
+  reviewedAt?: Date | string | null
   durationMs: number
   createdAt?: Date | string
 }
@@ -375,6 +428,11 @@ export type AiXrayAnalysisAuditUncheckedCreateInput = {
   errorStatus?: string | null
   modelVersion: string
   findingCount?: number
+  imageSnapshot?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  resultSnapshot?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  reviewedFindings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  reviewedBy?: string | null
+  reviewedAt?: Date | string | null
   durationMs: number
   createdAt?: Date | string
 }
@@ -390,6 +448,11 @@ export type AiXrayAnalysisAuditUpdateInput = {
   errorStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   modelVersion?: Prisma.StringFieldUpdateOperationsInput | string
   findingCount?: Prisma.IntFieldUpdateOperationsInput | number
+  imageSnapshot?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  resultSnapshot?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  reviewedFindings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  reviewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   durationMs?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -405,6 +468,11 @@ export type AiXrayAnalysisAuditUncheckedUpdateInput = {
   errorStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   modelVersion?: Prisma.StringFieldUpdateOperationsInput | string
   findingCount?: Prisma.IntFieldUpdateOperationsInput | number
+  imageSnapshot?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  resultSnapshot?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  reviewedFindings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  reviewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   durationMs?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -420,6 +488,11 @@ export type AiXrayAnalysisAuditCreateManyInput = {
   errorStatus?: string | null
   modelVersion: string
   findingCount?: number
+  imageSnapshot?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  resultSnapshot?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  reviewedFindings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  reviewedBy?: string | null
+  reviewedAt?: Date | string | null
   durationMs: number
   createdAt?: Date | string
 }
@@ -435,6 +508,11 @@ export type AiXrayAnalysisAuditUpdateManyMutationInput = {
   errorStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   modelVersion?: Prisma.StringFieldUpdateOperationsInput | string
   findingCount?: Prisma.IntFieldUpdateOperationsInput | number
+  imageSnapshot?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  resultSnapshot?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  reviewedFindings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  reviewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   durationMs?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -450,6 +528,11 @@ export type AiXrayAnalysisAuditUncheckedUpdateManyInput = {
   errorStatus?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   modelVersion?: Prisma.StringFieldUpdateOperationsInput | string
   findingCount?: Prisma.IntFieldUpdateOperationsInput | number
+  imageSnapshot?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  resultSnapshot?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  reviewedFindings?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  reviewedBy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   durationMs?: Prisma.IntFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -465,6 +548,11 @@ export type AiXrayAnalysisAuditCountOrderByAggregateInput = {
   errorStatus?: Prisma.SortOrder
   modelVersion?: Prisma.SortOrder
   findingCount?: Prisma.SortOrder
+  imageSnapshot?: Prisma.SortOrder
+  resultSnapshot?: Prisma.SortOrder
+  reviewedFindings?: Prisma.SortOrder
+  reviewedBy?: Prisma.SortOrder
+  reviewedAt?: Prisma.SortOrder
   durationMs?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
@@ -485,6 +573,8 @@ export type AiXrayAnalysisAuditMaxOrderByAggregateInput = {
   errorStatus?: Prisma.SortOrder
   modelVersion?: Prisma.SortOrder
   findingCount?: Prisma.SortOrder
+  reviewedBy?: Prisma.SortOrder
+  reviewedAt?: Prisma.SortOrder
   durationMs?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
@@ -500,6 +590,8 @@ export type AiXrayAnalysisAuditMinOrderByAggregateInput = {
   errorStatus?: Prisma.SortOrder
   modelVersion?: Prisma.SortOrder
   findingCount?: Prisma.SortOrder
+  reviewedBy?: Prisma.SortOrder
+  reviewedAt?: Prisma.SortOrder
   durationMs?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
@@ -522,6 +614,11 @@ export type AiXrayAnalysisAuditSelect<ExtArgs extends runtime.Types.Extensions.I
   errorStatus?: boolean
   modelVersion?: boolean
   findingCount?: boolean
+  imageSnapshot?: boolean
+  resultSnapshot?: boolean
+  reviewedFindings?: boolean
+  reviewedBy?: boolean
+  reviewedAt?: boolean
   durationMs?: boolean
   createdAt?: boolean
 }, ExtArgs["result"]["aiXrayAnalysisAudit"]>
@@ -537,6 +634,11 @@ export type AiXrayAnalysisAuditSelectCreateManyAndReturn<ExtArgs extends runtime
   errorStatus?: boolean
   modelVersion?: boolean
   findingCount?: boolean
+  imageSnapshot?: boolean
+  resultSnapshot?: boolean
+  reviewedFindings?: boolean
+  reviewedBy?: boolean
+  reviewedAt?: boolean
   durationMs?: boolean
   createdAt?: boolean
 }, ExtArgs["result"]["aiXrayAnalysisAudit"]>
@@ -552,6 +654,11 @@ export type AiXrayAnalysisAuditSelectUpdateManyAndReturn<ExtArgs extends runtime
   errorStatus?: boolean
   modelVersion?: boolean
   findingCount?: boolean
+  imageSnapshot?: boolean
+  resultSnapshot?: boolean
+  reviewedFindings?: boolean
+  reviewedBy?: boolean
+  reviewedAt?: boolean
   durationMs?: boolean
   createdAt?: boolean
 }, ExtArgs["result"]["aiXrayAnalysisAudit"]>
@@ -567,11 +674,16 @@ export type AiXrayAnalysisAuditSelectScalar = {
   errorStatus?: boolean
   modelVersion?: boolean
   findingCount?: boolean
+  imageSnapshot?: boolean
+  resultSnapshot?: boolean
+  reviewedFindings?: boolean
+  reviewedBy?: boolean
+  reviewedAt?: boolean
   durationMs?: boolean
   createdAt?: boolean
 }
 
-export type AiXrayAnalysisAuditOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "doctorId" | "patientId" | "medicalRecordId" | "imageId" | "status" | "errorStatus" | "modelVersion" | "findingCount" | "durationMs" | "createdAt", ExtArgs["result"]["aiXrayAnalysisAudit"]>
+export type AiXrayAnalysisAuditOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "doctorId" | "patientId" | "medicalRecordId" | "imageId" | "status" | "errorStatus" | "modelVersion" | "findingCount" | "imageSnapshot" | "resultSnapshot" | "reviewedFindings" | "reviewedBy" | "reviewedAt" | "durationMs" | "createdAt", ExtArgs["result"]["aiXrayAnalysisAudit"]>
 
 export type $AiXrayAnalysisAuditPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "AiXrayAnalysisAudit"
@@ -587,6 +699,11 @@ export type $AiXrayAnalysisAuditPayload<ExtArgs extends runtime.Types.Extensions
     errorStatus: string | null
     modelVersion: string
     findingCount: number
+    imageSnapshot: runtime.JsonValue | null
+    resultSnapshot: runtime.JsonValue | null
+    reviewedFindings: runtime.JsonValue | null
+    reviewedBy: string | null
+    reviewedAt: Date | null
     durationMs: number
     createdAt: Date
   }, ExtArgs["result"]["aiXrayAnalysisAudit"]>
@@ -1022,6 +1139,11 @@ export interface AiXrayAnalysisAuditFieldRefs {
   readonly errorStatus: Prisma.FieldRef<"AiXrayAnalysisAudit", 'String'>
   readonly modelVersion: Prisma.FieldRef<"AiXrayAnalysisAudit", 'String'>
   readonly findingCount: Prisma.FieldRef<"AiXrayAnalysisAudit", 'Int'>
+  readonly imageSnapshot: Prisma.FieldRef<"AiXrayAnalysisAudit", 'Json'>
+  readonly resultSnapshot: Prisma.FieldRef<"AiXrayAnalysisAudit", 'Json'>
+  readonly reviewedFindings: Prisma.FieldRef<"AiXrayAnalysisAudit", 'Json'>
+  readonly reviewedBy: Prisma.FieldRef<"AiXrayAnalysisAudit", 'String'>
+  readonly reviewedAt: Prisma.FieldRef<"AiXrayAnalysisAudit", 'DateTime'>
   readonly durationMs: Prisma.FieldRef<"AiXrayAnalysisAudit", 'Int'>
   readonly createdAt: Prisma.FieldRef<"AiXrayAnalysisAudit", 'DateTime'>
 }

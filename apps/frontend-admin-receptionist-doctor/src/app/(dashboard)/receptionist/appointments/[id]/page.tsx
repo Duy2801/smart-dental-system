@@ -7,7 +7,11 @@ import { Header } from "@/src/components/layout/header";
 import { AppointmentStatusBadge } from "@/src/components/shared/appointment-status-badge";
 import type { AppointmentStatus } from "@/src/components/shared/appointment-status-badge";
 import apiClient from "@/src/lib/api/client";
-import { localDateStr, mapAppointment } from "@/src/lib/receptionist/mappers";
+import {
+  canCheckInAppointment,
+  localDateStr,
+  mapAppointment,
+} from "@/src/lib/receptionist/mappers";
 import type {
   ApiAppointment,
   ReceptionistAppointment,
@@ -20,7 +24,6 @@ import {
   ArrowLeft,
   Phone,
   UserCircleCheck,
-  BellRinging,
   Receipt,
   SpinnerGap,
   Warning,
@@ -58,6 +61,7 @@ export default function AppointmentDetailPage() {
   const [rescheduleTime, setRescheduleTime] = useState("");
   const [timeSlots, setTimeSlots] = useState<string[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
+  const [currentTime, setCurrentTime] = useState(() => Date.now());
 
   const loadAppointment = async () => {
     setLoading(true);
@@ -80,6 +84,11 @@ export default function AppointmentDetailPage() {
     void loadAppointment();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setCurrentTime(Date.now()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (!showReschedule || !apt?.doctor?.id || !apt.service?.id) return;
@@ -411,7 +420,8 @@ export default function AppointmentDetailPage() {
                 </button>
               )}
 
-              {(apt.status === "CONFIRMED" || apt.status === "PENDING") && (
+              {(apt.status === "CONFIRMED" || apt.status === "PENDING") &&
+                canCheckInAppointment(apt.scheduledAt, currentTime) && (
                 <button
                   disabled={acting}
                   onClick={() =>
@@ -427,21 +437,6 @@ export default function AppointmentDetailPage() {
                 </button>
               )}
 
-              {apt.status === "CHECKED_IN" && (
-                <button
-                  disabled={acting}
-                  onClick={() =>
-                    void updateStatus(
-                      "IN_PROGRESS",
-                      "start",
-                      "Đã nhắc bác sĩ bắt đầu khám",
-                    )
-                  }
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-bold text-brand-dark shadow-sm hover:bg-muted disabled:opacity-60"
-                >
-                  <BellRinging size={15} /> Nhắc bác sĩ
-                </button>
-              )}
 
               {canReschedule && !showReschedule && (
                 <button

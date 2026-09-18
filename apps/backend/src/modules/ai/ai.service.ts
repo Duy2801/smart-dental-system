@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { randomUUID } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import { InjectQueue } from '@nestjs/bull';
 import type { Queue } from 'bull';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface';
@@ -20,6 +20,7 @@ import {
   GenerateAftercareDto,
   PrescriptionReviewItemDto,
   ReviewPrescriptionDto,
+  ReviewXrayAnalysisDto,
   SendAftercareDto,
 } from './dto/doctor-ai.dto';
 import { SummarizePatientDto } from './dto/summarize-patient.dto';
@@ -30,6 +31,8 @@ type AiSummarizeResponse = {
   bullet_points: string[];
   questions_to_ask: string[];
   risk_flags: string[];
+  source_keys_by_bullet?: Record<string, string[]>;
+  source_keys_by_risk?: Record<string, string[]>;
   disclaimer: string;
   provider?: string | null;
   model?: string | null;
@@ -44,14 +47,172 @@ type StoredAiBrief = {
   riskFlags: unknown;
   disclaimer: string;
   sourceData: unknown;
+  bulletSources: unknown;
+  riskSources: unknown;
+  contextFingerprint: string | null;
   provider: string | null;
   model: string | null;
   feedback: 'HELPFUL' | 'INACCURATE' | 'MISSED_RISK' | null;
   feedbackNote: string | null;
   reviewedAt: Date | null;
+  reviewedBy: string | null;
   createdAt: Date;
   creator: { fullName: string };
+  reviewer: { fullName: string } | null;
 };
+
+type PatientBriefContext = {
+  patientId: string;
+  patientName: string;
+  medicalHistory: string | null;
+  chatbotMessages: Array<{ role: string; content: string }>;
+  recentDiagnoses: string[];
+  upcomingService: string | null;
+  latestMedicalRecord: string | null;
+  recentPrescriptions: string[];
+  activeTreatmentPlan: string | null;
+  followUp: string | null;
+};
+
+const PATIENT_BRIEF_SOURCES = [
+  { key: 'medical_history', label: 'Tiền sử bệnh' },
+  { key: 'chatbot', label: 'Trao đổi chatbot' },
+  { key: 'diagnoses', label: 'Chẩn đoán gần đây' },
+  { key: 'upcoming_service', label: 'Dịch vụ sắp khám' },
+  { key: 'medical_record', label: 'Hồ sơ bệnh án gần nhất' },
+  { key: 'prescriptions', label: 'Đơn thuốc gần đây' },
+  { key: 'treatment_plan', label: 'Kế hoạch điều trị' },
+  { key: 'follow_up', label: 'Lịch tái khám' },
+] as const;
+
+const BRIEF_SOURCE_KEYS = new Set<string>(
+  PATIENT_BRIEF_SOURCES.map(({ key }) => key),
+);
+
+function normalizeBriefList(value: unknown, maxItems = 10): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is string => typeof item === 'string')
+    .map((item) => item.trim().slice(0, 300))
+    .filter(Boolean)
+    .slice(0, maxItems);
+}
+
+function requiredPatientRiskFlags(
+  context: PatientBriefContext,
+): Array<{ text: string; sourceKeys: string[] }> {
+  const sources = [
+    { key: 'medical_history', text: context.medicalHistory ?? '' },
+    { key: 'medical_record', text: context.latestMedicalRecord ?? '' },
+    {
+      key: 'chatbot',
+      text: context.chatbotMessages
+        .filter(({ role }) => role === 'patient' || role === 'user')
+        .map(({ content }) => content)
+        .join('\n'),
+    },
+    { key: 'prescriptions', text: context.recentPrescriptions.join('\n') },
+  ].map((source) => ({
+    key: source.key,
+    clauses: source.text
+      .split(/\s*(?:[.,;\n]|\bnhưng\b|\btuy nhiên\b|\bsong\b)\s*/i)
+      .map(normalizeText)
+      .filter(Boolean),
+  }));
+  const flags: Array<{ text: string; sourceKeys: string[] }> = [];
+  const add = (
+    terms: Array<{ mention: RegExp; negations?: RegExp[] }>,
+    text: string,
+  ) => {
+    const sourceKeys = sources
+      .filter((source) =>
+        source.clauses.some((clause) =>
+          terms.some(
+            ({ mention, negations = [] }) =>
+              mention.test(clause) &&
+              !negations.some((negation) => negation.test(clause)),
+          ),
+        ),
+      )
+      .map(({ key }) => key);
+    if (sourceKeys.length) flags.push({ text, sourceKeys });
+  };
+  add(
+    [
+      {
+        mention: /\b(di ung|allerg)/,
+        negations: [
+          /\b(khong|chua|chua tung) (co )?(ghi nhan )?(tien su )?(bi )?di ung\b/,
+          /\bdi ung\s*(khong|none)\b/,
+        ],
+      },
+    ],
+    'Có tiền sử dị ứng; cần xác minh tác nhân và phản ứng.',
+  );
+  add(
+    [
+      {
+        mention: /\bchong dong\b/,
+        negations: [
+          /\b(khong|chua) (co )?(ghi nhan )?(dang )?(dung|su dung) (thuoc )?chong dong\b/,
+        ],
+      },
+      ...['warfarin', 'rivaroxaban', 'apixaban', 'dabigatran'].map(
+        (medicine) => ({
+          mention: new RegExp(`\\b${medicine}\\b`),
+          negations: [
+            new RegExp(
+              `\\b(khong|chua) (co )?(ghi nhan )?(dang )?(dung|su dung) (thuoc )?${medicine}\\b`,
+            ),
+          ],
+        }),
+      ),
+    ],
+    'Có ghi nhận thuốc chống đông; cần xác minh còn sử dụng và đánh giá nguy cơ chảy máu.',
+  );
+  add(
+    [
+      {
+        mention: /\b(mang thai|thai ky)\b/,
+        negations: [/\b(khong|chua) (co )?(ghi nhan )?mang thai\b/],
+      },
+    ],
+    'Có thông tin mang thai; cần xác minh trước chụp phim và kê thuốc.',
+  );
+  add(
+    [
+      {
+        mention: /\bsung (mat|ma)\b/,
+        negations: [/\b(khong|chua) (co )?(ghi nhan )?sung (mat|ma)\b/],
+      },
+      {
+        mention: /\bsot\b/,
+        negations: [/\b(khong|chua) (co )?(ghi nhan )?sot\b/],
+      },
+      {
+        mention: /\bchay mau keo dai\b/,
+        negations: [/\b(khong|chua) (co )?(ghi nhan )?chay mau keo dai\b/],
+      },
+    ],
+    'Có dấu hiệu cần đánh giá sớm: sưng, sốt hoặc chảy máu kéo dài.',
+  );
+  return flags;
+}
+
+function patientBriefFingerprint(context: PatientBriefContext): string {
+  return createHash('sha256').update(JSON.stringify(context)).digest('hex');
+}
+
+function assertSinglePatientBriefContext(dto: SummarizePatientDto): void {
+  const count = [dto.consultationId, dto.appointmentId, dto.patientId].filter(
+    Boolean,
+  ).length;
+  if (count !== 1) {
+    throw new BadRequestException(
+      'Chỉ được gửi một trong consultationId, appointmentId hoặc patientId',
+    );
+  }
+}
 
 type AiDraftResponse = {
   chief_complaint: string | null;
@@ -179,6 +340,7 @@ function normalizeText(text: string): string {
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
     .replace(/[^a-z0-9\s]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
@@ -551,7 +713,12 @@ export class AiService {
     this.rateLimit.consume(`receptionist:${user.userId}`);
     const result = await this.aiClient.post<{ reply: string }>(
       '/api/v1/chatbot/receptionist-chat',
-      { created_by_user_id: user.userId, message: dto.message.trim(), history: dto.history.slice(-10), locale: 'vi' },
+      {
+        created_by_user_id: user.userId,
+        message: dto.message.trim(),
+        history: dto.history.slice(-10),
+        locale: 'vi',
+      },
     );
     if (!result || typeof result.reply !== 'string' || !result.reply.trim()) {
       throw new BadRequestException('AI không trả về nội dung hợp lệ');
@@ -560,11 +727,16 @@ export class AiService {
   }
 
   async summarizePatient(user: AuthenticatedUser, dto: SummarizePatientDto) {
-    if (!dto.consultationId && !dto.patientId) {
-      throw new BadRequestException('Cần consultationId hoặc patientId');
-    }
-
+    assertSinglePatientBriefContext(dto);
     const ctx = await this.resolvePatientContext(user, dto);
+    const doctor = await this.prisma.doctor.findUnique({
+      where: { userId: user.userId },
+      select: { id: true },
+    });
+    if (user.roles.includes('DOCTOR') && !doctor) {
+      throw new ForbiddenException('Không tìm thấy hồ sơ bác sĩ');
+    }
+    this.rateLimit.consume(`patient-brief:${user.userId}`);
     const raw = await this.aiClient.post<AiSummarizeResponse>(
       '/api/v1/doctor/summarize-patient',
       {
@@ -580,64 +752,85 @@ export class AiService {
       },
     );
 
-    const doctor = await this.prisma.doctor.findUnique({
-      where: { userId: user.userId },
-      select: { id: true },
-    });
+    const bulletPoints = normalizeBriefList(raw.bullet_points);
+    const questionsToAsk = normalizeBriefList(raw.questions_to_ask);
+    const requiredRisks = requiredPatientRiskFlags(ctx);
+    const riskFlags = [
+      ...normalizeBriefList(raw.risk_flags),
+      ...requiredRisks.map(({ text }) => text),
+    ].filter((flag, index, items) => items.indexOf(flag) === index);
+    const sourceData = PATIENT_BRIEF_SOURCES.map(({ key, label }) => ({
+      key,
+      label,
+      available:
+        key === 'medical_history'
+          ? Boolean(ctx.medicalHistory)
+          : key === 'chatbot'
+            ? ctx.chatbotMessages.length > 0
+            : key === 'diagnoses'
+              ? ctx.recentDiagnoses.length > 0
+              : key === 'upcoming_service'
+                ? Boolean(ctx.upcomingService)
+                : key === 'medical_record'
+                  ? Boolean(ctx.latestMedicalRecord)
+                  : key === 'prescriptions'
+                    ? ctx.recentPrescriptions.length > 0
+                    : key === 'treatment_plan'
+                      ? Boolean(ctx.activeTreatmentPlan)
+                      : Boolean(ctx.followUp),
+    }));
+    const availableSourceKeys = new Set<string>(
+      sourceData.filter(({ available }) => available).map(({ key }) => key),
+    );
+    const bulletSources = Object.fromEntries(
+      bulletPoints.map((bullet) => [
+        bullet,
+        (raw.source_keys_by_bullet?.[bullet] ?? [])
+          .filter(
+            (key) => BRIEF_SOURCE_KEYS.has(key) && availableSourceKeys.has(key),
+          )
+          .slice(0, 3),
+      ]),
+    );
+    const riskSources = Object.fromEntries(
+      riskFlags.map((risk) => [
+        risk,
+        [
+          ...(raw.source_keys_by_risk?.[risk] ?? []).filter(
+            (key) => BRIEF_SOURCE_KEYS.has(key) && availableSourceKeys.has(key),
+          ),
+          ...(requiredRisks.find(({ text }) => text === risk)?.sourceKeys ??
+            []),
+        ]
+          .filter((key, index, keys) => keys.indexOf(key) === index)
+          .slice(0, 3),
+      ]),
+    );
     const saved = await this.prisma.patientAiBrief.create({
       data: {
         patientId: ctx.patientId,
         doctorId: doctor?.id ?? null,
         createdBy: user.userId,
         consultationId: dto.consultationId ?? null,
+        appointmentId: dto.appointmentId ?? null,
         patientName: ctx.patientName,
-        bulletPoints: raw.bullet_points ?? [],
-        questionsToAsk: raw.questions_to_ask ?? [],
-        riskFlags: raw.risk_flags ?? [],
+        bulletPoints,
+        questionsToAsk,
+        riskFlags,
         disclaimer:
           raw.disclaimer ||
           'AI hỗ trợ chuẩn bị khám. Quyết định lâm sàng thuộc bác sĩ.',
-        sourceData: [
-          {
-            key: 'medical_history',
-            label: 'Tiền sử bệnh',
-            available: Boolean(ctx.medicalHistory),
-          },
-          {
-            key: 'chatbot',
-            label: 'Trao đổi chatbot',
-            available: ctx.chatbotMessages.length > 0,
-          },
-          {
-            key: 'diagnoses',
-            label: 'Chẩn đoán gần đây',
-            available: ctx.recentDiagnoses.length > 0,
-          },
-          {
-            key: 'medical_record',
-            label: 'Hồ sơ bệnh án gần nhất',
-            available: Boolean(ctx.latestMedicalRecord),
-          },
-          {
-            key: 'prescriptions',
-            label: 'Đơn thuốc gần đây',
-            available: ctx.recentPrescriptions.length > 0,
-          },
-          {
-            key: 'treatment_plan',
-            label: 'Kế hoạch điều trị',
-            available: Boolean(ctx.activeTreatmentPlan),
-          },
-          {
-            key: 'follow_up',
-            label: 'Lịch tái khám',
-            available: Boolean(ctx.followUp),
-          },
-        ],
+        sourceData,
+        bulletSources,
+        riskSources,
+        contextFingerprint: patientBriefFingerprint(ctx),
         provider: raw.provider ?? null,
         model: raw.model ?? null,
       },
-      include: { creator: { select: { fullName: true } } },
+      include: {
+        creator: { select: { fullName: true } },
+        reviewer: { select: { fullName: true } },
+      },
     });
 
     return this.toPatientAiBrief(saved);
@@ -647,34 +840,42 @@ export class AiService {
     user: AuthenticatedUser,
     dto: SummarizePatientDto,
   ) {
-    if (!dto.consultationId && !dto.patientId) {
-      throw new BadRequestException('Cần consultationId hoặc patientId');
+    assertSinglePatientBriefContext(dto);
+    const context = await this.resolvePatientContext(user, dto);
+    const doctor = user.roles.includes('ADMIN')
+      ? null
+      : await this.prisma.doctor.findUnique({
+          where: { userId: user.userId },
+          select: { id: true },
+        });
+    if (!user.roles.includes('ADMIN') && !doctor) {
+      throw new ForbiddenException('Không tìm thấy hồ sơ bác sĩ');
     }
-
-    let patientId = dto.patientId;
-    if (dto.consultationId) {
-      const consultation = await this.prisma.videoConsultation.findUnique({
-        where: { id: dto.consultationId },
-        select: { patientId: true, doctorId: true },
-      });
-      if (!consultation) {
-        throw new NotFoundException('Không tìm thấy buổi tư vấn');
-      }
-      await this.assertDoctorOwnsConsult(user, consultation.doctorId);
-      patientId = consultation.patientId;
-    } else {
-      await this.assertDoctorCanAccessPatient(user, patientId!);
-    }
+    const scope = dto.consultationId
+      ? { consultationId: dto.consultationId }
+      : dto.appointmentId
+        ? { appointmentId: dto.appointmentId }
+        : {
+            patientId: context.patientId,
+            consultationId: null,
+            appointmentId: null,
+          };
 
     const brief = await this.prisma.patientAiBrief.findFirst({
-      where: dto.consultationId
-        ? { consultationId: dto.consultationId }
-        : { patientId: patientId! },
+      where: doctor ? { ...scope, doctorId: doctor.id } : scope,
       orderBy: { createdAt: 'desc' },
-      include: { creator: { select: { fullName: true } } },
+      include: {
+        creator: { select: { fullName: true } },
+        reviewer: { select: { fullName: true } },
+      },
     });
 
-    return brief ? this.toPatientAiBrief(brief) : null;
+    return brief
+      ? this.toPatientAiBrief(
+          brief,
+          brief.contextFingerprint !== patientBriefFingerprint(context),
+        )
+      : null;
   }
 
   async reviewPatientSummary(
@@ -682,12 +883,22 @@ export class AiService {
     id: string,
     dto: ReviewPatientAiBriefDto,
   ) {
+    if (!user.roles.includes('DOCTOR')) {
+      throw new ForbiddenException('Chỉ bác sĩ được đánh giá hồ sơ AI');
+    }
+    const doctor = await this.prisma.doctor.findUnique({
+      where: { userId: user.userId },
+      select: { id: true },
+    });
+    if (!doctor) throw new ForbiddenException('Không tìm thấy hồ sơ bác sĩ');
     const brief = await this.prisma.patientAiBrief.findUnique({
       where: { id },
-      select: { patientId: true },
+      select: { patientId: true, doctorId: true },
     });
     if (!brief) throw new NotFoundException('Không tìm thấy hồ sơ AI');
-    await this.assertDoctorCanAccessPatient(user, brief.patientId);
+    if (brief.doctorId !== doctor.id) {
+      throw new ForbiddenException('Không có quyền đánh giá hồ sơ AI này');
+    }
 
     const updated = await this.prisma.patientAiBrief.update({
       where: { id },
@@ -695,8 +906,12 @@ export class AiService {
         feedback: dto.feedback,
         feedbackNote: dto.note?.trim() || null,
         reviewedAt: new Date(),
+        reviewedBy: user.userId,
       },
-      include: { creator: { select: { fullName: true } } },
+      include: {
+        creator: { select: { fullName: true } },
+        reviewer: { select: { fullName: true } },
+      },
     });
     return this.toPatientAiBrief(updated);
   }
@@ -712,14 +927,15 @@ export class AiService {
       throw new ForbiddenException('Không tìm thấy hồ sơ bác sĩ');
     }
     const where = doctor ? { doctorId: doctor.id } : {};
+    const reviewedWhere = doctor
+      ? { ...where, reviewedBy: user.userId, feedback: { not: null } }
+      : { feedback: { not: null } };
     const [total, reviewed, groups] = await Promise.all([
       this.prisma.patientAiBrief.count({ where }),
-      this.prisma.patientAiBrief.count({
-        where: { ...where, feedback: { not: null } },
-      }),
+      this.prisma.patientAiBrief.count({ where: reviewedWhere }),
       this.prisma.patientAiBrief.groupBy({
         by: ['feedback'],
-        where: { ...where, feedback: { not: null } },
+        where: reviewedWhere,
         _count: { _all: true },
       }),
     ]);
@@ -737,7 +953,7 @@ export class AiService {
     };
   }
 
-  private toPatientAiBrief(brief: StoredAiBrief) {
+  private toPatientAiBrief(brief: StoredAiBrief, isStale = false) {
     return {
       id: brief.id,
       patientId: brief.patientId,
@@ -749,11 +965,21 @@ export class AiService {
       riskFlags: Array.isArray(brief.riskFlags) ? brief.riskFlags : [],
       disclaimer: brief.disclaimer,
       sources: Array.isArray(brief.sourceData) ? brief.sourceData : [],
+      bulletSources:
+        brief.bulletSources && typeof brief.bulletSources === 'object'
+          ? brief.bulletSources
+          : {},
+      riskSources:
+        brief.riskSources && typeof brief.riskSources === 'object'
+          ? brief.riskSources
+          : {},
       provider: brief.provider,
       model: brief.model,
       feedback: brief.feedback,
       feedbackNote: brief.feedbackNote,
       reviewedAt: brief.reviewedAt?.toISOString() ?? null,
+      reviewedByName: brief.reviewer?.fullName ?? null,
+      isStale,
       createdAt: brief.createdAt.toISOString(),
       createdByName: brief.creator.fullName,
     };
@@ -1022,7 +1248,9 @@ export class AiService {
       dto.medicalRecordId,
     );
     const recipientId =
-      record.patient.userId ?? record.patient.patientAccounts[0]?.userId ?? null;
+      record.patient.userId ??
+      record.patient.patientAccounts[0]?.userId ??
+      null;
 
     const email =
       (record.patient as any)?.email ||
@@ -1276,8 +1504,36 @@ export class AiService {
       });
 
       const isRadiograph = raw.is_radiograph !== false;
-      const status =
-        raw.status || (isRadiograph ? 'PATHOLOGY_DETECTED' : 'INVALID_IMAGE');
+      const detectedFindings = (raw.findings ?? []).map((finding) => ({
+        findingId: randomUUID(),
+        fdiToothNumber: finding.fdi_tooth_number,
+        findingType: finding.finding_type,
+        confidence: finding.confidence,
+        boundingBox: finding.bounding_box,
+        severity: finding.severity,
+      }));
+      const terminalErrorStatuses = new Set([
+        'INVALID_IMAGE',
+        'MODEL_UNAVAILABLE',
+        'ANALYSIS_FAILED',
+      ]);
+      const terminalStatus = terminalErrorStatuses.has(raw.status ?? '')
+        ? raw.status!
+        : terminalErrorStatuses.has(raw.error_status ?? '')
+          ? raw.error_status!
+          : null;
+      const normalizedFindings =
+        terminalStatus || !isRadiograph ? [] : detectedFindings;
+      const status = terminalStatus
+        ? terminalStatus
+        : isRadiograph
+          ? normalizedFindings.length
+            ? 'PATHOLOGY_DETECTED'
+            : 'HEALTHY'
+          : 'INVALID_IMAGE';
+      const errorStatus = terminalErrorStatuses.has(status)
+        ? status
+        : (raw.error_status ?? null);
       const modelVersion = raw.model_version || 'unknown';
       const analyzedAt = new Date();
 
@@ -1290,15 +1546,25 @@ export class AiService {
           medicalRecordId: source.medicalRecordId,
           imageId: dto.imageId,
           status,
-          errorStatus: [
-            'INVALID_IMAGE',
-            'MODEL_UNAVAILABLE',
-            'ANALYSIS_FAILED',
-          ].includes(status)
-            ? status
-            : null,
+          errorStatus,
           modelVersion,
-          findingCount: raw.findings?.length ?? 0,
+          findingCount: normalizedFindings.length,
+          imageSnapshot: {
+            url: source.url,
+            type: 'xray',
+            modality: source.modality,
+          },
+          resultSnapshot: {
+            isRadiograph,
+            status,
+            errorStatus,
+            modelVersion,
+            findings: normalizedFindings,
+            summary: raw.summary ?? '',
+            diagnosisSuggestion: raw.diagnosis_suggestion ?? null,
+            treatmentRecommendations: raw.treatment_recommendations ?? [],
+            disclaimer: raw.disclaimer ?? '',
+          },
           durationMs: Date.now() - startedAt,
           createdAt: analyzedAt,
         },
@@ -1310,15 +1576,9 @@ export class AiService {
         analyzedAt: analyzedAt.toISOString(),
         isRadiograph,
         status,
-        errorStatus: raw.error_status ?? null,
-        findings: (raw.findings ?? []).map((f) => ({
-          fdiToothNumber: f.fdi_tooth_number,
-          findingType: f.finding_type,
-          confidence: f.confidence,
-          boundingBox: f.bounding_box,
-          severity: f.severity,
-        })),
-        totalFindings: raw.total_findings ?? (raw.findings ?? []).length,
+        errorStatus,
+        findings: normalizedFindings,
+        totalFindings: normalizedFindings.length,
         summary: raw.summary ?? '',
         diagnosisSuggestion: raw.diagnosis_suggestion ?? null,
         treatmentRecommendations: raw.treatment_recommendations ?? [],
@@ -1340,6 +1600,11 @@ export class AiService {
             status: 'ANALYSIS_FAILED',
             errorStatus: 'ANALYSIS_FAILED',
             modelVersion: 'unknown',
+            imageSnapshot: {
+              url: source.url,
+              type: 'xray',
+              modality: source.modality,
+            },
             durationMs: Date.now() - startedAt,
           },
         })
@@ -1348,12 +1613,106 @@ export class AiService {
     }
   }
 
+  async reviewXrayAnalysis(
+    user: AuthenticatedUser,
+    analysisId: string,
+    dto: ReviewXrayAnalysisDto,
+  ) {
+    if (!user.roles.includes('DOCTOR')) {
+      throw new ForbiddenException('Chỉ bác sĩ được xác nhận kết quả X-quang');
+    }
+    const audit = await this.prisma.aiXrayAnalysisAudit.findUnique({
+      where: { id: analysisId },
+      select: {
+        id: true,
+        userId: true,
+        status: true,
+        reviewedAt: true,
+        resultSnapshot: true,
+      },
+    });
+    if (!audit)
+      throw new NotFoundException('Không tìm thấy lần phân tích X-quang');
+    if (audit.userId !== user.userId) {
+      throw new ForbiddenException('Không có quyền xác nhận lần phân tích này');
+    }
+    if (audit.status !== 'PATHOLOGY_DETECTED') {
+      throw new BadRequestException(
+        'Lần phân tích này không có phát hiện để rà soát',
+      );
+    }
+    if (audit.reviewedAt) {
+      throw new BadRequestException('Kết quả phân tích này đã được xác nhận');
+    }
+
+    const snapshot = audit.resultSnapshot as {
+      findings?: Array<{ findingId?: unknown }>;
+    } | null;
+    const expectedFindingIds = (snapshot?.findings ?? [])
+      .map((finding) => finding.findingId)
+      .filter((id): id is string => typeof id === 'string');
+    if (
+      expectedFindingIds.length === 0 ||
+      expectedFindingIds.length !== (snapshot?.findings?.length ?? 0)
+    ) {
+      throw new BadRequestException(
+        'Lần phân tích cũ không hỗ trợ xác nhận; vui lòng phân tích lại',
+      );
+    }
+    const submittedFindingIds = dto.findings
+      .map((finding) => finding.findingId)
+      .filter((id): id is string => typeof id === 'string');
+    const uniqueSubmittedIds = new Set(submittedFindingIds);
+    const hasInvalidManualFinding = dto.findings.some(
+      (finding) => !finding.findingId && finding.source !== 'DOCTOR',
+    );
+    if (
+      hasInvalidManualFinding ||
+      submittedFindingIds.length !== expectedFindingIds.length ||
+      uniqueSubmittedIds.size !== expectedFindingIds.length ||
+      expectedFindingIds.some((id) => !uniqueSubmittedIds.has(id))
+    ) {
+      throw new BadRequestException(
+        'Phải rà soát đầy đủ từng phát hiện AI đúng một lần',
+      );
+    }
+
+    const reviewedAt = new Date();
+    const updated = await this.prisma.aiXrayAnalysisAudit.updateMany({
+      where: { id: analysisId, reviewedAt: null },
+      data: {
+        reviewedFindings: dto.findings.map((finding) => ({
+          ...(finding.findingId ? { findingId: finding.findingId } : {}),
+          fdiToothNumber: finding.fdiToothNumber,
+          findingType: finding.findingType,
+          confidence: finding.confidence,
+          boundingBox: {
+            x: finding.boundingBox.x,
+            y: finding.boundingBox.y,
+            width: finding.boundingBox.width,
+            height: finding.boundingBox.height,
+          },
+          severity: finding.severity,
+          ...(finding.source ? { source: finding.source } : {}),
+          doctorStatus: finding.doctorStatus,
+          ...(finding.doctorNote ? { doctorNote: finding.doctorNote } : {}),
+        })),
+        reviewedBy: user.userId,
+        reviewedAt,
+      },
+    });
+    if (updated.count !== 1) {
+      throw new BadRequestException('Kết quả phân tích này đã được xác nhận');
+    }
+    return { reviewedAt: reviewedAt.toISOString() };
+  }
+
   private async resolveStoredXray(user: AuthenticatedUser, imageId: string) {
     type Row = {
       id: string;
       patient_id: string;
       doctor_id: string;
-      image: { id?: string; url?: string; type?: string };
+      image: { id?: string; url?: string; type?: string; modality?: string };
     };
     const rows = await this.prisma.$queryRaw<Row[]>`
       SELECT mr.id, mr.patient_id, mr.doctor_id, image
@@ -1370,6 +1729,11 @@ export class AiService {
         'Chỉ ảnh X-quang đã lưu mới được phân tích',
       );
     }
+    if (row.image.modality !== 'PANORAMIC') {
+      throw new BadRequestException(
+        'AI hiện chỉ hỗ trợ phim X-quang Panorama đã được phân loại',
+      );
+    }
     if (!user.roles.includes('ADMIN')) {
       const doctor = await this.prisma.doctor.findUnique({
         where: { userId: user.userId },
@@ -1384,6 +1748,7 @@ export class AiService {
       patientId: row.patient_id,
       doctorId: row.doctor_id,
       medicalRecordId: row.id,
+      modality: row.image.modality,
     };
   }
 
@@ -1610,7 +1975,7 @@ export class AiService {
   private async resolvePatientContext(
     user: AuthenticatedUser,
     dto: SummarizePatientDto,
-  ) {
+  ): Promise<PatientBriefContext> {
     if (dto.consultationId) {
       const row = await this.prisma.videoConsultation.findUnique({
         where: { id: dto.consultationId },
@@ -1643,6 +2008,42 @@ export class AiService {
         recentDiagnoses,
         ...clinical,
         upcomingService: 'Tư vấn trực tuyến',
+      };
+    }
+
+    if (dto.appointmentId) {
+      const row = await this.prisma.appointment.findUnique({
+        where: { id: dto.appointmentId },
+        include: {
+          patient: {
+            select: {
+              id: true,
+              fullName: true,
+              medicalHistory: true,
+              user: { select: { fullName: true } },
+            },
+          },
+          service: { select: { name: true } },
+        },
+      });
+      if (!row || !row.patientId || !row.patient) {
+        throw new NotFoundException('Không tìm thấy lịch hẹn của bệnh nhân');
+      }
+      await this.assertDoctorOwnsAppointment(user, row.doctorId);
+      const [chatbotMessages, recentDiagnoses, clinical] = await Promise.all([
+        this.loadChatMessages(row.patientId),
+        this.loadRecentDiagnoses(row.patientId),
+        this.loadClinicalBriefContext(row.patientId),
+      ]);
+      return {
+        patientId: row.patientId,
+        patientName:
+          row.patient.fullName ?? row.patient.user?.fullName ?? 'Bệnh nhân',
+        medicalHistory: row.patient.medicalHistory,
+        chatbotMessages,
+        recentDiagnoses,
+        ...clinical,
+        upcomingService: row.service.name,
       };
     }
 
@@ -1687,6 +2088,20 @@ export class AiService {
     });
     if (!doctor || doctor.id !== doctorId) {
       throw new ForbiddenException('Không có quyền với buổi tư vấn này');
+    }
+  }
+
+  private async assertDoctorOwnsAppointment(
+    user: AuthenticatedUser,
+    doctorId: string,
+  ) {
+    if (user.roles.includes('ADMIN')) return;
+    const doctor = await this.prisma.doctor.findUnique({
+      where: { userId: user.userId },
+      select: { id: true },
+    });
+    if (!doctor || doctor.id !== doctorId) {
+      throw new ForbiddenException('Không có quyền với lịch hẹn này');
     }
   }
 
@@ -1782,7 +2197,7 @@ export class AiService {
           },
         }),
         this.prisma.prescription.findMany({
-          where: { patientId },
+          where: { patientId, cancelledAt: null },
           orderBy: { createdAt: 'desc' },
           take: 2,
           select: {

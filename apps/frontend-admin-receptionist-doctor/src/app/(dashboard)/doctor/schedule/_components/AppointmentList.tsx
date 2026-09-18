@@ -182,7 +182,7 @@ export function AppointmentList({
                             {config.label}
                           </span>
 
-                          <div className="w-[140px] flex justify-end">
+                          <div className="flex min-w-[140px] justify-end">
                             {apt.type === "ONLINE" &&
                               apt.status !== "CANCELLED" && (
                                 <Link
@@ -212,14 +212,14 @@ export function AppointmentList({
                               )}
                             {apt.type === "OFFLINE" &&
                               apt.status === "IN_PROGRESS" && (
-                                <div className="flex items-center gap-1.5">
+                                <div className="flex items-center gap-1.5 whitespace-nowrap">
                                   <Link
                                     href={
                                       apt.medicalRecordId
                                         ? `/doctor/medical-records?recordId=${apt.medicalRecordId}`
                                         : `/doctor/medical-records?appointmentId=${apt.id}&patientId=${apt.patientId}`
                                     }
-                                    className="flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-blue-700 active:scale-[0.98]"
+                                    className="flex items-center gap-1 whitespace-nowrap rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-blue-700 active:scale-[0.98]"
                                   >
                                     Khám / Ghi bệnh án
                                   </Link>

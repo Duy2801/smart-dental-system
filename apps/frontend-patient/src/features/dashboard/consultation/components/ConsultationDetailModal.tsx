@@ -57,6 +57,9 @@ export function ConsultationDetailModal({
   const isCompleted = consultation.status === "COMPLETED";
   const isInProgress = consultation.status === "IN_PROGRESS";
   const isScheduled = consultation.status === "SCHEDULED";
+  const isWithinTimeWindow =
+    Date.now() >= dateObj.getTime() - 15 * 60 * 1000 &&
+    Date.now() <= dateObj.getTime() + durationMs + 30 * 60 * 1000;
   const canCancelOrRefund = !isCancelled && !isCompleted && !isPast;
 
   const refund = consultation.refundRequest;
@@ -353,7 +356,7 @@ export function ConsultationDetailModal({
               </button>
             )}
 
-            {(isInProgress || isScheduled) && consultation.isPaid && onOpenVideoRoomModal && (
+            {(isInProgress || (isScheduled && isWithinTimeWindow)) && consultation.isPaid && onOpenVideoRoomModal && (
               <button
                 type="button"
                 onClick={() => {

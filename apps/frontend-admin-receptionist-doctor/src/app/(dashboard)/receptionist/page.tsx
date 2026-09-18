@@ -9,7 +9,11 @@ import {
   type AppointmentStatus,
 } from "@/src/components/shared/appointment-status-badge";
 import apiClient from "@/src/lib/api/client";
-import { mapAppointments, localDateStr } from "@/src/lib/receptionist/mappers";
+import {
+  canCheckInAppointment,
+  mapAppointments,
+  localDateStr,
+} from "@/src/lib/receptionist/mappers";
 import type { ReceptionistAppointment } from "@/src/lib/receptionist/mappers";
 import { getApiErrorMessage } from "@/src/lib/utils/api-error";
 import { formatDoctorName } from "@/src/lib/utils/format";
@@ -22,7 +26,6 @@ import {
   MagnifyingGlass,
   Phone,
   UserCircleCheck,
-  BellRinging,
   Receipt,
   CalendarPlus,
   Users,
@@ -515,6 +518,10 @@ export default function ReceptionistDashboard() {
                     const initials = getInitials(name);
                     const avatarColor = getAvatarColor(name);
                     const busy = isActionBusy(apt.id);
+                    const canCheckIn = canCheckInAppointment(
+                      apt.scheduledAt,
+                      currentTime,
+                    );
 
                     return (
                       <div
@@ -575,23 +582,24 @@ export default function ReceptionistDashboard() {
                                 )}
                                 Xác nhận
                               </button>
-                              <button
-                                type="button"
-                                disabled={busy}
-                                onClick={() => void handleStatusChange(apt.id, "CHECKED_IN")}
-                                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-brand bg-white px-3 text-xs font-semibold text-brand shadow-sm transition-all hover:bg-brand/5 active:scale-[0.98] disabled:opacity-60"
-                                title="Check-in trực tiếp (walk-in)"
-                              >
-                                {busy ? (
-                                  <CircleNotch size={13} className="animate-spin" />
-                                ) : (
-                                  <UserCircleCheck size={13} weight="fill" />
-                                )}
-                                Check-in
-                              </button>
+                              {canCheckIn && (
+                                <button
+                                  type="button"
+                                  disabled={busy}
+                                  onClick={() => void handleStatusChange(apt.id, "CHECKED_IN")}
+                                  className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-brand bg-white px-3 text-xs font-semibold text-brand shadow-sm transition-all hover:bg-brand/5 active:scale-[0.98] disabled:opacity-60"
+                                >
+                                  {busy ? (
+                                    <CircleNotch size={13} className="animate-spin" />
+                                  ) : (
+                                    <UserCircleCheck size={13} weight="fill" />
+                                  )}
+                                  Check-in
+                                </button>
+                              )}
                             </>
                           )}
-                          {apt.status === "CONFIRMED" && (
+                          {apt.status === "CONFIRMED" && canCheckIn && (
                             <button
                               type="button"
                               disabled={busy}
@@ -604,21 +612,6 @@ export default function ReceptionistDashboard() {
                                 <UserCircleCheck size={13} weight="fill" />
                               )}
                               Check-in
-                            </button>
-                          )}
-                          {apt.status === "CHECKED_IN" && (
-                            <button
-                              type="button"
-                              disabled={busy}
-                              onClick={() => void handleStatusChange(apt.id, "IN_PROGRESS")}
-                              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-white px-3 text-xs font-semibold text-brand-dark shadow-sm transition-all hover:bg-muted active:scale-[0.98] disabled:opacity-60"
-                            >
-                              {busy ? (
-                                <CircleNotch size={13} className="animate-spin" />
-                              ) : (
-                                <BellRinging size={13} />
-                              )}
-                              Bắt đầu khám
                             </button>
                           )}
                           {apt.status === "COMPLETED" && apt.invoicePending && (

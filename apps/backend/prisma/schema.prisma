@@ -239,7 +239,8 @@ model User {
   notifications                Notification[]
   patientAccounts              PatientAccount[]
   processedRefunds             RefundRequest[]       @relation("RefundProcessor")
-  createdPatientAiBriefs       PatientAiBrief[]
+  createdPatientAiBriefs       PatientAiBrief[]      @relation("PatientAiBriefCreator")
+  reviewedPatientAiBriefs      PatientAiBrief[]      @relation("PatientAiBriefReviewer")
   assignedSupportConversations SupportConversation[] @relation("SupportAssignee")
 
   @@index([fullName])
@@ -651,6 +652,7 @@ model Appointment {
   reviews           Review[]
   notifications     Notification[]
   refundRequests    RefundRequest[]
+  aiBriefs          PatientAiBrief[]
 
   @@index([patientId, scheduledAt])
   @@index([doctorId, scheduledAt])
@@ -711,18 +713,23 @@ model MedicalRecordAudit {
 }
 
 model AiXrayAnalysisAudit {
-  id              String   @id @default(uuid()) @db.Uuid
-  userId          String   @map("user_id") @db.Uuid
-  doctorId        String?  @map("doctor_id") @db.Uuid
-  patientId       String   @map("patient_id") @db.Uuid
-  medicalRecordId String   @map("medical_record_id") @db.Uuid
-  imageId         String   @map("image_id") @db.Uuid
-  status          String
-  errorStatus     String?  @map("error_status")
-  modelVersion    String   @map("model_version")
-  findingCount    Int      @default(0) @map("finding_count")
-  durationMs      Int      @map("duration_ms")
-  createdAt       DateTime @default(now()) @map("created_at")
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @map("user_id") @db.Uuid
+  doctorId         String?   @map("doctor_id") @db.Uuid
+  patientId        String    @map("patient_id") @db.Uuid
+  medicalRecordId  String    @map("medical_record_id") @db.Uuid
+  imageId          String    @map("image_id") @db.Uuid
+  status           String
+  errorStatus      String?   @map("error_status")
+  modelVersion     String    @map("model_version")
+  findingCount     Int       @default(0) @map("finding_count")
+  imageSnapshot    Json?     @map("image_snapshot")
+  resultSnapshot   Json?     @map("result_snapshot")
+  reviewedFindings Json?     @map("reviewed_findings")
+  reviewedBy       String?   @map("reviewed_by") @db.Uuid
+  reviewedAt       DateTime? @map("reviewed_at")
+  durationMs       Int       @map("duration_ms")
+  createdAt        DateTime  @default(now()) @map("created_at")
 
   @@index([userId, createdAt])
   @@index([patientId, createdAt])
@@ -1058,33 +1065,42 @@ model VideoConsultation {
 }
 
 model PatientAiBrief {
-  id             String           @id @default(uuid()) @db.Uuid
-  patientId      String           @map("patient_id") @db.Uuid
-  doctorId       String?          @map("doctor_id") @db.Uuid
-  createdBy      String           @map("created_by") @db.Uuid
-  consultationId String?          @map("consultation_id") @db.Uuid
-  patientName    String           @map("patient_name")
-  bulletPoints   Json             @map("bullet_points")
-  questionsToAsk Json             @map("questions_to_ask")
-  riskFlags      Json             @map("risk_flags")
-  disclaimer     String           @db.Text
-  sourceData     Json             @map("source_data")
-  provider       String?
-  model          String?
-  feedback       AiBriefFeedback?
-  feedbackNote   String?          @map("feedback_note") @db.Text
-  reviewedAt     DateTime?        @map("reviewed_at")
-  createdAt      DateTime         @default(now()) @map("created_at")
+  id                 String           @id @default(uuid()) @db.Uuid
+  patientId          String           @map("patient_id") @db.Uuid
+  doctorId           String?          @map("doctor_id") @db.Uuid
+  createdBy          String           @map("created_by") @db.Uuid
+  consultationId     String?          @map("consultation_id") @db.Uuid
+  appointmentId      String?          @map("appointment_id") @db.Uuid
+  patientName        String           @map("patient_name")
+  bulletPoints       Json             @map("bullet_points")
+  questionsToAsk     Json             @map("questions_to_ask")
+  riskFlags          Json             @map("risk_flags")
+  disclaimer         String           @db.Text
+  sourceData         Json             @map("source_data")
+  bulletSources      Json             @default("{}") @map("bullet_sources")
+  riskSources        Json             @default("{}") @map("risk_sources")
+  contextFingerprint String?          @map("context_fingerprint")
+  provider           String?
+  model              String?
+  feedback           AiBriefFeedback?
+  feedbackNote       String?          @map("feedback_note") @db.Text
+  reviewedAt         DateTime?        @map("reviewed_at")
+  reviewedBy         String?          @map("reviewed_by") @db.Uuid
+  createdAt          DateTime         @default(now()) @map("created_at")
 
   patient      Patient            @relation(fields: [patientId], references: [id], onDelete: Cascade)
   doctor       Doctor?            @relation(fields: [doctorId], references: [id], onDelete: SetNull)
-  creator      User               @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+  creator      User               @relation("PatientAiBriefCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  reviewer     User?              @relation("PatientAiBriefReviewer", fields: [reviewedBy], references: [id], onDelete: SetNull)
   consultation VideoConsultation? @relation(fields: [consultationId], references: [id], onDelete: SetNull)
+  appointment  Appointment?       @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
 
   @@index([patientId, createdAt])
   @@index([doctorId, createdAt])
   @@index([createdBy, createdAt])
   @@index([consultationId, createdAt])
+  @@index([appointmentId, createdAt])
+  @@index([reviewedBy, reviewedAt])
   @@map("patient_ai_briefs")
 }
 

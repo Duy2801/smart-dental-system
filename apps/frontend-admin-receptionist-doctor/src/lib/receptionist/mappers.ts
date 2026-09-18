@@ -81,6 +81,20 @@ function timeFromIso(iso?: string | null): string {
   }).format(d);
 }
 
+const CHECK_IN_EARLY_WINDOW_MS = 30 * 60 * 1000;
+
+export function canCheckInAppointment(
+  scheduledAt?: string | null,
+  now = Date.now(),
+): boolean {
+  const appointmentTime = new Date(scheduledAt ?? "").getTime();
+  if (Number.isNaN(appointmentTime)) return false;
+  return (
+    localDateStr(new Date(appointmentTime)) === localDateStr(new Date(now)) &&
+    now >= appointmentTime - CHECK_IN_EARLY_WINDOW_MS
+  );
+}
+
 function parseAllergies(medicalHistory?: string | null): string[] {
   if (!medicalHistory) return [];
   const match = medicalHistory.match(/Dị ứng:\s*(.+?)(?:\n|$)/i);

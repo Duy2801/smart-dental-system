@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   Query,
@@ -23,6 +24,7 @@ import {
   ExplainTreatmentPlanDto,
   GenerateAftercareDto,
   ReviewPrescriptionDto,
+  ReviewXrayAnalysisDto,
   SendAftercareDto,
 } from './dto/doctor-ai.dto';
 import { SummarizePatientDto } from './dto/summarize-patient.dto';
@@ -45,9 +47,10 @@ export class AiController {
   }
 
   @Patch('patient-brief/:id/review')
+  @Roles('DOCTOR')
   reviewPatientSummary(
     @CurrentUser() user: AuthenticatedUser,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: ReviewPatientAiBriefDto,
   ) {
     return this.aiService.reviewPatientSummary(user, id, dto);
@@ -136,5 +139,15 @@ export class AiController {
     @Body() dto: AnalyzeXrayDto,
   ) {
     return this.aiService.analyzeXray(user, dto);
+  }
+
+  @Patch('xray-analyses/:id/review')
+  @Roles('DOCTOR')
+  reviewXrayAnalysis(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ReviewXrayAnalysisDto,
+  ) {
+    return this.aiService.reviewXrayAnalysis(user, id, dto);
   }
 }

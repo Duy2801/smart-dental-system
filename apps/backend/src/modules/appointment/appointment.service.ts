@@ -15,6 +15,7 @@ import {
   DiscountType,
   InvoiceStatus,
   InvoiceType,
+  VideoConsultationStatus,
 } from '../../../prisma/generated/enums';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '../../../prisma/generated/client';
@@ -35,6 +36,11 @@ const activeAppointmentStatuses = [
   AppointmentStatus.CONFIRMED,
   AppointmentStatus.CHECKED_IN,
   AppointmentStatus.IN_PROGRESS,
+];
+const activeVideoConsultationStatuses = [
+  VideoConsultationStatus.PENDING_PAYMENT,
+  VideoConsultationStatus.SCHEDULED,
+  VideoConsultationStatus.IN_PROGRESS,
 ];
 
 const incompleteAppointmentStatuses = [...activeAppointmentStatuses];
@@ -71,15 +77,6 @@ type BookingOptionQuery = {
   date?: string;
   time?: string;
   appointmentId?: string;
-};
-
-type AvailabilityRecordSnapshot = {
-  doctorId: string;
-  recordType: 'WEEKLY' | 'DATE_OVERRIDE' | 'TIME_OFF';
-  dayOfWeek: number | null;
-  specificDate: Date | null;
-  startTime: string;
-  endTime: string;
 };
 
 type AppointmentSlotSnapshot = {
@@ -133,6 +130,15 @@ export class AppointmentService {
     staffUserId: string,
     dto: CreateStaffAppointmentDto,
   ) {
+    const scheduledAt = new Date(dto.scheduledAt);
+    if (
+      dto.walkIn &&
+      !Number.isNaN(scheduledAt.getTime()) &&
+      this.formatDateId(scheduledAt) !== this.formatDateId(new Date())
+    ) {
+      throw new BadRequestException('appointment.walk_in_today_only');
+    }
+
     const appointment = await this.createAppointment({
       patientId: dto.patientId,
       doctorId: dto.doctorId,
@@ -143,7 +149,6 @@ export class AppointmentService {
       bookingSource: BookingSource.RECEPTIONIST,
       createdBy: staffUserId,
       skipOnlineBookingBlock: true,
-      allowPastSchedule: true,
     });
 
     if (dto.walkIn) {
@@ -523,6 +528,10 @@ export class AppointmentService {
       this.formatDateId(current.scheduledAt) !== this.formatDateId(new Date())
     ) {
       throw new BadRequestException('appointment.check_in_today_only');
+    }
+    const checkInOpensAt = current.scheduledAt.getTime() - 30 * 60 * 1000;
+    if (Date.now() < checkInOpensAt) {
+      throw new BadRequestException('appointment.check_in_too_early');
     }
 
     const staffNote = notes?.trim();
@@ -1449,8 +1458,6 @@ export class AppointmentService {
       return {
         recordsByDoctor: new Map<string, any[]>(),
         appointmentsByDoctor: new Map<string, AppointmentSlotSnapshot[]>(),
-        availabilityRecords: [],
-        activeAppointments: [],
       };
     }
     const sortedIds = [...doctorIds].sort();
@@ -1471,13 +1478,6 @@ export class AppointmentService {
             endAt: a.endAt.toISOString(),
           })),
         ]),
-        availabilityRecords: data.availabilityRecords,
-        activeAppointments: data.activeAppointments.map((a) => ({
-          id: a.id,
-          doctorId: a.doctorId,
-          scheduledAt: a.scheduledAt.toISOString(),
-          endAt: a.endAt.toISOString(),
-        })),
       };
     });
 
@@ -1500,13 +1500,6 @@ export class AppointmentService {
     return {
       recordsByDoctor,
       appointmentsByDoctor,
-      availabilityRecords: raw.availabilityRecords,
-      activeAppointments: (raw.activeAppointments as any[]).map((a: any) => ({
-        id: a.id,
-        doctorId: a.doctorId,
-        scheduledAt: new Date(a.scheduledAt),
-        endAt: new Date(a.endAt),
-      })),
     };
   }
 
@@ -1519,15 +1512,15 @@ export class AppointmentService {
         this.getCachedServices(query.doctorId),
       ]);
 
-      const selectedService =
-        services.find((service) => service.id === query.serviceId) ??
-        services[0];
+      const selectedService = query.serviceId
+        ? (services.find((service) => service.id === query.serviceId) ?? null)
+        : services[0];
       const selectedTreatmentMethod =
-        selectedService?.treatmentMethods.find(
-          (method) => method.id === query.treatmentMethodId,
-        ) ??
-        selectedService?.treatmentMethods[0] ??
-        null;
+        (query.treatmentMethodId
+          ? selectedService?.treatmentMethods.find(
+              (method) => method.id === query.treatmentMethodId,
+            )
+          : selectedService?.treatmentMethods[0]) ?? null;
 
       const doctors = await this.getCachedDoctors(
         selectedService?.specializationId,
@@ -1599,12 +1592,6 @@ export class AppointmentService {
                 const slotEnd = new Date(
                   slotStart.getTime() + duration * 60 * 1000,
                 );
-                const businessHour = this.getBusinessHourForDate(
-                  slotStart,
-                  clinicConfig.businessHours,
-                  clinicConfig.specialDates,
-                );
-
                 return this.isDoctorBookableFromSnapshot(
                   doctor.id,
                   slotStart,
@@ -1818,7 +1805,6 @@ export class AppointmentService {
     bookingSource: BookingSource;
     createdBy: string;
     skipOnlineBookingBlock?: boolean;
-    allowPastSchedule?: boolean;
   }) {
     const scheduledAt = new Date(input.scheduledAt);
 
@@ -1826,7 +1812,7 @@ export class AppointmentService {
       throw new BadRequestException('appointment.invalid_time');
     }
 
-    if (!input.allowPastSchedule && scheduledAt <= new Date()) {
+    if (scheduledAt <= new Date()) {
       throw new BadRequestException('appointment.time_in_past');
     }
 
@@ -2079,16 +2065,15 @@ export class AppointmentService {
       throw new ConflictException('appointment.doctor_time_conflict');
     }
 
-    const startOfDay = new Date(scheduledAt);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(scheduledAt);
-    endOfDay.setHours(23, 59, 59, 999);
+    const earliestOverlappingVideoStart = new Date(
+      scheduledAt.getTime() - 60 * 60 * 1000,
+    );
 
     const existingConsultations = await db.videoConsultation.findMany({
       where: {
         doctorId,
-        scheduledAt: { gte: startOfDay, lte: endOfDay },
-        status: { notIn: ['CANCELLED'] },
+        scheduledAt: { gt: earliestOverlappingVideoStart, lt: endAt },
+        status: { in: [...activeVideoConsultationStatuses] },
       },
       select: { scheduledAt: true, durationMinutes: true },
     });
@@ -2365,6 +2350,9 @@ export class AppointmentService {
     ].join('-');
     const start = this.parseDateId(todayVnStr);
     const end = new Date(start.getTime() + 16 * 24 * 60 * 60 * 1000 - 1);
+    const earliestOverlappingVideoStart = new Date(
+      start.getTime() - 60 * 60 * 1000,
+    );
 
     const [availabilityRecords, activeAppointments, activeVideoConsultations] =
       await Promise.all([
@@ -2407,8 +2395,8 @@ export class AppointmentService {
         this.prisma.videoConsultation.findMany({
           where: {
             doctorId: { in: doctorIds },
-            status: { notIn: ['CANCELLED'] },
-            scheduledAt: { lte: end, gte: start },
+            status: { in: [...activeVideoConsultationStatuses] },
+            scheduledAt: { gt: earliestOverlappingVideoStart, lt: end },
           },
           select: {
             doctorId: true,
@@ -2467,11 +2455,6 @@ export class AppointmentService {
     return {
       recordsByDoctor,
       appointmentsByDoctor,
-      availabilityRecords: availabilityRecords as AvailabilityRecordSnapshot[],
-      activeAppointments: [
-        ...activeAppointments,
-        ...activeVcSlots,
-      ] as AppointmentSlotSnapshot[],
     };
   }
 
@@ -2516,8 +2499,6 @@ export class AppointmentService {
         isWorking = weekly.some(
           (r) => startMinutes >= r.startMin && endMinutes <= r.endMin,
         );
-      } else {
-        isWorking = false;
       }
     }
 
@@ -2531,78 +2512,6 @@ export class AppointmentService {
     return !conflict;
   }
 
-  private isDoctorWorkingFromSnapshot(
-    doctorId: string,
-    startAt: Date,
-    endAt: Date,
-    availabilityRecords: AvailabilityRecordSnapshot[],
-  ) {
-    const records = this.getAvailabilityRecordsFromSnapshot(
-      doctorId,
-      startAt,
-      availabilityRecords,
-    );
-    const startMinutes = this.dateToMinutes(startAt);
-    const endMinutes = this.dateToMinutes(endAt);
-
-    const hasTimeOff = records.some(
-      (record) =>
-        record.recordType === 'TIME_OFF' &&
-        this.timeRangesOverlap(
-          startMinutes,
-          endMinutes,
-          this.timeToMinutes(record.startTime),
-          this.timeToMinutes(record.endTime),
-        ),
-    );
-    if (hasTimeOff) return false;
-
-    const dateOverrides = records.filter(
-      (record) => record.recordType === 'DATE_OVERRIDE',
-    );
-    const weeklyRecords = records.filter(
-      (record) => record.recordType === 'WEEKLY',
-    );
-
-    if (dateOverrides.length) {
-      return dateOverrides.some(
-        (record) =>
-          startMinutes >= this.timeToMinutes(record.startTime) &&
-          endMinutes <= this.timeToMinutes(record.endTime),
-      );
-    }
-
-    if (weeklyRecords.length) {
-      return weeklyRecords.some(
-        (record) =>
-          startMinutes >= this.timeToMinutes(record.startTime) &&
-          endMinutes <= this.timeToMinutes(record.endTime),
-      );
-    }
-
-    return false;
-  }
-
-  private getAvailabilityRecordsFromSnapshot(
-    doctorId: string,
-    date: Date,
-    availabilityRecords: AvailabilityRecordSnapshot[],
-  ) {
-    return availabilityRecords.filter((record) => {
-      if (record.doctorId !== doctorId) return false;
-      if (record.recordType === 'WEEKLY') {
-        return this.isSameDayOfWeek(
-          record.dayOfWeek,
-          this.dateGetDayOfWeek(date),
-        );
-      }
-      return (
-        Boolean(record.specificDate) &&
-        this.formatDateId(record.specificDate as Date) ===
-          this.formatDateId(date)
-      );
-    });
-  }
 
   private async isDoctorWorking(doctorId: string, startAt: Date, endAt: Date) {
     const records = await this.getAvailabilityRecords(doctorId, startAt);
@@ -2912,16 +2821,6 @@ export class AppointmentService {
     }
 
     return businessHours.find((hour) => hour.id === dayOfWeek);
-  }
-
-  private isSameDayOfWeek(
-    storedDayOfWeek: number | null,
-    targetDayOfWeek: number,
-  ) {
-    return (
-      storedDayOfWeek === targetDayOfWeek ||
-      (targetDayOfWeek === 0 && storedDayOfWeek === 7)
-    );
   }
 
   private parseDateId(dateId: string) {

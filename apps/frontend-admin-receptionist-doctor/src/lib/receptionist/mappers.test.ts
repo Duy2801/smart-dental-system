@@ -1,7 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { localDateStr, mapAppointment } from "./mappers";
+import { canCheckInAppointment, localDateStr, mapAppointment } from "./mappers";
 
 describe("receptionist appointment mapping", () => {
+  it("opens check-in 30 minutes before the appointment", () => {
+    const scheduledAt = "2026-09-14T03:00:00.000Z";
+
+    expect(
+      canCheckInAppointment(
+        scheduledAt,
+        new Date("2026-09-14T02:29:59.000Z").getTime(),
+      ),
+    ).toBe(false);
+    expect(
+      canCheckInAppointment(
+        scheduledAt,
+        new Date("2026-09-14T02:30:00.000Z").getTime(),
+      ),
+    ).toBe(true);
+  });
+
   it("uses the clinic timezone for the business date", () => {
     const previousTimezone = process.env.TZ;
     process.env.TZ = "UTC";

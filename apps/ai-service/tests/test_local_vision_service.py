@@ -1,5 +1,6 @@
 import base64
 import io
+import socket
 import unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -13,7 +14,11 @@ from app.services.local_panoramic_model import (
     LocalPanoramicModel,
     NonDentalImageError,
 )
-from app.services.vision_service import MAX_IMAGE_BYTES, PanoramicVisionService
+from app.services.vision_service import (
+    MAX_IMAGE_BYTES,
+    PanoramicVisionService,
+    RemoteImageLoadError,
+)
 
 
 def make_grayscale_image_base64() -> str:
@@ -130,6 +135,45 @@ class LocalVisionServiceTest(unittest.IsolatedAsyncioTestCase):
         analyze.assert_not_called()
         self.assertEqual(response.status, "INVALID_IMAGE")
         self.assertFalse(response.is_radiograph)
+
+    async def test_reports_remote_load_failure_as_analysis_failed(self) -> None:
+        with patch.object(
+            PanoramicVisionService,
+            "_download_remote_image",
+            side_effect=RemoteImageLoadError("cloud storage timeout"),
+        ):
+            response = await PanoramicVisionService().analyze_xray_hybrid(
+                AnalyzeXrayRequest(image_url="https://example.com/xray.jpg")
+            )
+
+        self.assertEqual(response.status, "ANALYSIS_FAILED")
+        self.assertEqual(response.error_status, "ANALYSIS_FAILED")
+        self.assertNotIn("không phải", response.summary.lower())
+
+    async def test_reports_dns_failure_as_analysis_failed(self) -> None:
+        with patch(
+            "app.services.vision_service._validate_remote_image_url",
+            side_effect=socket.gaierror("DNS lookup failed"),
+        ):
+            response = await PanoramicVisionService().analyze_xray_hybrid(
+                AnalyzeXrayRequest(image_url="https://example.com/xray.jpg")
+            )
+
+        self.assertEqual(response.status, "ANALYSIS_FAILED")
+        self.assertEqual(response.error_status, "ANALYSIS_FAILED")
+
+    async def test_reports_corrupt_remote_image_as_invalid_image(self) -> None:
+        with patch.object(
+            PanoramicVisionService,
+            "_download_remote_image",
+            side_effect=OSError("cannot identify image file"),
+        ):
+            response = await PanoramicVisionService().analyze_xray_hybrid(
+                AnalyzeXrayRequest(image_url="https://example.com/xray.jpg")
+            )
+
+        self.assertEqual(response.status, "INVALID_IMAGE")
+        self.assertEqual(response.error_status, "INVALID_IMAGE")
 
     def test_rejects_private_url_before_network_request(self) -> None:
         request = AnalyzeXrayRequest(image_url="http://127.0.0.1/private-xray")

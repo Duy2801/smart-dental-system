@@ -24,6 +24,8 @@ class SummarizePatientResponse(BaseModel):
     bullet_points: list[str]
     questions_to_ask: list[str] = Field(default_factory=list)
     risk_flags: list[str] = Field(default_factory=list)
+    source_keys_by_bullet: dict[str, list[str]] = Field(default_factory=dict)
+    source_keys_by_risk: dict[str, list[str]] = Field(default_factory=dict)
     provider: str | None = None
     model: str | None = None
     disclaimer: str = "AI hỗ trợ chuẩn bị khám. Quyết định lâm sàng thuộc bác sĩ."

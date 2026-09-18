@@ -95,8 +95,9 @@ export class RefundService {
           'videoConsultationId' in item && item.videoConsultationId === dto.videoConsultationId,
         ),
       );
-      if (!invoice) throw new BadRequestException('refund.invoice_not_found');
-      invoiceId = invoice.id;
+      if (invoice) {
+        invoiceId = invoice.id;
+      }
     } else if (dto.appointmentId) {
       const app = await this.prisma.appointment.findUnique({
         where: { id: dto.appointmentId },

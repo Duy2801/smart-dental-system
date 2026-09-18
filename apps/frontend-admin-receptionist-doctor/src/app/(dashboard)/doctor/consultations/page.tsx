@@ -26,7 +26,14 @@ import apiClient from "@/src/lib/api/client";
 import { cn } from "@/src/lib/utils/cn";
 import { useAppDialog } from "@/src/providers/app-dialog-provider";
 
-type ConsultStatus = "SCHEDULED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+type ConsultStatus =
+  | "PENDING_PAYMENT"
+  | "SCHEDULED"
+  | "IN_PROGRESS"
+  | "COMPLETED"
+  | "CANCELLED"
+  | "EXPIRED"
+  | "DOCTOR_MISSED";
 
 type Consultation = {
   id: string;
@@ -47,6 +54,10 @@ const STATUS_CFG: Record<
   ConsultStatus,
   { label: string; color: string }
 > = {
+  PENDING_PAYMENT: {
+    label: "Chờ thanh toán",
+    color: "bg-amber-100 text-amber-700 border-amber-200",
+  },
   SCHEDULED: {
     label: "Sắp tới",
     color: "bg-blue-100 text-blue-700 border-blue-200",
@@ -61,6 +72,14 @@ const STATUS_CFG: Record<
   },
   CANCELLED: {
     label: "Đã hủy",
+    color: "bg-red-100 text-red-600 border-red-200",
+  },
+  EXPIRED: {
+    label: "Đã hết hạn",
+    color: "bg-slate-100 text-slate-600 border-slate-200",
+  },
+  DOCTOR_MISSED: {
+    label: "Bác sĩ vắng mặt",
     color: "bg-red-100 text-red-600 border-red-200",
   },
 };

@@ -4,6 +4,7 @@ import { validate } from 'class-validator';
 import {
   AnalyzeXrayDto,
   GenerateAftercareDto,
+  ReviewXrayAnalysisDto,
   SendAftercareDto,
 } from './doctor-ai.dto';
 
@@ -24,6 +25,44 @@ describe('AnalyzeXrayDto', () => {
     { imageBase64: 'data:image/jpeg;base64,AAAA' },
   ])('rejects an untrusted or missing image source: %o', async (input) => {
     expect(await validateInput(input)).not.toHaveLength(0);
+  });
+});
+
+describe('ReviewXrayAnalysisDto', () => {
+  it('requires every reviewed finding to have a final doctor decision', async () => {
+    const baseFinding = {
+      fdiToothNumber: 46,
+      findingType: 'Caries',
+      confidence: 0.91,
+      boundingBox: { x: 40, y: 30, width: 12, height: 24 },
+      severity: 'UNASSESSED',
+    };
+
+    const pending = plainToInstance(ReviewXrayAnalysisDto, {
+      findings: [{ ...baseFinding, doctorStatus: 'PENDING' }],
+    });
+    const accepted = plainToInstance(ReviewXrayAnalysisDto, {
+      findings: [{ ...baseFinding, doctorStatus: 'ACCEPTED' }],
+    });
+    const invalidFdi = plainToInstance(ReviewXrayAnalysisDto, {
+      findings: [
+        { ...baseFinding, fdiToothNumber: 19, doctorStatus: 'ACCEPTED' },
+      ],
+    });
+    const missingBoundingBox = plainToInstance(ReviewXrayAnalysisDto, {
+      findings: [
+        {
+          ...baseFinding,
+          boundingBox: undefined,
+          doctorStatus: 'ACCEPTED',
+        },
+      ],
+    });
+
+    expect(await validate(pending)).not.toHaveLength(0);
+    expect(await validate(invalidFdi)).not.toHaveLength(0);
+    expect(await validate(missingBoundingBox)).not.toHaveLength(0);
+    expect(await validate(accepted)).toHaveLength(0);
   });
 });
 
@@ -53,4 +92,3 @@ describe('GenerateAftercareDto & SendAftercareDto', () => {
     expect(validErrors).toHaveLength(0);
   });
 });
-

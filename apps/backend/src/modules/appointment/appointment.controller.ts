@@ -161,7 +161,7 @@ export class AppointmentController {
   }
 
   @Patch(':id/start')
-  @Roles('DOCTOR', 'ADMIN', 'RECEPTIONIST')
+  @Roles('DOCTOR', 'ADMIN')
   @UseGuards(JwtAuthGuard, RolesGuard)
   async startAppointment(
     @CurrentUser() user: AuthenticatedUser,
