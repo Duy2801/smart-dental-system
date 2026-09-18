@@ -251,19 +251,18 @@ describe('VideoConsultationService', () => {
       const result = await service.start('consult-1', doctorUser);
 
       expect(result.status).toBe(VideoConsultationStatus.IN_PROGRESS);
-      expect(result.meetingUrl).toMatch(
-        /^https:\/\/meet\.jit\.si\/sds-consult-[0-9a-f-]{36}$/,
-      );
+      expect(result.meetingUrl).toBe('https://meet.jit.si/sds-consult-consult-1');
       expect(result.roomPin).toBeNull();
     });
 
-    it('does not let a patient join before the doctor starts', async () => {
-      await expect(
-        service.joinPatientRoom(
-          { ...doctorUser, roles: ['PATIENT'] },
-          'consult-1',
-        ),
-      ).rejects.toThrow('Phòng tư vấn chưa sẵn sàng');
+    it('allows a patient to join the waiting room before the doctor starts', async () => {
+      const res = await service.joinPatientRoom(
+        { ...doctorUser, roles: ['PATIENT'] },
+        'consult-1',
+      );
+      expect(res.status).toBe(VideoConsultationStatus.SCHEDULED);
+      expect(res.isDoctorStarted).toBe(false);
+      expect(res.meetingUrl).toBe('https://meet.jit.si/sds-room-1');
     });
   });
 

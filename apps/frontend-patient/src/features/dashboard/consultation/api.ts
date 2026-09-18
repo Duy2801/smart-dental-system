@@ -150,6 +150,7 @@ export async function joinPatientConsultationRoom(id: string): Promise<{
   scheduledAt: string;
   durationMinutes: number;
   status: string;
+  isDoctorStarted?: boolean;
 }> {
   const response = await apiClient.post<{
     id: string;
@@ -159,6 +160,7 @@ export async function joinPatientConsultationRoom(id: string): Promise<{
     scheduledAt: string;
     durationMinutes: number;
     status: string;
+    isDoctorStarted?: boolean;
   }>(`/video-consultations/patient/${id}/join`);
   return response.data;
 }

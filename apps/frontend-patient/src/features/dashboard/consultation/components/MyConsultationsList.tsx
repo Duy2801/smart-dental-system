@@ -159,18 +159,18 @@ export function MyConsultationsList({ onBookNew }: MyConsultationsListProps) {
             const now = Date.now();
             const schedTime = dateObj.getTime();
             const endTime = schedTime + durationMs;
-            const fiveMinsBefore = schedTime - 5 * 60 * 1000;
+            const fifteenMinsBefore = schedTime - 15 * 60 * 1000;
             const isPast = now > endTime;
             const canCancelOrRefund = !isCancelled && !isCompleted && !isPast;
 
             const isWithinTimeWindow =
-              now >= fiveMinsBefore && now <= endTime + 15 * 60 * 1000;
+              now >= fifteenMinsBefore && now <= endTime + 15 * 60 * 1000;
 
             const canJoinRoom =
               item.isPaid &&
               !isCancelled &&
               !isCompleted &&
-              (isActive || isWithinTimeWindow || Boolean(item.meetingUrl));
+              (isActive || isWithinTimeWindow);
 
             return (
               <div
@@ -250,22 +250,47 @@ export function MyConsultationsList({ onBookNew }: MyConsultationsListProps) {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => setSelectedForVideoRoom(item)}
-                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-md transition-all animate-pulse flex items-center justify-center gap-1.5 cursor-pointer"
+                        className={`px-4 py-2 text-white font-bold rounded-xl text-xs shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                          isActive
+                            ? "bg-emerald-600 hover:bg-emerald-700 animate-pulse"
+                            : "bg-blue-600 hover:bg-blue-700"
+                        }`}
                       >
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-                          />
-                        </svg>
-                        Vào Video Call
+                        {isActive ? (
+                          <>
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                              />
+                            </svg>
+                            <span>Vào Video Call</span>
+                          </>
+                        ) : (
+                          <>
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                              />
+                            </svg>
+                            <span>Vào Phòng Chờ</span>
+                          </>
+                        )}
                       </button>
                       {canCancelOrRefund && (
                         <button
@@ -318,7 +343,7 @@ export function MyConsultationsList({ onBookNew }: MyConsultationsListProps) {
                             disabled
                             className="px-3.5 py-2 bg-slate-100 text-slate-500 font-semibold rounded-xl text-xs border border-slate-200 cursor-not-allowed"
                           >
-                            Mở phòng trước 5p ({formatCountdownText(fiveMinsBefore - now)})
+                            Mở phòng trước 15p ({formatCountdownText(fifteenMinsBefore - now)})
                           </button>
                           <button
                             onClick={() => handleCancelClick(item)}

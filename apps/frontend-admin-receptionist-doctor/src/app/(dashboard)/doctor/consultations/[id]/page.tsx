@@ -16,12 +16,31 @@ import {
   CheckCircle,
   XCircle,
   PaperPlaneTilt,
+  Sparkle,
+  CaretUp,
+  CaretDown,
 } from "@phosphor-icons/react";
 import { PatientAiBrief } from "@/src/components/doctor/patient-ai-brief";
 import { ROUTES } from "@/src/constants/routes";
 import apiClient from "@/src/lib/api/client";
 import { cn } from "@/src/lib/utils/cn";
 import { useAppDialog } from "@/src/providers/app-dialog-provider";
+import { getDoctorInfoFromCookie } from "@/src/lib/doctor/session";
+
+function buildDoctorJitsiUrl(rawUrl: string, doctorFullName?: string | null) {
+  let base = rawUrl.split("#")[0];
+  if (base.includes("meet.ffmuc.net") || base.includes("meet.jit.si")) {
+    base = base.replace(/meet\.(ffmuc\.net|jit\.si)/, "meet.darmstadt.social");
+  }
+  const displayName = encodeURIComponent(
+    doctorFullName ? `BS. ${doctorFullName}` : "Bác sĩ Chuyên khoa",
+  );
+  const toolbarButtons = encodeURIComponent(
+    JSON.stringify(["microphone", "camera", "chat", "tileview", "fullscreen"]),
+  );
+  const subject = encodeURIComponent("Tư vấn trực tuyến - Smart Dental");
+  return `${base}#userInfo.displayName="${displayName}"&config.prejoinConfig.enabled=false&config.prejoinPageEnabled=false&config.toolbarButtons=${toolbarButtons}&config.disableDeepLinking=true&config.hideConferenceSubject=true&config.subject="${subject}"&config.disableModeratorIndicator=true`;
+}
 
 type ConsultStatus =
   | "PENDING_PAYMENT"
@@ -134,6 +153,7 @@ export default function ConsultationRoomPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sideTab, setSideTab] = useState<SideTab>("chatbot");
+  const [briefExpanded, setBriefExpanded] = useState(true);
   const [notes, setNotes] = useState("");
   const [savedNotes, setSavedNotes] = useState("");
   const [notesError, setNotesError] = useState<string | null>(null);
@@ -148,6 +168,12 @@ export default function ConsultationRoomPage() {
   const [inCall, setInCall] = useState(false);
   const [callStartedAt, setCallStartedAt] = useState<number | null>(null);
   const [tick, setTick] = useState(0);
+  const [doctorName, setDoctorName] = useState<string | null>(null);
+
+  useEffect(() => {
+    const info = getDoctorInfoFromCookie();
+    setDoctorName(info.fullName || info.doctorName || "Huỳnh Mai Chi");
+  }, []);
 
   const load = async () => {
     setLoading(true);
@@ -531,13 +557,13 @@ export default function ConsultationRoomPage() {
         </div>
       </div>
 
-      <div className="mx-auto grid w-full max-w-[1400px] flex-1 grid-cols-1 gap-6 p-4 md:p-6 xl:grid-cols-12">
-        <section className="flex flex-col overflow-hidden rounded-2xl border border-border bg-white shadow-sm xl:col-span-7">
+      <div className="mx-auto grid w-full max-w-[1400px] flex-1 grid-cols-1 gap-6 p-4 md:p-6 xl:min-h-0 xl:h-[calc(100dvh-125px)] xl:grid-cols-12 xl:overflow-hidden">
+        <section className="flex flex-col overflow-hidden rounded-2xl border border-border bg-white shadow-sm xl:col-span-7 xl:h-full xl:min-h-0">
           <div className="relative flex min-h-[320px] flex-1 flex-col bg-[#0b1a33] sm:min-h-[420px]">
             {showCall ? (
               <iframe
                 title="Phòng tư vấn video"
-                src={detail.meetingUrl!}
+                src={buildDoctorJitsiUrl(detail.meetingUrl!, doctorName)}
                 allow="camera; microphone; fullscreen; display-capture; autoplay"
                 className="absolute inset-0 h-full w-full border-0"
               />
@@ -567,25 +593,22 @@ export default function ConsultationRoomPage() {
           </div>
 
           {showCall && (
-            <div className="flex items-center justify-center gap-3 border-t border-border bg-slate-50/80 px-4 py-3">
-              <p className="text-xs text-muted-foreground">
-                Mic/camera điều khiển trong cửa sổ Jitsi
+            <div className="flex shrink-0 items-center justify-between border-t border-border bg-slate-50/90 px-4 py-2.5">
+              <div className="flex items-center gap-2">
+                <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                <p className="text-xs font-semibold text-emerald-800">
+                  Đang trong cuộc gọi trực tuyến với bệnh nhân
+                </p>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Để kết thúc phiên khám, bấm nút <strong>"Kết thúc"</strong> màu đỏ ở thanh tác vụ trên cùng
               </p>
-              <button
-                type="button"
-                onClick={handleComplete}
-                disabled={actionLoading}
-                className="flex h-11 items-center gap-2 rounded-full bg-red-500 px-5 text-sm font-semibold text-white transition-colors hover:bg-red-600 disabled:opacity-60 cursor-pointer"
-              >
-                <PhoneDisconnect size={18} weight="bold" />
-                Kết thúc
-              </button>
             </div>
           )}
         </section>
 
-        <section className="flex min-h-[420px] flex-col overflow-hidden rounded-2xl border border-border bg-white shadow-sm xl:col-span-5">
-          <div className="flex border-b border-border bg-slate-50/60 p-1.5">
+        <section className="flex min-h-[420px] flex-col overflow-hidden rounded-2xl border border-border bg-white shadow-sm xl:col-span-5 xl:h-full xl:min-h-0">
+          <div className="flex shrink-0 border-b border-border bg-slate-50/60 p-1.5">
             <button
               type="button"
               onClick={() => setSideTab("chatbot")}
@@ -615,57 +638,126 @@ export default function ConsultationRoomPage() {
           </div>
 
           {sideTab === "chatbot" ? (
-            <div className="flex flex-1 flex-col overflow-hidden">
-              <PatientAiBrief
-                key={id}
-                consultationId={id}
-                patientId={detail.patientId}
-                patientName={detail.patientName}
-                compact
-                className="rounded-none border-x-0 border-t-0"
-              />
-
-              <div className="flex-1 space-y-5 overflow-y-auto p-4">
-                {!detail.chatbotSessions ||
-                detail.chatbotSessions.length === 0 ? (
-                  <p className="py-10 text-center text-sm text-muted-foreground">
-                    Bệnh nhân chưa có phiên chat với AI.
-                  </p>
-                ) : (
-                  (detail.chatbotSessions ?? []).map((session) => (
-                    <div key={session.id} className="space-y-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                        Phiên {formatWhen(session.startedAt)} · {session.status}
-                      </p>
-                      <div className="space-y-2.5">
-                        {session.messages.map((msg, idx) => {
-                          const isPatient =
-                            msg.role === "patient" || msg.role === "user";
-                          return (
-                            <div
-                              key={`${session.id}-${idx}`}
-                              className={cn(
-                                "max-w-[92%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed",
-                                isPatient
-                                  ? "ml-auto bg-brand text-white"
-                                  : "mr-auto bg-slate-100 text-slate-800",
-                              )}
-                            >
-                              <p className="mb-0.5 text-[10px] font-semibold uppercase opacity-70">
-                                {isPatient ? "Bệnh nhân" : "Chatbot AI"}
-                              </p>
-                              {msg.content}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))
+            <div className="flex flex-1 min-h-0 flex-col overflow-hidden">
+              {/* AI Brief Area with Collapsible Header & Scroll */}
+              <div className="shrink-0 border-b border-border bg-white">
+                <div className="flex items-center justify-between border-b border-border/60 bg-slate-50/70 px-4 py-2">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-md bg-brand-light text-brand">
+                      <Sparkle size={12} weight="fill" />
+                    </span>
+                    <span className="text-xs font-semibold text-brand-dark">
+                      Hồ sơ AI trước ca khám
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setBriefExpanded((prev) => !prev)}
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-brand hover:text-brand-dark cursor-pointer transition-colors"
+                  >
+                    {briefExpanded ? (
+                      <>
+                        <span>Thu gọn</span>
+                        <CaretUp size={12} weight="bold" />
+                      </>
+                    ) : (
+                      <>
+                        <span>Mở rộng</span>
+                        <CaretDown size={12} weight="bold" />
+                      </>
+                    )}
+                  </button>
+                </div>
+                {briefExpanded && (
+                  <div className="max-h-[260px] overflow-y-auto custom-scrollbar">
+                    <PatientAiBrief
+                      key={id}
+                      consultationId={id}
+                      patientId={detail.patientId}
+                      patientName={detail.patientName}
+                      compact
+                      className="rounded-none border-none shadow-none"
+                    />
+                  </div>
                 )}
+              </div>
+
+              {/* Chatbot Messages Section with dedicated header and scrollbar */}
+              <div className="flex flex-1 min-h-0 flex-col overflow-hidden">
+                <div className="flex items-center justify-between border-b border-border/60 bg-slate-50/70 px-4 py-2 shrink-0">
+                  <div className="flex items-center gap-2">
+                    <ChatCircleDots size={14} className="text-brand" weight="bold" />
+                    <span className="text-xs font-semibold text-slate-700">
+                      Lịch sử trò chuyện Chatbot AI
+                    </span>
+                  </div>
+                  <span className="rounded-full bg-slate-200/80 px-2 py-0.5 font-mono text-[10px] font-semibold text-slate-600">
+                    {detail.chatbotSessions?.length ?? 0} phiên
+                  </span>
+                </div>
+
+                <div className="flex-1 min-h-0 space-y-4 overflow-y-auto p-4 custom-scrollbar">
+                  {!detail.chatbotSessions ||
+                  detail.chatbotSessions.length === 0 ? (
+                    <div className="py-12 text-center">
+                      <ChatCircleDots
+                        size={32}
+                        className="mx-auto text-slate-300 mb-2"
+                        weight="duotone"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Bệnh nhân chưa có phiên chat với AI.
+                      </p>
+                    </div>
+                  ) : (
+                    (detail.chatbotSessions ?? []).map((session) => (
+                      <div
+                        key={session.id}
+                        className="rounded-xl border border-border/80 bg-white p-3 shadow-xs space-y-3"
+                      >
+                        <div className="flex items-center justify-between border-b border-border/40 pb-1.5">
+                          <p className="font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                            Phiên {formatWhen(session.startedAt)}
+                          </p>
+                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-bold text-slate-600">
+                            {session.status}
+                          </span>
+                        </div>
+                        <div className="space-y-2">
+                          {session.messages.map((msg, idx) => {
+                            const isPatient =
+                              msg.role === "patient" || msg.role === "user";
+                            return (
+                              <div
+                                key={`${session.id}-${idx}`}
+                                className={cn(
+                                  "max-w-[88%] rounded-2xl px-3.5 py-2 text-xs leading-relaxed",
+                                  isPatient
+                                    ? "ml-auto bg-brand text-white shadow-xs rounded-br-xs"
+                                    : "mr-auto bg-slate-100 text-slate-800 rounded-bl-xs border border-slate-200/60",
+                                )}
+                              >
+                                <p
+                                  className={cn(
+                                    "mb-1 text-[9px] font-bold uppercase tracking-wider",
+                                    isPatient ? "text-white/80" : "text-slate-500",
+                                  )}
+                                >
+                                  {isPatient ? "Bệnh nhân" : "Chatbot AI"}
+                                </p>
+                                <p className="whitespace-pre-wrap">{msg.content}</p>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             </div>
           ) : (
-            <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
+            <div className="flex flex-1 min-h-0 flex-col gap-4 overflow-y-auto p-4 custom-scrollbar">
               <div className="space-y-3 rounded-xl bg-slate-50 p-4 ring-1 ring-inset ring-border/60">
                 <InfoRow label="Họ tên" value={detail.patientName} />
                 <InfoRow label="Mã BN" value={detail.patientCode} />
