@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { DashboardIcon } from "../../common/DashboardIcon";
 import { type HomeClinicalCase } from "../api";
@@ -64,11 +65,15 @@ function ParkwayClinicalCaseCard({ item }: { item: HomeClinicalCase }) {
         <div className="grid grid-cols-2 gap-2 md:flex md:flex-col md:col-span-5">
           {/* Top/Left Image: Before */}
           <div className="relative overflow-hidden rounded-xl bg-slate-100 shadow-xs aspect-[4/3]">
-            <img
-              src={item.beforeImageUrl}
-              alt={`${item.title} trước điều trị`}
-              className="h-full w-full object-cover"
-            />
+            {item.beforeImageUrl ? (
+              <Image
+                src={item.beforeImageUrl}
+                alt={`${item.title} trước điều trị`}
+                fill
+                sizes="(max-width: 768px) 45vw, 25vw"
+                className="object-cover"
+              />
+            ) : null}
             <div className="absolute inset-x-0 bottom-0 bg-black/70 py-1 text-center text-[10px] sm:text-[11px] font-bold text-white backdrop-blur-xs">
               Trước điều trị
             </div>
@@ -76,11 +81,15 @@ function ParkwayClinicalCaseCard({ item }: { item: HomeClinicalCase }) {
 
           {/* Bottom/Right Image: After */}
           <div className="relative overflow-hidden rounded-xl bg-slate-100 shadow-xs aspect-[4/3]">
-            <img
-              src={item.afterImageUrl}
-              alt={`${item.title} sau điều trị`}
-              className="h-full w-full object-cover"
-            />
+            {item.afterImageUrl ? (
+              <Image
+                src={item.afterImageUrl}
+                alt={`${item.title} sau điều trị`}
+                fill
+                sizes="(max-width: 768px) 45vw, 25vw"
+                className="object-cover"
+              />
+            ) : null}
             <div className="absolute inset-x-0 bottom-0 bg-black/75 py-1 text-center text-[10px] sm:text-[11px] font-bold text-white backdrop-blur-xs">
               Sau điều trị
             </div>

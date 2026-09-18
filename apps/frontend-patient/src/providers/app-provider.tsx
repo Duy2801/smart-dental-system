@@ -2,7 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Provider } from "react-redux";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { apiMe, apiRefresh } from "@/features/auth/api";
 import { loadPatientSession } from "@/features/auth/session-storage";
@@ -17,18 +17,20 @@ import {
 } from "./loginSlice";
 import store from "./store";
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 60_000,
-      gcTime: 5 * 60_000,
-      refetchOnWindowFocus: false,
-      retry: 1,
+function createQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 60_000,
+        gcTime: 5 * 60_000,
+        refetchOnWindowFocus: false,
+        retry: 1,
+      },
     },
-  },
-});
+  });
+}
 
-function AuthHydrator() {
+function AuthHydrator({ queryClient }: { queryClient: QueryClient }) {
   const startedRef = useRef(false);
 
   useEffect(() => {
@@ -110,10 +112,12 @@ function SocketAppWrapper({ children }: { children: ReactNode }) {
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
+  const [queryClient] = useState(createQueryClient);
+
   return (
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
-        <AuthHydrator />
+        <AuthHydrator queryClient={queryClient} />
         <SocketAppWrapper>
           {children}
           <ToastProvider />

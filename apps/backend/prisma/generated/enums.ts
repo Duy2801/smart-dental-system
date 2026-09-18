@@ -222,6 +222,24 @@ export const ConversationStatus = {
 export type ConversationStatus = (typeof ConversationStatus)[keyof typeof ConversationStatus]
 
 
+export const SupportConversationStatus = {
+  WAITING: 'WAITING',
+  ASSIGNED: 'ASSIGNED',
+  CLOSED: 'CLOSED'
+} as const
+
+export type SupportConversationStatus = (typeof SupportConversationStatus)[keyof typeof SupportConversationStatus]
+
+
+export const SupportMessageSender = {
+  PATIENT: 'PATIENT',
+  STAFF: 'STAFF',
+  SYSTEM: 'SYSTEM'
+} as const
+
+export type SupportMessageSender = (typeof SupportMessageSender)[keyof typeof SupportMessageSender]
+
+
 export const VideoConsultationStatus = {
   PENDING_PAYMENT: 'PENDING_PAYMENT',
   SCHEDULED: 'SCHEDULED',

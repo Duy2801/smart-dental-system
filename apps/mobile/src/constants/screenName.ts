@@ -15,6 +15,7 @@ export const SCREEN_NAME = {
   PATIENT_SERVICES: 'PatientServices',
   PATIENT_DOCTORS: 'PatientDoctors',
   PATIENT_CONSULTATION: 'PatientConsultation',
+  SUPPORT_CHAT: 'SupportChat',
   PATIENT_PAYMENT: 'PatientPayment',
   PATIENT_NOTIFICATIONS: 'PatientNotifications',
   PATIENT_PROMOTIONS: 'PatientPromotions',

@@ -215,6 +215,16 @@ export type Review = Prisma.ReviewModel
  */
 export type ChatbotConversation = Prisma.ChatbotConversationModel
 /**
+ * Model SupportConversation
+ * 
+ */
+export type SupportConversation = Prisma.SupportConversationModel
+/**
+ * Model SupportMessage
+ * 
+ */
+export type SupportMessage = Prisma.SupportMessageModel
+/**
  * Model VideoConsultation
  * 
  */

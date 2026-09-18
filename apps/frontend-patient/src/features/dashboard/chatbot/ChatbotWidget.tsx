@@ -155,7 +155,7 @@ export function ChatbotWidget() {
   }
 
   return (
-    <div className="fixed bottom-20 right-3 z-50 sm:bottom-7 sm:right-7">
+    <div className="fixed bottom-20 right-3 z-50 flex flex-col items-end sm:bottom-7 sm:right-7">
       {open && (
         <section className="mb-2.5 flex h-[430px] sm:h-[500px] max-h-[calc(100dvh-130px)] w-[calc(100vw-28px)] max-w-[335px] sm:max-w-[370px] flex-col overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-[0_16px_50px_rgba(15,43,82,0.22)] animate-in fade-in slide-in-from-bottom-2 duration-200">
           {/* Header */}
@@ -279,7 +279,8 @@ export function ChatbotWidget() {
         </section>
       )}
 
-      {/* Trigger Floating Button */}
+      {/* Trigger Floating Button — AI assistant only. Chat with the
+          receptionist has its own overlay (see SupportChatOverlay). */}
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}

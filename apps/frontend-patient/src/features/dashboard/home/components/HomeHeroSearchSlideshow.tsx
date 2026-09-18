@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
@@ -191,15 +192,23 @@ export function HomeHeroSearchSlideshow() {
         {isLoadingBanners ? (
           <div className="w-full h-36 animate-pulse bg-blue-400/30 sm:h-[420px]" />
         ) : currentHeroBanner ? (
-          <img
+          <Image
             src={currentHeroBanner.imageUrl}
             alt={currentHeroBanner.title || "Smart Dental Banner"}
+            width={1440}
+            height={520}
+            sizes="100vw"
+            priority
             className="w-full h-auto block object-cover sm:max-h-[520px] transition-all duration-700 cursor-default select-none"
           />
         ) : (
-          <img
+          <Image
             src="/bannerhome.png"
             alt="Smart Dental Banner"
+            width={1440}
+            height={520}
+            sizes="100vw"
+            priority
             className="w-full h-auto block object-cover sm:max-h-[520px] cursor-default select-none"
           />
         )}
@@ -451,10 +460,12 @@ export function HomeHeroSearchSlideshow() {
                   >
                     {slide.imageUrl && (
                       <div className="absolute inset-0 pointer-events-none">
-                        <img
+                        <Image
                           src={slide.imageUrl}
                           alt={slide.title}
-                          className="h-full w-full object-cover opacity-30 transition duration-500 group-hover:scale-105 group-hover:opacity-40"
+                          fill
+                          sizes="(max-width: 640px) 100vw, 50vw"
+                          className="object-cover opacity-30 transition duration-500 group-hover:scale-105 group-hover:opacity-40"
                         />
                       </div>
                     )}

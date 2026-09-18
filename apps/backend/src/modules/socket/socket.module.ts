@@ -1,5 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
+import { PrismaModule } from '../prisma/prisma.module';
 import { EventsGateway } from './events.gateway';
 
 @Global()
@@ -8,6 +9,7 @@ import { EventsGateway } from './events.gateway';
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'secretKey',
     }),
+    PrismaModule,
   ],
   providers: [EventsGateway],
   exports: [EventsGateway],

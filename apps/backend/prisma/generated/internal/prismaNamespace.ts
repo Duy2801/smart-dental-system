@@ -419,6 +419,8 @@ export const ModelName = {
   Payment: 'Payment',
   Review: 'Review',
   ChatbotConversation: 'ChatbotConversation',
+  SupportConversation: 'SupportConversation',
+  SupportMessage: 'SupportMessage',
   VideoConsultation: 'VideoConsultation',
   PatientAiBrief: 'PatientAiBrief',
   Notification: 'Notification',
@@ -440,7 +442,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "clinicConfig" | "user" | "role" | "permission" | "rolePermission" | "service" | "specialization" | "doctorSpecialization" | "treatmentMethod" | "serviceMedia" | "serviceProcedureStep" | "serviceFaq" | "promotion" | "patient" | "patientAccount" | "doctor" | "doctorEducation" | "doctorCertificate" | "doctorMedia" | "doctorAvailability" | "appointment" | "medicalRecord" | "medicalRecordAudit" | "aiXrayAnalysisAudit" | "treatmentPlan" | "treatmentPlanAudit" | "treatmentPlanStep" | "clinicalCase" | "invoice" | "prescription" | "prescriptionAudit" | "prescriptionItem" | "payment" | "review" | "chatbotConversation" | "videoConsultation" | "patientAiBrief" | "notification" | "banner" | "consultationPackage" | "refundRequest"
+    modelProps: "clinicConfig" | "user" | "role" | "permission" | "rolePermission" | "service" | "specialization" | "doctorSpecialization" | "treatmentMethod" | "serviceMedia" | "serviceProcedureStep" | "serviceFaq" | "promotion" | "patient" | "patientAccount" | "doctor" | "doctorEducation" | "doctorCertificate" | "doctorMedia" | "doctorAvailability" | "appointment" | "medicalRecord" | "medicalRecordAudit" | "aiXrayAnalysisAudit" | "treatmentPlan" | "treatmentPlanAudit" | "treatmentPlanStep" | "clinicalCase" | "invoice" | "prescription" | "prescriptionAudit" | "prescriptionItem" | "payment" | "review" | "chatbotConversation" | "supportConversation" | "supportMessage" | "videoConsultation" | "patientAiBrief" | "notification" | "banner" | "consultationPackage" | "refundRequest"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -3034,6 +3036,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    SupportConversation: {
+      payload: Prisma.$SupportConversationPayload<ExtArgs>
+      fields: Prisma.SupportConversationFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.SupportConversationFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupportConversationPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.SupportConversationFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupportConversationPayload>
+        }
+        findFirst: {
+          args: Prisma.SupportConversationFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupportConversationPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.SupportConversationFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupportConversationPayload>
+        }
+        findMany: {
+          args: Prisma.SupportConversationFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupportConversationPayload>[]
+        }
+        create: {
+          args: Prisma.SupportConversationCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupportConversationPayload>
+        }
+        createMany: {
+          args: Prisma.SupportConversationCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.SupportConversationCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupportConversationPayload>[]
+        }
+        delete: {
+          args: Prisma.SupportConversationDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupportConversationPayload>
+        }
+        update: {
+          args: Prisma.SupportConversationUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupportConversationPayload>
+        }
+        deleteMany: {
+          args: Prisma.SupportConversationDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.SupportConversationUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.SupportConversationUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupportConversationPayload>[]
+        }
+        upsert: {
+          args: Prisma.SupportConversationUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupportConversationPayload>
+        }
+        aggregate: {
+          args: Prisma.SupportConversationAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSupportConversation>
+        }
+        groupBy: {
+          args: Prisma.SupportConversationGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SupportConversationGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.SupportConversationCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SupportConversationCountAggregateOutputType> | number
+        }
+      }
+    }
+    SupportMessage: {
+      payload: Prisma.$SupportMessagePayload<ExtArgs>
+      fields: Prisma.SupportMessageFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.SupportMessageFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupportMessagePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.SupportMessageFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupportMessagePayload>
+        }
+        findFirst: {
+          args: Prisma.SupportMessageFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupportMessagePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.SupportMessageFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupportMessagePayload>
+        }
+        findMany: {
+          args: Prisma.SupportMessageFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupportMessagePayload>[]
+        }
+        create: {
+          args: Prisma.SupportMessageCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupportMessagePayload>
+        }
+        createMany: {
+          args: Prisma.SupportMessageCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.SupportMessageCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupportMessagePayload>[]
+        }
+        delete: {
+          args: Prisma.SupportMessageDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupportMessagePayload>
+        }
+        update: {
+          args: Prisma.SupportMessageUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupportMessagePayload>
+        }
+        deleteMany: {
+          args: Prisma.SupportMessageDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.SupportMessageUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.SupportMessageUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupportMessagePayload>[]
+        }
+        upsert: {
+          args: Prisma.SupportMessageUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SupportMessagePayload>
+        }
+        aggregate: {
+          args: Prisma.SupportMessageAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSupportMessage>
+        }
+        groupBy: {
+          args: Prisma.SupportMessageGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SupportMessageGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.SupportMessageCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SupportMessageCountAggregateOutputType> | number
+        }
+      }
+    }
     VideoConsultation: {
       payload: Prisma.$VideoConsultationPayload<ExtArgs>
       fields: Prisma.VideoConsultationFieldRefs
@@ -4098,6 +4248,33 @@ export const ChatbotConversationScalarFieldEnum = {
 export type ChatbotConversationScalarFieldEnum = (typeof ChatbotConversationScalarFieldEnum)[keyof typeof ChatbotConversationScalarFieldEnum]
 
 
+export const SupportConversationScalarFieldEnum = {
+  id: 'id',
+  patientId: 'patientId',
+  status: 'status',
+  assignedToId: 'assignedToId',
+  assignedAt: 'assignedAt',
+  lastMessageAt: 'lastMessageAt',
+  createdAt: 'createdAt',
+  closedAt: 'closedAt'
+} as const
+
+export type SupportConversationScalarFieldEnum = (typeof SupportConversationScalarFieldEnum)[keyof typeof SupportConversationScalarFieldEnum]
+
+
+export const SupportMessageScalarFieldEnum = {
+  id: 'id',
+  conversationId: 'conversationId',
+  senderType: 'senderType',
+  senderId: 'senderId',
+  content: 'content',
+  readAt: 'readAt',
+  createdAt: 'createdAt'
+} as const
+
+export type SupportMessageScalarFieldEnum = (typeof SupportMessageScalarFieldEnum)[keyof typeof SupportMessageScalarFieldEnum]
+
+
 export const VideoConsultationScalarFieldEnum = {
   id: 'id',
   patientId: 'patientId',
@@ -4646,6 +4823,34 @@ export type ListEnumConversationStatusFieldRefInput<$PrismaModel> = FieldRefInpu
 
 
 /**
+ * Reference to a field of type 'SupportConversationStatus'
+ */
+export type EnumSupportConversationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SupportConversationStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'SupportConversationStatus[]'
+ */
+export type ListEnumSupportConversationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SupportConversationStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'SupportMessageSender'
+ */
+export type EnumSupportMessageSenderFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SupportMessageSender'>
+    
+
+
+/**
+ * Reference to a field of type 'SupportMessageSender[]'
+ */
+export type ListEnumSupportMessageSenderFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SupportMessageSender[]'>
+    
+
+
+/**
  * Reference to a field of type 'VideoConsultationStatus'
  */
 export type EnumVideoConsultationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'VideoConsultationStatus'>
@@ -4873,6 +5078,8 @@ export type GlobalOmitConfig = {
   payment?: Prisma.PaymentOmit
   review?: Prisma.ReviewOmit
   chatbotConversation?: Prisma.ChatbotConversationOmit
+  supportConversation?: Prisma.SupportConversationOmit
+  supportMessage?: Prisma.SupportMessageOmit
   videoConsultation?: Prisma.VideoConsultationOmit
   patientAiBrief?: Prisma.PatientAiBriefOmit
   notification?: Prisma.NotificationOmit

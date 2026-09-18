@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Suspense } from "react";
+import { QueryClient, dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { DashboardIcon } from "@/features/dashboard/common/DashboardIcon";
 import { DashboardBrandLogo } from "@/features/dashboard/common/DashboardBrandLogo";
 import { DashboardFooterClinicInfo } from "@/features/dashboard/common/DashboardFooterClinicInfo";
@@ -9,10 +10,17 @@ import { DashboardNav } from "@/features/dashboard/common/DashboardNav";
 import { ScrollRevealProvider } from "@/features/dashboard/common/ScrollReveal";
 import { PatientBottomNav } from "@/features/dashboard/common/PatientBottomNav";
 import { ChatbotWidget } from "@/features/dashboard/chatbot/ChatbotWidget";
+import { SupportChatOverlay } from "@/features/dashboard/support/components/SupportChatOverlay";
 import { NotificationNavbarBadge } from "@/features/dashboard/notification/components/NotificationNavbarBadge";
 import { HeaderAccountDropdown } from "@/features/dashboard/common/HeaderAccountDropdown";
 import { ROUTES, FOOTER_LINKS } from "@/features/dashboard/common/routes";
 import { T } from "@/features/dashboard/common/typography";
+import { homeQueryKeys } from "@/features/dashboard/home";
+import {
+  getHomeServices,
+  getHomeDoctors,
+  getLiveClinicConfigInfo,
+} from "@/features/dashboard/home/api";
 
 function DashboardHeader() {
   return (
@@ -67,16 +75,41 @@ function DashboardFooter() {
   );
 }
 
-export default function DashboardLayout({ children }: { children: ReactNode }) {
+export default async function DashboardLayout({ children }: { children: ReactNode }) {
+  const queryClient = new QueryClient();
+
+  // DashboardNav (inside DashboardHeader, rendered below) reads these same
+  // queries. Prefetching and hydrating them here, above the header, ensures
+  // react-query's HydrationBoundary applies the data synchronously during
+  // SSR instead of deferring to a client-only effect (which caused a
+  // server/client hydration mismatch when the header rendered first).
+  await Promise.allSettled([
+    queryClient.prefetchQuery({
+      queryKey: homeQueryKeys.services(),
+      queryFn: getHomeServices,
+    }),
+    queryClient.prefetchQuery({
+      queryKey: homeQueryKeys.doctors(),
+      queryFn: getHomeDoctors,
+    }),
+    queryClient.prefetchQuery({
+      queryKey: homeQueryKeys.clinicConfig(),
+      queryFn: getLiveClinicConfigInfo,
+    }),
+  ]);
+
   return (
-    <div className="min-h-dvh bg-[#f6f8fc] text-slate-900">
-      <DashboardHeader />
-      <div className="pt-[72px] pb-[62px] md:pb-0">
-        <ScrollRevealProvider>{children}</ScrollRevealProvider>
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <div className="min-h-dvh bg-[#f6f8fc] text-slate-900">
+        <DashboardHeader />
+        <div className="pt-[72px] pb-[62px] md:pb-0">
+          <ScrollRevealProvider>{children}</ScrollRevealProvider>
+        </div>
+        <DashboardFooter />
+        <PatientBottomNav />
+        <SupportChatOverlay />
+        <ChatbotWidget />
       </div>
-      <DashboardFooter />
-      <PatientBottomNav />
-      <ChatbotWidget />
-    </div>
+    </HydrationBoundary>
   );
 }

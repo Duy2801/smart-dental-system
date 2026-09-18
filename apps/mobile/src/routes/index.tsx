@@ -12,6 +12,7 @@ import RegisterScreen from '~src/features/auth/register/register';
 import VerifyEmailScreen from '~src/features/auth/verifyEmail/VerifyEmailScreen';
 import PatientTabNavigator from './tabs/patient/PatientTabNavigator';
 import DoctorTabNavigator from './tabs/doctor/DoctorTabNavigator';
+import SupportChatScreen from '~src/features/support/SupportChatScreen';
 const Stack = createNativeStackNavigator();
 function ApplicationNavigator() {
   const ref: any = useNavigationContainerRef();
@@ -39,6 +40,11 @@ function ApplicationNavigator() {
               options={{ headerShown: false }}
             />
           ))}
+          <Stack.Screen
+            component={SupportChatScreen}
+            name={SCREEN_NAME.SUPPORT_CHAT}
+            options={{ headerShown: false, presentation: 'modal' }}
+          />
         </Stack.Navigator>
       </NavigationContainer>
     </>
