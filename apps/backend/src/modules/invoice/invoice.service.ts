@@ -58,6 +58,12 @@ export class InvoiceService {
             treatmentMethod: { include: { service: true } },
           },
         },
+        treatmentPlan: {
+          include: { doctor: { include: { user: true } } },
+        },
+        treatmentPlanStep: {
+          include: { doctor: { include: { user: true } } },
+        },
         payments: {
           where: { status: PaymentStatus.SUCCESS },
           orderBy: { createdAt: 'desc' },
@@ -111,6 +117,8 @@ export class InvoiceService {
         : undefined;
       const doctorName =
         invoice.appointment?.doctor?.user?.fullName ??
+        invoice.treatmentPlanStep?.doctor?.user?.fullName ??
+        invoice.treatmentPlan?.doctor?.user?.fullName ??
         (consultationId ? consultationDoctors.get(consultationId) : null) ??
         null;
 

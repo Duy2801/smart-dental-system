@@ -19,6 +19,7 @@ type RecordImage = {
   url: string;
   caption?: string | null;
   type?: 'xray' | 'intraoral' | 'other';
+  modality?: 'PANORAMIC' | 'PERIAPICAL' | 'BITEWING' | 'OTHER';
 };
 
 const recordInclude = {
@@ -267,17 +268,28 @@ export class MedicalRecordService {
         ? (exists.images as RecordImage[])
         : [];
       const requestedImages = dto.images === null ? [] : dto.images;
+      const requestedKeys = requestedImages.map((requested) =>
+        requested.id ? `id:${requested.id}` : `url:${requested.url}`,
+      );
+      if (new Set(requestedKeys).size !== requestedKeys.length) {
+        throw new BadRequestException('Danh sách ảnh bệnh án bị trùng lặp');
+      }
       const containsUntrustedImage = requestedImages.some((requested) => {
         const stored = requested.id
           ? storedImages.find((image) => image.id === requested.id)
           : storedImages.find(
               (image) => !image.id && image.url === requested.url,
             );
-        return !stored || stored.url !== requested.url;
+        return (
+          !stored ||
+          stored.url !== requested.url ||
+          stored.type !== requested.type ||
+          stored.modality !== requested.modality
+        );
       });
       if (containsUntrustedImage) {
         throw new BadRequestException(
-          'Ảnh bệnh án mới phải được thêm qua chức năng tải ảnh lên',
+          'Không được thêm hoặc thay đổi loại ảnh ngoài chức năng tải ảnh lên',
         );
       }
       data.images = JSON.parse(
@@ -339,7 +351,11 @@ export class MedicalRecordService {
     file:
       | { buffer: Buffer; mimetype: string; originalname: string }
       | undefined,
-    meta: { caption?: string; type?: 'xray' | 'intraoral' | 'other' },
+    meta: {
+      caption?: string;
+      type?: 'xray' | 'intraoral' | 'other';
+      modality?: 'PANORAMIC' | 'PERIAPICAL' | 'BITEWING' | 'OTHER';
+    },
   ) {
     if (!file?.buffer?.length) {
       throw new BadRequestException('Chưa chọn file ảnh');
@@ -369,6 +385,19 @@ export class MedicalRecordService {
     if (meta.type && !['xray', 'intraoral', 'other'].includes(meta.type)) {
       throw new BadRequestException('medical_record.invalid_image_type');
     }
+    const imageType = meta.type ?? 'xray';
+    if (imageType === 'xray' && !meta.modality) {
+      throw new BadRequestException('medical_record.xray_modality_required');
+    }
+    if (imageType !== 'xray' && meta.modality) {
+      throw new BadRequestException('medical_record.invalid_xray_modality');
+    }
+    if (
+      meta.modality &&
+      !['PANORAMIC', 'PERIAPICAL', 'BITEWING', 'OTHER'].includes(meta.modality)
+    ) {
+      throw new BadRequestException('medical_record.invalid_xray_modality');
+    }
 
     const row = await this.prisma.medicalRecord.findUnique({
       where: { id },
@@ -393,7 +422,8 @@ export class MedicalRecordService {
       id: randomUUID(),
       url,
       caption: meta.caption?.trim() || file.originalname || null,
-      type: meta.type ?? 'xray',
+      type: imageType,
+      ...(meta.modality ? { modality: meta.modality } : {}),
     };
     const updated = await this.prisma.$transaction(async (tx) => {
       const latest = await tx.medicalRecord.findUnique({

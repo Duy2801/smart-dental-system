@@ -250,6 +250,10 @@ function NewTreatmentPlanContent() {
       setError("Vui lòng nhập tên kế hoạch.");
       return;
     }
+    if (startDate && startDate < new Date().toLocaleDateString("en-CA")) {
+      setError("Ngày bắt đầu không được nằm trong quá khứ.");
+      return;
+    }
     if (startDate && expectedEndDate && startDate > expectedEndDate) {
       setError("Ngày kết thúc dự kiến phải sau ngày bắt đầu.");
       return;
@@ -425,6 +429,7 @@ function NewTreatmentPlanContent() {
                 </label>
                 <input
                   type="date"
+                  min={new Date().toLocaleDateString("en-CA")}
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
                   className="w-full rounded-xl border border-border bg-slate-50 px-4 py-2.5 text-sm text-brand-dark outline-none transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand"
@@ -437,6 +442,7 @@ function NewTreatmentPlanContent() {
                 </label>
                 <input
                   type="date"
+                  min={startDate || new Date().toLocaleDateString("en-CA")}
                   value={expectedEndDate}
                   onChange={(e) => setExpectedEndDate(e.target.value)}
                   className="w-full rounded-xl border border-border bg-slate-50 px-4 py-2.5 text-sm text-brand-dark outline-none transition-all focus:border-brand focus:bg-white focus:ring-1 focus:ring-brand"

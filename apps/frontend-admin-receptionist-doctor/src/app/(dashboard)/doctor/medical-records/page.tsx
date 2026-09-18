@@ -59,7 +59,6 @@ import { ClinicalScribeReview } from "@/src/components/doctor/clinical-scribe-re
 import { AftercareDraft } from "@/src/components/doctor/aftercare-draft";
 import { DentalXrayAnalyzer } from "@/src/components/doctor/dental-xray-analyzer";
 
-
 type RecordSummary = {
   id: string;
   patientId: string;
@@ -114,7 +113,6 @@ type TabKey =
   | "AFTERCARE"
   | "HISTORY";
 
-
 function formatDate(iso: string | null) {
   if (!iso) return "-";
   return new Date(iso).toLocaleDateString("vi-VN");
@@ -146,10 +144,8 @@ function cleanSearchText(str: string) {
 }
 
 const VALID_FDI_TEETH = new Set([
-  11, 12, 13, 14, 15, 16, 17, 18,
-  21, 22, 23, 24, 25, 26, 27, 28,
-  31, 32, 33, 34, 35, 36, 37, 38,
-  41, 42, 43, 44, 45, 46, 47, 48,
+  11, 12, 13, 14, 15, 16, 17, 18, 21, 22, 23, 24, 25, 26, 27, 28, 31, 32, 33,
+  34, 35, 36, 37, 38, 41, 42, 43, 44, 45, 46, 47, 48,
 ]);
 
 function MedicalRecordsContent() {
@@ -218,7 +214,9 @@ function MedicalRecordsContent() {
     const timer = setTimeout(checkTabScroll, 200);
     return () => clearTimeout(timer);
   }, [activeTab, checkTabScroll]);
-  const [printingRx, setPrintingRx] = useState<RecordDetail["prescriptions"][number] | null>(null);
+  const [printingRx, setPrintingRx] = useState<
+    RecordDetail["prescriptions"][number] | null
+  >(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   const copyToClipboard = async (text: string, key: string) => {
@@ -281,89 +279,91 @@ function MedicalRecordsContent() {
   const sessionError = doctorId
     ? null
     : "Không tìm thấy thông tin bác sĩ. Vui lòng đăng nhập lại.";
-  const selectionError = preSelectId && !isUuid(preSelectId)
-    ? "Mã hồ sơ không hợp lệ."
-    : null;
+  const selectionError =
+    preSelectId && !isUuid(preSelectId) ? "Mã hồ sơ không hợp lệ." : null;
   const today = localDateStr();
   // Khởi tạo trung tính để tránh hydration mismatch (cookie chỉ có trên client)
   const [listLoading, setListLoading] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
 
   /* eslint-disable react-hooks/preserve-manual-memoization -- callbacks intentionally stay stable for request effects */
-  const applyDetail = useCallback((data: RecordDetail, id: string) => {
-    setDetail(data);
-    setLoadedDetailId(id);
-    setDetailError(null);
-    setSaved(false);
-    setSaveError(null);
-    const nextForm = {
-      chiefComplaint: data.chiefComplaint ?? "",
-      diagnosis: data.diagnosis ?? "",
-      treatmentNotes: data.treatmentNotes ?? "",
-      internalNotes: data.internalNotes ?? "",
-      followUpDate: data.followUpDate
-        ? data.followUpDate.slice(0, 10)
-        : "",
-      images: Array.isArray(data.images) ? data.images : [],
-      dentalChart: {
-        teeth: Array.isArray(data.dentalChart?.teeth)
-          ? data.dentalChart.teeth
-              .filter((t) => VALID_FDI_TEETH.has(t.number))
-              .map((t) => ({
-                number: t.number,
-                status: t.status as ToothStatus,
-              }))
-          : [],
-      },
-    };
-    setForm(nextForm);
-    savedFormSnapshot.current = JSON.stringify(nextForm);
-
-    // Fetch past records of this patient across the dental clinic
-    if (data.patientId && doctorId) {
-      setLoadingPastRecords(true);
-      const historySequence = ++historyRequestSequence.current;
-      apiClient
-        .get<RecordSummary[]>(
-          `/medical-records?patientId=${data.patientId}&allDoctors=true`
-        )
-        .then((res) => {
-          if (historySequence !== historyRequestSequence.current) return;
-          const list = Array.isArray(res.data)
-            ? res.data.filter((r) => r.id !== data.id)
-            : [];
-          setPastRecords(list);
-        })
-        .catch(() => {
-          if (historySequence === historyRequestSequence.current) setPastRecords([]);
-        })
-        .finally(() => {
-          if (historySequence === historyRequestSequence.current) setLoadingPastRecords(false);
-        });
-    }
-
-    setRecords((prev) => {
-      if (prev.some((r) => r.id === data.id)) return prev;
-      return [
-        {
-          id: data.id,
-          patientId: data.patientId,
-          appointmentId: (data as any).appointmentId ?? null,
-          patientName: data.patientName,
-          patientCode: data.patientCode,
-          diagnosis: data.diagnosis,
-          chiefComplaint: data.chiefComplaint,
-          serviceName: data.serviceName,
-          scheduledAt: data.scheduledAt,
-          followUpDate: data.followUpDate,
-          prescriptionCount: data.prescriptionCount,
-          createdAt: data.createdAt,
-          updatedAt: data.updatedAt,
+  const applyDetail = useCallback(
+    (data: RecordDetail, id: string) => {
+      setDetail(data);
+      setLoadedDetailId(id);
+      setDetailError(null);
+      setSaved(false);
+      setSaveError(null);
+      const nextForm = {
+        chiefComplaint: data.chiefComplaint ?? "",
+        diagnosis: data.diagnosis ?? "",
+        treatmentNotes: data.treatmentNotes ?? "",
+        internalNotes: data.internalNotes ?? "",
+        followUpDate: data.followUpDate ? data.followUpDate.slice(0, 10) : "",
+        images: Array.isArray(data.images) ? data.images : [],
+        dentalChart: {
+          teeth: Array.isArray(data.dentalChart?.teeth)
+            ? data.dentalChart.teeth
+                .filter((t) => VALID_FDI_TEETH.has(t.number))
+                .map((t) => ({
+                  number: t.number,
+                  status: t.status as ToothStatus,
+                }))
+            : [],
         },
-        ...prev,
-      ];
-    });
-  }, [doctorId]);
+      };
+      setForm(nextForm);
+      savedFormSnapshot.current = JSON.stringify(nextForm);
+
+      // Fetch past records of this patient across the dental clinic
+      if (data.patientId && doctorId) {
+        setLoadingPastRecords(true);
+        const historySequence = ++historyRequestSequence.current;
+        apiClient
+          .get<RecordSummary[]>(
+            `/medical-records?patientId=${data.patientId}&allDoctors=true`,
+          )
+          .then((res) => {
+            if (historySequence !== historyRequestSequence.current) return;
+            const list = Array.isArray(res.data)
+              ? res.data.filter((r) => r.id !== data.id)
+              : [];
+            setPastRecords(list);
+          })
+          .catch(() => {
+            if (historySequence === historyRequestSequence.current)
+              setPastRecords([]);
+          })
+          .finally(() => {
+            if (historySequence === historyRequestSequence.current)
+              setLoadingPastRecords(false);
+          });
+      }
+
+      setRecords((prev) => {
+        if (prev.some((r) => r.id === data.id)) return prev;
+        return [
+          {
+            id: data.id,
+            patientId: data.patientId,
+            appointmentId: (data as any).appointmentId ?? null,
+            patientName: data.patientName,
+            patientCode: data.patientCode,
+            diagnosis: data.diagnosis,
+            chiefComplaint: data.chiefComplaint,
+            serviceName: data.serviceName,
+            scheduledAt: data.scheduledAt,
+            followUpDate: data.followUpDate,
+            prescriptionCount: data.prescriptionCount,
+            createdAt: data.createdAt,
+            updatedAt: data.updatedAt,
+          },
+          ...prev,
+        ];
+      });
+    },
+    [doctorId],
+  );
 
   const loadDetail = useCallback(
     async (id: string, opts?: { keepTab?: boolean }) => {
@@ -422,7 +422,8 @@ function MedicalRecordsContent() {
     if (JSON.stringify(form) !== savedFormSnapshot.current) {
       const confirmed = await showConfirm({
         title: "Bỏ các thay đổi chưa lưu?",
-        description: "Các ghi chép, sơ đồ răng hoặc kết quả AI chưa lưu sẽ bị mất.",
+        description:
+          "Các ghi chép, sơ đồ răng hoặc kết quả AI chưa lưu sẽ bị mất.",
         confirmLabel: "Bỏ thay đổi",
         tone: "danger",
       });
@@ -455,16 +456,23 @@ function MedicalRecordsContent() {
       const target = event.target;
       if (!(target instanceof Element)) return;
       const anchor = target.closest<HTMLAnchorElement>("a[href]");
-      if (!anchor || anchor.target === "_blank" || anchor.origin !== window.location.origin) return;
+      if (
+        !anchor ||
+        anchor.target === "_blank" ||
+        anchor.origin !== window.location.origin
+      )
+        return;
       event.preventDefault();
       event.stopPropagation();
       void showConfirm({
         title: "Bỏ các thay đổi chưa lưu?",
-        description: "Hồ sơ bệnh án có thay đổi chưa được lưu. Nếu rời trang, dữ liệu vừa nhập sẽ bị mất.",
+        description:
+          "Hồ sơ bệnh án có thay đổi chưa được lưu. Nếu rời trang, dữ liệu vừa nhập sẽ bị mất.",
         confirmLabel: "Rời đi",
         tone: "danger",
       }).then((confirmed) => {
-        if (confirmed) router.push(`${anchor.pathname}${anchor.search}${anchor.hash}`);
+        if (confirmed)
+          router.push(`${anchor.pathname}${anchor.search}${anchor.hash}`);
       });
     };
     document.addEventListener("click", guardInternalLinks);
@@ -497,13 +505,17 @@ function MedicalRecordsContent() {
         let targetId: string | null = preSelectId;
 
         if (!targetId && patientIdParam && !appointmentId) {
-          targetId = list.find((record) => record.patientId === patientIdParam)?.id ?? null;
+          targetId =
+            list.find((record) => record.patientId === patientIdParam)?.id ??
+            null;
         }
 
         // Nếu có appointmentId được truyền vào từ Lịch hẹn hoặc Hồ sơ bệnh nhân
         if (!targetId && appointmentId) {
           // 1. Kiểm tra xem trong list đã có hồ sơ của appointment này chưa
-          const matchedInList = list.find((r) => r.appointmentId === appointmentId);
+          const matchedInList = list.find(
+            (r) => r.appointmentId === appointmentId,
+          );
           if (matchedInList) {
             targetId = matchedInList.id;
           } else {
@@ -546,7 +558,9 @@ function MedicalRecordsContent() {
                 }
               } catch {
                 if (patientIdParam) {
-                  const ptMatch = list.find((r) => r.patientId === patientIdParam);
+                  const ptMatch = list.find(
+                    (r) => r.patientId === patientIdParam,
+                  );
                   if (ptMatch) targetId = ptMatch.id;
                 }
               }
@@ -599,7 +613,11 @@ function MedicalRecordsContent() {
     const originalFollowUp = detail?.followUpDate
       ? detail.followUpDate.slice(0, 10)
       : "";
-    if (form.followUpDate && form.followUpDate !== originalFollowUp && form.followUpDate < today) {
+    if (
+      form.followUpDate &&
+      form.followUpDate !== originalFollowUp &&
+      form.followUpDate < today
+    ) {
       setSaveError("Ngày tái khám không được trước hôm nay.");
       return;
     }
@@ -654,11 +672,11 @@ function MedicalRecordsContent() {
           ? "Bạn không có quyền sửa hồ sơ này."
           : status === 409
             ? "Hồ sơ vừa được cập nhật ở nơi khác. Vui lòng tải lại rồi thực hiện lại thay đổi."
-          : status === 404
-            ? "Không tìm thấy hồ sơ. F5 tải lại danh sách rồi chọn lại."
-          : typeof backendMsg === "string"
-            ? backendMsg
-            : "Lưu thất bại. Vui lòng thử lại.",
+            : status === 404
+              ? "Không tìm thấy hồ sơ. F5 tải lại danh sách rồi chọn lại."
+              : typeof backendMsg === "string"
+                ? backendMsg
+                : "Lưu thất bại. Vui lòng thử lại.",
       );
     } finally {
       setSaving(false);
@@ -836,8 +854,22 @@ function MedicalRecordsContent() {
                   {currentPage}/{totalPages}
                 </span>
                 <div className="flex gap-1.5">
-                  <button type="button" disabled={currentPage === 1} onClick={() => setPage((value) => value - 1)} className="rounded-lg border border-border px-2.5 py-1 text-xs font-semibold disabled:opacity-40">Trước</button>
-                  <button type="button" disabled={currentPage === totalPages} onClick={() => setPage((value) => value + 1)} className="rounded-lg border border-border px-2.5 py-1 text-xs font-semibold disabled:opacity-40">Sau</button>
+                  <button
+                    type="button"
+                    disabled={currentPage === 1}
+                    onClick={() => setPage((value) => value - 1)}
+                    className="rounded-lg border border-border px-2.5 py-1 text-xs font-semibold disabled:opacity-40"
+                  >
+                    Trước
+                  </button>
+                  <button
+                    type="button"
+                    disabled={currentPage === totalPages}
+                    onClick={() => setPage((value) => value + 1)}
+                    className="rounded-lg border border-border px-2.5 py-1 text-xs font-semibold disabled:opacity-40"
+                  >
+                    Sau
+                  </button>
                 </div>
               </div>
             )}
@@ -875,7 +907,7 @@ function MedicalRecordsContent() {
                 <div className="relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs transition-all lg:p-6">
                   {/* Subtle top accent gradient */}
                   <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-brand via-sky-400 to-brand-dark" />
-                  
+
                   {/* Ambient subtle glow */}
                   <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-brand/5 blur-3xl" />
 
@@ -903,16 +935,29 @@ function MedicalRecordsContent() {
                           {/* Patient Code Badge with click-to-copy */}
                           <button
                             type="button"
-                            onClick={() => copyToClipboard(detail.patientCode, "code")}
+                            onClick={() =>
+                              copyToClipboard(detail.patientCode, "code")
+                            }
                             title="Bấm để sao chép mã bệnh nhân"
                             className="group inline-flex items-center gap-1.5 rounded-lg border border-brand/20 bg-brand-light px-2.5 py-0.5 font-mono text-xs font-bold text-brand-dark shadow-2xs transition-all hover:bg-brand/15 active:scale-[0.98] cursor-pointer"
                           >
-                            <IdentificationCard size={13} weight="bold" className="text-brand" />
+                            <IdentificationCard
+                              size={13}
+                              weight="bold"
+                              className="text-brand"
+                            />
                             <span>{detail.patientCode}</span>
                             {copiedKey === "code" ? (
-                              <Check size={12} weight="bold" className="text-emerald-600" />
+                              <Check
+                                size={12}
+                                weight="bold"
+                                className="text-emerald-600"
+                              />
                             ) : (
-                              <Copy size={11} className="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                              <Copy
+                                size={11}
+                                className="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                              />
                             )}
                           </button>
 
@@ -928,32 +973,57 @@ function MedicalRecordsContent() {
                           {detail.patientPhone && (
                             <button
                               type="button"
-                              onClick={() => copyToClipboard(detail.patientPhone!, "phone")}
+                              onClick={() =>
+                                copyToClipboard(detail.patientPhone!, "phone")
+                              }
                               title="Bấm để sao chép số điện thoại"
                               className="group inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-1 font-medium text-slate-700 shadow-2xs transition-all hover:bg-slate-100 hover:text-slate-900 active:scale-[0.98] cursor-pointer"
                             >
-                              <Phone size={13} weight="duotone" className="text-slate-400 group-hover:text-brand transition-colors" />
-                              <span className="font-mono font-semibold tracking-tight">{detail.patientPhone}</span>
+                              <Phone
+                                size={13}
+                                weight="duotone"
+                                className="text-slate-400 group-hover:text-brand transition-colors"
+                              />
+                              <span className="font-mono font-semibold tracking-tight">
+                                {detail.patientPhone}
+                              </span>
                               {copiedKey === "phone" ? (
-                                <Check size={12} weight="bold" className="text-emerald-600" />
+                                <Check
+                                  size={12}
+                                  weight="bold"
+                                  className="text-emerald-600"
+                                />
                               ) : (
-                                <Copy size={11} className="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                <Copy
+                                  size={11}
+                                  className="text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                                />
                               )}
                             </button>
                           )}
 
                           {(detail.scheduledAt || detail.createdAt) && (
                             <div className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-1 font-medium text-slate-700 shadow-2xs">
-                              <Clock size={13} weight="duotone" className="text-slate-400" />
+                              <Clock
+                                size={13}
+                                weight="duotone"
+                                className="text-slate-400"
+                              />
                               <span className="font-mono text-slate-600">
-                                {formatDateTime(detail.scheduledAt || detail.createdAt)}
+                                {formatDateTime(
+                                  detail.scheduledAt || detail.createdAt,
+                                )}
                               </span>
                             </div>
                           )}
 
                           {detail.serviceName && (
                             <div className="inline-flex items-center gap-1.5 rounded-lg border border-blue-100 bg-blue-50/80 px-2.5 py-1 font-semibold text-brand-dark shadow-2xs">
-                              <Sparkle size={13} weight="fill" className="text-brand" />
+                              <Sparkle
+                                size={13}
+                                weight="fill"
+                                className="text-brand"
+                              />
                               <span>{detail.serviceName}</span>
                             </div>
                           )}
@@ -969,8 +1039,12 @@ function MedicalRecordsContent() {
                             <CalendarBlank size={16} weight="duotone" />
                           </div>
                           <div className="text-left sm:text-right">
-                            <p className="text-[10px] font-extrabold uppercase tracking-wider text-amber-700/80">Lịch hẹn tái khám</p>
-                            <p className="font-mono text-xs font-bold text-amber-950">{formatDate(detail.followUpDate)}</p>
+                            <p className="text-[10px] font-extrabold uppercase tracking-wider text-amber-700/80">
+                              Lịch hẹn tái khám
+                            </p>
+                            <p className="font-mono text-xs font-bold text-amber-950">
+                              {formatDate(detail.followUpDate)}
+                            </p>
                           </div>
                         </div>
                       )}
@@ -987,12 +1061,25 @@ function MedicalRecordsContent() {
                         )}
                         <Link
                           href={`/doctor/patients/${detail.patientId}`}
-                          onClick={(e) => void handleGuardedNavigation(e, `/doctor/patients/${detail.patientId}`)}
+                          onClick={(e) =>
+                            void handleGuardedNavigation(
+                              e,
+                              `/doctor/patients/${detail.patientId}`,
+                            )
+                          }
                           className="group inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-bold text-slate-700 shadow-2xs transition-all hover:border-brand/40 hover:bg-slate-50 hover:text-brand active:scale-[0.98] cursor-pointer"
                         >
-                          <User size={14} weight="duotone" className="text-slate-400 group-hover:text-brand transition-colors" />
+                          <User
+                            size={14}
+                            weight="duotone"
+                            className="text-slate-400 group-hover:text-brand transition-colors"
+                          />
                           <span>Hồ sơ bệnh nhân</span>
-                          <ArrowRight size={13} weight="bold" className="transition-transform group-hover:translate-x-0.5" />
+                          <ArrowRight
+                            size={13}
+                            weight="bold"
+                            className="transition-transform group-hover:translate-x-0.5"
+                          />
                         </Link>
                       </div>
                     </div>
@@ -1027,14 +1114,22 @@ function MedicalRecordsContent() {
                   >
                     {(
                       [
-                        { key: "OVERVIEW" as TabKey, label: "Tổng quan", icon: FileText },
+                        {
+                          key: "OVERVIEW" as TabKey,
+                          label: "Tổng quan",
+                          icon: FileText,
+                        },
                         {
                           key: "HISTORY" as TabKey,
                           label: "Lịch sử khám",
                           count: pastRecords.length,
                           icon: ClockCounterClockwise,
                         },
-                        { key: "CHART" as TabKey, label: "Sơ đồ răng", icon: Tooth },
+                        {
+                          key: "CHART" as TabKey,
+                          label: "Sơ đồ răng",
+                          icon: Tooth,
+                        },
                         {
                           key: "IMAGES" as TabKey,
                           label: "Ảnh",
@@ -1088,7 +1183,9 @@ function MedicalRecordsContent() {
                             weight={isActive ? "bold" : "regular"}
                             className={cn(
                               "transition-colors",
-                              isActive ? "text-brand" : "text-slate-400 group-hover:text-slate-600",
+                              isActive
+                                ? "text-brand"
+                                : "text-slate-400 group-hover:text-slate-600",
                             )}
                           />
                           <span>{tab.label}</span>
@@ -1111,7 +1208,11 @@ function MedicalRecordsContent() {
                 </div>
 
                 <div className="min-h-[400px] rounded-2xl border border-border bg-white p-6 shadow-sm">
-                  <div className={activeTab === "OVERVIEW" ? "space-y-5" : "hidden"}>
+                  <div
+                    className={
+                      activeTab === "OVERVIEW" ? "space-y-5" : "hidden"
+                    }
+                  >
                     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
                       <h3 className="text-base font-bold text-slate-900">
                         Ghi chép lâm sàng
@@ -1263,7 +1364,9 @@ function MedicalRecordsContent() {
                     </div>
                   </div>
 
-                  <div className={activeTab === "CHART" ? "space-y-5" : "hidden"}>
+                  <div
+                    className={activeTab === "CHART" ? "space-y-5" : "hidden"}
+                  >
                     <div className="flex items-center justify-between border-b border-border pb-3">
                       <h3 className="text-base font-bold text-slate-900">
                         Sơ đồ răng (FDI)
@@ -1302,7 +1405,9 @@ function MedicalRecordsContent() {
                     </div>
                   </div>
 
-                  <div className={activeTab === "IMAGES" ? "space-y-5" : "hidden"}>
+                  <div
+                    className={activeTab === "IMAGES" ? "space-y-5" : "hidden"}
+                  >
                     <div className="flex items-center justify-between border-b border-border pb-3">
                       <h3 className="text-base font-bold text-slate-900">
                         Ảnh X-quang / nội khoa
@@ -1320,13 +1425,11 @@ function MedicalRecordsContent() {
                     </div>
                     <MedicalRecordImages
                       recordId={selectedId}
-                      readOnly={Boolean(detail?.doctorId && detail.doctorId !== doctorId)}
-                      patientId={detail?.patientId}
-                      patientName={detail?.patientName}
+                      readOnly={Boolean(
+                        detail?.doctorId && detail.doctorId !== doctorId,
+                      )}
                       value={form.images}
-                      onChange={(images) =>
-                        setForm((f) => ({ ...f, images }))
-                      }
+                      onChange={(images) => setForm((f) => ({ ...f, images }))}
                       onUploaded={(images, updatedAt) => {
                         setDetail((d) =>
                           d
@@ -1355,31 +1458,6 @@ function MedicalRecordsContent() {
                           // ignore
                         }
                       }}
-                      onApplyAiDiagnosis={(diagnosis, treatmentNotes) => {
-                        setForm((f) => {
-                          const diagTag = `[X-quang AI]: ${diagnosis}`;
-                          let nextDiagnosis = f.diagnosis;
-                          if (!nextDiagnosis) {
-                            nextDiagnosis = diagTag;
-                          } else if (!nextDiagnosis.includes(diagnosis)) {
-                            nextDiagnosis = `${nextDiagnosis}\n${diagTag}`;
-                          }
-
-                          let nextTreatment = f.treatmentNotes;
-                          if (!nextTreatment) {
-                            nextTreatment = treatmentNotes;
-                          } else if (!nextTreatment.includes(treatmentNotes)) {
-                            nextTreatment = `${nextTreatment}\n\n${treatmentNotes}`;
-                          }
-
-                          return {
-                            ...f,
-                            diagnosis: nextDiagnosis,
-                            treatmentNotes: nextTreatment,
-                          };
-                        });
-                        setActiveTab("OVERVIEW");
-                      }}
                     />
                     <div className="flex justify-end border-t border-border pt-4">
                       <button
@@ -1402,41 +1480,48 @@ function MedicalRecordsContent() {
                     <DentalXrayAnalyzer
                       key={detail.id}
                       patientId={detail.patientId}
+                      patientName={detail.patientName}
+                      clinicalNoteHint={[form.chiefComplaint, form.diagnosis]
+                        .filter(Boolean)
+                        .join("\n")}
                       patientImages={(form.images || [])
-                        .filter((img) => img.url && (img.type === "xray" || !img.type))
+                        .filter(
+                          (img) =>
+                            img.url &&
+                            img.id &&
+                            img.type === "xray" &&
+                            img.modality === "PANORAMIC",
+                        )
                         .map((img, i) => ({
-                        id: img.id || img.url,
-                        url: img.url,
-                        title:
-                          img.caption ||
-                          (img.type === "xray" || !img.type
-                            ? `Phim X-quang ${i + 1}`
-                            : img.type === "intraoral"
-                              ? `Ảnh nội khoa ${i + 1}`
-                              : `Ảnh ${i + 1}`),
-                        type: img.type || "xray",
-                        date: "Từ hồ sơ bệnh án",
-                      }))}
+                          id: img.id,
+                          url: img.url,
+                          title:
+                            img.caption ||
+                            (img.type === "xray" || !img.type
+                              ? `Phim X-quang ${i + 1}`
+                              : img.type === "intraoral"
+                                ? `Ảnh nội khoa ${i + 1}`
+                                : `Ảnh ${i + 1}`),
+                          type: img.type || "xray",
+                          date: "Từ hồ sơ bệnh án",
+                        }))}
                       onApplyToMedicalRecord={(summaryText) => {
                         setForm((prev) => {
-                          if (!prev.treatmentNotes) return { ...prev, treatmentNotes: summaryText };
-                          if (prev.treatmentNotes.includes(summaryText)) return prev;
-                          return { ...prev, treatmentNotes: `${prev.treatmentNotes}\n\n${summaryText}` };
-                        });
-                      }}
-                      onApplyDiagnosis={(diag) => {
-                        setForm((prev) => {
-                          const diagTag = `[X-quang AI]: ${diag}`;
-                          if (!prev.diagnosis) return { ...prev, diagnosis: diagTag };
-                          if (prev.diagnosis.includes(diag)) return prev;
-                          return { ...prev, diagnosis: `${prev.diagnosis}\n${diagTag}` };
+                          if (!prev.treatmentNotes)
+                            return { ...prev, treatmentNotes: summaryText };
+                          if (prev.treatmentNotes.includes(summaryText))
+                            return prev;
+                          return {
+                            ...prev,
+                            treatmentNotes: `${prev.treatmentNotes}\n\n${summaryText}`,
+                          };
                         });
                       }}
                       onApplyToDentalChart={(findings) => {
                         const existingTeeth = form.dentalChart?.teeth || [];
                         const updatedTeeth = applyXrayFindingsToDentalChart(
                           existingTeeth,
-                          findings
+                          findings,
                         );
 
                         setForm((prev) => ({
@@ -1448,8 +1533,6 @@ function MedicalRecordsContent() {
                     />
                   </div>
 
-
-
                   {activeTab === "PRESCRIPTIONS" && (
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
@@ -1458,7 +1541,9 @@ function MedicalRecordsContent() {
                         </h3>
                         <Link
                           href={prescribeHref}
-                          onClick={(e) => void handleGuardedNavigation(e, prescribeHref)}
+                          onClick={(e) =>
+                            void handleGuardedNavigation(e, prescribeHref)
+                          }
                           className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-dark cursor-pointer"
                         >
                           <Plus size={12} weight="bold" /> Kê đơn thuốc
@@ -1501,7 +1586,12 @@ function MedicalRecordsContent() {
                                 </button>
                                 <Link
                                   href={`/doctor/prescriptions/${rx.id}/edit`}
-                                  onClick={(e) => void handleGuardedNavigation(e, `/doctor/prescriptions/${rx.id}/edit`)}
+                                  onClick={(e) =>
+                                    void handleGuardedNavigation(
+                                      e,
+                                      `/doctor/prescriptions/${rx.id}/edit`,
+                                    )
+                                  }
                                   className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-brand transition-colors hover:bg-brand/10 cursor-pointer"
                                 >
                                   <PencilSimple size={12} /> Sửa
@@ -1549,7 +1639,11 @@ function MedicalRecordsContent() {
                     </div>
                   )}
 
-                  <div className={activeTab === "AFTERCARE" ? "space-y-5" : "hidden"}>
+                  <div
+                    className={
+                      activeTab === "AFTERCARE" ? "space-y-5" : "hidden"
+                    }
+                  >
                     <AftercareDraft
                       key={detail.id}
                       medicalRecordId={detail.id}
@@ -1560,7 +1654,9 @@ function MedicalRecordsContent() {
                         treatmentNotes: form.treatmentNotes,
                         followUpDate: form.followUpDate,
                       }}
-                      isDirty={savedFormSnapshot.current !== JSON.stringify(form)}
+                      isDirty={
+                        savedFormSnapshot.current !== JSON.stringify(form)
+                      }
                     />
                   </div>
 
@@ -1572,7 +1668,8 @@ function MedicalRecordsContent() {
                             Lịch sử các lần khám cũ của {detail.patientName}
                           </h3>
                           <p className="text-xs text-muted-foreground mt-0.5">
-                            Bác sĩ có thể xem lại chẩn đoán, thuốc và diễn biến điều trị của các lần khám trước
+                            Bác sĩ có thể xem lại chẩn đoán, thuốc và diễn biến
+                            điều trị của các lần khám trước
                           </p>
                         </div>
                         <span className="rounded-full bg-brand/10 px-3 py-1 font-mono text-xs font-bold text-brand">
@@ -1582,13 +1679,24 @@ function MedicalRecordsContent() {
 
                       {loadingPastRecords ? (
                         <div className="flex h-32 items-center justify-center">
-                          <SpinnerGap size={24} className="animate-spin text-brand" />
+                          <SpinnerGap
+                            size={24}
+                            className="animate-spin text-brand"
+                          />
                         </div>
                       ) : pastRecords.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground">
-                          <ClockCounterClockwise size={40} className="mb-2 text-slate-300" weight="duotone" />
-                          <p className="text-sm font-medium">Bệnh nhân chưa có lần khám cũ nào khác</p>
-                          <p className="text-xs text-slate-400 mt-1">Đây là hồ sơ bệnh án đầu tiên của bệnh nhân này.</p>
+                          <ClockCounterClockwise
+                            size={40}
+                            className="mb-2 text-slate-300"
+                            weight="duotone"
+                          />
+                          <p className="text-sm font-medium">
+                            Bệnh nhân chưa có lần khám cũ nào khác
+                          </p>
+                          <p className="text-xs text-slate-400 mt-1">
+                            Đây là hồ sơ bệnh án đầu tiên của bệnh nhân này.
+                          </p>
                         </div>
                       ) : (
                         <div className="space-y-3">
@@ -1601,8 +1709,14 @@ function MedicalRecordsContent() {
                                 <div className="space-y-2 flex-1 min-w-[240px]">
                                   <div className="flex flex-wrap items-center gap-2">
                                     <span className="flex items-center gap-1 text-xs font-bold text-slate-900">
-                                      <CalendarBlank size={13} className="text-brand" />
-                                      {formatDateTime(pastRec.scheduledAt || pastRec.createdAt)}
+                                      <CalendarBlank
+                                        size={13}
+                                        className="text-brand"
+                                      />
+                                      {formatDateTime(
+                                        pastRec.scheduledAt ||
+                                          pastRec.createdAt,
+                                      )}
                                     </span>
                                     {pastRec.serviceName && (
                                       <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-bold text-blue-700">
@@ -1643,11 +1757,13 @@ function MedicalRecordsContent() {
                                         onClick={() => {
                                           setForm((f) => ({
                                             ...f,
-                                            diagnosis: pastRec.diagnosis || f.diagnosis,
+                                            diagnosis:
+                                              pastRec.diagnosis || f.diagnosis,
                                           }));
                                           void showAlert({
                                             title: "Đã sao chép chẩn đoán",
-                                            description: "Chẩn đoán từ lần khám trước đã được đưa vào bệnh án hiện tại.",
+                                            description:
+                                              "Chẩn đoán từ lần khám trước đã được đưa vào bệnh án hiện tại.",
                                             tone: "success",
                                           });
                                         }}
@@ -1661,7 +1777,10 @@ function MedicalRecordsContent() {
 
                                   {pastRec.chiefComplaint && (
                                     <p className="text-xs text-slate-600">
-                                      <span className="font-medium text-slate-700">Lý do khám:</span> {pastRec.chiefComplaint}
+                                      <span className="font-medium text-slate-700">
+                                        Lý do khám:
+                                      </span>{" "}
+                                      {pastRec.chiefComplaint}
                                     </p>
                                   )}
 
@@ -1669,7 +1788,11 @@ function MedicalRecordsContent() {
                                     <div className="rounded-xl border border-slate-200/90 bg-white p-3 text-xs shadow-2xs space-y-1.5 mt-1.5">
                                       <div className="flex items-center justify-between">
                                         <span className="flex items-center gap-1.5 font-bold text-slate-800 text-[11px]">
-                                          <FileText size={13} className="text-brand" weight="bold" />
+                                          <FileText
+                                            size={13}
+                                            className="text-brand"
+                                            weight="bold"
+                                          />
                                           Diễn biến & Ghi chú điều trị:
                                         </span>
                                         <button
@@ -1677,15 +1800,17 @@ function MedicalRecordsContent() {
                                           onClick={() => {
                                             setForm((f) => ({
                                               ...f,
-                                              treatmentNotes: pastRec.treatmentNotes
-                                                ? f.treatmentNotes
-                                                  ? `${f.treatmentNotes}\n[Lần khám cũ: ${pastRec.treatmentNotes}]`
-                                                  : pastRec.treatmentNotes
-                                                : f.treatmentNotes,
+                                              treatmentNotes:
+                                                pastRec.treatmentNotes
+                                                  ? f.treatmentNotes
+                                                    ? `${f.treatmentNotes}\n[Lần khám cũ: ${pastRec.treatmentNotes}]`
+                                                    : pastRec.treatmentNotes
+                                                  : f.treatmentNotes,
                                             }));
                                             void showAlert({
                                               title: "Đã chèn ghi chú điều trị",
-                                              description: "Ghi chú điều trị từ lần khám trước đã được thêm vào bệnh án hiện tại.",
+                                              description:
+                                                "Ghi chú điều trị từ lần khám trước đã được thêm vào bệnh án hiện tại.",
                                               tone: "success",
                                             });
                                           }}
@@ -1703,11 +1828,15 @@ function MedicalRecordsContent() {
 
                                   <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground pt-1">
                                     {pastRec.followUpDate && (
-                                      <span>Tái khám: {formatDate(pastRec.followUpDate)}</span>
+                                      <span>
+                                        Tái khám:{" "}
+                                        {formatDate(pastRec.followUpDate)}
+                                      </span>
                                     )}
                                     {pastRec.prescriptionCount > 0 && (
                                       <span className="flex items-center gap-1 font-medium text-blue-600">
-                                        <Pill size={12} /> {pastRec.prescriptionCount} đơn thuốc
+                                        <Pill size={12} />{" "}
+                                        {pastRec.prescriptionCount} đơn thuốc
                                       </span>
                                     )}
                                   </div>
@@ -1716,7 +1845,9 @@ function MedicalRecordsContent() {
                                 {pastRec.doctorId === doctorId && (
                                   <button
                                     type="button"
-                                    onClick={() => void selectRecord(pastRec.id)}
+                                    onClick={() =>
+                                      void selectRecord(pastRec.id)
+                                    }
                                     className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs transition hover:border-brand/40 hover:bg-brand/5 hover:text-brand cursor-pointer shrink-0"
                                   >
                                     Mở bệnh án này <ArrowRight size={12} />
@@ -1741,7 +1872,9 @@ function MedicalRecordsContent() {
             <div className="shrink-0 flex items-center justify-between border-b border-border px-6 py-3.5 print:hidden">
               <div className="flex items-center gap-2">
                 <Pill size={18} className="text-brand" weight="duotone" />
-                <h3 className="text-sm font-bold text-slate-900">Xem trước & In đơn thuốc</h3>
+                <h3 className="text-sm font-bold text-slate-900">
+                  Xem trước & In đơn thuốc
+                </h3>
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -1761,35 +1894,89 @@ function MedicalRecordsContent() {
               </div>
             </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto p-6 sm:p-8 text-slate-900 [scrollbar-width:thin] print:overflow-visible print:p-6" id="print-area">
+            <div
+              className="flex-1 min-h-0 overflow-y-auto p-6 sm:p-8 text-slate-900 [scrollbar-width:thin] print:overflow-visible print:p-6"
+              id="print-area"
+            >
               <div className="border-b-2 border-slate-900 pb-4 text-center">
-                <p className="text-xs font-bold uppercase tracking-widest text-brand-dark">PHÒNG KHÁM NHA KHOA SMART DENTAL</p>
-                <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-900 uppercase">ĐƠN THUỐC ĐIỆN TỬ</h1>
-                <p className="text-xs text-slate-500 mt-0.5">Ngày kê: {formatDateTime(printingRx.createdAt)}</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-brand-dark">
+                  PHÒNG KHÁM NHA KHOA SMART DENTAL
+                </p>
+                <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-900 uppercase">
+                  ĐƠN THUỐC ĐIỆN TỬ
+                </h1>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Ngày kê: {formatDateTime(printingRx.createdAt)}
+                </p>
               </div>
 
               <div className="my-5 grid grid-cols-2 gap-3 text-xs bg-slate-50 p-3.5 rounded-xl border border-slate-200">
                 <div>
-                  <p><span className="font-semibold text-slate-600">Họ và tên BN:</span> <span className="font-bold text-slate-900 text-sm uppercase">{detail.patientName}</span></p>
-                  <p className="mt-1"><span className="font-semibold text-slate-600">Mã bệnh nhân:</span> <span className="font-mono font-bold text-slate-800">{detail.patientCode}</span></p>
+                  <p>
+                    <span className="font-semibold text-slate-600">
+                      Họ và tên BN:
+                    </span>{" "}
+                    <span className="font-bold text-slate-900 text-sm uppercase">
+                      {detail.patientName}
+                    </span>
+                  </p>
+                  <p className="mt-1">
+                    <span className="font-semibold text-slate-600">
+                      Mã bệnh nhân:
+                    </span>{" "}
+                    <span className="font-mono font-bold text-slate-800">
+                      {detail.patientCode}
+                    </span>
+                  </p>
                 </div>
                 <div>
-                  <p><span className="font-semibold text-slate-600">Chẩn đoán:</span> <span className="font-semibold text-slate-900">{detail.diagnosis || "Chưa ghi nhận"}</span></p>
-                  {detail.serviceName && <p className="mt-1"><span className="font-semibold text-slate-600">Dịch vụ điều trị:</span> {detail.serviceName}</p>}
+                  <p>
+                    <span className="font-semibold text-slate-600">
+                      Chẩn đoán:
+                    </span>{" "}
+                    <span className="font-semibold text-slate-900">
+                      {detail.diagnosis || "Chưa ghi nhận"}
+                    </span>
+                  </p>
+                  {detail.serviceName && (
+                    <p className="mt-1">
+                      <span className="font-semibold text-slate-600">
+                        Dịch vụ điều trị:
+                      </span>{" "}
+                      {detail.serviceName}
+                    </p>
+                  )}
                 </div>
               </div>
 
               <div className="space-y-4">
-                <p className="text-xs font-bold uppercase tracking-wider text-slate-700">Chỉ định thuốc:</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                  Chỉ định thuốc:
+                </p>
                 <ol className="space-y-3 list-decimal list-inside text-xs">
                   {printingRx.items.map((item, idx) => (
-                    <li key={item.id || idx} className="border-b border-slate-100 pb-2.5">
-                      <span className="font-bold text-sm text-slate-900">{item.medicineName}</span>
-                      <span className="font-semibold text-slate-700 ml-2">— {item.dosage}</span>
-                      {item.duration && <span className="text-slate-500 ml-2">(× {item.duration})</span>}
+                    <li
+                      key={item.id || idx}
+                      className="border-b border-slate-100 pb-2.5"
+                    >
+                      <span className="font-bold text-sm text-slate-900">
+                        {item.medicineName}
+                      </span>
+                      <span className="font-semibold text-slate-700 ml-2">
+                        — {item.dosage}
+                      </span>
+                      {item.duration && (
+                        <span className="text-slate-500 ml-2">
+                          (× {item.duration})
+                        </span>
+                      )}
                       <div className="ml-5 mt-1 text-slate-600 font-medium">
                         {item.frequency && <p>• Cách dùng: {item.frequency}</p>}
-                        {item.instruction && <p className="italic text-slate-500">• Hướng dẫn: {item.instruction}</p>}
+                        {item.instruction && (
+                          <p className="italic text-slate-500">
+                            • Hướng dẫn: {item.instruction}
+                          </p>
+                        )}
                       </div>
                     </li>
                   ))}
@@ -1798,16 +1985,23 @@ function MedicalRecordsContent() {
 
               {printingRx.notes && (
                 <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50/50 p-3 text-xs text-amber-900">
-                  <span className="font-bold">Lời dặn của bác sĩ:</span> {printingRx.notes}
+                  <span className="font-bold">Lời dặn của bác sĩ:</span>{" "}
+                  {printingRx.notes}
                 </div>
               )}
 
               <div className="mt-8 flex justify-end text-center text-xs">
                 <div className="w-56 space-y-1">
-                  <p className="italic text-slate-500">{formatDate(printingRx.createdAt)}</p>
-                  <p className="font-bold text-slate-900 uppercase">Bác sĩ điều trị</p>
+                  <p className="italic text-slate-500">
+                    {formatDate(printingRx.createdAt)}
+                  </p>
+                  <p className="font-bold text-slate-900 uppercase">
+                    Bác sĩ điều trị
+                  </p>
                   <div className="h-16" />
-                  <p className="font-bold text-slate-800">(Ký và ghi rõ họ tên)</p>
+                  <p className="font-bold text-slate-800">
+                    (Ký và ghi rõ họ tên)
+                  </p>
                 </div>
               </div>
             </div>

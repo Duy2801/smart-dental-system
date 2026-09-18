@@ -1,4 +1,5 @@
 import json
+from datetime import date
 
 from app.core import llm
 from app.core.prompts import (
@@ -53,6 +54,16 @@ def _string_list(value: object) -> list[str]:
     return [item.strip() for item in value if isinstance(item, str) and item.strip()]
 
 
+def _source_map(value: object) -> dict[str, list[str]]:
+    if not isinstance(value, dict):
+        return {}
+    return {
+        str(key): _string_list(sources)
+        for key, sources in value.items()
+        if isinstance(sources, list)
+    }
+
+
 def _money(value: int | float) -> str:
     return f"{value:,.0f}".replace(",", ".") + " VND"
 
@@ -84,6 +95,8 @@ class DoctorAssistService:
         if rag:
             parts.append(rag)
         parts.append(
+            "Source keys hợp lệ: medical_history, chatbot, diagnoses, upcoming_service, medical_record, "
+            "prescriptions, treatment_plan, follow_up.\n"
             f"BN: {body.patient_name or 'N/A'}\n"
             f"Tiền sử: {body.medical_history or 'Không có'}\n"
             f"Chẩn đoán gần đây: {', '.join(body.recent_diagnoses) or 'Không có'}\n"
@@ -93,7 +106,8 @@ class DoctorAssistService:
             f"Kế hoạch đang thực hiện:\n{body.active_treatment_plan or 'Không có'}\n"
             f"Tái khám: {body.follow_up or 'Chưa có lịch'}\n"
             f"Chatbot:\n{chat or '(trống)'}\n\n"
-            'Trả JSON: {"bullet_points":[],"questions_to_ask":[],"risk_flags":[]}'
+            'Trả JSON: {"bullet_points":[],"questions_to_ask":[],"risk_flags":[],'
+            '"source_keys_by_bullet":{},"source_keys_by_risk":{}}'
         )
         completion = await llm.complete_with_metadata(
             SUMMARIZE_PATIENT_SYSTEM, "\n\n".join(parts)
@@ -105,6 +119,8 @@ class DoctorAssistService:
                 bullet_points=data.get("bullet_points") or [raw],
                 questions_to_ask=data.get("questions_to_ask") or [],
                 risk_flags=data.get("risk_flags") or [],
+                source_keys_by_bullet=_source_map(data.get("source_keys_by_bullet")),
+                source_keys_by_risk=_source_map(data.get("source_keys_by_risk")),
                 provider=completion.provider,
                 model=completion.model,
             )
@@ -226,7 +242,7 @@ class DoctorAssistService:
             )
         )
         rag = build_rag_block(query, top_k=4)
-        parts = []
+        parts = [f"Ngày hiện tại: {date.today().isoformat()}"]
         if rag:
             parts.append(rag)
         if body.catalog:

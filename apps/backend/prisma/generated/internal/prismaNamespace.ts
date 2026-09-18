@@ -3902,6 +3902,11 @@ export const AiXrayAnalysisAuditScalarFieldEnum = {
   errorStatus: 'errorStatus',
   modelVersion: 'modelVersion',
   findingCount: 'findingCount',
+  imageSnapshot: 'imageSnapshot',
+  resultSnapshot: 'resultSnapshot',
+  reviewedFindings: 'reviewedFindings',
+  reviewedBy: 'reviewedBy',
+  reviewedAt: 'reviewedAt',
   durationMs: 'durationMs',
   createdAt: 'createdAt'
 } as const
@@ -4122,17 +4127,22 @@ export const PatientAiBriefScalarFieldEnum = {
   doctorId: 'doctorId',
   createdBy: 'createdBy',
   consultationId: 'consultationId',
+  appointmentId: 'appointmentId',
   patientName: 'patientName',
   bulletPoints: 'bulletPoints',
   questionsToAsk: 'questionsToAsk',
   riskFlags: 'riskFlags',
   disclaimer: 'disclaimer',
   sourceData: 'sourceData',
+  bulletSources: 'bulletSources',
+  riskSources: 'riskSources',
+  contextFingerprint: 'contextFingerprint',
   provider: 'provider',
   model: 'model',
   feedback: 'feedback',
   feedbackNote: 'feedbackNote',
   reviewedAt: 'reviewedAt',
+  reviewedBy: 'reviewedBy',
   createdAt: 'createdAt'
 } as const
 

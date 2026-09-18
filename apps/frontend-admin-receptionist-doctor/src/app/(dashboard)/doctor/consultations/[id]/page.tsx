@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import axios from "axios";
@@ -15,15 +15,22 @@ import {
   Warning,
   CheckCircle,
   XCircle,
-  Sparkle,
   PaperPlaneTilt,
 } from "@phosphor-icons/react";
+import { PatientAiBrief } from "@/src/components/doctor/patient-ai-brief";
 import { ROUTES } from "@/src/constants/routes";
 import apiClient from "@/src/lib/api/client";
 import { cn } from "@/src/lib/utils/cn";
 import { useAppDialog } from "@/src/providers/app-dialog-provider";
 
-type ConsultStatus = "SCHEDULED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+type ConsultStatus =
+  | "PENDING_PAYMENT"
+  | "SCHEDULED"
+  | "IN_PROGRESS"
+  | "COMPLETED"
+  | "CANCELLED"
+  | "EXPIRED"
+  | "DOCTOR_MISSED";
 
 type ChatMessage = { role: string; content: string };
 
@@ -58,6 +65,10 @@ type SideTab = "chatbot" | "patient";
 const NOTES_MAX = 10000;
 
 const STATUS_CFG: Record<ConsultStatus, { label: string; color: string }> = {
+  PENDING_PAYMENT: {
+    label: "Chờ thanh toán",
+    color: "bg-amber-100 text-amber-700 border-amber-200",
+  },
   SCHEDULED: {
     label: "Sắp tới",
     color: "bg-blue-100 text-blue-700 border-blue-200",
@@ -74,6 +85,14 @@ const STATUS_CFG: Record<ConsultStatus, { label: string; color: string }> = {
     label: "Đã hủy",
     color: "bg-red-100 text-red-600 border-red-200",
   },
+  EXPIRED: {
+    label: "Đã hết hạn",
+    color: "bg-slate-100 text-slate-600 border-slate-200",
+  },
+  DOCTOR_MISSED: {
+    label: "Bác sĩ vắng mặt",
+    color: "bg-red-100 text-red-600 border-red-200",
+  },
 };
 
 function formatWhen(iso: string) {
@@ -84,20 +103,6 @@ function formatWhen(iso: string) {
     hour: "2-digit",
     minute: "2-digit",
   });
-}
-
-function buildSummary(sessions: ChatSession[] = []): string[] {
-  const patientLines = (sessions || [])
-    .flatMap((s) => s?.messages || [])
-    .filter((m) => m?.role === "patient" || m?.role === "user")
-    .map((m) => m?.content?.trim())
-    .filter(Boolean);
-
-  const unique = [...new Set(patientLines)].slice(0, 5);
-  if (unique.length === 0) {
-    return ["Chưa có câu hỏi nào từ bệnh nhân với Chatbot AI."];
-  }
-  return unique;
 }
 
 function elapsedSec(startedAt: number | null) {
@@ -136,17 +141,13 @@ export default function ConsultationRoomPage() {
   const [notesSaved, setNotesSaved] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [sendingReminder, setSendingReminder] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error";
+  } | null>(null);
   const [inCall, setInCall] = useState(false);
   const [callStartedAt, setCallStartedAt] = useState<number | null>(null);
   const [tick, setTick] = useState(0);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiSummary, setAiSummary] = useState<{
-    bulletPoints: string[];
-    questionsToAsk: string[];
-    riskFlags: string[];
-    disclaimer: string;
-  } | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -175,29 +176,7 @@ export default function ConsultationRoomPage() {
   useEffect(() => {
     if (id) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setAiSummary(null);
       load();
-
-      apiClient
-        .get<{
-          bulletPoints?: string[];
-          questionsToAsk?: string[];
-          riskFlags?: string[];
-          disclaimer?: string;
-        }>(`/ai/doctor/summarize-patient/latest?consultationId=${id}`)
-        .then((res) => {
-          if (res.data?.bulletPoints && res.data.bulletPoints.length > 0) {
-            setAiSummary({
-              bulletPoints: res.data.bulletPoints ?? [],
-              questionsToAsk: res.data.questionsToAsk ?? [],
-              riskFlags: res.data.riskFlags ?? [],
-              disclaimer: res.data.disclaimer ?? "",
-            });
-          }
-        })
-        .catch(() => {
-          // No previous summary, doctor can generate on demand
-        });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
@@ -217,11 +196,6 @@ export default function ConsultationRoomPage() {
     return () => window.removeEventListener("beforeunload", warn);
   }, [notes, savedNotes]);
 
-  const localSummary = useMemo(
-    () => buildSummary(detail?.chatbotSessions ?? []),
-    [detail],
-  );
-
   const handleSendReminder = async () => {
     setSendingReminder(true);
     try {
@@ -232,7 +206,10 @@ export default function ConsultationRoomPage() {
       });
       setTimeout(() => setToast(null), 4500);
     } catch (err: unknown) {
-      const msg = apiErrorMessage(err, "Không thể gửi email lời nhắc phòng tư vấn.");
+      const msg = apiErrorMessage(
+        err,
+        "Không thể gửi email lời nhắc phòng tư vấn.",
+      );
       setToast({
         message: Array.isArray(msg) ? msg[0] : msg,
         type: "error",
@@ -240,36 +217,6 @@ export default function ConsultationRoomPage() {
       setTimeout(() => setToast(null), 4500);
     } finally {
       setSendingReminder(false);
-    }
-  };
-
-  const handleAiSummarize = async () => {
-    setAiLoading(true);
-    try {
-      const res = await apiClient.post<{
-        bulletPoints: string[];
-        questionsToAsk: string[];
-        riskFlags: string[];
-        disclaimer: string;
-      }>(
-        "/ai/doctor/summarize-patient",
-        { consultationId: id },
-        { timeout: 60_000 },
-      );
-      setAiSummary({
-        bulletPoints: res.data.bulletPoints ?? [],
-        questionsToAsk: res.data.questionsToAsk ?? [],
-        riskFlags: res.data.riskFlags ?? [],
-        disclaimer: res.data.disclaimer,
-      });
-    } catch (err) {
-      await showAlert({
-        title: "Không thể tạo tóm tắt AI",
-        description: apiErrorMessage(err, "Không tạo được tóm tắt AI."),
-        tone: "danger",
-      });
-    } finally {
-      setAiLoading(false);
     }
   };
 
@@ -295,7 +242,10 @@ export default function ConsultationRoomPage() {
     } catch (err) {
       await showAlert({
         title: "Không thể bắt đầu tư vấn",
-        description: apiErrorMessage(err, "Không thể bắt đầu tư vấn. Vui lòng thử lại."),
+        description: apiErrorMessage(
+          err,
+          "Không thể bắt đầu tư vấn. Vui lòng thử lại.",
+        ),
         tone: "danger",
       });
     } finally {
@@ -325,7 +275,10 @@ export default function ConsultationRoomPage() {
     } catch (err) {
       await showAlert({
         title: "Không thể kết thúc tư vấn",
-        description: apiErrorMessage(err, "Không thể kết thúc tư vấn. Vui lòng thử lại."),
+        description: apiErrorMessage(
+          err,
+          "Không thể kết thúc tư vấn. Vui lòng thử lại.",
+        ),
         tone: "danger",
       });
     } finally {
@@ -336,7 +289,8 @@ export default function ConsultationRoomPage() {
   const handleCancel = async () => {
     const confirmed = await showConfirm({
       title: "Hủy buổi tư vấn?",
-      description: "Thao tác này không thể hoàn tác. Tiền phí đã thanh toán sẽ được hoàn lại 100%.",
+      description:
+        "Thao tác này không thể hoàn tác. Tiền phí đã thanh toán sẽ được hoàn lại 100%.",
       confirmLabel: "Hủy buổi tư vấn",
       tone: "danger",
     });
@@ -365,7 +319,9 @@ export default function ConsultationRoomPage() {
 
   const handleSaveNotes = async () => {
     if (notes.length > NOTES_MAX) {
-      setNotesError(`Ghi chú tối đa ${NOTES_MAX.toLocaleString("vi-VN")} ký tự.`);
+      setNotesError(
+        `Ghi chú tối đa ${NOTES_MAX.toLocaleString("vi-VN")} ký tự.`,
+      );
       return;
     }
     setNotesError(null);
@@ -378,7 +334,9 @@ export default function ConsultationRoomPage() {
       });
       setNotes(notes.trim());
       setSavedNotes(notes.trim());
-      setDetail((prev) => prev ? { ...prev, notes: notes.trim() || null } : prev);
+      setDetail((prev) =>
+        prev ? { ...prev, notes: notes.trim() || null } : prev,
+      );
       setNotesSaved(true);
       setTimeout(() => setNotesSaved(false), 2500);
       setToast({
@@ -492,20 +450,29 @@ export default function ConsultationRoomPage() {
             </div>
             <p className="text-sm text-muted-foreground">
               {formatWhen(detail.scheduledAt)} · {detail.durationMinutes} phút
-              {showCall ? (() => {
-                const sec = elapsedSec(callStartedAt);
-                const limitSec = detail.durationMinutes * 60;
-                const over = sec > limitSec;
-                const warn = !over && sec >= limitSec - 5 * 60;
-                return (
-                  <span className={cn(
-                    "ml-1 font-semibold",
-                    over ? "text-red-600" : warn ? "text-amber-500" : "text-muted-foreground",
-                  )}>
-                    · {elapsedLabel(sec)}{over ? " - Quá giờ" : warn ? " - Sắp hết giờ" : ""}
-                  </span>
-                );
-              })() : null}
+              {showCall
+                ? (() => {
+                    const sec = elapsedSec(callStartedAt);
+                    const limitSec = detail.durationMinutes * 60;
+                    const over = sec > limitSec;
+                    const warn = !over && sec >= limitSec - 5 * 60;
+                    return (
+                      <span
+                        className={cn(
+                          "ml-1 font-semibold",
+                          over
+                            ? "text-red-600"
+                            : warn
+                              ? "text-amber-500"
+                              : "text-muted-foreground",
+                        )}
+                      >
+                        · {elapsedLabel(sec)}
+                        {over ? " - Quá giờ" : warn ? " - Sắp hết giờ" : ""}
+                      </span>
+                    );
+                  })()
+                : null}
               <span className="sr-only">{tick}</span>
             </p>
           </div>
@@ -519,7 +486,11 @@ export default function ConsultationRoomPage() {
                 className="inline-flex items-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:opacity-60 cursor-pointer"
                 title="Gửi link phòng Video Call & Lời nhắc qua Gmail + App cho bệnh nhân"
               >
-                <PaperPlaneTilt size={16} weight="bold" className={sendingReminder ? "animate-spin" : ""} />
+                <PaperPlaneTilt
+                  size={16}
+                  weight="bold"
+                  className={sendingReminder ? "animate-spin" : ""}
+                />
                 {sendingReminder ? "Đang gửi..." : "Gửi link phòng (Gmail)"}
               </button>
             )}
@@ -645,68 +616,18 @@ export default function ConsultationRoomPage() {
 
           {sideTab === "chatbot" ? (
             <div className="flex flex-1 flex-col overflow-hidden">
-              <div className="border-b border-border bg-brand-light/40 px-4 py-3">
-                <div className="mb-2 flex items-center justify-between gap-2">
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-brand-dark/70">
-                    Tóm tắt trước khi gọi
-                  </p>
-                  <button
-                    type="button"
-                    onClick={handleAiSummarize}
-                    disabled={aiLoading}
-                    className="inline-flex items-center gap-1 rounded-md bg-brand px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-brand-dark disabled:opacity-60 cursor-pointer"
-                  >
-                    <Sparkle size={12} weight="fill" />
-                    {aiLoading ? "Đang tạo…" : "Tóm tắt AI"}
-                  </button>
-                </div>
-                <ul className="space-y-1.5">
-                  {(aiSummary?.bulletPoints?.length
-                    ? aiSummary.bulletPoints
-                    : localSummary
-                  ).map((line, i) => (
-                    <li
-                      key={i}
-                      className="flex gap-2 text-sm leading-snug text-brand-dark"
-                    >
-                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand" />
-                      {line}
-                    </li>
-                  ))}
-                </ul>
-                {aiSummary?.questionsToAsk?.length ? (
-                  <div className="mt-3 space-y-1.5 border-t border-brand/20 pt-3">
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-brand-dark/70">
-                      Câu hỏi nên hỏi thêm
-                    </p>
-                    {aiSummary.questionsToAsk.map((q, i) => (
-                      <p key={i} className="text-sm text-brand-dark">
-                        · {q}
-                      </p>
-                    ))}
-                  </div>
-                ) : null}
-                {aiSummary?.riskFlags?.length ? (
-                  <div className="mt-3 space-y-1.5 border-t border-amber-200/80 pt-3">
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-amber-800/80">
-                      Cờ lưu ý
-                    </p>
-                    {aiSummary.riskFlags.map((f, i) => (
-                      <p key={i} className="text-sm text-amber-900">
-                        · {f}
-                      </p>
-                    ))}
-                  </div>
-                ) : null}
-                {aiSummary?.disclaimer ? (
-                  <p className="mt-3 text-[10px] leading-relaxed text-muted-foreground">
-                    {aiSummary.disclaimer}
-                  </p>
-                ) : null}
-              </div>
+              <PatientAiBrief
+                key={id}
+                consultationId={id}
+                patientId={detail.patientId}
+                patientName={detail.patientName}
+                compact
+                className="rounded-none border-x-0 border-t-0"
+              />
 
               <div className="flex-1 space-y-5 overflow-y-auto p-4">
-                {!detail.chatbotSessions || detail.chatbotSessions.length === 0 ? (
+                {!detail.chatbotSessions ||
+                detail.chatbotSessions.length === 0 ? (
                   <p className="py-10 text-center text-sm text-muted-foreground">
                     Bệnh nhân chưa có phiên chat với AI.
                   </p>
@@ -748,7 +669,10 @@ export default function ConsultationRoomPage() {
               <div className="space-y-3 rounded-xl bg-slate-50 p-4 ring-1 ring-inset ring-border/60">
                 <InfoRow label="Họ tên" value={detail.patientName} />
                 <InfoRow label="Mã BN" value={detail.patientCode} />
-                <InfoRow label="Số điện thoại" value={detail.patientPhone ?? "-"} />
+                <InfoRow
+                  label="Số điện thoại"
+                  value={detail.patientPhone ?? "-"}
+                />
                 <InfoRow
                   label="Tiền sử"
                   value={detail.medicalHistory?.trim() || "Chưa ghi nhận"}
@@ -789,7 +713,9 @@ export default function ConsultationRoomPage() {
                   className="w-full flex-1 resize-none rounded-xl border border-border bg-white px-3 py-2.5 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-muted-foreground"
                 />
                 {notesError ? (
-                  <p className="text-xs font-medium text-red-600">{notesError}</p>
+                  <p className="text-xs font-medium text-red-600">
+                    {notesError}
+                  </p>
                 ) : null}
                 <div className="flex items-center justify-between gap-2 pt-1">
                   {notesSaved ? (

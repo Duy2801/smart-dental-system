@@ -108,7 +108,6 @@ const stepStatusMap: Record<
 // Thứ tự chuyển trạng thái cho phép
 const STEP_STATUS_FLOW: StepStatus[] = [
   "PLANNED",
-  "SCHEDULED",
   "IN_PROGRESS",
   "COMPLETED",
   "CANCELLED",

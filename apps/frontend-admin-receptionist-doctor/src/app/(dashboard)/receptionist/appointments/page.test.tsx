@@ -28,7 +28,7 @@ const appointments = [
   {
     id: "today-confirmed",
     appointmentCode: "APT-TODAY",
-    scheduledAt: "2026-09-09T04:00:00.000Z",
+    scheduledAt: "2026-09-09T03:30:00.000Z",
     status: "CONFIRMED",
     patient: { id: "patient-5", fullName: "Đỗ Em" },
   },
@@ -87,11 +87,48 @@ describe("ReceptionistAppointmentsPage", () => {
     expect(within(futureRow).queryByRole("button", { name: "Check-in" })).not.toBeInTheDocument();
     const pastRow = screen.getByRole("row", { name: /APT-PAST/ });
     expect(within(pastRow).queryByRole("button", { name: "Xác nhận" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Bắt đầu khám" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Bắt đầu khám" })).not.toBeInTheDocument();
     expect(screen.queryByText("Nhắc BS")).not.toBeInTheDocument();
 
     fireEvent.click(within(futureRow).getByLabelText("Tùy chọn"));
     expect(screen.queryByText("Đánh dấu vắng mặt")).not.toBeInTheDocument();
+  });
+
+  it("renders the action menu outside the scrollable table", async () => {
+    render(<ReceptionistAppointmentsPage />);
+
+    const futureRow = await screen.findByRole("row", { name: /APT-FUTURE/ });
+    fireEvent.click(within(futureRow).getByLabelText("Tùy chọn"));
+
+    const menu = screen.getByRole("menu", { name: "Tùy chọn lịch hẹn" });
+    expect(menu.closest("table")).toBeNull();
+    expect(document.body).toContainElement(menu);
+  });
+
+  it("shows loading only on the reminder button that was clicked", async () => {
+    mockedApi.post.mockImplementationOnce(() => new Promise(() => undefined));
+    render(<ReceptionistAppointmentsPage />);
+
+    const row = await screen.findByRole("row", { name: /APT-TODAY/ });
+    const reminderButton = within(row).getByRole("button", { name: "Nhắc lịch" });
+    const checkInButton = within(row).getByRole("button", { name: "Check-in" });
+    fireEvent.click(reminderButton);
+
+    expect(reminderButton.querySelector(".animate-spin")).not.toBeNull();
+    expect(checkInButton.querySelector(".animate-spin")).toBeNull();
+  });
+
+  it("shows loading only on the check-in button that was clicked", async () => {
+    mockedApi.patch.mockImplementationOnce(() => new Promise(() => undefined));
+    render(<ReceptionistAppointmentsPage />);
+
+    const row = await screen.findByRole("row", { name: /APT-TODAY/ });
+    const checkInButton = within(row).getByRole("button", { name: "Check-in" });
+    const reminderButton = within(row).getByRole("button", { name: "Nhắc lịch" });
+    fireEvent.click(checkInButton);
+
+    await waitFor(() => expect(checkInButton.querySelector(".animate-spin")).not.toBeNull());
+    expect(reminderButton.querySelector(".animate-spin")).toBeNull();
   });
 
   it("records patient-requested cancellation and links the correct invoice", async () => {

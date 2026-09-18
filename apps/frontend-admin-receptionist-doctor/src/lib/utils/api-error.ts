@@ -16,6 +16,8 @@ const APPOINTMENT_ERRORS: Record<string, string> = {
     "Không thể xác nhận lịch hẹn của ngày đã qua.",
   "appointment.check_in_today_only":
     "Chỉ có thể check-in lịch hẹn trong ngày hôm nay.",
+  "appointment.check_in_too_early":
+    "Chỉ có thể check-in từ 30 phút trước giờ hẹn.",
   "appointment.medical_history_confirmation_required":
     "Cần xác nhận dị ứng và tiền sử bệnh trước khi check-in.",
   "appointment.start_today_only":

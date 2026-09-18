@@ -119,12 +119,14 @@ export function AppointmentDetailPanel({
     try {
       await onStatusChange(apt.id, action);
     } catch (error) {
-      setError(getApiErrorMessage(
-        error,
-        action === "start"
-          ? "Không thể bắt đầu ca khám."
-          : "Không thể kết thúc ca khám.",
-      ));
+      setError(
+        getApiErrorMessage(
+          error,
+          action === "start"
+            ? "Không thể bắt đầu ca khám."
+            : "Không thể kết thúc ca khám.",
+        ),
+      );
     } finally {
       setLoading(null);
     }
@@ -255,6 +257,7 @@ export function AppointmentDetailPanel({
             key={apt.id}
             patientId={apt.patientId}
             consultationId={apt.type === "ONLINE" ? apt.id : null}
+            appointmentId={apt.type === "OFFLINE" ? apt.id : null}
             patientName={apt.patientName}
             compact
           />

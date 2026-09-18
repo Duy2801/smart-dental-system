@@ -202,32 +202,33 @@ model ClinicConfig {
 }
 
 model User {
-  id            String     @id @default(uuid()) @db.Uuid
-  email         String     @unique
-  passwordHash  String?    @map("password_hash")
-  googleId      String?    @unique @map("google_id")
-  phone         String?    @unique
-  fullName      String     @map("full_name")
-  status        UserStatus @default(ACTIVE)
-  emailVerified Boolean    @default(false) @map("email_verified")
-  createdAt     DateTime   @default(now()) @map("created_at")
-  updatedAt     DateTime   @updatedAt @map("updated_at")
-  roleId        String     @map("role_id") @db.Uuid
-  roleAssignedAt DateTime  @default(now()) @map("role_assigned_at")
-  roleAssignedBy String?   @map("role_assigned_by") @db.Uuid
+  id             String     @id @default(uuid()) @db.Uuid
+  email          String     @unique
+  passwordHash   String?    @map("password_hash")
+  googleId       String?    @unique @map("google_id")
+  phone          String?    @unique
+  fullName       String     @map("full_name")
+  status         UserStatus @default(ACTIVE)
+  emailVerified  Boolean    @default(false) @map("email_verified")
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+  roleId         String     @map("role_id") @db.Uuid
+  roleAssignedAt DateTime   @default(now()) @map("role_assigned_at")
+  roleAssignedBy String?    @map("role_assigned_by") @db.Uuid
 
-  patientProfile         Patient?
-  doctorProfile          Doctor?
-  role                   Role             @relation("UserPrimaryRole", fields: [roleId], references: [id], onDelete: Restrict)
-  roleAssigner           User?            @relation("UserRoleAssignments", fields: [roleAssignedBy], references: [id], onDelete: SetNull)
-  assignedUsers          User[]           @relation("UserRoleAssignments")
-  createdAppointments    Appointment[]    @relation("AppointmentCreator")
-  createdInvoices        Invoice[]        @relation("InvoiceCreator")
-  receivedPayments       Payment[]        @relation("PaymentReceiver")
-  notifications          Notification[]
-  patientAccounts        PatientAccount[]
-  processedRefunds       RefundRequest[]  @relation("RefundProcessor")
-  createdPatientAiBriefs PatientAiBrief[]
+  patientProfile          Patient?
+  doctorProfile           Doctor?
+  role                    Role             @relation("UserPrimaryRole", fields: [roleId], references: [id], onDelete: Restrict)
+  roleAssigner            User?            @relation("UserRoleAssignments", fields: [roleAssignedBy], references: [id], onDelete: SetNull)
+  assignedUsers           User[]           @relation("UserRoleAssignments")
+  createdAppointments     Appointment[]    @relation("AppointmentCreator")
+  createdInvoices         Invoice[]        @relation("InvoiceCreator")
+  receivedPayments        Payment[]        @relation("PaymentReceiver")
+  notifications           Notification[]
+  patientAccounts         PatientAccount[]
+  processedRefunds        RefundRequest[]  @relation("RefundProcessor")
+  createdPatientAiBriefs  PatientAiBrief[] @relation("PatientAiBriefCreator")
+  reviewedPatientAiBriefs PatientAiBrief[] @relation("PatientAiBriefReviewer")
 
   @@index([fullName])
   @@index([roleId])
@@ -637,6 +638,7 @@ model Appointment {
   reviews           Review[]
   notifications     Notification[]
   refundRequests    RefundRequest[]
+  aiBriefs          PatientAiBrief[]
 
   @@index([patientId, scheduledAt])
   @@index([doctorId, scheduledAt])
@@ -667,11 +669,11 @@ model MedicalRecord {
   createdAt           DateTime  @default(now()) @map("created_at")
   updatedAt           DateTime  @updatedAt @map("updated_at")
 
-  patient             Patient            @relation(fields: [patientId], references: [id], onDelete: Restrict)
-  appointment         Appointment        @relation(fields: [appointmentId], references: [id], onDelete: Restrict)
+  patient             Patient              @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  appointment         Appointment          @relation(fields: [appointmentId], references: [id], onDelete: Restrict)
   clinicalCases       ClinicalCase[]
-  doctor              Doctor             @relation(fields: [doctorId], references: [id], onDelete: Restrict)
-  treatmentPlanStep   TreatmentPlanStep? @relation(fields: [treatmentPlanStepId], references: [id], onDelete: SetNull)
+  doctor              Doctor               @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  treatmentPlanStep   TreatmentPlanStep?   @relation(fields: [treatmentPlanStepId], references: [id], onDelete: SetNull)
   prescriptionRecords Prescription[]
   audits              MedicalRecordAudit[]
 
@@ -697,18 +699,23 @@ model MedicalRecordAudit {
 }
 
 model AiXrayAnalysisAudit {
-  id              String   @id @default(uuid()) @db.Uuid
-  userId          String   @map("user_id") @db.Uuid
-  doctorId        String?  @map("doctor_id") @db.Uuid
-  patientId       String   @map("patient_id") @db.Uuid
-  medicalRecordId String   @map("medical_record_id") @db.Uuid
-  imageId         String   @map("image_id") @db.Uuid
-  status          String
-  errorStatus     String?  @map("error_status")
-  modelVersion    String   @map("model_version")
-  findingCount    Int      @default(0) @map("finding_count")
-  durationMs      Int      @map("duration_ms")
-  createdAt       DateTime @default(now()) @map("created_at")
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @map("user_id") @db.Uuid
+  doctorId         String?   @map("doctor_id") @db.Uuid
+  patientId        String    @map("patient_id") @db.Uuid
+  medicalRecordId  String    @map("medical_record_id") @db.Uuid
+  imageId          String    @map("image_id") @db.Uuid
+  status           String
+  errorStatus      String?   @map("error_status")
+  modelVersion     String    @map("model_version")
+  findingCount     Int       @default(0) @map("finding_count")
+  imageSnapshot    Json?     @map("image_snapshot")
+  resultSnapshot   Json?     @map("result_snapshot")
+  reviewedFindings Json?     @map("reviewed_findings")
+  reviewedBy       String?   @map("reviewed_by") @db.Uuid
+  reviewedAt       DateTime? @map("reviewed_at")
+  durationMs       Int       @map("duration_ms")
+  createdAt        DateTime  @default(now()) @map("created_at")
 
   @@index([userId, createdAt])
   @@index([patientId, createdAt])
@@ -735,8 +742,8 @@ model TreatmentPlan {
   updatedAt             DateTime               @updatedAt @map("updated_at")
   emailQueuedAt         DateTime?              @map("email_queued_at")
 
-  patient       Patient             @relation(fields: [patientId], references: [id], onDelete: Restrict)
-  doctor        Doctor              @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  patient       Patient              @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  doctor        Doctor               @relation(fields: [doctorId], references: [id], onDelete: Restrict)
   steps         TreatmentPlanStep[]
   clinicalCases ClinicalCase[]
   invoices      Invoice[]
@@ -871,24 +878,24 @@ model Invoice {
 }
 
 model Prescription {
-  id                  String   @id @default(uuid()) @db.Uuid
-  medicalRecordId     String   @map("medical_record_id") @db.Uuid
-  treatmentPlanStepId String?  @map("treatment_plan_step_id") @db.Uuid
-  doctorId            String   @map("doctor_id") @db.Uuid
-  patientId           String   @map("patient_id") @db.Uuid
-  notes               String?  @db.Text
-  createdAt           DateTime @default(now()) @map("created_at")
-  updatedAt           DateTime @updatedAt @map("updated_at")
+  id                  String    @id @default(uuid()) @db.Uuid
+  medicalRecordId     String    @map("medical_record_id") @db.Uuid
+  treatmentPlanStepId String?   @map("treatment_plan_step_id") @db.Uuid
+  doctorId            String    @map("doctor_id") @db.Uuid
+  patientId           String    @map("patient_id") @db.Uuid
+  notes               String?   @db.Text
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
   cancelledAt         DateTime? @map("cancelled_at")
   cancelledBy         String?   @map("cancelled_by") @db.Uuid
   emailQueuedAt       DateTime? @map("email_queued_at")
   safetyConfirmedAt   DateTime  @default(now()) @map("safety_confirmed_at")
   safetyOverride      Boolean   @default(false) @map("safety_override")
 
-  medicalRecord     MedicalRecord      @relation(fields: [medicalRecordId], references: [id], onDelete: Restrict)
-  treatmentPlanStep TreatmentPlanStep? @relation(fields: [treatmentPlanStepId], references: [id], onDelete: SetNull)
-  doctor            Doctor             @relation(fields: [doctorId], references: [id], onDelete: Restrict)
-  patient           Patient            @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  medicalRecord     MedicalRecord       @relation(fields: [medicalRecordId], references: [id], onDelete: Restrict)
+  treatmentPlanStep TreatmentPlanStep?  @relation(fields: [treatmentPlanStepId], references: [id], onDelete: SetNull)
+  doctor            Doctor              @relation(fields: [doctorId], references: [id], onDelete: Restrict)
+  patient           Patient             @relation(fields: [patientId], references: [id], onDelete: Restrict)
   items             PrescriptionItem[]
   audits            PrescriptionAudit[]
 
@@ -1008,33 +1015,42 @@ model VideoConsultation {
 }
 
 model PatientAiBrief {
-  id             String           @id @default(uuid()) @db.Uuid
-  patientId      String           @map("patient_id") @db.Uuid
-  doctorId       String?          @map("doctor_id") @db.Uuid
-  createdBy      String           @map("created_by") @db.Uuid
-  consultationId String?          @map("consultation_id") @db.Uuid
-  patientName    String           @map("patient_name")
-  bulletPoints   Json             @map("bullet_points")
-  questionsToAsk Json             @map("questions_to_ask")
-  riskFlags      Json             @map("risk_flags")
-  disclaimer     String           @db.Text
-  sourceData     Json             @map("source_data")
-  provider       String?
-  model          String?
-  feedback       AiBriefFeedback?
-  feedbackNote   String?          @map("feedback_note") @db.Text
-  reviewedAt     DateTime?        @map("reviewed_at")
-  createdAt      DateTime         @default(now()) @map("created_at")
+  id                 String           @id @default(uuid()) @db.Uuid
+  patientId          String           @map("patient_id") @db.Uuid
+  doctorId           String?          @map("doctor_id") @db.Uuid
+  createdBy          String           @map("created_by") @db.Uuid
+  consultationId     String?          @map("consultation_id") @db.Uuid
+  appointmentId      String?          @map("appointment_id") @db.Uuid
+  patientName        String           @map("patient_name")
+  bulletPoints       Json             @map("bullet_points")
+  questionsToAsk     Json             @map("questions_to_ask")
+  riskFlags          Json             @map("risk_flags")
+  disclaimer         String           @db.Text
+  sourceData         Json             @map("source_data")
+  bulletSources      Json             @default("{}") @map("bullet_sources")
+  riskSources        Json             @default("{}") @map("risk_sources")
+  contextFingerprint String?          @map("context_fingerprint")
+  provider           String?
+  model              String?
+  feedback           AiBriefFeedback?
+  feedbackNote       String?          @map("feedback_note") @db.Text
+  reviewedAt         DateTime?        @map("reviewed_at")
+  reviewedBy         String?          @map("reviewed_by") @db.Uuid
+  createdAt          DateTime         @default(now()) @map("created_at")
 
   patient      Patient            @relation(fields: [patientId], references: [id], onDelete: Cascade)
   doctor       Doctor?            @relation(fields: [doctorId], references: [id], onDelete: SetNull)
-  creator      User               @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+  creator      User               @relation("PatientAiBriefCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  reviewer     User?              @relation("PatientAiBriefReviewer", fields: [reviewedBy], references: [id], onDelete: SetNull)
   consultation VideoConsultation? @relation(fields: [consultationId], references: [id], onDelete: SetNull)
+  appointment  Appointment?       @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
 
   @@index([patientId, createdAt])
   @@index([doctorId, createdAt])
   @@index([createdBy, createdAt])
   @@index([consultationId, createdAt])
+  @@index([appointmentId, createdAt])
+  @@index([reviewedBy, reviewedAt])
   @@map("patient_ai_briefs")
 }
 

@@ -68,17 +68,23 @@ describe("BillingPage", () => {
     process.env.TZ = originalTimezone;
   });
 
-  it("does not create a pending payment until the receptionist explicitly creates QR", async () => {
+  it("creates QR automatically for the initially selected unpaid invoice", async () => {
     render(<BillingPage />);
     expect((await screen.findAllByText("Bệnh nhân A")).length).toBeGreaterThan(0);
-    await new Promise((resolve) => setTimeout(resolve, 10));
-    expect(mockedApi.post).not.toHaveBeenCalled();
+
+    await waitFor(() =>
+      expect(mockedApi.post).toHaveBeenCalledWith("/payments", {
+        invoiceId: "A",
+        method: "BANK_TRANSFER",
+        amount: 100_000,
+        promotionCode: undefined,
+      }),
+    );
   });
 
   it("creates QR for the newly selected invoice with that invoice's full balance", async () => {
     render(<BillingPage />);
     fireEvent.click(await screen.findByRole("button", { name: /Bệnh nhân B/ }));
-    fireEvent.click(screen.getByRole("button", { name: "Tạo mã QR" }));
 
     await waitFor(() =>
       expect(mockedApi.post).toHaveBeenCalledWith("/payments", {

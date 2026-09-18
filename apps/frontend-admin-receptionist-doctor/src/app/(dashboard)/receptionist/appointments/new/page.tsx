@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/src/lib/utils/cn";
@@ -26,6 +26,22 @@ type DoctorOpt = {
   status: "AVAILABLE" | "BUSY";
 };
 
+type BookingDoctor = {
+  id: string;
+  specialization?: string;
+  user?: { fullName?: string };
+  availableTimeSlots?: string[];
+};
+
+function mapDoctor(doctor: BookingDoctor): DoctorOpt {
+  return {
+    id: doctor.id,
+    name: formatDoctorName(doctor.user?.fullName ?? "—"),
+    spec: doctor.specialization ?? "",
+    status: doctor.availableTimeSlots?.length ? "AVAILABLE" : "BUSY",
+  };
+}
+
 function NewAppointmentForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -50,6 +66,8 @@ function NewAppointmentForm() {
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [availabilityError, setAvailabilityError] = useState<string | null>(null);
+  const optionsRequestId = useRef(0);
 
   useEffect(() => {
     const load = async () => {
@@ -83,11 +101,7 @@ function NewAppointmentForm() {
         const opts = optionsRes.data as {
           services?: { id: string; name: string }[];
           selectedTreatmentMethodId?: string;
-          doctors?: {
-            id: string;
-            specialization?: string;
-            user?: { fullName?: string };
-          }[];
+          doctors?: BookingDoctor[];
           timeSlots?: string[];
         };
         if (opts.selectedTreatmentMethodId) {
@@ -96,14 +110,7 @@ function NewAppointmentForm() {
         setServices(
           (opts.services ?? []).map((s) => ({ id: s.id, name: s.name })),
         );
-        setDoctors(
-          (opts.doctors ?? []).map((d) => ({
-            id: d.id,
-            name: formatDoctorName(d.user?.fullName ?? "—"),
-            spec: d.specialization ?? "",
-            status: "AVAILABLE" as const,
-          })),
-        );
+        setDoctors((opts.doctors ?? []).map(mapDoctor));
         setTimeSlots(opts.timeSlots ?? []);
       } catch (err) {
         setError(getApiErrorMessage(err, "Không tải được dữ liệu đặt lịch từ máy chủ."));
@@ -115,7 +122,9 @@ function NewAppointmentForm() {
   }, [prefillId, prefillName, prefillPhone]);
 
   useEffect(() => {
+    if (loadingOpts) return;
     if (!serviceId && !selectedDoctor && !date) return;
+    const requestId = ++optionsRequestId.current;
     apiClient
       .get("/appointments/booking-options", {
         params: {
@@ -128,13 +137,21 @@ function NewAppointmentForm() {
       .then((res) => {
         const opts = res.data as {
           timeSlots?: string[];
+          selectedServiceId?: string | null;
           selectedTreatmentMethodId?: string;
-          doctors?: {
-            id: string;
-            specialization?: string;
-            user?: { fullName?: string };
-          }[];
+          doctors?: BookingDoctor[];
         };
+        if (requestId !== optionsRequestId.current) return;
+        if (serviceId && !opts.selectedServiceId) {
+          setTreatmentMethodId("");
+          setSelectedDoctor("");
+          setSelectedTime("");
+          setTimeSlots([]);
+          setDoctors([]);
+          setAvailabilityError("Bác sĩ đã chọn không hỗ trợ dịch vụ này. Vui lòng chọn lại bác sĩ.");
+          return;
+        }
+        setAvailabilityError(null);
         if (opts.selectedTreatmentMethodId) {
           setTreatmentMethodId(opts.selectedTreatmentMethodId);
         }
@@ -142,22 +159,19 @@ function NewAppointmentForm() {
           setTimeSlots(opts.timeSlots);
           if (selectedTime && !opts.timeSlots.includes(selectedTime)) {
             setSelectedTime("");
-            setError("Khung giờ bạn vừa chọn không khả dụng cho bác sĩ này. Vui lòng chọn lại.");
+            setAvailabilityError("Khung giờ bạn vừa chọn không khả dụng cho bác sĩ này. Vui lòng chọn lại.");
           }
         }
         if (opts.doctors) {
-          setDoctors(
-            opts.doctors.map((d) => ({
-              id: d.id,
-              name: formatDoctorName(d.user?.fullName ?? "—"),
-              spec: d.specialization ?? "",
-              status: "AVAILABLE" as const,
-            })),
-          );
+          setDoctors(opts.doctors.map(mapDoctor));
         }
       })
-      .catch(() => undefined);
-  }, [serviceId, selectedDoctor, date, selectedTime]);
+      .catch(() => {
+        if (requestId === optionsRequestId.current) {
+          setAvailabilityError("Không thể kiểm tra khung giờ và bác sĩ khả dụng.");
+        }
+      });
+  }, [serviceId, selectedDoctor, date, selectedTime, loadingOpts]);
 
   const handleSubmit = async () => {
     setError(null);
@@ -175,6 +189,10 @@ function NewAppointmentForm() {
     }
     if (date < localDateStr()) {
       setError("Không thể đặt lịch cho ngày đã qua.");
+      return;
+    }
+    if (checkInMode === "WAITING" && date !== localDateStr()) {
+      setError("Walk-in chỉ được check-in trong ngày hôm nay.");
       return;
     }
 
@@ -252,9 +270,9 @@ function NewAppointmentForm() {
           </div>
         </div>
 
-        {error && (
+        {(error || availabilityError) && (
           <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-            {error}
+            {error || availabilityError}
           </div>
         )}
 
@@ -304,7 +322,12 @@ function NewAppointmentForm() {
                   </label>
                   <select
                     value={serviceId}
-                    onChange={(e) => setServiceId(e.target.value)}
+                    onChange={(e) => {
+                      setServiceId(e.target.value);
+                      setTreatmentMethodId("");
+                      setSelectedDoctor("");
+                      setSelectedTime("");
+                    }}
                     className="w-full rounded-xl border-transparent bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 outline-none transition-all focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand/20 cursor-pointer"
                   >
                     <option value="">-- Chọn dịch vụ --</option>
@@ -330,9 +353,11 @@ function NewAppointmentForm() {
                         type="date"
                         value={date}
                         min={localDateStr()}
+                        max={checkInMode === "WAITING" ? localDateStr() : undefined}
                         onChange={(e) => {
                           setDate(e.target.value);
                           setSelectedTime("");
+                          setSelectedDoctor("");
                         }}
                         className="w-full rounded-xl border-transparent bg-slate-50 py-3 pl-11 pr-4 text-sm font-semibold text-slate-900 outline-none transition-all focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand/20"
                       />
@@ -345,9 +370,15 @@ function NewAppointmentForm() {
                     </label>
                     <select
                       value={checkInMode}
-                      onChange={(e) =>
-                        setCheckInMode(e.target.value as "PENDING" | "WAITING")
-                      }
+                      onChange={(e) => {
+                        const mode = e.target.value as "PENDING" | "WAITING";
+                        setCheckInMode(mode);
+                        if (mode === "WAITING") {
+                          setDate(localDateStr());
+                          setSelectedTime("");
+                          setSelectedDoctor("");
+                        }
+                      }}
                       className="w-full rounded-xl border-transparent bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-900 outline-none transition-all focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand/20 cursor-pointer"
                     >
                       <option value="PENDING">Đặt trước (xác nhận luôn)</option>
@@ -421,8 +452,9 @@ function NewAppointmentForm() {
                       key={doc.id}
                       type="button"
                       onClick={() => setSelectedDoctor(doc.id)}
+                      disabled={doc.status === "BUSY"}
                       className={cn(
-                        "w-full flex flex-col items-start gap-2 rounded-xl border p-4 transition-all text-left active:scale-[0.99]",
+                        "w-full flex flex-col items-start gap-2 rounded-xl border p-4 transition-all text-left active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50",
                         selectedDoctor === doc.id
                           ? "border-brand bg-brand/5 shadow-sm ring-1 ring-inset ring-brand/20"
                           : "border-border bg-white hover:border-brand/50 hover:bg-slate-50",
@@ -439,7 +471,7 @@ function NewAppointmentForm() {
                         {doc.name}
                       </span>
                       <span className="text-xs font-medium text-muted-foreground">
-                        {doc.spec}
+                        {doc.spec}{doc.status === "BUSY" ? " · Hết khung giờ" : ""}
                       </span>
                     </button>
                   ))

@@ -167,6 +167,15 @@ export class TreatmentPlanService {
 
     if (
       dto.startDate &&
+      dto.startDate.slice(0, 10) < new Date().toISOString().slice(0, 10)
+    ) {
+      throw new BadRequestException(
+        'Ngày bắt đầu không được nằm trong quá khứ',
+      );
+    }
+
+    if (
+      dto.startDate &&
       dto.expectedEndDate &&
       new Date(dto.startDate) > new Date(dto.expectedEndDate)
     ) {

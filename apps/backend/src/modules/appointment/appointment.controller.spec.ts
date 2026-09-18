@@ -1,6 +1,16 @@
 import { AppointmentController } from './appointment.controller';
+import { ROLES_KEY } from '../../common/decorators/roles.decorator';
 
 describe('AppointmentController', () => {
+  it('does not authorize receptionists to start an appointment', () => {
+    expect(
+      Reflect.getMetadata(
+        ROLES_KEY,
+        AppointmentController.prototype.startAppointment,
+      ),
+    ).toEqual(['DOCTOR', 'ADMIN']);
+  });
+
   it('passes the receptionist cancellation reason to the service', async () => {
     const appointmentService = {
       cancelByStaff: jest.fn().mockResolvedValue({ id: 'appointment-1' }),

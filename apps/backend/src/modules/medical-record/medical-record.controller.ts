@@ -44,7 +44,8 @@ export class MedicalRecordController {
       patientId,
       appointmentId,
       user,
-      allDoctors === 'true' || (allDoctors === undefined && !!patientId && !doctorId),
+      allDoctors === 'true' ||
+        (allDoctors === undefined && !!patientId && !doctorId),
     );
   }
 
@@ -80,6 +81,10 @@ export class MedicalRecordController {
         file: { type: 'string', format: 'binary' },
         caption: { type: 'string' },
         type: { type: 'string', enum: ['xray', 'intraoral', 'other'] },
+        modality: {
+          type: 'string',
+          enum: ['PANORAMIC', 'PERIAPICAL', 'BITEWING', 'OTHER'],
+        },
       },
     },
   })
@@ -98,7 +103,13 @@ export class MedicalRecordController {
       | undefined,
     @Body('caption') caption?: string,
     @Body('type') type?: 'xray' | 'intraoral' | 'other',
+    @Body('modality')
+    modality?: 'PANORAMIC' | 'PERIAPICAL' | 'BITEWING' | 'OTHER',
   ) {
-    return this.service.uploadImage(id, user, file, { caption, type });
+    return this.service.uploadImage(id, user, file, {
+      caption,
+      type,
+      modality,
+    });
   }
 }

@@ -53,18 +53,10 @@ describe("ReceptionistDashboard", () => {
     mockedApi.patch.mockResolvedValue({ data: {} } as never);
   });
 
-  it("names the clinical transition accurately", async () => {
+  it("does not allow receptionists to start a clinical examination", async () => {
     render(<ReceptionistDashboard />);
-    const start = await screen.findByRole("button", { name: "Bắt đầu khám" });
-
-    fireEvent.click(start);
-
-    await waitFor(() =>
-      expect(mockedApi.patch).toHaveBeenCalledWith(
-        "/appointments/checked-in/start",
-        undefined,
-      ),
-    );
+    await screen.findByText("APT-CHECKED-IN");
+    expect(screen.queryByRole("button", { name: "Bắt đầu khám" })).not.toBeInTheDocument();
     expect(screen.queryByText("Nhắc BS")).not.toBeInTheDocument();
   });
 

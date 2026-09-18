@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { MagnifyingGlassPlus, X } from "@phosphor-icons/react";
 import apiClient from "@/src/lib/api/client";
 import { formatVND } from "../finance-utils";
 
@@ -54,6 +56,7 @@ export function RefundManagementModal({ onClose }: RefundManagementModalProps) {
   const [proofImageUrl, setProofImageUrl] = useState("");
   const [rejectReason, setRejectReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
 
   const proofFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -82,6 +85,15 @@ export function RefundManagementModal({ onClose }: RefundManagementModalProps) {
       document.documentElement.style.overflow = origHtmlOverflow;
     };
   }, []);
+
+  useEffect(() => {
+    if (!enlargedImage) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setEnlargedImage(null);
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [enlargedImage]);
 
   const handleProofFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -276,11 +288,22 @@ export function RefundManagementModal({ onClose }: RefundManagementModalProps) {
 
                     {/* QR Code Quick Scan */}
                     <div className="p-3 bg-white rounded-xl border border-slate-200 flex items-center justify-center gap-3">
-                      <img
-                        src={item.qrCodeUrl || qrScanUrl}
-                        alt="Mã QR Chuyển tiền"
-                        className="w-24 h-24 object-contain rounded-lg border p-1 bg-white shadow-xs"
-                      />
+                      <button
+                        type="button"
+                        aria-label="Phóng to mã QR chuyển tiền"
+                        onClick={() => setEnlargedImage(item.qrCodeUrl || qrScanUrl)}
+                        className="group relative shrink-0 cursor-zoom-in rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={item.qrCodeUrl || qrScanUrl}
+                          alt="Mã QR Chuyển tiền"
+                          className="w-24 h-24 object-contain rounded-lg border p-1 bg-white shadow-xs transition group-hover:brightness-90"
+                        />
+                        <span className="absolute inset-0 flex items-center justify-center rounded-lg bg-slate-900/0 text-white opacity-0 transition group-hover:bg-slate-900/35 group-hover:opacity-100">
+                          <MagnifyingGlassPlus size={22} weight="bold" />
+                        </span>
+                      </button>
                       <div className="space-y-1">
                         <p className="font-bold text-slate-800 text-[11px]">Quét mã VietQR</p>
                         <p className="text-[10px] text-slate-500 leading-relaxed">
@@ -453,6 +476,33 @@ export function RefundManagementModal({ onClose }: RefundManagementModalProps) {
               </form>
             </div>
           </div>
+        )}
+
+        {enlargedImage && createPortal(
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Xem ảnh mã QR chuyển tiền"
+            onClick={() => setEnlargedImage(null)}
+            className="fixed inset-0 z-[70] flex cursor-zoom-out items-center justify-center bg-slate-950/85 p-4 backdrop-blur-sm"
+          >
+            <button
+              type="button"
+              aria-label="Đóng ảnh phóng to"
+              onClick={() => setEnlargedImage(null)}
+              className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/95 text-slate-700 shadow-lg transition hover:bg-white hover:text-slate-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              <X size={22} weight="bold" />
+            </button>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={enlargedImage}
+              alt="Mã QR chuyển tiền phóng to"
+              onClick={(event) => event.stopPropagation()}
+              className="max-h-[88vh] max-w-[92vw] cursor-default rounded-2xl bg-white object-contain p-3 shadow-2xl"
+            />
+          </div>,
+          document.body,
         )}
       </div>
     </div>

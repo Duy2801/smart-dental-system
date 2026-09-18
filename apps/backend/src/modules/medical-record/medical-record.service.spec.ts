@@ -118,6 +118,47 @@ describe('MedicalRecordService - followUpDate validation', () => {
     expect(txMock.medicalRecord.updateMany).toHaveBeenCalled();
   });
 
+  it('rejects relabeling a stored image as Panorama through record update', async () => {
+    prismaMock.medicalRecord.findUnique.mockResolvedValueOnce({
+      id: 'rec-1',
+      doctorId: 'doc-1',
+      images: [
+        {
+          id: 'img-1',
+          url: 'https://res.cloudinary.com/clinic/intraoral.jpg',
+          type: 'intraoral',
+        },
+      ],
+      dentalChart: { teeth: [] },
+      chiefComplaint: null,
+      diagnosis: null,
+      treatmentNotes: null,
+      internalNotes: null,
+      followUpDate: null,
+      updatedAt: new Date(),
+    });
+
+    await expect(
+      service.update(
+        'rec-1',
+        {
+          images: [
+            {
+              id: 'img-1',
+              url: 'https://res.cloudinary.com/clinic/intraoral.jpg',
+              type: 'xray',
+              modality: 'PANORAMIC',
+            },
+          ],
+        },
+        adminUser,
+      ),
+    ).rejects.toThrow(
+      'Không được thêm hoặc thay đổi loại ảnh ngoài chức năng tải ảnh lên',
+    );
+    expect(prismaMock.$transaction).not.toHaveBeenCalled();
+  });
+
   it('supports filtering by appointmentId and returns appointmentId in summary', async () => {
     prismaMock.medicalRecord.findMany = jest.fn().mockResolvedValueOnce([
       {
@@ -251,6 +292,26 @@ describe('MedicalRecordService - followUpDate validation', () => {
         {},
       ),
     ).rejects.toThrow(BadRequestException);
+
+    expect(prismaMock.medicalRecord.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('requires an explicit X-ray modality and rejects modality on non-X-ray images', async () => {
+    const png = {
+      buffer: Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+      mimetype: 'image/png',
+      originalname: 'xray.png',
+    };
+
+    await expect(
+      service.uploadImage('rec-1', adminUser, png, { type: 'xray' }),
+    ).rejects.toThrow('medical_record.xray_modality_required');
+    await expect(
+      service.uploadImage('rec-1', adminUser, png, {
+        type: 'intraoral',
+        modality: 'PANORAMIC',
+      }),
+    ).rejects.toThrow('medical_record.invalid_xray_modality');
 
     expect(prismaMock.medicalRecord.findUnique).not.toHaveBeenCalled();
   });
