@@ -30,6 +30,7 @@ import { BannerModule } from './modules/banner/banner.module';
 import { AiModule } from './modules/ai/ai.module';
 import { SocketModule } from './modules/socket/socket.module';
 import { RefundModule } from './modules/refund/refund.module';
+import { SupportConversationModule } from './modules/support-conversation/support-conversation.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { RefundModule } from './modules/refund/refund.module';
     BannerModule,
     AiModule,
     RefundModule,
+    SupportConversationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

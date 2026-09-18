@@ -51,8 +51,7 @@ export const SocketProvider = ({ children, token }: SocketProviderProps) => {
     }
 
     const socketUrl = getSocketUrl();
-    console.log("[Socket] Connecting to:", socketUrl);
-
+                                                                                                          
     const socketInstance = io(socketUrl, {
       auth: { token },
       transports: ["websocket", "polling"],
@@ -62,22 +61,15 @@ export const SocketProvider = ({ children, token }: SocketProviderProps) => {
     });
 
     socketInstance.on("connect", () => {
-      console.log("[Socket] Connected with ID:", socketInstance.id);
       setIsConnected(true);
     });
 
-    socketInstance.on("disconnect", (reason) => {
-      console.log("[Socket] Disconnected. Reason:", reason);
+    socketInstance.on("disconnect", () => {
       setIsConnected(false);
-    });
-
-    socketInstance.on("connect_error", (err) => {
-      console.warn("[Socket] Connect Error:", err.message);
     });
 
     // Realtime system listeners
     socketInstance.on("notification", (payload: { title?: string; message?: string }) => {
-      console.log("[Socket] Notification event received:", payload);
       toast.info(
         payload?.title || "Thông báo mới",
         payload?.message || "Bạn có thông báo mới từ hệ thống phòng khám.",
@@ -85,8 +77,7 @@ export const SocketProvider = ({ children, token }: SocketProviderProps) => {
       void queryClient.invalidateQueries({ queryKey: ["notifications"] });
     });
 
-    socketInstance.on("payment_updated", (payload) => {
-      console.log("[Socket] Payment updated event received:", payload);
+    socketInstance.on("payment_updated", () => {
       toast.success(
         "Thanh toán thành công!",
         "Hệ thống đã nhận được tiền và xác nhận hóa đơn của bạn.",
@@ -97,14 +88,12 @@ export const SocketProvider = ({ children, token }: SocketProviderProps) => {
       void queryClient.invalidateQueries({ queryKey: ["appointments"] });
     });
 
-    socketInstance.on("consultation_updated", (payload) => {
-      console.log("[Socket] Consultation updated event received:", payload);
+    socketInstance.on("consultation_updated", () => {
       void queryClient.invalidateQueries({ queryKey: ["my-consultations"] });
       void queryClient.invalidateQueries({ queryKey: ["consultations"] });
     });
 
-    socketInstance.on("appointment_updated", (payload) => {
-      console.log("[Socket] Appointment updated event received:", payload);
+    socketInstance.on("appointment_updated", () => {
       void queryClient.invalidateQueries({ queryKey: ["appointments"] });
     });
 

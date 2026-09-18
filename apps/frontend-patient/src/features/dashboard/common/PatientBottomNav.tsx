@@ -26,13 +26,17 @@ type BottomNavItem = {
 const bottomNavItems: BottomNavItem[] = [
   { label: "Trang chủ", href: ROUTES.home, icon: "home" },
   { label: "Lịch hẹn", href: ROUTES.appointment, icon: "calendar" },
-  { label: "Tư vấn", href: ROUTES.consultation, icon: "chat", isSpecial: true },
+  { label: "Tư vấn", href: "", icon: "headset", isSpecial: true },
   { label: "Hồ sơ", href: ROUTES.records, icon: "document" },
   { label: "Tôi", href: ROUTES.profile, icon: "user" },
 ];
 
 export function PatientBottomNav() {
   const pathname = usePathname();
+
+  function openSupportChat() {
+    window.dispatchEvent(new CustomEvent("open-support-chat"));
+  }
 
   return (
     <nav
@@ -51,25 +55,19 @@ export function PatientBottomNav() {
 
           if (item.isSpecial) {
             return (
-              <li key={item.href} className="flex-1 flex justify-center">
-                <Link
-                  href={item.href}
-                  aria-current={isActive ? "page" : undefined}
+              <li key={item.label} className="flex-1 flex justify-center">
+                <button
+                  type="button"
+                  onClick={openSupportChat}
                   className="relative -mt-5 flex flex-col items-center group active:scale-95 transition-transform"
                 >
-                  <div
-                    className={`grid h-12 w-12 place-items-center rounded-full shadow-lg border-2 border-white transition-all ${
-                      isActive
-                        ? "bg-[#004899] text-white shadow-blue-500/40 ring-2 ring-blue-300 scale-105"
-                        : "bg-[#0058bc] text-white shadow-blue-500/30 hover:bg-[#004899]"
-                    }`}
-                  >
+                  <div className="grid h-12 w-12 place-items-center rounded-full border-2 border-white bg-gradient-to-br from-[#0863c5] to-[#0058bc] text-white shadow-lg shadow-blue-500/30 transition-all hover:from-[#0756aa] hover:to-[#004899]">
                     <DashboardIcon name={item.icon} className="h-6 w-6 text-white" />
                   </div>
                   <span className="mt-1 text-[10px] font-bold text-[#0058bc]">
                     {item.label}
                   </span>
-                </Link>
+                </button>
               </li>
             );
           }

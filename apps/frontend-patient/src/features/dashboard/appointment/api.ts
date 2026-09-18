@@ -1,4 +1,8 @@
 import apiClient from "@/lib/axios";
+import {
+  normalizeClinicLunchBreak,
+  type ClinicLunchBreak,
+} from "@/lib/clinic-schedule";
 import axios from "axios";
 import type { DashboardIconName } from "../common/DashboardIcon";
 import type { AppointmentService, BookingDate, Dentist } from "./types";
@@ -43,6 +47,7 @@ type BookingOptionsDto = {
   dates: BookingDate[];
   timeSlots: string[];
   slotIntervalMinutes?: number;
+  lunchBreak?: ClinicLunchBreak;
 };
 
 export type BookingOptionsQuery = {
@@ -344,6 +349,7 @@ export async function getAppointmentOptions(query: BookingOptionsQuery = {}) {
     dates: response.data.dates,
     timeSlots: response.data.timeSlots,
     slotIntervalMinutes: response.data.slotIntervalMinutes ?? 30,
+    lunchBreak: normalizeClinicLunchBreak(response.data.lunchBreak),
   };
 }
 

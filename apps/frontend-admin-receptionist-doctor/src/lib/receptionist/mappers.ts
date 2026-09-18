@@ -8,13 +8,16 @@ export function localDateStr(d: Date = new Date()): string {
     month: "2-digit",
     day: "2-digit",
   }).formatToParts(d);
-  const value = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+  const value = Object.fromEntries(
+    parts.map(({ type, value }) => [type, value]),
+  );
   return `${value.year}-${value.month}-${value.day}`;
 }
 
 /** Prisma appointment include shape from backend */
 export type ApiAppointment = {
   id: string;
+  treatmentMethodId?: string | null;
   appointmentCode?: string;
   scheduledAt: string;
   endAt?: string | null;
@@ -40,10 +43,16 @@ export type ApiAppointment = {
     user?: { fullName?: string | null } | null;
   } | null;
   service?: { id?: string; name?: string | null } | null;
+  treatmentMethod?: {
+    id: string;
+    durationMinutes?: number | null;
+  } | null;
 };
 
 export type ReceptionistAppointment = {
   id: string;
+  treatmentMethodId?: string;
+  durationMinutes: number;
   appointmentCode: string;
   startTime: string;
   endTime?: string;
@@ -102,7 +111,12 @@ const PAID_PAYMENT_STATUSES = new Set([
   "WAIVED",
 ]);
 
-const INVOICE_PRIORITY = ["FINAL_PAYMENT", "STEP_PAYMENT", "SERVICE", "DEPOSIT"];
+const INVOICE_PRIORITY = [
+  "FINAL_PAYMENT",
+  "STEP_PAYMENT",
+  "SERVICE",
+  "DEPOSIT",
+];
 
 function invoicePriority(type?: string): number {
   const index = INVOICE_PRIORITY.indexOf(type ?? "");
@@ -112,14 +126,19 @@ function invoicePriority(type?: string): number {
 export function mapAppointment(raw: ApiAppointment): ReceptionistAppointment {
   const paymentStatus = raw.paymentStatus ?? "";
   const billingInvoiceId = raw.invoices
-    ?.filter((invoice) => ["DRAFT", "ISSUED", "PARTIALLY_PAID"].includes(invoice.status))
+    ?.filter((invoice) =>
+      ["DRAFT", "ISSUED", "PARTIALLY_PAID"].includes(invoice.status),
+    )
     .sort((a, b) => {
-      const typeOrder = invoicePriority(a.invoiceType) - invoicePriority(b.invoiceType);
+      const typeOrder =
+        invoicePriority(a.invoiceType) - invoicePriority(b.invoiceType);
       if (typeOrder) return typeOrder;
       return (b.issuedAt ?? "").localeCompare(a.issuedAt ?? "");
     })[0]?.id;
   return {
     id: raw.id,
+    treatmentMethodId: raw.treatmentMethodId ?? raw.treatmentMethod?.id,
+    durationMinutes: raw.treatmentMethod?.durationMinutes ?? 30,
     appointmentCode: raw.appointmentCode ?? raw.id.slice(0, 8).toUpperCase(),
     startTime: timeFromIso(raw.scheduledAt),
     endTime: raw.endAt ? timeFromIso(raw.endAt) : undefined,
@@ -134,7 +153,8 @@ export function mapAppointment(raw: ApiAppointment): ReceptionistAppointment {
     patient: raw.patient
       ? {
           id: raw.patient.id,
-          fullName: raw.patient.fullName ?? raw.patient.user?.fullName ?? "Khách",
+          fullName:
+            raw.patient.fullName ?? raw.patient.user?.fullName ?? "Khách",
           phone: raw.patient.phone ?? raw.patient.user?.phone ?? "",
         }
       : null,
@@ -150,7 +170,9 @@ export function mapAppointment(raw: ApiAppointment): ReceptionistAppointment {
   };
 }
 
-export function mapAppointments(list: ApiAppointment[] | unknown): ReceptionistAppointment[] {
+export function mapAppointments(
+  list: ApiAppointment[] | unknown,
+): ReceptionistAppointment[] {
   if (!Array.isArray(list)) return [];
   return list.map((item) => mapAppointment(item as ApiAppointment));
 }

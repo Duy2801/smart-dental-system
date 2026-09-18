@@ -10,7 +10,7 @@ export type LoginUser = {
   emailVerified: boolean;
 };
 
-type LoginState = {
+export type LoginState = {
   user: LoginUser | null;
   accessToken: string;
   role: string;
@@ -21,6 +21,10 @@ type LoginState = {
 
 type LoginPayload = {
   user: LoginUser;
+  accessToken: string;
+};
+
+type SessionTokensPayload = {
   accessToken: string;
 };
 
@@ -49,6 +53,13 @@ export const loginSlice = createSlice({
       state.accessToken = action.payload;
       state.isAuthenticated = Boolean(state.user && action.payload);
     },
+    updateSessionTokens: (
+      state,
+      action: PayloadAction<SessionTokensPayload>,
+    ) => {
+      state.accessToken = action.payload.accessToken;
+      state.isAuthenticated = Boolean(state.user && action.payload.accessToken);
+    },
     finishHydration: (state) => {
       state.isHydrated = true;
     },
@@ -61,6 +72,12 @@ export const loginSlice = createSlice({
   },
 });
 
-export const { login, logout, updateAccessToken, finishHydration } = loginSlice.actions;
+export const {
+  login,
+  logout,
+  updateAccessToken,
+  updateSessionTokens,
+  finishHydration,
+} = loginSlice.actions;
 
 export default loginSlice.reducer;

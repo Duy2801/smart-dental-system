@@ -3,7 +3,8 @@ import { getPatientRecords } from "../api";
 
 export const recordsQueryKeys = {
   all: ["patient", "records"] as const,
-  detail: (patientId?: string) => ["patient", "records", patientId ?? "me"] as const,
+  detail: (patientId?: string) =>
+    ["patient", "records", patientId ?? "me"] as const,
 };
 
 export function usePatientRecordsQuery(patientId?: string, enabled = true) {
@@ -11,8 +12,9 @@ export function usePatientRecordsQuery(patientId?: string, enabled = true) {
     queryKey: recordsQueryKeys.detail(patientId),
     queryFn: () => getPatientRecords(patientId),
     enabled,
-    staleTime: 5 * 60 * 1000, // 5 minutes cache
-    gcTime: 30 * 60 * 1000,
-    refetchOnWindowFocus: false,
+    staleTime: 15 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
 }

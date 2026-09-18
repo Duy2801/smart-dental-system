@@ -248,3 +248,81 @@ describe('AppointmentService clinic-time rules', () => {
     expect(result.timeSlots).toEqual([]);
   });
 });
+
+describe('AppointmentService doctor availability rules', () => {
+  type AppointmentServiceInternals = {
+    isDoctorWorking(
+      doctorId: string,
+      startAt: Date,
+      endAt: Date,
+    ): Promise<boolean>;
+    isDoctorBookableFromSnapshot(
+      doctorId: string,
+      startAt: Date,
+      endAt: Date,
+      recordsByDoctor: Map<string, unknown[]>,
+      appointmentsByDoctor: Map<string, unknown[]>,
+      dateStr: string,
+    ): boolean;
+  };
+
+  const prisma = {
+    doctorAvailability: { findMany: jest.fn() },
+  };
+  const clinicConfig = {
+    getClinicScheduleConfig: jest.fn(),
+  };
+  const service = new AppointmentService(
+    prisma as never,
+    clinicConfig as never,
+    {} as never,
+    {} as never,
+    {} as never,
+  );
+  const serviceInternals = service as unknown as AppointmentServiceInternals;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    prisma.doctorAvailability.findMany.mockResolvedValue([]);
+    clinicConfig.getClinicScheduleConfig.mockResolvedValue({
+      businessHours: [
+        {
+          id: 6,
+          isOpen: true,
+          start: '08:00',
+          end: '12:00',
+        },
+      ],
+      specialDates: [],
+    });
+  });
+
+  it('does not treat clinic business hours as a doctor schedule', async () => {
+    const startAt = new Date('2026-09-19T01:00:00.000Z');
+    const endAt = new Date('2026-09-19T02:00:00.000Z');
+
+    await expect(
+      serviceInternals.isDoctorWorking(
+        'doctor-without-schedule',
+        startAt,
+        endAt,
+      ),
+    ).resolves.toBe(false);
+  });
+
+  it('does not expose a doctor without approved availability in slot snapshots', () => {
+    const startAt = new Date('2026-09-19T01:00:00.000Z');
+    const endAt = new Date('2026-09-19T02:00:00.000Z');
+
+    expect(
+      serviceInternals.isDoctorBookableFromSnapshot(
+        'doctor-without-schedule',
+        startAt,
+        endAt,
+        new Map(),
+        new Map(),
+        '2026-09-19',
+      ),
+    ).toBe(false);
+  });
+});

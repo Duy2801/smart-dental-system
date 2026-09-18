@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 
 import {
@@ -93,10 +94,12 @@ function ServiceVisual({ service }: { service: HomeServiceCard }) {
   return (
     <div className="relative h-full w-full min-h-[360px] lg:min-h-full grid place-items-center overflow-hidden bg-[#003882]">
       {service.imageUrl ? (
-        <img
+        <Image
           src={service.imageUrl}
           alt={service.imageAlt}
-          className="absolute inset-0 h-full w-full object-cover opacity-65 transition duration-700 ease-out"
+          fill
+          sizes="(max-width: 1024px) 100vw, 45vw"
+          className="object-cover opacity-65 transition duration-700 ease-out"
         />
       ) : null}
       {/* Seamless blend gradient from left hero background */}
@@ -156,9 +159,13 @@ export function HomeHeroSlideshow() {
         {currentBanner.imageUrl ? (
           <div key={currentBanner.id} className="relative w-full overflow-hidden animate-[hero-in_.55s_ease-out]">
             <Link href={currentBanner.linkUrl || buildRoute.appointmentBooking()} className="block w-full">
-              <img
+              <Image
                 src={currentBanner.imageUrl}
                 alt={currentBanner.title}
+                width={1360}
+                height={560}
+                sizes="100vw"
+                priority
                 className="w-full h-auto max-h-[560px] object-cover sm:object-fill"
               />
             </Link>
@@ -469,9 +476,12 @@ function DoctorCardContent({
         <div className="relative h-44 sm:h-60 lg:h-full flex items-end justify-center lg:justify-end overflow-hidden">
           <div className="absolute bottom-0 w-40 h-40 sm:w-56 sm:h-56 lg:w-68 lg:h-68 rounded-full bg-[#d0e2fe] z-0 pointer-events-none" />
           <div className="relative z-10 h-full w-auto max-w-full flex items-end">
-            <img
+            <Image
               src={doctor.avatarUrl || "/dsbacsi.png"}
               alt={doctor.name}
+              width={340}
+              height={520}
+              sizes="(max-width: 1024px) 60vw, 340px"
               className="h-full w-auto object-contain object-bottom drop-shadow-md max-h-[220px] sm:max-h-[320px] lg:max-h-none"
             />
           </div>

@@ -37,6 +37,19 @@ export class BusinessHourDto {
   end: string;
 }
 
+export class LunchBreakDto {
+  @IsBoolean()
+  isEnabled: boolean;
+
+  @IsString()
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/)
+  start: string;
+
+  @IsString()
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/)
+  end: string;
+}
+
 export class ClinicSpecialDateDto {
   @IsDateString()
   date: string;
@@ -85,6 +98,11 @@ export class UpdateClinicConfigDto {
   @ValidateNested({ each: true })
   @Type(() => BusinessHourDto)
   businessHours?: BusinessHourDto[];
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => LunchBreakDto)
+  lunchBreak?: LunchBreakDto;
 
   @IsOptional()
   @IsInt()

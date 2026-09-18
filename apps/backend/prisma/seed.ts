@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import * as bcrypt from 'bcryptjs';
 import { PrismaClient } from './generated/client';
+import { buildRetainedSeedCounts } from './seed-retention-policy';
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
@@ -15,6 +16,10 @@ const prisma = new PrismaClient({
 const TEST_PASSWORD = 'Test@123456';
 const now = new Date();
 const dayMs = 24 * 60 * 60 * 1000;
+const retainedSeedCounts = buildRetainedSeedCounts({
+  prescriptionCount: 3,
+  clinicalCaseCount: 3,
+});
 
 const addDays = (days: number) => new Date(now.getTime() + days * dayMs);
 const dateOnly = (value: string) => new Date(`${value}T00:00:00.000Z`);
@@ -92,21 +97,7 @@ const clinicProfileConfigs = [
   configDate: null,
 }));
 
-const legacyClinicConfigs = Array.from({ length: 10 }, (_, index) => ({
-  configType: index < 5 ? 'BUSINESS' : 'SYSTEM',
-  configKey: `seed.config.${String(index + 1).padStart(2, '0')}`,
-  configValue:
-    index === 0
-      ? 'Smart Dental Clinic'
-      : index === 1
-        ? '08:00'
-        : index === 2
-          ? '18:00'
-          : `Seed configuration value ${index + 1}`,
-  configDate: index < 3 ? null : addDays(index),
-}));
-
-const clinicConfigs = [...clinicProfileConfigs, ...legacyClinicConfigs];
+const clinicConfigs = clinicProfileConfigs;
 
 const adminUsers = [
   {
@@ -202,58 +193,6 @@ const patientSeeds = [
     address: '56 Cách Mạng Tháng 8, Q.3, TP.HCM',
     emergencyContactName: 'Đỗ Văn Nam',
     emergencyContactPhone: '0944556688',
-    medicalHistory: 'Sensitive teeth and mild gum bleeding.',
-  },
-  {
-    email: 'patient07@smartdental.test',
-    fullName: 'Võ Quang Dũng',
-    phone: '0955667788',
-    patientCode: 'PAT-SEED-007',
-    dateOfBirth: dateOnly('1982-12-01'),
-    gender: 'MALE' as const,
-    status: 'ACTIVE' as const,
-    address: '9 Nguyễn Đình Chiểu, Q.1, TP.HCM',
-    emergencyContactName: 'Võ Thị Mai',
-    emergencyContactPhone: '0955667799',
-    medicalHistory: 'No significant medical history.',
-  },
-  {
-    email: 'patient08@smartdental.test',
-    fullName: 'Bùi Ngọc Mai',
-    phone: '0966778899',
-    patientCode: 'PAT-SEED-008',
-    dateOfBirth: dateOnly('1998-04-22'),
-    gender: 'FEMALE' as const,
-    status: 'ACTIVE' as const,
-    address: '77 Điện Biên Phủ, Bình Thạnh, TP.HCM',
-    emergencyContactName: 'Bùi Văn Sơn',
-    emergencyContactPhone: '0966778800',
-    medicalHistory: 'Dị ứng: Penicillin',
-  },
-  {
-    email: 'patient09@smartdental.test',
-    fullName: 'Phan Văn Đức',
-    phone: '0977001122',
-    patientCode: 'PAT-SEED-009',
-    dateOfBirth: dateOnly('1979-08-30'),
-    gender: 'MALE' as const,
-    status: 'INACTIVE' as const,
-    address: '15 Hoàng Sa, Q.1, TP.HCM',
-    emergencyContactName: 'Phan Thị Yến',
-    emergencyContactPhone: '0977001133',
-    medicalHistory: 'No significant medical history.',
-  },
-  {
-    email: 'patient10@smartdental.test',
-    fullName: 'Lý Thị Hương',
-    phone: '0988112233',
-    patientCode: 'PAT-SEED-010',
-    dateOfBirth: dateOnly('1993-06-05'),
-    gender: 'FEMALE' as const,
-    status: 'SUSPENDED' as const,
-    address: '3 Trường Sa, Phú Nhuận, TP.HCM',
-    emergencyContactName: 'Lý Văn Tài',
-    emergencyContactPhone: '0988112244',
     medicalHistory: 'Sensitive teeth and mild gum bleeding.',
   },
 ];
@@ -585,21 +524,6 @@ const services = [
     displayOrder: 8,
   },
 ];
-
-const obsoleteServiceSlugFallbacks: Record<string, string> = {
-  'dental-checkup': 'nha-khoa-tong-quat',
-  'teeth-cleaning': 'nha-khoa-tong-quat',
-  'dental-filling': 'nha-khoa-tong-quat',
-  'root-canal-treatment': 'nha-khoa-tong-quat',
-  'tooth-extraction': 'nho-rang-khon',
-  'braces-consultation': 'nieng-rang',
-  'nieng-rang-trong-suot': 'nieng-rang',
-  'teeth-whitening': 'dan-su-veneer',
-  'dental-crown': 'boc-rang-su',
-  'boc-su-tham-my': 'boc-rang-su',
-  'implant-consultation': 'trong-rang-implant',
-  'kids-dental-care': 'nha-khoa-tre-em',
-};
 
 const treatmentMethodsBySlug = {
   'trong-rang-implant': [
@@ -1576,53 +1500,6 @@ async function seedBaseData() {
 
   await cleanGeneratedSampleData();
 
-  const activeServiceSlugs = services.map((service) => service.slug);
-  const serviceIdsBySlug = new Map(
-    (
-      await prisma.service.findMany({
-        where: { slug: { in: activeServiceSlugs } },
-        select: { id: true, slug: true },
-      })
-    ).map((service) => [service.slug, service.id]),
-  );
-
-  for (const [obsoleteSlug, fallbackSlug] of Object.entries(
-    obsoleteServiceSlugFallbacks,
-  )) {
-    const fallbackId = serviceIdsBySlug.get(fallbackSlug);
-    if (!fallbackId) continue;
-
-    const obsoleteService = await prisma.service.findUnique({
-      where: { slug: obsoleteSlug },
-      select: { id: true },
-    });
-
-    if (!obsoleteService) continue;
-
-    const obsoleteMethods = await prisma.treatmentMethod.findMany({
-      where: { serviceId: obsoleteService.id },
-      select: { id: true },
-    });
-    if (obsoleteMethods.length > 0) {
-      await prisma.appointment.deleteMany({
-        where: { treatmentMethodId: { in: obsoleteMethods.map((m) => m.id) } },
-      });
-    }
-    await prisma.clinicalCase.updateMany({
-      where: { serviceId: obsoleteService.id },
-      data: { serviceId: fallbackId },
-    });
-  }
-
-  await prisma.service.deleteMany({
-    where: {
-      OR: [{ slug: { notIn: activeServiceSlugs } }, { slug: null }],
-    },
-  });
-
-  await prisma.appointment.deleteMany({});
-  await prisma.treatmentMethod.deleteMany({});
-
   const createdServices: Array<{
     id: string;
     name: string;
@@ -1671,10 +1548,6 @@ async function seedBaseData() {
       });
     }
 
-    await prisma.treatmentMethod.deleteMany({
-      where: { serviceId: service.id },
-    });
-
     const methodsData = treatmentMethodsBySlug[serviceSeed.slug] || [];
     for (let index = 0; index < methodsData.length; index++) {
       const tm = methodsData[index];
@@ -1682,48 +1555,65 @@ async function seedBaseData() {
         ...tm,
         ...(treatmentMethodSeedOverrides[tm.slug] ?? {}),
       };
-      await prisma.treatmentMethod.create({
-        data: {
-          serviceId: service.id,
-          name: methodSeed.name,
-          slug: methodSeed.slug,
-          description: methodSeed.description,
-          imageUrl: treatmentMethodImages[methodSeed.slug] ?? (methodSeed as any).imageUrl ?? tm.media?.[0]?.url ?? null,
-          basePrice: methodSeed.basePrice,
-          durationMinutes: methodSeed.durationMinutes,
-          displayOrder: index + 1,
-          isActive: true,
-          media: {
-            create: tm.media.map((m, mIndex) => ({
-              url: m.url,
-              alt: m.alt,
-              type: m.type,
-              sortOrder: mIndex + 1,
-            })),
-          },
-          procedureSteps: {
-            create: tm.steps.map(([title, description, durationMinutes], stepIndex) => ({
-              stepOrder: stepIndex + 1,
-              title,
-              description,
-              durationMinutes,
-            })),
-          },
-          faqs: {
-            create: tm.faqs.map(([question, answer], faqIndex) => ({
-              question,
-              answer,
-              sortOrder: faqIndex + 1,
-            })),
-          },
-        },
+      const methodData = {
+        serviceId: service.id,
+        name: methodSeed.name,
+        slug: methodSeed.slug,
+        description: methodSeed.description,
+        imageUrl: treatmentMethodImages[methodSeed.slug] ?? (methodSeed as any).imageUrl ?? tm.media?.[0]?.url ?? null,
+        basePrice: methodSeed.basePrice,
+        durationMinutes: methodSeed.durationMinutes,
+        displayOrder: index + 1,
+        isActive: true,
+      };
+      const treatmentMethod = await prisma.treatmentMethod.upsert({
+        where: { slug: methodSeed.slug },
+        update: methodData,
+        create: methodData,
+        select: { id: true },
+      });
+
+      await prisma.serviceMedia.deleteMany({
+        where: { treatmentMethodId: treatmentMethod.id },
+      });
+      await prisma.serviceProcedureStep.deleteMany({
+        where: { treatmentMethodId: treatmentMethod.id },
+      });
+      await prisma.serviceFaq.deleteMany({
+        where: { treatmentMethodId: treatmentMethod.id },
+      });
+
+      await prisma.serviceMedia.createMany({
+        data: tm.media.map((media, mediaIndex) => ({
+          treatmentMethodId: treatmentMethod.id,
+          url: media.url,
+          alt: media.alt,
+          type: media.type,
+          sortOrder: mediaIndex + 1,
+        })),
+      });
+      await prisma.serviceProcedureStep.createMany({
+        data: tm.steps.map(([title, description, durationMinutes], stepIndex) => ({
+          treatmentMethodId: treatmentMethod.id,
+          stepOrder: stepIndex + 1,
+          title,
+          description,
+          durationMinutes,
+        })),
+      });
+      await prisma.serviceFaq.createMany({
+        data: tm.faqs.map(([question, answer], faqIndex) => ({
+          treatmentMethodId: treatmentMethod.id,
+          question,
+          answer,
+          sortOrder: faqIndex + 1,
+        })),
       });
     }
 
     createdServices.push(service);
   }
 
-  await prisma.promotion.deleteMany({});
   const createdPromotions: Array<{ id: string }> = [];
   for (const promotionItem of promotions) {
     const { applicableTreatmentMethodSlug, ...promoData } = promotionItem as any;
@@ -1758,32 +1648,197 @@ async function seedBaseData() {
 }
 
 async function cleanGeneratedSampleData() {
-  await prisma.review.deleteMany({});
-  await prisma.prescriptionItem.deleteMany({});
-  await prisma.prescription.deleteMany({});
-  await prisma.clinicalCase.deleteMany({});
-  await prisma.payment.deleteMany({});
-  await prisma.invoice.deleteMany({});
-  await prisma.medicalRecord.deleteMany({});
-  await prisma.treatmentPlanStep.deleteMany({});
-  await prisma.treatmentPlan.deleteMany({});
-  await prisma.chatbotConversation.deleteMany({});
-  await prisma.videoConsultation.deleteMany({});
-  await prisma.doctorAvailability.deleteMany({});
-  await prisma.appointment.deleteMany({});
-  await prisma.notification.deleteMany({});
+  await prisma.notification.deleteMany({
+    where: {
+      OR: [
+        { type: { startsWith: 'SEED_' } },
+        { title: { startsWith: 'Seed Marketing -' } },
+      ],
+    },
+  });
+  await prisma.review.deleteMany({
+    where: { comment: { startsWith: 'Seed review ' } },
+  });
+  await prisma.clinicalCase.deleteMany({
+    where: { title: { startsWith: 'Seed clinical case -' } },
+  });
+
+  // ── Invoice → Payment (FK: payments_invoice_id_fkey) ──────────────────
+  const seedInvoices = await prisma.invoice.findMany({
+    where: { invoiceCode: { startsWith: 'INV-SEED-' } },
+    select: { id: true },
+  });
+  if (seedInvoices.length > 0) {
+    await prisma.payment.deleteMany({
+      where: { invoiceId: { in: seedInvoices.map((inv) => inv.id) } },
+    });
+  }
+  await prisma.payment.deleteMany({
+    where: { transactionRef: { startsWith: 'SEED-PAY-' } },
+  });
+  await prisma.invoice.deleteMany({
+    where: { invoiceCode: { startsWith: 'INV-SEED-' } },
+  });
+
+  // ── MedicalRecord → Prescription → PrescriptionItem (FK chains) ───────
+  const seedMedicalRecords = await prisma.medicalRecord.findMany({
+    where: { chiefComplaint: { startsWith: 'Seed complaint ' } },
+    select: { id: true },
+  });
+  if (seedMedicalRecords.length > 0) {
+    const seedMrIds = seedMedicalRecords.map((r) => r.id);
+    await prisma.prescriptionItem.deleteMany({
+      where: { prescription: { medicalRecordId: { in: seedMrIds } } },
+    });
+    await prisma.prescription.deleteMany({
+      where: { medicalRecordId: { in: seedMrIds } },
+    });
+  }
+  // Xóa prescription còn lại theo prefix notes (format seed cũ không liên kết medicalRecord)
+  await prisma.prescriptionItem.deleteMany({
+    where: { prescription: { notes: { startsWith: 'Seed prescription ' } } },
+  });
+  await prisma.prescription.deleteMany({
+    where: { notes: { startsWith: 'Seed prescription ' } },
+  });
+  await prisma.medicalRecord.deleteMany({
+    where: { chiefComplaint: { startsWith: 'Seed complaint ' } },
+  });
+  await prisma.treatmentPlan.deleteMany({
+    where: { title: { startsWith: 'Seed Treatment Plan ' } },
+  });
+  await prisma.chatbotConversation.deleteMany({
+    where: { sessionId: { startsWith: 'seed-session-' } },
+  });
+  await prisma.videoConsultation.deleteMany({
+    where: { notes: { startsWith: 'Seed video consultation ' } },
+  });
+  await prisma.doctorAvailability.deleteMany({
+    where: { reason: { startsWith: 'Seed availability' } },
+  });
+
+  // ── Appointment: xóa tất cả children còn lại theo ID trước ────────────────
+  // Bắt cả format mới (APT-SEED-) và format cũ (APT-YYYYMMDD-)
+  const seedAppointments = await prisma.appointment.findMany({
+    where: {
+      OR: [
+        { appointmentCode: { startsWith: 'APT-SEED-' } },
+        { appointmentCode: { contains: '-2025' } },
+        { appointmentCode: { contains: '-2026' } },
+      ],
+    },
+    select: { id: true },
+  });
+  if (seedAppointments.length > 0) {
+    const seedApptIds = seedAppointments.map((a) => a.id);
+    // MedicalRecord chưa bị xóa (prefix không khớp) vẫn có thể trỏ vào appointment
+    const apptMedicalRecords = await prisma.medicalRecord.findMany({
+      where: { appointmentId: { in: seedApptIds } },
+      select: { id: true },
+    });
+    if (apptMedicalRecords.length > 0) {
+      const apptMrIds = apptMedicalRecords.map((r) => r.id);
+      await prisma.prescriptionItem.deleteMany({
+        where: { prescription: { medicalRecordId: { in: apptMrIds } } },
+      });
+      await prisma.prescription.deleteMany({
+        where: { medicalRecordId: { in: apptMrIds } },
+      });
+      await prisma.medicalRecord.deleteMany({
+        where: { id: { in: apptMrIds } },
+      });
+    }
+    // Invoice/payment liên kết với appointment (nếu có)
+    const apptInvoices = await prisma.invoice.findMany({
+      where: { appointmentId: { in: seedApptIds } },
+      select: { id: true },
+    });
+    if (apptInvoices.length > 0) {
+      const apptInvIds = apptInvoices.map((inv) => inv.id);
+      await prisma.payment.deleteMany({
+        where: { invoiceId: { in: apptInvIds } },
+      });
+      await prisma.invoice.deleteMany({
+        where: { id: { in: apptInvIds } },
+      });
+    }
+  }
+  await prisma.appointment.deleteMany({
+    where: {
+      OR: [
+        { appointmentCode: { startsWith: 'APT-SEED-' } },
+        { appointmentCode: { contains: '-2025' } },
+        { appointmentCode: { contains: '-2026' } },
+      ],
+    },
+  });
+
+  const obsoletePatients = await prisma.patient.findMany({
+    where: {
+      patientCode: {
+        in: ['PAT-SEED-007', 'PAT-SEED-008', 'PAT-SEED-009', 'PAT-SEED-010'],
+      },
+    },
+    select: { id: true, userId: true },
+  });
+  if (obsoletePatients.length > 0) {
+    const patientIds = obsoletePatients.map((patient) => patient.id);
+    const userIds = obsoletePatients
+      .map((patient) => patient.userId)
+      .filter((userId): userId is string => Boolean(userId));
+
+    // Cascade xóa tất cả data liên kết theo patientId (đúng thứ tự FK)
+    await prisma.refundRequest.deleteMany({ where: { patientId: { in: patientIds } } });
+
+    // Appointment và tất cả children của chúng
+    const obsPtAppts = await prisma.appointment.findMany({
+      where: { patientId: { in: patientIds } },
+      select: { id: true },
+    });
+    if (obsPtAppts.length > 0) {
+      const obsPtApptIds = obsPtAppts.map((a) => a.id);
+      await prisma.clinicalCase.deleteMany({ where: { appointmentId: { in: obsPtApptIds } } });
+      const obsMrs = await prisma.medicalRecord.findMany({
+        where: { appointmentId: { in: obsPtApptIds } },
+        select: { id: true },
+      });
+      if (obsMrs.length > 0) {
+        const obsMrIds = obsMrs.map((r) => r.id);
+        await prisma.prescriptionItem.deleteMany({ where: { prescription: { medicalRecordId: { in: obsMrIds } } } });
+        await prisma.prescription.deleteMany({ where: { medicalRecordId: { in: obsMrIds } } });
+        await prisma.medicalRecord.deleteMany({ where: { id: { in: obsMrIds } } });
+      }
+      const obsInvs = await prisma.invoice.findMany({
+        where: { appointmentId: { in: obsPtApptIds } },
+        select: { id: true },
+      });
+      if (obsInvs.length > 0) {
+        await prisma.payment.deleteMany({ where: { invoiceId: { in: obsInvs.map((i) => i.id) } } });
+        await prisma.invoice.deleteMany({ where: { id: { in: obsInvs.map((i) => i.id) } } });
+      }
+      await prisma.appointment.deleteMany({ where: { id: { in: obsPtApptIds } } });
+    }
+
+    // Các bảng trỏ trực tiếp vào patient
+    await prisma.prescription.deleteMany({ where: { patientId: { in: patientIds } } });
+    await prisma.clinicalCase.deleteMany({ where: { patientId: { in: patientIds } } });
+    await prisma.treatmentPlan.deleteMany({ where: { patientId: { in: patientIds } } });
+    await prisma.medicalRecord.deleteMany({ where: { patientId: { in: patientIds } } });
+    await prisma.review.deleteMany({ where: { patientId: { in: patientIds } } });
+    await prisma.notification.deleteMany({ where: { userId: { in: userIds } } });
+    await prisma.chatbotConversation.deleteMany({ where: { patientId: { in: patientIds } } });
+    await prisma.videoConsultation.deleteMany({ where: { patientId: { in: patientIds } } });
+    await prisma.patientAccount.deleteMany({ where: { patientId: { in: patientIds } } });
+    await prisma.patient.deleteMany({ where: { id: { in: patientIds } } });
+    await prisma.user.deleteMany({ where: { id: { in: userIds } } });
+  }
 }
 
 async function seedRelatedData(
   context: Awaited<ReturnType<typeof seedBaseData>>,
 ) {
-  await cleanGeneratedSampleData();
-
   const servicesBySlug = Object.fromEntries(
     context.services.map((s) => [s.slug, s]),
-  );
-  const servicesById = Object.fromEntries(
-    context.services.map((s) => [s.id, s]),
   );
   const seededTreatmentMethods = await prisma.treatmentMethod.findMany({
     where: { serviceId: { in: context.services.map((service) => service.id) } },
@@ -1795,42 +1850,6 @@ async function seedRelatedData(
   const treatmentMethodsById = Object.fromEntries(
     seededTreatmentMethods.map((method) => [method.id, method]),
   );
-
-  for (let index = 0; index < 10; index += 1) {
-    await prisma.doctorAvailability.create({
-      data: {
-        doctorId: context.doctors[index].id,
-        recordType: 'WEEKLY',
-        dayOfWeek: (index % 6) + 1,
-        startTime: index % 2 === 0 ? '08:00' : '13:30',
-        endTime: index % 2 === 0 ? '12:00' : '17:30',
-        reason: `Seed availability ${index + 1}`,
-        isActive: true,
-      },
-    });
-  }
-  await prisma.doctorAvailability.create({
-    data: {
-      doctorId: context.doctors[0].id,
-      recordType: 'DATE_OVERRIDE',
-      specificDate: addDays(7),
-      startTime: '09:00',
-      endTime: '15:00',
-      reason: 'Seed availability date override',
-      isActive: true,
-    },
-  });
-  await prisma.doctorAvailability.create({
-    data: {
-      doctorId: context.doctors[1].id,
-      recordType: 'TIME_OFF',
-      specificDate: addDays(10),
-      startTime: '00:00',
-      endTime: '23:59',
-      reason: 'Seed availability time off',
-      isActive: false,
-    },
-  });
 
   const appointments: Array<{
     id: string;
@@ -1849,62 +1868,7 @@ async function seedRelatedData(
     { day: 0, hour: 10, minute: 0,  status: 'IN_PROGRESS'as const, patient: 3, doctor: 1, serviceSlug: 'nieng-rang',          methodSlug: 'clear-aligner-full' },
     { day: 0, hour: 11, minute: 0,  status: 'COMPLETED'  as const, patient: 4, doctor: 0, serviceSlug: 'nieng-rang-mac-cai',  methodSlug: 'braces-metal' },
     { day: 0, hour: 14, minute: 0,  status: 'CONFIRMED'  as const, patient: 5, doctor: 1, serviceSlug: 'nho-rang-khon',       methodSlug: 'wisdom-tooth-lower' },
-    { day: 0, hour: 15, minute: 0,  status: 'PENDING'    as const, patient: 6, doctor: 0, serviceSlug: 'nha-khoa-tong-quat', methodSlug: 'cleaning-ultrasonic-standard' },
-
-    // ── Hôm qua (day -1) – hoàn tất ─────────────────────────────────────
-    { day: -1, hour: 9,  minute: 0,  status: 'COMPLETED' as const, patient: 7, doctor: 1, serviceSlug: 'nha-khoa-tre-em',     methodSlug: 'kids-fluoride-varnish' },
-
-    // ── Ngày 1 (23/08) ──────────────────────────────────────────────────
-    { day: 1, hour: 8,  minute: 0,  status: 'CONFIRMED'  as const, patient: 0, doctor: 2, serviceSlug: 'dan-su-veneer',       methodSlug: 'veneer-emax' },
-    { day: 1, hour: 8,  minute: 30, status: 'PENDING'    as const, patient: 1, doctor: 3, serviceSlug: 'nha-khoa-tong-quat', methodSlug: 'checkup-standard' },
-    { day: 1, hour: 9,  minute: 0,  status: 'CONFIRMED'  as const, patient: 2, doctor: 4, serviceSlug: 'nho-rang-khon',       methodSlug: 'wisdom-tooth-upper' },
-    { day: 1, hour: 9,  minute: 30, status: 'CONFIRMED'  as const, patient: 8, doctor: 0, serviceSlug: 'trong-rang-implant',  methodSlug: 'implant-multiple' },
-    { day: 1, hour: 10, minute: 0,  status: 'PENDING'    as const, patient: 3, doctor: 5, serviceSlug: 'nieng-rang',          methodSlug: 'clear-aligner-lite' },
-    { day: 1, hour: 14, minute: 0,  status: 'CONFIRMED'  as const, patient: 4, doctor: 6, serviceSlug: 'nha-khoa-tre-em',     methodSlug: 'kids-fluoride-varnish' },
-    { day: 1, hour: 15, minute: 30, status: 'PENDING'    as const, patient: 5, doctor: 7, serviceSlug: 'boc-rang-su',         methodSlug: 'crown-cercon' },
-
-    // ── Ngày 2 (24/08) ──────────────────────────────────────────────────
-    { day: 2, hour: 8,  minute: 0,  status: 'CONFIRMED'  as const, patient: 6, doctor: 2, serviceSlug: 'boc-rang-su',         methodSlug: 'crown-emax' },
-    { day: 2, hour: 9,  minute: 0,  status: 'PENDING'    as const, patient: 7, doctor: 3, serviceSlug: 'nieng-rang-mac-cai',  methodSlug: 'braces-ceramic' },
-    { day: 2, hour: 10, minute: 0,  status: 'PENDING'    as const, patient: 9, doctor: 1, serviceSlug: 'boc-rang-su',         methodSlug: 'crown-emax' },
-    { day: 2, hour: 13, minute: 30, status: 'CONFIRMED'  as const, patient: 0, doctor: 4, serviceSlug: 'nha-khoa-tong-quat', methodSlug: 'filling-composite' },
-    { day: 2, hour: 15, minute: 0,  status: 'PENDING'    as const, patient: 1, doctor: 5, serviceSlug: 'nho-rang-khon',       methodSlug: 'wisdom-tooth-piezotome' },
-
-    // ── Ngày 3 (25/08) ──────────────────────────────────────────────────
-    { day: 3, hour: 8,  minute: 0,  status: 'PENDING'    as const, patient: 2, doctor: 0, serviceSlug: 'trong-rang-implant',  methodSlug: 'implant-bone-graft' },
-    { day: 3, hour: 9,  minute: 0,  status: 'CONFIRMED'  as const, patient: 3, doctor: 6, serviceSlug: 'nieng-rang',          methodSlug: 'clear-aligner-full' },
-    { day: 3, hour: 10, minute: 30, status: 'PENDING'    as const, patient: 4, doctor: 7, serviceSlug: 'boc-rang-su',         methodSlug: 'crown-zirconia' },
-    { day: 3, hour: 14, minute: 0,  status: 'CONFIRMED'  as const, patient: 5, doctor: 2, serviceSlug: 'dan-su-veneer',       methodSlug: 'veneer-emax' },
-    { day: 3, hour: 16, minute: 0,  status: 'PENDING'    as const, patient: 7, doctor: 3, serviceSlug: 'nha-khoa-tre-em',     methodSlug: 'kids-fluoride-varnish' },
-
-    // ── Ngày 4 (26/08) ──────────────────────────────────────────────────
-    { day: 4, hour: 8,  minute: 30, status: 'CONFIRMED'  as const, patient: 6, doctor: 1, serviceSlug: 'nieng-rang-mac-cai',  methodSlug: 'braces-metal' },
-    { day: 4, hour: 9,  minute: 0,  status: 'PENDING'    as const, patient: 8, doctor: 4, serviceSlug: 'nho-rang-khon',       methodSlug: 'wisdom-tooth-lower' },
-    { day: 4, hour: 10, minute: 0,  status: 'CONFIRMED'  as const, patient: 9, doctor: 5, serviceSlug: 'nha-khoa-tong-quat', methodSlug: 'root-canal-general' },
-    { day: 4, hour: 14, minute: 0,  status: 'PENDING'    as const, patient: 0, doctor: 6, serviceSlug: 'boc-rang-su',         methodSlug: 'crown-titan' },
-    { day: 4, hour: 15, minute: 30, status: 'CONFIRMED'  as const, patient: 1, doctor: 7, serviceSlug: 'trong-rang-implant',  methodSlug: 'implant-single' },
-
-    // ── Ngày 5 (27/08) ──────────────────────────────────────────────────
-    { day: 5, hour: 8,  minute: 0,  status: 'PENDING'    as const, patient: 2, doctor: 0, serviceSlug: 'dan-su-veneer',       methodSlug: 'veneer-emax' },
-    { day: 5, hour: 9,  minute: 30, status: 'CONFIRMED'  as const, patient: 3, doctor: 1, serviceSlug: 'nieng-rang',          methodSlug: 'clear-aligner-lite' },
-    { day: 5, hour: 10, minute: 0,  status: 'PENDING'    as const, patient: 4, doctor: 2, serviceSlug: 'nha-khoa-tong-quat', methodSlug: 'checkup-standard' },
-    { day: 5, hour: 14, minute: 0,  status: 'CONFIRMED'  as const, patient: 5, doctor: 3, serviceSlug: 'nho-rang-khon',       methodSlug: 'wisdom-tooth-piezotome' },
-
-    // ── Ngày 6 (28/08) ──────────────────────────────────────────────────
-    { day: 6, hour: 8,  minute: 0,  status: 'PENDING'    as const, patient: 6, doctor: 4, serviceSlug: 'trong-rang-implant',  methodSlug: 'implant-multiple' },
-    { day: 6, hour: 9,  minute: 0,  status: 'CONFIRMED'  as const, patient: 7, doctor: 5, serviceSlug: 'boc-rang-su',         methodSlug: 'crown-zirconia' },
-    { day: 6, hour: 10, minute: 30, status: 'PENDING'    as const, patient: 8, doctor: 6, serviceSlug: 'nieng-rang-mac-cai',  methodSlug: 'braces-ceramic' },
-    { day: 6, hour: 14, minute: 0,  status: 'CONFIRMED'  as const, patient: 9, doctor: 7, serviceSlug: 'nha-khoa-tre-em',     methodSlug: 'kids-fluoride-varnish' },
-    { day: 6, hour: 15, minute: 0,  status: 'PENDING'    as const, patient: 0, doctor: 0, serviceSlug: 'nha-khoa-tong-quat', methodSlug: 'filling-composite' },
-
-    // ── Ngày 7 (29/08) ──────────────────────────────────────────────────
-    { day: 7, hour: 8,  minute: 0,  status: 'PENDING'    as const, patient: 1, doctor: 2, serviceSlug: 'dan-su-veneer',       methodSlug: 'veneer-emax' },
-    { day: 7, hour: 9,  minute: 0,  status: 'CONFIRMED'  as const, patient: 2, doctor: 3, serviceSlug: 'trong-rang-implant',  methodSlug: 'implant-full-arch' },
-    { day: 7, hour: 10, minute: 0,  status: 'PENDING'    as const, patient: 3, doctor: 4, serviceSlug: 'boc-rang-su',         methodSlug: 'crown-cercon' },
-    { day: 7, hour: 14, minute: 30, status: 'CONFIRMED'  as const, patient: 4, doctor: 5, serviceSlug: 'nho-rang-khon',       methodSlug: 'wisdom-tooth-upper' },
-    { day: 7, hour: 15, minute: 0,  status: 'PENDING'    as const, patient: 5, doctor: 1, serviceSlug: 'nieng-rang',          methodSlug: 'clear-aligner-full' },
   ];
-
 
   const bookingSources = [
     'PATIENT_APP',
@@ -1914,7 +1878,7 @@ async function seedRelatedData(
     'OTHER',
   ] as const;
 
-  for (let index = 0; index < receptionistAppointments.length; index += 1) {
+  for (let index = 0; index < retainedSeedCounts.appointmentCount; index += 1) {
     const row = receptionistAppointments[index];
     const scheduledAt = atLocalDay(row.day, row.hour, row.minute);
     const treatmentMethod = treatmentMethodsBySlug[row.methodSlug];
@@ -1972,16 +1936,9 @@ async function seedRelatedData(
     'trong-rang-implant',
     'boc-rang-su',
     'dan-su-veneer',
-    'nieng-rang',
-    'nieng-rang-mac-cai',
-    'nho-rang-khon',
-    'nha-khoa-tong-quat',
-    'nha-khoa-tre-em',
-    'trong-rang-implant',
-    'boc-rang-su',
   ];
   const treatmentPlans: Array<{ id: string }> = [];
-  for (let index = 0; index < 10; index += 1) {
+  for (let index = 0; index < retainedSeedCounts.treatmentPlanCount; index += 1) {
     const serviceSlug = treatmentPlanSlugs[index];
     const service = servicesBySlug[serviceSlug];
     treatmentPlans.push(
@@ -2015,7 +1972,7 @@ async function seedRelatedData(
   }
 
   const medicalRecords: Array<{ id: string }> = [];
-  for (let index = 0; index < 10; index += 1) {
+  for (let index = 0; index < retainedSeedCounts.medicalRecordCount; index += 1) {
     // Medical record exists -> appointment must be completed
     await prisma.appointment.update({
       where: { id: appointments[index].id },
@@ -2058,13 +2015,7 @@ async function seedRelatedData(
   }
 
   // Seed Prescription records (linked to medicalRecords)
-  await prisma.prescriptionItem.deleteMany({
-    where: { prescription: { notes: { startsWith: 'Seed prescription' } } },
-  });
-  await prisma.prescription.deleteMany({
-    where: { notes: { startsWith: 'Seed prescription' } },
-  });
-  for (let index = 0; index < 6; index += 1) {
+  for (let index = 0; index < retainedSeedCounts.prescriptionCount; index += 1) {
     await prisma.prescription.create({
       data: {
         doctorId: context.doctors[index % 2].id,
@@ -2093,10 +2044,6 @@ async function seedRelatedData(
     });
   }
 
-  await prisma.clinicalCase.deleteMany({
-    where: { title: { startsWith: 'Seed clinical case' } },
-  });
-
   const clinicalCaseImages = [
     {
       before:
@@ -2124,7 +2071,7 @@ async function seedRelatedData(
     'Seed clinical case - Cấy ghép Implant phục hồi ăn nhai',
   ];
 
-  for (let index = 0; index < clinicalCaseTitles.length; index += 1) {
+  for (let index = 0; index < retainedSeedCounts.clinicalCaseCount; index += 1) {
     const appointment = appointments[index];
     const method = appointment.treatmentMethodId
       ? treatmentMethodsById[appointment.treatmentMethodId]
@@ -2152,479 +2099,12 @@ async function seedRelatedData(
     });
   }
 
-  const invoices: Array<{ id: string; finalAmount: any }> = [];
-  // Nhiều ISSUED để tab Thu ngân / Phiếu chờ thu có dữ liệu
-  const invoiceStatuses = [
-    'ISSUED',
-    'ISSUED',
-    'ISSUED',
-    'PAID',
-    'ISSUED',
-    'PAID',
-    'DRAFT',
-    'PAID',
-    'PARTIALLY_PAID',
-    'CANCELLED',
-  ] as const;
-  for (let index = 0; index < 10; index += 1) {
-    const appointment = appointments[index];
-    const method = appointment.treatmentMethodId
-      ? treatmentMethodsById[appointment.treatmentMethodId]
-      : null;
-    const subtotal = method ? Number(method.basePrice.toString()) : 1000000;
-    const discountAmount = index % 2 === 0 ? Math.round(subtotal * 0.05) : 0;
-    const status = invoiceStatuses[index];
-    invoices.push(
-      await prisma.invoice.create({
-        data: {
-          invoiceCode: `INV-SEED-${String(index + 1).padStart(3, '0')}`,
-          patientId: context.patients[index].id,
-          appointmentId: appointment.id,
-          promotionId:
-            index % 2 === 0
-              ? context.promotions[index % context.promotions.length].id
-              : null,
-          items: [
-            {
-              serviceId: method?.serviceId ?? context.services[0].id,
-              treatmentMethodId: method?.id ?? null,
-              name: method?.name ?? 'Dịch vụ',
-              description: method?.name ?? 'Dịch vụ',
-              quantity: 1,
-              qty: 1,
-              unitPrice: subtotal,
-              unit_price: subtotal,
-              amount: subtotal,
-            },
-          ],
-          subtotal: String(subtotal),
-          discountAmount: String(discountAmount),
-          finalAmount: String(subtotal - discountAmount),
-          status,
-          exportFileUrl: `https://files.smartdental.test/invoices/INV-SEED-${index + 1}.pdf`,
-          issuedAt:
-            status === 'ISSUED' || status === 'PARTIALLY_PAID'
-              ? atLocalDay(0, 12, 0)
-              : appointment.scheduledAt,
-          createdBy: context.receptionistUser.id,
-        },
-        select: { id: true, finalAmount: true },
-      }),
-    );
-  }
-
-  for (let index = 0; index < 10; index += 1) {
-    await prisma.payment.create({
-      data: {
-        invoiceId: invoices[index].id,
-        amount: invoices[index].finalAmount,
-        paymentMethod:
-          index % 5 === 0
-            ? 'CASH'
-            : index % 5 === 1
-              ? 'CARD'
-              : index % 5 === 2
-                ? 'BANK_TRANSFER'
-                : index % 5 === 3
-                  ? 'E_WALLET'
-                  : 'ONLINE_GATEWAY',
-        transactionRef: `SEED-PAY-${String(index + 1).padStart(3, '0')}`,
-        status:
-          index % 4 === 0
-            ? 'PENDING'
-            : index % 4 === 1
-              ? 'SUCCESS'
-              : index % 4 === 2
-                ? 'FAILED'
-                : 'REFUNDED',
-        paidAt:
-          invoiceStatuses[index] === 'PAID'
-            ? appointments[index].scheduledAt
-            : null,
-        receivedBy: context.receptionistUser.id,
-      },
-    });
-  }
-
-  for (let index = 0; index < 10; index += 1) {
-    await prisma.review.create({
-      data: {
-        patientId: context.patients[index].id,
-        doctorId: context.doctors[index].id,
-        appointmentId: appointments[index].id,
-        rating: (index % 5) + 1,
-        comment: `Seed review ${index + 1}: friendly doctor and clear explanation.`,
-        isVisible: index !== 9,
-        createdAt: appointments[index].scheduledAt,
-      },
-    });
-  }
-
-  const aiDemoChatSessions: { role: string; content: string }[][] = [
-    [
-      {
-        role: 'patient',
-        content:
-          'Em bị ê răng số 6 khi uống nước lạnh, đau khoảng 3 ngày, đau tăng về đêm.',
-      },
-      {
-        role: 'assistant',
-        content:
-          'Triệu chứng có thể liên quan tủy răng hoặc men răng mòn. Nên đặt lịch khám sớm.',
-      },
-      {
-        role: 'patient',
-        content: 'Em dị ứng penicillin, có uống thuốc giảm đau được không?',
-      },
-    ],
-    [
-      {
-        role: 'patient',
-        content: 'Răng khôn hàm dưới sưng nướu, há miệng hơi khó, không sốt.',
-      },
-      {
-        role: 'assistant',
-        content:
-          'Có thể do viêm quanh răng khôn. Cần bác sĩ chụp phim và đánh giá có nên nhổ không.',
-      },
-    ],
-    [
-      {
-        role: 'patient',
-        content: 'Muốn tư vấn bọc sứ răng cửa, răng hơi vàng và thưa nhẹ.',
-      },
-      {
-        role: 'assistant',
-        content:
-          'Bạn có thể đặt lịch tư vấn trực tuyến để bác sĩ xem ảnh và gợi ý phương án.',
-      },
-    ],
-    [
-      {
-        role: 'patient',
-        content: 'Con 8 tuổi sốt nhẹ, sưng má, phải nói là đau răng hàm trên.',
-      },
-      {
-        role: 'assistant',
-        content:
-          'Trẻ có thể bị sâu răng/viêm tủy. Nên khám sớm, tránh lan nhiễm.',
-      },
-    ],
-    [
-      {
-        role: 'patient',
-        content: 'Sau khi nhổ răng 2 ngày vẫn chảy máu nhẹ và đau dữ dội.',
-      },
-      {
-        role: 'assistant',
-        content:
-          'Cần bác sĩ kiểm tra ngay — có thể khô xương hoặc nhiễm trùng sau nhổ.',
-      },
-    ],
-    [
-      {
-        role: 'patient',
-        content: 'Niềng răng 6 tháng, dây cung hay tuột, có cần tái khám sớm?',
-      },
-      {
-        role: 'assistant',
-        content: 'Nên hẹn lại để chỉnh cung, tránh kéo dài thời gian điều trị.',
-      },
-    ],
-    [
-      {
-        role: 'patient',
-        content: 'Hơi thở hôi, hay bị chảy máu chân răng khi đánh răng.',
-      },
-      {
-        role: 'assistant',
-        content: 'Có thể viêm nướu — nên cạo vôi và khám nha chu.',
-      },
-    ],
-    [
-      {
-        role: 'patient',
-        content: 'Răng sứ cũ bị vỡ mép, muốn tư vấn thay mới.',
-      },
-      {
-        role: 'assistant',
-        content: 'Bác sĩ sẽ kiểm tra chân răng và gợi ý bọc sứ/veneer phù hợp.',
-      },
-    ],
-    [
-      {
-        role: 'patient',
-        content: 'Đau hàm khi nhai, nghe tiếng lục cục khớp thái dương hàm.',
-      },
-      {
-        role: 'assistant',
-        content: 'Có thể rối loạn khớp thái dương hàm — cần khám chuyên sâu.',
-      },
-    ],
-    [
-      {
-        role: 'patient',
-        content: 'Muốn tẩy trắng răng nhưng răng nhạy cảm, có an toàn không?',
-      },
-      {
-        role: 'assistant',
-        content:
-          'Tùy tình trạng men răng; bác sĩ sẽ đánh giá trước khi làm.',
-      },
-    ],
-  ];
-
-  for (let index = 0; index < 10; index += 1) {
-    const isClosed = index % 3 === 0;
-    await prisma.chatbotConversation.create({
-      data: {
-        sessionId: `seed-session-${String(index + 1).padStart(3, '0')}`,
-        patientId: context.patients[index].id,
-        status: isClosed ? 'CLOSED' : index % 3 === 1 ? 'ACTIVE' : 'ESCALATED',
-        messages: aiDemoChatSessions[index] ?? aiDemoChatSessions[0],
-        startedAt: addDays(-index),
-        endedAt: isClosed ? addDays(-index + 1) : null,
-      },
-    });
-  }
-
-  /** Buổi tư vấn video — ưu tiên doctor@ (index 0) có nhiều ca hôm nay để test AI */
-  const videoConsultSeeds: Array<{
-    patientIdx: number;
-    doctorIdx: number;
-    dayOffset: number;
-    hour: number;
-    minute: number;
-    status: 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
-    paid: boolean;
-    duration: number;
-  }> = [
-      {
-        patientIdx: 0,
-        doctorIdx: 0,
-        dayOffset: 0,
-        hour: 13,
-        minute: 30,
-        status: 'SCHEDULED',
-        paid: true,
-        duration: 20,
-      },
-      {
-        patientIdx: 1,
-        doctorIdx: 0,
-        dayOffset: 0,
-        hour: 14,
-        minute: 0,
-        status: 'IN_PROGRESS',
-        paid: true,
-        duration: 25,
-      },
-      {
-        patientIdx: 2,
-        doctorIdx: 0,
-        dayOffset: 1,
-        hour: 10,
-        minute: 30,
-        status: 'SCHEDULED',
-        paid: false,
-        duration: 20,
-      },
-      {
-        patientIdx: 3,
-        doctorIdx: 0,
-        dayOffset: -2,
-        hour: 11,
-        minute: 0,
-        status: 'COMPLETED',
-        paid: true,
-        duration: 30,
-      },
-      {
-        patientIdx: 4,
-        doctorIdx: 0,
-        dayOffset: 2,
-        hour: 15,
-        minute: 0,
-        status: 'CANCELLED',
-        paid: false,
-        duration: 20,
-      },
-      {
-        patientIdx: 5,
-        doctorIdx: 1,
-        dayOffset: 0,
-        hour: 8,
-        minute: 30,
-        status: 'SCHEDULED',
-        paid: true,
-        duration: 20,
-      },
-      {
-        patientIdx: 6,
-        doctorIdx: 2,
-        dayOffset: 1,
-        hour: 9,
-        minute: 0,
-        status: 'SCHEDULED',
-        paid: true,
-        duration: 25,
-      },
-      {
-        patientIdx: 7,
-        doctorIdx: 3,
-        dayOffset: 3,
-        hour: 16,
-        minute: 0,
-        status: 'SCHEDULED',
-        paid: false,
-        duration: 20,
-      },
-      {
-        patientIdx: 8,
-        doctorIdx: 4,
-        dayOffset: -1,
-        hour: 13,
-        minute: 0,
-        status: 'COMPLETED',
-        paid: true,
-        duration: 25,
-      },
-      {
-        patientIdx: 9,
-        doctorIdx: 5,
-        dayOffset: 4,
-        hour: 10,
-        minute: 0,
-        status: 'SCHEDULED',
-        paid: true,
-        duration: 20,
-      },
-    ];
-
-  for (let index = 0; index < videoConsultSeeds.length; index += 1) {
-    const row = videoConsultSeeds[index];
-    const scheduledAt = atLocalDay(row.dayOffset, row.hour, row.minute);
-    const inProgress = row.status === 'IN_PROGRESS';
-    await prisma.videoConsultation.create({
-      data: {
-        patientId: context.patients[row.patientIdx].id,
-        doctorId: context.doctors[row.doctorIdx].id,
-        scheduledAt,
-        durationMinutes: row.duration,
-        status: row.status,
-        meetingUrl: inProgress
-          ? `https://meet.jit.si/SmartDentalSeed${index + 1}#sdsPin=${String(100000 + index).slice(-6)}`
-          : row.status === 'COMPLETED' || row.status === 'CANCELLED'
-            ? null
-            : null,
-        fee: String(200000 + index * 50000),
-        isPaid: row.paid,
-        notes: `Seed video consultation ${index + 1}`,
-      },
-    });
-  }
-
-  for (let index = 0; index < 10; index += 1) {
-    await prisma.notification.create({
-      data: {
-        userId: context.patients[index].userId,
-        type: `SEED_REMINDER_${index + 1}`,
-        title: `Seed notification ${index + 1}`,
-        content: `This is sample notification content ${index + 1}.`,
-        channel:
-          index % 4 === 0
-            ? 'IN_APP'
-            : index % 4 === 1
-              ? 'EMAIL'
-              : index % 4 === 2
-                ? 'SMS'
-                : 'PUSH',
-        status:
-          index % 5 === 0
-            ? 'PENDING'
-            : index % 5 === 1
-              ? 'SENT'
-              : index % 5 === 2
-                ? 'FAILED'
-                : index % 5 === 3
-                  ? 'READ'
-                  : 'CANCELLED',
-        scheduledAt: addDays(index + 1),
-        appointmentId: appointments[index].id,
-        treatmentPlanId: treatmentPlans[index].id,
-        isManual: index % 2 === 0,
-        sentAt: index % 5 === 1 || index % 5 === 3 ? addDays(index) : null,
-        readAt: index % 5 === 3 ? addDays(index + 1) : null,
-      },
-    });
-  }
-
-  const marketingCampaigns = [
-    {
-      title: 'Seed Marketing - Summer Smile Voucher',
-      content:
-        'Nhan uu dai cham soc rang mieng mua he tai Smart Dental Clinic.',
-      channel: 'EMAIL' as const,
-      scheduledAt: addDays(-3),
-    },
-    {
-      title: 'Seed Marketing - Tai kham dinh ky',
-      content:
-        'Da den luc dat lich tai kham dinh ky de duy tri suc khoe rang mieng.',
-      channel: 'IN_APP' as const,
-      scheduledAt: addDays(-1),
-    },
-    {
-      title: 'Seed Marketing - Implant Consultation',
-      content:
-        'Tu van Implant cung bac si chuyen khoa voi uu dai trong thang nay.',
-      channel: 'EMAIL' as const,
-      scheduledAt: addDays(2),
-    },
-  ];
-
-  for (const [campaignIndex, campaign] of marketingCampaigns.entries()) {
-    for (
-      let patientIndex = 0;
-      patientIndex < context.patients.length;
-      patientIndex += 1
-    ) {
-      const status =
-        campaignIndex === 2
-          ? 'PENDING'
-          : patientIndex % 5 === 0
-            ? 'FAILED'
-            : patientIndex % 3 === 0
-              ? 'READ'
-              : 'SENT';
-
-      await prisma.notification.create({
-        data: {
-          userId: context.patients[patientIndex].userId,
-          type: 'MARKETING',
-          title: campaign.title,
-          content: campaign.content,
-          channel: campaign.channel,
-          status,
-          scheduledAt: campaign.scheduledAt,
-          isManual: true,
-          sentAt:
-            status === 'SENT' || status === 'READ'
-              ? campaign.scheduledAt
-              : null,
-          readAt: status === 'READ' ? addDays(-1 + patientIndex) : null,
-        },
-      });
-    }
-  }
 }
 
 async function main() {
   const context = await seedBaseData();
   await seedRelatedData(context);
 
-  // Seed Banner records
-  await prisma.banner.deleteMany({});
   const initialBanners = [
     {
       title: 'Nha Khoa Thẩm Mỹ Công Nghệ Cao Smart Dental',
@@ -2634,10 +2114,21 @@ async function main() {
       targetType: 'SERVICE',
       displayOrder: 1,
       isActive: true,
-    }
+    },
   ];
-  for (const b of initialBanners) {
-    await prisma.banner.create({ data: b });
+  for (const banner of initialBanners) {
+    const existingBanner = await prisma.banner.findFirst({
+      where: { imageUrl: banner.imageUrl },
+      select: { id: true },
+    });
+    if (existingBanner) {
+      await prisma.banner.update({
+        where: { id: existingBanner.id },
+        data: banner,
+      });
+    } else {
+      await prisma.banner.create({ data: banner });
+    }
   }
 
   console.log('Seed completed.');

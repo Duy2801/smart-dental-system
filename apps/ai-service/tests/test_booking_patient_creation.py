@@ -3,9 +3,14 @@ from unittest.mock import AsyncMock, patch
 from app.services.booking_agent import (
     BookingAgent,
     booking_intent,
+    date_suggestions,
+    method_suggestions,
+    normalize_text,
     parse_new_patient_info,
+    service_suggestions,
+    slot_suggestions,
 )
-from app.schemas import ChatRequest, ChatMessage
+from app.schemas.chatbot import ChatMessage, ChatRequest, ChatResponse
 
 
 def test_parse_new_patient_info():
@@ -129,4 +134,400 @@ async def test_booking_agent_self_booking_with_doctor():
         state = res.metadata.get("bookingState", {})
         assert state.get("patientId") == "pat-self"
         assert state.get("doctorId") == "doc-tam"
+
+
+@pytest.mark.asyncio
+async def test_general_question_after_completed_booking_starts_a_clean_conversation():
+    agent = BookingAgent()
+    completed_state = {
+        "patientId": "patient-1",
+        "serviceId": "service-1",
+        "treatmentMethodId": "method-1",
+        "date": "2026-09-20",
+        "time": "08:00",
+        "doctorId": "doctor-1",
+        "confirmBooking": True,
+    }
+    req = ChatRequest(
+        message="Răng đau là bị gì?",
+        created_by_user_id="user-123",
+        history=[
+            ChatMessage(
+                role="user",
+                content="Tôi xác nhận đặt lịch",
+                metadata={"bookingState": completed_state},
+            ),
+            ChatMessage(
+                role="assistant",
+                content="Xác nhận đặt lịch thành công",
+                metadata={"bookingCompleted": True},
+            ),
+        ],
+        metadata={},
+    )
+
+    with patch("app.services.booking_agent.fetch_available_services", new_callable=AsyncMock) as mock_services, \
+         patch("app.services.booking_agent.fetch_available_doctors", new_callable=AsyncMock) as mock_doctors, \
+         patch("app.services.booking_agent.fetch_patient_profiles", new_callable=AsyncMock) as mock_patients, \
+         patch.object(agent, "answer_general_question", new_callable=AsyncMock) as mock_general:
+        mock_services.return_value = []
+        mock_doctors.return_value = []
+        mock_patients.return_value = []
+        mock_general.return_value = ChatResponse(
+            reply="Đau răng có thể xuất phát từ sâu răng hoặc viêm tủy.",
+            should_book=False,
+        )
+
+        res = await agent.process_chat(req)
+
+        assert res.should_book is False
+        assert "Đau răng" in res.reply
+        mock_general.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_new_booking_after_completed_booking_does_not_reuse_old_details():
+    agent = BookingAgent()
+    completed_state = {
+        "patientId": "patient-1",
+        "serviceId": "old-service",
+        "treatmentMethodId": "old-method",
+        "date": "2026-09-20",
+        "time": "08:00",
+        "doctorId": "old-doctor",
+        "confirmBooking": True,
+    }
+    req = ChatRequest(
+        message="Tôi muốn đặt thêm lịch",
+        created_by_user_id="user-123",
+        history=[
+            ChatMessage(
+                role="user",
+                content="Tôi xác nhận đặt lịch",
+                metadata={"bookingState": completed_state},
+            ),
+            ChatMessage(
+                role="assistant",
+                content="Xác nhận đặt lịch thành công",
+                metadata={"bookingCompleted": True},
+            ),
+        ],
+        metadata={},
+    )
+
+    with patch("app.services.booking_agent.fetch_available_services", new_callable=AsyncMock) as mock_services, \
+         patch("app.services.booking_agent.fetch_available_doctors", new_callable=AsyncMock) as mock_doctors, \
+         patch("app.services.booking_agent.fetch_patient_profiles", new_callable=AsyncMock) as mock_patients:
+        mock_services.return_value = [
+            {"id": "service-1", "name": "Khám tổng quát", "treatmentMethods": []}
+        ]
+        mock_doctors.return_value = []
+        mock_patients.return_value = [
+            {
+                "id": "patient-1",
+                "fullName": "Nguyễn Văn An",
+                "isPrimary": True,
+                "canBook": True,
+            }
+        ]
+
+        res = await agent.process_chat(req)
+
+        state = res.metadata.get("bookingState", {})
+        assert res.should_book is True
+        assert state.get("patientId") == "patient-1"
+        assert state.get("serviceId") is None
+        assert state.get("treatmentMethodId") is None
+        assert state.get("doctorId") is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "question",
+    [
+        "Nha khoa có nuôi chó không?",
+        "Nha khoa có bao nhiêu bác sĩ?",
+        "Răng đau là bị gì?",
+    ],
+)
+async def test_question_interrupts_active_booking_without_losing_progress(question):
+    agent = BookingAgent()
+    active_state = {
+        "patientId": "patient-1",
+        "patientName": "Nguyen Van An",
+        "serviceId": "service-1",
+        "serviceName": "Kham tong quat",
+        "treatmentMethodId": "method-1",
+        "treatmentMethodName": "Kham tong quat",
+        "date": "2026-09-21",
+    }
+    req = ChatRequest(
+        message=question,
+        created_by_user_id="user-123",
+        metadata={"bookingState": active_state},
+    )
+
+    with patch("app.services.booking_agent.fetch_available_services", new_callable=AsyncMock) as mock_services, \
+         patch("app.services.booking_agent.fetch_available_doctors", new_callable=AsyncMock) as mock_doctors, \
+         patch("app.services.booking_agent.fetch_patient_profiles", new_callable=AsyncMock) as mock_patients, \
+         patch.object(agent, "answer_general_question", new_callable=AsyncMock) as mock_general:
+        mock_services.return_value = []
+        mock_doctors.return_value = []
+        mock_patients.return_value = []
+        mock_general.return_value = ChatResponse(
+            reply="Cau tra loi tu van",
+            should_book=False,
+        )
+
+        res = await agent.process_chat(req)
+
+    assert res.should_book is False
+    assert res.reply == "Cau tra loi tu van"
+    assert res.metadata.get("bookingState") == active_state
+
+
+def test_booking_suggestions_preserve_a_preselected_doctor():
+    state = {
+        "patientId": "patient-1",
+        "doctorId": "doctor-1",
+        "doctorName": "BS Nguyen Van A",
+    }
+    service = {
+        "id": "service-1",
+        "name": "Kham tong quat",
+        "treatmentMethods": [
+            {"id": "method-1", "name": "Kham tong quat"},
+        ],
+    }
+    dates = [
+        {
+            "id": "2026-09-21",
+            "weekday": "T2",
+            "day": "21",
+            "month": "Thg 9",
+            "isOpen": True,
+        }
+    ]
+
+    service_state = service_suggestions([service], state)[0]["metadata"]["bookingState"]
+    method_state = method_suggestions(service, {**state, "serviceId": "service-1"})[0]["metadata"]["bookingState"]
+    date_state = date_suggestions(dates, {**state, "serviceId": "service-1", "treatmentMethodId": "method-1"})[0]["metadata"]["bookingState"]
+    slot_state = slot_suggestions(
+        ["08:00"],
+        {
+            **state,
+            "serviceId": "service-1",
+            "treatmentMethodId": "method-1",
+            "date": "2026-09-21",
+        },
+    )[0]["metadata"]["bookingState"]
+
+    assert service_state["doctorId"] == "doctor-1"
+    assert method_state["doctorId"] == "doctor-1"
+    assert date_state["doctorId"] == "doctor-1"
+    assert slot_state["doctorId"] == "doctor-1"
+
+
+@pytest.mark.asyncio
+async def test_preselected_doctor_without_schedule_never_receives_other_doctors_dates():
+    agent = BookingAgent()
+    req = ChatRequest(
+        message="Toi chon dich vu Kham tong quat",
+        created_by_user_id="user-123",
+        metadata={
+            "bookingState": {
+                "patientId": "patient-1",
+                "patientName": "Nguyen Van An",
+                "serviceId": "service-1",
+                "serviceName": "Kham tong quat",
+                "treatmentMethodId": "method-1",
+                "treatmentMethodName": "Kham tong quat",
+                "doctorId": "doctor-no-schedule",
+                "doctorName": "BS Khong Co Lich",
+            }
+        },
+    )
+
+    async def booking_options(**kwargs):
+        if kwargs.get("doctor_id") == "doctor-no-schedule":
+            return {
+                "selectedServiceId": "service-1",
+                "dates": [
+                    {
+                        "id": "2026-09-21",
+                        "weekday": "T2",
+                        "day": "21",
+                        "month": "Thg 9",
+                        "isOpen": False,
+                    }
+                ],
+                "timeSlots": [],
+                "doctors": [],
+            }
+        return {
+            "selectedServiceId": "service-1",
+            "dates": [
+                {
+                    "id": "2026-09-21",
+                    "weekday": "T2",
+                    "day": "21",
+                    "month": "Thg 9",
+                    "isOpen": True,
+                }
+            ],
+            "timeSlots": ["08:00"],
+            "doctors": [{"id": "doctor-other", "name": "BS Co Lich"}],
+        }
+
+    with patch("app.services.booking_agent.fetch_available_services", new_callable=AsyncMock) as mock_services, \
+         patch("app.services.booking_agent.fetch_available_doctors", new_callable=AsyncMock) as mock_doctors, \
+         patch("app.services.booking_agent.fetch_patient_profiles", new_callable=AsyncMock) as mock_patients, \
+         patch("app.services.booking_agent.fetch_booking_options", new=AsyncMock(side_effect=booking_options)):
+        mock_services.return_value = [
+            {
+                "id": "service-1",
+                "name": "Kham tong quat",
+                "treatmentMethods": [
+                    {"id": "method-1", "name": "Kham tong quat"},
+                ],
+            }
+        ]
+        mock_doctors.return_value = [
+            {"id": "doctor-no-schedule", "fullName": "BS Khong Co Lich"},
+            {"id": "doctor-other", "fullName": "BS Co Lich"},
+        ]
+        mock_patients.return_value = [
+            {"id": "patient-1", "fullName": "Nguyen Van An", "isPrimary": True},
+        ]
+
+        res = await agent.process_chat(req)
+
+    assert "khong co lich" in normalize_text(res.reply)
+    assert not any(item.type in {"date", "time_slot"} for item in res.suggestions)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("message", "state_overrides"),
+    [
+        ("Tôi muốn đổi ngày", {"date": "2026-09-21", "time": "08:00"}),
+        ("Tôi muốn đổi giờ", {"date": "2026-09-21", "time": "08:00"}),
+    ],
+)
+async def test_changing_date_or_time_keeps_the_preselected_doctor(
+    message,
+    state_overrides,
+):
+    agent = BookingAgent()
+    state = {
+        "patientId": "patient-1",
+        "patientName": "Nguyen Van An",
+        "serviceId": "service-1",
+        "serviceName": "Kham tong quat",
+        "treatmentMethodId": "method-1",
+        "treatmentMethodName": "Kham tong quat",
+        "doctorId": "doctor-1",
+        "doctorName": "BS Nguyen Van A",
+        **state_overrides,
+    }
+    req = ChatRequest(
+        message=message,
+        created_by_user_id="user-123",
+        metadata={"bookingState": state},
+    )
+
+    with patch("app.services.booking_agent.fetch_available_services", new_callable=AsyncMock) as mock_services, \
+         patch("app.services.booking_agent.fetch_available_doctors", new_callable=AsyncMock) as mock_doctors, \
+         patch("app.services.booking_agent.fetch_patient_profiles", new_callable=AsyncMock) as mock_patients, \
+         patch("app.services.booking_agent.fetch_booking_options", new_callable=AsyncMock) as mock_options:
+        mock_services.return_value = [
+            {
+                "id": "service-1",
+                "name": "Kham tong quat",
+                "treatmentMethods": [
+                    {"id": "method-1", "name": "Kham tong quat"},
+                ],
+            }
+        ]
+        mock_doctors.return_value = [
+            {"id": "doctor-1", "fullName": "BS Nguyen Van A"},
+        ]
+        mock_patients.return_value = [
+            {"id": "patient-1", "fullName": "Nguyen Van An", "isPrimary": True},
+        ]
+        mock_options.return_value = {
+            "selectedServiceId": "service-1",
+            "dates": [
+                {
+                    "id": "2026-09-22",
+                    "weekday": "T3",
+                    "day": "22",
+                    "month": "Thg 9",
+                    "isOpen": True,
+                }
+            ],
+            "timeSlots": ["09:00"],
+            "doctors": [
+                {"id": "doctor-1", "name": "BS Nguyen Van A"},
+            ],
+        }
+
+        res = await agent.process_chat(req)
+
+    assert res.metadata["bookingState"]["doctorId"] == "doctor-1"
+
+
+@pytest.mark.asyncio
+async def test_preselected_doctor_without_slots_on_selected_date_does_not_show_other_slots():
+    agent = BookingAgent()
+    req = ChatRequest(
+        message="Toi muon kham ngay 2026-09-21",
+        created_by_user_id="user-123",
+        metadata={
+            "bookingState": {
+                "patientId": "patient-1",
+                "patientName": "Nguyen Van An",
+                "serviceId": "service-1",
+                "serviceName": "Kham tong quat",
+                "treatmentMethodId": "method-1",
+                "treatmentMethodName": "Kham tong quat",
+                "doctorId": "doctor-no-schedule",
+                "doctorName": "BS Khong Co Lich",
+                "date": "2026-09-21",
+            }
+        },
+    )
+
+    with patch("app.services.booking_agent.fetch_available_services", new_callable=AsyncMock) as mock_services, \
+         patch("app.services.booking_agent.fetch_available_doctors", new_callable=AsyncMock) as mock_doctors, \
+         patch("app.services.booking_agent.fetch_patient_profiles", new_callable=AsyncMock) as mock_patients, \
+         patch("app.services.booking_agent.fetch_booking_options", new_callable=AsyncMock) as mock_options:
+        mock_services.return_value = [
+            {
+                "id": "service-1",
+                "name": "Kham tong quat",
+                "treatmentMethods": [
+                    {"id": "method-1", "name": "Kham tong quat"},
+                ],
+            }
+        ]
+        mock_doctors.return_value = [
+            {"id": "doctor-no-schedule", "fullName": "BS Khong Co Lich"},
+        ]
+        mock_patients.return_value = [
+            {"id": "patient-1", "fullName": "Nguyen Van An", "isPrimary": True},
+        ]
+        mock_options.return_value = {
+            "selectedServiceId": "service-1",
+            "dates": [],
+            "timeSlots": [],
+            "doctors": [],
+        }
+
+        res = await agent.process_chat(req)
+
+    assert "bac si" in normalize_text(res.reply)
+    assert "khong co lich" in normalize_text(res.reply)
+    assert not any(item.type == "time_slot" for item in res.suggestions)
+    assert any(item.label == "Chọn bác sĩ khác" for item in res.suggestions)
 

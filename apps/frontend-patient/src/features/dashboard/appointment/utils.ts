@@ -1,4 +1,8 @@
 import axios from "axios";
+import {
+  filterSlotsOutsideLunchBreak,
+  type ClinicLunchBreak,
+} from "@/lib/clinic-schedule";
 import type { AppointmentStatus } from "./api";
 import type { BookingDate } from "./types";
 
@@ -20,11 +24,22 @@ export function isFutureSlot(dateId: string, time: string) {
   return slot.getTime() > Date.now();
 }
 
-export function getAvailableTimes(dateId: string, timeSlots: string[]) {
-  if (!dateId) return timeSlots;
-  if (dateId > getLocalDateId(new Date())) return timeSlots;
+export function getAvailableTimes(
+  dateId: string,
+  timeSlots: string[],
+  durationMinutes: number,
+  lunchBreak: ClinicLunchBreak,
+) {
+  const clinicTimeSlots = filterSlotsOutsideLunchBreak(
+    timeSlots,
+    durationMinutes,
+    lunchBreak,
+  );
+
+  if (!dateId) return clinicTimeSlots;
+  if (dateId > getLocalDateId(new Date())) return clinicTimeSlots;
   if (dateId < getLocalDateId(new Date())) return [];
-  return timeSlots.filter((time) => isFutureSlot(dateId, time));
+  return clinicTimeSlots.filter((time) => isFutureSlot(dateId, time));
 }
 
 export function pickFirstBookableDate(dates: BookingDate[]) {
@@ -86,6 +101,22 @@ export function getCreateAppointmentErrorMessage(error: unknown) {
   }
 
   return "Không thể đặt lịch hẹn. Vui lòng chọn khung giờ khác.";
+}
+
+export function getAppointmentErrorCode(error: unknown) {
+  if (!axios.isAxiosError(error)) return null;
+
+  const rawMessage = error.response?.data?.message;
+  if (typeof rawMessage === "string") return rawMessage;
+  if (Array.isArray(rawMessage)) {
+    return (
+      rawMessage.find(
+        (message): message is string => typeof message === "string",
+      ) ?? null
+    );
+  }
+
+  return null;
 }
 
 export const appointmentStatusLabels: Record<AppointmentStatus, string> = {

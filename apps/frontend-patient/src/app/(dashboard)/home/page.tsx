@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { QueryClient, dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import {
   DashboardIcon,
   type DashboardIconName,
@@ -14,16 +15,40 @@ import {
   HomeHeroSlideshow,
   HomeServicesSection,
   Reveal,
+  homeQueryKeys,
 } from "@/features/dashboard/home";
+import { getBanners, getHomeClinicalCases } from "@/features/dashboard/home/api";
 
 export const metadata: Metadata = {
   title: "Nha khoa AI | Clinical Precision & Trust",
   description: "Nha khoa kỹ thuật số chuyên sâu ứng dụng trí tuệ nhân tạo.",
 };
 
-export default function PatientHomePage() {
+// Revalidate the pre-rendered page in the background at most every 10 minutes,
+// matching the staleTime used by the client-side home queries.
+export const revalidate = 600;
+
+export default async function PatientHomePage() {
+  const queryClient = new QueryClient();
+
+  // Services/doctors/clinic-config are prefetched one level up in
+  // (dashboard)/layout.tsx, since DashboardNav (rendered in the header,
+  // ahead of this page in the tree) also reads those same queries — only
+  // banners and clinical cases are specific to this page.
+  await Promise.allSettled([
+    queryClient.prefetchQuery({
+      queryKey: homeQueryKeys.banners(),
+      queryFn: getBanners,
+    }),
+    queryClient.prefetchQuery({
+      queryKey: homeQueryKeys.clinicalCases(),
+      queryFn: getHomeClinicalCases,
+    }),
+  ]);
+
   return (
-    <div className="w-full space-y-4 sm:space-y-10 pb-6 pt-0 sm:pb-8">
+    <HydrationBoundary state={dehydrate(queryClient)}>
+    <div className="w-full space-y-4 pb-6 pt-0 sm:space-y-10 sm:pb-8">
       {/* Full width Hero Banner Section */}
       <div className="w-full">
         <HomeHeroSlideshow />
@@ -149,5 +174,6 @@ export default function PatientHomePage() {
         </Reveal>
       </main>
     </div>
+    </HydrationBoundary>
   );
 }

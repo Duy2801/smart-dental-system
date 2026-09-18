@@ -15,9 +15,10 @@ type RoleLayoutProps = {
   title: string;
   items: NavItem[];
   children: React.ReactNode;
+  badges?: Record<string, number>;
 };
 
-export function RoleLayout({ title, items, children }: RoleLayoutProps) {
+export function RoleLayout({ title, items, children, badges }: RoleLayoutProps) {
   const pathname = usePathname();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
@@ -56,6 +57,7 @@ export function RoleLayout({ title, items, children }: RoleLayoutProps) {
               onItemClick={() => setIsMobileOpen(false)}
               onCloseMobile={() => setIsMobileOpen(false)}
               className="w-full h-full flex-1"
+              badges={badges}
             />
           </div>
         </div>
@@ -64,7 +66,7 @@ export function RoleLayout({ title, items, children }: RoleLayoutProps) {
 
       {/* Desktop Permanent Sidebar */}
       <div className="hidden md:flex shrink-0">
-        <Sidebar title={title} items={items} pathname={pathname} />
+        <Sidebar title={title} items={items} pathname={pathname} badges={badges} />
       </div>
 
       {/* Main Page Area */}

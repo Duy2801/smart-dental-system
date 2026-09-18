@@ -10,7 +10,12 @@ import { GeneralSettingsPanel } from "./components/general-settings-panel";
 import { SettingsSidebar } from "./components/settings-sidebar";
 import { ConfirmCancelDayModal } from "./components/confirm-cancel-day-modal";
 import { getClinicConfig, updateClinicConfig } from "./settings-api";
-import type { ClinicConfig, ClinicSpecialDate, SettingsTab } from "./types";
+import type {
+  ClinicConfig,
+  ClinicSpecialDate,
+  LunchBreak,
+  SettingsTab,
+} from "./types";
 
 export function SettingsPageContent() {
   const queryClient = useQueryClient();
@@ -35,14 +40,11 @@ export function SettingsPageContent() {
 
   const saveMutation = useMutation({
     mutationFn: updateClinicConfig,
-    onSuccess: async (savedConfig) => {
+    onSuccess: (savedConfig) => {
       setSuccessMessage("Cập nhật thông tin và cấu hình giờ làm việc phòng khám thành công!");
       setErrorMessage("");
       setDraftConfig(savedConfig);
       queryClient.setQueryData(queryKeys.admin.clinicConfig, savedConfig);
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.admin.clinicConfig,
-      });
 
       // Auto dismiss success message after 5s
       setTimeout(() => setSuccessMessage(""), 5000);
@@ -109,6 +111,22 @@ export function SettingsPageContent() {
       ...(current ?? form),
       slotIntervalMinutes: value,
     }));
+  };
+
+  const updateLunchBreak = (
+    field: keyof LunchBreak,
+    value: string | boolean,
+  ) => {
+    setDraftConfig((current) => {
+      const currentConfig = current ?? form;
+      return {
+        ...currentConfig,
+        lunchBreak: {
+          ...currentConfig.lunchBreak,
+          [field]: value,
+        },
+      };
+    });
   };
 
   const updateSpecialDate = (
@@ -189,6 +207,14 @@ export function SettingsPageContent() {
   const handleSave = async () => {
     setErrorMessage("");
     setSuccessMessage("");
+    if (
+      form.lunchBreak.isEnabled &&
+      form.lunchBreak.start >= form.lunchBreak.end
+    ) {
+      setErrorMessage("Giờ bắt đầu nghỉ trưa phải sớm hơn giờ kết thúc.");
+      return;
+    }
+
     try {
       await saveMutation.mutateAsync(form);
     } catch {
@@ -243,11 +269,13 @@ export function SettingsPageContent() {
         {!isLoading && activeTab === "hours" ? (
           <BusinessHoursPanel
             businessHours={form.businessHours}
+            lunchBreak={form.lunchBreak}
             slotIntervalMinutes={form.slotIntervalMinutes}
             specialDates={form.specialDates}
             isConfigured={form.isBusinessHoursConfigured}
             onChangeTime={changeTime}
             onChangeSlotInterval={updateSlotIntervalMinutes}
+            onChangeLunchBreak={updateLunchBreak}
             onChangeSpecialDate={handleRequestSpecialDateChange}
             onAddSpecialDate={addSpecialDate}
             onInitialize={initializeBusinessHours}

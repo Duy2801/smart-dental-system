@@ -20,6 +20,7 @@ export const receptionistNavItems = [
   { label: "Tiếp nhận", href: ROUTES.RECEPTIONIST.CHECK_IN },
   { label: "Thanh toán", href: ROUTES.RECEPTIONIST.BILLING },
   { label: "Yêu cầu", href: ROUTES.RECEPTIONIST.REQUESTS },
+  { label: "Hỗ trợ khách", href: ROUTES.RECEPTIONIST.SUPPORT_INBOX },
   { label: "Trợ lý AI", href: ROUTES.RECEPTIONIST.AI_ASSISTANT },
 ];
 

@@ -158,6 +158,18 @@ enum ConversationStatus {
   ESCALATED
 }
 
+enum SupportConversationStatus {
+  WAITING
+  ASSIGNED
+  CLOSED
+}
+
+enum SupportMessageSender {
+  PATIENT
+  STAFF
+  SYSTEM
+}
+
 enum VideoConsultationStatus {
   PENDING_PAYMENT
   SCHEDULED
@@ -216,19 +228,20 @@ model User {
   roleAssignedAt DateTime   @default(now()) @map("role_assigned_at")
   roleAssignedBy String?    @map("role_assigned_by") @db.Uuid
 
-  patientProfile          Patient?
-  doctorProfile           Doctor?
-  role                    Role             @relation("UserPrimaryRole", fields: [roleId], references: [id], onDelete: Restrict)
-  roleAssigner            User?            @relation("UserRoleAssignments", fields: [roleAssignedBy], references: [id], onDelete: SetNull)
-  assignedUsers           User[]           @relation("UserRoleAssignments")
-  createdAppointments     Appointment[]    @relation("AppointmentCreator")
-  createdInvoices         Invoice[]        @relation("InvoiceCreator")
-  receivedPayments        Payment[]        @relation("PaymentReceiver")
-  notifications           Notification[]
-  patientAccounts         PatientAccount[]
-  processedRefunds        RefundRequest[]  @relation("RefundProcessor")
-  createdPatientAiBriefs  PatientAiBrief[] @relation("PatientAiBriefCreator")
-  reviewedPatientAiBriefs PatientAiBrief[] @relation("PatientAiBriefReviewer")
+  patientProfile               Patient?
+  doctorProfile                Doctor?
+  role                         Role                  @relation("UserPrimaryRole", fields: [roleId], references: [id], onDelete: Restrict)
+  roleAssigner                 User?                 @relation("UserRoleAssignments", fields: [roleAssignedBy], references: [id], onDelete: SetNull)
+  assignedUsers                User[]                @relation("UserRoleAssignments")
+  createdAppointments          Appointment[]         @relation("AppointmentCreator")
+  createdInvoices              Invoice[]             @relation("InvoiceCreator")
+  receivedPayments             Payment[]             @relation("PaymentReceiver")
+  notifications                Notification[]
+  patientAccounts              PatientAccount[]
+  processedRefunds             RefundRequest[]       @relation("RefundProcessor")
+  createdPatientAiBriefs       PatientAiBrief[]      @relation("PatientAiBriefCreator")
+  reviewedPatientAiBriefs      PatientAiBrief[]      @relation("PatientAiBriefReviewer")
+  assignedSupportConversations SupportConversation[] @relation("SupportAssignee")
 
   @@index([fullName])
   @@index([roleId])
@@ -471,6 +484,7 @@ model Patient {
   videoConsultations   VideoConsultation[]
   refundRequests       RefundRequest[]
   aiBriefs             PatientAiBrief[]
+  supportConversations SupportConversation[]
 
   @@map("patients")
 }
@@ -971,6 +985,8 @@ model Review {
   @@unique([patientId, appointmentId])
   @@index([doctorId, isVisible])
   @@index([appointmentId])
+  @@index([createdAt])
+  @@index([isVisible, rating, createdAt])
   @@map("reviews")
 }
 
@@ -987,6 +1003,40 @@ model ChatbotConversation {
 
   @@index([patientId, startedAt])
   @@map("chatbot_conversations")
+}
+
+model SupportConversation {
+  id            String                    @id @default(uuid()) @db.Uuid
+  patientId     String                    @map("patient_id") @db.Uuid
+  status        SupportConversationStatus @default(WAITING)
+  assignedToId  String?                   @map("assigned_to_id") @db.Uuid
+  assignedAt    DateTime?                 @map("assigned_at")
+  lastMessageAt DateTime                  @default(now()) @map("last_message_at")
+  createdAt     DateTime                  @default(now()) @map("created_at")
+  closedAt      DateTime?                 @map("closed_at")
+
+  patient    Patient          @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  assignedTo User?            @relation("SupportAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  messages   SupportMessage[]
+
+  @@index([status, lastMessageAt])
+  @@index([assignedToId, status])
+  @@map("support_conversations")
+}
+
+model SupportMessage {
+  id             String               @id @default(uuid()) @db.Uuid
+  conversationId String               @map("conversation_id") @db.Uuid
+  senderType     SupportMessageSender @map("sender_type")
+  senderId       String?              @map("sender_id") @db.Uuid
+  content        String               @db.Text
+  readAt         DateTime?            @map("read_at")
+  createdAt      DateTime             @default(now()) @map("created_at")
+
+  conversation SupportConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@map("support_messages")
 }
 
 model VideoConsultation {

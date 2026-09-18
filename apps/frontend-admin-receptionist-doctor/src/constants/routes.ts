@@ -23,6 +23,7 @@ export const ROUTES = {
     CHECK_IN: "/receptionist/check-in",
     BILLING: "/receptionist/billing",
     REQUESTS: "/receptionist/requests",
+    SUPPORT_INBOX: "/receptionist/support-inbox",
     AI_ASSISTANT: "/receptionist/ai-assistant",
   },
   DOCTOR: {

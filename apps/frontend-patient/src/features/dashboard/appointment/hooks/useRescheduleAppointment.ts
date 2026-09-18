@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/features/dashboard/common/toast";
+import { filterSlotsOutsideLunchBreak } from "@/lib/clinic-schedule";
+import { reschedulePatientAppointment, type AppointmentItem } from "../api";
 import {
-  reschedulePatientAppointment,
-  type AppointmentItem,
-} from "../api";
-import { getCreateAppointmentErrorMessage, pickFirstBookableDate } from "../utils";
+  getCreateAppointmentErrorMessage,
+  pickFirstBookableDate,
+} from "../utils";
 import {
   appointmentQueryKeys,
   useAppointmentRescheduleOptionsQuery,
@@ -55,15 +56,25 @@ export function useRescheduleAppointment({
 
   const optionsQuery = useAppointmentRescheduleOptionsQuery(rescheduleParams);
 
-  const dates = useMemo(() => optionsQuery.data?.dates ?? [], [optionsQuery.data?.dates]);
-  const timeSlots = useMemo(
-    () => optionsQuery.data?.timeSlots ?? [],
-    [optionsQuery.data?.timeSlots],
+  const dates = useMemo(
+    () => optionsQuery.data?.dates ?? [],
+    [optionsQuery.data?.dates],
   );
+  const timeSlots = optionsQuery.data?.lunchBreak
+    ? filterSlotsOutsideLunchBreak(
+        optionsQuery.data.timeSlots ?? [],
+        appointment?.durationMinutes ?? 30,
+        optionsQuery.data.lunchBreak,
+      )
+    : [];
 
   // Auto pick first available date if selectedDateId is empty or invalid
   useEffect(() => {
-    if (dates.length > 0 && (!selectedDateId || !dates.some((d) => d.id === selectedDateId && d.isOpen))) {
+    if (
+      dates.length > 0 &&
+      (!selectedDateId ||
+        !dates.some((d) => d.id === selectedDateId && d.isOpen))
+    ) {
       const firstAvailable = pickFirstBookableDate(dates)?.id ?? dates[0]?.id;
       if (firstAvailable && firstAvailable !== selectedDateId) {
         setSelectedDateId(firstAvailable);
@@ -109,10 +120,7 @@ export function useRescheduleAppointment({
     }
 
     if (!resolvedDateId || !resolvedTime) {
-      toast.error(
-        "Thiếu thông tin đổi lịch",
-        "Vui lòng chọn ngày và giờ mới.",
-      );
+      toast.error("Thiếu thông tin đổi lịch", "Vui lòng chọn ngày và giờ mới.");
       return;
     }
 
@@ -120,7 +128,9 @@ export function useRescheduleAppointment({
     try {
       await mutation.mutateAsync({
         appointmentId: appointment.id,
-        scheduledAt: new Date(`${resolvedDateId}T${resolvedTime}:00`).toISOString(),
+        scheduledAt: new Date(
+          `${resolvedDateId}T${resolvedTime}:00`,
+        ).toISOString(),
       });
       toast.success(
         "Đổi lịch thành công",
@@ -128,7 +138,10 @@ export function useRescheduleAppointment({
       );
       onClose();
     } catch (error) {
-      toast.error("Không thể đổi lịch", getCreateAppointmentErrorMessage(error));
+      toast.error(
+        "Không thể đổi lịch",
+        getCreateAppointmentErrorMessage(error),
+      );
     } finally {
       isSubmittingRef.current = false;
     }

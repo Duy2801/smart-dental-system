@@ -52,13 +52,12 @@ export function SchedulePicker({
                   onClick={() => onSelectDate(date.id)}
                   aria-pressed={selected}
                   title={date.isOpen ? "Có lịch làm việc" : "Phòng khám nghỉ"}
-                  className={`mx-auto grid h-12 w-full max-w-[40px] place-items-center rounded-lg text-xs font-semibold transition ${
-                    selected
+                  className={`mx-auto grid h-12 w-full max-w-[40px] place-items-center rounded-lg text-xs font-semibold transition ${selected
                       ? "bg-[#0863c5] text-white shadow-md shadow-blue-200"
                       : date.isOpen
                         ? "text-slate-600 hover:bg-blue-50 hover:text-[#0863c5]"
                         : "cursor-not-allowed bg-slate-50 text-slate-300 line-through"
-                  }`}
+                    }`}
                 >
                   <span className="text-[9px] font-bold uppercase">
                     {date.weekday}
@@ -75,9 +74,6 @@ export function SchedulePicker({
           <h3 className="text-[11px] font-bold uppercase tracking-[0.08em] text-slate-500">
             Khung giờ còn trống
           </h3>
-          <p className="mt-0.5 text-[10px] text-slate-400">
-            Giờ địa phương - {slotIntervalMinutes} phút/lượt
-          </p>
           {(() => {
             const uniqueBlockedRanges = Array.from(new Set(blockedRanges));
             return uniqueBlockedRanges.length ? (
@@ -108,13 +104,12 @@ export function SchedulePicker({
                   onClick={() => onSelectTime(time)}
                   aria-pressed={selected}
                   title={blocked ? "Bạn đã có lịch ở khung giờ này" : undefined}
-                  className={`rounded-lg border px-2 py-2 text-xs font-semibold transition ${
-                    blocked
+                  className={`rounded-lg border px-2 py-2 text-xs font-semibold transition ${blocked
                       ? "cursor-not-allowed border-slate-300 bg-slate-200 text-slate-500"
                       : selected
-                      ? "border-[#0863c5] bg-blue-50 text-[#0863c5] ring-1 ring-blue-100"
-                      : "border-slate-200 bg-white text-slate-500 hover:border-blue-200"
-                  }`}
+                        ? "border-[#0863c5] bg-blue-50 text-[#0863c5] ring-1 ring-blue-100"
+                        : "border-slate-200 bg-white text-slate-500 hover:border-blue-200"
+                    }`}
                 >
                   <span className="block">{time}</span>
                 </button>

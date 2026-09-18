@@ -86,6 +86,8 @@ export const ModelName = {
   Payment: 'Payment',
   Review: 'Review',
   ChatbotConversation: 'ChatbotConversation',
+  SupportConversation: 'SupportConversation',
+  SupportMessage: 'SupportMessage',
   VideoConsultation: 'VideoConsultation',
   PatientAiBrief: 'PatientAiBrief',
   Notification: 'Notification',
@@ -694,6 +696,33 @@ export const ChatbotConversationScalarFieldEnum = {
 } as const
 
 export type ChatbotConversationScalarFieldEnum = (typeof ChatbotConversationScalarFieldEnum)[keyof typeof ChatbotConversationScalarFieldEnum]
+
+
+export const SupportConversationScalarFieldEnum = {
+  id: 'id',
+  patientId: 'patientId',
+  status: 'status',
+  assignedToId: 'assignedToId',
+  assignedAt: 'assignedAt',
+  lastMessageAt: 'lastMessageAt',
+  createdAt: 'createdAt',
+  closedAt: 'closedAt'
+} as const
+
+export type SupportConversationScalarFieldEnum = (typeof SupportConversationScalarFieldEnum)[keyof typeof SupportConversationScalarFieldEnum]
+
+
+export const SupportMessageScalarFieldEnum = {
+  id: 'id',
+  conversationId: 'conversationId',
+  senderType: 'senderType',
+  senderId: 'senderId',
+  content: 'content',
+  readAt: 'readAt',
+  createdAt: 'createdAt'
+} as const
+
+export type SupportMessageScalarFieldEnum = (typeof SupportMessageScalarFieldEnum)[keyof typeof SupportMessageScalarFieldEnum]
 
 
 export const VideoConsultationScalarFieldEnum = {

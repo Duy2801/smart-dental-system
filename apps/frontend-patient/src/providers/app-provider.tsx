@@ -2,27 +2,35 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Provider } from "react-redux";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { apiMe, apiRefresh } from "@/features/auth/api";
+import { loadPatientSession } from "@/features/auth/session-storage";
 import { ToastProvider } from "@/features/dashboard/common/toast";
 import { SocketProvider } from "@/service/ws/useSocket";
 import { useAppSelector } from "./hooks";
-import { finishHydration, login, logout, updateAccessToken } from "./loginSlice";
+import {
+  finishHydration,
+  login,
+  logout,
+  updateSessionTokens,
+} from "./loginSlice";
 import store from "./store";
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 60_000,
-      gcTime: 5 * 60_000,
-      refetchOnWindowFocus: false,
-      retry: 1,
+function createQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 60_000,
+        gcTime: 5 * 60_000,
+        refetchOnWindowFocus: false,
+        retry: 1,
+      },
     },
-  },
-});
+  });
+}
 
-function AuthHydrator() {
+function AuthHydrator({ queryClient }: { queryClient: QueryClient }) {
   const startedRef = useRef(false);
 
   useEffect(() => {
@@ -34,10 +42,51 @@ function AuthHydrator() {
       return;
     }
 
+    const storedSession = loadPatientSession();
+    if (storedSession) {
+      store.dispatch(
+        login({
+          user: storedSession.user,
+          accessToken: storedSession.accessToken,
+        }),
+      );
+
+      void apiMe()
+        .then((profileResponse) => {
+          const user = profileResponse.data;
+          const accessToken =
+            store.getState().login.accessToken || storedSession.accessToken;
+          queryClient.setQueryData(["patient", "profile"], user);
+          store.dispatch(
+            login({
+              user,
+              accessToken,
+            }),
+          );
+        })
+        .catch(async () => {
+          try {
+            const refreshResponse = await apiRefresh();
+            const { accessToken, user: refreshedUser } = refreshResponse.data;
+            const user = refreshedUser ?? (await apiMe()).data;
+            queryClient.setQueryData(["patient", "profile"], user);
+            store.dispatch(
+              login({
+                user,
+                accessToken,
+              }),
+            );
+          } catch {
+            store.dispatch(logout());
+          }
+        });
+      return;
+    }
+
     void apiRefresh()
       .then(async (refreshResponse) => {
         const { accessToken, user: refreshedUser } = refreshResponse.data;
-        store.dispatch(updateAccessToken(accessToken));
+        store.dispatch(updateSessionTokens({ accessToken }));
 
         const user = refreshedUser ?? (await apiMe()).data;
         queryClient.setQueryData(["patient", "profile"], user);
@@ -63,10 +112,12 @@ function SocketAppWrapper({ children }: { children: ReactNode }) {
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
+  const [queryClient] = useState(createQueryClient);
+
   return (
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
-        <AuthHydrator />
+        <AuthHydrator queryClient={queryClient} />
         <SocketAppWrapper>
           {children}
           <ToastProvider />

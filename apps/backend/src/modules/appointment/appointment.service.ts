@@ -25,7 +25,9 @@ import { RedisService } from '../redis/redis.service';
 import {
   BusinessHourDto,
   ClinicSpecialDateDto,
+  LunchBreakDto,
 } from '../clinic-config/dto/update-clinic-config.dto';
+import { overlapsLunchBreak } from '../clinic-config/clinic-schedule-time';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { CreateStaffAppointmentDto } from './dto/create-staff-appointment.dto';
 
@@ -1551,6 +1553,7 @@ export class AppointmentService {
           clinicConfig.businessHours,
           duration,
           clinicConfig.specialDates,
+          clinicConfig.lunchBreak,
           clinicConfig.slotIntervalMinutes,
           bookingWindow.recordsByDoctor,
           effectiveAppointmentsByDoctor,
@@ -1576,6 +1579,7 @@ export class AppointmentService {
               doctors,
               businessHours: clinicConfig.businessHours,
               specialDates: clinicConfig.specialDates,
+              lunchBreak: clinicConfig.lunchBreak,
               slotIntervalMinutes: clinicConfig.slotIntervalMinutes,
               recordsByDoctor: bookingWindow.recordsByDoctor,
               appointmentsByDoctor: effectiveAppointmentsByDoctor,
@@ -1639,6 +1643,8 @@ export class AppointmentService {
         selectedDateId,
         timeSlots,
         doctors: availableDoctors,
+        slotIntervalMinutes: clinicConfig.slotIntervalMinutes,
+        lunchBreak: clinicConfig.lunchBreak,
       };
     });
   }
@@ -2094,6 +2100,7 @@ export class AppointmentService {
         ...this.buildAppointmentOwnerWhere(patientId, createdBy),
         treatmentMethodId,
         status: { in: incompleteAppointmentStatuses },
+        endAt: { gt: new Date() },
       },
       select: { id: true },
     });
@@ -2323,7 +2330,12 @@ export class AppointmentService {
     const endMinutes = this.dateToMinutes(endAt);
     if (
       startMinutes < this.timeToMinutes(businessHour.start) ||
-      endMinutes > this.timeToMinutes(businessHour.end)
+      endMinutes > this.timeToMinutes(businessHour.end) ||
+      overlapsLunchBreak(
+        startMinutes,
+        endMinutes,
+        clinicScheduleConfig.lunchBreak,
+      )
     ) {
       throw new BadRequestException('clinic.closed_at_selected_time');
     }
@@ -2500,6 +2512,7 @@ export class AppointmentService {
     return !conflict;
   }
 
+
   private async isDoctorWorking(doctorId: string, startAt: Date, endAt: Date) {
     const records = await this.getAvailabilityRecords(doctorId, startAt);
     const startMinutes = this.dateToMinutes(startAt);
@@ -2562,6 +2575,7 @@ export class AppointmentService {
     businessHours: BusinessHourDto[],
     serviceDurationMinutes: number,
     specialDates: ClinicSpecialDateDto[],
+    lunchBreak: LunchBreakDto,
     slotIntervalMinutes: number,
     recordsByDoctor: Map<string, any[]>,
     appointmentsByDoctor: Map<string, AppointmentSlotSnapshot[]>,
@@ -2601,6 +2615,7 @@ export class AppointmentService {
           dateStr,
           doctorIds,
           businessHour: businessHour!,
+          lunchBreak,
           serviceDurationMinutes,
           slotStep: step,
           recordsByDoctor,
@@ -2630,6 +2645,7 @@ export class AppointmentService {
     doctors,
     businessHours,
     specialDates,
+    lunchBreak,
     slotIntervalMinutes,
     recordsByDoctor,
     appointmentsByDoctor,
@@ -2639,6 +2655,7 @@ export class AppointmentService {
     doctors: Array<{ id: string }>;
     businessHours: BusinessHourDto[];
     specialDates: ClinicSpecialDateDto[];
+    lunchBreak: LunchBreakDto;
     slotIntervalMinutes: number;
     recordsByDoctor: Map<string, any[]>;
     appointmentsByDoctor: Map<string, AppointmentSlotSnapshot[]>;
@@ -2666,6 +2683,16 @@ export class AppointmentService {
       const endAt = new Date(
         startAt.getTime() + serviceDurationMinutes * 60 * 1000,
       );
+      if (
+        overlapsLunchBreak(
+          this.dateToMinutes(startAt),
+          this.dateToMinutes(endAt),
+          lunchBreak,
+        )
+      ) {
+        continue;
+      }
+
       const hasDoctor = doctors
         .map((doctor) =>
           this.isDoctorBookableFromSnapshot(
@@ -2690,6 +2717,7 @@ export class AppointmentService {
     dateStr,
     doctorIds,
     businessHour,
+    lunchBreak,
     serviceDurationMinutes,
     slotStep,
     recordsByDoctor,
@@ -2700,6 +2728,7 @@ export class AppointmentService {
     dateStr: string;
     doctorIds: string[];
     businessHour: BusinessHourDto;
+    lunchBreak: LunchBreakDto;
     serviceDurationMinutes: number;
     slotStep: number;
     recordsByDoctor: Map<string, any[]>;
@@ -2721,6 +2750,16 @@ export class AppointmentService {
       const endAt = new Date(
         startAt.getTime() + serviceDurationMinutes * 60 * 1000,
       );
+      if (
+        overlapsLunchBreak(
+          this.dateToMinutes(startAt),
+          this.dateToMinutes(endAt),
+          lunchBreak,
+        )
+      ) {
+        continue;
+      }
+
       const hasDoctor = doctorIds
         .map((doctorId) =>
           this.isDoctorBookableFromSnapshot(

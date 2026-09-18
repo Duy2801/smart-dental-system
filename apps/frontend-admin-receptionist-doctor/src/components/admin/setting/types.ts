@@ -8,6 +8,12 @@ export type BusinessHour = {
   end: string;
 };
 
+export type LunchBreak = {
+  isEnabled: boolean;
+  start: string;
+  end: string;
+};
+
 export type ClinicSpecialDate = {
   date: string;
   label: string;
@@ -23,6 +29,7 @@ export type ClinicConfig = {
   address: string;
   logoUrl: string;
   businessHours: BusinessHour[];
+  lunchBreak: LunchBreak;
   slotIntervalMinutes: number;
   specialDates: ClinicSpecialDate[];
   isBusinessHoursConfigured: boolean;

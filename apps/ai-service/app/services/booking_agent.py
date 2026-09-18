@@ -151,6 +151,23 @@ def booking_intent(text: str) -> bool:
     return False
 
 
+def new_booking_intent(text: str) -> bool:
+    text_norm = normalize_text(text)
+    return any(
+        phrase in text_norm
+        for phrase in [
+            "dat them lich",
+            "dat lich them",
+            "dat lich moi",
+            "tao lich moi",
+            "dat them",
+            "dat lai",
+            "muon dat them",
+            "muoaan dat them",
+        ]
+    )
+
+
 def parse_new_patient_info(text: str) -> Dict[str, Any]:
     info: Dict[str, Any] = {}
     text_norm = normalize_text(text)
@@ -413,8 +430,6 @@ def service_suggestions(
                         "treatmentMethodName": None,
                         "date": None,
                         "time": None,
-                        "doctorId": None,
-                        "doctorName": None,
                     },
                 ),
             }
@@ -445,8 +460,6 @@ def method_suggestions(
                         "treatmentMethodName": name,
                         "date": None,
                         "time": None,
-                        "doctorId": None,
-                        "doctorName": None,
                     },
                 ),
             }
@@ -472,7 +485,7 @@ def date_suggestions(
                 "value": f"Toi muon kham ngay {date_id}",
                 "metadata": with_state(
                     state,
-                    {"date": date_id, "time": None, "doctorId": None, "doctorName": None},
+                    {"date": date_id, "time": None},
                 ),
             }
         )
@@ -492,7 +505,7 @@ def slot_suggestions(
             "value": f"Toi chon {slot} ngay {state.get('date')}",
             "metadata": with_state(
                 state,
-                {"time": slot, "doctorId": None, "doctorName": None},
+                {"time": slot},
             ),
         }
         for slot in slots[:8]
@@ -520,6 +533,44 @@ def doctor_suggestions(
             }
         )
     return suggestions
+
+
+def doctor_schedule_unavailable_response(
+    state: Dict[str, Any],
+    dates: Optional[List[Dict[str, Any]]] = None,
+) -> ChatResponse:
+    available_dates = date_suggestions(dates or [], state)
+    doctor_name = state.get("doctorName") or "đã chọn"
+    if available_dates:
+        return ChatResponse(
+            reply=(
+                f"Bác sĩ {doctor_name} không có lịch trống vào ngày {state.get('date')}. "
+                "Quý khách vui lòng chọn một ngày khác trong lịch làm việc của bác sĩ ạ."
+            ),
+            should_book=True,
+            suggestions=available_dates,
+            metadata=with_state(state, {"date": None, "time": None}),
+        )
+
+    return ChatResponse(
+        reply=(
+            f"Bác sĩ {doctor_name} hiện không có lịch làm việc phù hợp trong 15 ngày tới. "
+            "Quý khách vui lòng chọn bác sĩ khác ạ."
+        ),
+        should_book=True,
+        suggestions=[
+            {
+                "type": "quick_reply",
+                "label": "Chọn bác sĩ khác",
+                "value": "Tôi muốn chọn bác sĩ khác",
+                "metadata": with_state(
+                    state,
+                    {"doctorId": None, "doctorName": None, "date": None, "time": None},
+                ),
+            }
+        ],
+        metadata=with_state(state, {}),
+    )
 
 
 def find_by_id(items: List[Dict[str, Any]], item_id: Optional[str]) -> Optional[Dict[str, Any]]:
@@ -678,6 +729,8 @@ def _booking_completed_in_history(history) -> bool:
     """Check if last assistant message indicates a completed booking."""
     for msg in reversed(history):
         if msg.role == "assistant":
+            if (msg.metadata or {}).get("bookingCompleted") is True:
+                return True
             content = (msg.content or "").lower()
             return "dat lich thanh cong" in content or "\u0111\u1eb7t l\u1ecbch th\u00e0nh c\u00f4ng" in content
     return False
@@ -713,7 +766,56 @@ def is_general_inquiry(text: str) -> bool:
         "la ai",
         "gom nhung ai",
     ]
-    return any(k in norm for k in inquiry_keywords)
+    question_patterns = [
+        "la gi",
+        "bi gi",
+        "tai sao",
+        "vi sao",
+        "bao nhieu",
+        "nhu the nao",
+        "the nao",
+        "o dau",
+        "khi nao",
+        "co nen",
+        "duoc khong",
+    ]
+    has_question_form = (
+        "?" in text
+        or any(pattern in norm for pattern in question_patterns)
+        or bool(re.search(r"\bco\b.+\bkhong\b", norm))
+    )
+    return any(k in norm for k in inquiry_keywords) or has_question_form
+
+
+def is_booking_step_answer(text: str, state: Dict[str, Any]) -> bool:
+    """Keep direct answers to the active booking step inside the booking flow."""
+    norm = normalize_text(text)
+    if booking_intent(text) or new_booking_intent(text):
+        return True
+    if extract_requested_date(text) or extract_time_from_text(text):
+        return True
+    if wants_confirmation(text) or norm.startswith(("toi chon", "minh chon", "chon ")):
+        return True
+    if any(
+        wants_change(text, field)
+        for field in ["patient", "service", "method", "date", "time", "doctor"]
+    ):
+        return True
+
+    doctor_information_question = any(
+        phrase in norm
+        for phrase in [
+            "bao nhieu bac si",
+            "bac si nao",
+            "danh sach bac si",
+            "thong tin bac si",
+            "bac si la ai",
+        ]
+    )
+    if state.get("date") and state.get("time") and not state.get("doctorId"):
+        return "bac si" in norm and not doctor_information_question
+
+    return False
 
 
 class BookingAgent:
@@ -735,9 +837,9 @@ class BookingAgent:
 
         # --- After a completed booking, user wants to book again: reset state fully ---
         just_completed = _booking_completed_in_history(body.history)
-        if just_completed and booking_intent(user_msg):
-            # New booking session — ignore all previous booking state
-            body_metadata_cleared = body
+        starts_new_booking = new_booking_intent(user_msg)
+        if just_completed or starts_new_booking:
+            # A completed or explicitly restarted flow must never reuse old details.
             state: Dict[str, Any] = {}
             if body.patient_id:
                 state["patientId"] = body.patient_id
@@ -747,7 +849,10 @@ class BookingAgent:
             state = merge_state(body)
 
         # Disambiguate General Inquiry vs Booking Intent
-        is_inquiry = is_general_inquiry(user_msg)
+        is_inquiry = is_general_inquiry(user_msg) and not is_booking_step_answer(
+            user_msg,
+            state,
+        )
 
         # Booking is in progress ONLY when active booking parameters are set (not just patientId alone)
         booking_in_progress = bool(
@@ -761,11 +866,21 @@ class BookingAgent:
         if is_inquiry:
             wants_booking = False
         else:
-            wants_booking = booking_intent(user_msg) or booking_in_progress
+            wants_booking = (
+                booking_intent(user_msg)
+                or starts_new_booking
+                or booking_in_progress
+            )
 
         services = await fetch_available_services()
         doctors = await fetch_available_doctors()
         patients = await fetch_patient_profiles(body.created_by_user_id)
+
+        if not wants_booking:
+            response = await self.answer_general_question(body, services, doctors)
+            if booking_in_progress:
+                response.metadata = with_state(state, response.metadata or {})
+            return response
 
         if wants_change(user_msg, "patient"):
             state = {}
@@ -796,30 +911,14 @@ class BookingAgent:
                 }
             )
         elif wants_change(user_msg, "date"):
-            state.update({"date": None, "time": None, "doctorId": None, "doctorName": None, "confirmBooking": None})
+            state.update({"date": None, "time": None, "confirmBooking": None})
         elif wants_change(user_msg, "time"):
-            state.update({"time": None, "doctorId": None, "doctorName": None, "confirmBooking": None})
+            state.update({"time": None, "confirmBooking": None})
         elif wants_change(user_msg, "doctor"):
             state.update({"doctorId": None, "doctorName": None, "confirmBooking": None})
 
         # Detect booking for someone else or creation of a new patient profile
         user_norm = normalize_text(user_msg)
-
-        is_new_booking_intent = any(
-            k in user_norm
-            for k in [
-                "dat them lich",
-                "dat lich them",
-                "dat lich moi",
-                "tao lich moi",
-                "dat them",
-                "dat lai",
-                "muon dat them",
-                "muoaan dat them",
-            ]
-        )
-        if just_completed or is_new_booking_intent:
-            state = {}
 
         wants_book_for_other = any(
             k in user_norm
@@ -968,9 +1067,6 @@ class BookingAgent:
         if typed_time:
             state.update({"time": typed_time})
 
-        if not wants_booking:
-            return await self.answer_general_question(body, services, doctors)
-
         if not body.created_by_user_id:
             return ChatResponse(
                 reply="Để đặt lịch khám trên hệ thống, quý khách vui lòng đăng nhập tài khoản bệnh nhân trước ạ. Mình vẫn có thể tư vấn dịch vụ và bảng giá nếu quý khách cần.",
@@ -1076,10 +1172,16 @@ class BookingAgent:
             options = await fetch_booking_options(
                 service_id=state.get("serviceId"),
                 treatment_method_id=state.get("treatmentMethodId"),
+                doctor_id=state.get("doctorId"),
             )
             suggestions = date_suggestions(options.get("dates") or [], state)
             srv_name = selected_service.get("name") if selected_service else ""
             doc_name = f" cùng {state.get('doctorName')}" if state.get("doctorName") else ""
+            if state.get("doctorId") and not suggestions:
+                return doctor_schedule_unavailable_response(
+                    state,
+                    options.get("dates") or [],
+                )
             return ChatResponse(
                 reply=f"Dạ, mình đã lưu dịch vụ **{srv_name}**{doc_name}. Quý khách mong muốn khám vào ngày nào ạ?",
                 should_book=True,
@@ -1092,6 +1194,7 @@ class BookingAgent:
             options = await fetch_booking_options(
                 service_id=state.get("serviceId"),
                 treatment_method_id=state.get("treatmentMethodId"),
+                doctor_id=state.get("doctorId"),
             )
             return ChatResponse(
                 reply="Dạ, ngày vừa chọn đã qua. Quý khách vui lòng chọn một ngày sắp tới còn lịch trống nhé ạ.",
@@ -1104,10 +1207,16 @@ class BookingAgent:
             options = await fetch_booking_options(
                 service_id=state.get("serviceId"),
                 treatment_method_id=state.get("treatmentMethodId"),
+                doctor_id=state.get("doctorId"),
                 date=state.get("date"),
             )
             slots = options.get("timeSlots") or []
             if not slots:
+                if state.get("doctorId"):
+                    return doctor_schedule_unavailable_response(
+                        state,
+                        options.get("dates") or [],
+                    )
                 return ChatResponse(
                     reply=f"Dạ, ngày {state.get('date')} hiện không còn khung giờ trống theo lịch phòng khám. Quý khách chọn ngày khác giúp mình nhé ạ.",
                     should_book=True,
@@ -1124,12 +1233,13 @@ class BookingAgent:
         options = await fetch_booking_options(
             service_id=state.get("serviceId"),
             treatment_method_id=state.get("treatmentMethodId"),
+            doctor_id=state.get("doctorId"),
             date=state.get("date"),
             time=state.get("time"),
         )
         slots = options.get("timeSlots") or []
         if state.get("time") not in slots:
-            state.update({"time": None, "doctorId": None, "doctorName": None})
+            state.update({"time": None})
             return ChatResponse(
                 reply="Khung giờ vừa chọn không còn khả dụng theo lịch mới nhất. Quý khách vui lòng chọn khung giờ khác ạ.",
                 should_book=True,
@@ -1272,16 +1382,18 @@ class BookingAgent:
             )
             return ChatResponse(
                 reply=(
-                    f"🎉 **Xác nhận đặt lịch hẹn thành công!** ✅\n\n"
-                    f"• **Mã lịch hẹn:** #{appt_code}\n"
-                    f"• **Bệnh nhân:** {patient_name}\n"
-                    f"• **Dịch vụ / Gói khám:** {service_name}\n"
-                    f"• **Bác sĩ phụ trách:** {doctor_name}\n"
-                    f"• **Thời gian hẹn:** {state.get('time')} - ngày {state.get('date')}\n"
-                    f"• **Hình thức thanh toán:** Thanh toán trực tiếp tại quầy khi đến khám\n\n"
-                    f"Lịch khám của quý khách đã được giữ thành công trên hệ thống Smart Dental!"
+                    f"ĐẶT LỊCH THÀNH CÔNG\n\n"
+                    f"Thông tin lịch hẹn\n"
+                    f"• Mã lịch hẹn: #{appt_code}\n"
+                    f"• Người khám: {patient_name}\n"
+                    f"• Dịch vụ: {service_name}\n"
+                    f"• Bác sĩ phụ trách: {doctor_name}\n"
+                    f"• Thời gian: {state.get('time')} ngày {state.get('date')}\n"
+                    f"• Thanh toán: Thanh toán trực tiếp tại quầy\n\n"
+                    f"Lịch hẹn đã được ghi nhận. Quý khách vui lòng đến trước 10–15 phút để làm thủ tục."
                 ),
                 should_book=False,
+                metadata={"bookingCompleted": True, "bookingState": {}},
                 suggestions=[
                     {
                         "type": "quick_reply",
@@ -1401,7 +1513,7 @@ class BookingAgent:
             "- Tư vấn triệu chứng răng miệng, hướng dẫn chăm sóc trước/sau điều trị.\n"
             "- Tra cứu lịch hẹn cá nhân và hướng dẫn đặt lịch khám.\n\n"
             "QUY TẮC PHẢN HỒI:\n"
-            "1. Trả lời tiếng Việt chuẩn mực, thân thiện, lịch sự, đúng trọng tâm và trình bày Markdown đẹp mắt (gạch đầu dòng, bôi đậm tên bác sĩ/dịch vụ/giá/mã ưu đãi).\n"
+            "1. Trả lời bằng tiếng Việt chuẩn mực, thân thiện, lịch sự và đúng trọng tâm. Chỉ dùng văn bản thuần với tiêu đề ngắn và dấu • khi cần liệt kê. Tuyệt đối không dùng ký hiệu Markdown như **, ##, dấu gạch dưới hoặc dấu backtick.\n"
             "2. Khi khách hỏi về Bác sĩ (ví dụ: 'phòng khám có những bác sĩ nào', 'còn bác sĩ khác không', 'bác sĩ chuyên nhổ răng khôn'):\n"
             "   - Hãy LIỆT KÊ ĐẦY ĐỦ TOÀN BỘ danh sách bác sĩ được cung cấp bên dưới kèm chuyên khoa và kinh nghiệm của từng người.\n"
             "   - Tuyệt đối KHÔNG trả lời khẳng định cứng nhắc hay hạn chế thông tin kiểu 'Hệ thống chỉ có 2 bác sĩ này'.\n"
@@ -1411,7 +1523,8 @@ class BookingAgent:
             "4. Khi khách hỏi giá / dịch vụ / khuyến mãi -> Liệt kê đầy đủ các gói/phương pháp điều trị kèm mức giá rõ ràng.\n"
             "   - Nếu dịch vụ/phương pháp đó đang CÓ GIẢM GIÁ / KHUYẾN MÃI (ví dụ: [Giảm 20% (Mã: SALE20)]): Hãy THÔNG BÁO RÕ CHO KHÁCH HÀNG và cho biết hệ thống sẽ TỰ ĐỘNG ÁP DỤNG MÃ GIẢM GIÁ này khi khách đặt lịch khám!\n"
             "5. Tuyệt đối KHÔNG bịa đặt giá cả hay lịch hẹn không tồn tại. Dựa trên dữ liệu phòng khám bên dưới để trả lời chính xác.\n"
-            "6. Nếu câu hỏi KHÔNG liên quan đến nha khoa hay phòng khám → Trả lời: \"Mình chỉ có thể hỗ trợ các thông tin liên quan đến Nha khoa Smart Dental. Quý khách vui lòng liên hệ trực tiếp phòng khám nếu cần thêm hỗ trợ.\"\n\n"
+            "6. Nếu câu hỏi không liên quan đến nha khoa hoặc phòng khám: trả lời tự nhiên theo đúng câu hỏi, nói rõ thông tin nào hệ thống không có, không suy đoán hoặc bịa đặt; sau đó lịch sự hướng khách quay lại phạm vi hỗ trợ nha khoa. Không lặp một câu từ chối máy móc cho mọi tình huống.\n"
+            "7. Nếu khách đang đặt lịch nhưng chen ngang bằng một câu hỏi, hãy trả lời câu hỏi đó đầy đủ. Không tự ý tiếp tục chọn ngày, giờ hoặc bác sĩ trong phần tư vấn.\n\n"
             + user_appts_block
             + (f"{rag_block}\n\n" if rag_block else "")
             + f"Danh sách Dịch vụ hiện có:\n{services_summary}\n\n"

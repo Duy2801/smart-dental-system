@@ -1,4 +1,10 @@
-import apiClient from '@/lib/axios';
+import apiClient from "@/lib/axios";
+import {
+  DEFAULT_CLINIC_LUNCH_BREAK,
+  filterSlotsOutsideLunchBreak,
+  normalizeClinicLunchBreak,
+  type ClinicLunchBreak,
+} from "@/lib/clinic-schedule";
 import type {
   ConsultationBookingResult,
   ConsultationDoctor,
@@ -6,18 +12,20 @@ import type {
   ConsultationDurationOption,
   CreateConsultationPayload,
   PatientConsultationItem,
-} from './types';
+} from "./types";
 
-export async function getConsultationPackages(): Promise<ConsultationDurationOption[]> {
+export async function getConsultationPackages(): Promise<
+  ConsultationDurationOption[]
+> {
   const response = await apiClient.get<ConsultationDurationOption[]>(
-    '/video-consultations/packages',
+    "/video-consultations/packages",
   );
   return response.data;
 }
 
 export async function getConsultationDoctors(): Promise<ConsultationDoctor[]> {
   const response = await apiClient.get<ConsultationDoctor[]>(
-    '/video-consultations/consultation-doctors',
+    "/video-consultations/consultation-doctors",
   );
   return response.data;
 }
@@ -27,20 +35,27 @@ export async function getAvailableConsultationSlots(
   date: string,
   durationMinutes: ConsultationDurationMinutes,
 ): Promise<string[]> {
-  const response = await apiClient.get<string[]>(
-    '/video-consultations/available-slots',
-    {
+  const [slotsResponse, configResponse] = await Promise.all([
+    apiClient.get<string[]>("/video-consultations/available-slots", {
       params: { doctorId, date, durationMinutes },
-    },
+    }),
+    apiClient
+      .get<{ lunchBreak?: ClinicLunchBreak }>("/clinic-config")
+      .catch(() => ({ data: { lunchBreak: DEFAULT_CLINIC_LUNCH_BREAK } })),
+  ]);
+
+  return filterSlotsOutsideLunchBreak(
+    slotsResponse.data,
+    durationMinutes,
+    normalizeClinicLunchBreak(configResponse.data.lunchBreak),
   );
-  return response.data;
 }
 
 export async function createConsultationBooking(
   payload: CreateConsultationPayload,
 ): Promise<ConsultationBookingResult> {
   const response = await apiClient.post<ConsultationBookingResult>(
-    '/video-consultations/booking',
+    "/video-consultations/booking",
     payload,
   );
   return response.data;
@@ -48,7 +63,7 @@ export async function createConsultationBooking(
 
 export async function getMyConsultations(): Promise<PatientConsultationItem[]> {
   const response = await apiClient.get<PatientConsultationItem[]>(
-    '/video-consultations/patient/my-consultations',
+    "/video-consultations/patient/my-consultations",
   );
   return response.data;
 }
@@ -147,4 +162,3 @@ export async function joinPatientConsultationRoom(id: string): Promise<{
   }>(`/video-consultations/patient/${id}/join`);
   return response.data;
 }
-

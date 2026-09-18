@@ -1,8 +1,11 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { toast } from "@/features/dashboard/common/toast";
-import { createPatientAppointment, getAppointmentOptions } from "../api";
-import { getCreateAppointmentErrorMessage } from "../utils";
+import { createPatientAppointment } from "../api";
+import {
+  getAppointmentErrorCode,
+  getCreateAppointmentErrorMessage,
+} from "../utils";
 import type { BookingDate } from "../types";
 import { appointmentQueryKeys } from "./useAppointmentQueries";
 
@@ -10,7 +13,6 @@ type UseCreateAppointmentParams = {
   dates: BookingDate[];
   availableTimes: string[];
   selectedDoctorId: string;
-  selectedServiceId: string;
   selectedTreatmentMethodId: string;
   selectedPatientId: string;
   selectedDateId: string;
@@ -26,7 +28,6 @@ export function useCreateAppointment({
   dates,
   availableTimes,
   selectedDoctorId,
-  selectedServiceId,
   selectedTreatmentMethodId,
   selectedPatientId,
   selectedDateId,
@@ -88,36 +89,8 @@ export function useCreateAppointment({
       }
 
       if (!availableTimes.includes(selectedTime)) {
-        toast.error("Khung giờ không hợp lệ", "Vui lòng chọn khung giờ khác.");
-        return;
-      }
-
-      const confirmedOptions = await getAppointmentOptions({
-        serviceId: selectedServiceId,
-        treatmentMethodId: selectedTreatmentMethodId,
-        doctorId: selectedDoctorId,
-        date: selectedDateId,
-        time: selectedTime,
-      });
-      const selectedDoctorIsStillAvailable = confirmedOptions.doctors.some(
-        (doctor) => doctor.id === selectedDoctorId,
-      );
-
-      if (!confirmedOptions.timeSlots.includes(selectedTime)) {
         onSelectedTimeChange("");
-        toast.error(
-          "Khung giờ vừa chọn không còn trống",
-          "Vui lòng chủ động chọn khung giờ khám khác.",
-        );
-        return;
-      }
-
-      if (!selectedDoctorIsStillAvailable) {
-        onSelectedDoctorChange("");
-        toast.error(
-          "Bác sĩ vừa chọn không còn trống",
-          "Vui lòng chủ động chọn bác sĩ khác hoặc chọn khung giờ khác.",
-        );
+        toast.error("Khung giờ không hợp lệ", "Vui lòng chọn khung giờ khác.");
         return;
       }
 
@@ -138,6 +111,10 @@ export function useCreateAppointment({
       );
       onSuccess();
     } catch (appointmentError) {
+      resetUnavailableSelections(appointmentError, {
+        onSelectedTimeChange,
+        onSelectedDoctorChange,
+      });
       toast.error(
         "Không thể đặt lịch hẹn",
         getCreateAppointmentErrorMessage(appointmentError),
@@ -152,4 +129,35 @@ export function useCreateAppointment({
     createAppointment,
     isSubmitting: isProcessing || createAppointmentMutation.isPending,
   };
+}
+
+function resetUnavailableSelections(
+  error: unknown,
+  actions: {
+    onSelectedTimeChange: (time: string) => void;
+    onSelectedDoctorChange: (doctorId: string) => void;
+  },
+) {
+  const errorCode = getAppointmentErrorCode(error);
+  if (!errorCode) return;
+
+  if (
+    errorCode === "appointment.doctor_time_conflict" ||
+    errorCode === "appointment.doctor_time_conflict_video" ||
+    errorCode === "doctor.not_available_at_selected_time" ||
+    errorCode === "doctor.unavailable"
+  ) {
+    actions.onSelectedDoctorChange("");
+    actions.onSelectedTimeChange("");
+    return;
+  }
+
+  if (
+    errorCode === "appointment.patient_time_conflict" ||
+    errorCode === "appointment.time_in_past" ||
+    errorCode === "appointment.invalid_time" ||
+    errorCode === "clinic.closed_at_selected_time"
+  ) {
+    actions.onSelectedTimeChange("");
+  }
 }

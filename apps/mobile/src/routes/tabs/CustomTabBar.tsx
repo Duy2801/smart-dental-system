@@ -4,7 +4,9 @@ import { StackActions } from '@react-navigation/native';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSelector } from 'react-redux';
 import { SCREEN_NAME } from '~src/constants/screenName';
+import type { RootState } from '~src/reducers/store';
 
 type IconName =
   | 'calendar-days'
@@ -31,6 +33,7 @@ const CustomTabBar = ({
   state,
 }: BottomTabBarProps) => {
   const insets = useSafeAreaInsets();
+  const accessToken = useSelector((s: RootState) => s.login.accessToken);
   const currentParams = state.routes[state.index]?.params as
     | { hideTabBar?: boolean }
     | undefined;
@@ -56,7 +59,11 @@ const CustomTabBar = ({
 
           const onPress = () => {
             if (isCenter) {
-              // Để trống đường dẫn theo yêu cầu, xử lý tính năng tư vấn sau
+              if (!accessToken) {
+                navigation.navigate(SCREEN_NAME.PATIENT_LOGIN as never);
+                return;
+              }
+              navigation.navigate(SCREEN_NAME.SUPPORT_CHAT as never);
               return;
             }
             const event = navigation.emit({

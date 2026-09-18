@@ -24,7 +24,7 @@ export function useAppointmentBookingData({
   selectedDateId,
   selectedTime,
 }: UseAppointmentBookingDataParams) {
-  const doctorIdForQuery = dedicatedDoctorId || selectedDoctorId || undefined;
+  const doctorIdForQuery = dedicatedDoctorId || undefined;
   const baseOptionsQueryParams: BookingOptionsQuery = useMemo(
     () => ({
       doctorId: doctorIdForQuery,
@@ -69,7 +69,10 @@ export function useAppointmentBookingData({
     ],
   );
 
-  const scheduleDoctors = scheduleQuery.data?.doctors ?? [];
+  const scheduleDoctors = useMemo(
+    () => scheduleQuery.data?.doctors ?? [],
+    [scheduleQuery.data],
+  );
   const hasSlotInfo = useMemo(
     () =>
       scheduleDoctors.some(
@@ -84,6 +87,9 @@ export function useAppointmentBookingData({
     availabilityQueryParams,
     !hasSlotInfo,
   );
+  const hasSelectedTreatment = Boolean(
+    selectedServiceId && selectedTreatmentMethodId,
+  );
 
   const services = useMemo(
     () => baseOptionsQuery.data?.services ?? [],
@@ -94,7 +100,10 @@ export function useAppointmentBookingData({
     [scheduleQuery.data?.dates, baseOptionsQuery.data?.dates],
   );
   const doctors = useMemo(() => {
-    if (dedicatedDoctorId) {
+    if (
+      dedicatedDoctorId &&
+      !(selectedServiceId && selectedDateId && selectedTime)
+    ) {
       return baseOptionsQuery.data?.doctors ?? [];
     }
 
@@ -102,46 +111,47 @@ export function useAppointmentBookingData({
       const scheduleDocs = scheduleQuery.data?.doctors ?? [];
       // 1. If doctors have availableTimeSlots (our optimized backend), filter directly client-side
       if (hasSlotInfo) {
-        const filtered = scheduleDocs.filter((doctor) =>
+        return scheduleDocs.filter((doctor) =>
           doctor.availableTimeSlots?.includes(selectedTime),
         );
-        if (filtered.length > 0) return filtered;
       }
 
       // 2. Fallback to availabilityQuery if available (e.g. Vercel backend or slot filtering on server)
-      if (
-        availabilityQuery.data?.doctors &&
-        availabilityQuery.data.doctors.length > 0
-      ) {
-        return availabilityQuery.data.doctors;
+      if (availabilityQuery.data) {
+        return availabilityQuery.data.doctors ?? [];
       }
 
-      // 3. Fallback to scheduleDocs or base doctors rather than rendering empty
-      return scheduleDocs.length > 0
-        ? scheduleDocs
-        : (baseOptionsQuery.data?.doctors ?? []);
+      // 3. Do not expose unverified doctors while availability is loading.
+      return [];
     }
 
-    return scheduleQuery.data?.doctors ?? baseOptionsQuery.data?.doctors ?? [];
+    if (hasSelectedTreatment) {
+      return scheduleQuery.data?.doctors ?? [];
+    }
+
+    return baseOptionsQuery.data?.doctors ?? [];
   }, [
-    availabilityQuery.data?.doctors,
-    baseOptionsQuery.data?.doctors,
+    availabilityQuery.data,
+    baseOptionsQuery.data,
     dedicatedDoctorId,
+    hasSelectedTreatment,
     hasSlotInfo,
-    scheduleQuery.data?.doctors,
+    scheduleQuery.data,
     selectedDateId,
     selectedServiceId,
     selectedTime,
   ]);
-  const timeSlots = useMemo(
-    () =>
-      scheduleQuery.data?.timeSlots ?? baseOptionsQuery.data?.timeSlots ?? [],
-    [scheduleQuery.data?.timeSlots, baseOptionsQuery.data?.timeSlots],
-  );
-  const availableTimes = useMemo(
-    () => getAvailableTimes(selectedDateId, timeSlots),
-    [selectedDateId, timeSlots],
-  );
+  const timeSlots = useMemo(() => {
+    if (hasSelectedTreatment) {
+      return scheduleQuery.data?.timeSlots ?? [];
+    }
+
+    return baseOptionsQuery.data?.timeSlots ?? [];
+  }, [
+    baseOptionsQuery.data?.timeSlots,
+    hasSelectedTreatment,
+    scheduleQuery.data?.timeSlots,
+  ]);
   const selectedService = useMemo(
     () => services.find((service) => service.id === selectedServiceId),
     [services, selectedServiceId],
@@ -152,6 +162,25 @@ export function useAppointmentBookingData({
         (m) => m.id === selectedTreatmentMethodId,
       ),
     [selectedService?.treatmentMethods, selectedTreatmentMethodId],
+  );
+  const lunchBreak =
+    scheduleQuery.data?.lunchBreak ?? baseOptionsQuery.data?.lunchBreak;
+  const availableTimes = useMemo(
+    () =>
+      lunchBreak
+        ? getAvailableTimes(
+            selectedDateId,
+            timeSlots,
+            selectedTreatmentMethod?.durationMinutes ?? 30,
+            lunchBreak,
+          )
+        : [],
+    [
+      lunchBreak,
+      selectedDateId,
+      selectedTreatmentMethod?.durationMinutes,
+      timeSlots,
+    ],
   );
   const selectedDoctor = useMemo(
     () => doctors.find((doctor) => doctor.id === selectedDoctorId),

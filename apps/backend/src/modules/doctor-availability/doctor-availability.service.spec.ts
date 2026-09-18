@@ -24,9 +24,11 @@ describe('DoctorAvailabilityService.create', () => {
     },
   };
   const clinicConfig = { getConfiguredBusinessHours: jest.fn() };
+  const redis = { delByPrefix: jest.fn().mockResolvedValue(undefined) };
   const service = new DoctorAvailabilityService(
     prisma as never,
     clinicConfig as never,
+    redis as never,
   );
 
   const timeOff = {
@@ -82,6 +84,25 @@ describe('DoctorAvailabilityService.create', () => {
         approvalStatus: AvailabilityApprovalStatus.APPROVED,
       }),
     });
+  });
+
+  it('invalidates patient booking caches after creating availability', async () => {
+    const adminUser: AuthenticatedUser = {
+      ...doctorUser,
+      roles: ['ADMIN'],
+    };
+
+    await service.create(adminUser, {
+      ...timeOff,
+      specificDate: '2026-09-06',
+    });
+
+    expect(redis.delByPrefix).toHaveBeenCalledWith('booking:window:');
+    expect(redis.delByPrefix).toHaveBeenCalledWith('booking:options:');
+    expect(redis.delByPrefix).toHaveBeenCalledWith('booking:dates:');
+    expect(redis.delByPrefix).toHaveBeenCalledWith('booking:slots:');
+    expect(redis.delByPrefix).toHaveBeenCalledWith('consultation:doctors');
+    expect(redis.delByPrefix).toHaveBeenCalledWith('consultation:slots:');
   });
 
   it('rejects a doctor accessing another doctor availability', async () => {

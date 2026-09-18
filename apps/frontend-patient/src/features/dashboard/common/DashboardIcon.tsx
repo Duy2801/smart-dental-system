@@ -15,6 +15,7 @@ export type DashboardIconName =
   | "heart"
   | "home"
   | "grid"
+  | "headset"
   | "implant"
   | "logout"
   | "mail"
@@ -80,6 +81,14 @@ export function DashboardIcon({ name, className = "h-5 w-5" }: DashboardIconProp
     ),
     logout: <path d="M10 6H6v12h4M14 8l4 4-4 4m4-4H9" />,
     grid: <path d="M4 4h6v6H4V4Zm10 0h6v6h-6V4ZM4 14h6v6H4v-6Zm10 0h6v6h-6v-6Z" />,
+    headset: (
+      <>
+        <path d="M4 13v-1a8 8 0 0 1 16 0v1" />
+        <path d="M4 13h1a1.5 1.5 0 0 1 1.5 1.5v3A1.5 1.5 0 0 1 5 19H4a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1Z" />
+        <path d="M20 13h-1a1.5 1.5 0 0 0-1.5 1.5v3a1.5 1.5 0 0 0 1.5 1.5h1a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1Z" />
+        <path d="M18.5 19.5v.5a2 2 0 0 1-2 2H12" />
+      </>
+    ),
     mail: <path d="M4 6h16v12H4V6Zm.5.5L12 13l7.5-6.5" />,
     home: <path d="m3 11 9-8 9 8v10h-6v-6H9v6H3V11Z" />,
     search: <path d="m20 20-4.5-4.5M18 10.5a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z" />,

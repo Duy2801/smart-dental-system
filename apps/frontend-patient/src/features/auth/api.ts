@@ -38,6 +38,7 @@ export type AuthSession = {
 
 export type RefreshSession = {
   accessToken: string;
+  refreshToken?: string;
   user?: AuthUser;
 };
 
@@ -65,7 +66,8 @@ export const apiRefresh = () => apiClient.post<RefreshSession>("/auth/refresh");
 
 export const apiMe = () => apiClient.get<AuthUser>("/auth/me");
 
-export const apiLogout = () => apiClient.post<{ message: string }>("/auth/logout");
+export const apiLogout = () =>
+  apiClient.post<{ message: string }>("/auth/logout");
 
 export const apiRegister = (body: RegisterBody) =>
   apiClient.post<{ message: string }>("/auth/register", body);
@@ -78,4 +80,3 @@ export const apiResendOtp = (email: string) =>
 
 export const apiLoginWithGoogle = (idToken: string) =>
   apiClient.post<AuthSession>("/auth/google", { idToken, token: idToken });
-

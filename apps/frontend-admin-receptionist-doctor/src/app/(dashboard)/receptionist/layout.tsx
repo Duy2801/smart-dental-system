@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { RoleLayout } from "@/src/components/layout/role-layout";
+import { ReceptionistShell } from "@/src/features/support-inbox/ReceptionistShell";
 import { receptionistNavItems } from "@/src/components/layout/nav-config";
 import { ROLE_HOME, type Role } from "@/src/constants/roles";
 import { ROUTES } from "@/src/constants/routes";
@@ -23,8 +23,8 @@ export default async function ReceptionistLayout({
   redirectByRole(cookieStore.get("role")?.value as Role | undefined);
 
   return (
-    <RoleLayout title="Lễ tân" items={receptionistNavItems}>
+    <ReceptionistShell title="Lễ tân" items={receptionistNavItems}>
       {children}
-    </RoleLayout>
+    </ReceptionistShell>
   );
 }

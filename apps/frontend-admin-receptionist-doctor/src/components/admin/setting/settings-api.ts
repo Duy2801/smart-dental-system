@@ -1,9 +1,13 @@
 import apiClient from "@/src/lib/api/client";
+import { initialLunchBreak } from "./constants";
 import type { ClinicConfig } from "./types";
 
 export async function getClinicConfig() {
   const response = await apiClient.get<ClinicConfig>("/clinic-config");
-  return response.data;
+  return {
+    ...response.data,
+    lunchBreak: response.data.lunchBreak ?? initialLunchBreak,
+  };
 }
 
 export async function updateClinicConfig(payload: ClinicConfig) {
@@ -35,6 +39,11 @@ export async function updateClinicConfig(payload: ClinicConfig) {
     address: payload.address ?? "",
     logoUrl: payload.logoUrl ?? "",
     businessHours: cleanedBusinessHours,
+    lunchBreak: {
+      isEnabled: payload.lunchBreak.isEnabled,
+      start: payload.lunchBreak.start.slice(0, 5),
+      end: payload.lunchBreak.end.slice(0, 5),
+    },
     slotIntervalMinutes: payload.slotIntervalMinutes ?? 30,
     specialDates: cleanedSpecialDates,
   };
