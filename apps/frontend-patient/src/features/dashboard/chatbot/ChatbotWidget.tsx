@@ -30,6 +30,8 @@ type ChatbotApiPayload = {
   data?: ChatbotApiPayload;
 };
 
+const CHATBOT_REQUEST_TIMEOUT_MS = 75_000;
+
 const initialMessages: ChatMessage[] = [
   {
     id: 1,
@@ -97,11 +99,15 @@ export function ChatbotWidget() {
       let res: ChatbotApiPayload;
       if (isLoggedIn) {
         try {
-          res = await apiClient.post("/chatbot-conversations/agent-chat", {
-            message: value,
-            history: historyPayload,
-            metadata: metadata || {},
-          });
+          res = await apiClient.post(
+            "/chatbot-conversations/agent-chat",
+            {
+              message: value,
+              history: historyPayload,
+              metadata: metadata || {},
+            },
+            { timeout: CHATBOT_REQUEST_TIMEOUT_MS },
+          );
         } catch (error: unknown) {
           const status = (
             error as { response?: { status?: number } }
@@ -109,18 +115,26 @@ export function ChatbotWidget() {
           if (status !== 401 && status !== 403) {
             throw error;
           }
-          res = await apiClient.post("/chatbot-conversations/public-agent-chat", {
+          res = await apiClient.post(
+            "/chatbot-conversations/public-agent-chat",
+            {
+              message: value,
+              history: historyPayload,
+              metadata: metadata || {},
+            },
+            { timeout: CHATBOT_REQUEST_TIMEOUT_MS },
+          );
+        }
+      } else {
+        res = await apiClient.post(
+          "/chatbot-conversations/public-agent-chat",
+          {
             message: value,
             history: historyPayload,
             metadata: metadata || {},
-          });
-        }
-      } else {
-        res = await apiClient.post("/chatbot-conversations/public-agent-chat", {
-          message: value,
-          history: historyPayload,
-          metadata: metadata || {},
-        });
+          },
+          { timeout: CHATBOT_REQUEST_TIMEOUT_MS },
+        );
       }
 
       const botReply =

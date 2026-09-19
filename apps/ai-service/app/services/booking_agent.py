@@ -42,6 +42,53 @@ def compact_text(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", " ", normalize_text(text)).strip()
 
 
+def booking_target(text: str) -> Optional[str]:
+    """Identify whether the requested patient is the user or someone else."""
+    text_norm = normalize_text(text)
+    other_markers = [
+        "nguoi than",
+        "nguoi nha",
+        "nguoi khac",
+        "cho con",
+        "cho be",
+        "be nha",
+        "con toi",
+        "cho vo",
+        "vo toi",
+        "cho chong",
+        "chong toi",
+        "cho me",
+        "me toi",
+        "cho ba",
+        "ba toi",
+        "cho bo",
+        "bo toi",
+        "cho cha",
+        "cha toi",
+        "cho anh",
+        "anh toi",
+        "cho chi",
+        "chi toi",
+        "cho em",
+        "em toi",
+    ]
+    if any(marker in text_norm for marker in other_markers):
+        return "OTHER"
+
+    self_markers = [
+        "cho toi",
+        "cho minh",
+        "toi kham",
+        "minh kham",
+        "ban than",
+        "chinh toi",
+        "chinh chu",
+    ]
+    if any(marker in text_norm for marker in self_markers):
+        return "SELF"
+    return None
+
+
 def booking_intent(text: str) -> bool:
     """Only returns True when user EXPLICITLY wants to book an appointment or provides booking details."""
     text_norm = normalize_text(text)
@@ -99,6 +146,22 @@ def booking_intent(text: str) -> bool:
         "ho so nguoi than",
     ]
     if any(key in text_norm for key in EXPLICIT_BOOKING):
+        return True
+
+    family_booking_actions = [
+        "muon di kham",
+        "can di kham",
+        "can kham",
+        "di kham",
+        "muon kham",
+        "dang ky kham",
+        "hen kham",
+    ]
+    if (
+        booking_target(text) == "OTHER"
+        and any(action in text_norm for action in family_booking_actions)
+        and not is_general_inquiry(text)
+    ):
         return True
 
     # Detect service/symptom + date/time or patient info combination
@@ -214,7 +277,22 @@ def parse_new_patient_info(text: str) -> Dict[str, Any]:
         for prefix in ["be ", "con ", "benh nhan "]:
             if normalize_text(candidate_name).startswith(prefix):
                 candidate_name = candidate_name[len(prefix):].strip()
-        stop_words = ["nho rang", "sua", "kham", "truoc", "sau", "ngay", "gio", "phut", "tuoi", "muon", "dat lich"]
+        stop_words = [
+            "nho rang",
+            "sua",
+            "kham",
+            "truoc",
+            "sau",
+            "ngay",
+            "gio",
+            "phut",
+            "tuoi",
+            "muon",
+            "dat lich",
+            "nguoi than",
+            "nguoi nha",
+            "nguoi khac",
+        ]
         candidate_norm = normalize_text(candidate_name)
         if not any(sw in candidate_norm for sw in stop_words) and len(candidate_name) > 1:
             info["fullName"] = candidate_name.title()
@@ -920,7 +998,8 @@ class BookingAgent:
         # Detect booking for someone else or creation of a new patient profile
         user_norm = normalize_text(user_msg)
 
-        wants_book_for_other = any(
+        target = booking_target(user_msg)
+        wants_book_for_other = target == "OTHER" or any(
             k in user_norm
             for k in [
                 "dat cho con",
@@ -940,23 +1019,41 @@ class BookingAgent:
             ]
         )
 
-        wants_book_for_self = any(
-            k in user_norm
-            for k in [
-                "dat cho toi",
-                "dat cho minh",
-                "cho toi",
-                "cho minh",
-                "toi dat",
-                "minh dat",
-                "toi muon dat",
-                "minh muon dat",
-                "toi muon kham",
-                "minh muon kham",
-                "dat cho ban than",
-                "ban than",
-            ]
+        wants_book_for_self = target == "SELF" or (
+            target is None
+            and any(
+                k in user_norm
+                for k in [
+                    "dat cho toi",
+                    "dat cho minh",
+                    "cho toi",
+                    "cho minh",
+                    "toi dat",
+                    "minh dat",
+                    "toi muon dat",
+                    "minh muon dat",
+                    "toi muon kham",
+                    "minh muon kham",
+                    "dat cho ban than",
+                    "ban than",
+                ]
+            )
         )
+
+        if wants_book_for_other and state.get("patientId"):
+            state.pop("patientId", None)
+            state.pop("patientName", None)
+            state.pop("confirmBooking", None)
+            state["creatingNewPatient"] = False
+            for key in [
+                "newPatientName",
+                "newPatientAge",
+                "newPatientDob",
+                "newPatientPhone",
+                "newPatientRelationship",
+                "newPatientGender",
+            ]:
+                state.pop(key, None)
 
         if wants_book_for_self:
             wants_book_for_other = False
@@ -993,7 +1090,7 @@ class BookingAgent:
                 state["newPatientName"] = user_msg.strip().title()
 
         # If user explicitly selected or mentioned an existing patient:
-        if typed_patient and not state.get("patientId"):
+        if typed_patient:
             state.update(
                 {
                     "patientId": typed_patient.get("id"),
@@ -1001,6 +1098,15 @@ class BookingAgent:
                     "creatingNewPatient": False,
                 }
             )
+            for key in [
+                "newPatientName",
+                "newPatientAge",
+                "newPatientDob",
+                "newPatientPhone",
+                "newPatientRelationship",
+                "newPatientGender",
+            ]:
+                state.pop(key, None)
 
         # If user explicitly wants to book for self, auto-select primary patient profile
         if wants_book_for_self and not state.get("patientId") and patients:
@@ -1087,7 +1193,26 @@ class BookingAgent:
                 if primary_pat:
                     state["patientId"] = primary_pat.get("id")
                     state["patientName"] = primary_pat.get("fullName") or primary_pat.get("patientCode")
-            elif state.get("creatingNewPatient") or wants_book_for_other:
+            elif wants_book_for_other and not state.get("creatingNewPatient"):
+                family_patients = [
+                    patient
+                    for patient in patients
+                    if patient.get("relationship") != "SELF"
+                    and patient.get("canBook", True)
+                ]
+                if family_patients:
+                    return ChatResponse(
+                        reply=(
+                            "Dạ, quý khách muốn đặt lịch cho người thân nào ạ? "
+                            "Quý khách có thể chọn hồ sơ đã có hoặc tạo hồ sơ mới."
+                        ),
+                        should_book=True,
+                        suggestions=patient_suggestions(family_patients, state),
+                        metadata=with_state(state, {}),
+                    )
+                state["creatingNewPatient"] = True
+
+            if state.get("creatingNewPatient") or wants_book_for_other:
                 state["creatingNewPatient"] = True
                 rel_title = "bé" if state.get("newPatientRelationship") == "CHILD" else "người thân"
                 info_notes = []
