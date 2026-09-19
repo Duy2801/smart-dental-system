@@ -13,6 +13,7 @@ describe('AppointmentService clinic-time rules', () => {
     doctor: { findMany: jest.fn() },
     doctorAvailability: { findMany: jest.fn() },
     videoConsultation: { findMany: jest.fn() },
+    patientAccount: { findMany: jest.fn() },
   };
   const clinicConfig = {
     getClinicScheduleConfig: jest.fn(),
@@ -38,6 +39,7 @@ describe('AppointmentService clinic-time rules', () => {
     redis.rememberJson.mockImplementation(
       (_key: string, _ttl: number, loader: () => Promise<unknown>) => loader(),
     );
+    prisma.patientAccount.findMany.mockResolvedValue([]);
   });
 
   afterEach(() => jest.useRealTimers());
@@ -246,6 +248,38 @@ describe('AppointmentService clinic-time rules', () => {
     expect(result.selectedServiceId).toBeNull();
     expect(result.selectedTreatmentMethodId).toBeNull();
     expect(result.timeSlots).toEqual([]);
+  });
+
+  it('loads treatment pricing and invoice payment details for patient history', async () => {
+    prisma.appointment.findMany.mockResolvedValue([]);
+
+    await service.findHistoryForPatient('patient-user-1');
+
+    expect(prisma.appointment.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: expect.objectContaining({
+          treatmentMethod: {
+            include: { service: true },
+          },
+          invoices: {
+            select: expect.objectContaining({
+              invoiceCode: true,
+              subtotal: true,
+              discountAmount: true,
+              items: true,
+              payments: expect.objectContaining({
+                select: expect.objectContaining({
+                  amount: true,
+                  status: true,
+                  paymentMethod: true,
+                  paidAt: true,
+                }),
+              }),
+            }),
+          },
+        }),
+      }),
+    );
   });
 });
 

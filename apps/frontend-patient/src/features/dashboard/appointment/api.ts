@@ -5,6 +5,11 @@ import {
 } from "@/lib/clinic-schedule";
 import axios from "axios";
 import type { DashboardIconName } from "../common/DashboardIcon";
+import {
+  mapAppointmentFinancials,
+  type AppointmentInvoice,
+  type RawAppointmentInvoice,
+} from "./appointmentFinancials";
 import type { AppointmentService, BookingDate, Dentist } from "./types";
 
 type TreatmentMethodDto = {
@@ -75,6 +80,7 @@ export type AppointmentItem = {
   patientRelationship?: string | null;
   treatmentMethodId?: string;
   treatmentMethodName?: string;
+  treatmentMethodPrice?: number;
   doctorId: string;
   serviceId: string;
   scheduledAt: string;
@@ -91,6 +97,7 @@ export type AppointmentItem = {
   paymentStatus?: string;
   preparation?: string[];
   rescheduleCount?: number;
+  invoices?: AppointmentInvoice[];
 };
 
 export type PatientAppointmentsData = {
@@ -107,6 +114,7 @@ type AppointmentDto = {
   treatmentMethod?: {
     id: string;
     name: string;
+    basePrice?: number | string;
     durationMinutes?: number;
   } | null;
   scheduledAt: string;
@@ -114,12 +122,7 @@ type AppointmentDto = {
   status: string;
   paymentOption?: string;
   paymentStatus?: string;
-  invoices?: Array<{
-    id: string;
-    invoiceType: string;
-    status: string;
-    finalAmount: number | string;
-  }>;
+  invoices?: RawAppointmentInvoice[];
   doctor: {
     user: {
       fullName: string;
@@ -248,6 +251,10 @@ function mapAppointment(item: AppointmentDto): AppointmentItem {
   const serviceName = item.service?.name ?? "Dịch vụ nha khoa";
   const patientName =
     item.patient?.fullName ?? item.patient?.user?.fullName ?? null;
+  const financials = mapAppointmentFinancials({
+    basePrice: item.treatmentMethod?.basePrice,
+    invoices: item.invoices,
+  });
   return {
     id: item.id,
     patientId: item.patientId ?? item.patient?.id ?? null,
@@ -258,6 +265,7 @@ function mapAppointment(item: AppointmentDto): AppointmentItem {
     serviceId: item.serviceId,
     treatmentMethodId: item.treatmentMethodId ?? item.treatmentMethod?.id,
     treatmentMethodName: item.treatmentMethod?.name,
+    treatmentMethodPrice: financials.treatmentPrice,
     scheduledAt: item.scheduledAt,
     endAt: item.endAt,
     durationMinutes,
@@ -282,6 +290,7 @@ function mapAppointment(item: AppointmentDto): AppointmentItem {
     initials: getInitials(doctorName),
     paymentOption: item.paymentOption,
     paymentStatus: item.paymentStatus,
+    invoices: financials.invoices,
     rescheduleCount: Array.isArray(item.rescheduleHistory)
       ? item.rescheduleHistory.length
       : 0,

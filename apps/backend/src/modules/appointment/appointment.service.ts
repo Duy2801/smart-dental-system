@@ -62,10 +62,24 @@ const appointmentInclude = {
   invoices: {
     select: {
       id: true,
+      invoiceCode: true,
       invoiceType: true,
       status: true,
+      items: true,
+      subtotal: true,
+      discountAmount: true,
       finalAmount: true,
       issuedAt: true,
+      payments: {
+        select: {
+          id: true,
+          amount: true,
+          status: true,
+          paymentMethod: true,
+          paidAt: true,
+        },
+        orderBy: { createdAt: 'asc' as const },
+      },
     },
   },
 };
