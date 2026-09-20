@@ -3,12 +3,15 @@ import { AppointmentService } from './appointment.service';
 
 describe('AppointmentService clinic-time rules', () => {
   const prisma = {
+    $transaction: jest.fn(),
     appointment: {
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
       findMany: jest.fn(),
       update: jest.fn(),
       updateMany: jest.fn(),
     },
+    invoice: { updateMany: jest.fn() },
     service: { findMany: jest.fn() },
     doctor: { findMany: jest.fn() },
     doctorAvailability: { findMany: jest.fn() },
@@ -19,6 +22,8 @@ describe('AppointmentService clinic-time rules', () => {
     getClinicScheduleConfig: jest.fn(),
   };
   const redis = {
+    get: jest.fn().mockResolvedValue('0'),
+    incr: jest.fn().mockResolvedValue(1),
     del: jest.fn(),
     delByPrefix: jest.fn(),
     rememberJson: jest.fn(
@@ -40,9 +45,169 @@ describe('AppointmentService clinic-time rules', () => {
       (_key: string, _ttl: number, loader: () => Promise<unknown>) => loader(),
     );
     prisma.patientAccount.findMany.mockResolvedValue([]);
+    prisma.appointment.updateMany.mockResolvedValue({ count: 1 });
+    prisma.invoice.updateMany.mockResolvedValue({ count: 1 });
+    redis.get.mockResolvedValue('0');
+    redis.incr.mockResolvedValue(1);
+    prisma.$transaction.mockImplementation(
+      (callback: (tx: typeof prisma) => Promise<unknown>) => callback(prisma),
+    );
   });
 
   afterEach(() => jest.useRealTimers());
+
+  it('records a patient cancellation request without finalizing its invoices', async () => {
+    prisma.appointment.findFirst.mockResolvedValue({
+      id: 'appointment-1',
+      status: AppointmentStatus.CONFIRMED,
+      patientId: null,
+      createdBy: 'patient-user-1',
+      patient: null,
+      doctor: null,
+      treatmentMethod: null,
+      service: null,
+      medicalRecords: [],
+      invoices: [],
+    });
+    const result = await service.cancelAppointmentForPatient(
+      'patient-user-1',
+      'appointment-1',
+    );
+
+    expect(result).toMatchObject({
+      status: 'CANCELLATION_REQUESTED',
+      cancellationReason: 'Cancellation requested by patient',
+    });
+    expect(prisma.invoice.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('waits for booking cache invalidation before acknowledging a patient cancellation', async () => {
+    prisma.appointment.findFirst.mockResolvedValue({
+      id: 'appointment-1',
+      status: AppointmentStatus.CONFIRMED,
+      patientId: null,
+      createdBy: 'patient-user-1',
+      patient: null,
+      doctor: null,
+      treatmentMethod: null,
+      service: null,
+      medicalRecords: [],
+      invoices: [],
+    });
+    let releaseCache!: () => void;
+    let markCacheStarted!: () => void;
+    const cacheGate = new Promise<void>((resolve) => {
+      releaseCache = resolve;
+    });
+    const cacheStarted = new Promise<void>((resolve) => {
+      markCacheStarted = resolve;
+    });
+    redis.delByPrefix.mockImplementation(() => {
+      markCacheStarted();
+      return cacheGate;
+    });
+
+    let settled = false;
+    const cancellation = service
+      .cancelAppointmentForPatient('patient-user-1', 'appointment-1')
+      .then(() => {
+        settled = true;
+      });
+    await cacheStarted;
+    await Promise.resolve();
+
+    expect(settled).toBe(false);
+    releaseCache();
+    await cancellation;
+    expect(settled).toBe(true);
+    expect(redis.incr).toHaveBeenCalledWith('booking:version');
+  });
+
+  it('rejects cancellation when another transition wins the atomic status claim', async () => {
+    prisma.appointment.findFirst.mockResolvedValue({
+      id: 'appointment-1',
+      status: AppointmentStatus.CONFIRMED,
+      patientId: null,
+      createdBy: 'patient-user-1',
+      patient: null,
+      doctor: null,
+      treatmentMethod: null,
+      service: null,
+      medicalRecords: [],
+      invoices: [],
+    });
+    prisma.appointment.updateMany.mockResolvedValue({ count: 0 });
+
+    await expect(
+      service.cancelAppointmentForPatient('patient-user-1', 'appointment-1'),
+    ).rejects.toThrow('appointment.cancel_not_allowed');
+  });
+
+  it('does not acknowledge cancellation when the cache generation cannot advance', async () => {
+    prisma.appointment.findFirst.mockResolvedValue({
+      id: 'appointment-1',
+      status: AppointmentStatus.CONFIRMED,
+      patientId: null,
+      createdBy: 'patient-user-1',
+      patient: null,
+      doctor: null,
+      treatmentMethod: null,
+      service: null,
+      medicalRecords: [],
+      invoices: [],
+    });
+    redis.incr.mockRejectedValue(new Error('redis unavailable'));
+
+    await expect(
+      service.cancelAppointmentForPatient('patient-user-1', 'appointment-1'),
+    ).rejects.toThrow('redis unavailable');
+    expect(redis.delByPrefix).toHaveBeenCalledWith('booking:options:');
+  });
+
+  it('lets staff finalize a patient cancellation request and closes unpaid invoices', async () => {
+    prisma.appointment.findUnique.mockResolvedValue({
+      id: 'appointment-1',
+      status: AppointmentStatus.CANCELLED,
+      patientId: null,
+      createdBy: 'patient-user-1',
+      patient: null,
+      doctor: null,
+      treatmentMethod: null,
+      service: null,
+      medicalRecords: [],
+      invoices: [],
+    });
+    const result = await service.cancelByStaff(
+      'appointment-1',
+      'Bệnh nhân yêu cầu hủy',
+    );
+
+    expect(result.status).toBe(AppointmentStatus.CANCELLED);
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(prisma.invoice.updateMany).toHaveBeenCalledWith({
+      where: {
+        appointmentId: 'appointment-1',
+        status: { in: ['DRAFT', 'ISSUED'] },
+      },
+      data: { status: 'CANCELLED' },
+    });
+  });
+
+  it('shows cancellation requests in patient appointment history', async () => {
+    let historyStatuses: string[] = [];
+    prisma.appointment.findMany.mockImplementation(
+      async (query: {
+        where: { AND: Array<{ OR?: Array<{ status?: { in: string[] } }> }> };
+      }) => {
+        historyStatuses = query.where.AND[1].OR?.[0].status?.in ?? [];
+        return [];
+      },
+    );
+
+    await service.findHistoryForPatient('patient-user-1');
+
+    expect(historyStatuses).toContain('CANCELLATION_REQUESTED');
+  });
 
   it('rejects confirmation for an appointment before the current clinic date', async () => {
     prisma.appointment.findUnique.mockResolvedValue({
@@ -135,6 +300,24 @@ describe('AppointmentService clinic-time rules', () => {
     await expect(service.sendManualReminder('past')).rejects.toThrow(
       'appointment.cannot_remind_past_appointment',
     );
+  });
+
+  it('does not let a stale no-show transition overwrite a cancellation request', async () => {
+    prisma.appointment.findUnique
+      .mockResolvedValueOnce({
+        id: 'appointment-1',
+        scheduledAt: new Date('2026-09-09T02:00:00.000Z'),
+      })
+      .mockResolvedValueOnce({
+        id: 'appointment-1',
+        status: AppointmentStatus.PENDING,
+      });
+    prisma.appointment.updateMany.mockResolvedValue({ count: 0 });
+
+    await expect(service.markNoShow('appointment-1')).rejects.toThrow(
+      'appointment.cannot_mark_no_show',
+    );
+    expect(prisma.appointment.update).not.toHaveBeenCalled();
   });
 
   it('rejects starting treatment outside the current clinic date', async () => {

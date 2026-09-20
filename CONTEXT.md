@@ -40,7 +40,14 @@ _Avoid_: Clinic slot when the slot belongs to a specific doctor
 An Appointment status that occupies a Doctor Slot and prevents overlapping bookings.
 _Avoid_: Any appointment
 
+**Cancellation Request**:
+A Patient's request to cancel an Appointment. It no longer occupies the Doctor Slot while it awaits receptionist acknowledgment.
+_Avoid_: Pending appointment, completed cancellation
+
+**Cancellation Confirmation**:
+The receptionist's acknowledgment that finalizes a Cancellation Request and its administrative records; it is not permission to release the Doctor Slot.
+_Avoid_: Cancellation approval, appointment confirmation
+
 **Pay At Counter**:
 The in-clinic payment method where the Patient pays at the receptionist counter during the visit.
 _Avoid_: Deposit payment, prepayment
-

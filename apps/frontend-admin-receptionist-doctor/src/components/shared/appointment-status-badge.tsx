@@ -3,6 +3,7 @@ import { cn } from "@/src/lib/utils/cn";
 export type AppointmentStatus =
   | "PENDING"
   | "CONFIRMED"
+  | "CANCELLATION_REQUESTED"
   | "CHECKED_IN"
   | "IN_PROGRESS"
   | "COMPLETED"
@@ -25,6 +26,10 @@ const STATUS_MAP: Record<
   CONFIRMED: {
     label: "Đã xác nhận",
     className: "bg-blue-50 text-blue-700 ring-blue-600/20",
+  },
+  CANCELLATION_REQUESTED: {
+    label: "Chờ xác nhận hủy",
+    className: "bg-rose-50 text-rose-700 ring-rose-600/20",
   },
   CHECKED_IN: {
     label: "Đã Check-in",
@@ -78,7 +83,11 @@ export function AppointmentStatusBadge({
   status,
   className,
 }: AppointmentStatusBadgeProps) {
-  const { label, className: statusClass, pulse } = STATUS_MAP[status] ?? {
+  const {
+    label,
+    className: statusClass,
+    pulse,
+  } = STATUS_MAP[status] ?? {
     label: status,
     className: "bg-slate-100 text-slate-600 ring-slate-500/10",
   };

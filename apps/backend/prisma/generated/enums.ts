@@ -68,6 +68,7 @@ export type AvailabilityApprovalStatus = (typeof AvailabilityApprovalStatus)[key
 export const AppointmentStatus = {
   PENDING: 'PENDING',
   CONFIRMED: 'CONFIRMED',
+  CANCELLATION_REQUESTED: 'CANCELLATION_REQUESTED',
   CHECKED_IN: 'CHECKED_IN',
   IN_PROGRESS: 'IN_PROGRESS',
   COMPLETED: 'COMPLETED',

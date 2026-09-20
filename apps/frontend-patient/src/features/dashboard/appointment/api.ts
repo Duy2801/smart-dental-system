@@ -67,6 +67,7 @@ export type BookingOptionsQuery = {
 export type AppointmentStatus =
   | "pending"
   | "confirmed"
+  | "cancellation_requested"
   | "completed"
   | "cancelled"
   | "missed"
@@ -226,6 +227,7 @@ function getInitials(name: string) {
 function normalizeStatus(status: string): AppointmentStatus {
   const value = status.toUpperCase();
   if (value === "CONFIRMED") return "confirmed";
+  if (value === "CANCELLATION_REQUESTED") return "cancellation_requested";
   if (value === "COMPLETED") return "completed";
   if (value === "CANCELLED") return "cancelled";
   if (value === "NO_SHOW") return "missed";

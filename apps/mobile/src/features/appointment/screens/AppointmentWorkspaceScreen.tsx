@@ -89,7 +89,10 @@ export default function AppointmentWorkspaceScreen({
       queryClient.invalidateQueries({
         queryKey: queryKeys.appointments.list(),
       });
-      toast.success('Đã hủy lịch hẹn', 'Lịch hẹn đã được cập nhật.');
+      toast.success(
+        'Đã gửi yêu cầu hủy',
+        'Slot bác sĩ đã được giải phóng. Lễ tân sẽ xác nhận hoàn tất thủ tục hủy.',
+      );
     },
     onError: (err: any) => {
       setCancellingId(null);

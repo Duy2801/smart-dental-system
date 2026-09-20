@@ -1,11 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/features/dashboard/common/toast";
-import {
-  cancelPatientAppointment,
-  type AppointmentItem,
-  type PatientAppointmentsData,
-} from "../api";
+import { cancelPatientAppointment, type PatientAppointmentsData } from "../api";
 import { getCreateAppointmentErrorMessage } from "../utils";
 import { appointmentQueryKeys } from "./useAppointmentQueries";
 
@@ -17,10 +13,9 @@ export function useCancelAppointment() {
     onMutate: async (appointmentId) => {
       await queryClient.cancelQueries({ queryKey: appointmentQueryKeys.all });
 
-      const previousData =
-        queryClient.getQueryData<PatientAppointmentsData>(
-          appointmentQueryKeys.all,
-        );
+      const previousData = queryClient.getQueryData<PatientAppointmentsData>(
+        appointmentQueryKeys.all,
+      );
 
       if (previousData) {
         const cancelledItem = previousData.upcoming.find(
@@ -35,9 +30,12 @@ export function useCancelAppointment() {
             ),
             history: cancelledItem
               ? [
-                { ...cancelledItem, status: "cancelled" as const },
-                ...(previousData.history ?? []),
-              ]
+                  {
+                    ...cancelledItem,
+                    status: "cancellation_requested" as const,
+                  },
+                  ...(previousData.history ?? []),
+                ]
               : previousData.history,
           },
         );
@@ -47,7 +45,10 @@ export function useCancelAppointment() {
     },
     onError: (_err, _appointmentId, context) => {
       if (context?.previousData) {
-        queryClient.setQueryData(appointmentQueryKeys.all, context.previousData);
+        queryClient.setQueryData(
+          appointmentQueryKeys.all,
+          context.previousData,
+        );
       }
     },
     onSettled: async () => {
@@ -68,8 +69,8 @@ export function useCancelAppointment() {
     try {
       await cancelAppointmentMutation.mutateAsync(appointmentId);
       toast.success(
-        "Hủy lịch thành công",
-        "Lịch hẹn đã được hủy sớm và không bị đánh dấu vắng mặt.",
+        "Đã gửi yêu cầu hủy",
+        "Slot bác sĩ đã được giải phóng. Lễ tân sẽ xác nhận hoàn tất thủ tục hủy.",
       );
     } catch (error) {
       toast.error(

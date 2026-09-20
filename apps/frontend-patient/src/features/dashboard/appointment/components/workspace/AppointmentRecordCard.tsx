@@ -16,6 +16,11 @@ const statusInfo: Record<
     dotColor: "bg-amber-500",
     className: "border-amber-200 bg-amber-50 text-amber-700",
   },
+  cancellation_requested: {
+    label: "Chờ xác nhận hủy",
+    dotColor: "bg-rose-500",
+    className: "border-rose-200 bg-rose-50 text-rose-700",
+  },
   completed: {
     label: "Hoàn thành",
     dotColor: "bg-blue-500",
@@ -93,7 +98,14 @@ export function AppointmentRecordCard({
           <div className="flex items-center gap-1.5 text-slate-700">
             <DashboardIcon name="clock" className="h-4 w-4 text-[#0058bc]" />
             <span>
-              Thời gian hẹn: <strong className="text-slate-900">{formatTimeRange(appointment.time, appointment.durationMinutes || 30)}</strong> - {appointment.date}
+              Thời gian hẹn:{" "}
+              <strong className="text-slate-900">
+                {formatTimeRange(
+                  appointment.time,
+                  appointment.durationMinutes || 30,
+                )}
+              </strong>{" "}
+              - {appointment.date}
             </span>
           </div>
         </div>
@@ -101,7 +113,9 @@ export function AppointmentRecordCard({
         {/* Preparation Notes pill list if any */}
         {notes.length ? (
           <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Ghi chú:</span>
+            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
+              Ghi chú:
+            </span>
             {notes.map((note) => (
               <span
                 key={note}

@@ -122,6 +122,7 @@ export function getAppointmentErrorCode(error: unknown) {
 export const appointmentStatusLabels: Record<AppointmentStatus, string> = {
   confirmed: "Đã xác nhận",
   pending: "Chờ xác nhận",
+  cancellation_requested: "Chờ xác nhận hủy",
   completed: "Hoàn thành",
   cancelled: "Đã hủy",
   missed: "Vắng mặt",

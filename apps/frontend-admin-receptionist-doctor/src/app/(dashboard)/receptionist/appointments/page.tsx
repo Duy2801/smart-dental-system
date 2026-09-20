@@ -13,7 +13,10 @@ import {
   mapAppointments,
   localDateStr,
 } from "@/src/lib/receptionist/mappers";
-import type { ApiAppointment, ReceptionistAppointment } from "@/src/lib/receptionist/mappers";
+import type {
+  ApiAppointment,
+  ReceptionistAppointment,
+} from "@/src/lib/receptionist/mappers";
 import { getApiErrorMessage } from "@/src/lib/utils/api-error";
 import { formatDoctorName } from "@/src/lib/utils/format";
 import { useAppDialog } from "@/src/providers/app-dialog-provider";
@@ -65,7 +68,8 @@ const AVATAR_COLORS = [
 
 function getAvatarColor(name: string): string {
   let hash = 0;
-  for (const c of name) hash = (hash * 31 + c.charCodeAt(0)) % AVATAR_COLORS.length;
+  for (const c of name)
+    hash = (hash * 31 + c.charCodeAt(0)) % AVATAR_COLORS.length;
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
@@ -82,12 +86,15 @@ function shiftDate(dateId: string, days: number): string {
 
 function formatDateLabel(dateId: string): string {
   const today = localDateStr();
-  const label = new Date(`${dateId}T00:00:00+07:00`).toLocaleDateString("vi-VN", {
-    timeZone: "Asia/Ho_Chi_Minh",
-    weekday: "short",
-    day: "2-digit",
-    month: "2-digit",
-  });
+  const label = new Date(`${dateId}T00:00:00+07:00`).toLocaleDateString(
+    "vi-VN",
+    {
+      timeZone: "Asia/Ho_Chi_Minh",
+      weekday: "short",
+      day: "2-digit",
+      month: "2-digit",
+    },
+  );
   if (dateId === today) return `Hôm nay — ${label}`;
   if (dateId === shiftDate(today, -1)) return `Hôm qua — ${label}`;
   if (dateId === shiftDate(today, 1)) return `Ngày mai — ${label}`;
@@ -156,7 +163,11 @@ function ActionMenu({
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState({ left: 0, top: 0, opensUpward: false });
+  const [position, setPosition] = useState({
+    left: 0,
+    top: 0,
+    opensUpward: false,
+  });
 
   const toggleMenu = () => {
     if (open) {
@@ -176,7 +187,10 @@ function ActionMenu({
     setPosition({
       left: Math.max(
         viewportPadding,
-        Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - viewportPadding),
+        Math.min(
+          rect.right - menuWidth,
+          window.innerWidth - menuWidth - viewportPadding,
+        ),
       ),
       top: hasRoomBelow ? rect.bottom + gap : rect.top - gap,
       opensUpward: !hasRoomBelow,
@@ -188,7 +202,10 @@ function ActionMenu({
     if (!open) return;
     const handler = (e: MouseEvent) => {
       const target = e.target as Node;
-      if (!buttonRef.current?.contains(target) && !menuRef.current?.contains(target)) {
+      if (
+        !buttonRef.current?.contains(target) &&
+        !menuRef.current?.contains(target)
+      ) {
         setOpen(false);
       }
     };
@@ -218,77 +235,93 @@ function ActionMenu({
         <DotsThree size={18} weight="bold" />
       </button>
 
-      {open && createPortal(
-        <div
-          ref={menuRef}
-          role="menu"
-          aria-label="Tùy chọn lịch hẹn"
-          className="fixed z-50 w-56 rounded-xl border border-border bg-white py-1.5 shadow-xl"
-          style={{
-            left: position.left,
-            top: position.top,
-            transform: position.opensUpward ? "translateY(-100%)" : undefined,
-          }}
-        >
-          <Link
-            href={`/receptionist/appointments/${apt.id}`}
-            className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-muted hover:text-brand-dark"
-            onClick={() => setOpen(false)}
+      {open &&
+        createPortal(
+          <div
+            ref={menuRef}
+            role="menu"
+            aria-label="Tùy chọn lịch hẹn"
+            className="fixed z-50 w-56 rounded-xl border border-border bg-white py-1.5 shadow-xl"
+            style={{
+              left: position.left,
+              top: position.top,
+              transform: position.opensUpward ? "translateY(-100%)" : undefined,
+            }}
           >
-            <Eye size={13} /> Xem chi tiết
-          </Link>
-          {apt.patient?.id && (
             <Link
-              href={`/receptionist/patients/${apt.patient.id}`}
+              href={`/receptionist/appointments/${apt.id}`}
               className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-muted hover:text-brand-dark"
               onClick={() => setOpen(false)}
             >
-              <Eye size={13} /> Hồ sơ bệnh nhân
+              <Eye size={13} /> Xem chi tiết
             </Link>
-          )}
-
-          {(apt.status === "PENDING" || apt.status === "CONFIRMED") &&
-            timing.canRemind && onSendReminder && (
-            <button
-              onClick={() => {
-                onSendReminder(apt.id, apt.patient?.fullName ?? "Bệnh nhân");
-                setOpen(false);
-              }}
-              className="flex w-full items-center gap-2 whitespace-nowrap px-3 py-2 text-xs font-semibold text-blue-600 transition-colors hover:bg-blue-50 cursor-pointer"
-            >
-              <BellSimpleRinging size={13} weight="bold" className="shrink-0" /> Gửi nhắc lịch (Gmail/App)
-            </button>
-          )}
-
-          {(apt.status === "PENDING" || apt.status === "CONFIRMED") && (
-            <>
-              <div className="my-1 mx-2 h-px bg-slate-100" />
-              <button
-                onClick={() => { onStatusChange(apt.id, "CANCELLED"); setOpen(false); }}
-                className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
-              >
-                <X size={13} /> Khách báo hủy
-              </button>
-              {timing.canMarkNoShow && (
-                <button
-                  onClick={() => { onStatusChange(apt.id, "NO_SHOW"); setOpen(false); }}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
-                >
-                  <UserMinus size={13} /> Đánh dấu vắng mặt
-                </button>
-              )}
+            {apt.patient?.id && (
               <Link
-                href={`/receptionist/appointments/${apt.id}`}
+                href={`/receptionist/patients/${apt.patient.id}`}
                 className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-muted hover:text-brand-dark"
                 onClick={() => setOpen(false)}
               >
-                <CalendarDots size={13} /> Đổi lịch
+                <Eye size={13} /> Hồ sơ bệnh nhân
               </Link>
-            </>
-          )}
-        </div>,
-        document.body,
-      )}
+            )}
+
+            {(apt.status === "PENDING" || apt.status === "CONFIRMED") &&
+              timing.canRemind &&
+              onSendReminder && (
+                <button
+                  onClick={() => {
+                    onSendReminder(
+                      apt.id,
+                      apt.patient?.fullName ?? "Bệnh nhân",
+                    );
+                    setOpen(false);
+                  }}
+                  className="flex w-full items-center gap-2 whitespace-nowrap px-3 py-2 text-xs font-semibold text-blue-600 transition-colors hover:bg-blue-50 cursor-pointer"
+                >
+                  <BellSimpleRinging
+                    size={13}
+                    weight="bold"
+                    className="shrink-0"
+                  />{" "}
+                  Gửi nhắc lịch (Gmail/App)
+                </button>
+              )}
+
+            {(apt.status === "PENDING" || apt.status === "CONFIRMED") && (
+              <>
+                <div className="my-1 mx-2 h-px bg-slate-100" />
+                <button
+                  onClick={() => {
+                    onStatusChange(apt.id, "CANCELLED");
+                    setOpen(false);
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
+                >
+                  <X size={13} /> Khách báo hủy
+                </button>
+                {timing.canMarkNoShow && (
+                  <button
+                    onClick={() => {
+                      onStatusChange(apt.id, "NO_SHOW");
+                      setOpen(false);
+                    }}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
+                  >
+                    <UserMinus size={13} /> Đánh dấu vắng mặt
+                  </button>
+                )}
+                <Link
+                  href={`/receptionist/appointments/${apt.id}`}
+                  className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-muted hover:text-brand-dark"
+                  onClick={() => setOpen(false)}
+                >
+                  <CalendarDots size={13} /> Đổi lịch
+                </Link>
+              </>
+            )}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }
@@ -332,7 +365,12 @@ function FilterPanel({
     >
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-xs font-bold text-slate-900">Lọc nâng cao</h3>
-        <button type="button" aria-label="Đóng bộ lọc" onClick={onClose} className="text-muted-foreground hover:text-slate-900">
+        <button
+          type="button"
+          aria-label="Đóng bộ lọc"
+          onClick={onClose}
+          className="text-muted-foreground hover:text-slate-900"
+        >
           <X size={14} />
         </button>
       </div>
@@ -344,12 +382,15 @@ function FilterPanel({
           </label>
           <select
             value={statusFilter}
-            onChange={(e) => onStatusFilter(e.target.value as AppointmentStatus | "")}
+            onChange={(e) =>
+              onStatusFilter(e.target.value as AppointmentStatus | "")
+            }
             className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
           >
             <option value="">Tất cả trạng thái</option>
             <option value="PENDING">Chờ xác nhận</option>
             <option value="CONFIRMED">Đã xác nhận</option>
+            <option value="CANCELLATION_REQUESTED">Chờ xác nhận hủy</option>
             <option value="CHECKED_IN">Đã Check-in</option>
             <option value="IN_PROGRESS">Đang khám</option>
             <option value="COMPLETED">Hoàn thành</option>
@@ -368,7 +409,10 @@ function FilterPanel({
           Xóa lọc
         </button>
         <button
-          onClick={() => { onApply(); onClose(); }}
+          onClick={() => {
+            onApply();
+            onClose();
+          }}
           className="flex-1 rounded-lg bg-brand px-3 py-2 text-xs font-bold text-white shadow-sm transition-all hover:bg-brand-dark active:scale-[0.98]"
         >
           Áp dụng
@@ -390,13 +434,17 @@ export default function ReceptionistAppointmentsPage() {
   const [selectedDate, setSelectedDate] = useState(today);
   const [doctorFilter, setDoctorFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<AppointmentStatus | "">("");
-  const [appliedStatus, setAppliedStatus] = useState<AppointmentStatus | "">("");
+  const [appliedStatus, setAppliedStatus] = useState<AppointmentStatus | "">(
+    "",
+  );
   const [search, setSearch] = useState("");
   const [showFilter, setShowFilter] = useState(false);
   const [page, setPage] = useState(1);
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [doctors, setDoctors] = useState<{ id: string; fullName: string }[]>([]);
+  const [doctors, setDoctors] = useState<{ id: string; fullName: string }[]>(
+    [],
+  );
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -413,10 +461,16 @@ export default function ReceptionistAppointmentsPage() {
         setDoctorError(null);
         const list = Array.isArray(res.data) ? res.data : [];
         setDoctors(
-          list.map((d: { id: string; user?: { fullName?: string }; fullName?: string }) => ({
-            id: d.id,
-            fullName: d.user?.fullName ?? d.fullName ?? "Bác sĩ",
-          })),
+          list.map(
+            (d: {
+              id: string;
+              user?: { fullName?: string };
+              fullName?: string;
+            }) => ({
+              id: d.id,
+              fullName: d.user?.fullName ?? d.fullName ?? "Bác sĩ",
+            }),
+          ),
         );
       })
       .catch(() => {
@@ -435,7 +489,9 @@ export default function ReceptionistAppointmentsPage() {
     try {
       const params: Record<string, string> = { date: selectedDate };
       if (doctorFilter) params.doctorId = doctorFilter;
-      const res = await apiClient.get<ApiAppointment[]>("/appointments", { params });
+      const res = await apiClient.get<ApiAppointment[]>("/appointments", {
+        params,
+      });
       if (id !== requestId.current) return;
       setError(null);
       setAppointments(mapAppointments(res.data));
@@ -486,11 +542,23 @@ export default function ReceptionistAppointmentsPage() {
   const isTomorrow = selectedDate === shiftDate(today, 1);
 
   const handleStatusChange = async (id: string, status: AppointmentStatus) => {
+    const currentAppointment = appointments.find(
+      (appointment) => appointment.id === id,
+    );
+    const isCancellationConfirmation =
+      status === "CANCELLED" &&
+      currentAppointment?.status === "CANCELLATION_REQUESTED";
     if (status === "CANCELLED") {
       const confirmed = await showConfirm({
-        title: "Hủy lịch hẹn?",
-        description: "Lịch hẹn này sẽ được chuyển sang trạng thái đã hủy.",
-        confirmLabel: "Hủy lịch hẹn",
+        title: isCancellationConfirmation
+          ? "Xác nhận yêu cầu hủy?"
+          : "Hủy lịch hẹn?",
+        description: isCancellationConfirmation
+          ? "Slot bác sĩ đã được giải phóng. Thao tác này sẽ hoàn tất hồ sơ hủy."
+          : "Lịch hẹn này sẽ được chuyển sang trạng thái đã hủy.",
+        confirmLabel: isCancellationConfirmation
+          ? "Xác nhận hủy"
+          : "Hủy lịch hẹn",
         tone: "danger",
       });
       if (!confirmed) return;
@@ -523,19 +591,29 @@ export default function ReceptionistAppointmentsPage() {
       await apiClient.patch(
         `/appointments/${id}/${endpoint}`,
         status === "CANCELLED"
-          ? { reason: "Bệnh nhân yêu cầu hủy" }
+          ? {
+              reason: isCancellationConfirmation
+                ? "Lễ tân xác nhận yêu cầu hủy của bệnh nhân"
+                : "Bệnh nhân yêu cầu hủy",
+            }
           : status === "CHECKED_IN"
             ? { medicalHistoryConfirmed: true }
             : undefined,
       );
       if (status === "CONFIRMED") {
-        setSuccessToast("Đã xác nhận lịch hẹn và gửi Gmail/In-App cho bệnh nhân!");
+        setSuccessToast(
+          "Đã xác nhận lịch hẹn và gửi Gmail/In-App cho bệnh nhân!",
+        );
         setTimeout(() => setSuccessToast(null), 4000);
       } else if (status === "CHECKED_IN") {
-        setSuccessToast("Đã tiếp nhận check-in và gửi Phiếu tiếp đón/Số thứ tự qua Gmail & App!");
+        setSuccessToast(
+          "Đã tiếp nhận check-in và gửi Phiếu tiếp đón/Số thứ tự qua Gmail & App!",
+        );
         setTimeout(() => setSuccessToast(null), 4000);
       } else if (status === "IN_PROGRESS") {
-        setSuccessToast("Đã chuyển ca khám sang Đang điều trị và gửi thông báo mời vào phòng khám!");
+        setSuccessToast(
+          "Đã chuyển ca khám sang Đang điều trị và gửi thông báo mời vào phòng khám!",
+        );
         setTimeout(() => setSuccessToast(null), 4000);
       }
       await fetchAppointments();
@@ -551,19 +629,20 @@ export default function ReceptionistAppointmentsPage() {
     setError(null);
     try {
       await apiClient.post(`/appointments/${id}/remind`);
-      setSuccessToast(`Đã gửi Gmail & Thông báo nhắc lịch đến bệnh nhân ${patientName}!`);
+      setSuccessToast(
+        `Đã gửi Gmail & Thông báo nhắc lịch đến bệnh nhân ${patientName}!`,
+      );
       setTimeout(() => setSuccessToast(null), 4000);
     } catch (err) {
-      setError(getApiErrorMessage(err, "Không thể gửi nhắc lịch. Thử lại sau."));
+      setError(
+        getApiErrorMessage(err, "Không thể gửi nhắc lịch. Thử lại sau."),
+      );
     } finally {
       setActionLoading(null);
     }
   };
 
-  const isActionBusy = (
-    id: string,
-    action: AppointmentStatus | "reminder",
-  ) =>
+  const isActionBusy = (id: string, action: AppointmentStatus | "reminder") =>
     actionLoading === `${id}:${action}`;
 
   // active filter badge count
@@ -585,10 +664,8 @@ export default function ReceptionistAppointmentsPage() {
       </Header>
 
       <div className="bg-muted p-6 space-y-5">
-
         {/* ── TOOLBAR ──────────────────────────────────────────────── */}
         <div className="flex flex-wrap items-center gap-3">
-
           {/* Search */}
           <div className="relative min-w-0 flex-1" style={{ maxWidth: 360 }}>
             <MagnifyingGlass
@@ -598,7 +675,10 @@ export default function ReceptionistAppointmentsPage() {
             <input
               type="search"
               value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
               placeholder="Tên, SĐT, mã lịch, dịch vụ..."
               className="w-full rounded-lg border border-border bg-white py-2 pl-8 pr-4 text-sm font-medium outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand/20"
             />
@@ -619,7 +699,9 @@ export default function ReceptionistAppointmentsPage() {
                 onClick={() => selectDate(shiftDate(today, -1))}
                 className={cn(
                   "px-3 h-9 text-xs font-semibold transition-colors border-x border-border",
-                  isYesterday ? "bg-brand text-white" : "text-muted-foreground hover:bg-muted hover:text-slate-900"
+                  isYesterday
+                    ? "bg-brand text-white"
+                    : "text-muted-foreground hover:bg-muted hover:text-slate-900",
                 )}
               >
                 Hôm qua
@@ -628,7 +710,9 @@ export default function ReceptionistAppointmentsPage() {
                 onClick={() => selectDate(today)}
                 className={cn(
                   "px-3 h-9 text-xs font-semibold transition-colors border-r border-border",
-                  isToday ? "bg-brand text-white" : "text-muted-foreground hover:bg-muted hover:text-slate-900"
+                  isToday
+                    ? "bg-brand text-white"
+                    : "text-muted-foreground hover:bg-muted hover:text-slate-900",
                 )}
               >
                 Hôm nay
@@ -637,7 +721,9 @@ export default function ReceptionistAppointmentsPage() {
                 onClick={() => selectDate(shiftDate(today, 1))}
                 className={cn(
                   "px-3 h-9 text-xs font-semibold transition-colors",
-                  isTomorrow ? "bg-brand text-white" : "text-muted-foreground hover:bg-muted hover:text-slate-900"
+                  isTomorrow
+                    ? "bg-brand text-white"
+                    : "text-muted-foreground hover:bg-muted hover:text-slate-900",
                 )}
               >
                 Ngày mai
@@ -661,7 +747,8 @@ export default function ReceptionistAppointmentsPage() {
               aria-label="Chọn ngày"
               value={selectedDate}
               onChange={(e) => {
-                if (/^\d{4}-\d{2}-\d{2}$/.test(e.target.value)) selectDate(e.target.value);
+                if (/^\d{4}-\d{2}-\d{2}$/.test(e.target.value))
+                  selectDate(e.target.value);
               }}
               className="w-28 bg-transparent outline-none text-xs font-semibold text-slate-700 cursor-pointer"
             />
@@ -693,7 +780,10 @@ export default function ReceptionistAppointmentsPage() {
             className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-white px-3 text-xs font-semibold text-slate-700 shadow-sm transition-all hover:bg-muted disabled:opacity-50 active:scale-[0.98]"
             title="Làm mới"
           >
-            <ArrowClockwise size={14} className={refreshing ? "animate-spin" : ""} />
+            <ArrowClockwise
+              size={14}
+              className={refreshing ? "animate-spin" : ""}
+            />
             Làm mới
           </button>
 
@@ -707,7 +797,7 @@ export default function ReceptionistAppointmentsPage() {
                 "inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold shadow-sm transition-all active:scale-[0.98]",
                 filterCount > 0
                   ? "border-brand bg-brand text-white hover:bg-brand-dark"
-                  : "border-border bg-white text-slate-700 hover:bg-muted"
+                  : "border-border bg-white text-slate-700 hover:bg-muted",
               )}
             >
               <Funnel size={14} weight={filterCount > 0 ? "fill" : "regular"} />
@@ -718,8 +808,15 @@ export default function ReceptionistAppointmentsPage() {
               onClose={() => setShowFilter(false)}
               statusFilter={statusFilter}
               onStatusFilter={setStatusFilter}
-              onApply={() => { setAppliedStatus(statusFilter); setPage(1); }}
-              onReset={() => { setStatusFilter(""); setAppliedStatus(""); setPage(1); }}
+              onApply={() => {
+                setAppliedStatus(statusFilter);
+                setPage(1);
+              }}
+              onReset={() => {
+                setStatusFilter("");
+                setAppliedStatus("");
+                setPage(1);
+              }}
             />
           </div>
         </div>
@@ -747,7 +844,6 @@ export default function ReceptionistAppointmentsPage() {
 
         {/* ── TABLE CARD ────────────────────────────────────────────── */}
         <div className="rounded-2xl border border-border bg-white shadow-sm">
-
           {/* Sub-header: date label + count */}
           <div className="flex items-center justify-between border-b border-border bg-white px-5 py-3">
             <div className="flex items-center gap-2">
@@ -786,7 +882,9 @@ export default function ReceptionistAppointmentsPage() {
                     <td colSpan={6}>
                       <div className="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
                         <MagnifyingGlass size={36} className="text-slate-300" />
-                        <p className="text-sm font-medium">Không tìm thấy kết quả phù hợp</p>
+                        <p className="text-sm font-medium">
+                          Không tìm thấy kết quả phù hợp
+                        </p>
                         <button
                           type="button"
                           onClick={() => setSearch("")}
@@ -802,7 +900,9 @@ export default function ReceptionistAppointmentsPage() {
                     <td colSpan={6}>
                       <div className="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
                         <CalendarBlank size={36} className="text-slate-300" />
-                        <p className="text-sm font-medium">Không có lịch hẹn nào</p>
+                        <p className="text-sm font-medium">
+                          Không có lịch hẹn nào
+                        </p>
                         <Link
                           href="/receptionist/appointments/new"
                           className="text-xs font-bold text-brand hover:text-brand-dark hover:underline"
@@ -817,10 +917,12 @@ export default function ReceptionistAppointmentsPage() {
                     const name = apt.patient?.fullName ?? "Khách vãng lai";
                     const initials = getInitials(name);
                     const avatarColor = getAvatarColor(name);
-                  const confirmBusy = isActionBusy(apt.id, "CONFIRMED");
-                  const checkInBusy = isActionBusy(apt.id, "CHECKED_IN");
-                  const reminderBusy = isActionBusy(apt.id, "reminder");
-                  const busy = actionLoading?.startsWith(`${apt.id}:`) ?? false;
+                    const confirmBusy = isActionBusy(apt.id, "CONFIRMED");
+                    const checkInBusy = isActionBusy(apt.id, "CHECKED_IN");
+                    const cancelBusy = isActionBusy(apt.id, "CANCELLED");
+                    const reminderBusy = isActionBusy(apt.id, "reminder");
+                    const busy =
+                      actionLoading?.startsWith(`${apt.id}:`) ?? false;
                     const timing = getTiming(apt, currentTime);
 
                     return (
@@ -830,12 +932,15 @@ export default function ReceptionistAppointmentsPage() {
                       >
                         {/* Time */}
                         <td className="px-5 py-3.5">
-                          <p className="font-mono text-[11px] text-muted-foreground">{apt.appointmentCode}</p>
+                          <p className="font-mono text-[11px] text-muted-foreground">
+                            {apt.appointmentCode}
+                          </p>
                           <p className="font-mono text-xs font-bold text-slate-900 mt-0.5">
                             {formatTime(apt.startTime)}
                             {apt.endTime && (
                               <span className="font-normal text-muted-foreground">
-                                {" "}- {formatTime(apt.endTime)}
+                                {" "}
+                                - {formatTime(apt.endTime)}
                               </span>
                             )}
                           </p>
@@ -847,13 +952,15 @@ export default function ReceptionistAppointmentsPage() {
                             <div
                               className={cn(
                                 "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold",
-                                avatarColor
+                                avatarColor,
                               )}
                             >
                               {initials}
                             </div>
                             <div>
-                              <p className="text-sm font-semibold text-slate-900">{name}</p>
+                              <p className="text-sm font-semibold text-slate-900">
+                                {name}
+                              </p>
                               {apt.patient?.phone && (
                                 <p className="font-mono text-xs text-muted-foreground mt-0.5">
                                   {apt.patient.phone}
@@ -866,8 +973,13 @@ export default function ReceptionistAppointmentsPage() {
                         {/* Service */}
                         <td className="px-5 py-3.5">
                           <div className="flex items-center gap-1.5 text-sm text-slate-700">
-                            <Stethoscope size={13} className="text-muted-foreground shrink-0" />
-                            <span className="font-medium">{apt.service?.name ?? "--"}</span>
+                            <Stethoscope
+                              size={13}
+                              className="text-muted-foreground shrink-0"
+                            />
+                            <span className="font-medium">
+                              {apt.service?.name ?? "--"}
+                            </span>
                           </div>
                         </td>
 
@@ -878,7 +990,9 @@ export default function ReceptionistAppointmentsPage() {
                               {formatDoctorName(apt.doctor.fullName)}
                             </span>
                           ) : (
-                            <span className="text-xs text-muted-foreground">--</span>
+                            <span className="text-xs text-muted-foreground">
+                              --
+                            </span>
                           )}
                         </td>
 
@@ -896,68 +1010,138 @@ export default function ReceptionistAppointmentsPage() {
                                 <button
                                   type="button"
                                   disabled={busy}
-                                  onClick={() => void handleStatusChange(apt.id, "CONFIRMED")}
+                                  onClick={() =>
+                                    void handleStatusChange(apt.id, "CONFIRMED")
+                                  }
                                   className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-amber-500 px-3 text-xs font-bold text-white shadow-sm transition-all hover:bg-amber-600 active:scale-[0.98] disabled:opacity-60"
                                 >
-                                  {confirmBusy ? <CircleNotch size={12} className="animate-spin" /> : <Phone size={12} weight="fill" />}
+                                  {confirmBusy ? (
+                                    <CircleNotch
+                                      size={12}
+                                      className="animate-spin"
+                                    />
+                                  ) : (
+                                    <Phone size={12} weight="fill" />
+                                  )}
                                   Xác nhận
                                 </button>
                                 {timing.canCheckIn && (
                                   <button
                                     type="button"
                                     disabled={busy}
-                                    onClick={() => void handleStatusChange(apt.id, "CHECKED_IN")}
+                                    onClick={() =>
+                                      void handleStatusChange(
+                                        apt.id,
+                                        "CHECKED_IN",
+                                      )
+                                    }
                                     className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-brand bg-white px-3 text-xs font-semibold text-brand shadow-sm transition-all hover:bg-brand/5 active:scale-[0.98] disabled:opacity-60"
                                     title="Check-in trực tiếp (walk-in)"
                                   >
-                                    {checkInBusy ? <CircleNotch size={12} className="animate-spin" /> : <UserCircleCheck size={12} weight="fill" />}
+                                    {checkInBusy ? (
+                                      <CircleNotch
+                                        size={12}
+                                        className="animate-spin"
+                                      />
+                                    ) : (
+                                      <UserCircleCheck
+                                        size={12}
+                                        weight="fill"
+                                      />
+                                    )}
                                     Check-in
                                   </button>
                                 )}
                               </>
                             )}
-                            {apt.status === "CONFIRMED" && timing.canCheckIn && (
+                            {apt.status === "CONFIRMED" &&
+                              timing.canCheckIn && (
+                                <button
+                                  type="button"
+                                  disabled={busy}
+                                  onClick={() =>
+                                    void handleStatusChange(
+                                      apt.id,
+                                      "CHECKED_IN",
+                                    )
+                                  }
+                                  className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-brand px-3 text-xs font-bold text-white shadow-sm transition-all hover:bg-brand-dark active:scale-[0.98] disabled:opacity-60"
+                                >
+                                  {checkInBusy ? (
+                                    <CircleNotch
+                                      size={12}
+                                      className="animate-spin"
+                                    />
+                                  ) : (
+                                    <UserCheck size={12} weight="fill" />
+                                  )}
+                                  Check-in
+                                </button>
+                              )}
+                            {apt.status === "COMPLETED" &&
+                              apt.invoicePending && (
+                                <Link
+                                  href={`/receptionist/billing${apt.billingInvoiceId ? `?invoiceId=${apt.billingInvoiceId}` : ""}`}
+                                  className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-brand px-3 text-xs font-bold text-white shadow-sm transition-all hover:bg-brand-dark active:scale-[0.98]"
+                                >
+                                  <Receipt size={12} weight="fill" /> Thu tiền
+                                </Link>
+                              )}
+                            {apt.status === "CANCELLATION_REQUESTED" && (
                               <button
                                 type="button"
                                 disabled={busy}
-                                onClick={() => void handleStatusChange(apt.id, "CHECKED_IN")}
-                                className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-brand px-3 text-xs font-bold text-white shadow-sm transition-all hover:bg-brand-dark active:scale-[0.98] disabled:opacity-60"
+                                onClick={() =>
+                                  void handleStatusChange(apt.id, "CANCELLED")
+                                }
+                                className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-rose-600 px-3 text-xs font-bold text-white shadow-sm transition-all hover:bg-rose-700 active:scale-[0.98] disabled:opacity-60"
                               >
-                                {checkInBusy ? <CircleNotch size={12} className="animate-spin" /> : <UserCheck size={12} weight="fill" />}
-                                Check-in
+                                {cancelBusy ? (
+                                  <CircleNotch
+                                    size={12}
+                                    className="animate-spin"
+                                  />
+                                ) : (
+                                  <X size={12} weight="bold" />
+                                )}
+                                Xác nhận hủy
                               </button>
-                            )}
-                            {apt.status === "COMPLETED" && apt.invoicePending && (
-                              <Link
-                                href={`/receptionist/billing${apt.billingInvoiceId ? `?invoiceId=${apt.billingInvoiceId}` : ""}`}
-                                className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-brand px-3 text-xs font-bold text-white shadow-sm transition-all hover:bg-brand-dark active:scale-[0.98]"
-                              >
-                                <Receipt size={12} weight="fill" /> Thu tiền
-                              </Link>
                             )}
 
                             {/* Quick Reminder button */}
-                            {(apt.status === "PENDING" || apt.status === "CONFIRMED") && timing.canRemind && (
-                              <button
-                                type="button"
-                                disabled={busy}
-                                onClick={() => void handleSendReminder(apt.id, name)}
-                                className="inline-flex h-8 items-center gap-1 rounded-lg border border-blue-200 bg-blue-50/80 px-2.5 text-xs font-bold text-blue-700 shadow-2xs transition-all hover:bg-blue-100 hover:text-blue-800 active:scale-[0.98] disabled:opacity-60 cursor-pointer"
-                                title="Gửi Gmail & Thông báo nhắc lịch cho bệnh nhân"
-                              >
-                                {reminderBusy ? (
-                                  <CircleNotch size={12} className="animate-spin" />
-                                ) : (
-                                  <BellSimpleRinging size={13} weight="bold" />
-                                )}
-                                <span>Nhắc lịch</span>
-                              </button>
-                            )}
+                            {(apt.status === "PENDING" ||
+                              apt.status === "CONFIRMED") &&
+                              timing.canRemind && (
+                                <button
+                                  type="button"
+                                  disabled={busy}
+                                  onClick={() =>
+                                    void handleSendReminder(apt.id, name)
+                                  }
+                                  className="inline-flex h-8 items-center gap-1 rounded-lg border border-blue-200 bg-blue-50/80 px-2.5 text-xs font-bold text-blue-700 shadow-2xs transition-all hover:bg-blue-100 hover:text-blue-800 active:scale-[0.98] disabled:opacity-60 cursor-pointer"
+                                  title="Gửi Gmail & Thông báo nhắc lịch cho bệnh nhân"
+                                >
+                                  {reminderBusy ? (
+                                    <CircleNotch
+                                      size={12}
+                                      className="animate-spin"
+                                    />
+                                  ) : (
+                                    <BellSimpleRinging
+                                      size={13}
+                                      weight="bold"
+                                    />
+                                  )}
+                                  <span>Nhắc lịch</span>
+                                </button>
+                              )}
 
                             {/* 3-dot menu */}
                             <ActionMenu
                               apt={apt}
-                              onStatusChange={(id, status) => void handleStatusChange(id, status)}
+                              onStatusChange={(id, status) =>
+                                void handleStatusChange(id, status)
+                              }
                               onSendReminder={handleSendReminder}
                               now={currentTime}
                               disabled={busy}
@@ -978,9 +1162,14 @@ export default function ReceptionistAppointmentsPage() {
               <span className="text-xs font-medium text-muted-foreground">
                 Hiển thị{" "}
                 <span className="font-bold text-slate-900">
-                  {(page - 1) * PAGE_SIZE + 1}-{Math.min(page * PAGE_SIZE, filtered.length)}
+                  {(page - 1) * PAGE_SIZE + 1}-
+                  {Math.min(page * PAGE_SIZE, filtered.length)}
                 </span>{" "}
-                / <span className="font-bold text-slate-900">{filtered.length}</span> lịch hẹn
+                /{" "}
+                <span className="font-bold text-slate-900">
+                  {filtered.length}
+                </span>{" "}
+                lịch hẹn
               </span>
               <div className="flex items-center gap-1">
                 <button
@@ -992,22 +1181,24 @@ export default function ReceptionistAppointmentsPage() {
                 >
                   <CaretLeft size={14} weight="bold" />
                 </button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
-                  <button
-                    type="button"
-                    aria-label={`Trang ${n}`}
-                    key={n}
-                    onClick={() => setPage(n)}
-                    className={cn(
-                      "flex h-8 w-8 items-center justify-center rounded-lg border text-xs font-bold transition-colors active:scale-[0.98]",
-                      page === n
-                        ? "border-brand bg-brand text-white shadow-sm"
-                        : "border-border bg-white text-muted-foreground hover:bg-muted hover:text-slate-900"
-                    )}
-                  >
-                    {n}
-                  </button>
-                ))}
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (n) => (
+                    <button
+                      type="button"
+                      aria-label={`Trang ${n}`}
+                      key={n}
+                      onClick={() => setPage(n)}
+                      className={cn(
+                        "flex h-8 w-8 items-center justify-center rounded-lg border text-xs font-bold transition-colors active:scale-[0.98]",
+                        page === n
+                          ? "border-brand bg-brand text-white shadow-sm"
+                          : "border-border bg-white text-muted-foreground hover:bg-muted hover:text-slate-900",
+                      )}
+                    >
+                      {n}
+                    </button>
+                  ),
+                )}
                 <button
                   type="button"
                   aria-label="Trang sau"
@@ -1021,7 +1212,6 @@ export default function ReceptionistAppointmentsPage() {
             </div>
           )}
         </div>
-
       </div>
 
       {/* SUCCESS TOAST */}

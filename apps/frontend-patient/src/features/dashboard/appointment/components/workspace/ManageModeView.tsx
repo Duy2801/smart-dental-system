@@ -29,10 +29,16 @@ export function ManageModeView({
   onCancelAppointment,
   cancellingAppointmentId,
 }: ManageModeViewProps) {
-  const [activeMainTab, setActiveMainTab] = useState<"upcoming" | "history">("upcoming");
+  const [activeMainTab, setActiveMainTab] = useState<"upcoming" | "history">(
+    "upcoming",
+  );
   const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<AppointmentStatus | "all">("all");
-  const [selectedDetail, setSelectedDetail] = useState<AppointmentItem | null>(null);
+  const [statusFilter, setStatusFilter] = useState<AppointmentStatus | "all">(
+    "all",
+  );
+  const [selectedDetail, setSelectedDetail] = useState<AppointmentItem | null>(
+    null,
+  );
 
   const { filteredUpcoming, history } = useAppointmentWorkspaceView({
     upcoming,
@@ -41,21 +47,30 @@ export function ManageModeView({
     statusFilter,
   });
 
-  const filterTabsUpcoming: { value: AppointmentStatus | "all"; label: string }[] = [
+  const filterTabsUpcoming: {
+    value: AppointmentStatus | "all";
+    label: string;
+  }[] = [
     { value: "all", label: "Tất cả" },
     { value: "pending", label: "Chờ xác nhận" },
     { value: "confirmed", label: "Đã xác nhận" },
   ];
 
-  const filterTabsHistory: { value: AppointmentStatus | "all"; label: string }[] = [
+  const filterTabsHistory: {
+    value: AppointmentStatus | "all";
+    label: string;
+  }[] = [
     { value: "all", label: "Tất cả" },
     { value: "completed", label: "Đã hoàn thành" },
+    { value: "cancellation_requested", label: "Chờ xác nhận hủy" },
     { value: "cancelled", label: "Đã hủy" },
   ];
 
-  const currentFilterTabs = activeMainTab === "upcoming" ? filterTabsUpcoming : filterTabsHistory;
+  const currentFilterTabs =
+    activeMainTab === "upcoming" ? filterTabsUpcoming : filterTabsHistory;
   const currentList = activeMainTab === "upcoming" ? filteredUpcoming : history;
-  const totalCount = activeMainTab === "upcoming" ? upcoming.length : historyItems.length;
+  const totalCount =
+    activeMainTab === "upcoming" ? upcoming.length : historyItems.length;
 
   return (
     <main className="mx-auto w-full max-w-[1360px] px-4 py-6 sm:px-6 lg:px-8 space-y-6">
@@ -187,7 +202,10 @@ export function ManageModeView({
           {loading ? (
             <div className="space-y-4 py-2">
               {Array.from({ length: 2 }).map((_, index) => (
-                <div key={index} className="h-32 animate-pulse rounded-2xl bg-slate-100" />
+                <div
+                  key={index}
+                  className="h-32 animate-pulse rounded-2xl bg-slate-100"
+                />
               ))}
             </div>
           ) : currentList.length > 0 ? (
@@ -200,7 +218,8 @@ export function ManageModeView({
                 const isPendingOrConfirmed =
                   item.status === "pending" || item.status === "confirmed";
 
-                const canCancel = isUpcoming && isPendingOrConfirmed && hoursUntil > 0;
+                const canCancel =
+                  isUpcoming && isPendingOrConfirmed && hoursUntil > 0;
                 const canReschedule =
                   isUpcoming &&
                   isPendingOrConfirmed &&
@@ -212,7 +231,9 @@ export function ManageModeView({
                     key={item.id}
                     appointment={item}
                     onViewDetail={() => setSelectedDetail(item)}
-                    onReschedule={canReschedule ? () => onReschedule(item) : undefined}
+                    onReschedule={
+                      canReschedule ? () => onReschedule(item) : undefined
+                    }
                     onCancel={
                       isUpcoming && isPendingOrConfirmed
                         ? () => onCancelAppointment(item.id)
@@ -226,7 +247,10 @@ export function ManageModeView({
             </div>
           ) : (
             <div className="py-12 text-center text-slate-400 space-y-3 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
-              <DashboardIcon name="calendar" className="mx-auto h-10 w-10 text-slate-300" />
+              <DashboardIcon
+                name="calendar"
+                className="mx-auto h-10 w-10 text-slate-300"
+              />
               <p className="text-sm font-semibold text-slate-600">
                 {activeMainTab === "upcoming"
                   ? "Không tìm thấy cuộc hẹn sắp tới nào."

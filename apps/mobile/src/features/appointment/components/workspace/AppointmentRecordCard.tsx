@@ -1,6 +1,11 @@
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6';
 import React from 'react';
-import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { Text } from 'react-native-paper';
 import { formatTimeRange } from '../../api';
 import type { AppointmentItem, AppointmentStatus } from '../../types';
@@ -31,6 +36,13 @@ const STATUS_META: Record<
     bg: '#FFFBEB',
     text: '#B45309',
     border: '#FDE68A',
+  },
+  cancellation_requested: {
+    label: 'Chờ xác nhận hủy',
+    dotColor: '#F43F5E',
+    bg: '#FFF1F2',
+    text: '#BE123C',
+    border: '#FECDD3',
   },
   completed: {
     label: 'Hoàn thành',
@@ -78,7 +90,10 @@ export function AppointmentRecordCard({
   isCancelling = false,
 }: AppointmentRecordCardProps) {
   const meta = STATUS_META[appointment.status] ?? STATUS_META.pending;
-  const timeRange = formatTimeRange(appointment.time, appointment.durationMinutes || 30);
+  const timeRange = formatTimeRange(
+    appointment.time,
+    appointment.durationMinutes || 30,
+  );
   const notes = appointment.preparation ?? [];
 
   const now = Date.now();
@@ -99,10 +114,16 @@ export function AppointmentRecordCard({
             </Text>
           </View>
           <View className="min-w-0 flex-1">
-            <Text numberOfLines={1} className="text-sm font-black text-slate-900">
+            <Text
+              numberOfLines={1}
+              className="text-sm font-black text-slate-900"
+            >
               BS. {appointment.doctor}
             </Text>
-            <Text numberOfLines={1} className="text-[11px] font-bold text-[#0058bc]">
+            <Text
+              numberOfLines={1}
+              className="text-[11px] font-bold text-[#0058bc]"
+            >
               {appointment.service}
             </Text>
           </View>
@@ -115,7 +136,9 @@ export function AppointmentRecordCard({
             { backgroundColor: meta.bg, borderColor: meta.border },
           ]}
         >
-          <View style={[styles.statusDot, { backgroundColor: meta.dotColor }]} />
+          <View
+            style={[styles.statusDot, { backgroundColor: meta.dotColor }]}
+          />
           <Text style={[styles.statusText, { color: meta.text }]}>
             {meta.label}
           </Text>
@@ -124,9 +147,15 @@ export function AppointmentRecordCard({
 
       {/* Date & Time Row */}
       <View className="mt-3 flex-row items-center gap-2 rounded-xl bg-slate-50 p-2.5">
-        <FontAwesome6 color="#0058bc" iconStyle="solid" name="clock" size={13} />
+        <FontAwesome6
+          color="#0058bc"
+          iconStyle="solid"
+          name="clock"
+          size={13}
+        />
         <Text className="text-xs font-bold text-slate-700 flex-1">
-          {timeRange} • <Text className="font-medium text-slate-500">{appointment.date}</Text>
+          {timeRange} •{' '}
+          <Text className="font-medium text-slate-500">{appointment.date}</Text>
         </Text>
       </View>
 
@@ -138,7 +167,10 @@ export function AppointmentRecordCard({
               key={idx}
               className="rounded-lg border border-slate-200 bg-white px-2 py-1"
             >
-              <Text numberOfLines={1} className="text-[10px] font-medium text-slate-600">
+              <Text
+                numberOfLines={1}
+                className="text-[10px] font-medium text-slate-600"
+              >
                 • {note}
               </Text>
             </View>
@@ -154,7 +186,12 @@ export function AppointmentRecordCard({
             onPress={onViewDetail}
             style={styles.detailButton}
           >
-            <FontAwesome6 color="#64748B" iconStyle="solid" name="eye" size={12} />
+            <FontAwesome6
+              color="#64748B"
+              iconStyle="solid"
+              name="eye"
+              size={12}
+            />
             <Text style={styles.detailButtonText}>Chi tiết</Text>
           </TouchableOpacity>
         ) : null}
@@ -184,9 +221,7 @@ export function AppointmentRecordCard({
           </TouchableOpacity>
         ) : isUnder12Hours ? (
           <View style={styles.disabledCancelPill}>
-            <Text style={styles.disabledCancelText}>
-              Dưới 12h (Gọi lễ tân)
-            </Text>
+            <Text style={styles.disabledCancelText}>Dưới 12h (Gọi lễ tân)</Text>
           </View>
         ) : null}
       </View>

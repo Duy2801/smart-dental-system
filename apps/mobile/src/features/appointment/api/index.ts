@@ -109,6 +109,7 @@ export const getInitials = (name: string) =>
 export const normalizeStatus = (status?: string): AppointmentStatus => {
   const value = (status || 'PENDING').toUpperCase();
   if (value === 'CONFIRMED') return 'confirmed';
+  if (value === 'CANCELLATION_REQUESTED') return 'cancellation_requested';
   if (value === 'COMPLETED') return 'completed';
   if (value === 'CANCELLED') return 'cancelled';
   if (value === 'NO_SHOW') return 'missed';

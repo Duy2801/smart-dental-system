@@ -78,6 +78,7 @@ export function ManageModeView({
   }[] = [
     { value: 'all', label: 'Tất cả' },
     { value: 'completed', label: 'Đã hoàn thành' },
+    { value: 'cancellation_requested', label: 'Chờ xác nhận hủy' },
     { value: 'cancelled', label: 'Đã hủy' },
   ];
 

@@ -183,6 +183,55 @@ describe('VideoConsultationService', () => {
         service.getAvailableSlots('doctor-1', date, 30),
       ).resolves.toEqual([]);
     });
+
+    it('only treats active in-clinic appointments as occupied consultation slots', async () => {
+      const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      const date = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Ho_Chi_Minh',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(tomorrow);
+
+      prismaMock.doctor.findUnique.mockResolvedValue({
+        id: 'doctor-1',
+        isActive: true,
+      });
+      prismaMock.doctorAvailability.findMany
+        .mockResolvedValueOnce([
+          {
+            recordType: 'WEEKLY',
+            dayOfWeek: tomorrow.getDay(),
+            startTime: '08:00',
+            endTime: '17:00',
+          },
+        ])
+        .mockResolvedValueOnce([]);
+      clinicConfigServiceMock.getClinicConfig = jest.fn().mockResolvedValue({
+        specialDates: [],
+        lunchBreak: { isEnabled: false, start: '12:00', end: '13:30' },
+        businessHours: Array.from({ length: 7 }, (_, id) => ({
+          id,
+          isOpen: true,
+          start: '08:00',
+          end: '17:00',
+        })),
+      });
+      prismaMock.appointment.findMany.mockResolvedValue([]);
+      prismaMock.videoConsultation.findMany.mockResolvedValue([]);
+
+      await service.getAvailableSlots('doctor-1', date, 30);
+
+      expect(prismaMock.appointment.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            status: {
+              in: ['PENDING', 'CONFIRMED', 'CHECKED_IN', 'IN_PROGRESS'],
+            },
+          }),
+        }),
+      );
+    });
   });
 
   describe('cancel by DOCTOR', () => {
@@ -347,6 +396,26 @@ describe('VideoConsultationService', () => {
         }),
       );
       expect(paymentServiceMock.createPayment).toHaveBeenCalled();
+      expect(prismaMock.appointment.findFirst).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          where: expect.objectContaining({
+            status: {
+              in: ['PENDING', 'CONFIRMED', 'CHECKED_IN', 'IN_PROGRESS'],
+            },
+          }),
+        }),
+      );
+      expect(prismaMock.appointment.findFirst).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          where: expect.objectContaining({
+            status: {
+              in: ['PENDING', 'CONFIRMED', 'CHECKED_IN', 'IN_PROGRESS'],
+            },
+          }),
+        }),
+      );
     });
 
     it('rejects a consultation overlapping the clinic lunch break', async () => {

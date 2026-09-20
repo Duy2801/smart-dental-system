@@ -22,6 +22,7 @@ import { PaymentService } from '../payment/payment.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { EventsGateway } from '../socket/events.gateway';
 import { RedisService } from '../redis/redis.service';
+import { OCCUPYING_APPOINTMENT_STATUSES } from '../appointment/appointment-status-policy';
 import { CreateVideoConsultationDto } from './dto/create-video-consultation.dto';
 
 const consultInclude = {
@@ -452,7 +453,7 @@ export class VideoConsultationService implements OnModuleInit {
         where: {
           doctorId,
           scheduledAt: { gte: startOfDay, lte: endOfDay },
-          status: { notIn: ['CANCELLED', 'NO_SHOW'] },
+          status: { in: OCCUPYING_APPOINTMENT_STATUSES },
         },
         select: { scheduledAt: true, endAt: true },
       });
@@ -678,7 +679,7 @@ export class VideoConsultationService implements OnModuleInit {
         const overlappingAppointment = await tx.appointment.findFirst({
           where: {
             doctorId: dto.doctorId,
-            status: { notIn: ['CANCELLED', 'NO_SHOW'] },
+            status: { in: OCCUPYING_APPOINTMENT_STATUSES },
             AND: [
               { scheduledAt: { lt: scheduledEnd } },
               { endAt: { gt: scheduledAt } },
@@ -724,7 +725,7 @@ export class VideoConsultationService implements OnModuleInit {
         const patientAppointmentConflict = await tx.appointment.findFirst({
           where: {
             patientId: patient.id,
-            status: { notIn: ['CANCELLED', 'NO_SHOW'] },
+            status: { in: OCCUPYING_APPOINTMENT_STATUSES },
             AND: [
               { scheduledAt: { lt: scheduledEnd } },
               { endAt: { gt: scheduledAt } },

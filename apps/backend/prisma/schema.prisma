@@ -49,6 +49,7 @@ enum AvailabilityApprovalStatus {
 enum AppointmentStatus {
   PENDING
   CONFIRMED
+  CANCELLATION_REQUESTED
   CHECKED_IN
   IN_PROGRESS
   COMPLETED

@@ -30,13 +30,9 @@ import {
 import { overlapsLunchBreak } from '../clinic-config/clinic-schedule-time';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { CreateStaffAppointmentDto } from './dto/create-staff-appointment.dto';
+import { OCCUPYING_APPOINTMENT_STATUSES } from './appointment-status-policy';
 
-const activeAppointmentStatuses = [
-  AppointmentStatus.PENDING,
-  AppointmentStatus.CONFIRMED,
-  AppointmentStatus.CHECKED_IN,
-  AppointmentStatus.IN_PROGRESS,
-];
+const activeAppointmentStatuses = OCCUPYING_APPOINTMENT_STATUSES;
 const activeVideoConsultationStatuses = [
   VideoConsultationStatus.PENDING_PAYMENT,
   VideoConsultationStatus.SCHEDULED,
@@ -341,35 +337,30 @@ export class AppointmentService {
 
     this.ensurePatientCancellationAllowed(appointment);
 
-    const updated = await this.prisma.appointment.update({
-      where: { id: appointment.id },
-      data: {
-        status: AppointmentStatus.CANCELLED,
-        cancelledAt: new Date(),
-        cancellationReason: 'Cancelled by patient',
-      },
-      include: appointmentInclude,
-    });
-    await this.prisma.invoice.updateMany({
+    const claimed = await this.prisma.appointment.updateMany({
       where: {
-        appointmentId: appointment.id,
-        status: { in: [InvoiceStatus.DRAFT, InvoiceStatus.ISSUED] },
+        id: appointment.id,
+        status: { in: patientCancelableStatuses },
       },
       data: {
-        status: InvoiceStatus.CANCELLED,
+        status: AppointmentStatus.CANCELLATION_REQUESTED,
+        cancellationReason: 'Cancellation requested by patient',
       },
     });
+    if (claimed.count !== 1) {
+      throw new ConflictException('appointment.cancel_not_allowed');
+    }
 
-    void this.invalidateBookingCache(
+    await this.invalidateBookingCache(
       userId,
       appointment.patientId || undefined,
+      { requireVersionBump: true },
     );
-    const result = this.withDerivedService(updated);
-    void this.dispatchAppointmentCancelledNotification(
-      result,
-      'Bệnh nhân đã hủy qua ứng dụng',
-    );
-    return result;
+    return this.withDerivedService({
+      ...appointment,
+      status: AppointmentStatus.CANCELLATION_REQUESTED,
+      cancellationReason: 'Cancellation requested by patient',
+    });
   }
 
   async findByDoctorAndWeek(doctorId: string, from: string, to: string) {
@@ -617,15 +608,46 @@ export class AppointmentService {
       typeof reason === 'string' && reason.trim()
         ? reason.trim().slice(0, 500)
         : 'Cancelled by staff';
-    const updated = await this.transitionAppointment(
-      appointmentId,
-      [AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED],
-      {
-        status: AppointmentStatus.CANCELLED,
-        cancelledAt: new Date(),
-        cancellationReason,
-      },
-      'appointment.cannot_cancel',
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const claimed = await tx.appointment.updateMany({
+        where: {
+          id: appointmentId,
+          status: {
+            in: [
+              AppointmentStatus.PENDING,
+              AppointmentStatus.CONFIRMED,
+              AppointmentStatus.CANCELLATION_REQUESTED,
+            ],
+          },
+        },
+        data: {
+          status: AppointmentStatus.CANCELLED,
+          cancelledAt: new Date(),
+          cancellationReason,
+        },
+      });
+      if (claimed.count !== 1) {
+        throw new BadRequestException('appointment.cannot_cancel');
+      }
+      await tx.invoice.updateMany({
+        where: {
+          appointmentId,
+          status: { in: [InvoiceStatus.DRAFT, InvoiceStatus.ISSUED] },
+        },
+        data: { status: InvoiceStatus.CANCELLED },
+      });
+      const appointment = await tx.appointment.findUnique({
+        where: { id: appointmentId },
+        include: appointmentInclude,
+      });
+      if (!appointment) {
+        throw new BadRequestException('appointment.not_found');
+      }
+      return this.withDerivedService(appointment);
+    });
+    void this.invalidateBookingCache(
+      updated.createdBy,
+      updated.patientId || undefined,
     );
     void this.dispatchAppointmentCancelledNotification(
       updated,
@@ -1032,11 +1054,20 @@ export class AppointmentService {
     if (!allowed.includes(appointment.status)) {
       throw new BadRequestException(errorCode);
     }
-    const updated = await this.prisma.appointment.update({
-      where: { id: appointmentId },
+    const claimed = await this.prisma.appointment.updateMany({
+      where: { id: appointmentId, status: { in: allowed } },
       data,
+    });
+    if (claimed.count !== 1) {
+      throw new BadRequestException(errorCode);
+    }
+    const updated = await this.prisma.appointment.findUnique({
+      where: { id: appointmentId },
       include: appointmentInclude,
     });
+    if (!updated) {
+      throw new BadRequestException('appointment.not_found');
+    }
     void this.invalidateBookingCache(
       updated.createdBy,
       updated.patientId || undefined,
@@ -1340,7 +1371,21 @@ export class AppointmentService {
     return invoice;
   }
 
-  async invalidateBookingCache(userId?: string, patientId?: string) {
+  async invalidateBookingCache(
+    userId?: string,
+    patientId?: string,
+    options: { requireVersionBump?: boolean } = {},
+  ) {
+    let versionError: unknown;
+    try {
+      await this.redis.incr('booking:version');
+    } catch (err: unknown) {
+      versionError = err;
+      this.logger.warn(
+        `Failed to advance booking cache version: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+
     try {
       await Promise.all([
         this.redis.delByPrefix('booking:options:'),
@@ -1352,8 +1397,14 @@ export class AppointmentService {
           ? this.redis.del(`patient:records:${patientId}`)
           : Promise.resolve(),
       ]);
-    } catch (err: any) {
-      this.logger.warn(`Failed to invalidate booking cache: ${err.message}`);
+    } catch (err: unknown) {
+      this.logger.warn(
+        `Failed to invalidate booking cache: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+
+    if (versionError && options.requireVersionBump) {
+      throw versionError;
     }
   }
 
@@ -1467,7 +1518,10 @@ export class AppointmentService {
     });
   }
 
-  private async getCachedBookingWindowData(doctorIds: string[]) {
+  private async getCachedBookingWindowData(
+    doctorIds: string[],
+    cacheVersion: string,
+  ) {
     if (!doctorIds.length) {
       return {
         recordsByDoctor: new Map<string, any[]>(),
@@ -1475,7 +1529,7 @@ export class AppointmentService {
       };
     }
     const sortedIds = [...doctorIds].sort();
-    const cacheKey = `booking:window:${sortedIds.join(',')}`;
+    const cacheKey = `booking:window:${cacheVersion}:${sortedIds.join(',')}`;
 
     const raw = await this.redis.rememberJson(cacheKey, 45, async () => {
       const data = await this.getBookingWindowData(sortedIds);
@@ -1518,7 +1572,8 @@ export class AppointmentService {
   }
 
   async getBookingOptions(query: BookingOptionQuery) {
-    const fullCacheKey = `booking:options:${query.serviceId || 'default'}:${query.treatmentMethodId || 'default'}:${query.doctorId || 'all'}:${query.date || 'default'}:${query.time || 'default'}${query.appointmentId ? `:${query.appointmentId}` : ''}`;
+    const cacheVersion = (await this.redis.get('booking:version')) ?? '0';
+    const fullCacheKey = `booking:options:${cacheVersion}:${query.serviceId || 'default'}:${query.treatmentMethodId || 'default'}:${query.doctorId || 'all'}:${query.date || 'default'}:${query.time || 'default'}${query.appointmentId ? `:${query.appointmentId}` : ''}`;
 
     return this.redis.rememberJson(fullCacheKey, 45, async () => {
       const [clinicConfig, services] = await Promise.all([
@@ -1542,7 +1597,10 @@ export class AppointmentService {
       );
 
       const doctorIds = doctors.map((doctor) => doctor.id);
-      const bookingWindow = await this.getCachedBookingWindowData(doctorIds);
+      const bookingWindow = await this.getCachedBookingWindowData(
+        doctorIds,
+        cacheVersion,
+      );
 
       let effectiveAppointmentsByDoctor = bookingWindow.appointmentsByDoctor;
       if (query.appointmentId) {
@@ -1559,7 +1617,7 @@ export class AppointmentService {
       }
 
       const duration = selectedTreatmentMethod?.durationMinutes ?? 30;
-      const datesCacheKey = `booking:dates:${duration}:${query.doctorId || 'all'}${query.appointmentId ? `:${query.appointmentId}` : ''}`;
+      const datesCacheKey = `booking:dates:${cacheVersion}:${duration}:${query.doctorId || 'all'}${query.appointmentId ? `:${query.appointmentId}` : ''}`;
 
       const dates = await this.redis.rememberJson(datesCacheKey, 45, () =>
         this.buildBookingDates(
@@ -1581,7 +1639,7 @@ export class AppointmentService {
       let doctorsWithAvailableSlots: any[] = [];
 
       if (selectedDateId && selectedService && selectedTreatmentMethod) {
-        const slotCacheKey = `booking:slots:${selectedService.id}:${selectedTreatmentMethod.id}:${query.doctorId || 'all'}:${selectedDateId}${query.appointmentId ? `:${query.appointmentId}` : ''}`;
+        const slotCacheKey = `booking:slots:${cacheVersion}:${selectedService.id}:${selectedTreatmentMethod.id}:${query.doctorId || 'all'}:${selectedDateId}${query.appointmentId ? `:${query.appointmentId}` : ''}`;
 
         const slotCalc = await this.redis.rememberJson(
           slotCacheKey,
@@ -1696,6 +1754,7 @@ export class AppointmentService {
                   status: {
                     in: [
                       AppointmentStatus.COMPLETED,
+                      AppointmentStatus.CANCELLATION_REQUESTED,
                       AppointmentStatus.CANCELLED,
                       AppointmentStatus.NO_SHOW,
                       AppointmentStatus.RESCHEDULED,
@@ -2525,7 +2584,6 @@ export class AppointmentService {
 
     return !conflict;
   }
-
 
   private async isDoctorWorking(doctorId: string, startAt: Date, endAt: Date) {
     const records = await this.getAvailabilityRecords(doctorId, startAt);
