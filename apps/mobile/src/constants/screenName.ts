@@ -10,6 +10,7 @@ export const SCREEN_NAME = {
   HOME: 'Home',
   FUNCTION: 'Function',
   AI: 'AI',
+  AI_CHAT: 'AIChat',
   REPORT: 'Report',
   PERSONAL: 'Personal',
   PATIENT_SERVICES: 'PatientServices',

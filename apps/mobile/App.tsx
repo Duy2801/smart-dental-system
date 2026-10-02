@@ -19,11 +19,27 @@ import ApplicationNavigator from '~src/routes';
 import { useEffect } from 'react';
 import { loadAuthSession } from '~src/features/auth/session';
 import { hydrateSession } from '~src/reducers/loginReducer';
-import { LogBox } from 'react-native';
-import { paperLightTheme } from '~src/constants/theme';
+import { LogBox, Text as NativeText, TextInput as NativeTextInput } from 'react-native';
+import { appFontFamily, paperLightTheme } from '~src/constants/theme';
 import { ToastProvider } from '~src/components/ui';
 
 LogBox.ignoreAllLogs();
+
+type NativeTextComponent = {
+  defaultProps?: { style?: unknown };
+};
+
+function setDefaultFont(component: NativeTextComponent) {
+  const defaultProps = component.defaultProps ?? {};
+  defaultProps.style = [
+    { fontFamily: appFontFamily.regular },
+    defaultProps.style,
+  ];
+  component.defaultProps = defaultProps;
+}
+
+setDefaultFont(NativeText as unknown as NativeTextComponent);
+setDefaultFont(NativeTextInput as unknown as NativeTextComponent);
 
 const SocketWrapper = ({ children }: { children: React.ReactNode }) => {
   const token = useSelector((state: RootState) => state.login.accessToken);

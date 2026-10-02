@@ -1,4 +1,28 @@
-import { MD3LightTheme } from 'react-native-paper';
+import { configureFonts, MD3LightTheme } from 'react-native-paper';
+
+export const appFontFamily = {
+  bold: 'BeVietnamPro-Bold',
+  regular: 'BeVietnamPro-Regular',
+  semiBold: 'BeVietnamPro-SemiBold',
+} as const;
+
+const paperFontConfig = {
+  bodyLarge: { fontFamily: appFontFamily.regular },
+  bodyMedium: { fontFamily: appFontFamily.regular },
+  bodySmall: { fontFamily: appFontFamily.regular },
+  displayLarge: { fontFamily: appFontFamily.bold },
+  displayMedium: { fontFamily: appFontFamily.bold },
+  displaySmall: { fontFamily: appFontFamily.bold },
+  headlineLarge: { fontFamily: appFontFamily.bold },
+  headlineMedium: { fontFamily: appFontFamily.bold },
+  headlineSmall: { fontFamily: appFontFamily.bold },
+  labelLarge: { fontFamily: appFontFamily.semiBold },
+  labelMedium: { fontFamily: appFontFamily.semiBold },
+  labelSmall: { fontFamily: appFontFamily.semiBold },
+  titleLarge: { fontFamily: appFontFamily.semiBold },
+  titleMedium: { fontFamily: appFontFamily.semiBold },
+  titleSmall: { fontFamily: appFontFamily.semiBold },
+};
 
 export const colors = {
   primary: '#0875D1',
@@ -15,6 +39,7 @@ export const colors = {
 
 export const paperLightTheme = {
   ...MD3LightTheme,
+  fonts: configureFonts({ config: paperFontConfig }),
   roundness: 3,
   colors: {
     ...MD3LightTheme.colors,
