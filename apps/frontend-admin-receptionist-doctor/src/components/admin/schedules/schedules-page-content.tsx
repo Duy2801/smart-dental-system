@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AdminAlert } from "@/src/components/admin/common";
+import { AdminAlert, AdminConfirmModal } from "@/src/components/admin/common";
 import { getClinicConfig } from "@/src/components/admin/setting/settings-api";
 import { queryKeys } from "@/src/lib/query/query-keys";
 import { defaultScheduleForm } from "./constants";
@@ -31,6 +31,7 @@ export function SchedulesPageContent() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditingDay, setIsEditingDay] = useState(false);
   const [form, setForm] = useState<ScheduleFormState>(defaultScheduleForm);
 
   // Replace confirm modal state
@@ -114,25 +115,43 @@ export function SchedulesPageContent() {
       ? openBusinessHours.map((day) => day.id)
       : [businessHour?.id ?? dayOfWeek];
 
+    const targetDayId = businessHour?.id ?? dayOfWeek;
+    const daySchedule = schedule?.weekly.find(
+      (item) => item.dayOfWeek === targetDayId,
+    );
+    const existingShift = daySchedule?.shifts?.[0];
+    const isEdit = !autoSchedule && Boolean(existingShift);
+    setIsEditingDay(isEdit);
+
+    const initialStart = isEdit
+      ? existingShift!.startTime
+      : businessHour?.start ?? defaultScheduleForm.startTime;
+    const initialEnd = isEdit
+      ? existingShift!.endTime
+      : businessHour?.end ?? defaultScheduleForm.endTime;
+
     setForm({
       ...defaultScheduleForm,
       autoSchedule,
-      dayOfWeek: businessHour?.id ?? dayOfWeek,
-      startTime: businessHour?.start ?? defaultScheduleForm.startTime,
-      endTime: businessHour?.end ?? defaultScheduleForm.endTime,
+      dayOfWeek: targetDayId,
+      startTime: initialStart,
+      endTime: initialEnd,
       selectedDays,
       autoShifts: [
         {
-          startTime: businessHour?.start ?? defaultScheduleForm.startTime,
-          endTime: businessHour?.end ?? defaultScheduleForm.endTime,
+          startTime: initialStart,
+          endTime: initialEnd,
         },
       ],
     });
+    setError(null);
     setIsAddModalOpen(true);
   };
 
   const closeModal = () => {
     if (submitting) return;
+    setIsEditingDay(false);
+    setError(null);
     setIsAddModalOpen(false);
   };
 
@@ -197,7 +216,26 @@ export function SchedulesPageContent() {
       return (dayItem?.shifts?.length ?? 0) > 0;
     });
 
-    if (hasExistingSchedule && !force) {
+    // If updating a single day schedule that already has shifts, save with REPLACE mode directly
+    if (!form.autoSchedule && hasExistingSchedule) {
+      const replaceForm: ScheduleFormState = {
+        ...form,
+        autoSchedule: true,
+        selectedDays: targetDays,
+        autoMode: "REPLACE",
+        autoShifts: [
+          {
+            startTime: form.startTime,
+            endTime: form.endTime,
+          },
+        ],
+      };
+      await executeSave(replaceForm, force);
+      return;
+    }
+
+    // If bulk auto schedule and target days already have shifts, prompt confirmation
+    if (form.autoSchedule && hasExistingSchedule && !force) {
       const replaceForm: ScheduleFormState = {
         ...form,
         autoSchedule: true,
@@ -236,16 +274,19 @@ export function SchedulesPageContent() {
     }
   };
 
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
   const removeRecord = async (id: string, force = false) => {
     if (!force) {
-      const confirmed = window.confirm("Bạn chắc chắn muốn xóa lịch này?");
-      if (!confirmed) return;
+      setDeleteConfirmId(id);
+      return;
     }
 
     setError(null);
     try {
       await deleteDoctorAvailability(id, force);
       setConflictModalOpen(false);
+      setDeleteConfirmId(null);
       await invalidateSchedule();
     } catch (err: any) {
       const respData = err?.response?.data;
@@ -257,6 +298,13 @@ export function SchedulesPageContent() {
         setError(getErrorMessage(err, "Xóa lịch thất bại"));
       }
     }
+  };
+
+  const handleConfirmDeleteRecord = async () => {
+    if (!deleteConfirmId) return;
+    const id = deleteConfirmId;
+    setDeleteConfirmId(null);
+    await removeRecord(id, true);
   };
 
   const handleConfirmForce = () => {
@@ -345,6 +393,8 @@ export function SchedulesPageContent() {
         <ScheduleFormModal
           form={form}
           businessHours={businessHours}
+          isEditing={isEditingDay}
+          serverError={error}
           submitting={submitting}
           setForm={setForm}
           onClose={closeModal}
@@ -371,6 +421,17 @@ export function SchedulesPageContent() {
           actionName={pendingAction?.type === "CREATE" ? "Đăng ký lịch / nghỉ" : "Xóa ca trực"}
         />
       ) : null}
+
+      <AdminConfirmModal
+        isOpen={Boolean(deleteConfirmId)}
+        title="Xác nhận xóa ca làm việc"
+        description="Bạn có chắc chắn muốn xóa ca làm việc này không? Nếu bác sĩ đã có lịch hẹn của bệnh nhân, hệ thống sẽ cảnh báo xung đột."
+        confirmText="Xóa ca"
+        cancelText="Hủy bỏ"
+        variant="danger"
+        onConfirm={handleConfirmDeleteRecord}
+        onClose={() => setDeleteConfirmId(null)}
+      />
     </>
   );
 }

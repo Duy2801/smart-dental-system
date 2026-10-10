@@ -1,5 +1,6 @@
 import { SkeletonRows } from "@/src/components/admin/common";
 import type { StaffUser } from "../types";
+import { StaffPagination } from "./staff-pagination";
 import { StaffRow } from "./staff-row";
 
 type StaffListProps = {
@@ -8,6 +9,12 @@ type StaffListProps = {
   onRemove: (user: StaffUser) => void;
   onToggleLock: (user: StaffUser) => void;
   users: StaffUser[];
+  page: number;
+  totalPages: number;
+  total: number;
+  limit: number;
+  roleFilter: string;
+  onPageChange: (page: number) => void;
 };
 
 export function StaffList({
@@ -16,6 +23,12 @@ export function StaffList({
   onRemove,
   onToggleLock,
   users,
+  page,
+  totalPages,
+  total,
+  limit,
+  roleFilter,
+  onPageChange,
 }: StaffListProps) {
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-xs">
@@ -38,6 +51,18 @@ export function StaffList({
           ))
         )}
       </div>
+
+      {!loading && total > 0 && (
+        <StaffPagination
+          page={page}
+          totalPages={totalPages}
+          total={total}
+          limit={limit}
+          roleFilter={roleFilter}
+          onPageChange={onPageChange}
+        />
+      )}
     </div>
   );
 }
+

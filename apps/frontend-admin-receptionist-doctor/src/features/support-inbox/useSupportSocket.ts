@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { io, type Socket } from "socket.io-client";
+import { listMyConversations } from "./api";
 
 function getCookie(name: string) {
   if (typeof document === "undefined") return undefined;
@@ -50,13 +51,34 @@ export function useSupportSocket() {
       reconnectionDelay: 2000,
     });
 
+    let authRetrying = false;
+    let disposed = false;
+    instance.on("support:auth_error", () => {
+      if (authRetrying) return;
+      authRetrying = true;
+      const previousToken = getCookie("access_token");
+      void listMyConversations()
+        .then(() => {
+          if (!disposed && getCookie("access_token") !== previousToken) {
+            instance.disconnect();
+            instance.connect();
+          }
+        })
+        .catch(() => {})
+        .finally(() => {
+          authRetrying = false;
+        });
+    });
+
+    instance.on("connect", () => setSocket(instance));
+    instance.on("disconnect", () => setSocket(null));
     socketRef.current = instance;
-    setSocket(instance);
 
     return () => {
+      disposed = true;
+      instance.removeAllListeners();
       instance.disconnect();
       socketRef.current = null;
-      setSocket(null);
     };
   }, []);
 

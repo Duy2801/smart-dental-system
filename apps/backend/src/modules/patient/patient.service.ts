@@ -1382,6 +1382,48 @@ export class PatientService {
     );
   }
 
+  private async resolveAccessibleRecordPatientId(
+    userId: string,
+    patientId?: string,
+  ) {
+    if (patientId) {
+      const link = await this.prisma.patientAccount.findUnique({
+        where: { userId_patientId: { userId, patientId } },
+        select: { patientId: true },
+      });
+      if (!link) throw new ForbiddenException('patient.profile_forbidden');
+      return link.patientId;
+    }
+    const patient = await this.prisma.patient.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+    return patient?.id ?? null;
+  }
+
+  async getMyRecordsSummary(userId: string, patientId?: string) {
+    const accessibleId = await this.resolveAccessibleRecordPatientId(
+      userId,
+      patientId,
+    );
+    if (!accessibleId) return { patient: null, medicalRecords: [] };
+    const result = await this.buildPatientRecordResponse(
+      accessibleId,
+      'summary',
+    );
+    return { patient: result.patient, medicalRecords: result.medicalRecords };
+  }
+
+  async getMyRecordsPlans(userId: string, patientId?: string) {
+    const accessibleId = await this.resolveAccessibleRecordPatientId(
+      userId,
+      patientId,
+    );
+    if (!accessibleId) return { treatmentPlans: [] };
+    const result = await this.buildPatientRecordResponse(accessibleId, 'plans');
+    return { treatmentPlans: result.treatmentPlans };
+  }
+
   private async findOrCreatePatientProfile(userId: string) {
     const existing = await this.prisma.patient.findUnique({
       where: { userId },
@@ -1490,12 +1532,16 @@ export class PatientService {
     };
   }
 
-  private async buildPatientRecordResponse(patientId: string) {
+  private async buildPatientRecordResponse(
+    patientId: string,
+    section: 'summary' | 'plans' | 'all' = 'all',
+  ) {
     const patient = await this.prisma.patient.findUniqueOrThrow({
       where: { id: patientId },
       include: {
         user: true,
         treatmentPlans: {
+          where: section === 'summary' ? { id: { in: [] } } : undefined,
           include: {
             doctor: { include: { user: true } },
             steps: {
@@ -1522,6 +1568,7 @@ export class PatientService {
           orderBy: { createdAt: 'desc' },
         },
         medicalRecords: {
+          where: section === 'plans' ? { id: { in: [] } } : undefined,
           include: {
             doctor: { include: { user: true } },
             appointment: { include: { service: true } },
@@ -1530,6 +1577,7 @@ export class PatientService {
           orderBy: { createdAt: 'desc' },
         },
         appointments: {
+          where: section === 'plans' ? { id: { in: [] } } : undefined,
           include: {
             doctor: { include: { user: true } },
             service: true,
@@ -1539,7 +1587,7 @@ export class PatientService {
       },
     });
 
-    const lastVisit = patient.appointments.find(
+    const lastVisit = (patient.appointments ?? []).find(
       (appointment) =>
         appointment.status === AppointmentStatus.COMPLETED ||
         appointment.completedAt,
@@ -1563,7 +1611,7 @@ export class PatientService {
           lastVisit?.scheduledAt.toISOString() ??
           null,
       },
-      treatmentPlans: patient.treatmentPlans.map((plan) => ({
+      treatmentPlans: (patient.treatmentPlans ?? []).map((plan) => ({
         id: plan.id,
         title: plan.title,
         description: plan.description,
@@ -1621,7 +1669,7 @@ export class PatientService {
           invoices: step.invoices.map((invoice) => this.mapInvoice(invoice)),
         })),
       })),
-      medicalRecords: patient.medicalRecords.map((record) => ({
+      medicalRecords: (patient.medicalRecords ?? []).map((record) => ({
         id: record.id,
         createdAt: record.createdAt.toISOString(),
         doctor: record.doctor.user.fullName,

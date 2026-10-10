@@ -108,6 +108,15 @@ android {
     }
 }
 
+// Standalone APKs for testing against a backend on the local Wi-Fi network.
+androidComponents {
+    finalizeDsl { extension ->
+        if (project.hasProperty("localBackend")) {
+            extension.buildTypes.getByName("release").manifestPlaceholders["usesCleartextTraffic"] = "true"
+        }
+    }
+}
+
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")

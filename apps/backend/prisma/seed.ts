@@ -401,29 +401,29 @@ const serviceImageUrls = {
 
 /** Unique Cloudinary images per treatment method slug */
 const treatmentMethodImages: Record<string, string> = {
-  'implant-single': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786260992/smart-dental/treatment-methods/implant-single_1786260993688.png',
-  'implant-multiple': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786260993/smart-dental/treatment-methods/implant-multiple_1786260994564.png',
-  'implant-full-arch': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786260996/smart-dental/treatment-methods/implant-full-arch_1786260997378.png',
-  'implant-bone-graft': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786260997/smart-dental/treatment-methods/implant-bone-graft_1786260998317.png',
-  'crown-titan': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786260985/smart-dental/treatment-methods/crown-titan_1786260985144.png',
-  'crown-zirconia': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786260987/smart-dental/treatment-methods/crown-zirconia_1786260988162.png',
-  'crown-cercon': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786260988/smart-dental/treatment-methods/crown-cercon_1786260989440.png',
-  'crown-emax': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786260989/smart-dental/treatment-methods/crown-emax_1786260990285.png',
-  'veneer-emax': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786260990/smart-dental/treatment-methods/veneer-emax_1786260991446.png',
-  'veneer-ultra-thin': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786260991/smart-dental/treatment-methods/veneer-ultra-thin_1786260992485.png',
-  'wisdom-tooth-upper': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786261002/smart-dental/treatment-methods/wisdom-tooth-upper_1786261003440.png',
-  'wisdom-tooth-lower': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786261003/smart-dental/treatment-methods/wisdom-tooth-lower_1786261004456.png',
-  'wisdom-tooth-piezotome': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786261004/smart-dental/treatment-methods/wisdom-tooth-piezotome_1786261005310.png',
-  'clear-aligner-lite': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786261005/smart-dental/treatment-methods/clear-aligner-lite_1786261006255.png',
-  'clear-aligner-full': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786261006/smart-dental/treatment-methods/clear-aligner-full_1786261007281.png',
-  'braces-metal': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786261007/smart-dental/treatment-methods/braces-metal_1786261008689.png',
-  'braces-ceramic': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786261008/smart-dental/treatment-methods/braces-ceramic_1786261009783.png',
-  'checkup-standard': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786260998/smart-dental/treatment-methods/checkup-standard_1786260999333.png',
-  'cleaning-ultrasonic-standard': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786260998/smart-dental/treatment-methods/cleaning-ultrasonic-standard_1786261000210.png',
-  'filling-composite': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786260999/smart-dental/treatment-methods/filling-composite_1786261001073.png',
-  'root-canal-general': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786261001/smart-dental/treatment-methods/root-canal-general_1786261002555.png',
-  'kids-extraction-milk-tooth': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786261009/smart-dental/treatment-methods/kids-extraction-milk-tooth_1786261010625.png',
-  'kids-fluoride-varnish': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786261010/smart-dental/treatment-methods/kids-fluoride-varnish_1786261011858.png',
+  'implant-single': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/c_scale,w_640,f_auto,q_auto/v1791599475/smart-dental/treatment-methods/generated/implant-single-20261010-v1.png',
+  'implant-multiple': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/c_scale,w_640,f_auto,q_auto/v1791599430/smart-dental/treatment-methods/generated/implant-multiple-20261010-v1.png',
+  'implant-full-arch': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/c_scale,w_640,f_auto,q_auto/v1791599432/smart-dental/treatment-methods/generated/implant-full-arch-20261010-v1.png',
+  'implant-bone-graft': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/c_scale,w_640,f_auto,q_auto/v1791599433/smart-dental/treatment-methods/generated/implant-bone-graft-20261010-v1.png',
+  'crown-titan': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/c_scale,w_640,f_auto,q_auto/v1791600872/smart-dental/treatment-methods/generated/crown-titan-20261010-v1.png',
+  'crown-zirconia': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/c_scale,w_640,f_auto,q_auto/v1791600876/smart-dental/treatment-methods/generated/crown-zirconia-20261010-v1.png',
+  'crown-cercon': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/c_scale,w_640,f_auto,q_auto/v1791600867/smart-dental/treatment-methods/generated/crown-cercon-20261010-v1.png',
+  'crown-emax': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/c_scale,w_640,f_auto,q_auto/v1791600868/smart-dental/treatment-methods/generated/crown-emax-20261010-v1.png',
+  'veneer-emax': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/c_scale,w_640,f_auto,q_auto/v1791600883/smart-dental/treatment-methods/generated/veneer-emax-20261010-v1.png',
+  'veneer-ultra-thin': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/c_scale,w_640,f_auto,q_auto/v1791600878/smart-dental/treatment-methods/generated/veneer-ultra-thin-20261010-v1.png',
+  'wisdom-tooth-upper': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/c_scale,w_640,f_auto,q_auto/v1791600887/smart-dental/treatment-methods/generated/wisdom-tooth-upper-20261010-v1.png',
+  'wisdom-tooth-lower': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/c_scale,w_640,f_auto,q_auto/v1791600885/smart-dental/treatment-methods/generated/wisdom-tooth-lower-20261010-v1.png',
+  'wisdom-tooth-piezotome': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/c_scale,w_640,f_auto,q_auto/v1791600887/smart-dental/treatment-methods/generated/wisdom-tooth-piezotome-20261010-v1.png',
+  'clear-aligner-lite': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/c_scale,w_640,f_auto,q_auto/v1791600869/smart-dental/treatment-methods/generated/clear-aligner-lite-20261010-v1.png',
+  'clear-aligner-full': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/c_scale,w_640,f_auto,q_auto/v1791600868/smart-dental/treatment-methods/generated/clear-aligner-full-20261010-v1.png',
+  'braces-metal': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/c_scale,w_640,f_auto,q_auto/v1791600865/smart-dental/treatment-methods/generated/braces-metal-20261010-v1.png',
+  'braces-ceramic': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/c_scale,w_640,f_auto,q_auto/v1791600864/smart-dental/treatment-methods/generated/braces-ceramic-20261010-v1.png',
+  'checkup-standard': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/c_scale,w_640,f_auto,q_auto/v1791600863/smart-dental/treatment-methods/generated/checkup-standard-20261010-v1.png',
+  'cleaning-ultrasonic-standard': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/c_scale,w_640,f_auto,q_auto/v1791600864/smart-dental/treatment-methods/generated/cleaning-ultrasonic-standard-20261010-v1.png',
+  'filling-composite': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/c_scale,w_640,f_auto,q_auto/v1791600872/smart-dental/treatment-methods/generated/filling-composite-20261010-v1.png',
+  'root-canal-general': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/c_scale,w_640,f_auto,q_auto/v1791600880/smart-dental/treatment-methods/generated/root-canal-general-20261010-v1.png',
+  'kids-extraction-milk-tooth': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/c_scale,w_640,f_auto,q_auto/v1791600873/smart-dental/treatment-methods/generated/kids-extraction-milk-tooth-20261010-v1.png',
+  'kids-fluoride-varnish': 'https://res.cloudinary.com/dvsuhb9cj/image/upload/c_scale,w_640,f_auto,q_auto/v1791600880/smart-dental/treatment-methods/generated/kids-fluoride-varnish-20261010-v1.png',
 };
 
 const services = [
@@ -435,7 +435,7 @@ const services = [
     shortDescription: 'Cấy ghép răng giả cố định, khôi phục thẩm mỹ và chức năng ăn nhai hoàn hảo như răng thật.',
     description: 'Giải pháp cấy ghép trụ Implant sinh học vào xương hàm thay thế chân răng đã mất, nâng đỡ mão răng sứ bền chắc lâu dài.',
     durationMinutes: 60,
-    basePrice: '13000000',
+    basePrice: '690000',
     isFeatured: true,
     displayOrder: 1,
   },
@@ -447,7 +447,7 @@ const services = [
     shortDescription: 'Khôi phục hình dáng và chức năng của răng tổn thương bằng mão sứ.',
     description: 'Bọc mão sứ giúp bảo vệ răng đã chữa tủy, răng vỡ mẻ lớn hoặc cải thiện thẩm mỹ nụ cười.',
     durationMinutes: 90,
-    basePrice: '3500000',
+    basePrice: '350000',
     isFeatured: true,
     displayOrder: 2,
   },
@@ -459,7 +459,7 @@ const services = [
     shortDescription: 'Mặt dán sứ siêu mỏng bảo tồn răng thật tối đa, mang lại nụ cười rạng rỡ.',
     description: 'Dán sứ Veneer sử dụng mặt sứ siêu mỏng (0.3 - 0.5mm) dán lên mặt trước răng để cải thiện màu sắc, hình dáng mà ít mài răng.',
     durationMinutes: 60,
-    basePrice: '8000000',
+    basePrice: '590000',
     isFeatured: true,
     displayOrder: 3,
   },
@@ -471,7 +471,7 @@ const services = [
     shortDescription: 'Chỉnh nha bằng khay niềng trong suốt Invisalign, thẩm mỹ và tiện lợi.',
     description: 'Sử dụng các khay nhựa y tế trong suốt thiết kế riêng để dịch chuyển răng, có thể tháo lắp dễ dàng khi ăn uống.',
     durationMinutes: 45,
-    basePrice: '45000000',
+    basePrice: '890000',
     isFeatured: true,
     displayOrder: 4,
   },
@@ -483,7 +483,7 @@ const services = [
     shortDescription: 'Nắn chỉnh răng lệch lạc, khớp cắn sai lệch bằng hệ thống mắc cài.',
     description: 'Phương pháp chỉnh nha truyền thống và hiện đại sử dụng mắc cài kim loại hoặc sứ để kéo răng về đúng vị trí.',
     durationMinutes: 45,
-    basePrice: '25000000',
+    basePrice: '790000',
     isFeatured: false,
     displayOrder: 5,
   },
@@ -495,7 +495,7 @@ const services = [
     shortDescription: 'Nhổ răng khôn mọc lệch, mọc ngầm an toàn bằng công nghệ sóng siêu âm.',
     description: 'Tiểu phẫu nhổ răng khôn mọc lệch, mọc kẹt tránh biến chứng sưng viêm nguy hiểm với công nghệ Piezotome.',
     durationMinutes: 45,
-    basePrice: '2000000',
+    basePrice: '490000',
     isFeatured: true,
     displayOrder: 7,
   },
@@ -531,9 +531,9 @@ const treatmentMethodsBySlug = {
       name: 'Trụ Implant Hàn Quốc (Osstem / Dentium)',
       slug: 'implant-korea-osstem',
       description: 'Trụ Implant phổ biến nhất Châu Á, tích hợp xương ổn định, chi phí tối ưu.',
-      basePrice: '13000000',
+      basePrice: '690000',
       durationMinutes: 60,
-      media: [{ url: serviceImageUrls.implant, alt: 'Implant Hàn Quốc Osstem', type: 'BANNER' }],
+      media: [{ url: treatmentMethodImages['implant-single'], alt: 'Cấy ghép Implant đơn lẻ', type: 'BANNER' }],
       steps: [
         ['Thăm khám & Chụp CT 3D', 'Đánh giá thể tích xương hàm và vị trí cấy ghép lý tưởng.', 15],
         ['Đặt trụ Implant', 'Tiểu phẫu nhẹ nhàng đặt trụ Implant Hàn Quốc vào xương hàm.', 30],
@@ -545,9 +545,9 @@ const treatmentMethodsBySlug = {
       name: 'Trụ Implant Mỹ (Hiossen / Dentium USA)',
       slug: 'implant-usa-hiossen',
       description: 'Thiết kế hoàn hảo đạt tiêu chuẩn FDA Mỹ, khả năng tích hợp xương vượt trội.',
-      basePrice: '17000000',
+      basePrice: '790000',
       durationMinutes: 60,
-      media: [{ url: serviceImageUrls.implant, alt: 'Implant Mỹ Hiossen', type: 'BANNER' }],
+      media: [{ url: treatmentMethodImages['implant-multiple'], alt: 'Cấy ghép Implant nhiều răng', type: 'BANNER' }],
       steps: [
         ['Lập kế hoạch 3D', 'Định vị trụ Implant bằng phần mềm mô phỏng hiện đại.', 15],
         ['Cấy ghép trụ Hiossen', 'Đặt trụ Implant Mỹ vào vùng xương hàm.', 30],
@@ -559,9 +559,9 @@ const treatmentMethodsBySlug = {
       name: 'Trụ Implant Thụy Sĩ (Straumann SLActive)',
       slug: 'implant-switzerland-straumann',
       description: 'Dòng trụ Implant cao cấp nhất thế giới, tích hợp xương chỉ trong 3-4 tuần.',
-      basePrice: '24000000',
+      basePrice: '890000',
       durationMinutes: 45,
-      media: [{ url: serviceImageUrls.implant, alt: 'Implant Thụy Sĩ Straumann SLActive', type: 'BANNER' }],
+      media: [{ url: treatmentMethodImages['implant-full-arch'], alt: 'Implant toàn hàm All-on-4 / All-on-6', type: 'BANNER' }],
       steps: [
         ['Khám chuyên sâu', 'Phân tích mật độ xương và sức khỏe tổng quát.', 10],
         ['Cấy ghép công nghệ cao', 'Đặt trụ Straumann với độ chính xác tuyệt đối.', 25],
@@ -573,9 +573,9 @@ const treatmentMethodsBySlug = {
       name: 'Trồng răng Implant Toàn hàm (All-on-4 / All-on-6)',
       slug: 'implant-all-on-4-6',
       description: 'Giải pháp tối ưu cho người mất toàn bộ răng, chỉ dùng 4-6 trụ nâng đỡ cả hàm răng.',
-      basePrice: '110000000',
+      basePrice: '990000',
       durationMinutes: 120,
-      media: [{ url: serviceImageUrls.implant, alt: 'Implant All-on-4 / All-on-6', type: 'BANNER' }],
+      media: [{ url: treatmentMethodImages['implant-bone-graft'], alt: 'Nâng xoang, ghép xương trước Implant', type: 'BANNER' }],
       steps: [
         ['Khảo sát & Thiết kế hàm', 'Lập bản đồ cấy ghép 4 hoặc 6 trụ nâng đỡ toàn bộ cầu răng.', 30],
         ['Phẫu thuật đặt trụ', 'Cấy ghép 4-6 trụ Implant trong một lần.', 60],
@@ -589,9 +589,9 @@ const treatmentMethodsBySlug = {
       name: 'Răng sứ Titan',
       slug: 'crown-titan',
       description: 'Hợp kim Titan bền chắc kết hợp lớp sứ ngoài phủ thẩm mỹ, thích hợp cho răng hàm.',
-      basePrice: '2500000',
+      basePrice: '350000',
       durationMinutes: 60,
-      media: [{ url: serviceImageUrls.dentalCrown, alt: 'Răng sứ Titan', type: 'PROCESS' }],
+      media: [{ url: treatmentMethodImages['crown-titan'], alt: 'Răng sứ Titan', type: 'PROCESS' }],
       steps: [
         ['Mài cùi răng', 'Mài nhẹ lớp men ngoài tạo khoảng trống cho mão sứ.', 30],
         ['Lấy dấu & Lắp răng tạm', 'Bảo vệ răng thật trong khi chờ chế tác răng sứ.', 30],
@@ -602,9 +602,9 @@ const treatmentMethodsBySlug = {
       name: 'Răng sứ Zirconia',
       slug: 'crown-zirconia',
       description: 'Răng toàn sứ chất lượng cao, bền màu, không đen viền nướu.',
-      basePrice: '4500000',
+      basePrice: '490000',
       durationMinutes: 60,
-      media: [{ url: serviceImageUrls.dentalCrown, alt: 'Răng sứ Zirconia', type: 'PROCESS' }],
+      media: [{ url: treatmentMethodImages['crown-zirconia'], alt: 'Răng sứ Zirconia', type: 'PROCESS' }],
       steps: [
         ['Mài cùi răng', 'Chuẩn bị cùi răng sinh lý tối thiểu.', 30],
         ['Quét dấu răng kỹ thuật số', 'Lấy dấu bằng máy quét CAD/CAM cực kỳ chính xác.', 30],
@@ -615,9 +615,9 @@ const treatmentMethodsBySlug = {
       name: 'Răng sứ Cercon HT',
       slug: 'crown-cercon',
       description: 'Dòng răng sứ cao cấp xuất xứ Đức, độ cứng cao và thẩm mỹ tối ưu.',
-      basePrice: '6500000',
+      basePrice: '590000',
       durationMinutes: 60,
-      media: [{ url: serviceImageUrls.dentalCrown, alt: 'Răng sứ Cercon HT', type: 'PROCESS' }],
+      media: [{ url: treatmentMethodImages['crown-cercon'], alt: 'Răng sứ Cercon HT', type: 'PROCESS' }],
       steps: [
         ['Mài cùi răng', 'Mài chuẩn xác theo tỷ lệ tối thiểu.', 30],
         ['Lấy dấu răng', 'Chế tác bằng công nghệ CAD/CAM chính xác 100%.', 30],
@@ -628,9 +628,9 @@ const treatmentMethodsBySlug = {
       name: 'Mão sứ thủy tinh IPS E.Max',
       slug: 'crown-emax',
       description: 'Sứ thủy tinh cao cấp, độ trong suốt tự nhiên như răng thật.',
-      basePrice: '8000000',
+      basePrice: '690000',
       durationMinutes: 60,
-      media: [{ url: serviceImageUrls.dentalCrown, alt: 'Mão sứ thủy tinh IPS E.Max', type: 'PROCESS' }],
+      media: [{ url: treatmentMethodImages['crown-emax'], alt: 'Mão sứ thủy tinh IPS E.Max', type: 'PROCESS' }],
       steps: [
         ['Chuẩn bị răng', 'Mài chỉnh răng tối thiểu.', 30],
         ['Gắn mão sứ', 'Gắn keo nha khoa chuyên dụng và chiếu đèn.', 30],
@@ -643,9 +643,9 @@ const treatmentMethodsBySlug = {
       name: 'Dán sứ Veneer E.Max Press',
       slug: 'veneer-emax-press',
       description: 'Mặt dán sứ siêu mỏng 0.3mm chế tác từ phôi sứ E.Max Press chịu lực cao.',
-      basePrice: '8000000',
+      basePrice: '590000',
       durationMinutes: 60,
-      media: [{ url: serviceImageUrls.dentalCrown, alt: 'Dán sứ Veneer EMax Press', type: 'PROCESS' }],
+      media: [{ url: treatmentMethodImages['veneer-emax'], alt: 'Dán sứ Veneer EMax Press', type: 'PROCESS' }],
       steps: [
         ['Chuẩn bị bề mặt', 'Chỉnh nhẹ lớp men ngoài răng 0.3mm.', 30],
         ['Dán mặt sứ', 'Sử dụng xi măng dán nha khoa cường lực cố định mặt sứ.', 30],
@@ -656,9 +656,9 @@ const treatmentMethodsBySlug = {
       name: 'Dán sứ Veneer Lisi Ultra thin',
       slug: 'veneer-lisi-ultra',
       description: 'Dòng mặt dán sứ siêu mỏng cao cấp từ Nhật Bản, độ trong suốt và tương thích sinh học hoàn hảo.',
-      basePrice: '10000000',
+      basePrice: '690000',
       durationMinutes: 60,
-      media: [{ url: serviceImageUrls.dentalCrown, alt: 'Dán sứ Veneer Lisi', type: 'PROCESS' }],
+      media: [{ url: treatmentMethodImages['veneer-ultra-thin'], alt: 'Dán sứ Veneer Lisi', type: 'PROCESS' }],
       steps: [
         ['Vệ sinh & So màu', 'Lựa chọn tông màu trắng trong tự nhiên thích hợp.', 20],
         ['Tạo hình & Dán sứ', 'Sửa soạn bề mặt siêu mỏng và cố định mặt dán sứ.', 40],
@@ -671,9 +671,9 @@ const treatmentMethodsBySlug = {
       name: 'Niềng răng Trong suốt Invisalign Lite',
       slug: 'braces-invisalign-lite',
       description: 'Gói chỉnh nha Invisalign dành cho các ca lệch lạc nhẹ, thời gian điều trị ngắn.',
-      basePrice: '45000000',
+      basePrice: '890000',
       durationMinutes: 45,
-      media: [{ url: serviceImageUrls.braces, alt: 'Invisalign Lite', type: 'PROCESS' }],
+      media: [{ url: treatmentMethodImages['clear-aligner-lite'], alt: 'Invisalign Lite', type: 'PROCESS' }],
       steps: [
         ['Scan răng 3D iTero', 'Mô phỏng nụ cười tương lai bằng công nghệ scan hiện đại.', 20],
         ['Giao khay & Hướng dẫn', 'Bác sĩ bàn giao khay niềng đầu tiên và hướng dẫn tháo lắp.', 25],
@@ -684,9 +684,9 @@ const treatmentMethodsBySlug = {
       name: 'Niềng răng Trong suốt Invisalign Full',
       slug: 'braces-invisalign-full',
       description: 'Chỉnh nha trong suốt toàn diện cho mọi mức độ phức tạp của răng và khớp cắn.',
-      basePrice: '90000000',
+      basePrice: '990000',
       durationMinutes: 45,
-      media: [{ url: serviceImageUrls.braces, alt: 'Invisalign Full', type: 'PROCESS' }],
+      media: [{ url: treatmentMethodImages['clear-aligner-full'], alt: 'Invisalign Full', type: 'PROCESS' }],
       steps: [
         ['Scan răng & Lập phác đồ', 'Sử dụng phần mềm ClinCheck lên lộ trình dịch chuyển răng chính xác.', 20],
         ['Điều trị & Theo dõi', 'Tái khám định kỳ mỗi 6-8 tuần để kiểm tra tiến trình.', 25],
@@ -699,9 +699,9 @@ const treatmentMethodsBySlug = {
       name: 'Niềng răng Mắc cài Kim loại Truyền thống',
       slug: 'braces-metal-traditional',
       description: 'Phương pháp chỉnh nha hiệu quả cao, tiết kiệm chi phí phù hợp cho học sinh, sinh viên.',
-      basePrice: '25000000',
+      basePrice: '790000',
       durationMinutes: 45,
-      media: [{ url: serviceImageUrls.braces, alt: 'Mắc cài kim loại truyền thống', type: 'PROCESS' }],
+      media: [{ url: treatmentMethodImages['braces-metal'], alt: 'Mắc cài kim loại truyền thống', type: 'PROCESS' }],
       steps: [
         ['Lập phác đồ chỉnh nha', 'Lấy dấu, chụp phim X-quang và lên kế hoạch dịch chuyển.', 15],
         ['Gắn mắc cài', 'Dán mắc cài lên bề mặt răng và đi dây cung.', 30],
@@ -712,9 +712,9 @@ const treatmentMethodsBySlug = {
       name: 'Niềng răng Mắc cài Sứ Thẩm mỹ',
       slug: 'braces-ceramic',
       description: 'Sử dụng mắc cài bằng sứ màu sắc tương đồng răng thật, tăng tính thẩm mỹ khi giao tiếp.',
-      basePrice: '35000000',
+      basePrice: '890000',
       durationMinutes: 45,
-      media: [{ url: serviceImageUrls.braces, alt: 'Mắc cài sứ thẩm mỹ', type: 'PROCESS' }],
+      media: [{ url: treatmentMethodImages['braces-ceramic'], alt: 'Mắc cài sứ thẩm mỹ', type: 'PROCESS' }],
       steps: [
         ['Kiểm tra răng miệng', 'Làm sạch cao răng, điều trị sâu răng trước khi niềng.', 15],
         ['Gắn mắc cài sứ', 'Gắn cố định các mắc cài sứ thẩm mỹ.', 30],
@@ -727,9 +727,9 @@ const treatmentMethodsBySlug = {
       name: 'Nhổ răng khôn mọc lệch hàm trên',
       slug: 'wisdom-tooth-upper',
       description: 'Nhổ bỏ răng khôn hàm trên mọc lệch, tránh xô lệch cung răng và sâu răng kế cận.',
-      basePrice: '1500000',
+      basePrice: '490000',
       durationMinutes: 30,
-      media: [{ url: serviceImageUrls.toothExtraction, alt: 'Nhổ răng khôn hàm trên', type: 'PROCESS' }],
+      media: [{ url: treatmentMethodImages['wisdom-tooth-upper'], alt: 'Nhổ răng khôn hàm trên', type: 'PROCESS' }],
       steps: [
         ['Khám & Chụp phim', 'Xác định vị trí chân răng và dây thần kinh.', 10],
         ['Tiểu phẫu nhổ răng', 'Gây tê và tiến hành lấy răng khôn nhanh chóng.', 20],
@@ -740,9 +740,9 @@ const treatmentMethodsBySlug = {
       name: 'Nhổ răng khôn mọc ngầm/lệch hàm dưới',
       slug: 'wisdom-tooth-lower',
       description: 'Tiểu phẫu loại bỏ răng khôn mọc ngầm, mọc đâm ngang gây đau nhức.',
-      basePrice: '2500000',
+      basePrice: '590000',
       durationMinutes: 45,
-      media: [{ url: serviceImageUrls.toothExtraction, alt: 'Nhổ răng khôn hàm dưới', type: 'PROCESS' }],
+      media: [{ url: treatmentMethodImages['wisdom-tooth-lower'], alt: 'Nhổ răng khôn hàm dưới', type: 'PROCESS' }],
       steps: [
         ['Gây tê & Tạo vạt', 'Bộc lộ vùng răng khôn mọc ngầm.', 15],
         ['Chia cắt chân răng', 'Lấy răng khôn ra từng phần để hạn chế tổn thương xương.', 30],
@@ -753,9 +753,9 @@ const treatmentMethodsBySlug = {
       name: 'Nhổ răng khôn siêu âm Piezotome',
       slug: 'wisdom-tooth-piezotome',
       description: 'Nhổ răng khôn bằng sóng siêu âm không đau, giảm sưng tối đa và phục hồi cực nhanh.',
-      basePrice: '3500000',
+      basePrice: '790000',
       durationMinutes: 45,
-      media: [{ url: serviceImageUrls.toothExtraction, alt: 'Nhổ răng khôn Piezotome', type: 'PROCESS' }],
+      media: [{ url: treatmentMethodImages['wisdom-tooth-piezotome'], alt: 'Nhổ răng khôn Piezotome', type: 'PROCESS' }],
       steps: [
         ['Chuẩn bị & Gây tê', 'Gây tê và chuẩn bị máy siêu âm Piezotome.', 15],
         ['Bóc tách siêu âm', 'Dùng sóng siêu âm tách mô mềm và chân răng nhẹ nhàng.', 30],
@@ -770,7 +770,7 @@ const treatmentMethodsBySlug = {
       description: 'Thăm khám trực tiếp với bác sĩ chuyên khoa, phát hiện sớm các vấn đề răng miệng.',
       basePrice: '150000',
       durationMinutes: 30,
-      media: [{ url: serviceImageUrls.dentalCheckup, alt: 'Khám tổng quát', type: 'PROCESS' }],
+      media: [{ url: treatmentMethodImages['checkup-standard'], alt: 'Khám tổng quát', type: 'PROCESS' }],
       steps: [
         ['Khám trực quan', 'Soi đèn & kiểm tra toàn bộ răng nướu.', 20],
         ['Tư vấn chăm sóc', 'Tư vấn vệ sinh răng miệng và thói quen sinh hoạt.', 10],
@@ -783,7 +783,7 @@ const treatmentMethodsBySlug = {
       description: 'Sử dụng máy siêu âm nhẹ nhàng loại bỏ mảng bám và cao răng cứng đầu.',
       basePrice: '250000',
       durationMinutes: 30,
-      media: [{ url: serviceImageUrls.teethCleaning, alt: 'Cạo vôi siêu âm', type: 'PROCESS' }],
+      media: [{ url: treatmentMethodImages['cleaning-ultrasonic-standard'], alt: 'Cạo vôi siêu âm', type: 'PROCESS' }],
       steps: [
         ['Cạo vôi siêu âm', 'Làm sạch cao răng trên và dưới nướu.', 20],
         ['Đánh bóng răng', 'Làm mịn bề mặt răng giúp hạn chế mảng bám tích tụ.', 10],
@@ -796,7 +796,7 @@ const treatmentMethodsBySlug = {
       description: 'Trám phục hồi răng sâu, răng sứt mẻ bằng vật liệu composite thẩm mỹ cùng màu răng thật.',
       basePrice: '400000',
       durationMinutes: 30,
-      media: [{ url: serviceImageUrls.dentalFilling, alt: 'Trám răng thẩm mỹ', type: 'PROCESS' }],
+      media: [{ url: treatmentMethodImages['filling-composite'], alt: 'Trám răng thẩm mỹ', type: 'PROCESS' }],
       steps: [
         ['Làm sạch xoang sâu', 'Loại bỏ phần mô răng bị sâu hỏng.', 15],
         ['Trám phục hình', 'Đắp vật liệu composite và chiếu đèn đông cứng.', 15],
@@ -807,9 +807,9 @@ const treatmentMethodsBySlug = {
       name: 'Điều trị tủy răng',
       slug: 'root-canal-general',
       description: 'Lấy sạch tủy viêm, sát khuẩn và trám bít ống tủy để giữ lại răng thật.',
-      basePrice: '1800000',
+      basePrice: '690000',
       durationMinutes: 60,
-      media: [{ url: serviceImageUrls.rootCanal, alt: 'Điều trị tủy', type: 'PROCESS' }],
+      media: [{ url: treatmentMethodImages['root-canal-general'], alt: 'Điều trị tủy', type: 'PROCESS' }],
       steps: [
         ['Mở tủy & Lấy tủy viêm', 'Hút sạch mô tủy bị nhiễm trùng gây đau nhức.', 30],
         ['Trám bít ống tủy', 'Sử dụng nhựa côn nha khoa trám bít kín khít ống tủy.', 30],
@@ -824,7 +824,7 @@ const treatmentMethodsBySlug = {
       description: 'Nhổ răng sữa lung lay đến tuổi thay thế cực kỳ nhẹ nhàng, bôi tê vị hoa quả ngọt ngào.',
       basePrice: '150000',
       durationMinutes: 20,
-      media: [{ url: serviceImageUrls.kidsDental, alt: 'Nhổ răng sữa cho bé', type: 'PROCESS' }],
+      media: [{ url: treatmentMethodImages['kids-extraction-milk-tooth'], alt: 'Nhổ răng sữa cho bé', type: 'PROCESS' }],
       steps: [
         ['Bôi tê vị trái cây', 'Giúp bé không có cảm giác đau khi nhổ.', 10],
         ['Nhổ răng sữa', 'Thực hiện nhanh gọn tránh tạo tâm lý sợ hãi cho trẻ.', 10],
@@ -837,7 +837,7 @@ const treatmentMethodsBySlug = {
       description: 'Phủ một lớp gel Vecni Fluoride chuyên dụng giúp tái khoáng hóa và củng cố men răng cho bé.',
       basePrice: '300000',
       durationMinutes: 20,
-      media: [{ url: serviceImageUrls.kidsDental, alt: 'Bôi Vecni Fluoride', type: 'PROCESS' }],
+      media: [{ url: treatmentMethodImages['kids-fluoride-varnish'], alt: 'Bôi Vecni Fluoride', type: 'PROCESS' }],
       steps: [
         ['Làm sạch răng', 'Dùng gạc làm sạch bề mặt răng của trẻ.', 10],
         ['Quét vecni Fluoride', 'Phủ lớp vecni bảo vệ lên các mặt răng.', 10],
@@ -862,7 +862,7 @@ const treatmentMethodSeedOverrides: Record<
     slug: 'implant-single',
     description:
       'Phục hồi một răng mất bằng một trụ Implant và mão sứ riêng lẻ, bảo tồn răng kế cận và khôi phục ăn nhai chắc chắn.',
-    basePrice: '13000000',
+    basePrice: '690000',
     durationMinutes: 60,
   },
   'implant-usa-hiossen': {
@@ -870,7 +870,7 @@ const treatmentMethodSeedOverrides: Record<
     slug: 'implant-multiple',
     description:
       'Phục hồi nhiều răng mất bằng các trụ Implant nâng đỡ cầu răng sứ, phù hợp khi mất răng liền kề hoặc rải rác.',
-    basePrice: '32000000',
+    basePrice: '890000',
     durationMinutes: 90,
   },
   'implant-switzerland-straumann': {
@@ -878,7 +878,7 @@ const treatmentMethodSeedOverrides: Record<
     slug: 'implant-full-arch',
     description:
       'Giải pháp phục hồi toàn hàm cố định trên 4 đến 6 trụ Implant, dành cho người mất nhiều răng hoặc mất răng toàn hàm.',
-    basePrice: '110000000',
+    basePrice: '990000',
     durationMinutes: 120,
   },
   'implant-all-on-4-6': {
@@ -886,7 +886,7 @@ const treatmentMethodSeedOverrides: Record<
     slug: 'implant-bone-graft',
     description:
       'Bổ sung thể tích xương hàm khi xương thiếu hoặc tiêu xương, tạo nền ổn định trước khi cấy ghép Implant.',
-    basePrice: '8000000',
+    basePrice: '390000',
     durationMinutes: 75,
   },
   'crown-titan': {
@@ -1007,17 +1007,17 @@ const treatmentMethodSeedOverrides: Record<
 
 const promotions = [
   {
-    code: 'NIENGRANG30',
-    name: 'Ưu Đãi Niềng Răng Thẩm Mỹ 30%',
+    code: 'NIENGRANG20',
+    name: 'Ưu Đãi Niềng Răng Thẩm Mỹ 20%',
     description:
-      'Giảm ngay 30% gói Niềng Răng Thẩm Mỹ (Mắc cài & Trong suốt). Mô phỏng nụ cười 3D ClinCheck miễn phí và tặng bộ kit vệ sinh nha khoa.',
+      'Giảm ngay 20% gói Niềng Răng Thẩm Mỹ (Mắc cài & Trong suốt). Mô phỏng nụ cười 3D ClinCheck miễn phí và tặng bộ kit vệ sinh nha khoa.',
     imageUrl:
-      'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1785763841/smart-dental/promotions/banner-nieng-rang.png',
+      'https://res.cloudinary.com/dvsuhb9cj/image/upload/c_scale,w_640,f_auto,q_auto/v1791563325/smart-dental/promotions/generated/braces-20261009-v1.png',
     applicableServiceSlug: 'nieng-rang',
     applicableTreatmentMethodSlug: 'braces-invisalign-lite',
     discountType: 'PERCENTAGE' as const,
-    discountValue: '30',
-    minOrderAmount: '15000000',
+    discountValue: '20',
+    minOrderAmount: '890000',
     maxUses: 100,
     usedCount: 24,
     startDate: addDays(-10),
@@ -1025,17 +1025,17 @@ const promotions = [
     isActive: true,
   },
   {
-    code: 'IMPLANT5M',
-    name: 'Trồng Răng Implant Giảm Ngay 5 Triệu',
+    code: 'IMPLANT150K',
+    name: 'Trồng Răng Implant Giảm Ngay 150K',
     description:
-      'Trồng răng Implant chuyên nghiệp giảm trực tiếp 5.000.000đ cho mỗi trụ Implant. Miễn phí chụp phim CT Cone Beam 3D kiểm tra mật độ xương.',
+      'Trồng răng Implant chuyên nghiệp giảm trực tiếp 150.000đ cho mỗi trụ Implant. Miễn phí chụp phim CT Cone Beam 3D kiểm tra mật độ xương.',
     imageUrl:
-      'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1785763842/smart-dental/promotions/banner-implant.png',
+      'https://res.cloudinary.com/dvsuhb9cj/image/upload/c_scale,w_640,f_auto,q_auto/v1791563300/smart-dental/promotions/generated/implant-20261009-v1.png',
     applicableServiceSlug: 'trong-rang-implant',
     applicableTreatmentMethodSlug: 'implant-korea-osstem',
     discountType: 'FIXED_AMOUNT' as const,
-    discountValue: '5000000',
-    minOrderAmount: '12000000',
+    discountValue: '150000',
+    minOrderAmount: '690000',
     maxUses: 50,
     usedCount: 15,
     startDate: addDays(-15),
@@ -1043,17 +1043,17 @@ const promotions = [
     isActive: true,
   },
   {
-    code: 'NHORANG500K',
-    name: 'Nhổ Răng Không Đau Giảm 500K',
+    code: 'NHORANG150K',
+    name: 'Nhổ Răng Không Đau Giảm 150K',
     description:
-      'Tiểu phẫu nhổ răng khôn mọc lệch, mọc ngầm công nghệ siêu âm không đau, an toàn, hiệu quả. Giảm ngay 500.000đ khi đặt lịch khám trước.',
+      'Tiểu phẫu nhổ răng khôn mọc lệch, mọc ngầm công nghệ siêu âm không đau, an toàn, hiệu quả. Giảm ngay 150.000đ khi đặt lịch khám trước.',
     imageUrl:
-      'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1785763843/smart-dental/promotions/banner-nho-rang.png',
+      'https://res.cloudinary.com/dvsuhb9cj/image/upload/c_scale,w_640,f_auto,q_auto/v1791563303/smart-dental/promotions/generated/wisdom-tooth-20261009-v1.png',
     applicableServiceSlug: 'nho-rang-khon',
     applicableTreatmentMethodSlug: 'wisdom-tooth-piezotome',
     discountType: 'FIXED_AMOUNT' as const,
-    discountValue: '500000',
-    minOrderAmount: '2000000',
+    discountValue: '150000',
+    minOrderAmount: '790000',
     maxUses: 200,
     usedCount: 88,
     startDate: addDays(-20),
@@ -1066,11 +1066,11 @@ const promotions = [
     description:
       'Dịch vụ lấy cao răng (cạo vôi răng) công nghệ sóng siêu âm nhẹ nhàng không buốt giá, làm sạch mảng bám mang lại hàm răng sáng bóng.',
     imageUrl:
-      'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1785763844/smart-dental/promotions/banner-cao-rang.png',
+      'https://res.cloudinary.com/dvsuhb9cj/image/upload/c_scale,w_640,f_auto,q_auto/v1791563320/smart-dental/promotions/generated/teeth-cleaning-20261009-v1.png',
     applicableServiceSlug: 'nha-khoa-tong-quat',
     applicableTreatmentMethodSlug: 'cleaning-ultrasonic-standard',
     discountType: 'FIXED_AMOUNT' as const,
-    discountValue: '150000',
+    discountValue: '151000',
     minOrderAmount: '200000',
     maxUses: 300,
     usedCount: 142,
@@ -1084,12 +1084,12 @@ const promotions = [
     description:
       'Điều trị tủy răng không đau công nghệ hiện đại bảo tồn tối đa răng thật. Ưu đãi giảm 20% toàn bộ chi phí điều trị tủy áp dụng trong tháng.',
     imageUrl:
-      'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1785763846/smart-dental/promotions/banner-dieu-tri-tuy.png',
+      'https://res.cloudinary.com/dvsuhb9cj/image/upload/c_scale,w_640,f_auto,q_auto/v1791563312/smart-dental/promotions/generated/root-canal-20261009-v1.png',
     applicableServiceSlug: 'nha-khoa-tong-quat',
     applicableTreatmentMethodSlug: 'root-canal-general',
     discountType: 'PERCENTAGE' as const,
     discountValue: '20',
-    minOrderAmount: '1000000',
+    minOrderAmount: '690000',
     maxUses: 150,
     usedCount: 35,
     startDate: addDays(-10),
@@ -1523,6 +1523,7 @@ async function seedBaseData() {
       icon: serviceSeed.icon,
       shortDescription: serviceSeed.shortDescription,
       description: serviceSeed.description,
+      basePrice: serviceSeed.basePrice,
       isFeatured: serviceSeed.isFeatured,
       displayOrder: serviceSeed.displayOrder,
       specializationId: specId,
@@ -1704,9 +1705,8 @@ async function cleanGeneratedSampleData() {
   await prisma.medicalRecord.deleteMany({
     where: { chiefComplaint: { startsWith: 'Seed complaint ' } },
   });
-  await prisma.treatmentPlan.deleteMany({
-    where: { title: { startsWith: 'Seed Treatment Plan ' } },
-  });
+  // Keep sample treatment plans here; seedRelatedData reuses them by patient, doctor and title.
+  // Deleting them would break links to clinical cases and recreate a new plan on every seed.
   await prisma.chatbotConversation.deleteMany({
     where: { sessionId: { startsWith: 'seed-session-' } },
   });
@@ -1718,14 +1718,11 @@ async function cleanGeneratedSampleData() {
   });
 
   // ── Appointment: xóa tất cả children còn lại theo ID trước ────────────────
-  // Bắt cả format mới (APT-SEED-) và format cũ (APT-YYYYMMDD-)
+  // Chỉ xóa lịch hẹn được đánh dấu là dữ liệu seed.
+  // Mã chứa năm cũng được dùng cho lịch hẹn thật, nên không thể dùng để dọn seed.
   const seedAppointments = await prisma.appointment.findMany({
     where: {
-      OR: [
-        { appointmentCode: { startsWith: 'APT-SEED-' } },
-        { appointmentCode: { contains: '-2025' } },
-        { appointmentCode: { contains: '-2026' } },
-      ],
+      appointmentCode: { startsWith: 'APT-SEED-' },
     },
     select: { id: true },
   });
@@ -1765,11 +1762,7 @@ async function cleanGeneratedSampleData() {
   }
   await prisma.appointment.deleteMany({
     where: {
-      OR: [
-        { appointmentCode: { startsWith: 'APT-SEED-' } },
-        { appointmentCode: { contains: '-2025' } },
-        { appointmentCode: { contains: '-2026' } },
-      ],
+      appointmentCode: { startsWith: 'APT-SEED-' },
     },
   });
 
@@ -1939,15 +1932,43 @@ async function seedRelatedData(
   ];
   const treatmentPlans: Array<{ id: string }> = [];
   for (let index = 0; index < retainedSeedCounts.treatmentPlanCount; index += 1) {
+    const planTitles = [
+      'Phác đồ Cấy ghép Implant đơn lẻ (Răng 11)',
+      'Phác đồ Bọc răng sứ thẩm mỹ Cercon',
+      'Phác đồ Dán sứ Veneer Emax 2 hàm',
+    ];
+    const planDescriptions = [
+      'Kế hoạch phẫu thuật cấy ghép trụ Implant Straumann và phục hình răng sứ trên Implant cho vị trí răng 11.',
+      'Kế hoạch điều trị bọc răng sứ thẩm mỹ Cercon bảo tồn tối đa răng thật.',
+      'Phục hình nụ cười với dán sứ Veneer siêu mỏng không mài nhỏ răng.',
+    ];
     const serviceSlug = treatmentPlanSlugs[index];
     const service = servicesBySlug[serviceSlug];
+    const patientId = context.patients[index].id;
+    const doctorId = context.doctors[index % 2].id;
+    const title = planTitles[index] || `Phác đồ điều trị ${service.name}`;
+    const existingPlan = await prisma.treatmentPlan.findFirst({
+      where: { patientId, doctorId, title },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true },
+    });
+    if (existingPlan) {
+      treatmentPlans.push(existingPlan);
+      continue;
+    }
+
+    const startDate = new Date(
+      dateOnly('2026-10-10').getTime() + index * dayMs,
+    );
     treatmentPlans.push(
       await prisma.treatmentPlan.create({
         data: {
-          patientId: context.patients[index].id,
-          doctorId: context.doctors[index % 2].id,
-          title: `Seed Treatment Plan ${index + 1}`,
-          description: `Sample dental treatment plan ${index + 1}`,
+          patientId,
+          doctorId,
+          title,
+          description:
+            planDescriptions[index] ||
+            `Kế hoạch điều trị chuyên sâu cho dịch vụ ${service.name}`,
           status:
             index % 4 === 0
               ? 'PLANNED'
@@ -1956,13 +1977,13 @@ async function seedRelatedData(
                 : index % 4 === 2
                   ? 'COMPLETED'
                   : 'CANCELLED',
-          startDate: addDays(index),
-          expectedEndDate: addDays(index + 30),
+          startDate,
+          expectedEndDate: new Date(startDate.getTime() + 30 * dayMs),
           items: [
             {
               service: service.name,
               tooth: `${11 + index}`,
-              estimatedCost: '1000000',
+              estimatedCost: '690000',
             },
           ],
         },
@@ -1970,6 +1991,22 @@ async function seedRelatedData(
       }),
     );
   }
+
+  const clinicalDiagnoses = [
+    'Mất răng 11 do chấn thương - Chỉ định cấy ghép Implant',
+    'Răng xỉn màu nhiễm Tetracycline độ 3 - Chỉ định bọc sứ thẩm mỹ',
+    'Răng thưa kẽ vùng cửa, men răng mòn mặt ngoài nhẹ',
+  ];
+  const clinicalComplaints = [
+    'Mất răng cửa hàm trên, ăn nhai khó khăn và mất tự tin khi cười',
+    'Răng ố vàng sậm màu, ê buốt khi ăn đồ nóng lạnh',
+    'Thưa răng cửa hàm trên, muốn cải thiện thẩm mỹ nụ cười',
+  ];
+  const clinicalNotes = [
+    'Đã tiến hành thăm khám tổng quát, chụp phim CT Cone Beam 3D, lấy dấu hàm kỹ thuật số và tư vấn kế hoạch điều trị Implant.',
+    'Đã hoàn thành kiểm tra khớp cắn, vệ sinh khoang miệng và lấy dấu khớp cắn phục hình răng sứ Cercon.',
+    'Thiết kế nụ cười DSD (Digital Smile Design), lấy dấu chuẩn bị dán sứ Veneer Emax cao cấp.',
+  ];
 
   const medicalRecords: Array<{ id: string }> = [];
   for (let index = 0; index < retainedSeedCounts.medicalRecordCount; index += 1) {
@@ -1987,10 +2024,10 @@ async function seedRelatedData(
           patientId: context.patients[index].id,
           appointmentId: appointments[index].id,
           doctorId: context.doctors[index % 2].id,
-          chiefComplaint: `Seed complaint ${index + 1}`,
-          diagnosis: `Seed diagnosis ${index + 1}`,
-          treatmentNotes: `Treatment completed for sample case ${index + 1}.`,
-          internalNotes: `Internal seed note ${index + 1}.`,
+          chiefComplaint: clinicalComplaints[index] || `Khám và điều trị ${servicesBySlug[treatmentPlanSlugs[index]]?.name || 'nha khoa'}`,
+          diagnosis: clinicalDiagnoses[index] || `Chẩn đoán lâm sàng ${servicesBySlug[treatmentPlanSlugs[index]]?.name || 'nha khoa'}`,
+          treatmentNotes: clinicalNotes[index] || `Hoàn tất thăm khám và điều trị theo phác đồ y khoa.`,
+          internalNotes: `Theo dõi tiến trình hồi phục và đặt lịch tái khám định kỳ.`,
           followUpDate: addDays(index + 14),
           dentalChart: {
             teeth: [
@@ -2105,31 +2142,32 @@ async function main() {
   const context = await seedBaseData();
   await seedRelatedData(context);
 
-  const initialBanners = [
-    {
-      title: 'Nha Khoa Thẩm Mỹ Công Nghệ Cao Smart Dental',
-      description: 'Chăm sóc nụ cười toàn diện cùng đội ngũ thạc sĩ, bác sĩ chuyên khoa với hệ thống trang thiết bị hiện đại chuẩn Châu Âu.',
-      imageUrl: 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786204828/smart-dental/banners/bannerhome.png',
-      linkUrl: '/booking',
-      targetType: 'SERVICE',
-      displayOrder: 1,
-      isActive: true,
-    },
-  ];
-  for (const banner of initialBanners) {
-    const existingBanner = await prisma.banner.findFirst({
-      where: { imageUrl: banner.imageUrl },
-      select: { id: true },
-    });
-    if (existingBanner) {
-      await prisma.banner.update({
-        where: { id: existingBanner.id },
-        data: banner,
+  const homeBanner = {
+    title: 'Nha Khoa Thẩm Mỹ Công Nghệ Cao Smart Dental',
+    description: 'Chăm sóc nụ cười toàn diện cùng đội ngũ thạc sĩ, bác sĩ chuyên khoa với hệ thống trang thiết bị hiện đại chuẩn Châu Âu.',
+    imageUrl: 'https://res.cloudinary.com/dvsuhb9cj/image/upload/v1786204828/smart-dental/banners/bannerhome.png',
+    linkUrl: '/booking',
+    targetType: 'SERVICE',
+    displayOrder: 1,
+    isActive: true,
+  };
+  const existingHomeBanner = await prisma.banner.findFirst({
+    where: { imageUrl: homeBanner.imageUrl },
+    select: { id: true },
+  });
+  const keptBanner = existingHomeBanner
+    ? await prisma.banner.update({
+        where: { id: existingHomeBanner.id },
+        data: homeBanner,
+        select: { id: true },
+      })
+    : await prisma.banner.create({
+        data: homeBanner,
+        select: { id: true },
       });
-    } else {
-      await prisma.banner.create({ data: banner });
-    }
-  }
+  await prisma.banner.deleteMany({
+    where: { id: { not: keptBanner.id } },
+  });
 
   console.log('Seed completed.');
   console.table([

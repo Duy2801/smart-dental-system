@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   useCancelConsultationMutation,
   useMyConsultationsQuery,
@@ -32,6 +32,14 @@ export function MyConsultationsList({ onBookNew }: MyConsultationsListProps) {
     useState<PatientConsultationItem | null>(null);
   const [selectedForDetail, setSelectedForDetail] =
     useState<PatientConsultationItem | null>(null);
+
+  const handleClosePaymentModal = useCallback(() => {
+    setSelectedForPayment(null);
+  }, []);
+
+  const handlePaymentSuccess = useCallback(() => {
+    void refetch();
+  }, [refetch]);
 
   // Force re-render every 30s to update countdowns / join button status
   const [, setClock] = useState(0);
@@ -377,8 +385,8 @@ export function MyConsultationsList({ onBookNew }: MyConsultationsListProps) {
       {selectedForPayment && (
         <ConsultationPaymentModal
           consultation={selectedForPayment}
-          onClose={() => setSelectedForPayment(null)}
-          onPaymentSuccess={() => void refetch()}
+          onClose={handleClosePaymentModal}
+          onPaymentSuccess={handlePaymentSuccess}
         />
       )}
 

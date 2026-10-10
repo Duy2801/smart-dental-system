@@ -54,6 +54,23 @@ export async function createDoctorAvailability(
       throw new Error("availability.no_open_days_selected");
     }
 
+    const customShifts =
+      form.autoShifts && form.autoShifts.length > 0
+        ? form.autoShifts
+        : form.startTime && form.endTime
+          ? [{ startTime: form.startTime, endTime: form.endTime }]
+          : null;
+
+    if (customShifts) {
+      await apiClient.post("/doctor-availability/auto-weekly", {
+        doctorId,
+        daysOfWeek: selectedOpenDays.map((day) => day.id),
+        shifts: customShifts,
+        mode: form.autoMode,
+      });
+      return;
+    }
+
     const groupedByHours = selectedOpenDays.reduce<
       Record<string, BusinessHour[]>
     >((groups, day) => {

@@ -31,6 +31,7 @@ import { overlapsLunchBreak } from '../clinic-config/clinic-schedule-time';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { CreateStaffAppointmentDto } from './dto/create-staff-appointment.dto';
 import { OCCUPYING_APPOINTMENT_STATUSES } from './appointment-status-policy';
+import { lockDoctorSchedule, lockPatientSchedule } from './doctor-schedule-lock';
 
 const activeAppointmentStatuses = OCCUPYING_APPOINTMENT_STATUSES;
 const activeVideoConsultationStatuses = [
@@ -281,28 +282,35 @@ export class AppointmentService {
       scheduledAt,
       endAt,
     );
-    await this.ensurePatientHasNoOverlappingAppointment(
-      appointment.patientId,
-      appointment.createdBy,
-      scheduledAt,
-      endAt,
-      appointment.id,
-    );
-    await this.ensureNoConflict(
-      appointment.doctorId,
-      scheduledAt,
-      endAt,
-      appointment.id,
-    );
-
-    const updated = await this.prisma.appointment.update({
-      where: { id: appointment.id },
-      data: {
+    const updated = await this.prisma.$transaction(async (tx) => {
+      await lockDoctorSchedule(tx, appointment.doctorId);
+      if (appointment.patientId) {
+        await lockPatientSchedule(tx, appointment.patientId);
+      }
+      await this.ensurePatientHasNoOverlappingAppointment(
+        appointment.patientId,
+        appointment.createdBy,
         scheduledAt,
         endAt,
-        rescheduleHistory: [...rescheduleHistory, previousSchedule],
-      },
-      include: appointmentInclude,
+        appointment.id,
+        tx,
+      );
+      await this.ensureNoConflict(
+        appointment.doctorId,
+        scheduledAt,
+        endAt,
+        appointment.id,
+        tx,
+      );
+      return tx.appointment.update({
+        where: { id: appointment.id },
+        data: {
+          scheduledAt,
+          endAt,
+          rescheduleHistory: [...rescheduleHistory, previousSchedule],
+        },
+        include: appointmentInclude,
+      });
     });
     void this.invalidateBookingCache(
       userId,
@@ -704,30 +712,35 @@ export class AppointmentService {
       scheduledAt,
       endAt,
     );
-    if (appointment.patientId) {
-      await this.ensurePatientHasNoOverlappingAppointment(
-        appointment.patientId,
-        appointment.createdBy,
+    const updated = await this.prisma.$transaction(async (tx) => {
+      await lockDoctorSchedule(tx, appointment.doctorId);
+      if (appointment.patientId) {
+        await lockPatientSchedule(tx, appointment.patientId);
+        await this.ensurePatientHasNoOverlappingAppointment(
+          appointment.patientId,
+          appointment.createdBy,
+          scheduledAt,
+          endAt,
+          appointment.id,
+          tx,
+        );
+      }
+      await this.ensureNoConflict(
+        appointment.doctorId,
         scheduledAt,
         endAt,
         appointment.id,
+        tx,
       );
-    }
-    await this.ensureNoConflict(
-      appointment.doctorId,
-      scheduledAt,
-      endAt,
-      appointment.id,
-    );
-
-    const updated = await this.prisma.appointment.update({
-      where: { id: appointment.id },
-      data: {
-        scheduledAt,
-        endAt,
-        rescheduleHistory: [...rescheduleHistory, previousSchedule].slice(-10),
-      },
-      include: appointmentInclude,
+      return tx.appointment.update({
+        where: { id: appointment.id },
+        data: {
+          scheduledAt,
+          endAt,
+          rescheduleHistory: [...rescheduleHistory, previousSchedule].slice(-10),
+        },
+        include: appointmentInclude,
+      });
     });
     void this.invalidateBookingCache(
       updated.createdBy,
@@ -1946,6 +1959,10 @@ export class AppointmentService {
     try {
       appointment = await this.prisma.$transaction(
         async (tx) => {
+          await lockDoctorSchedule(tx, input.doctorId);
+          if (input.patientId) {
+            await lockPatientSchedule(tx, input.patientId);
+          }
           await this.ensureDoctorAvailable(input.doctorId, scheduledAt, endAt);
           await this.ensurePatientHasNoOverlappingAppointment(
             input.patientId,
@@ -2006,7 +2023,11 @@ export class AppointmentService {
           });
         },
         {
-          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+          // The doctor row lock serializes writers; READ COMMITTED lets a waiter
+          // see the booking committed by the previous lock holder.
+          isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
+          maxWait: 15000,
+          timeout: 30000,
         },
       );
     } catch (error) {
@@ -2115,6 +2136,33 @@ export class AppointmentService {
     if (overlap) {
       throw new ConflictException('appointment.patient_time_conflict');
     }
+
+    const consultations = await db.videoConsultation.findMany({
+      where: {
+        patientId,
+        status: { in: [...activeVideoConsultationStatuses] },
+        scheduledAt: {
+          gt: new Date(scheduledAt.getTime() - 60 * 60 * 1000),
+          lt: endAt,
+        },
+        NOT: {
+          status: VideoConsultationStatus.PENDING_PAYMENT,
+          expiresAt: { lte: new Date() },
+        },
+      },
+      select: { scheduledAt: true, durationMinutes: true },
+    });
+    if (
+      consultations.some((consultation) => {
+        const consultationEnd = new Date(
+          consultation.scheduledAt.getTime() +
+            consultation.durationMinutes * 60 * 1000,
+        );
+        return consultationEnd > scheduledAt;
+      })
+    ) {
+      throw new ConflictException('appointment.patient_time_conflict');
+    }
   }
 
   private async ensureNoConflict(
@@ -2147,6 +2195,10 @@ export class AppointmentService {
         doctorId,
         scheduledAt: { gt: earliestOverlappingVideoStart, lt: endAt },
         status: { in: [...activeVideoConsultationStatuses] },
+        NOT: {
+          status: VideoConsultationStatus.PENDING_PAYMENT,
+          expiresAt: { lte: new Date() },
+        },
       },
       select: { scheduledAt: true, durationMinutes: true },
     });
@@ -2470,6 +2522,10 @@ export class AppointmentService {
             doctorId: { in: doctorIds },
             status: { in: [...activeVideoConsultationStatuses] },
             scheduledAt: { gt: earliestOverlappingVideoStart, lt: end },
+            NOT: {
+              status: VideoConsultationStatus.PENDING_PAYMENT,
+              expiresAt: { lte: new Date() },
+            },
           },
           select: {
             doctorId: true,

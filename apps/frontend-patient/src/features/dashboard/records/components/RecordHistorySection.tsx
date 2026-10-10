@@ -1,21 +1,35 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import type { PatientRecordsResponse } from "../api";
-import type { TreatmentRecordView } from "./recordMappers";
+import { useMemo, useState } from "react";
+import {
+  cleanRecordTitle,
+  detectTreatmentCategory,
+  formatShortDate,
+  type TreatmentRecordView,
+} from "./recordMappers";
 import { RecordTreatmentCard } from "./RecordTreatmentCard";
+import { RecordMedicalVisitCard } from "./RecordMedicalVisitCard";
+import { RecordPatientHeader } from "./RecordPatientHeader";
 import { DashboardIcon } from "../../common/DashboardIcon";
 import type { PatientProfile } from "../../appointment/api";
+import type {
+  PatientRecordsResponse,
+  TreatmentPlanRecord,
+  TreatmentPlanStepRecord,
+} from "../api";
 
 type RecordHistorySectionProps = {
   treatments: TreatmentRecordView[];
-  recordsData: PatientRecordsResponse;
+  recordsData: PatientRecordsResponse | null;
   profiles?: PatientProfile[];
   selectedPatientId?: string;
   onSelectPatient?: (patientId: string) => void;
+  profilesLoading?: boolean;
+  summaryLoading?: boolean;
+  plansLoading?: boolean;
+  summaryError?: boolean;
+  plansError?: boolean;
 };
-
-const ALL_FILTER = "Tất cả";
 
 const relationshipLabels: Record<string, string> = {
   SELF: "Tôi",
@@ -25,14 +39,29 @@ const relationshipLabels: Record<string, string> = {
   OTHER: "Người thân",
 };
 
-function getInitials(name: string) {
-  return name
-    .split(" ")
-    .slice(-2)
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase();
-}
+type UnifiedRecordItem =
+  | {
+      type: "plan";
+      id: string;
+      treatment: TreatmentRecordView;
+      title: string;
+      date: string;
+      doctor: string;
+      category: string;
+      stepCount: number;
+      completedSteps: number;
+    }
+  | {
+      type: "visit";
+      id: string;
+      record: PatientRecordsResponse["medicalRecords"][number];
+      title: string;
+      date: string;
+      doctor: string;
+      category: string;
+      stepCount: number;
+      completedSteps: number;
+    };
 
 export function RecordHistorySection({
   treatments,
@@ -40,67 +69,111 @@ export function RecordHistorySection({
   profiles = [],
   selectedPatientId,
   onSelectPatient,
+  profilesLoading = false,
+  summaryLoading = false,
+  plansLoading = false,
+  summaryError = false,
+  plansError = false,
 }: RecordHistorySectionProps) {
-  const [filter, setFilter] = useState(ALL_FILTER);
-  const [selectedId, setSelectedId] = useState(treatments[0]?.id ?? "");
+  const [selectedRecordId, setSelectedRecordId] = useState("");
+  const medicalRecords = recordsData?.medicalRecords ?? [];
 
-  // Tự động chuyển selectedId về phác đồ đầu tiên của bệnh nhân khi đổi bệnh nhân/dữ liệu phác đồ
-  useEffect(() => {
-    if (treatments.length > 0) {
-      setSelectedId((prev) => {
-        const exists = treatments.some((t) => t.id === prev);
-        return exists ? prev : treatments[0].id;
+  // Unified list of records: each dental service has 1 primary comprehensive record
+  const recordsList: UnifiedRecordItem[] = useMemo(() => {
+    const list: UnifiedRecordItem[] = [];
+
+    // 1. Treatment Plans (Phác đồ điều trị dịch vụ)
+    treatments.forEach((t) => {
+      const stepCount = t.treatmentPlan.filter((s) => s.status !== "summary").length;
+      const completedSteps = t.treatmentPlan.filter((s) => s.status === "completed").length;
+      const displayTitle = cleanRecordTitle(t.title, t.category);
+      const displayCategory = t.category || detectTreatmentCategory(t.title);
+
+      list.push({
+        type: "plan",
+        id: `plan:${t.id}`,
+        treatment: t,
+        title: displayTitle,
+        date: t.date,
+        doctor: t.doctor,
+        category: displayCategory,
+        stepCount,
+        completedSteps,
       });
-    } else {
-      setSelectedId("");
+    });
+
+    // Track services and IDs already covered by treatment plans
+    const coveredServices = new Set<string>();
+    const coveredRecordIds = new Set<string>();
+
+    treatments.forEach((t) => {
+      if (t.category) coveredServices.add(t.category.toLowerCase().trim());
+      t.treatmentPlan.forEach((step) => {
+        if (step.medicalRecordId) coveredRecordIds.add(step.medicalRecordId);
+      });
+    });
+
+    recordsData?.treatmentPlans?.forEach((p: TreatmentPlanRecord) => {
+      p.steps?.forEach((s: TreatmentPlanStepRecord) => {
+        s.medicalRecords?.forEach((mr) => coveredRecordIds.add(mr.id));
+        s.appointments?.forEach((app) => {
+          if (app.service) coveredServices.add(app.service.toLowerCase().trim());
+        });
+      });
+      if (Array.isArray(p.items)) {
+        p.items.forEach((item: any) => {
+          if (item?.service) coveredServices.add(String(item.service).toLowerCase().trim());
+        });
+      }
+    });
+
+    // 2. Only add clinical visits for OTHER services that are NOT part of an existing treatment plan
+    medicalRecords.forEach((r: PatientRecordsResponse["medicalRecords"][number]) => {
+      if (coveredRecordIds.has(r.id)) return;
+      if (r.treatmentPlanStepId) return;
+
+      const rService = (r.service || "").toLowerCase().trim();
+      if (rService && coveredServices.has(rService)) return;
+
+      const displayTitle = cleanRecordTitle(r.diagnosis || r.service, r.service);
+      const displayCategory = r.service || detectTreatmentCategory(r.diagnosis || "");
+
+      list.push({
+        type: "visit",
+        id: `visit:${r.id}`,
+        record: r,
+        title: displayTitle,
+        date: formatShortDate(r.createdAt),
+        doctor: r.doctor || "Bác sĩ phụ trách",
+        category: displayCategory,
+        stepCount: 1,
+        completedSteps: 1,
+      });
+    });
+
+    return list;
+  }, [treatments, medicalRecords, recordsData]);
+
+  const activeRecord = useMemo(() => {
+    if (selectedRecordId) {
+      const found = recordsList.find((item) => item.id === selectedRecordId);
+      if (found) return found;
     }
-  }, [treatments]);
-
-  const filterOptions = useMemo(
-    () => [
-      ALL_FILTER,
-      ...Array.from(new Set(treatments.map((treatment) => treatment.category))),
-    ],
-    [treatments],
-  );
-
-  const filteredTreatments = useMemo(
-    () =>
-      filter === ALL_FILTER
-        ? treatments
-        : treatments.filter((treatment) => treatment.category === filter),
-    [filter, treatments],
-  );
-
-  const selectedTreatment =
-    filteredTreatments.find((treatment) => treatment.id === selectedId) ??
-    filteredTreatments[0] ??
-    treatments[0];
-
-  function handleFilterChange(value: string) {
-    setFilter(value);
-    const nextTreatment =
-      value === ALL_FILTER
-        ? treatments[0]
-        : treatments.find((treatment) => treatment.category === value);
-    setSelectedId(nextTreatment?.id ?? "");
-  }
+    return recordsList[0] ?? null;
+  }, [recordsList, selectedRecordId]);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
       {/* Left-Aligned Hero Section */}
-      <section className="py-1 space-y-2.5 text-left">
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-[#0863c5]">
-          <DashboardIcon name="sparkles" className="h-3.5 w-3.5 text-[#0863c5]" />
-          Hồ Sơ Y Khoa Gia Đình & Phác Đồ Điều Trị
-        </span>
-
-        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
-          Danh Sách Phác Đồ & Hồ Sơ Bệnh Nhân
+      <section className="py-2 space-y-3 text-left">
+        <div>
+        </div>
+        <h1 className="text-2xl sm:text-3xl font-black text-[#07366f]">
+          Hồ Sơ Bệnh Án & Lịch Sử Điều Trị
         </h1>
 
-        <p className="max-w-2xl text-xs sm:text-sm font-medium text-slate-600 leading-relaxed">
-          Chọn người khám trong gia đình và xem chi tiết phác đồ điều trị, đơn thuốc và tiến trình y khoa.
+        <p className="text-sm text-slate-600 leading-relaxed max-w-3xl">
+          Chọn người khám trong gia đình và xem chi tiết hồ sơ bệnh án, đơn thuốc và tiến trình điều trị y khoa.
         </p>
       </section>
 
@@ -111,119 +184,74 @@ export function RecordHistorySection({
             {/* Section 1: Family Profile Picker */}
             {profiles.length > 0 && (
               <div className="space-y-2.5">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                  <DashboardIcon name="user" className="h-3.5 w-3.5 text-[#1996e0]" />
+                <label htmlFor="record-patient-profile" className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                  <DashboardIcon name="user" className="h-3.5 w-3.5 text-[#0058bc]" />
                   Hồ Sơ Người Khám ({profiles.length}):
-                </span>
+                </label>
 
-                <div className="space-y-2 w-full">
-                  {profiles.map((profile) => {
-                    const selected = profile.id === selectedPatientId;
-                    const relLabel = relationshipLabels[profile.relationship] ?? "Người thân";
-
-                    return (
-                      <button
-                        key={profile.id}
-                        type="button"
-                        onClick={() => onSelectPatient?.(profile.id)}
-                        className={`w-full flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-2xl transition-all cursor-pointer text-left border ${
-                          selected
-                            ? "bg-gradient-to-r from-[#1996e0] to-blue-600 text-white border-[#1996e0] shadow-md shadow-blue-500/20"
-                            : "bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50/50 border-slate-200/80"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                          <span
-                            className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs shrink-0 ${
-                              selected
-                                ? "bg-white text-[#1996e0] shadow-xs"
-                                : "bg-blue-50 text-[#1996e0]"
-                            }`}
-                          >
-                            {getInitials(profile.fullName)}
-                          </span>
-                          <div className="min-w-0 flex-1">
-                            <span className="block text-xs font-extrabold leading-snug break-words">
-                              {profile.fullName}
-                            </span>
-                            <span
-                              className={`text-[10px] font-semibold block mt-0.5 ${
-                                selected ? "text-blue-100" : "text-slate-400"
-                              }`}
-                            >
-                              {relLabel} {profile.isPrimary && "• (Hồ sơ chính)"}
-                            </span>
-                          </div>
-                        </div>
-
-                        {selected && (
-                          <span className="w-5 h-5 rounded-full bg-white/20 text-white flex items-center justify-center text-xs font-black shrink-0">
-                            ✓
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
+                <div className="relative">
+                  <select
+                    id="record-patient-profile"
+                    value={selectedPatientId ?? (profiles.find((profile) => profile.isPrimary) ?? profiles[0]).id}
+                    onChange={(event) => onSelectPatient?.(event.target.value)}
+                    className="w-full appearance-none rounded-xl border border-slate-200/90 bg-white pl-3.5 pr-10 py-2.5 text-sm font-semibold text-slate-800 shadow-xs outline-none transition hover:border-blue-300 focus:border-[#0058bc] focus:ring-2 focus:ring-blue-100 cursor-pointer"
+                  >
+                    {profiles.map((profile) => (
+                      <option key={profile.id} value={profile.id}>
+                        {profile.fullName} — {relationshipLabels[profile.relationship] ?? "Người thân"}{profile.isPrimary ? " (Hồ sơ chính)" : ""}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400">
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
                 </div>
               </div>
             )}
+            {profilesLoading && <p className="text-xs text-slate-500">Đang tải danh sách người khám...</p>}
 
-            {/* Section 2: Treatment List Header & Filter Pills */}
-            <div className={`space-y-3 ${profiles.length > 0 ? "pt-3 border-t border-slate-200/80" : ""}`}>
+            {/* Section 2: Header Hồ Sơ Bệnh Án */}
+            <div className={`space-y-2 ${profiles.length > 0 ? "pt-2 border-t border-slate-200/80" : ""}`}>
               <div className="flex items-center justify-between px-0.5">
-                <span className="text-xs font-black uppercase tracking-wider text-slate-500">
-                  Danh Sách Phác Đồ ({filteredTreatments.length})
+                <span className="text-xs font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                  <DashboardIcon name="document" className="h-3.5 w-3.5 text-[#0058bc]" />
+                  Hồ Sơ Bệnh Án ({recordsList.length}):
                 </span>
-                <span className="text-[10px] font-bold text-[#1996e0] bg-[#1996e0]/10 px-2 py-0.5 rounded-md border border-[#1996e0]/20">
-                  Chọn phác đồ
+                <span className="text-[10px] font-bold text-[#0058bc] bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200/60">
+                  {recordsList.length > 1 ? `${recordsList.length} dịch vụ điều trị` : "1 dịch vụ điều trị"}
                 </span>
               </div>
-
-              {filterOptions.length > 1 && (
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-                  {filterOptions.map((option) => {
-                    const active = filter === option;
-                    return (
-                      <button
-                        key={option}
-                        type="button"
-                        onClick={() => handleFilterChange(option)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
-                          active
-                            ? "bg-[#1996e0] text-white shadow-xs font-extrabold"
-                            : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80"
-                        }`}
-                      >
-                        {option}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
             </div>
 
+            {/* Section 3: Danh Sách Hồ Sơ Bệnh Án */}
             <div className="space-y-3">
-              {filteredTreatments.length ? (
-                filteredTreatments.map((treatment, index) => {
-                  const selected = treatment.id === selectedTreatment?.id;
-                  const stepCount = treatment.treatmentPlan.length;
-                  const completedSteps = treatment.treatmentPlan.filter(
-                    (s) => s.status === "completed",
-                  ).length;
+              {(plansLoading || profilesLoading || summaryLoading) && !recordsList.length ? (
+                <div className="rounded-2xl border border-slate-200 bg-white p-5 text-xs text-slate-500 animate-pulse">
+                  Đang tải hồ sơ bệnh án...
+                </div>
+              ) : (plansError && summaryError) ? (
+                <p role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-700">
+                  Không tải được hồ sơ bệnh án. Vui lòng thử lại sau.
+                </p>
+              ) : recordsList.length ? (
+                recordsList.map((item, index) => {
+                  const isSelected = activeRecord?.id === item.id;
 
                   return (
                     <button
-                      key={treatment.id}
+                      key={item.id}
                       type="button"
-                      onClick={() => setSelectedId(treatment.id)}
+                      onClick={() => setSelectedRecordId(item.id)}
                       className={`group relative w-full overflow-hidden rounded-2xl border p-4 text-left transition-all duration-200 cursor-pointer ${
-                        selected
+                        isSelected
                           ? "border-[#1996e0] bg-white shadow-lg shadow-[#1996e0]/10 ring-2 ring-[#1996e0]/30"
                           : "border-slate-200/90 bg-white hover:border-[#1996e0]/50 hover:shadow-md"
                       }`}
                     >
                       {/* Active Indicator Bar */}
-                      {selected && (
+                      {isSelected && (
                         <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#1996e0]" />
                       )}
 
@@ -232,37 +260,41 @@ export function RecordHistorySection({
                           <div className="flex items-center gap-2">
                             <span
                               className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${
-                                selected
+                                isSelected
                                   ? "bg-[#1996e0] text-white"
-                                  : "bg-slate-100 text-slate-600"
+                                  : "bg-blue-50 text-[#0863c5] border border-blue-200/60"
                               }`}
                             >
-                              Phác đồ #{index + 1}
+                              Hồ sơ #{index + 1}
+                            </span>
+                            <span
+                              className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                                item.type === "plan"
+                                  ? "bg-indigo-50 text-indigo-700 border border-indigo-100"
+                                  : "bg-sky-50 text-sky-700 border border-sky-100"
+                              }`}
+                            >
+                              {item.type === "plan" ? "Phác đồ" : "Khám dịch vụ"}
                             </span>
                             <span className="text-[10px] font-mono text-slate-400">
-                              {treatment.date}
+                              {item.date}
                             </span>
                           </div>
 
                           <h3
                             className={`mt-2 text-sm font-bold truncate transition-colors ${
-                              selected ? "text-[#1996e0]" : "text-slate-900 group-hover:text-[#1996e0]"
+                              isSelected
+                                ? "text-[#1996e0]"
+                                : "text-slate-900 group-hover:text-[#1996e0]"
                             }`}
                           >
-                            {treatment.title}
+                            {item.title}
                           </h3>
 
-                          <p className="mt-1 text-xs text-slate-500 line-clamp-1">
-                            👨‍⚕️ {treatment.doctor}
-                          </p>
-
-                          {/* Progress mini indicator */}
-                          <div className="mt-3 flex items-center justify-between text-[11px] text-slate-500 border-t border-slate-100 pt-2">
-                            <span className="font-medium text-slate-600">
-                              Tiến trình: <strong className="text-slate-900">{completedSteps}/{stepCount} bước</strong>
-                            </span>
+                          {/* Service Footer */}
+                          <div className="mt-3 flex items-center justify-end text-[11px] text-slate-500 border-t border-slate-100 pt-2">
                             <span className="rounded-full bg-blue-50 text-[#1996e0] border border-blue-100 px-2 py-0.5 text-[10px] font-bold">
-                              {treatment.category}
+                              {item.category || "Nha khoa"}
                             </span>
                           </div>
                         </div>
@@ -274,10 +306,10 @@ export function RecordHistorySection({
                 <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center space-y-2">
                   <DashboardIcon name="document" className="mx-auto h-8 w-8 text-slate-300" />
                   <p className="text-xs font-bold text-slate-600">
-                    Không tìm thấy phác đồ phù hợp
+                    Chưa có hồ sơ bệnh án
                   </p>
                   <p className="text-[11px] text-slate-400">
-                    Vui lòng chọn danh mục lọc khác ở phía trên.
+                    Bác sĩ chưa tạo hồ sơ bệnh án hoặc kế hoạch điều trị cho người khám này.
                   </p>
                 </div>
               )}
@@ -285,12 +317,32 @@ export function RecordHistorySection({
           </div>
 
           {/* Right Column: Detailed Record View */}
-          <div className="p-4 sm:p-6 lg:p-7 bg-[#f4f9fd]/40">
-            {selectedTreatment ? (
+          <div className="space-y-5 p-4 sm:p-6 lg:p-7 bg-[#f4f9fd]/40">
+            {(summaryLoading || profilesLoading || plansLoading) && !recordsData && (
+              <p className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-500 animate-pulse">
+                Đang tải hồ sơ bệnh nhân...
+              </p>
+            )}
+            {summaryError && plansError && (
+              <p role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-700">
+                Không tải được thông tin bệnh án. Vui lòng thử lại sau.
+              </p>
+            )}
+            {recordsData?.patient && (
+              <RecordPatientHeader
+                patient={recordsData.patient}
+                doctor={activeRecord?.doctor}
+                specialty={activeRecord?.type === "plan" ? activeRecord.treatment.specialty : undefined}
+              />
+            )}
+            {activeRecord?.type === "visit" ? (
+              <RecordMedicalVisitCard key={activeRecord.record.id} record={activeRecord.record} />
+            ) : activeRecord?.type === "plan" && recordsData ? (
               <RecordTreatmentCard
-                treatment={selectedTreatment}
-                index={filteredTreatments.findIndex(
-                  (item) => item.id === selectedTreatment.id,
+                key={activeRecord.treatment.id}
+                treatment={activeRecord.treatment}
+                index={treatments.findIndex(
+                  (item) => item.id === activeRecord.treatment.id,
                 )}
                 recordsData={recordsData}
               />
@@ -298,10 +350,10 @@ export function RecordHistorySection({
               <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center space-y-3 shadow-xs">
                 <DashboardIcon name="document" className="mx-auto h-12 w-12 text-slate-300" />
                 <h3 className="text-base font-bold text-slate-800">
-                  Chưa chọn phác đồ điều trị
+                  Chưa chọn hồ sơ bệnh án
                 </h3>
                 <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                  Hãy nhấp vào một phác đồ ở danh sách bên trái để mở toàn bộ thông tin bệnh án y khoa.
+                  {plansLoading ? "Hồ sơ sẽ xuất hiện khi tải xong." : "Bác sĩ chưa lập hồ sơ bệnh án cho người khám này."}
                 </p>
               </div>
             )}

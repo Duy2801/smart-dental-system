@@ -56,6 +56,26 @@ export class PatientController {
     return this.patientService.getMyRecords(user.userId, patientId);
   }
 
+  @Get('me/records/summary')
+  @Roles('PATIENT')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  getMyRecordsSummary(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('patientId') patientId?: string,
+  ) {
+    return this.patientService.getMyRecordsSummary(user.userId, patientId);
+  }
+
+  @Get('me/records/plans')
+  @Roles('PATIENT')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  getMyRecordsPlans(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('patientId') patientId?: string,
+  ) {
+    return this.patientService.getMyRecordsPlans(user.userId, patientId);
+  }
+
   @Patch('me')
   @Roles('PATIENT')
   @UseGuards(JwtAuthGuard, RolesGuard)

@@ -52,6 +52,15 @@ function readFileAsDataUrl(file: File, onLoad: (value: string) => void) {
   reader.readAsDataURL(file);
 }
 
+function generateVoucherCode(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let randomPart = "";
+  for (let i = 0; i < 6; i++) {
+    randomPart += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return `KM${randomPart}`;
+}
+
 function ImagePicker({
   label,
   onChange,
@@ -109,7 +118,7 @@ export function PromoFormModal({
     queryFn: () => getServices({}),
   });
 
-  const [code, setCode] = useState(initialValue?.code ?? "");
+  const [code, setCode] = useState(() => initialValue?.code ?? generateVoucherCode());
   const [name, setName] = useState(initialValue?.name ?? "");
   const [description, setDescription] = useState(initialValue?.description ?? "");
   const [discountType, setDiscountType] = useState<DiscountType>(
@@ -213,15 +222,53 @@ export function PromoFormModal({
         )}
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <AdminInput
-            label="Mã Voucher Code"
-            required
-            disabled={isEditing}
-            className="uppercase font-mono tracking-wider font-bold"
-            value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
-            placeholder="VD: SUMMER2026"
-          />
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-semibold text-brand-dark">
+                Mã Voucher Code <span className="text-red-500">*</span>
+              </label>
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700 border border-emerald-200">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Tự động sinh
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                readOnly
+                value={code}
+                className="w-full rounded-xl border border-slate-200 bg-slate-100/90 px-3.5 py-2 text-sm font-mono font-bold tracking-wider text-brand-dark uppercase outline-none select-all cursor-default"
+                placeholder="Mã tự sinh"
+              />
+              {!isEditing && (
+                <button
+                  type="button"
+                  onClick={() => setCode(generateVoucherCode())}
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 hover:border-slate-300 transition-colors cursor-pointer"
+                  title="Sinh lại mã khác"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-3.5 w-3.5 text-brand"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2.5}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                  Đổi mã
+                </button>
+              )}
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Mã được hệ thống tự động sinh, không cần nhập tay.
+            </p>
+          </div>
           <div>
             <AdminInput
               label={

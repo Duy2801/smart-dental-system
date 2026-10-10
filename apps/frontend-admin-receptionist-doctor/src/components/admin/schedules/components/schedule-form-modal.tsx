@@ -9,8 +9,10 @@ import type { BusinessHour } from "../../setting/types";
 type ScheduleFormModalProps = {
   businessHours: BusinessHour[];
   form: ScheduleFormState;
+  isEditing?: boolean;
   onClose: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  serverError?: string | null;
   setForm: Dispatch<SetStateAction<ScheduleFormState>>;
   submitting: boolean;
   toggleSelectedDay: (dayOfWeek: number) => void;
@@ -19,18 +21,25 @@ type ScheduleFormModalProps = {
 export function ScheduleFormModal({
   businessHours,
   form,
+  isEditing = false,
   onClose,
   onSubmit,
+  serverError,
   setForm,
   submitting,
   toggleSelectedDay,
 }: ScheduleFormModalProps) {
   const validationError = getScheduleValidationError(form, businessHours);
+  const displayError = validationError || serverError;
 
   return (
     <AdminModal
-      title="Thêm lịch mới"
-      description="Thiết lập ca trực mới hoặc tự động tạo lịch tuần cho bác sĩ."
+      title={isEditing ? "Cập nhật ca làm việc" : "Thêm lịch mới"}
+      description={
+        isEditing
+          ? "Điều chỉnh thời gian làm việc của bác sĩ trong ngày này."
+          : "Thiết lập ca trực mới hoặc tự động tạo lịch tuần cho bác sĩ."
+      }
       onClose={onClose}
     >
       <form className="mt-6 flex flex-col gap-5" onSubmit={onSubmit}>
@@ -72,7 +81,7 @@ export function ScheduleFormModal({
           />
         )}
 
-        {validationError ? (
+        {displayError ? (
           <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-700">
             <svg
               className="h-4 w-4 shrink-0 text-red-500"
@@ -87,7 +96,7 @@ export function ScheduleFormModal({
                 d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            <span>{validationError}</span>
+            <span>{displayError}</span>
           </div>
         ) : null}
 
@@ -103,7 +112,7 @@ export function ScheduleFormModal({
             type="submit"
             disabled={submitting || Boolean(validationError)}
           >
-            {submitting ? "Đang lưu..." : "Thêm lịch"}
+            {submitting ? "Đang lưu..." : isEditing ? "Cập nhật" : "Thêm lịch"}
           </AdminButton>
         </div>
       </form>

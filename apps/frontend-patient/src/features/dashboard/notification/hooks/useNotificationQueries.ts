@@ -15,20 +15,29 @@ import type { PaginatedNotificationsResponse } from "../types";
 
 export const notificationQueryKeys = {
   all: ["notifications"] as const,
-  list: (filter?: string, page?: number) => ["notifications", "list", filter, page] as const,
+  list: (filter?: string, page?: number, limit = 5) =>
+    ["notifications", "list", filter, page, limit] as const,
   infinite: (filter?: string) => ["notifications", "infinite", filter] as const,
   unreadCount: () => ["notifications", "unread-count"] as const,
 };
 
-export function useUserNotifications(filterType?: string, page = 1, enabled = true) {
+export function useUserNotifications(
+  filterType?: string,
+  page = 1,
+  limitOrEnabled: number | boolean = 5,
+  enabledParam = true,
+) {
+  const limit = typeof limitOrEnabled === "number" ? limitOrEnabled : 5;
+  const enabled = typeof limitOrEnabled === "boolean" ? limitOrEnabled : enabledParam;
+
   return useQuery({
-    queryKey: notificationQueryKeys.list(filterType, page),
+    queryKey: notificationQueryKeys.list(filterType, page, limit),
     queryFn: () =>
       fetchUserNotifications({
         type: filterType === "ALL" || filterType === "UNREAD" ? undefined : filterType,
         unreadOnly: filterType === "UNREAD",
         page,
-        limit: 20,
+        limit,
       }),
     staleTime: 30 * 1000,
     enabled,

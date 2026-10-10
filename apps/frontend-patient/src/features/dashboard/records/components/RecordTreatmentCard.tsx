@@ -1,25 +1,21 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
+import Image from "next/image";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/features/dashboard/common/toast";
-import { DashboardIcon } from "../../common/DashboardIcon";
 import {
   confirmPatientAppointment,
   restorePatientAppointment,
 } from "../../appointment/api";
 import {
   formatMoney,
-  formatShortDate,
-  getDefaultRichPrescription,
-  getInitials,
-  type RichPrescription,
-  type RichPrescriptionItem,
   type TreatmentRecordView,
+  formatShortDate,
+  type RichPrescription,
 } from "./recordMappers";
 import { StepInvoiceModal } from "./StepInvoiceModal";
-import { ROUTES } from "../../common/routes";
 import { recordsQueryKeys } from "../hooks/useRecordsQueries";
 import { appointmentQueryKeys } from "../../appointment/hooks/useAppointmentQueries";
 import type { PatientRecordsResponse } from "../api";
@@ -30,9 +26,10 @@ type RecordTreatmentCardProps = {
   recordsData: PatientRecordsResponse;
 };
 
+const subscribeToMount = () => () => {};
+
 export function RecordTreatmentCard({
   treatment,
-  index,
   recordsData,
 }: RecordTreatmentCardProps) {
   const queryClient = useQueryClient();
@@ -40,11 +37,7 @@ export function RecordTreatmentCard({
   // State cho xem hóa đơn bước
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [selectedStepIndex, setSelectedStepIndex] = useState(0);
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  const isMounted = useSyncExternalStore(subscribeToMount, () => true, () => false);
 
   // State xem Lightbox Phim X-quang & Đơn thuốc gốc
   const [previewImage, setPreviewImage] = useState<{
@@ -55,9 +48,6 @@ export function RecordTreatmentCard({
     notes: string;
     category: string;
   } | null>(null);
-
-  const [previewPrescriptionDoc, setPreviewPrescriptionDoc] =
-    useState<RichPrescription | null>(null);
 
   // UX State: Tinh gọn nhất - Mặc định chỉ hiện Hồ sơ bệnh nhân ("none").
   // Khi người dùng bấm nút thì mở section tương ứng: "workflow" | "prescription" | "images" | "medical-record" | "invoice" | "all"
@@ -135,41 +125,46 @@ export function RecordTreatmentCard({
     return age > 0 ? `${formattedDate} (${age} tuổi)` : `${formattedDate}`;
   }, [patient]);
 
-  const formattedGender = useMemo(() => {
-    if (!patient?.gender) return "Chưa cập nhật";
-    switch (patient.gender.toUpperCase()) {
-      case "MALE":
-        return "Nam";
-      case "FEMALE":
-        return "Nữ";
-      case "OTHER":
-        return "Khác";
-      default:
-        return "Chưa cập nhật";
-    }
-  }, [patient]);
+  // 1. Toàn bộ hồ sơ bệnh án từ API (bao gồm cả records theo phác đồ và records trực tiếp của bệnh nhân)
+  const currentPlanData = recordsData.treatmentPlans.find((plan) => plan.id === treatment.id);
 
-  // 1. Phác đồ chi tiết
-  const visibleSteps = useMemo(
-    () => treatment.treatmentPlan ?? [],
-    [treatment.treatmentPlan],
-  );
+  const allMedicalRecords = useMemo(() => {
+    const list: Array<PatientRecordsResponse["medicalRecords"][number]> = [];
+    const seen = new Set<string>();
 
-  const selectedStep = visibleSteps[selectedStepIndex] ?? visibleSteps[0];
+    (recordsData?.medicalRecords ?? []).forEach((r) => {
+      if (!seen.has(r.id)) {
+        seen.add(r.id);
+        list.push(r);
+      }
+    });
 
-  const nextAppointmentStep = useMemo(() => {
-    return visibleSteps.find(
-      (s) =>
-        s.appointment &&
-        (s.appointment.status === "pending" || s.appointment.status === "confirmed"),
-    );
-  }, [visibleSteps]);
+    currentPlanData?.steps?.forEach((step) => {
+      step.medicalRecords?.forEach((r) => {
+        if (!seen.has(r.id)) {
+          seen.add(r.id);
+          list.push({
+            id: r.id,
+            createdAt: step.completedAt || treatment.date,
+            doctor: treatment.doctor,
+            service: step.title || treatment.title,
+            chiefComplaint: r.chiefComplaint,
+            diagnosis: r.diagnosis,
+            treatmentNotes: r.treatmentNotes,
+            followUpDate: r.followUpDate,
+            images: r.images,
+            prescriptions: r.prescriptions,
+          });
+        }
+      });
+    });
 
-  // 2. Chẩn đoán & Ghi chú từ backend động theo phác đồ
+    return list;
+  }, [recordsData, currentPlanData, treatment]);
+
+  // 2. Chẩn đoán & Ghi chú từ backend động theo hồ sơ
   const planDiagnosisNotes = useMemo(() => {
-    const activeMedicalRecord = recordsData?.medicalRecords?.find(
-      (m) => String(m.id) === String(treatment.id),
-    );
+    const activeMedicalRecord = allMedicalRecords[0];
 
     const toothDisplay =
       treatment.tooth && treatment.tooth !== "Theo chỉ định"
@@ -178,27 +173,53 @@ export function RecordTreatmentCard({
 
     if (!activeMedicalRecord) {
       return {
-        chiefComplaint: treatment.description || "Khám nha khoa định kỳ và theo dõi phác đồ điều trị.",
-        diagnosis: treatment.title || "Khám & Điều trị chuyên khoa",
-        clinicalNotes: "Bệnh nhân tuân thủ đúng phác đồ điều trị của bác sĩ chuyên khoa.",
+        chiefComplaint: "Khám và kiểm tra răng định kỳ",
+        diagnosis: "Chưa có chẩn đoán cho phác đồ này",
+        clinicalNotes: "Chưa có ghi chú điều trị.",
         toothNumber: toothDisplay,
       };
     }
 
     return {
-      chiefComplaint: activeMedicalRecord.chiefComplaint || "Khám & kiểm tra răng miệng định kỳ.",
-      diagnosis: activeMedicalRecord.diagnosis || treatment.title,
-      clinicalNotes: activeMedicalRecord.treatmentNotes || "Tiến triển tốt.",
+      chiefComplaint: activeMedicalRecord.chiefComplaint || "Khám và kiểm tra răng định kỳ",
+      diagnosis: activeMedicalRecord.diagnosis || "Chẩn đoán nha khoa chuyên khoa",
+      clinicalNotes: activeMedicalRecord.treatmentNotes || "Điều trị hoàn tất theo phác đồ.",
       toothNumber: toothDisplay,
     };
-  }, [recordsData, treatment]);
+  }, [allMedicalRecords, treatment]);
 
-  // 3. Đơn thuốc trích xuất từ phác đồ / bệnh án (CHỈ LẤY ĐƠN THỰC TẾ TỪ DATABASE)
-  const activeRichPrescriptions = useMemo(() => {
-    return treatment.richPrescriptions || [];
-  }, [treatment]);
+  // 3. Toàn bộ đơn thuốc trích xuất từ database (medical_records + phác đồ)
+  const allRichPrescriptions = useMemo(() => {
+    const list: RichPrescription[] = [...(treatment.richPrescriptions || [])];
+    const existingIds = new Set(list.map((p) => p.id));
 
-  // 4. Hình ảnh lâm sàng & X-quang CHỈ trích xuất từ bảng MedicalRecord (medical_records)
+    allMedicalRecords.forEach((record, recIdx) => {
+      (record.prescriptions ?? []).forEach((presc, prescIdx) => {
+        if (!existingIds.has(presc.id)) {
+          existingIds.add(presc.id);
+          list.push({
+            id: presc.id || `presc-${record.id}-${prescIdx}`,
+            code: `DT-${String(recIdx + 1).padStart(3, "0")}`,
+            doctor: record.doctor || treatment.doctor,
+            date: record.createdAt ? formatShortDate(record.createdAt) : treatment.date,
+            notes: presc.notes || record.treatmentNotes || "Đơn thuốc theo chỉ định của bác sĩ",
+            prescriptionImageUrl: null,
+            items: (presc.items ?? []).map((item) => ({
+              medicineName: item.medicineName,
+              dosage: item.dosage,
+              frequency: item.frequency || "Theo chỉ định",
+              duration: item.duration || "5 ngày",
+              instruction: item.instruction || "Uống sau ăn",
+            })),
+          });
+        }
+      });
+    });
+
+    return list;
+  }, [treatment, allMedicalRecords]);
+
+  // 4. Hình ảnh lâm sàng & X-quang trích xuất từ medical_records
   const realClinicalImages = useMemo(() => {
     const imagesList: Array<{
       id: string;
@@ -210,49 +231,21 @@ export function RecordTreatmentCard({
       notes: string;
     }> = [];
 
-    // 1. Tìm đúng TreatmentPlan đang xem trong recordsData
-    const currentPlan = recordsData?.treatmentPlans?.find(
-      (p) => p.id === treatment.id,
-    );
-
-    // 2. Lấy tất cả hồ sơ bệnh án thuộc phác đồ này + hồ sơ riêng của bệnh nhân
-    const stepMedicalRecords =
-      currentPlan?.steps?.flatMap((step) => step.medicalRecords ?? []) ?? [];
-
-    const allMedicalRecords = [
-      ...stepMedicalRecords,
-      ...(recordsData?.medicalRecords ?? []),
-    ];
-
-    // 3. Lặp qua từng bản ghi trong bảng medical_records để trích xuất các tệp ảnh thuộc medicalRecord đó
     allMedicalRecords.forEach((record, recordIdx) => {
-      const rawImages = (record as any)?.images;
+      const rawImages = record.images;
       if (Array.isArray(rawImages) && rawImages.length > 0) {
-        rawImages.forEach((img: any, imgIdx: number) => {
+        rawImages.forEach((img, imgIdx) => {
           const isXray =
             img?.type === "XRAY" ||
-            `${img?.title || ""} ${img?.type || ""}`
-              .toLowerCase()
-              .includes("xray") ||
+            `${img?.title || ""} ${img?.type || ""}`.toLowerCase().includes("xray") ||
             `${img?.title || ""}`.toLowerCase().includes("xquang");
 
-          // Lấy URL thực tế từ mảng images trong medical_records
           const rawUrl = img?.url || img?.imageUrl || img?.src;
-          const displayUrl =
-            rawUrl && typeof rawUrl === "string" && rawUrl.trim()
-              ? rawUrl.trim()
-              : isXray
-                ? "https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?auto=format&fit=crop&w=800&q=80"
-                : "https://images.unsplash.com/photo-1606811841689-23dfddce3e95?auto=format&fit=crop&w=800&q=80";
-
-          const doctorName =
-            "doctor" in record && typeof (record as any).doctor === "string"
-              ? (record as any).doctor
-              : (record as any)?.doctor?.user?.fullName || treatment.doctor;
+          if (typeof rawUrl !== "string" || !rawUrl.trim()) return;
 
           imagesList.push({
             id: img?.id || `img-rec-${record.id || recordIdx}-${imgIdx}`,
-            url: displayUrl,
+            url: rawUrl.trim(),
             title:
               img?.title && img.title !== "X-Ray" && img.title !== "Clinical"
                 ? img.title
@@ -260,27 +253,55 @@ export function RecordTreatmentCard({
                   ? "Phim X-Quang Panorama Chẩn Đoán"
                   : "Ảnh Lâm Sàng Vùng Điều Trị",
             category: isXray ? "PHIM X-QUANG PANORAMA" : "ẢNH THỰC TẾ LÂM SÀNG",
-            date:
-              "createdAt" in record && (record as any).createdAt
-                ? formatShortDate((record as any).createdAt)
-                : treatment.date,
-            doctor: doctorName,
+            date: record.createdAt ? formatShortDate(record.createdAt) : treatment.date,
+            doctor: record.doctor || treatment.doctor,
             notes:
               img?.notes ||
               record.treatmentNotes ||
               record.chiefComplaint ||
               record.diagnosis ||
-              "Dữ liệu hình ảnh được liên kết trực tiếp từ hồ sơ bệnh án điện tử (medical_records).",
+              "Dữ liệu hình ảnh được liên kết trực tiếp từ hồ sơ bệnh án điện tử.",
           });
         });
       }
     });
 
-    // Tránh trùng lặp ID. BẮT BUỘC: Nếu không có bản ghi medical_records nào chứa ảnh thì trả về mảng rỗng [] (không hiển thị ảnh giả)
-    return Array.from(
-      new Map(imagesList.map((item) => [item.id, item])).values(),
+    return Array.from(new Map(imagesList.map((item) => [item.id, item])).values());
+  }, [allMedicalRecords, treatment]);
+
+  // 5. Phác đồ chi tiết & các bước
+  const visibleSteps = useMemo(() => {
+    const raw = (treatment.treatmentPlan ?? []).filter((s) => s.status !== "summary");
+    if (raw.length > 0) return raw;
+
+    return [
+      {
+        id: "step-plan-main",
+        date: treatment.date,
+        title: treatment.title,
+        description: treatment.description || "Khám lâm sàng, chẩn đoán và điều trị theo phác đồ chỉ định.",
+        status: "completed" as const,
+        paidAmount: treatment.paidAmount || 0,
+        paymentStatusLabel: treatment.paymentStatusLabel || "Thanh toán đủ",
+        prescriptions: treatment.prescriptions || [],
+        richPrescriptions: allRichPrescriptions,
+        careInstructions: treatment.careInstructions || ["Tuân thủ hướng dẫn và dặn dò của bác sĩ."],
+        images: { xray: null, clinical: null },
+        medicalRecordId: allMedicalRecords[0]?.id || null,
+        appointment: null,
+      },
+    ];
+  }, [treatment, allRichPrescriptions, allMedicalRecords]);
+
+  const selectedStep = visibleSteps[selectedStepIndex] ?? visibleSteps[0];
+
+  const nextAppointmentStep = useMemo(() => {
+    return visibleSteps.find(
+      (s) =>
+        s.appointment &&
+        (s.appointment.status === "pending" || s.appointment.status === "confirmed"),
     );
-  }, [recordsData, treatment]);
+  }, [visibleSteps]);
 
   // Handle Export PDF
   function handleExportPDF() {
@@ -297,177 +318,29 @@ export function RecordTreatmentCard({
   function toggleSection(section: "workflow" | "prescription" | "images" | "medical-record" | "invoice" | "all") {
     setShowInvoiceModal(false);
     setPreviewImage(null);
-    setPreviewPrescriptionDoc(null);
     setExpandedSection((prev) => (prev === section ? "none" : section));
   }
 
-  const completedStepsCount = visibleSteps.filter((s) => s.status === "completed").length;
+  const actualStepsCount = visibleSteps.length;
+  const planMedicalRecordCount = allMedicalRecords.length;
+  const invoiceCount = new Set([
+    ...(currentPlanData?.invoices.map((invoice) => invoice.id) ?? []),
+    ...(currentPlanData?.steps.flatMap((step) => step.invoices.map((invoice) => invoice.id)) ?? []),
+  ]).size;
 
   return (
     <>
       <article className="space-y-6 animate-in fade-in duration-300">
 
       {/* ========================================================================= */}
-      {/* 1. HỒ SƠ BỆNH NHÂN (PATIENT PROFILE SUMMARY CARD) - Harmonized Light Enterprise Design */}
-      <div className="overflow-hidden rounded-3xl border border-slate-200/90 bg-white shadow-sm hover:shadow-md transition-all">
-        {/* Header Section: Soft Light Blue Gradient */}
-        <div className="bg-gradient-to-r from-[#f4f9fd] via-white to-blue-50/50 p-6 sm:p-7 border-b border-slate-100">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-            {/* Left: Patient Avatar & Name */}
-            <div className="flex items-center gap-4">
-              <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl bg-gradient-to-br from-[#1996e0] to-blue-600 text-white font-black text-2xl sm:text-3xl flex items-center justify-center shadow-lg shadow-[#1996e0]/25 shrink-0 border-2 border-white">
-                {getInitials(patient?.fullName || "Bệnh Nhân")}
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-[11px] font-black uppercase tracking-wider bg-blue-100/80 text-[#1996e0] px-3 py-0.5 rounded-full border border-blue-200/90 shadow-2xs">
-                    Mã BN: {patient?.patientCode || "Chưa cấp mã"}
-                  </span>
-                  <span className="text-[11px] font-bold bg-emerald-50 text-emerald-700 px-3 py-0.5 rounded-full border border-emerald-200 shadow-2xs">
-                    ● Hồ sơ đang hoạt động
-                  </span>
-                </div>
-                <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                  {patient?.fullName || "Bệnh Nhân"}
-                </h2>
-              </div>
-            </div>
-
-            {/* Right: Key Patient Administrative Info Panel */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-white/90 backdrop-blur-xs p-4 rounded-2xl border border-slate-200/80 shadow-2xs shrink-0 lg:min-w-[440px]">
-              <div className="space-y-1">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
-                  📅 Ngày sinh / Tuổi
-                </span>
-                <span className="text-xs font-black text-slate-800 block">
-                  {formattedDobAndAge}
-                </span>
-              </div>
-              <div className="space-y-1 sm:border-l sm:border-slate-200/80 sm:pl-4">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
-                  📞 Số điện thoại
-                </span>
-                <span className="text-xs font-black text-slate-800 block">
-                  {patient?.phone || "Chưa cập nhật"}
-                </span>
-              </div>
-              <div className="space-y-1 sm:border-l sm:border-slate-200/80 sm:pl-4">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
-                  🚻 Giới tính
-                </span>
-                <span className="text-xs font-black text-slate-800 block">
-                  {formattedGender}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Quick Safety & Allergy Note */}
-          <div className="mt-5 pt-4 border-t border-slate-200/70 grid gap-3 sm:grid-cols-2 text-xs">
-            <div className="bg-white rounded-2xl p-3.5 border border-slate-200/80 shadow-xs flex items-center gap-3">
-              <span className="text-lg">🛡️</span>
-              <div>
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#1996e0] block">
-                  Tiền Sử Y Khoa & Dị Ứng
-                </span>
-                <span className="text-slate-800 font-bold">
-                  {patient?.medicalHistory || "Không ghi nhận dị ứng thuốc - Sức khỏe bình thường"}
-                </span>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-2xl p-3.5 border border-slate-200/80 shadow-xs flex items-center gap-3">
-              <span className="text-lg">👨‍⚕️</span>
-              <div>
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#1996e0] block">
-                  Bác Sĩ Phụ Trách Điều Trị
-                </span>
-                <span className="text-slate-800 font-bold">
-                  {treatment.doctor} (Chuyên Khoa Nha Khoa Tổng Quát)
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Diagnostic & Plan Status Summary (Tóm tắt phác đồ) */}
-        <div className="p-6 bg-white border-t border-slate-100 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div className="flex items-center gap-2">
-              <span className="h-3 w-3 rounded-full bg-[#1996e0]" />
-              <h3 className="text-sm font-black text-slate-900 uppercase tracking-wide">
-                Tóm Tắt Chẩn Đoán & Tiến Trình Phác Đồ
-              </h3>
-            </div>
-            <span className="text-xs font-mono font-bold text-[#1996e0] bg-[#1996e0]/10 px-3 py-1 rounded-lg border border-[#1996e0]/20">
-              Phác Đồ: {treatment.category}
-            </span>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-3">
-            {/* Box 1: Chẩn đoán chính */}
-            <div className="p-4 rounded-2xl bg-[#f4f9fd] border border-[#1996e0]/20 space-y-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#1996e0] block">
-                Chẩn Đoán Y Khoa Chính
-              </span>
-              <h4 className="text-sm font-extrabold text-slate-900">
-                {planDiagnosisNotes.diagnosis}
-              </h4>
-              <p className="text-xs text-slate-500 line-clamp-2">
-                {planDiagnosisNotes.chiefComplaint}
-              </p>
-            </div>
-
-            {/* Box 2: Răng chỉ định */}
-            <div className="p-4 rounded-2xl bg-[#f4f9fd] border border-[#1996e0]/20 space-y-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#1996e0] block">
-                Vùng Răng Chỉ Định Điều Trị
-              </span>
-              <h4 className="text-sm font-extrabold text-[#1996e0]">
-                🦷 {planDiagnosisNotes.toothNumber}
-              </h4>
-              <p className="text-xs text-slate-500">
-                Ghi chú: {planDiagnosisNotes.clinicalNotes}
-              </p>
-            </div>
-
-            {/* Box 3: Tiến độ bước */}
-            <div className="p-4 rounded-2xl bg-[#f4f9fd] border border-[#1996e0]/20 space-y-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#1996e0] block">
-                Tiến Độ Thực Hiện
-              </span>
-              <div className="flex items-center justify-between">
-                <h4 className="text-sm font-extrabold text-slate-900">
-                  {completedStepsCount}/{visibleSteps.length} Bước Hoàn Thành
-                </h4>
-                <span className="text-xs font-mono font-bold text-[#1996e0]">
-                  {Math.round((completedStepsCount / (visibleSteps.length || 1)) * 100)}%
-                </span>
-              </div>
-              {/* Progress bar */}
-              <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden mt-1">
-                <div
-                  className="bg-[#1996e0] h-full rounded-full transition-all duration-500"
-                  style={{
-                    width: `${(completedStepsCount / (visibleSteps.length || 1)) * 100}%`,
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
+      {/* THANH NÚT BẤM TINH GỌN (TOGGLE BUTTONS HUB - MODERN UI) */}
       {/* ========================================================================= */}
-      {/* 2. THANH NÚT BẤM TINH GỌN (TOGGLE BUTTONS HUB - MODERN UI) */}
-      {/* ========================================================================= */}
-      <div className="bg-white p-5 rounded-3xl border border-[#1996e0]/20 shadow-md space-y-3">
+      <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/90 shadow-xs space-y-4">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-sm font-black text-slate-900 uppercase tracking-wide flex items-center gap-2">
               <span>🔍</span>
-              <span>Xem Chi Tiết Chi Tiết Hồ Sơ Khám & Phác Đồ</span>
+              <span>Xem Chi Tiết Hồ Sơ Khám & Phác Đồ</span>
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
               Nhấp vào các nút bên dưới để mở rộng xem từng mục chi tiết theo nhu cầu:
@@ -487,34 +360,21 @@ export function RecordTreatmentCard({
         </div>
 
         {/* Action Buttons Grid */}
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 items-stretch">
           {/* Button 1: Quy trình & phác đồ */}
           <button
             type="button"
             onClick={() => toggleSection("workflow")}
-            className={`p-4 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between space-y-2 group ${expandedSection === "workflow" || expandedSection === "all"
+            className={`w-full h-full p-4 rounded-2xl border text-left transition-all cursor-pointer group flex flex-col justify-start ${expandedSection === "workflow" || expandedSection === "all"
               ? "border-[#1996e0] bg-[#1996e0]/10 ring-2 ring-[#1996e0]/30 shadow-md"
               : "border-slate-200 bg-white hover:border-[#1996e0]/50 hover:bg-blue-50/50"
               }`}
           >
-            <div className="flex items-center justify-between">
-              <span className="w-10 h-10 rounded-xl bg-[#1996e0] text-white flex items-center justify-center font-bold text-lg shadow-sm">
-                📋
-              </span>
-              <span
-                className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md ${expandedSection === "workflow" || expandedSection === "all"
-                  ? "bg-[#1996e0] text-white"
-                  : "bg-slate-100 text-slate-600"
-                  }`}
-              >
-                {visibleSteps.length} bước
-              </span>
-            </div>
             <div>
               <h4 className="text-xs font-black text-slate-900 group-hover:text-[#1996e0]">
                 Quy Trình & Phác Đồ
               </h4>
-              <p className="text-[11px] text-slate-500 mt-0.5">
+              <p className="text-[11px] text-slate-500 mt-1 min-h-[32px] leading-relaxed">
                 Các giai đoạn điều trị & lịch tái khám
               </p>
             </div>
@@ -524,30 +384,17 @@ export function RecordTreatmentCard({
           <button
             type="button"
             onClick={() => toggleSection("prescription")}
-            className={`p-4 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between space-y-2 group ${expandedSection === "prescription" || expandedSection === "all"
+            className={`w-full h-full p-4 rounded-2xl border text-left transition-all cursor-pointer group flex flex-col justify-start ${expandedSection === "prescription" || expandedSection === "all"
               ? "border-[#1996e0] bg-[#1996e0]/10 ring-2 ring-[#1996e0]/30 shadow-md"
               : "border-slate-200 bg-white hover:border-[#1996e0]/50 hover:bg-blue-50/50"
               }`}
           >
-            <div className="flex items-center justify-between">
-              <span className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">
-                💊
-              </span>
-              <span
-                className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md ${expandedSection === "prescription" || expandedSection === "all"
-                  ? "bg-emerald-600 text-white"
-                  : "bg-slate-100 text-slate-600"
-                  }`}
-              >
-                {activeRichPrescriptions[0]?.items.length || 0} loại
-              </span>
-            </div>
             <div>
               <h4 className="text-xs font-black text-slate-900 group-hover:text-[#1996e0]">
                 Đơn Thuốc Bác Sĩ
               </h4>
-              <p className="text-[11px] text-slate-500 mt-0.5">
-                Danh mục thuốc & bản scan đơn thuốc
+              <p className="text-[11px] text-slate-500 mt-1 min-h-[32px] leading-relaxed">
+                Danh mục thuốc từ bệnh án
               </p>
             </div>
           </button>
@@ -556,29 +403,16 @@ export function RecordTreatmentCard({
           <button
             type="button"
             onClick={() => toggleSection("images")}
-            className={`p-4 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between space-y-2 group ${expandedSection === "images" || expandedSection === "all"
+            className={`w-full h-full p-4 rounded-2xl border text-left transition-all cursor-pointer group flex flex-col justify-start ${expandedSection === "images" || expandedSection === "all"
               ? "border-[#1996e0] bg-[#1996e0]/10 ring-2 ring-[#1996e0]/30 shadow-md"
               : "border-slate-200 bg-white hover:border-[#1996e0]/50 hover:bg-blue-50/50"
               }`}
           >
-            <div className="flex items-center justify-between">
-              <span className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">
-                🩻
-              </span>
-              <span
-                className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md ${expandedSection === "images" || expandedSection === "all"
-                  ? "bg-indigo-600 text-white"
-                  : "bg-slate-100 text-slate-600"
-                  }`}
-              >
-                {realClinicalImages.length} hình ảnh
-              </span>
-            </div>
             <div>
               <h4 className="text-xs font-black text-slate-900 group-hover:text-[#1996e0]">
                 Phim X-Quang & Ảnh
               </h4>
-              <p className="text-[11px] text-slate-500 mt-0.5">
+              <p className="text-[11px] text-slate-500 mt-1 min-h-[32px] leading-relaxed">
                 Xem ảnh thực tế & phim chụp chẩn đoán
               </p>
             </div>
@@ -594,29 +428,16 @@ export function RecordTreatmentCard({
                 el.scrollIntoView({ behavior: "smooth", block: "center" });
               }
             }}
-            className={`p-4 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between space-y-2 group ${expandedSection === "medical-record" || expandedSection === "all"
+            className={`w-full h-full p-4 rounded-2xl border text-left transition-all cursor-pointer group flex flex-col justify-start ${expandedSection === "medical-record" || expandedSection === "all"
                 ? "border-[#1996e0] bg-[#1996e0]/10 ring-2 ring-[#1996e0]/30 shadow-md"
                 : "border-slate-200 bg-white hover:border-[#1996e0]/50 hover:bg-blue-50/50 hover:shadow-md"
               }`}
           >
-            <div className="flex items-center justify-between">
-              <span className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#1996e0] to-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">
-                📄
-              </span>
-              <span
-                className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md ${expandedSection === "medical-record" || expandedSection === "all"
-                    ? "bg-[#1996e0] text-white"
-                    : "bg-blue-100 text-[#1996e0] border border-blue-200"
-                  }`}
-              >
-                1 BỆNH ÁN
-              </span>
-            </div>
             <div>
               <h4 className="text-xs font-black text-slate-900 group-hover:text-[#1996e0]">
                 Hồ Sơ Bệnh Án
               </h4>
-              <p className="text-[11px] text-slate-500 mt-0.5">
+              <p className="text-[11px] text-slate-500 mt-1 min-h-[32px] leading-relaxed">
                 Xem chi tiết chẩn đoán & đơn thuốc y khoa
               </p>
             </div>
@@ -631,9 +452,6 @@ export function RecordTreatmentCard({
         <section className="bg-white rounded-3xl border border-[#1996e0]/30 p-6 shadow-xl space-y-6 animate-in slide-in-from-top-4 duration-300">
           <div className="flex items-center justify-between border-b border-slate-100 pb-4">
             <div className="flex items-center gap-3">
-              <span className="w-8 h-8 rounded-xl bg-[#1996e0] text-white flex items-center justify-center font-bold text-sm">
-                📋
-              </span>
               <div>
                 <h3 className="text-base font-black text-slate-900">
                   Quy Trình Khám Bệnh & Tiến Trình Phác Đồ Chi Tiết
@@ -706,7 +524,7 @@ export function RecordTreatmentCard({
           {/* Timeline Các Bước Trong Phác Đồ */}
           <div className="space-y-4">
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-600">
-              Danh sách các bước thực hiện trong phác đồ ({visibleSteps.length} bước):
+              Danh sách các bước thực hiện trong phác đồ ({actualStepsCount} bước):
             </h4>
 
             {/* Stepper Header Pills */}
@@ -810,9 +628,6 @@ export function RecordTreatmentCard({
         <section className="bg-white rounded-3xl border border-[#1996e0]/30 p-6 shadow-xl space-y-5 animate-in slide-in-from-top-4 duration-300">
           <div className="flex items-center justify-between border-b border-slate-100 pb-4">
             <div className="flex items-center gap-3">
-              <span className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-sm">
-                💊
-              </span>
               <div>
                 <h3 className="text-base font-black text-slate-900">
                   Danh Mục Đơn Thuốc Y Khoa Được Bác Sĩ Chỉ Định
@@ -832,7 +647,7 @@ export function RecordTreatmentCard({
             </button>
           </div>
 
-          {activeRichPrescriptions.length === 0 ? (
+          {allRichPrescriptions.length === 0 ? (
             <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-500">
               <span className="text-2xl block mb-2">💊</span>
               <p className="text-xs font-bold text-slate-700">Chưa có đơn thuốc nào trong hồ sơ này</p>
@@ -841,121 +656,20 @@ export function RecordTreatmentCard({
               </p>
             </div>
           ) : (
-            activeRichPrescriptions.map((presc) => (
+            allRichPrescriptions.map((presc) => (
               <div key={presc.id} className="space-y-4">
                 {/* Presc Info Bar */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3.5 rounded-2xl bg-blue-50/70 border border-blue-200/80">
                   <div className="text-xs">
-                    <span className="font-mono font-bold text-emerald-900 bg-emerald-100 px-2 py-0.5 rounded-md">
-                      MÃ ĐƠN: {presc.code}
+                    <span className="font-mono font-bold text-[#0863c5] bg-blue-100/80 px-2 py-0.5 rounded-md">
+                      MÃ THAM CHIẾU: {presc.code}
                     </span>
-                    <span className="ml-3 text-slate-600">Ngày kê: <strong>{presc.date}</strong></span>
+                    <span className="ml-3 text-slate-600">Ngày bước điều trị: <strong>{presc.date}</strong></span>
                     <span className="ml-3 text-slate-600">Bác sĩ: <strong>{presc.doctor}</strong></span>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => setPreviewPrescriptionDoc(previewPrescriptionDoc?.id === presc.id ? null : presc)}
-                    className={`px-3.5 py-1.5 rounded-xl font-bold text-xs shadow-sm transition-all flex items-center gap-1.5 cursor-pointer self-start sm:self-auto ${
-                      previewPrescriptionDoc?.id === presc.id
-                        ? "bg-slate-900 text-white hover:bg-slate-800"
-                        : "bg-emerald-600 hover:bg-emerald-700 text-white"
-                    }`}
-                  >
-                    <span>
-                      {previewPrescriptionDoc?.id === presc.id
-                        ? "▲ Thu Gọn Bản Scan Đơn Thuốc"
-                        : "🔍 Xem Đơn Thuốc Scan Có Chữ Ký Số"}
-                    </span>
-                  </button>
                 </div>
 
-                {/* HIỂN THỊ THAY THẾ: BẢN SCAN ĐƠN THUỐC ĐIỆN TỬ HOẶC BẢNG DANH MỤC THUỐC THƯỜNG */}
-                {previewPrescriptionDoc?.id === presc.id ? (
-                  <div className="bg-gradient-to-b from-emerald-50/70 via-white to-white rounded-3xl border-2 border-emerald-500/40 p-5 sm:p-6 shadow-xl space-y-5 animate-in slide-in-from-top-4 duration-300">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-emerald-100 pb-3 gap-2">
-                      <div className="flex items-center gap-2.5">
-                        <span className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shadow-xs">
-                          📜
-                        </span>
-                        <div>
-                          <h4 className="text-sm font-black text-slate-900">
-                            Bản Scan Đơn Thuốc Điện Tử Đã Ký Số
-                          </h4>
-                          <p className="text-[11px] text-slate-500">
-                            Hiển thị trực tiếp đơn thuốc hợp quy ban hành từ phòng khám
-                          </p>
-                        </div>
-                      </div>
-                      <span className="text-xs font-bold text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-200 self-start sm:self-auto">
-                        ✓ Chữ Ký Số Hợp Lệ (Bác sĩ {presc.doctor})
-                      </span>
-                    </div>
-
-                    <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4 font-sans max-w-2xl mx-auto">
-                      <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-                        <div>
-                          <h2 className="text-sm font-black text-[#1996e0] uppercase tracking-wide">
-                            HỆ THỐNG NHA KHOA SMART DENTAL
-                          </h2>
-                          <p className="text-[10px] text-slate-500">Giấy phép HĐ số: 8821/BYT-GPHĐ</p>
-                        </div>
-                        <div className="text-right">
-                          <span className="text-xs font-mono font-bold text-slate-800 bg-slate-100 px-2.5 py-0.5 rounded-md border border-slate-200">
-                            MÃ ĐƠN: {presc.code}
-                          </span>
-                          <p className="text-[10px] text-slate-400 mt-0.5">Ngày: {presc.date}</p>
-                        </div>
-                      </div>
-
-                      <div className="text-center py-1">
-                        <h3 className="text-base font-black text-slate-900 tracking-tight uppercase">
-                          ĐƠN THUỐC NHA KHOA
-                        </h3>
-                      </div>
-
-                      <div className="space-y-2">
-                        <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider text-[11px]">
-                          Danh mục thuốc chỉ định:
-                        </h4>
-                        <ol className="space-y-2 list-decimal list-inside text-xs">
-                          {presc.items.map((item, idx) => (
-                            <li key={idx} className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
-                              <strong className="text-slate-900 font-bold">{item.medicineName}</strong> - <span className="text-[#1996e0] font-semibold">{item.dosage}</span>
-                              <div className="text-[11px] text-slate-600 ml-4">
-                                • Tần suất: <strong>{item.frequency}</strong> ({item.duration})
-                                <br />
-                                • Dặn dò: {item.instruction}
-                              </div>
-                            </li>
-                          ))}
-                        </ol>
-                      </div>
-
-                      {presc.notes && (
-                        <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900">
-                          <strong>📌 Ghi chú dặn dò:</strong> {presc.notes}
-                        </div>
-                      )}
-
-                      <div className="pt-3 border-t border-slate-200 flex items-center justify-between">
-                        <div className="text-[11px] text-slate-500">
-                          <p>• Cần mang theo đơn thuốc khi tái khám.</p>
-                        </div>
-                        <div className="text-center space-y-0.5">
-                          <p className="text-[11px] text-slate-500">Bác sĩ khám bệnh</p>
-                          <div className="font-serif italic font-bold text-[#1996e0] text-sm py-0.5">
-                            {presc.doctor}
-                          </div>
-                          <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 inline-block">
-                            ✓ Đã ký số y tế
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <>
                     {/* Table Danh Mục Thuốc */}
                     <div className="overflow-x-auto rounded-2xl border border-slate-200/90 shadow-2xs bg-white">
                       <table className="w-full text-left text-xs border-collapse">
@@ -993,11 +707,9 @@ export function RecordTreatmentCard({
                     </div>
 
                     {/* Ghi chú kê đơn */}
-                    <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900">
+                    {presc.notes && <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900">
                       <strong>📌 Ghi chú dặn dò của bác sĩ:</strong> {presc.notes}
-                    </div>
-                  </>
-                )}
+                    </div>}
               </div>
             )))}
         </section>
@@ -1010,9 +722,6 @@ export function RecordTreatmentCard({
         <section className="bg-white rounded-3xl border border-[#1996e0]/30 p-6 shadow-xl space-y-5 animate-in slide-in-from-top-4 duration-300">
           <div className="flex items-center justify-between border-b border-slate-100 pb-4">
             <div className="flex items-center gap-3">
-              <span className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-sm">
-                🩻
-              </span>
               <div>
                 <h3 className="text-base font-black text-slate-900">
                   Dữ Liệu Hình Ảnh Lâm Sàng & Phim Chụp X-Quang ({realClinicalImages.length})
@@ -1054,10 +763,12 @@ export function RecordTreatmentCard({
                   onClick={() => setPreviewImage(img)}
                   className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-slate-900 text-white cursor-pointer shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
                 >
-                  <div className="aspect-4/3 overflow-hidden">
-                    <img
+                  <div className="relative aspect-4/3 overflow-hidden">
+                    <Image
                       src={img.url}
                       alt={img.title}
+                      fill
+                      unoptimized
                       className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500 opacity-90 group-hover:opacity-100"
                     />
                   </div>
@@ -1092,9 +803,6 @@ export function RecordTreatmentCard({
         <section className="bg-white rounded-3xl border border-[#1996e0]/30 p-6 shadow-xl space-y-6 animate-in slide-in-from-top-4 duration-300">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-4 gap-3">
             <div className="flex items-center gap-3">
-              <span className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#1996e0] to-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">
-                📄
-              </span>
               <div>
                 <h3 className="text-base font-black text-slate-900 tracking-tight">
                   Hồ Sơ Bệnh Án Y Khoa Điện Tử (Dữ Liệu DB Cập Nhật)
@@ -1109,7 +817,8 @@ export function RecordTreatmentCard({
               <button
                 type="button"
                 onClick={handleExportPDF}
-                className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#1996e0] to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 border border-blue-500 shadow-sm shadow-blue-500/20"
+                disabled={planMedicalRecordCount === 0}
+                className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#1996e0] to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 border border-blue-500 shadow-sm shadow-blue-500/20 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <span>🖨️ In Bệnh Án PDF</span>
               </button>
@@ -1124,6 +833,11 @@ export function RecordTreatmentCard({
             </div>
           </div>
 
+          {planMedicalRecordCount === 0 ? (
+            <p className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-sm text-slate-500">
+              Chưa có bệnh án gắn với các bước của phác đồ này. Chọn một lần khám ở danh sách bên trái để xem bệnh án đã ghi.
+            </p>
+          ) : (
           <div className="space-y-4">
             {/* Grid Chẩn đoán & Ghi chú */}
             <div className="grid gap-3.5 md:grid-cols-2">
@@ -1181,42 +895,34 @@ export function RecordTreatmentCard({
             </div>
 
             {/* Hàng Đơn thuốc & Chữ ký */}
-            <div className="p-4 rounded-2xl bg-emerald-50/40 border border-emerald-200/80 flex flex-col md:flex-row md:items-center justify-between gap-4 text-xs">
+            <div className="p-4 rounded-2xl bg-blue-50/50 border border-blue-200/80 flex flex-col md:flex-row md:items-center justify-between gap-4 text-xs">
               <div className="space-y-1.5 flex-1">
-                <span className="text-[11px] font-black uppercase tracking-wider text-emerald-800 flex items-center gap-1.5">
+                <span className="text-[11px] font-black uppercase tracking-wider text-[#0863c5] flex items-center gap-1.5">
                   <span>💊</span> ĐƠN THUỐC ĐÃ KÊ THEO BỆNH ÁN
                 </span>
                 <div className="flex flex-wrap items-center gap-2">
-                  {((activeRichPrescriptions[0]?.items) || [
-                    {
-                      medicineName: "Paracetamol",
-                      dosage: "10-15 mg/kg/lần",
-                      frequency: "4-6 giờ/lần khi đau",
-                      duration: "2-3 ngày",
-                    },
-                  ]).map((med, idx) => (
+                  {allRichPrescriptions.length === 0 && <span className="text-slate-500">Chưa có đơn thuốc được kê.</span>}
+                  {allRichPrescriptions.flatMap((prescription) => prescription.items).map((med, idx) => (
                     <span
                       key={idx}
-                      className="inline-flex items-center gap-1.5 bg-white text-slate-900 font-extrabold px-3 py-1.5 rounded-xl border border-emerald-200 shadow-2xs text-xs"
+                      className="inline-flex items-center gap-1.5 bg-white text-slate-900 font-extrabold px-3 py-1.5 rounded-xl border border-blue-200 shadow-2xs text-xs"
                     >
-                      <span className="text-emerald-600 font-black">● {med.medicineName}</span>
+                      <span className="text-[#0863c5] font-black">● {med.medicineName}</span>
                       <span className="text-slate-600 font-semibold text-[11px]">({med.dosage} • {med.frequency} • {med.duration})</span>
                     </span>
                   ))}
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-emerald-200">
+              <div className="flex items-center gap-3 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-blue-200">
                 <div className="text-right">
                   <span className="text-[10px] text-slate-500 font-medium block">Bác sĩ lập bệnh án</span>
                   <span className="text-xs font-black text-slate-900">{treatment.doctor}</span>
                 </div>
-                <span className="text-[10px] text-emerald-800 font-bold bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-300 flex items-center gap-1">
-                  ✓ Đã ký số
-                </span>
               </div>
             </div>
           </div>
+          )}
         </section>
       )}
 
@@ -1243,7 +949,7 @@ export function RecordTreatmentCard({
 
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-xl border border-slate-200">
-                Tổng {visibleSteps.length} Hóa Đơn
+                Tổng {invoiceCount} Hóa Đơn
               </span>
               <button
                 type="button"
@@ -1382,9 +1088,12 @@ export function RecordTreatmentCard({
             </div>
 
             <div className="p-4 bg-slate-950 flex items-center justify-center flex-1 min-h-[300px]">
-              <img
+              <Image
                 src={previewImage.url}
                 alt={previewImage.title}
+                width={1200}
+                height={900}
+                unoptimized
                 className="max-h-[60vh] max-w-full object-contain rounded-xl shadow-lg"
               />
             </div>
@@ -1466,16 +1175,13 @@ export function RecordTreatmentCard({
                 <h1 className="text-base font-black text-slate-900 uppercase tracking-wide">
                   HỆ THỐNG NHA KHOA THÔNG MINH SMART DENTAL SYSTEM
                 </h1>
-                <p className="text-[11px] text-slate-600">
-                  Địa chỉ: 123 Đường 3/2, Phường 11, Quận 10, TP. Hồ Chí Minh | Hotline: 1900 6868
-                </p>
-                <p className="text-[10px] text-slate-500">Giấy phép HĐ y tế số: 8821/BYT-GPHĐ</p>
+                <p className="text-[11px] text-slate-600">Bản in thông tin từ hồ sơ điều trị của bệnh nhân</p>
               </div>
               <div className="text-right shrink-0">
                 <span className="text-xs font-mono font-bold border border-slate-400 px-2.5 py-1 rounded">
-                  MÃ BN: {patient?.patientCode || "PAT-2026-0B927E"}
+                  MÃ BN: {patient?.patientCode || "Chưa cấp mã"}
                 </span>
-                <p className="text-[10px] text-slate-500 mt-1">Ngày lập: {treatment.date || "24/08/2026"}</p>
+                <p className="text-[10px] text-slate-500 mt-1">Ngày lập: {treatment.date}</p>
               </div>
             </div>
             <div className="text-center pt-1">
@@ -1497,7 +1203,7 @@ export function RecordTreatmentCard({
                     <span className="text-slate-500">Họ và tên:</span> <strong className="text-slate-900 uppercase font-black">{patient?.fullName || "Bệnh Nhân"}</strong>
                   </td>
                   <td className="p-2 border-r border-slate-300 bg-slate-50/50 w-1/3">
-                    <span className="text-slate-500">Mã bệnh nhân:</span> <strong className="text-slate-900 font-mono font-bold">{patient?.patientCode || "PAT-2026-0B927E"}</strong>
+                    <span className="text-slate-500">Mã bệnh nhân:</span> <strong className="text-slate-900 font-mono font-bold">{patient?.patientCode || "Chưa cấp mã"}</strong>
                   </td>
                   <td className="p-2 bg-slate-50/50 w-1/3">
                     <span className="text-slate-500">Ngày sinh / Tuổi:</span> <strong className="text-slate-900 font-bold">{formattedDobAndAge}</strong>
@@ -1563,14 +1269,8 @@ export function RecordTreatmentCard({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-300 text-slate-800">
-                {((activeRichPrescriptions[0]?.items) || [
-                  {
-                    medicineName: "Paracetamol",
-                    dosage: "10-15 mg/kg/lần",
-                    frequency: "4-6 giờ/lần khi đau",
-                    duration: "2-3 ngày",
-                  },
-                ]).map((med, idx) => (
+                {allRichPrescriptions.length === 0 && <tr><td colSpan={5} className="p-3 text-center text-slate-500">Chưa có đơn thuốc được kê.</td></tr>}
+                {allRichPrescriptions.flatMap((prescription) => prescription.items).map((med, idx) => (
                   <tr key={idx}>
                     <td className="p-2 border-r border-slate-300 text-center font-bold">{idx + 1}</td>
                     <td className="p-2 border-r border-slate-300 font-bold text-slate-900">{med.medicineName}</td>
@@ -1592,9 +1292,6 @@ export function RecordTreatmentCard({
 
             <div className="text-center space-y-1 pl-4 shrink-0">
               <p className="text-[10px] text-slate-600 font-medium">Bác sĩ khám & Lập bệnh án</p>
-              <p className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 inline-block">
-                ✓ Đã ký số y tế
-              </p>
               <p className="text-xs font-bold text-slate-900 pt-2">{treatment.doctor}</p>
             </div>
           </div>

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/src/lib/query/query-keys";
+import { AdminConfirmModal } from "@/src/components/admin/common";
 import { CampaignList } from "./components/campaign-list";
 import { CampaignModal } from "./components/campaign-modal";
 import { MarketingSummaryCards } from "./components/marketing-summary-cards";
@@ -89,11 +90,18 @@ export function MarketingPageContent() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa Banner này không?")) return;
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+  const handleDelete = (id: string) => {
+    setDeleteConfirmId(id);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirmId) return;
     setErrorMessage("");
     try {
-      await deleteMutation.mutateAsync(id);
+      await deleteMutation.mutateAsync(deleteConfirmId);
+      setDeleteConfirmId(null);
     } catch {
       // Error callback handles message
     }
@@ -162,6 +170,18 @@ export function MarketingPageContent() {
           onSubmit={handleSubmitForm}
         />
       ) : null}
+
+      <AdminConfirmModal
+        isOpen={Boolean(deleteConfirmId)}
+        title="Xác nhận xóa Banner"
+        description="Bạn có chắc chắn muốn xóa Banner này không? Banner sẽ không còn xuất hiện trên trang chủ của phòng khám."
+        confirmText="Xóa Banner"
+        cancelText="Hủy bỏ"
+        variant="danger"
+        isLoading={deleteMutation.isPending}
+        onConfirm={handleConfirmDelete}
+        onClose={() => setDeleteConfirmId(null)}
+      />
     </div>
   );
 }

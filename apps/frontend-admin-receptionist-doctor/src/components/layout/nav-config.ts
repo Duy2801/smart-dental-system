@@ -8,7 +8,6 @@ export const adminNavItems = [
   { label: "Khuyến mãi", href: ROUTES.ADMIN.PROMOTIONS },
   { label: "Tài chính", href: ROUTES.ADMIN.FINANCE },
   { label: "Báo cáo", href: ROUTES.ADMIN.REPORTS },
-  { label: "Đánh giá", href: ROUTES.ADMIN.REVIEWS },
   { label: "Marketing", href: ROUTES.ADMIN.MARKETING },
   { label: "Cài đặt", href: ROUTES.ADMIN.SETTINGS },
 ];

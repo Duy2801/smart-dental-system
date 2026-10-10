@@ -12,12 +12,9 @@ export function PromotionAnalyticsCards({
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <div className="rounded-xl border border-border bg-white p-5 shadow-xs transition-all hover:shadow-md">
-        <div className="flex items-center justify-between">
+        <div>
           <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
             Tổng số chiến dịch
-          </span>
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600 text-base">
-            🎁
           </span>
         </div>
         <div className="mt-3 flex items-baseline justify-between">
@@ -29,12 +26,9 @@ export function PromotionAnalyticsCards({
       </div>
 
       <div className="rounded-xl border border-border bg-white p-5 shadow-xs transition-all hover:shadow-md">
-        <div className="flex items-center justify-between">
+        <div>
           <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
             Đang diễn ra
-          </span>
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 text-base">
-            ⚡
           </span>
         </div>
         <div className="mt-3 flex items-baseline justify-between">
@@ -46,12 +40,9 @@ export function PromotionAnalyticsCards({
       </div>
 
       <div className="rounded-xl border border-border bg-white p-5 shadow-xs transition-all hover:shadow-md">
-        <div className="flex items-center justify-between">
+        <div>
           <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
             Tổng lượt áp dụng
-          </span>
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-50 text-purple-600 text-base">
-            🎟️
           </span>
         </div>
         <div className="mt-3 flex items-baseline justify-between">
@@ -63,12 +54,9 @@ export function PromotionAnalyticsCards({
       </div>
 
       <div className="rounded-xl border border-border bg-white p-5 shadow-xs transition-all hover:shadow-md">
-        <div className="flex items-center justify-between">
+        <div>
           <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
             Cần lưu ý / Sắp hết
-          </span>
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50 text-amber-600 text-base">
-            ⏳
           </span>
         </div>
         <div className="mt-3 flex items-baseline justify-between">

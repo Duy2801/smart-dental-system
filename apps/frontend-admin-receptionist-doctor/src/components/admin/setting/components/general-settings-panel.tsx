@@ -1,4 +1,4 @@
-import { ChangeEvent, useRef } from "react";
+import { ChangeEvent, useRef, useState } from "react";
 import { ClinicLogo } from "@/src/components/layout/clinic-brand";
 import type { ClinicConfig } from "../types";
 
@@ -12,6 +12,7 @@ export function GeneralSettingsPanel({
   onChange,
 }: GeneralSettingsPanelProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [logoError, setLogoError] = useState<string | null>(null);
 
   const updateField = (field: keyof ClinicConfig, value: string) => {
     onChange({ ...config, [field]: value });
@@ -21,8 +22,10 @@ export function GeneralSettingsPanel({
     const file = event.target.files?.[0];
     if (!file) return;
 
+    setLogoError(null);
+
     if (file.size > 2 * 1024 * 1024) {
-      window.alert("Ảnh logo tối đa 2MB.");
+      setLogoError("Ảnh logo tối đa 2MB.");
       event.target.value = "";
       return;
     }
@@ -30,14 +33,14 @@ export function GeneralSettingsPanel({
     try {
       const logoUrl = await resizeLogo(file);
       if (logoUrl.length > 80_000) {
-        window.alert("Ảnh logo sau khi nén vẫn quá lớn. Hãy chọn ảnh nhỏ hơn.");
+        setLogoError("Ảnh logo sau khi nén vẫn quá lớn. Hãy chọn ảnh nhỏ hơn.");
         event.target.value = "";
         return;
       }
 
       updateField("logoUrl", logoUrl);
     } catch {
-      window.alert("Không đọc được ảnh logo. Vui lòng chọn ảnh khác.");
+      setLogoError("Không đọc được ảnh logo. Vui lòng chọn ảnh khác.");
     }
   };
 
@@ -94,6 +97,13 @@ export function GeneralSettingsPanel({
             ) : null}
           </div>
         </div>
+
+        {logoError ? (
+          <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-700">
+            <span>⚠️</span>
+            <span>{logoError}</span>
+          </div>
+        ) : null}
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <SettingsInput

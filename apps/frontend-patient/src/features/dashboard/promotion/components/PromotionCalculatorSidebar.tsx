@@ -30,10 +30,13 @@ export function PromotionCalculatorSidebar({
   return (
     <aside className="space-y-5 lg:sticky lg:top-24">
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="bg-slate-950 p-5 text-white">
-          <p className={`${T.fieldLabel} text-blue-200`}>Công cụ tính giá</p>
-          <h2 className="mt-1 text-xl font-extrabold">Dự toán ưu đãi</h2>
-          <p className="mt-1 text-xs text-slate-300">
+        <div className="relative overflow-hidden bg-gradient-to-br from-[#0058bc] via-[#0863c5] to-[#02408b] p-5 text-white shadow-inner">
+          <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-xl pointer-events-none" />
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-0.5 text-[11px] font-bold tracking-wider text-blue-100 uppercase backdrop-blur-xs">
+            Công cụ tính giá
+          </span>
+          <h2 className="mt-2 text-lg sm:text-xl font-extrabold text-white">Dự toán ưu đãi</h2>
+          <p className="mt-1.5 text-xs leading-relaxed text-blue-100/90">
             Mức giảm được tính toán tự động dựa trên dịch vụ bạn chọn.
           </p>
         </div>

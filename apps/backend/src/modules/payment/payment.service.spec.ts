@@ -25,6 +25,44 @@ const invoice = {
 };
 
 describe('PaymentService.createPayment', () => {
+  it('cannot revive an expired consultation after its slot is released', async () => {
+    const videoInvoice = {
+      ...invoice,
+      invoiceCode: 'INV-VC-123',
+      items: [{ videoConsultationId: 'consultation-1' }],
+    };
+    const tx = {
+      $queryRaw: jest.fn().mockResolvedValue([]),
+      invoice: { findUnique: jest.fn().mockResolvedValue(videoInvoice) },
+      videoConsultation: {
+        findUnique: jest.fn()
+          .mockResolvedValueOnce({ doctorId: 'doctor-1' })
+          .mockResolvedValueOnce({
+            status: 'PENDING_PAYMENT',
+            expiresAt: new Date(Date.now() - 1000),
+          }),
+      },
+      payment: { aggregate: jest.fn() },
+    };
+    const service = serviceWith({
+      $transaction: jest.fn((callback: (client: typeof tx) => unknown) => callback(tx)),
+    });
+
+    await expect(
+      (service as any).markPaid({
+        invoiceId: videoInvoice.id,
+        amount: 100_000,
+        method: 'BANK_TRANSFER',
+        receivedBy: 'staff-1',
+        transactionRef: 'test-ref',
+        invoiceType: 'SERVICE',
+        appointmentId: null,
+      }),
+    ).rejects.toThrow('Lịch tư vấn đã hết hạn thanh toán');
+    expect(tx.$queryRaw).toHaveBeenCalledTimes(2);
+    expect(tx.payment.aggregate).not.toHaveBeenCalled();
+  });
+
   it('rejects payment for a draft invoice', async () => {
     const service = serviceWith({
       invoice: { findUnique: jest.fn().mockResolvedValue({ ...invoice, status: InvoiceStatus.DRAFT }) },

@@ -46,7 +46,8 @@ function mapService(item: ServiceDto): DentalService {
     (item as unknown as { treatment_methods?: TreatmentMethod[] })
       .treatment_methods ??
     [];
-  const treatmentMethods = rawMethods.map((method) => ({
+  const activeRawMethods = rawMethods.filter((method) => method.isActive !== false);
+  const treatmentMethods = activeRawMethods.map((method) => ({
     ...method,
     bookingCount: method.bookingCount ?? method._count?.appointments ?? 0,
   }));
@@ -91,6 +92,7 @@ function mapService(item: ServiceDto): DentalService {
     priceValue: minPrice,
     durationMinutes: minDuration,
     displayOrder: item.displayOrder,
+    isActive: item.isActive,
     image,
     imageAlt: aggregatedMedia?.[0]?.alt || item.name,
     badge: item.isFeatured ? "Nổi bật" : undefined,

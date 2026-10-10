@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/src/lib/query/query-keys";
+import { AdminConfirmModal } from "@/src/components/admin/common";
 import { PromoFormModal } from "./components/promo-form-modal";
 import { PromotionAnalyticsCards } from "./components/promotion-analytics-cards";
 import { PromotionList } from "./components/promotion-list";
@@ -134,30 +135,36 @@ export function PromotionsPageContent() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa mã khuyến mãi này không?")) {
-      return;
-    }
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [broadcastConfirmPromotion, setBroadcastConfirmPromotion] =
+    useState<Promotion | null>(null);
+
+  const handleDelete = (id: string) => {
+    setDeleteConfirmId(id);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirmId) return;
     setErrorMessage("");
     try {
-      await deleteMutation.mutateAsync(id);
+      await deleteMutation.mutateAsync(deleteConfirmId);
+      setDeleteConfirmId(null);
     } catch {
       // Handled by onError callback
     }
   };
 
-  const handleBroadcast = async (promotion: Promotion) => {
-    if (
-      !window.confirm(
-        `Bạn có chắc chắn muốn phát thông báo quảng bá mã "${promotion.code}" tới tất cả Bệnh nhân không?`
-      )
-    ) {
-      return;
-    }
+  const handleBroadcast = (promotion: Promotion) => {
+    setBroadcastConfirmPromotion(promotion);
+  };
+
+  const handleConfirmBroadcast = async () => {
+    if (!broadcastConfirmPromotion) return;
     setErrorMessage("");
-    setBroadcastingId(promotion.id);
+    setBroadcastingId(broadcastConfirmPromotion.id);
     try {
-      await broadcastMutation.mutateAsync(promotion.id);
+      await broadcastMutation.mutateAsync(broadcastConfirmPromotion.id);
+      setBroadcastConfirmPromotion(null);
     } catch {
       // Handled by onError callback
     }
@@ -234,6 +241,40 @@ export function PromotionsPageContent() {
           submitting={createMutation.isPending || updateMutation.isPending}
         />
       ) : null}
+
+      {/* Delete Confirmation Modal */}
+      <AdminConfirmModal
+        isOpen={Boolean(deleteConfirmId)}
+        title="Xác nhận xóa mã khuyến mãi"
+        description="Bạn có chắc chắn muốn xóa mã khuyến mãi này không? Sau khi xóa, bệnh nhân sẽ không thể áp dụng mã này nữa."
+        confirmText="Xóa khuyến mãi"
+        cancelText="Hủy bỏ"
+        variant="danger"
+        isLoading={deleteMutation.isPending}
+        onConfirm={handleConfirmDelete}
+        onClose={() => setDeleteConfirmId(null)}
+      />
+
+      {/* Broadcast Notification Confirmation Modal */}
+      <AdminConfirmModal
+        isOpen={Boolean(broadcastConfirmPromotion)}
+        title="Xác nhận phát thông báo ưu đãi"
+        description={
+          <>
+            Bạn có chắc chắn muốn phát thông báo quảng bá mã{" "}
+            <strong className="font-semibold text-slate-900">
+              &quot;{broadcastConfirmPromotion?.code}&quot;
+            </strong>{" "}
+            tới tất cả Bệnh nhân trong hệ thống không?
+          </>
+        }
+        confirmText="Phát thông báo ngay"
+        cancelText="Hủy bỏ"
+        variant="primary"
+        isLoading={broadcastMutation.isPending}
+        onConfirm={handleConfirmBroadcast}
+        onClose={() => setBroadcastConfirmPromotion(null)}
+      />
     </div>
   );
 }

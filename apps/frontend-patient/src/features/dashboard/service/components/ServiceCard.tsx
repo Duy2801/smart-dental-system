@@ -12,11 +12,11 @@ export function ServiceCard({ service }: { service: DentalService }) {
       aria-label={`Xem chi tiết ${service.title}`}
     >
       <div className="flex w-full flex-col">
-        <div className="relative h-52 overflow-hidden bg-slate-100">
+        <div className="relative h-52 overflow-hidden bg-slate-50">
           <img
             src={service.image}
             alt={service.imageAlt}
-            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+            className="h-full w-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/25 via-transparent to-transparent" />
           {service.badge && (

@@ -1,11 +1,35 @@
 import { useQuery } from "@tanstack/react-query";
-import { getPatientRecords } from "../api";
+import { getPatientRecords, getPatientRecordsPlans, getPatientRecordsSummary } from "../api";
 
 export const recordsQueryKeys = {
   all: ["patient", "records"] as const,
   detail: (patientId?: string) =>
     ["patient", "records", patientId ?? "me"] as const,
+  summary: (patientId: string) => ["patient", "records", patientId, "summary"] as const,
+  plans: (patientId: string) => ["patient", "records", patientId, "plans"] as const,
 };
+
+export function usePatientRecordsSummaryQuery(patientId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: recordsQueryKeys.summary(patientId),
+    queryFn: () => getPatientRecordsSummary(patientId),
+    enabled,
+    staleTime: 5_000,
+    refetchInterval: 5_000,
+    refetchOnWindowFocus: true,
+  });
+}
+
+export function usePatientRecordsPlansQuery(patientId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: recordsQueryKeys.plans(patientId),
+    queryFn: () => getPatientRecordsPlans(patientId),
+    enabled,
+    staleTime: 5_000,
+    refetchInterval: 5_000,
+    refetchOnWindowFocus: true,
+  });
+}
 
 export function usePatientRecordsQuery(patientId?: string, enabled = true) {
   return useQuery({

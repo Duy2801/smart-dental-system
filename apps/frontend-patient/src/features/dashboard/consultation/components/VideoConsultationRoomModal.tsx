@@ -55,6 +55,20 @@ export function VideoConsultationRoomModal({
   const [callElapsed, setCallElapsed] = useState(0);
   const [autoCloseCountdown, setAutoCloseCountdown] = useState<number | null>(null);
 
+  // Khóa thanh cuộn trang web khi mở phòng video
+  useEffect(() => {
+    const origBodyOverflow = document.body.style.overflow;
+    const origHtmlOverflow = document.documentElement.style.overflow;
+
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = origBodyOverflow;
+      document.documentElement.style.overflow = origHtmlOverflow;
+    };
+  }, []);
+
   // Tự động đóng modal sau 4 giây khi Bác sĩ kết thúc ca tư vấn
   useEffect(() => {
     if (status === "COMPLETED") {

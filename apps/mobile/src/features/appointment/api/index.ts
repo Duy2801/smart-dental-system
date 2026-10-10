@@ -24,6 +24,7 @@ type TreatmentMethodDto = {
   imageUrl?: string | null;
   basePrice: string | number;
   durationMinutes?: number | null;
+  isActive?: boolean;
 };
 
 type ServiceDto = {
@@ -220,7 +221,9 @@ const mapService = (item: ServiceDto): AppointmentService => ({
     'Dịch vụ nha khoa chuyên nghiệp.',
   icon: item.icon ?? 'tooth',
   href: `/service/${item.id}`,
-  treatmentMethods: (item.treatmentMethods ?? []).map(mapTreatmentMethod),
+  treatmentMethods: (item.treatmentMethods ?? [])
+    .filter(m => m.isActive !== false)
+    .map(mapTreatmentMethod),
 });
 
 const mapDoctor = (item: DoctorDto, index: number): Dentist => {

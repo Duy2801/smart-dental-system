@@ -41,21 +41,12 @@ export function ScheduleTable({
           return (
             <div
               key={day.index}
-              className="flex min-h-24 flex-col gap-4 border-b border-border p-5 last:border-b-0 sm:flex-row sm:items-start"
+              className="flex min-h-24 flex-col gap-4 border-b border-border p-5 last:border-b-0 sm:flex-row sm:items-center justify-between"
             >
-              <div className="flex w-36 shrink-0 items-center justify-between sm:block">
+              <div className="w-36 shrink-0">
                 <h4 className="text-sm font-semibold text-brand-dark">
                   {day.label}
                 </h4>
-                <button
-                  type="button"
-                  onClick={() => onAddDay(day.index)}
-                  disabled={!canAddShift}
-                  className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-brand disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <span className="text-base leading-none">+</span>
-                  Thêm ca
-                </button>
                 {businessHour ? (
                   <span className="mt-1 block text-xs text-muted-foreground">
                     {businessHour.isOpen
@@ -65,7 +56,7 @@ export function ScheduleTable({
                 ) : null}
               </div>
 
-              <div className="flex flex-1 flex-wrap gap-2">
+              <div className="flex flex-1 flex-wrap items-center gap-2">
                 {shifts.length === 0 && dateOverrides.length === 0 && timeOff.length === 0 ? (
                   <span className="py-1 text-sm text-muted-foreground">
                     Không có lịch làm việc
@@ -98,6 +89,34 @@ export function ScheduleTable({
                     onApprove={onApprove}
                   />
                 ))}
+              </div>
+
+              <div className="shrink-0 self-end sm:self-center">
+                <button
+                  type="button"
+                  onClick={() => onAddDay(day.index)}
+                  disabled={!canAddShift}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-semibold text-brand-dark shadow-2xs transition-all hover:border-brand hover:bg-brand/5 hover:text-brand disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {shifts.length > 0 ? (
+                    <svg
+                      className="h-3.5 w-3.5 text-brand"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                      />
+                    </svg>
+                  ) : (
+                    <span className="text-base leading-none text-brand">+</span>
+                  )}
+                  Cập nhật
+                </button>
               </div>
             </div>
           );

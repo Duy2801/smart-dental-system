@@ -1,11 +1,10 @@
-﻿import FontAwesome6 from '@react-native-vector-icons/fontawesome6';
+import FontAwesome6 from '@react-native-vector-icons/fontawesome6';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Image,
-  Linking,
   Modal,
   RefreshControl,
   ScrollView,
@@ -33,11 +32,15 @@ import {
   getConsultationDoctors,
   getConsultationPackages,
   getPatientConsultations,
+  unwrapData,
   type ConsultationDoctor,
   type ConsultationDurationMinutes,
   type ConsultationDurationOption,
+  type ConsultationBookingResult,
   type PatientConsultation,
 } from '../api';
+import { ConsultationPaymentDetails } from '../components/ConsultationPaymentDetails';
+import { ConsultationVideoRoomModal } from '../components/ConsultationVideoRoomModal';
 
 type TabMode = 'book' | 'my-consultations';
 
@@ -65,6 +68,17 @@ function getInitialDateStr() {
   return `${y}-${m}-${d}`;
 }
 
+function canJoinConsultation(item: PatientConsultation, now: number) {
+  if (!item.isPaid || ['CANCELLED', 'COMPLETED', 'EXPIRED', 'DOCTOR_MISSED'].includes(item.status)) {
+    return false;
+  }
+  if (item.status === 'IN_PROGRESS') return true;
+  const scheduledAt = new Date(item.scheduledAt).getTime();
+  return item.status === 'SCHEDULED' && Number.isFinite(scheduledAt) &&
+    now >= scheduledAt - 15 * 60_000 &&
+    now <= scheduledAt + item.durationMinutes * 60_000 + 15 * 60_000;
+}
+
 export default function ConsultationScreen({ navigation }: any) {
   const user = useSelector((state: RootState) => state.login?.user ?? null);
   const queryClient = useQueryClient();
@@ -84,7 +98,7 @@ export default function ConsultationScreen({ navigation }: any) {
   const [selectedSlot, setSelectedSlot] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [bookingResult, setBookingResult] = useState<any | null>(null);
+  const [bookingResult, setBookingResult] = useState<ConsultationBookingResult | null>(null);
 
   // Date Picker Modal state
   const [dateModalVisible, setDateModalVisible] = useState(false);
@@ -100,6 +114,8 @@ export default function ConsultationScreen({ navigation }: any) {
     useState<PatientConsultation | null>(null);
   const [paymentModalItem, setPaymentModalItem] =
     useState<PatientConsultation | null>(null);
+  const [videoRoomItem, setVideoRoomItem] = useState<PatientConsultation | null>(null);
+  const [currentTime, setCurrentTime] = useState(Date.now());
   const [cancellingId, setCancellingId] = useState<string | null>(null);
 
   const { handleDrawerNavigate, handleLogout } = usePatientDrawerActions();
@@ -144,7 +160,14 @@ export default function ConsultationScreen({ navigation }: any) {
     queryKey: queryKeys.consultations.myList,
     staleTime: CACHE_TIMES.APPOINTMENTS.staleTime,
     gcTime: CACHE_TIMES.APPOINTMENTS.gcTime,
+    refetchInterval: activeTab === 'my-consultations' ? 5000 : false,
   });
+
+  useEffect(() => {
+    if (activeTab !== 'my-consultations') return;
+    const timer = setInterval(() => setCurrentTime(Date.now()), 30_000);
+    return () => clearInterval(timer);
+  }, [activeTab]);
 
   const packages = useMemo(() => {
     return packagesQuery.data ?? [];
@@ -218,7 +241,8 @@ export default function ConsultationScreen({ navigation }: any) {
       await queryClient.invalidateQueries({
         queryKey: ['consultation', 'my-consultations'],
       });
-      setBookingResult(result);
+      const data = unwrapData<ConsultationBookingResult>(result);
+      setBookingResult(data);
     } catch (err: any) {
       const msg =
         err?.response?.data?.message ||
@@ -267,18 +291,7 @@ export default function ConsultationScreen({ navigation }: any) {
     );
   };
 
-  const handleJoinVideoRoom = (item: PatientConsultation) => {
-    if (item.meetingUrl) {
-      Linking.openURL(item.meetingUrl).catch(() => {
-        toast.error('Không thể mở phòng video', 'Vui lòng thử lại sau.');
-      });
-    } else {
-      toast.info(
-        'Phòng tư vấn video',
-        'Phòng tư vấn đang được bác sĩ kích hoạt. Vui lòng quay lại trước giờ hẹn 5 phút.',
-      );
-    }
-  };
+  const handleJoinVideoRoom = (item: PatientConsultation) => setVideoRoomItem(item);
 
   // Calendar generation helpers
   const calendarDays = useMemo(() => {
@@ -320,7 +333,7 @@ export default function ConsultationScreen({ navigation }: any) {
             Khởi Tạo Đơn Tư Vấn Thành Công!
           </Text>
           <Text style={styles.successSub}>
-            Mã đơn: #{bookingResult?.consultation?.id?.slice?.(0, 8) || 'SD'}
+            Mã hóa đơn: {bookingResult?.invoice?.invoiceCode || (bookingResult as any)?.payment?.invoiceCode || 'INV-VC'}
           </Text>
         </View>
       </View>
@@ -334,12 +347,27 @@ export default function ConsultationScreen({ navigation }: any) {
         </Text>
         <Text style={styles.successInfoRow}>
           Tổng phí:{' '}
-          {selectedDurationOption?.formattedPrice ||
-            (selectedDurationOption
-              ? formatVnd(selectedDurationOption.price)
-              : '0 đ')}
+          {formatVnd(
+            bookingResult?.invoice?.finalAmount ??
+              (bookingResult as any)?.payment?.amount ??
+              (bookingResult as any)?.consultation?.fee ??
+              0,
+          )}
         </Text>
       </View>
+
+      {bookingResult && (
+        <View className="mt-4">
+          <ConsultationPaymentDetails
+            consultationId={bookingResult.consultation?.id || (bookingResult as any)?.id || ''}
+            bookingResult={bookingResult}
+            onPaymentConfirmed={() => {
+              setBookingResult(null);
+              setActiveTab('my-consultations');
+            }}
+          />
+        </View>
+      )}
 
       <View style={styles.successActions}>
         <TouchableOpacity
@@ -824,8 +852,9 @@ export default function ConsultationScreen({ navigation }: any) {
 
   const renderConsultationCard = ({ item }: { item: PatientConsultation }) => {
     const isPaid = item.isPaid;
-    const isCancelled = item.status === 'CANCELLED';
+    const isCancelled = ['CANCELLED', 'EXPIRED', 'DOCTOR_MISSED'].includes(item.status);
     const isCompleted = item.status === 'COMPLETED';
+    const canJoinRoom = canJoinConsultation(item, currentTime);
 
     return (
       <View style={styles.consultCard}>
@@ -940,7 +969,7 @@ export default function ConsultationScreen({ navigation }: any) {
               </>
             )}
 
-            {!isCancelled && !isCompleted && isPaid && (
+            {canJoinRoom && (
               <TouchableOpacity
                 activeOpacity={0.84}
                 onPress={() => handleJoinVideoRoom(item)}
@@ -1470,6 +1499,19 @@ export default function ConsultationScreen({ navigation }: any) {
                     </Text>
                   </View>
                 )}
+                {canJoinConsultation(selectedConsultation, currentTime) ? (
+                  <TouchableOpacity
+                    activeOpacity={0.84}
+                    onPress={() => {
+                      const consultation = selectedConsultation;
+                      setSelectedConsultation(null);
+                      handleJoinVideoRoom(consultation);
+                    }}
+                    style={styles.consultJoinBtn}
+                  >
+                    <Text style={styles.consultJoinBtnText}>Vào Video Call</Text>
+                  </TouchableOpacity>
+                ) : null}
               </ScrollView>
             </View>
           </View>
@@ -1511,60 +1553,28 @@ export default function ConsultationScreen({ navigation }: any) {
               </View>
 
               <ScrollView contentContainerStyle={styles.modalBody}>
-                <View style={styles.qrInfoBox}>
-                  <Text style={styles.qrTitle}>
-                    Quét mã VietQR hoặc chuyển khoản:
-                  </Text>
-                  <View style={styles.qrBankDetails}>
-                    <Text style={styles.qrTextRow}>
-                      Ngân hàng:{' '}
-                      <Text style={styles.qrBold}>MB Bank (Quân Đội)</Text>
-                    </Text>
-                    <Text style={styles.qrTextRow}>
-                      Số tài khoản:{' '}
-                      <Text style={styles.qrBold}>09012345678</Text>
-                    </Text>
-                    <Text style={styles.qrTextRow}>
-                      Chủ tài khoản:{' '}
-                      <Text style={styles.qrBold}>NHA KHOA SMART DENTAL</Text>
-                    </Text>
-                    <Text style={styles.qrTextRow}>
-                      Số tiền:{' '}
-                      <Text style={[styles.qrBold, { color: '#0058bc' }]}>
-                        {paymentModalItem.fee
-                          ? formatVnd(paymentModalItem.fee)
-                          : '100.000 đ'}
-                      </Text>
-                    </Text>
-                    <Text style={styles.qrTextRow}>
-                      Nội dung:{' '}
-                      <Text style={[styles.qrBold, { color: '#16A34A' }]}>
-                        TV {paymentModalItem.id.slice(0, 8)}
-                      </Text>
-                    </Text>
-                  </View>
-                </View>
-
-                <TouchableOpacity
-                  activeOpacity={0.88}
-                  onPress={() => {
+                <ConsultationPaymentDetails
+                  consultationId={paymentModalItem.id}
+                  onPaymentConfirmed={() => {
                     setPaymentModalItem(null);
-                    toast.info(
-                      'Đã ghi nhận thanh toán',
-                      'Hệ thống đang kiểm tra giao dịch chuyển khoản của bạn.',
-                    );
-                    myConsultationsQuery.refetch();
+                    setActiveTab('my-consultations');
                   }}
-                  style={styles.qrDoneBtn}
-                >
-                  <Text style={styles.qrDoneBtnText}>
-                    Tôi Đã Chuyển Khoản
-                  </Text>
-                </TouchableOpacity>
+                />
               </ScrollView>
             </View>
           </View>
         </Modal>
+      )}
+
+      {videoRoomItem && (
+        <ConsultationVideoRoomModal
+          consultation={videoRoomItem}
+          patientName={user?.fullName || 'Bệnh nhân'}
+          onClose={() => {
+            setVideoRoomItem(null);
+            myConsultationsQuery.refetch();
+          }}
+        />
       )}
     </Screen>
   );
@@ -2179,47 +2189,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
     marginBottom: 4,
-  },
-  qrBankDetails: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#BFDBFE',
-    borderRadius: 10,
-    borderWidth: 1,
-    marginTop: 8,
-    padding: 12,
-  },
-  qrBold: {
-    color: '#0F172A',
-    fontWeight: '800',
-  },
-  qrDoneBtn: {
-    alignItems: 'center',
-    backgroundColor: '#0058bc',
-    borderRadius: 12,
-    marginTop: 16,
-    paddingVertical: 13,
-  },
-  qrDoneBtnText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  qrInfoBox: {
-    backgroundColor: '#EFF6FF',
-    borderColor: '#BFDBFE',
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 12,
-  },
-  qrTextRow: {
-    color: '#475569',
-    fontSize: 12,
-    paddingVertical: 3,
-  },
-  qrTitle: {
-    color: '#0058bc',
-    fontSize: 13,
-    fontWeight: '800',
   },
   quickDateBtn: {
     backgroundColor: '#F1F5F9',

@@ -2,97 +2,105 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
-import { DashboardIcon } from "../../common/DashboardIcon";
 import { type HomeClinicalCase } from "../api";
 import { useHomeClinicalCasesQuery } from "../hooks/useHomeQueries";
 import { T } from "../../common/typography";
 
 function ParkwayClinicalCaseCard({ item }: { item: HomeClinicalCase }) {
   return (
-    <article className="relative flex flex-col justify-between overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-4.5 sm:p-7 shadow-md shadow-slate-100/60 transition hover:shadow-xl">
-      <div className="grid gap-4 sm:gap-6 md:grid-cols-12 md:items-center">
+    <article className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-sm transition-all duration-300 hover:border-blue-200 hover:shadow-xl">
+      <div className="grid gap-5 md:grid-cols-12 md:items-center">
         {/* Left Column: Information */}
-        <div className="flex flex-col justify-between md:col-span-7">
+        <div className="flex flex-col justify-between md:col-span-7 space-y-4">
           <div>
-            <h3 className="pr-2 sm:pr-16 text-lg font-extrabold text-[#173761] sm:text-2xl">
+            {/* Service Tag */}
+            <span className="inline-flex items-center rounded-full bg-blue-50 border border-blue-100 px-3 py-0.5 text-xs font-bold text-[#0058bc]">
+              {item.serviceName}
+            </span>
+
+            {/* Title */}
+            <h3 className="mt-2 text-base sm:text-xl font-black text-slate-900 leading-snug tracking-tight group-hover:text-[#0058bc] transition-colors">
               {item.title}
             </h3>
-            <p className="mt-0.5 text-xs font-bold text-[#0058bc]">
-              {item.serviceName}
-            </p>
 
-            <div className="mt-3 space-y-2.5 text-xs leading-relaxed">
-              <div>
-                <span className="font-bold text-slate-900">Trước điều trị:</span>
-                <p className="mt-0.5 text-slate-600 line-clamp-2">{item.description}</p>
+            {/* Condition & Result Cards */}
+            <div className="mt-3.5 space-y-2.5 text-xs">
+              {/* Tình trạng ban đầu */}
+              <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-3">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                  Tình trạng ban đầu
+                </span>
+                <p className="mt-1 text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                  {item.description}
+                </p>
               </div>
 
-              <div>
-                <span className="font-bold text-slate-900">Sau điều trị:</span>
-                <ul className="mt-1 space-y-1 text-slate-600">
-                  <li className="flex items-center gap-1.5">
+              {/* Kết quả sau điều trị */}
+              <div className="rounded-xl border border-blue-100 bg-blue-50/40 p-3">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#0058bc]">
+                  Kết quả sau điều trị
+                </span>
+                <ul className="mt-1.5 space-y-1.5 text-xs text-slate-700 font-medium">
+                  <li className="flex items-center gap-2">
                     <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#0058bc]" />
-                    Sắp đều răng, khớp cắn chuẩn
+                    <span>Sắp đều răng, khớp cắn chuẩn</span>
                   </li>
-                  <li className="flex items-center gap-1.5">
+                  <li className="flex items-center gap-2">
                     <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#0058bc]" />
-                    Chức năng ăn nhai ổn định
+                    <span>Khôi phục chức năng ăn nhai 100%</span>
                   </li>
-                  <li className="flex items-center gap-1.5">
+                  <li className="flex items-center gap-2">
                     <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#0058bc]" />
-                    Khuôn cười tươi tắn, tự tin
+                    <span>Khuôn cười tươi tắn, rạng rỡ</span>
                   </li>
                 </ul>
               </div>
             </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-slate-100 pt-3 text-[11px] text-slate-500">
-            <span className="flex items-center gap-1.5 font-medium text-slate-700">
-              <DashboardIcon name="user" className="h-3.5 w-3.5 text-[#0058bc]" />
-              {item.doctorName}
+          {/* Footer: Doctor & Duration */}
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3 text-xs text-slate-600">
+            <span className="flex items-center gap-1.5 font-bold text-slate-800">
+              <span className="text-slate-400">👨‍⚕️</span> {item.doctorName}
             </span>
-            <span>•</span>
-            <span className="flex items-center gap-1 font-medium text-slate-700">
-              <DashboardIcon name="clock" className="h-3.5 w-3.5 text-[#0058bc]" />
-              {item.duration}
+            <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
+              <span>⏱️</span> {item.duration}
             </span>
           </div>
         </div>
 
-        {/* Right Column: Side-by-side on mobile, stacked on desktop */}
-        <div className="grid grid-cols-2 gap-2 md:flex md:flex-col md:col-span-5">
+        {/* Right Column: Before & After Photo Frames */}
+        <div className="grid grid-cols-2 gap-2.5 md:flex md:flex-col md:col-span-5">
           {/* Top/Left Image: Before */}
-          <div className="relative overflow-hidden rounded-xl bg-slate-100 shadow-xs aspect-[4/3]">
+          <div className="group/img relative overflow-hidden rounded-2xl bg-slate-100 border border-slate-200/90 shadow-2xs aspect-[4/3]">
             {item.beforeImageUrl ? (
               <Image
                 src={item.beforeImageUrl}
                 alt={`${item.title} trước điều trị`}
                 fill
-                sizes="(max-width: 768px) 45vw, 25vw"
-                className="object-cover"
+                sizes="(max-width: 768px) 50vw, 25vw"
+                className="object-cover transition-transform duration-500 group-hover/img:scale-105"
               />
             ) : null}
-            <div className="absolute inset-x-0 bottom-0 bg-black/70 py-1 text-center text-[10px] sm:text-[11px] font-bold text-white backdrop-blur-xs">
-              Trước điều trị
-            </div>
+            <span className="absolute top-2.5 left-2.5 rounded-full bg-slate-900/80 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-white shadow-xs backdrop-blur-xs">
+              Trước
+            </span>
           </div>
 
           {/* Bottom/Right Image: After */}
-          <div className="relative overflow-hidden rounded-xl bg-slate-100 shadow-xs aspect-[4/3]">
+          <div className="group/img relative overflow-hidden rounded-2xl bg-slate-100 border border-blue-200/80 shadow-2xs aspect-[4/3]">
             {item.afterImageUrl ? (
               <Image
                 src={item.afterImageUrl}
                 alt={`${item.title} sau điều trị`}
                 fill
-                sizes="(max-width: 768px) 45vw, 25vw"
-                className="object-cover"
+                sizes="(max-width: 768px) 50vw, 25vw"
+                className="object-cover transition-transform duration-500 group-hover/img:scale-105"
               />
             ) : null}
-            <div className="absolute inset-x-0 bottom-0 bg-black/75 py-1 text-center text-[10px] sm:text-[11px] font-bold text-white backdrop-blur-xs">
-              Sau điều trị
-            </div>
+            <span className="absolute top-2.5 left-2.5 rounded-full bg-[#0058bc] px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-white shadow-xs backdrop-blur-xs">
+              Sau
+            </span>
           </div>
         </div>
       </div>
@@ -102,17 +110,17 @@ function ParkwayClinicalCaseCard({ item }: { item: HomeClinicalCase }) {
 
 function ClinicalCaseSkeleton() {
   return (
-    <article className="rounded-3xl border border-slate-200 bg-white p-5 sm:p-7 shadow-sm">
+    <article className="rounded-3xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm">
       <div className="grid gap-6 md:grid-cols-12">
         <div className="space-y-4 md:col-span-7">
+          <div className="h-6 w-24 animate-pulse rounded-full bg-slate-100" />
           <div className="h-7 w-2/3 animate-pulse rounded bg-slate-100" />
-          <div className="h-4 w-1/3 animate-pulse rounded bg-slate-100" />
-          <div className="h-16 animate-pulse rounded bg-slate-100" />
-          <div className="h-12 animate-pulse rounded bg-slate-100" />
+          <div className="h-16 animate-pulse rounded-xl bg-slate-100" />
+          <div className="h-20 animate-pulse rounded-xl bg-slate-100" />
         </div>
-        <div className="grid grid-cols-2 gap-2 md:flex md:flex-col md:col-span-5">
-          <div className="aspect-[4/3] animate-pulse rounded-xl bg-slate-100" />
-          <div className="aspect-[4/3] animate-pulse rounded-xl bg-slate-100" />
+        <div className="grid grid-cols-2 gap-2.5 md:flex md:flex-col md:col-span-5">
+          <div className="aspect-[4/3] animate-pulse rounded-2xl bg-slate-100" />
+          <div className="aspect-[4/3] animate-pulse rounded-2xl bg-slate-100" />
         </div>
       </div>
     </article>
@@ -136,15 +144,12 @@ export function ClinicalCasesSection() {
 
   return (
     <section className="relative">
-      <div className="relative mx-auto max-w-3xl text-center mb-4 sm:mb-10">
-        <p className={`${T.overline} text-[#0058bc]`}>
-          Kết quả điều trị
-        </p>
-        <h2 className="mx-auto mt-2 text-2xl font-bold tracking-tight text-[#173761] sm:text-4xl">
+      <div className="relative mx-auto max-w-3xl text-center mb-6 sm:mb-10">
+        <h2 className="mx-auto text-2xl font-black tracking-tight text-[#173761] sm:text-4xl">
           Kiệt tác Nụ cười
         </h2>
         <p className={`mx-auto mt-2 text-xs sm:text-base ${T.body}`}>
-          Hình ảnh trước và sau từ các ca điều trị thực tế đã được bệnh nhân đồng ý công khai.
+          Hình ảnh thực tế trước và sau điều trị đã được bệnh nhân đồng ý công khai.
         </p>
       </div>
 
@@ -162,22 +167,26 @@ export function ClinicalCasesSection() {
                 type="button"
                 onClick={handlePrev}
                 aria-label="Ca điều trị trước"
-                className="hidden sm:grid absolute -left-4 top-1/2 z-20 h-10 w-10 -translate-y-1/2 place-items-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-lg transition hover:bg-slate-50 hover:text-[#0058bc]"
+                className="hidden sm:grid absolute -left-5 lg:-left-6 top-1/2 z-20 h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-md transition hover:scale-105 hover:bg-slate-50 hover:text-[#0058bc] hover:border-blue-200 active:scale-95 cursor-pointer"
               >
-                &#8249;
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
               </button>
               <button
                 type="button"
                 onClick={handleNext}
                 aria-label="Ca điều trị tiếp theo"
-                className="hidden sm:grid absolute -right-4 top-1/2 z-20 h-10 w-10 -translate-y-1/2 place-items-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-lg transition hover:bg-slate-50 hover:text-[#0058bc]"
+                className="hidden sm:grid absolute -right-5 lg:-right-6 top-1/2 z-20 h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-md transition hover:scale-105 hover:bg-slate-50 hover:text-[#0058bc] hover:border-blue-200 active:scale-95 cursor-pointer"
               >
-                &#8250;
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
               </button>
             </>
           )}
 
-          <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
+          <div className="grid gap-5 sm:gap-6 lg:grid-cols-2">
             {visibleCases.map((item) => (
               <ParkwayClinicalCaseCard key={item.id} item={item} />
             ))}

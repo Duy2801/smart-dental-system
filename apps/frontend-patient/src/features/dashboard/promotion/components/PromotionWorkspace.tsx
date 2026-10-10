@@ -98,25 +98,19 @@ export function PromotionWorkspace() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-[1360px] space-y-8 px-4 py-6 sm:px-6 lg:px-8">
+    <main className="mx-auto w-full max-w-[1360px] space-y-8 px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
       {/* Intro Header & Search Section (Left-aligned & Natural Flow) */}
-      <section className="space-y-4">
-        <div className="space-y-2">
-          <div>
-            <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 border border-blue-200 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-[#0058bc]">
-              <DashboardIcon name="sparkles" className="h-3.5 w-3.5 text-[#0058bc]" />
-              Đặc quyền cho bệnh nhân
-            </span>
-          </div>
-
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900">
+      <section className="py-2 space-y-3">
+        <div>
+        </div>
+          <h1 className="text-2xl sm:text-3xl font-black text-[#07366f]">
             Chương Trình Ưu Đãi & Voucher Nha Khoa
           </h1>
 
           <p className="text-sm text-slate-600 leading-relaxed max-w-3xl">
             Khám phá các mã giảm giá và chương trình ưu đãi đặc biệt từ Smart Dental. Áp dụng mã trực tiếp khi đặt lịch khám để tiết kiệm chi phí điều trị tối đa.
           </p>
-        </div>
+      </section>
 
         {/* Search input bar & Filter pills in one clean left-aligned row */}
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center pt-1">
@@ -167,7 +161,6 @@ export function PromotionWorkspace() {
             ))}
           </div>
         </div>
-      </section>
 
       {/* Grid of Promotions (Horizontal 2-column layout per row) */}
       {isLoading ? (
@@ -225,6 +218,6 @@ export function PromotionWorkspace() {
         onClose={() => setShowAuthModal(false)}
         returnUrl="/promotions"
       />
-    </div>
+    </main>
   );
 }

@@ -56,7 +56,7 @@ export function ScheduleToolbar({
           disabled={!doctorId || scheduleDisabled}
           className="h-12"
         >
-          Thêm ca
+          Cập nhật ca
         </AdminButton>
         <AdminButton
           onClick={onOpenAuto}

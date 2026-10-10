@@ -22,6 +22,21 @@ const serviceInclude = {
   },
 };
 
+function getServiceInclude(onlyActiveMethods = false) {
+  return {
+    treatmentMethods: {
+      where: onlyActiveMethods ? { isActive: true } : undefined,
+      orderBy: { displayOrder: 'asc' as const },
+      include: {
+        _count: { select: { appointments: true } },
+        media: { orderBy: { sortOrder: 'asc' as const } },
+        procedureSteps: { orderBy: { stepOrder: 'asc' as const } },
+        faqs: { orderBy: { sortOrder: 'asc' as const } },
+      },
+    },
+  };
+}
+
 const serviceSummarySelect = {
   id: true,
   category: true,
@@ -56,12 +71,32 @@ const serviceSummarySelect = {
       durationMinutes: true,
       displayOrder: true,
       isActive: true,
+      faqs: {
+        orderBy: { sortOrder: 'asc' as const },
+        select: {
+          id: true,
+          question: true,
+          answer: true,
+          sortOrder: true,
+        },
+      },
     },
   },
 };
 
 const serviceCachePrefix = 'catalog:services:';
 const serviceCacheTtlSeconds = 10 * 60;
+
+function getServiceSummarySelect(onlyActiveMethods = false) {
+  return {
+    ...serviceSummarySelect,
+    treatmentMethods: {
+      where: onlyActiveMethods ? { isActive: true } : undefined,
+      orderBy: { displayOrder: 'asc' as const },
+      select: serviceSummarySelect.treatmentMethods.select,
+    },
+  };
+}
 
 function cleanOptionalText(value?: string) {
   const trimmed = value?.trim();
@@ -141,6 +176,7 @@ export class ServiceService {
       ],
     };
 
+    const onlyActiveMethods = query.isActive === true;
     const listQuery =
       query.view === 'summary'
         ? this.prisma.service.findMany({
@@ -153,7 +189,7 @@ export class ServiceService {
               { category: 'asc' as const },
               { name: 'asc' as const },
             ],
-            select: serviceSummarySelect,
+            select: getServiceSummarySelect(onlyActiveMethods),
           })
         : this.prisma.service.findMany({
             where,
@@ -165,7 +201,7 @@ export class ServiceService {
               { category: 'asc' },
               { name: 'asc' },
             ],
-            include: serviceInclude,
+            include: getServiceInclude(onlyActiveMethods),
           });
 
     const [data, total] = await Promise.all([
@@ -570,8 +606,12 @@ export class ServiceService {
     return { message: 'treatment_method.deleted' };
   }
 
-  private invalidateCache() {
-    return this.redis.delByPrefix(serviceCachePrefix);
+  private async invalidateCache() {
+    await Promise.allSettled([
+      this.redis.delByPrefix(serviceCachePrefix),
+      this.redis.delByPrefix('booking:catalog:services:'),
+      this.redis.incr('booking:version'),
+    ]);
   }
 
   private async ensureServiceExists(id: string) {

@@ -1,74 +1,70 @@
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { getManagedPatientProfiles } from '~src/features/appointment/api';
 import type { PatientProfile } from '~src/features/appointment/types';
 import type { RootState } from '~src/reducers/store';
-import { getPatientRecords, mapRecordTreatments } from '../api';
-import type { TreatmentRecordView } from '../types';
+import { getPatientRecordsPlans, getPatientRecordsSummary, mapRecordTreatments } from '../api';
+import type { PatientRecordsResponse } from '../types';
 
 export function usePatientRecordsData() {
   const loginState = useSelector((state: RootState) => state.login);
   const isLoggedIn = Boolean(loginState?.accessToken);
   const isHydrated = loginState?.isHydrated ?? true;
 
-  // 1. Fetch managed patient profiles (Gia đình)
   const profilesQuery = useQuery<PatientProfile[]>({
     queryKey: ['managed-patient-profiles'],
     queryFn: getManagedPatientProfiles,
     enabled: isLoggedIn,
-    staleTime: 60000,
+    staleTime: 60_000,
   });
-
   const profiles = profilesQuery.data ?? [];
-  const [selectedPatientId, setSelectedPatientId] = useState<string>('');
+  const [selectedPatientId, setSelectedPatientId] = useState('');
+  const activePatientId = profiles.some(profile => profile.id === selectedPatientId)
+    ? selectedPatientId
+    : (profiles.find(profile => profile.isPrimary) ?? profiles[0])?.id ?? '';
+  const enabled = isLoggedIn && Boolean(activePatientId);
 
-  const activePatientId = useMemo(() => {
-    if (selectedPatientId) return selectedPatientId;
-    if (profiles.length === 0) return '';
-    const primary = profiles.find(p => p.isPrimary) ?? profiles[0];
-    return primary?.id ?? '';
-  }, [profiles, selectedPatientId]);
-
-  useEffect(() => {
-    if (activePatientId && !selectedPatientId) {
-      setSelectedPatientId(activePatientId);
-    }
-  }, [activePatientId, selectedPatientId]);
-
-  // 2. Fetch records of active patient
-  const recordsQuery = useQuery({
-    queryKey: ['patient-records', activePatientId],
-    queryFn: () => getPatientRecords(activePatientId || undefined),
-    enabled: isLoggedIn,
-    staleTime: 60000,
+  const summaryQuery = useQuery({
+    queryKey: ['patient-records', activePatientId, 'summary'],
+    queryFn: () => getPatientRecordsSummary(activePatientId),
+    enabled,
+    staleTime: 5_000,
+  });
+  const plansQuery = useQuery({
+    queryKey: ['patient-records', activePatientId, 'plans'],
+    queryFn: () => getPatientRecordsPlans(activePatientId),
+    enabled,
+    staleTime: 5_000,
   });
 
-  const recordsData = recordsQuery.data;
-
-  // 3. Map treatment plans
-  const treatments = useMemo<TreatmentRecordView[]>(() => {
-    if (!recordsData?.treatmentPlans) return [];
-    return mapRecordTreatments(recordsData.treatmentPlans);
-  }, [recordsData]);
-
-  // 4. Selected treatment plan state
-  const [selectedPlanId, setSelectedPlanId] = useState<string>('');
-
-  useEffect(() => {
-    if (treatments.length > 0) {
-      setSelectedPlanId(prev => {
-        const exists = treatments.some(t => t.id === prev);
-        return exists ? prev : treatments[0].id;
-      });
-    } else {
-      setSelectedPlanId('');
-    }
-  }, [treatments]);
-
-  const selectedTreatment = useMemo(() => {
-    return treatments.find(t => t.id === selectedPlanId) || treatments[0] || null;
-  }, [treatments, selectedPlanId]);
+  const selectedProfile = profiles.find(profile => profile.id === activePatientId);
+  const profilePatient: PatientRecordsResponse['patient'] | null = selectedProfile
+    ? {
+        id: selectedProfile.id,
+        patientCode: selectedProfile.patientCode,
+        fullName: selectedProfile.fullName,
+        phone: selectedProfile.phone ?? null,
+        email: selectedProfile.email ?? '',
+        gender: selectedProfile.gender === 'MALE' || selectedProfile.gender === 'FEMALE' || selectedProfile.gender === 'OTHER'
+          ? selectedProfile.gender : 'UNKNOWN',
+        dateOfBirth: selectedProfile.dateOfBirth ?? null,
+        age: null,
+        address: selectedProfile.address ?? null,
+        medicalHistory: selectedProfile.medicalHistory ?? null,
+        lastVisitAt: selectedProfile.lastVisit ?? null,
+      }
+    : null;
+  const patient = summaryQuery.data?.patient ?? profilePatient;
+  const recordsData: PatientRecordsResponse | null = patient ? {
+    patient,
+    medicalRecords: summaryQuery.data?.medicalRecords ?? [],
+    treatmentPlans: plansQuery.data?.treatmentPlans ?? [],
+  } : null;
+  const treatments = useMemo(
+    () => mapRecordTreatments(plansQuery.data?.treatmentPlans ?? []),
+    [plansQuery.data],
+  );
 
   return {
     isLoggedIn,
@@ -78,14 +74,14 @@ export function usePatientRecordsData() {
     setActivePatientId: setSelectedPatientId,
     recordsData,
     treatments,
-    selectedTreatment,
-    selectedPlanId,
-    setSelectedPlanId,
-    isLoading: profilesQuery.isLoading || recordsQuery.isLoading,
-    isRefetching: recordsQuery.isRefetching,
+    isLoading: profilesQuery.isLoading,
+    recordsLoading: enabled && (summaryQuery.isLoading || plansQuery.isLoading),
+    isRefetching: profilesQuery.isRefetching || summaryQuery.isRefetching || plansQuery.isRefetching,
+    summaryError: summaryQuery.isError,
+    plansError: plansQuery.isError,
     refetch: async () => {
       await profilesQuery.refetch();
-      await recordsQuery.refetch();
+      if (enabled) await Promise.all([summaryQuery.refetch(), plansQuery.refetch()]);
     },
   };
 }

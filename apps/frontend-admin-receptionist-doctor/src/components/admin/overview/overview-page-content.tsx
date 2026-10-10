@@ -2,7 +2,11 @@
 
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { SkeletonCardGrid, SkeletonChart, SkeletonRows } from "@/src/components/admin/common";
+import {
+  SkeletonCardGrid,
+  SkeletonChart,
+  SkeletonRows,
+} from "@/src/components/admin/common";
 import { Header } from "@/src/components/layout/header";
 import { queryKeys } from "@/src/lib/query/query-keys";
 import { cn } from "@/src/lib/utils/cn";
@@ -27,6 +31,10 @@ const statusConfig: Record<
   CONFIRMED: {
     label: "Đã xác nhận",
     color: "bg-blue-100 text-blue-700 border-blue-200",
+  },
+  CANCELLATION_REQUESTED: {
+    label: "Chờ xác nhận hủy",
+    color: "bg-rose-100 text-rose-700 border-rose-200",
   },
   CHECKED_IN: {
     label: "Đã Check-in",
@@ -76,8 +84,6 @@ export function OverviewPageContent() {
       <Header title="Tổng quan quản lý" description={currentDate} />
 
       <div className="space-y-6 p-4 sm:p-6 lg:p-8">
-
-
         {isLoading ? (
           <div className="space-y-6">
             <SkeletonCardGrid count={5} />
@@ -134,7 +140,9 @@ function OverviewStat({ stat }: { stat: OverviewStatCard }) {
 
   return (
     <div className="rounded-2xl border border-border bg-white p-5 shadow-xs transition-all hover:shadow-md">
-      <p className="text-sm font-semibold text-muted-foreground">{stat.label}</p>
+      <p className="text-sm font-semibold text-muted-foreground">
+        {stat.label}
+      </p>
       <div className="mt-2 flex items-baseline gap-1.5">
         <p className="font-mono text-3xl font-bold text-brand-dark">
           {formatStatValue(stat)}
@@ -152,23 +160,23 @@ function OverviewStat({ stat }: { stat: OverviewStatCard }) {
         <span
           className={cn(
             "rounded-full px-2 py-0.5 font-bold",
-            isPositive ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700",
+            isPositive
+              ? "bg-emerald-100 text-emerald-700"
+              : "bg-red-100 text-red-700",
           )}
         >
           {isPositive ? "+" : ""}
           {stat.trend}%
         </span>
-        <span className="ml-2 text-muted-foreground font-medium">{stat.trendLabel}</span>
+        <span className="ml-2 text-muted-foreground font-medium">
+          {stat.trendLabel}
+        </span>
       </div>
     </div>
   );
 }
 
-function ActionItems({
-  items,
-}: {
-  items: OverviewDashboard["actionItems"];
-}) {
+function ActionItems({ items }: { items: OverviewDashboard["actionItems"] }) {
   return (
     <div className="flex max-h-[400px] flex-col rounded-2xl border border-border bg-white shadow-xs">
       <div className="shrink-0 border-b border-border p-5">
@@ -243,38 +251,47 @@ function TodaySchedule({
           </div>
         ) : null}
         <div className="relative ml-3 space-y-6 border-l-2 border-slate-100 pb-2 md:ml-4">
-          {appointments.map((item) => (
-            <div key={item.id} className="group relative pl-6 sm:pl-8">
-              <span className="absolute -left-[5px] top-1.5 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-brand ring-4 ring-white" />
-              <div className="flex flex-col gap-3 rounded-2xl border border-transparent p-4 transition-colors hover:border-border hover:bg-slate-50 sm:flex-row sm:items-start sm:justify-between">
-                <div className="flex flex-col gap-1.5">
-                  <span className="font-mono text-sm font-bold text-brand">
-                    {item.start_time} - {item.end_time}
-                  </span>
-                  <span className="text-base font-bold text-brand-dark">
-                    {item.patient_name}
-                  </span>
-                  <div className="mt-1 flex items-center gap-2">
-                    <span className="text-xs font-medium text-muted-foreground">
-                      {item.service_name}
+          {appointments.map((item) => {
+            const status = statusConfig[item.status] ?? {
+              label: item.status || "Không rõ trạng thái",
+              color: "bg-slate-100 text-slate-700 border-slate-200",
+            };
+
+            return (
+              <div key={item.id} className="group relative pl-6 sm:pl-8">
+                <span className="absolute -left-[5px] top-1.5 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-brand ring-4 ring-white" />
+                <div className="flex flex-col gap-3 rounded-2xl border border-transparent p-4 transition-colors hover:border-border hover:bg-slate-50 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="flex flex-col gap-1.5">
+                    <span className="font-mono text-sm font-bold text-brand">
+                      {item.start_time} - {item.end_time}
                     </span>
-                    <span className="h-1 w-1 rounded-full bg-slate-300" />
-                    <span className="text-xs font-bold text-brand">{item.doctor_name}</span>
+                    <span className="text-base font-bold text-brand-dark">
+                      {item.patient_name}
+                    </span>
+                    <div className="mt-1 flex items-center gap-2">
+                      <span className="text-xs font-medium text-muted-foreground">
+                        {item.service_name}
+                      </span>
+                      <span className="h-1 w-1 rounded-full bg-slate-300" />
+                      <span className="text-xs font-bold text-brand">
+                        {item.doctor_name}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 items-center">
+                    <span
+                      className={cn(
+                        "inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold",
+                        status.color,
+                      )}
+                    >
+                      {status.label}
+                    </span>
                   </div>
                 </div>
-                <div className="flex shrink-0 items-center">
-                  <span
-                    className={cn(
-                      "inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold",
-                      statusConfig[item.status].color,
-                    )}
-                  >
-                    {statusConfig[item.status].label}
-                  </span>
-                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

@@ -42,6 +42,7 @@ export type OverviewAppointment = {
   status:
     | "PENDING"
     | "CONFIRMED"
+    | "CANCELLATION_REQUESTED"
     | "CHECKED_IN"
     | "IN_PROGRESS"
     | "COMPLETED"

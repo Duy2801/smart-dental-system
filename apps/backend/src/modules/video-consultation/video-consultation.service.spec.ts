@@ -110,6 +110,7 @@ describe('VideoConsultationService', () => {
         ]),
       },
       $transaction: jest.fn((cb) => cb(prismaMock)),
+      $queryRaw: jest.fn().mockResolvedValue([]),
     };
 
     paymentServiceMock = {};
@@ -300,7 +301,7 @@ describe('VideoConsultationService', () => {
       const result = await service.start('consult-1', doctorUser);
 
       expect(result.status).toBe(VideoConsultationStatus.IN_PROGRESS);
-      expect(result.meetingUrl).toBe('https://meet.jit.si/sds-consult-consult-1');
+      expect(result.meetingUrl).toBe('https://meet.darmstadt.social/sds-consult-consult-1');
       expect(result.roomPin).toBeNull();
     });
 
@@ -311,7 +312,7 @@ describe('VideoConsultationService', () => {
       );
       expect(res.status).toBe(VideoConsultationStatus.SCHEDULED);
       expect(res.isDoctorStarted).toBe(false);
-      expect(res.meetingUrl).toBe('https://meet.jit.si/sds-room-1');
+      expect(res.meetingUrl).toBe('https://meet.darmstadt.social/sds-room-1');
     });
   });
 
@@ -396,6 +397,10 @@ describe('VideoConsultationService', () => {
         }),
       );
       expect(paymentServiceMock.createPayment).toHaveBeenCalled();
+      expect(prismaMock.$queryRaw).toHaveBeenCalledTimes(2);
+      expect(prismaMock.$queryRaw.mock.invocationCallOrder[1]).toBeLessThan(
+        prismaMock.appointment.findFirst.mock.invocationCallOrder[0],
+      );
       expect(prismaMock.appointment.findFirst).toHaveBeenNthCalledWith(
         1,
         expect.objectContaining({
@@ -549,7 +554,7 @@ describe('VideoConsultationService', () => {
       const res = await service.findOne('consult-1', doctorUser);
 
       expect(res.id).toBe('consult-1');
-      expect(res.meetingUrl).toBe('https://meet.jit.si/sds-room-1');
+      expect(res.meetingUrl).toBe('https://meet.darmstadt.social/sds-room-1');
       expect(res.roomPin).toBe('123456');
       expect(res.chatbotSessions).toHaveLength(1);
       expect(res.chatbotSessions[0].messages).toHaveLength(2);

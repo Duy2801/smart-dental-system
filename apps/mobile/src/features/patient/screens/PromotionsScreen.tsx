@@ -228,9 +228,6 @@ export default function PromotionsScreen({ navigation }: any) {
             source={{ uri: item.image_url || defaultPromoBanner }}
             style={styles.cardImage}
           />
-          <View style={styles.discountBadge}>
-            <Text style={styles.discountBadgeText}>{discountLabel}</Text>
-          </View>
         </View>
 
         {/* Card Content */}
@@ -261,26 +258,6 @@ export default function PromotionsScreen({ navigation }: any) {
             {item.description}
           </Text>
 
-          {/* Progress Bar (if max_uses > 0) */}
-          {item.max_uses > 0 && (
-            <View style={styles.progressContainer}>
-              <View style={styles.progressLabelRow}>
-                <Text style={styles.progressLabel}>Lượt đã dùng</Text>
-                <Text style={styles.progressValue}>
-                  {item.used_count}/{item.max_uses}
-                </Text>
-              </View>
-              <View style={styles.progressBarTrack}>
-                <View
-                  style={[
-                    styles.progressBarFill,
-                    { width: `${usagePercent}%` },
-                    usagePercent >= 90 && styles.progressBarWarn,
-                  ]}
-                />
-              </View>
-            </View>
-          )}
 
           {/* Bottom Row */}
           <View style={styles.cardFooter}>

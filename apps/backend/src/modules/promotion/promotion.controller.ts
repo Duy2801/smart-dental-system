@@ -1,5 +1,6 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import type { Request } from 'express';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -16,8 +17,13 @@ export class PromotionController {
   constructor(private readonly promotionService: PromotionService) {}
 
   @Get()
-  findAll(@Query() query: PromotionQueryDto) {
-    return this.promotionService.findAll(query);
+  findAll(@Query() query: PromotionQueryDto, @Req() req: Request) {
+    const isAdmin =
+      req?.originalUrl?.includes('/admin/promotions') ||
+      req?.url?.includes('/admin/promotions') ||
+      query?.all === true ||
+      query?.scope === 'admin';
+    return this.promotionService.findAll(query, isAdmin);
   }
 
   @Post()

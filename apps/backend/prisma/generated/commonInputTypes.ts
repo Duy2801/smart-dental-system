@@ -793,6 +793,13 @@ export type EnumSupportMessageSenderFilter<$PrismaModel = never> = {
   not?: Prisma.NestedEnumSupportMessageSenderFilter<$PrismaModel> | $Enums.SupportMessageSender
 }
 
+export type EnumSupportMessageSenderNullableFilter<$PrismaModel = never> = {
+  equals?: $Enums.SupportMessageSender | Prisma.EnumSupportMessageSenderFieldRefInput<$PrismaModel> | null
+  in?: $Enums.SupportMessageSender[] | Prisma.ListEnumSupportMessageSenderFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.SupportMessageSender[] | Prisma.ListEnumSupportMessageSenderFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumSupportMessageSenderNullableFilter<$PrismaModel> | $Enums.SupportMessageSender | null
+}
+
 export type EnumSupportMessageSenderWithAggregatesFilter<$PrismaModel = never> = {
   equals?: $Enums.SupportMessageSender | Prisma.EnumSupportMessageSenderFieldRefInput<$PrismaModel>
   in?: $Enums.SupportMessageSender[] | Prisma.ListEnumSupportMessageSenderFieldRefInput<$PrismaModel>
@@ -801,6 +808,16 @@ export type EnumSupportMessageSenderWithAggregatesFilter<$PrismaModel = never> =
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumSupportMessageSenderFilter<$PrismaModel>
   _max?: Prisma.NestedEnumSupportMessageSenderFilter<$PrismaModel>
+}
+
+export type EnumSupportMessageSenderNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.SupportMessageSender | Prisma.EnumSupportMessageSenderFieldRefInput<$PrismaModel> | null
+  in?: $Enums.SupportMessageSender[] | Prisma.ListEnumSupportMessageSenderFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.SupportMessageSender[] | Prisma.ListEnumSupportMessageSenderFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumSupportMessageSenderNullableWithAggregatesFilter<$PrismaModel> | $Enums.SupportMessageSender | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumSupportMessageSenderNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumSupportMessageSenderNullableFilter<$PrismaModel>
 }
 
 export type EnumVideoConsultationStatusFilter<$PrismaModel = never> = {
@@ -1622,6 +1639,13 @@ export type NestedEnumSupportMessageSenderFilter<$PrismaModel = never> = {
   not?: Prisma.NestedEnumSupportMessageSenderFilter<$PrismaModel> | $Enums.SupportMessageSender
 }
 
+export type NestedEnumSupportMessageSenderNullableFilter<$PrismaModel = never> = {
+  equals?: $Enums.SupportMessageSender | Prisma.EnumSupportMessageSenderFieldRefInput<$PrismaModel> | null
+  in?: $Enums.SupportMessageSender[] | Prisma.ListEnumSupportMessageSenderFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.SupportMessageSender[] | Prisma.ListEnumSupportMessageSenderFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumSupportMessageSenderNullableFilter<$PrismaModel> | $Enums.SupportMessageSender | null
+}
+
 export type NestedEnumSupportMessageSenderWithAggregatesFilter<$PrismaModel = never> = {
   equals?: $Enums.SupportMessageSender | Prisma.EnumSupportMessageSenderFieldRefInput<$PrismaModel>
   in?: $Enums.SupportMessageSender[] | Prisma.ListEnumSupportMessageSenderFieldRefInput<$PrismaModel>
@@ -1630,6 +1654,16 @@ export type NestedEnumSupportMessageSenderWithAggregatesFilter<$PrismaModel = ne
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumSupportMessageSenderFilter<$PrismaModel>
   _max?: Prisma.NestedEnumSupportMessageSenderFilter<$PrismaModel>
+}
+
+export type NestedEnumSupportMessageSenderNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.SupportMessageSender | Prisma.EnumSupportMessageSenderFieldRefInput<$PrismaModel> | null
+  in?: $Enums.SupportMessageSender[] | Prisma.ListEnumSupportMessageSenderFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.SupportMessageSender[] | Prisma.ListEnumSupportMessageSenderFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumSupportMessageSenderNullableWithAggregatesFilter<$PrismaModel> | $Enums.SupportMessageSender | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumSupportMessageSenderNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumSupportMessageSenderNullableFilter<$PrismaModel>
 }
 
 export type NestedEnumVideoConsultationStatusFilter<$PrismaModel = never> = {

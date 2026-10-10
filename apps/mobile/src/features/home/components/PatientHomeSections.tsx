@@ -859,6 +859,8 @@ export function ClinicLocationPreviewSection({
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link rel="preconnect" href="https://maps.google.com" />
+    <link rel="preconnect" href="https://maps.gstatic.com" crossorigin />
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
       html, body { width: 100%; height: 100%; overflow: hidden; background: #F8FAFC; }
@@ -869,7 +871,7 @@ export function ClinicLocationPreviewSection({
     <iframe
       src="${mapEmbedUrl}"
       allowfullscreen=""
-      loading="lazy"
+      loading="eager"
       referrerpolicy="no-referrer-when-downgrade"
     ></iframe>
   </body>

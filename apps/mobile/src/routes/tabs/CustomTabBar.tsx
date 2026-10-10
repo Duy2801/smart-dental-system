@@ -1,8 +1,8 @@
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { StackActions } from '@react-navigation/native';
-import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Keyboard, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSelector } from 'react-redux';
 import { SCREEN_NAME } from '~src/constants/screenName';
@@ -34,11 +34,27 @@ const CustomTabBar = ({
 }: BottomTabBarProps) => {
   const insets = useSafeAreaInsets();
   const accessToken = useSelector((s: RootState) => s.login.accessToken);
+  const [keyboardVisible, setKeyboardVisible] = useState(() => Keyboard.isVisible());
+  useEffect(() => {
+    const show = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => setKeyboardVisible(true),
+    );
+    const hide = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setKeyboardVisible(false),
+    );
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+  const activeOptions = descriptors[state.routes[state.index].key].options;
   const currentParams = state.routes[state.index]?.params as
     | { hideTabBar?: boolean }
     | undefined;
 
-  if (currentParams?.hideTabBar) return null;
+  if (currentParams?.hideTabBar || (activeOptions.tabBarHideOnKeyboard && keyboardVisible)) return null;
 
   return (
     <View style={[styles.wrapper, { paddingBottom: Math.max(insets.bottom, 6) }]}>

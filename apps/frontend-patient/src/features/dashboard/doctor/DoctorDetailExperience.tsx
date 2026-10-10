@@ -224,21 +224,6 @@ export function DoctorDetailExperience({ doctorId }: { doctorId: string }) {
                 <p className={`mt-1 ${T.caption}`}>Chứng chỉ</p>
               </div>
             </div>
-
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link
-                href={buildRoute.appointmentWithDoctor(doctor.id)}
-                className="rounded-xl bg-[#0058bc] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-blue-200"
-              >
-                Đặt lịch hẹn
-              </Link>
-              <a
-                href="#doctor-chat"
-                className="rounded-xl border border-[#0058bc] px-5 py-3 text-sm font-bold text-[#0058bc]"
-              >
-                Trao đổi với bác sĩ
-              </a>
-            </div>
           </div>
         </div>
       </section>

@@ -4,6 +4,7 @@ import { AppointmentService } from './appointment.service';
 describe('AppointmentService clinic-time rules', () => {
   const prisma = {
     $transaction: jest.fn(),
+    $queryRaw: jest.fn().mockResolvedValue([]),
     appointment: {
       findUnique: jest.fn(),
       findFirst: jest.fn(),

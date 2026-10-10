@@ -32,7 +32,7 @@ export function ServiceDetailExperience({ serviceId }: { serviceId: string }) {
 
   if (isLoading) return <ServiceDetailLoadingState />;
 
-  if (!service) return <ServiceDetailNotFound />;
+  if (!service || service.isActive === false) return <ServiceDetailNotFound />;
 
   const activeMethod =
     treatmentMethods.find((m) => m.id === selectedMethodId) ||
@@ -456,23 +456,24 @@ export function ServiceDetailExperience({ serviceId }: { serviceId: string }) {
             )}
           </section>
 
-          <section className="rounded-[28px] bg-slate-950 p-6 text-white shadow-sm sm:p-8">
-            <div className="grid gap-6 md:grid-cols-[1fr_auto] md:items-center">
+          <section className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-[#0058bc] via-[#0863c5] to-[#02408b] p-6 text-white shadow-md sm:p-8">
+            <div className="absolute -top-12 -right-12 w-48 h-48 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+            <div className="relative grid gap-6 md:grid-cols-[1fr_auto] md:items-center">
               <div>
-                <p className={`${T.overline} text-blue-200`}>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-bold tracking-wider text-blue-100 uppercase backdrop-blur-xs">
                   Sẵn sàng bắt đầu?
-                </p>
-                <h2 className="mt-2 text-2xl font-extrabold">
+                </span>
+                <h2 className="mt-2.5 text-xl sm:text-2xl font-extrabold text-white">
                   Đặt lịch {service.title} với bác sĩ phù hợp
                 </h2>
-                <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
+                <p className="mt-2.5 max-w-2xl text-xs sm:text-sm leading-relaxed text-blue-100/90">
                   Khi bấm đặt lịch, hệ thống chuyển sang trang lịch hẹn và chọn
                   sẵn dịch vụ này cho bạn.
                 </p>
               </div>
               <Link
                 href={`/appointment?service=${service.id}${activeMethod ? `&treatmentMethod=${activeMethod.id}` : ""}&intent=booking`}
-                className="inline-flex h-12 items-center justify-center rounded-xl bg-white px-6 text-sm font-extrabold text-[#0863c5] transition hover:bg-blue-50"
+                className="inline-flex h-12 items-center justify-center rounded-xl bg-white px-6 text-sm font-extrabold text-[#0863c5] shadow-md transition hover:bg-blue-50 hover:shadow-lg"
               >
                 Đặt dịch vụ ngay
               </Link>

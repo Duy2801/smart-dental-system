@@ -32,7 +32,7 @@ export function SupportChatOverlay() {
   const { isAuthenticated, accessToken } = useAppSelector((state) => state.login);
   const isLoggedIn = isAuthenticated && Boolean(accessToken);
 
-  const { conversation, messages, loading, sending, start, send } = useSupportChat();
+  const { conversation, messages, loading, sending, error, start, send, sendAttachment } = useSupportChat();
 
   function openPanel() {
     if (!isLoggedIn) {
@@ -107,6 +107,8 @@ export function SupportChatOverlay() {
           loading={loading}
           sending={sending}
           onSend={send}
+          onSendAttachment={sendAttachment}
+          error={error}
           messagesEndRef={messagesEndRef}
           variant="full"
         />
@@ -145,6 +147,8 @@ export function SupportChatOverlay() {
             loading={loading}
             sending={sending}
             onSend={send}
+            onSendAttachment={sendAttachment}
+            error={error}
             messagesEndRef={messagesEndRef}
             variant="compact"
           />

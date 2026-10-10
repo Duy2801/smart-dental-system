@@ -64,6 +64,11 @@ async function bootstrap() {
     ],
     customSiteTitle: 'Smart Dental System API Docs',
   });
-  await app.listen(configService.get<number>('PORT', 3000));
+  const port = Number(
+    configService.get<string>('SERVER_PORT') ??
+      configService.get<string>('PORT') ??
+      3000,
+  );
+  await app.listen(port, '0.0.0.0');
 }
 bootstrap();

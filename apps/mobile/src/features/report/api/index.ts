@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { api } from '~src/config';
 import type {
   PatientRecordsResponse,
@@ -50,19 +49,15 @@ export function unwrapData<T>(res: any): T {
   return res;
 }
 
-export const getPatientRecords = async (patientId?: string): Promise<PatientRecordsResponse | null> => {
-  try {
-    const response = await api.get('/patients/me/records', {
-      params: patientId ? { patientId } : undefined,
-    });
-    return unwrapData<PatientRecordsResponse>(response);
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.status === 404) {
-      return null;
-    }
-    throw error;
-  }
-};
+export async function getPatientRecordsSummary(patientId: string): Promise<Pick<PatientRecordsResponse, 'patient' | 'medicalRecords'>> {
+  const response = await api.get('/patients/me/records/summary', { params: { patientId } });
+  return unwrapData(response);
+}
+
+export async function getPatientRecordsPlans(patientId: string): Promise<Pick<PatientRecordsResponse, 'treatmentPlans'>> {
+  const response = await api.get('/patients/me/records/plans', { params: { patientId } });
+  return unwrapData(response);
+}
 
 
 function determineStepStatus(
@@ -83,52 +78,47 @@ function getPaymentStatusLabel(status?: string): string {
   return 'Chờ thanh toán';
 }
 
-export function detectTreatmentCategory(title: string): string {
-  const value = title.toLowerCase();
-  if (value.includes('implant')) return 'Implant';
-  if (value.includes('chỉnh') || value.includes('nieng') || value.includes('niềng')) {
-    return 'Chỉnh nha';
+export function cleanRecordTitle(
+  title?: string | null,
+  service?: string | null,
+): string {
+  const trimmed = (title || '').trim();
+  const cleanService = (service || '').trim();
+
+  if (!trimmed) {
+    return cleanService ? `Khám ${cleanService}` : 'Hồ sơ khám điều trị nha khoa';
   }
-  if (value.includes('nội nha') || value.includes('tủy')) return 'Nội nha';
-  if (value.includes('thẩm mỹ') || value.includes('sứ')) return 'Nha khoa thẩm mỹ';
-  return 'Khác';
+
+  const lower = trimmed.toLowerCase();
+  if (lower.includes('seed treatment plan 1') || lower.includes('seed diagnosis 1')) {
+    return 'Phác đồ Cấy ghép Implant đơn lẻ (Răng 11)';
+  }
+  if (lower.includes('seed treatment plan 2') || lower.includes('seed diagnosis 2')) {
+    return 'Phác đồ Bọc răng sứ thẩm mỹ Cercon';
+  }
+  if (lower.includes('seed treatment plan 3') || lower.includes('seed diagnosis 3')) {
+    return 'Phác đồ Dán sứ Veneer Emax 2 hàm';
+  }
+  if (lower.startsWith('seed treatment plan') || lower.startsWith('seed diagnosis')) {
+    return cleanService ? `Phác đồ điều trị ${cleanService}` : 'Hồ sơ khám điều trị nha khoa';
+  }
+
+  return trimmed;
 }
 
-export function getDefaultRichPrescription(
-  doctorName: string,
-  dateString?: string | null,
-): RichPrescription {
-  const dateFormatted = dateString ? formatShortDate(dateString) : '24/08/2026';
-  return {
-    id: 'default-presc-01',
-    code: 'DT-SDS-8821',
-    doctor: doctorName || 'BS. Trần Thu Hà',
-    date: dateFormatted,
-    notes: 'Uống thuốc đúng giờ, tái khám đúng lịch hẹn.',
-    items: [
-      {
-        medicineName: 'Amoxicillin 500mg',
-        dosage: '500mg',
-        frequency: '2 lần/ngày (Sáng, Tối)',
-        duration: '5 ngày',
-        instruction: 'Uống sau khi ăn 30 phút, uống nhiều nước.',
-      },
-      {
-        medicineName: 'Paracetamol 500mg',
-        dosage: '500mg',
-        frequency: 'Khi đau (cách nhau 4-6 giờ)',
-        duration: '3 ngày',
-        instruction: 'Uống khi có cảm giác ê buốt hoặc đau nhức.',
-      },
-      {
-        medicineName: 'Nước súc miệng Chlorohexidine 0.12%',
-        dosage: '15ml',
-        frequency: '3 lần/ngày',
-        duration: '7 ngày',
-        instruction: 'Súc miệng kỹ trong 30 giây sau khi chải răng.',
-      },
-    ],
-  };
+export function detectTreatmentCategory(title: string): string {
+  const value = title.toLowerCase();
+  if (value.includes('implant')) return 'Trồng răng Implant';
+  if (value.includes('chỉnh') || value.includes('nieng') || value.includes('niềng')) {
+    return 'Chỉnh nha - Niềng răng';
+  }
+  if (value.includes('nội nha') || value.includes('tủy')) return 'Điều trị tủy - Nội nha';
+  if (value.includes('thẩm mỹ') || value.includes('sứ') || value.includes('veneer')) {
+    return 'Nha khoa thẩm mỹ';
+  }
+  if (value.includes('nhổ') || value.includes('tiểu phẫu')) return 'Tiểu phẫu - Nhổ răng';
+  if (value.includes('trẻ em')) return 'Nha khoa trẻ em';
+  return 'Nha khoa tổng quát';
 }
 
 export function mapRecordTreatments(
@@ -235,10 +225,7 @@ export function mapRecordTreatments(
           totalPaid > 0 ? 'Đã ghi nhận thanh toán' : 'Chưa thanh toán',
         prescriptions:
           allPrescriptions.length > 0 ? allPrescriptions : ['Chưa có đơn thuốc'],
-        richPrescriptions:
-          allRichPrescriptions.length > 0
-            ? allRichPrescriptions
-            : [getDefaultRichPrescription(plan.doctor?.name || '', plan.startDate)],
+        richPrescriptions: allRichPrescriptions,
         careInstructions: [
           'Xem lại toàn bộ ghi chú điều trị và dặn dò của bác sĩ.',
           'Liên hệ phòng khám khi cần tư vấn thêm về quy trình đã thực hiện.',
@@ -252,8 +239,8 @@ export function mapRecordTreatments(
     ];
 
     const completedSteps = stepViews.filter(s => s.status === 'completed').length;
-    const totalSteps = timelineSteps.length;
-    const effectivePrescriptions = timelineSteps.flatMap(s => s.richPrescriptions);
+    const totalSteps = stepViews.length;
+    const effectivePrescriptions = allRichPrescriptions;
 
     const category = detectTreatmentCategory(plan.title);
 
@@ -263,7 +250,7 @@ export function mapRecordTreatments(
 
     return {
       id: plan.id,
-      title: plan.title,
+      title: cleanRecordTitle(plan.title, category),
       date: plan.startDate ? formatLongDate(plan.startDate) : 'Chưa bắt đầu',
       tooth,
       doctor: plan.doctor?.name || 'Bác sĩ chuyên khoa',

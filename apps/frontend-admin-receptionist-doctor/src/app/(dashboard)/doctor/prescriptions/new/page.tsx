@@ -14,6 +14,7 @@ import {
 } from "@phosphor-icons/react";
 import axios from "axios";
 import apiClient from "@/src/lib/api/client";
+import { AdminConfirmModal } from "@/src/components/admin/common";
 import {
   PrescriptionSafetyReview,
   usePrescriptionSafetyReview,
@@ -133,6 +134,8 @@ function NewPrescriptionContent() {
     };
   }, [doctorId, selectedPatientId]);
 
+  const [leaveUrl, setLeaveUrl] = useState<string | null>(null);
+
   useEffect(() => {
     if (!isDirty || success) return;
     const warn = (event: BeforeUnloadEvent) => event.preventDefault();
@@ -142,13 +145,11 @@ function NewPrescriptionContent() {
       if (!(target instanceof Element)) return;
       const anchor = target.closest<HTMLAnchorElement>("a[href]");
       if (!anchor || anchor.origin !== window.location.origin) return;
-      if (
-        !window.confirm(
-          "Đơn thuốc có thay đổi chưa lưu. Bạn có chắc muốn rời trang?",
-        )
-      ) {
+      const href = anchor.getAttribute("href");
+      if (href && href !== window.location.pathname) {
         event.preventDefault();
         event.stopPropagation();
+        setLeaveUrl(href);
       }
     };
     window.addEventListener("beforeunload", warn);
@@ -643,6 +644,21 @@ function NewPrescriptionContent() {
           </div>
         </div>
       </div>
+
+      <AdminConfirmModal
+        isOpen={Boolean(leaveUrl)}
+        title="Rời khỏi trang tạo đơn thuốc?"
+        description="Đơn thuốc có thay đổi chưa lưu. Nếu rời khỏi trang bây giờ, dữ liệu bạn vừa nhập sẽ bị mất."
+        confirmText="Rời trang"
+        cancelText="Ở lại"
+        variant="warning"
+        onConfirm={() => {
+          if (leaveUrl) {
+            router.push(leaveUrl);
+          }
+        }}
+        onClose={() => setLeaveUrl(null)}
+      />
     </div>
   );
 }

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useClinicConfigQuery } from "../hooks/useHomeQueries";
 import { ROUTES } from "../../common/routes";
 import { T } from "../../common/typography";
+import { CachedClinicMap } from "./CachedClinicMap";
 
 type BusinessHour = {
   id: number;
@@ -57,7 +58,7 @@ export function ClinicLocationSection() {
     setTimeout(() => setCopied(false), 2500);
   };
 
-  if (isLoading) {
+  if (isLoading && !clinic) {
     return (
       <section className="rounded-3xl border border-slate-200/90 bg-white p-6 shadow-sm sm:p-8 lg:p-10">
         <div className="h-6 w-52 animate-pulse rounded-full bg-slate-100" />
@@ -80,33 +81,13 @@ export function ClinicLocationSection() {
 
   return (
     <section className="relative overflow-hidden rounded-3xl border border-slate-200/90 bg-white p-6 shadow-sm sm:p-8 lg:p-10">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-xs font-extrabold text-[#0058bc]">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#0058bc] opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-[#0058bc]" />
-            </span>
-            Vị trí phòng khám & Bản đồ
-          </span>
-          <h2 className="mt-3 text-2xl font-extrabold text-slate-900 sm:text-3xl">
-            Thông tin & Vị trí Phòng khám
-          </h2>
-          <p className={`mt-1 ${T.body}`}>
-            Thông tin được lấy trực tiếp từ cấu hình phòng khám trong hệ thống.
-          </p>
-        </div>
-
-        {hasAddress ? (
-          <a
-            href={mapDirectUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 self-start rounded-xl bg-blue-50 px-4 py-2.5 text-xs font-bold text-[#0058bc] transition hover:bg-[#0058bc] hover:text-white"
-          >
-            Mở chỉ đường Google Maps
-          </a>
-        ) : null}
+      <div className="mx-auto max-w-3xl text-center">
+        <h2 className="text-2xl font-extrabold text-[#07366f] sm:text-3xl">
+          Thông tin & Vị trí Phòng khám
+        </h2>
+        <p className={`mt-1.5 ${T.body}`}>
+          Thông tin được lấy trực tiếp từ cấu hình phòng khám trong hệ thống.
+        </p>
       </div>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-12 lg:items-stretch">
@@ -192,34 +173,17 @@ export function ClinicLocationSection() {
           </div>
         </div>
 
-        <div className="relative min-h-[360px] overflow-hidden rounded-2xl border border-slate-200 shadow-inner lg:col-span-7">
+        {/* Cached & High-Performance Interactive Map Container */}
+        <div className="lg:col-span-7">
           {hasAddress ? (
-            <>
-              <iframe
-                title={`Bản đồ vị trí ${clinic.name || "phòng khám"}`}
-                src={mapEmbedUrl}
-                className="h-full min-h-[380px] w-full border-0"
-                loading="lazy"
-                allowFullScreen
-                referrerPolicy="no-referrer-when-downgrade"
-              />
-              <div className="pointer-events-none absolute left-4 right-4 top-4 flex items-center justify-between">
-                <div className="pointer-events-auto flex items-center gap-2 rounded-xl border border-slate-200/80 bg-white/95 px-3 py-2 text-xs font-bold text-slate-800 shadow-md backdrop-blur">
-                  <span className="flex h-2.5 w-2.5 rounded-full bg-[#0058bc]" />
-                  <span>{clinic.name || "Phòng khám"}</span>
-                </div>
-                <a
-                  href={mapDirectUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="pointer-events-auto rounded-xl bg-slate-900/90 px-3 py-2 text-xs font-bold text-white shadow-md backdrop-blur transition hover:bg-slate-900"
-                >
-                  Chỉ đường
-                </a>
-              </div>
-            </>
+            <CachedClinicMap
+              address={clinic.address}
+              clinicName={clinic.name || "Smart Dental Clinic"}
+              mapEmbedUrl={mapEmbedUrl}
+              mapDirectUrl={mapDirectUrl}
+            />
           ) : (
-            <div className="grid h-full min-h-[380px] place-items-center bg-slate-50 p-8 text-center text-sm font-semibold text-slate-500">
+            <div className="grid h-full min-h-[380px] place-items-center rounded-2xl border border-slate-200 bg-slate-50 p-8 text-center text-sm font-semibold text-slate-500 shadow-inner">
               Chưa có địa chỉ để hiển thị bản đồ.
             </div>
           )}

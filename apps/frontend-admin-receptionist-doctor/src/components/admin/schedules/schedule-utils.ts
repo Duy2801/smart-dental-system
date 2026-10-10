@@ -10,7 +10,7 @@ export function getErrorMessage(error: any, fallback: string) {
     error?.response?.data?.message ||
     (error instanceof Error ? error.message : fallback);
 
-  if (msg === "clinic.closed_at_selected_time") {
+  if (msg === "clinic.closed_at_selected_time" || msg === "availability.outside_clinic_hours") {
     return "Thời gian ca làm việc nằm ngoài giờ mở cửa của phòng khám.";
   }
   if (msg === "availability.invalid_time_range") {
@@ -19,7 +19,7 @@ export function getErrorMessage(error: any, fallback: string) {
   if (msg === "availability.no_open_days_selected") {
     return "Chưa chọn ngày nào phòng khám mở cửa.";
   }
-  if (msg === "availability.shift_overlap") {
+  if (msg === "availability.shift_overlap" || msg === "availability.overlapping_shifts") {
     return "Ca làm việc bị trùng lặp thời gian.";
   }
   return msg || fallback;

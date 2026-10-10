@@ -8,12 +8,14 @@ import type { ConsultationBookingResult } from "../types";
 interface PaymentCheckoutViewProps {
   bookingResult: ConsultationBookingResult;
   onViewMyConsultations: () => void;
+  onPaymentConfirmed: () => void;
   onBookAnother: () => void;
 }
 
 export function PaymentCheckoutView({
   bookingResult,
   onViewMyConsultations,
+  onPaymentConfirmed,
   onBookAnother,
 }: PaymentCheckoutViewProps) {
   const [isPaid, setIsPaid] = useState(false);
@@ -22,20 +24,35 @@ export function PaymentCheckoutView({
     const consultationId = bookingResult.consultation.id;
     if (!consultationId) return;
 
+    if (bookingResult.consultation.isPaid) {
+      onPaymentConfirmed();
+      return;
+    }
+
+    let active = true;
+    let checking = false;
     const interval = setInterval(async () => {
+      if (checking) return;
+      checking = true;
       try {
         const info = await getConsultationPaymentInfo(consultationId);
-        if (info.isPaid) {
-          setIsPaid(true);
+        if (active && info.isPaid) {
           clearInterval(interval);
+          setIsPaid(true);
+          onPaymentConfirmed();
         }
-      } catch (err) {
+      } catch {
         // Silently retry on polling error
+      } finally {
+        checking = false;
       }
     }, 4000);
 
-    return () => clearInterval(interval);
-  }, [bookingResult.consultation.id]);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [bookingResult.consultation.id, bookingResult.consultation.isPaid, onPaymentConfirmed]);
 
   return (
     <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-md border border-slate-100 space-y-6">

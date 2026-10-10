@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, type FormEvent, type RefObject } from "react";
+import { useRef, useState, type FormEvent, type RefObject } from "react";
+import { ArrowBendUpLeft, Paperclip, X } from "@phosphor-icons/react";
 import { DashboardIcon } from "../../common/DashboardIcon";
 import type { SupportConversation, SupportMessage } from "../api";
 
@@ -18,7 +19,9 @@ type Props = {
   messages: SupportMessage[];
   loading: boolean;
   sending: boolean;
-  onSend: (content: string) => Promise<void>;
+  onSend: (content: string, replyToId?: string) => Promise<void>;
+  onSendAttachment: (file: File, replyToId?: string) => Promise<void>;
+  error: string | null;
   messagesEndRef: RefObject<HTMLDivElement | null>;
   variant?: SupportChatThreadVariant;
 };
@@ -29,10 +32,16 @@ export function SupportChatThread({
   loading,
   sending,
   onSend,
+  onSendAttachment,
+  error,
   messagesEndRef,
   variant = "full",
 }: Props) {
   const [text, setText] = useState("");
+  const [fileError, setFileError] = useState<string | null>(null);
+  const [replyingTo, setReplyingTo] = useState<SupportMessage | null>(null);
+  const [activeMessageId, setActiveMessageId] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const isClosed = conversation?.status === "CLOSED";
   const isEmpty = !loading && messages.length === 0;
   const compact = variant === "compact";
@@ -42,12 +51,24 @@ export function SupportChatThread({
     if (!text.trim() || isClosed) return;
     const value = text;
     setText("");
-    void onSend(value);
+    void onSend(value, replyingTo?.id).then(() => setReplyingTo(null)).catch(() => setText(value));
   }
 
   function sendPrompt(prompt: string) {
     if (isClosed) return;
-    void onSend(prompt);
+    void onSend(prompt).catch(() => setText(prompt));
+  }
+
+  function chooseFile(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (file.size > 4 * 1024 * 1024) {
+      setFileError("Tệp tối đa 4 MB.");
+      return;
+    }
+    setFileError(null);
+    void onSendAttachment(file, replyingTo?.id).then(() => setReplyingTo(null)).catch(() => {});
   }
 
   return (
@@ -113,8 +134,8 @@ export function SupportChatThread({
               message.senderType === "SYSTEM"
                 ? "mx-auto max-w-[90%] text-center"
                 : message.senderType === "PATIENT"
-                  ? `ml-auto ${compact ? "max-w-[88%]" : "max-w-[80%]"}`
-                  : `${compact ? "max-w-[94%]" : "max-w-[80%]"}`
+                  ? `group ml-auto ${compact ? "max-w-[94%]" : "max-w-[90%]"}`
+                  : `group ${compact ? "max-w-[94%]" : "max-w-[90%]"}`
             }
           >
             {message.senderType === "SYSTEM" ? (
@@ -122,8 +143,12 @@ export function SupportChatThread({
                 {message.content}
               </p>
             ) : (
+              <div className={`flex items-center gap-2 ${message.senderType === "PATIENT" ? "flex-row-reverse" : ""}`}>
               <div
-                className={`whitespace-pre-line rounded-2xl leading-relaxed shadow-xs ${
+                onPointerDown={(event) => {
+                  if (event.pointerType === "touch") setActiveMessageId((current) => current === message.id ? null : message.id);
+                }}
+                className={`min-w-0 whitespace-pre-line rounded-2xl leading-relaxed shadow-xs ${
                   compact ? "px-3.5 py-2.5 text-[11px] sm:text-xs" : "px-4 py-3 text-sm"
                 } ${
                   message.senderType === "PATIENT"
@@ -131,18 +156,52 @@ export function SupportChatThread({
                     : "rounded-tl-sm border border-slate-100 bg-white text-slate-700"
                 }`}
               >
-                {message.content}
+                {message.replyToId && (
+                  <div className="mb-2 rounded-lg border-l-2 border-current bg-black/5 px-2 py-1 text-[10px] opacity-80">
+                    <span className="block font-semibold">Trả lời {message.replySenderType === "PATIENT" ? "bệnh nhân" : "lễ tân"}</span>
+                    <span className="line-clamp-2">{message.replyPreview}</span>
+                  </div>
+                )}
+                {message.attachmentUrl ? (
+                  message.attachmentMime?.startsWith("image/") ? (
+                    <a href={message.attachmentUrl} target="_blank" rel="noopener noreferrer" aria-label={`Mở ảnh ${message.attachmentName || "đính kèm"}`}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={message.attachmentUrl} alt={message.attachmentName || "Ảnh đính kèm"} className="max-h-52 max-w-full rounded-lg object-contain" />
+                    </a>
+                  ) : (
+                    <a href={message.attachmentUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 underline">
+                      <DashboardIcon name="document" className="h-4 w-4" />{message.attachmentName || "Tệp đính kèm"}
+                    </a>
+                  )
+                ) : message.content}
+              </div>
+              <button
+                type="button"
+                onClick={() => { setReplyingTo(message); setActiveMessageId(null); }}
+                aria-label={`Trả lời tin nhắn ${message.content || message.attachmentName || "đính kèm"}`}
+                title="Trả lời"
+                className={`grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white text-[#0863c5] shadow-sm transition hover:bg-blue-50 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-[#0863c5] ${activeMessageId === message.id ? "opacity-100" : "opacity-0 [@media(hover:hover)]:group-hover:opacity-100"}`}
+              >
+                <ArrowBendUpLeft size={16} weight="bold" />
+              </button>
               </div>
             )}
+            <time dateTime={message.createdAt} className={`mt-1 block text-[10px] text-slate-400 ${message.senderType === "PATIENT" ? "text-right" : "text-left"}`}>
+              {new Date(message.createdAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}
+            </time>
           </div>
         ))}
         <div ref={messagesEndRef} />
       </div>
 
+      {(error || fileError) && <p role="alert" className="bg-white px-3 pt-2 text-xs text-red-600">{fileError || error}</p>}
+      {replyingTo && <div className="flex items-center gap-2 border-t border-slate-100 bg-white px-3 py-2 text-xs text-slate-600"><ArrowBendUpLeft size={16} className="text-[#0863c5]" /><div className="min-w-0 flex-1"><strong>Đang trả lời {replyingTo.senderType === "PATIENT" ? "bệnh nhân" : "lễ tân"}</strong><p className="truncate">{replyingTo.content || replyingTo.attachmentName}</p></div><button type="button" aria-label="Bỏ trả lời" onClick={() => setReplyingTo(null)}><X size={16} /></button></div>}
       <form
         onSubmit={submit}
         className={`flex gap-2 border-t border-slate-100 bg-white ${compact ? "gap-1.5 p-2.5" : "p-3 sm:p-4"}`}
       >
+        <input ref={fileInputRef} type="file" className="hidden" onChange={chooseFile} />
+        <button type="button" aria-label="Gửi ảnh hoặc file" title="Gửi ảnh hoặc file" disabled={sending || isClosed || loading} onClick={() => fileInputRef.current?.click()} className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-[#0863c5] hover:bg-blue-50 disabled:opacity-40"><Paperclip size={18} /></button>
         <input
           value={text}
           onChange={(event) => setText(event.target.value)}

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { DashboardIcon, type DashboardIconName } from "../../common/DashboardIcon";
-import { ROUTES, buildRoute } from "../../common/routes";
+import { ROUTES } from "../../common/routes";
 import { T } from "../../common/typography";
 import type {
   getLiveClinicConfigInfo,
@@ -42,6 +42,21 @@ function formatOpenHours(hours: BusinessHour[] = []) {
 }
 
 function buildServiceFaqs(services: HomeServiceCard[]): FaqItem[] {
+  const seededFaqs: FaqItem[] = services.flatMap((service, serviceIndex) =>
+    service.faqs.map((faq, faqIndex): FaqItem => ({
+      id: `service-${service.id}-faq-${faq.id}`,
+      badge: service.title,
+      icon: (serviceIndex + faqIndex) % 2 === 0 ? "braces" : "sparkles",
+      question: faq.question,
+      answer: faq.answer,
+      href: service.href,
+    })),
+  );
+
+  if (seededFaqs.length) {
+    return seededFaqs.slice(0, 4);
+  }
+
   return services.slice(0, 4).map((service, index) => {
     const questions = [
       `Dịch vụ ${service.title} mất bao lâu?`,
@@ -158,7 +173,7 @@ export function HomeKnowledgeSection() {
   const { data: clinic, isLoading: loadingClinic } = useClinicConfigQuery();
 
   const faqItems = useMemo(
-    () => [...buildServiceFaqs(services)],
+    () => [...buildServiceFaqs(services), ...buildClinicFaqs(clinic)].slice(0, 4),
     [clinic, services],
   );
 
@@ -169,10 +184,8 @@ export function HomeKnowledgeSection() {
   return (
     <section id="blog" className="space-y-4 sm:space-y-8">
       <div className="mx-auto max-w-3xl text-center">
-        <p className={T.overline}>
-          Hỏi đáp nha khoa
-        </p>
-        <h2 className={`mt-1.5 sm:mt-3 ${T.sectionTitleLg}`}>
+        
+        <h2 className="text-3xl font-extrabold tracking-tight text-[#07366f] sm:text-4xl">
           Câu hỏi thường gặp
         </h2>
         <p className={`mx-auto mt-1.5 sm:mt-3 max-w-2xl ${T.body}`}>
@@ -196,15 +209,6 @@ export function HomeKnowledgeSection() {
           Chưa có dữ liệu để hiển thị câu hỏi thường gặp.
         </div>
       )}
-
-      <div className="flex justify-center">
-        <Link
-          href={ROUTES.consultation}
-          className="inline-flex h-11 items-center gap-2 rounded-full border border-[#0058bc]/20 bg-white px-5 text-sm font-extrabold text-[#0058bc] shadow-sm transition hover:border-[#0058bc] hover:bg-blue-50"
-        >
-          Đặt lịch tư vấn với bác sĩ
-        </Link>
-      </div>
     </section>
   );
 }

@@ -61,7 +61,7 @@ export function ClinicSidebarBrand({ title }: { title: string }) {
       <ClinicLogo
         name={clinic.name}
         logoUrl={clinic.logoUrl}
-        className="h-11 w-11 rounded-xl bg-white/10 text-white ring-white/15"
+        className="h-11 w-11 rounded-xl bg-white p-1.5 text-brand shadow-xs ring-1 ring-white/20"
       />
       <div className="min-w-0">
         <p className="truncate text-xs font-medium uppercase tracking-wide text-white/60">
@@ -98,7 +98,7 @@ export function ClinicLogo({
           width={80}
           height={80}
           unoptimized
-          className="h-full w-full object-cover"
+          className="h-full w-full object-contain"
         />
       ) : (
         <span>{getInitials(name) || "SD"}</span>

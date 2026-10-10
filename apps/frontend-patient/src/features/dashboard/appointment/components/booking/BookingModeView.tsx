@@ -235,7 +235,7 @@ export function BookingModeView({
   }, [viewStep]);
 
   return (
-    <main className="mx-auto w-full max-w-[1360px] px-4 py-4 sm:px-6 lg:px-8">
+    <main className="mx-auto w-full max-w-[1360px] space-y-8 px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
       <AppointmentWorkspaceHeader
         mode="booking"
         title={

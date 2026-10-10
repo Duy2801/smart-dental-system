@@ -10,10 +10,10 @@ import { PatientHomeHeader } from '~src/features/home/components/PatientHomeHead
 import { usePatientDrawerActions } from '~src/features/home/hooks/usePatientDrawerActions';
 import type { RootState } from '~src/reducers/store';
 import {
-  getPatientNotifications,
+  getPatientNotificationsPaginated,
   markAllPatientNotificationsRead,
   markPatientNotificationRead,
-  PatientNotification,
+  type PatientNotification,
 } from '../api';
 
 type NotificationFilter = 'ALL' | 'UNREAD' | 'APPOINTMENTS' | 'PAYMENTS';
@@ -28,31 +28,67 @@ const filterTabs: { id: NotificationFilter; label: string }[] = [
 export default function NotificationsScreen() {
   const queryClient = useQueryClient();
   const [activeFilter, setActiveFilter] = useState<NotificationFilter>('ALL');
+  const [page, setPage] = useState(1);
+  const limit = 5;
   const [drawerVisible, setDrawerVisible] = useState(false);
   const user = useSelector((state: RootState) => state.login?.user ?? null);
   const { handleDrawerNavigate, handleLogout } = usePatientDrawerActions();
+
+  const handleFilterChange = (filter: NotificationFilter) => {
+    setActiveFilter(filter);
+    setPage(1);
+  };
+
   const notificationsQuery = useQuery({
-    queryFn: getPatientNotifications,
-    queryKey: ['patient', 'notifications'],
+    queryFn: () =>
+      getPatientNotificationsPaginated({
+        page,
+        limit,
+        type:
+          activeFilter === 'APPOINTMENTS'
+            ? 'APPOINTMENTS'
+            : activeFilter === 'PAYMENTS'
+            ? 'PAYMENTS'
+            : undefined,
+        unreadOnly: activeFilter === 'UNREAD',
+      }),
+    queryKey: ['patient', 'notifications', activeFilter, page, limit],
   });
+
   const readOneMutation = useMutation({
     mutationFn: markPatientNotificationRead,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['patient', 'notifications'] }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ['patient', 'notifications'] }),
   });
+
   const readAllMutation = useMutation({
     mutationFn: markAllPatientNotificationsRead,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['patient', 'notifications'] }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ['patient', 'notifications'] }),
   });
 
   const notifications = useMemo(
-    () => notificationsQuery.data ?? [],
-    [notificationsQuery.data],
+    () => notificationsQuery.data?.data ?? [],
+    [notificationsQuery.data?.data],
   );
-  const unread = notifications.filter(item => !item.isRead).length;
-  const filteredNotifications = useMemo(
-    () => filterNotifications(notifications, activeFilter),
-    [activeFilter, notifications],
-  );
+
+  const meta = notificationsQuery.data?.meta;
+  const totalPages = meta?.totalPages ?? 1;
+  const totalItems = meta?.total ?? 0;
+  const unread = meta?.unreadCount ?? notifications.filter((item: PatientNotification) => !item.isRead).length;
+
+  const paginationRange = useMemo(() => {
+    if (totalPages <= 5) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    if (page <= 3) {
+      return [1, 2, 3, '...', totalPages];
+    }
+    if (page >= totalPages - 2) {
+      return [1, '...', totalPages - 2, totalPages - 1, totalPages];
+    }
+    return [1, '...', page, '...', totalPages];
+  }, [page, totalPages]);
 
   const renderNotification = ({ item }: { item: PatientNotification }) => {
     const config = getNotificationTypeConfig(item.type);
@@ -125,6 +161,115 @@ export default function NotificationsScreen() {
     );
   };
 
+  const renderPaginationFooter = () => {
+    if (totalPages <= 1) return <View style={styles.footerSpacing} />;
+
+    return (
+      <View style={styles.paginationCard}>
+        <View style={styles.paginationMetaRow}>
+          <Text style={styles.paginationMetaText}>
+            Hiển thị trang <Text style={styles.paginationMetaBold}>{page}</Text> /{' '}
+            <Text style={styles.paginationMetaBold}>{totalPages}</Text>{' '}
+            (Tổng số {totalItems} thông báo)
+          </Text>
+        </View>
+
+        <View style={styles.paginationControlsRow}>
+          {/* Previous Button */}
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => setPage(p => Math.max(1, p - 1))}
+            disabled={page <= 1}
+            style={[
+              styles.pageBtnNav,
+              page <= 1 && styles.pageBtnNavDisabled,
+            ]}
+          >
+            <FontAwesome6
+              color={page <= 1 ? '#94A3B8' : '#0863c5'}
+              iconStyle="solid"
+              name="chevron-left"
+              size={11}
+            />
+            <Text
+              style={[
+                styles.pageBtnNavText,
+                page <= 1 && styles.pageBtnNavTextDisabled,
+              ]}
+            >
+              Trước
+            </Text>
+          </TouchableOpacity>
+
+          {/* Page numbers */}
+          <View style={styles.pageNumbersGroup}>
+            {paginationRange.map((item, idx) => {
+              if (item === '...') {
+                return (
+                  <View key={`ellipsis-${idx}`} style={styles.pageEllipsis}>
+                    <Text style={styles.pageEllipsisText}>...</Text>
+                  </View>
+                );
+              }
+
+              const pageNum = item as number;
+              const isCurrent = pageNum === page;
+
+              return (
+                <TouchableOpacity
+                  key={`page-${pageNum}`}
+                  activeOpacity={0.8}
+                  onPress={() => setPage(pageNum)}
+                  style={[
+                    styles.pagePill,
+                    isCurrent ? styles.pagePillActive : styles.pagePillDefault,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.pagePillText,
+                      isCurrent
+                        ? styles.pagePillTextActive
+                        : styles.pagePillTextDefault,
+                    ]}
+                  >
+                    {pageNum}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {/* Next Button */}
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => setPage(p => Math.min(totalPages, p + 1))}
+            disabled={page >= totalPages}
+            style={[
+              styles.pageBtnNav,
+              page >= totalPages && styles.pageBtnNavDisabled,
+            ]}
+          >
+            <Text
+              style={[
+                styles.pageBtnNavText,
+                page >= totalPages && styles.pageBtnNavTextDisabled,
+              ]}
+            >
+              Sau
+            </Text>
+            <FontAwesome6
+              color={page >= totalPages ? '#94A3B8' : '#0863c5'}
+              iconStyle="solid"
+              name="chevron-right"
+              size={11}
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
   return (
     <Screen>
       <PatientHomeHeader
@@ -141,7 +286,7 @@ export default function NotificationsScreen() {
       ) : (
         <ScreenList
           contentContainerStyle={styles.listContent}
-          data={filteredNotifications}
+          data={notifications}
           keyExtractor={item => item.id}
           ListEmptyComponent={
             <EmptyState
@@ -150,6 +295,10 @@ export default function NotificationsScreen() {
               description={
                 activeFilter === 'UNREAD'
                   ? 'Bạn đã đọc tất cả thông báo.'
+                  : activeFilter === 'APPOINTMENTS'
+                  ? 'Chưa có thông báo lịch hẹn nào.'
+                  : activeFilter === 'PAYMENTS'
+                  ? 'Chưa có thông báo thanh toán nào.'
                   : 'Nhắc lịch, thanh toán và ưu đãi sẽ xuất hiện tại đây.'
               }
             />
@@ -208,7 +357,7 @@ export default function NotificationsScreen() {
                     <TouchableOpacity
                       activeOpacity={0.82}
                       key={tab.id}
-                      onPress={() => setActiveFilter(tab.id)}
+                      onPress={() => handleFilterChange(tab.id)}
                       style={[
                         styles.filterTab,
                         isActive && styles.filterTabActive,
@@ -228,6 +377,7 @@ export default function NotificationsScreen() {
               </View>
             </View>
           }
+          ListFooterComponent={renderPaginationFooter}
           onRefresh={notificationsQuery.refetch}
           refreshing={notificationsQuery.isRefetching}
           renderItem={renderNotification}
@@ -243,29 +393,6 @@ export default function NotificationsScreen() {
       />
     </Screen>
   );
-}
-
-function filterNotifications(
-  notifications: PatientNotification[],
-  activeFilter: NotificationFilter,
-) {
-  if (activeFilter === 'UNREAD') {
-    return notifications.filter(item => !item.isRead);
-  }
-
-  if (activeFilter === 'APPOINTMENTS') {
-    return notifications.filter(item =>
-      item.type.toUpperCase().includes('APPOINTMENT'),
-    );
-  }
-
-  if (activeFilter === 'PAYMENTS') {
-    return notifications.filter(item =>
-      item.type.toUpperCase().includes('PAYMENT'),
-    );
-  }
-
-  return notifications;
 }
 
 function getNotificationTypeConfig(type: string) {
@@ -351,60 +478,53 @@ const styles = StyleSheet.create({
     gap: 8,
     justifyContent: 'center',
     marginTop: 14,
-    minHeight: 42,
+    paddingVertical: 10,
   },
   heroCard: {
     backgroundColor: '#0863c5',
-    borderRadius: 18,
-    elevation: 4,
-    padding: 18,
-    shadowColor: '#0863c5',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
+    borderRadius: 22,
+    padding: 16,
   },
   heroUnreadBadge: {
-    backgroundColor: '#FFE4E6',
-    borderRadius: 999,
-    paddingHorizontal: 9,
-    paddingVertical: 4,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
   },
   heroUnreadText: {
-    color: '#E11D48',
+    color: '#0863c5',
     fontSize: 11,
     fontWeight: '900',
   },
   listContent: {
     gap: 12,
-    paddingTop: 16,
+    padding: 16,
+    paddingBottom: 40,
   },
   notificationCard: {
-    alignItems: 'flex-start',
-    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
     borderWidth: 1,
     flexDirection: 'row',
     gap: 12,
-    padding: 15,
+    padding: 14,
     position: 'relative',
   },
   notificationCardRead: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#F1F5F9',
-    opacity: 0.86,
+    borderColor: '#E2E8F0',
   },
   notificationCardUnread: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#BFDBFE',
-    elevation: 2,
-    shadowColor: '#0058bc',
-    shadowOffset: { width: 0, height: 4 },
+    borderColor: '#BAE6FD',
+    elevation: 1,
+    shadowColor: '#0284C7',
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
-    shadowRadius: 8,
+    shadowRadius: 4,
   },
   typeBadge: {
     borderRadius: 8,
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: 2,
   },
   typeBadgeText: {
     fontSize: 10,
@@ -412,20 +532,127 @@ const styles = StyleSheet.create({
   },
   typeIcon: {
     alignItems: 'center',
-    borderRadius: 14,
-    height: 44,
+    borderRadius: 12,
+    height: 38,
     justifyContent: 'center',
-    width: 44,
+    width: 38,
   },
   unreadDot: {
-    backgroundColor: '#0058bc',
-    borderColor: '#DBEAFE',
-    borderRadius: 999,
-    borderWidth: 4,
-    height: 14,
+    backgroundColor: '#0284C7',
+    borderRadius: 4,
+    height: 8,
     position: 'absolute',
-    right: 12,
-    top: 12,
-    width: 14,
+    right: 14,
+    top: 14,
+    width: 8,
+  },
+
+  // Pagination Styles
+  footerSpacing: {
+    height: 20,
+  },
+  paginationCard: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
+    borderRadius: 18,
+    borderWidth: 1,
+    marginTop: 8,
+    padding: 14,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  paginationMetaRow: {
+    alignItems: 'center',
+    borderBottomColor: '#F1F5F9',
+    borderBottomWidth: 1,
+    paddingBottom: 10,
+  },
+  paginationMetaText: {
+    color: '#64748B',
+    fontSize: 11,
+  },
+  paginationMetaBold: {
+    color: '#0F172A',
+    fontWeight: '800',
+  },
+  paginationControlsRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingTop: 10,
+  },
+  pageBtnNav: {
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  pageBtnNavDisabled: {
+    backgroundColor: '#F1F5F9',
+    borderColor: '#E2E8F0',
+    opacity: 0.5,
+  },
+  pageBtnNavText: {
+    color: '#0863c5',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  pageBtnNavTextDisabled: {
+    color: '#94A3B8',
+  },
+  pageNumbersGroup: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 6,
+  },
+  pagePill: {
+    alignItems: 'center',
+    borderRadius: 10,
+    height: 32,
+    justifyContent: 'center',
+    minWidth: 32,
+    paddingHorizontal: 8,
+  },
+  pagePillDefault: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
+    borderWidth: 1,
+  },
+  pagePillActive: {
+    backgroundColor: '#0863c5',
+    borderColor: '#0863c5',
+    borderWidth: 1,
+    elevation: 2,
+    shadowColor: '#0863c5',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+  },
+  pagePillText: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  pagePillTextDefault: {
+    color: '#334155',
+  },
+  pagePillTextActive: {
+    color: '#FFFFFF',
+  },
+  pageEllipsis: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  pageEllipsisText: {
+    color: '#94A3B8',
+    fontSize: 12,
   },
 });

@@ -11,6 +11,10 @@ type StaffModalProps = {
   title: string;
 };
 
+function generateDoctorCode(): string {
+  return `DOC-${Math.floor(1000 + Math.random() * 9000)}`;
+}
+
 function DoctorAvatarPicker({
   value,
   onChange,
@@ -74,13 +78,24 @@ export function StaffModal({
   submitting,
   title,
 }: StaffModalProps) {
-  const [form, setForm] = useState<StaffFormState>(initialValue);
+  const [form, setForm] = useState<StaffFormState>(() => ({
+    ...initialValue,
+    doctorCode:
+      initialValue.doctorCode ||
+      (initialValue.role === "DOCTOR" ? generateDoctorCode() : ""),
+  }));
   const isEdit = Boolean(editingUser);
   const isDoctor = form.role === "DOCTOR";
   const roleLocked = isEdit && editingUser?.role === "DOCTOR";
 
   const setField = (name: keyof StaffFormState, value: string) => {
-    setForm((current) => ({ ...current, [name]: value }));
+    setForm((current) => {
+      const updated = { ...current, [name]: value };
+      if (name === "role" && value === "DOCTOR" && !updated.doctorCode) {
+        updated.doctorCode = generateDoctorCode();
+      }
+      return updated;
+    });
   };
 
   return (
@@ -153,16 +168,26 @@ export function StaffModal({
                 onChange={(value) => setField("avatarUrl", value)}
               />
               <div className="grid gap-4 sm:grid-cols-3">
-                <StaffFormField label="Mã bác sĩ">
-                  <input
-                    required
-                    value={form.doctorCode}
-                    onChange={(event) =>
-                      setField("doctorCode", event.target.value)
-                    }
-                    placeholder="DOC-001"
-                    className="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 font-medium"
-                  />
+                <StaffFormField label="Mã bác sĩ (Tự động sinh)">
+                  <div className="flex items-center gap-2">
+                    <input
+                      required
+                      readOnly
+                      value={form.doctorCode}
+                      placeholder="DOC-001"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-100 px-3.5 py-2 font-mono text-sm font-bold text-slate-800 outline-none select-all cursor-default"
+                    />
+                    {!isEdit && (
+                      <button
+                        type="button"
+                        onClick={() => setField("doctorCode", generateDoctorCode())}
+                        className="inline-flex shrink-0 items-center gap-1 rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors cursor-pointer"
+                        title="Sinh mã khác"
+                      >
+                        🔄 Đổi mã
+                      </button>
+                    )}
+                  </div>
                 </StaffFormField>
                 <StaffFormField label="Chuyên khoa">
                   <input
