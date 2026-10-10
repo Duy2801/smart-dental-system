@@ -124,13 +124,27 @@ export function PromoFormModal({
   const [discountType, setDiscountType] = useState<DiscountType>(
     initialValue?.discount_type ?? "PERCENTAGE"
   );
-  const [discountValue, setDiscountValue] = useState<number>(
+  const [discountValue, setDiscountValue] = useState<string | number>(
     initialValue?.discount_value ?? 10
   );
-  const [minOrderAmount, setMinOrderAmount] = useState<number>(
+  const [minOrderAmount, setMinOrderAmount] = useState<string | number>(
     initialValue?.min_order_amount ?? 0
   );
-  const [maxUses, setMaxUses] = useState<number>(initialValue?.max_uses ?? 100);
+  const [maxUses, setMaxUses] = useState<string | number>(
+    initialValue?.max_uses ?? 100
+  );
+
+  const handleNumericChange =
+    (setter: (value: string | number) => void) =>
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const val = event.target.value;
+      if (val === "") {
+        setter("");
+        return;
+      }
+      const cleaned = val.replace(/^0+(?=\d)/, "");
+      setter(cleaned);
+    };
   const [startDate, setStartDate] = useState<string>(
     initialValue?.start_date
       ? new Date(initialValue.start_date).toISOString().slice(0, 10)
@@ -179,7 +193,11 @@ export function PromoFormModal({
     event.preventDefault();
     setError(null);
 
-    const numericMaxUses = Number(maxUses);
+    const numericMaxUses = maxUses === "" ? 0 : Number(maxUses);
+    if (!numericMaxUses || numericMaxUses <= 0) {
+      setError("Vui lòng nhập giới hạn số lượt dùng hợp lệ (lớn hơn 0).");
+      return;
+    }
     if (isEditing && numericMaxUses < usedCount) {
       setError(
         `Giới hạn số lượt dùng (${numericMaxUses}) không được ít hơn số lượt đã sử dụng (${usedCount}).`
@@ -187,13 +205,25 @@ export function PromoFormModal({
       return;
     }
 
+    const numericDiscount = discountValue === "" ? 0 : Number(discountValue);
+    if (numericDiscount <= 0) {
+      setError("Mức giảm giá phải lớn hơn 0.");
+      return;
+    }
+    if (discountType === "PERCENTAGE" && numericDiscount > 100) {
+      setError("Mức giảm theo phần trăm không được vượt quá 100%.");
+      return;
+    }
+
+    const numericMinOrder = minOrderAmount === "" ? 0 : Number(minOrderAmount);
+
     const payload: SavePromotionPayload = {
       code: code.trim().toUpperCase(),
       name: name.trim(),
       description: description.trim(),
       discount_type: discountType,
-      discount_value: Number(discountValue),
-      min_order_amount: Number(minOrderAmount),
+      discount_value: numericDiscount,
+      min_order_amount: numericMinOrder,
       max_uses: numericMaxUses,
       start_date: startDate,
       end_date: endDate,
@@ -214,7 +244,7 @@ export function PromoFormModal({
       description="Thiết lập chương trình khuyến mãi, phạm vi áp dụng và thời hạn cho khách hàng."
       onClose={onClose}
     >
-      <form className="mt-4 flex flex-col gap-4" onSubmit={handleSubmit}>
+      <form noValidate className="mt-4 flex flex-col gap-4" onSubmit={handleSubmit}>
         {error && (
           <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-xs font-semibold text-red-700">
             ⚠️ {error}
@@ -227,10 +257,16 @@ export function PromoFormModal({
               <label className="text-sm font-semibold text-brand-dark">
                 Mã Voucher Code <span className="text-red-500">*</span>
               </label>
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700 border border-emerald-200">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Tự động sinh
-              </span>
+              {!isEditing ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700 border border-emerald-200">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Tự động sinh
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-600 border border-slate-200">
+                  Mã cố định
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <input
@@ -238,7 +274,7 @@ export function PromoFormModal({
                 readOnly
                 value={code}
                 className="w-full rounded-xl border border-slate-200 bg-slate-100/90 px-3.5 py-2 text-sm font-mono font-bold tracking-wider text-brand-dark uppercase outline-none select-all cursor-default"
-                placeholder="Mã tự sinh"
+                placeholder="Mã voucher"
               />
               {!isEditing && (
                 <button
@@ -266,7 +302,9 @@ export function PromoFormModal({
               )}
             </div>
             <p className="text-[11px] text-muted-foreground">
-              Mã được hệ thống tự động sinh, không cần nhập tay.
+              {isEditing
+                ? "Mã voucher cố định, không thể thay đổi sau khi đã tạo."
+                : "Mã được hệ thống tự động sinh, không cần nhập tay."}
             </p>
           </div>
           <div>
@@ -278,9 +316,13 @@ export function PromoFormModal({
               }
               type="number"
               required
-              min={minAllowedUses}
               value={maxUses}
-              onChange={(e) => setMaxUses(Number(e.target.value))}
+              onChange={handleNumericChange(setMaxUses)}
+              onBlur={() => {
+                if (maxUses === "" || Number(maxUses) <= 0) {
+                  setMaxUses(isEditing ? usedCount : 100);
+                }
+              }}
               className="font-mono"
               placeholder="100"
             />
@@ -327,21 +369,28 @@ export function PromoFormModal({
             }
             type="number"
             required
-            min={1}
-            max={discountType === "PERCENTAGE" ? 100 : undefined}
             step={discountType === "PERCENTAGE" ? 1 : 50000}
             value={discountValue}
-            onChange={(e) => setDiscountValue(Number(e.target.value))}
+            onChange={handleNumericChange(setDiscountValue)}
+            onBlur={() => {
+              if (discountValue === "" || Number(discountValue) <= 0) {
+                setDiscountValue(10);
+              }
+            }}
             className="font-mono text-right font-bold text-brand"
           />
 
           <AdminInput
             label="Đơn hàng tối thiểu (VNĐ)"
             type="number"
-            min={0}
             step={50000}
             value={minOrderAmount}
-            onChange={(e) => setMinOrderAmount(Number(e.target.value))}
+            onChange={handleNumericChange(setMinOrderAmount)}
+            onBlur={() => {
+              if (minOrderAmount === "" || Number(minOrderAmount) < 0) {
+                setMinOrderAmount(0);
+              }
+            }}
             className="font-mono text-right"
             placeholder="0"
           />

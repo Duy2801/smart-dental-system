@@ -1,6 +1,7 @@
 import { useRef, useState, type FormEvent } from "react";
 import type { CreateBannerPayload } from "../marketing-api";
 import type { Banner } from "../types";
+import { toast } from "@/src/lib/toast";
 
 type BannerModalProps = {
   initialData?: Banner | null;
@@ -35,7 +36,7 @@ export function CampaignModal({
     if (!files || files.length === 0) return;
     const file = files[0];
     if (!file.type.startsWith("image/")) {
-      alert("Vui lòng chọn một tệp hình ảnh (.png, .jpg, .jpeg, .webp)");
+      toast.warning("Vui lòng chọn một tệp hình ảnh (.png, .jpg, .jpeg, .webp)");
       return;
     }
     setImageError(false);

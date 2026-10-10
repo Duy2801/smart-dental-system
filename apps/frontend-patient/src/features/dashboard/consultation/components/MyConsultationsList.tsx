@@ -5,6 +5,7 @@ import {
   useCancelConsultationMutation,
   useMyConsultationsQuery,
 } from "../hooks/useConsultationQueries";
+import { WarningCircle } from "@phosphor-icons/react";
 import type { PatientConsultationItem } from "../types";
 import { ConsultationPaymentModal } from "./ConsultationPaymentModal";
 import { VideoConsultationRoomModal } from "./VideoConsultationRoomModal";
@@ -32,6 +33,8 @@ export function MyConsultationsList({ onBookNew }: MyConsultationsListProps) {
     useState<PatientConsultationItem | null>(null);
   const [selectedForDetail, setSelectedForDetail] =
     useState<PatientConsultationItem | null>(null);
+  const [unpaidCancelItem, setUnpaidCancelItem] =
+    useState<PatientConsultationItem | null>(null);
 
   const handleClosePaymentModal = useCallback(() => {
     setSelectedForPayment(null);
@@ -53,22 +56,22 @@ export function MyConsultationsList({ onBookNew }: MyConsultationsListProps) {
       // Đơn đã thanh toán -> Mở Modal nhập ngân hàng / QR code nhận tiền hoàn
       setSelectedForRefund(item);
     } else {
-      // Đơn chưa thanh toán -> Hủy ngay trực tiếp
-      void handleCancelUnpaidBooking(item.id);
+      // Đơn chưa thanh toán -> Mở Form/Modal xác nhận hủy
+      setUnpaidCancelItem(item);
     }
   };
 
-  const handleCancelUnpaidBooking = async (id: string) => {
-    if (!window.confirm("Bạn có chắc chắn muốn hủy đơn tư vấn chưa thanh toán này?")) {
-      return;
-    }
+  const handleConfirmCancelUnpaid = async () => {
+    if (!unpaidCancelItem) return;
 
+    const id = unpaidCancelItem.id;
     setCancellingId(id);
     setCancelNotice(null);
 
     try {
       await cancelMutation.mutateAsync(id);
       setCancelNotice("Đã hủy đơn tư vấn chưa thanh toán thành công.");
+      setUnpaidCancelItem(null);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Hủy không thành công.";
       setCancelNotice(`Lỗi: ${msg}`);
@@ -403,6 +406,56 @@ export function MyConsultationsList({ onBookNew }: MyConsultationsListProps) {
           onClose={() => setSelectedForRefund(null)}
           onSuccess={() => void refetch()}
         />
+      )}
+
+      {/* Form / Modal xác nhận hủy lịch tư vấn chưa thanh toán */}
+      {unpaidCancelItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-start gap-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+                <WarningCircle size={26} weight="duotone" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-lg font-bold text-slate-900">
+                  Xác nhận hủy đơn tư vấn
+                </h3>
+                <p className="mt-2 text-sm text-slate-600 leading-relaxed">
+                  Bạn có chắc chắn muốn hủy đơn tư vấn
+                  {unpaidCancelItem.scheduledAt
+                    ? ` vào lúc ${new Intl.DateTimeFormat("vi-VN", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                      }).format(new Date(unpaidCancelItem.scheduledAt))}`
+                    : ""}{" "}
+                  không? Khung giờ giữ chỗ này sẽ được giải phóng cho người khác.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setUnpaidCancelItem(null)}
+                disabled={Boolean(cancellingId)}
+                className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+              >
+                Giữ lại
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmCancelUnpaid}
+                disabled={Boolean(cancellingId)}
+                className="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow-xs hover:bg-rose-700 transition-colors disabled:opacity-50"
+              >
+                {cancellingId ? "Đang hủy..." : "Xác nhận hủy"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

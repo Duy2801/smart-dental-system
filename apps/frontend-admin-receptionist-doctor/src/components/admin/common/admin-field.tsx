@@ -53,10 +53,21 @@ export function AdminSelect({
 export function AdminInput({
   label,
   className,
+  onChange,
   ...props
 }: InputHTMLAttributes<HTMLInputElement> & {
   label: string;
 }) {
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (props.type === "number") {
+      // Strip leading zeros before other digits e.g. "036" -> "36", but keep single "0"
+      if (event.target.value.length > 1 && /^0d+/.test(event.target.value)) {
+        event.target.value = event.target.value.replace(/^0+(?=d)/, "");
+      }
+    }
+    onChange?.(event);
+  };
+
   return (
     <FieldShell label={label} required={Boolean(props.required)}>
       <input
@@ -64,6 +75,7 @@ export function AdminInput({
           "h-12 rounded-lg border border-border bg-white px-3 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand",
           className,
         )}
+        onChange={handleChange}
         {...props}
       />
     </FieldShell>

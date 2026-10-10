@@ -52,7 +52,7 @@ export default function ProfilePage() {
   const { user: storedUser, accessToken, isHydrated } = useAppSelector((state) => state.login);
 
   const [saving, setSaving] = useState(false);
-  const [statusMsg, setStatusMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [statusMsg, setStatusMsg] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
 
   // Change Password state
@@ -202,7 +202,7 @@ export default function ProfilePage() {
                 type="button"
                 title="Đổi ảnh đại diện"
                 className="absolute -bottom-1 -left-1 grid h-8 w-8 place-items-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:bg-blue-50 hover:text-[#0863c5]"
-                onClick={() => alert("Tính năng tải ảnh đại diện sẽ được hỗ trợ trong phiên bản tiếp theo.")}
+                onClick={() => setStatusMsg({ type: "info", text: "Tính năng tải ảnh đại diện sẽ được hỗ trợ trong phiên bản tiếp theo." })}
               >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -217,10 +217,12 @@ export default function ProfilePage() {
               className={`mb-6 rounded-2xl px-4 py-3 text-xs sm:text-sm font-semibold flex items-center gap-2 ${
                 statusMsg.type === "success"
                   ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                  : statusMsg.type === "info"
+                  ? "bg-blue-50 text-blue-800 border border-blue-200"
                   : "bg-rose-50 text-rose-800 border border-rose-200"
               }`}
             >
-              <span>{statusMsg.type === "success" ? "✓" : "⚠️"}</span>
+              <span>{statusMsg.type === "success" ? "✓" : statusMsg.type === "info" ? "ℹ️" : "⚠️"}</span>
               <span>{statusMsg.text}</span>
             </div>
           )}

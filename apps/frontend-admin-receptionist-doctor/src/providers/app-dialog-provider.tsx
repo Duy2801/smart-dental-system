@@ -13,6 +13,7 @@ import {
   useEffect,
   useState,
 } from "react";
+import { ToastContainer } from "@/src/components/shared/toast-container";
 
 type DialogTone = "danger" | "info" | "success";
 
@@ -107,6 +108,7 @@ export function AppDialogProvider({ children }: { children: React.ReactNode }) {
   return (
     <AppDialogContext.Provider value={{ showConfirm, showAlert }}>
       {children}
+      <ToastContainer />
       {request && (
         <div
           className="fixed inset-0 z-100 flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-xs"
