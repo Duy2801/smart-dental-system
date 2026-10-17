@@ -42,15 +42,6 @@ export class LoginCaptchaService {
       throw new BadRequestException('auth.captcha_required');
     }
 
-    const allowedHostnames = (this.config.get<string>('WAU_CAPTCHA_ALLOWED_HOSTNAMES') ?? '')
-      .split(',')
-      .map((hostname) => hostname.trim().toLowerCase())
-      .filter(Boolean);
-    if (allowedHostnames.length === 0) {
-      this.logger.error('WAU_CAPTCHA_ALLOWED_HOSTNAMES is required when WAU_SECRET_KEY is set');
-      throw new ServiceUnavailableException('auth.captcha_unavailable');
-    }
-
     let result: WauVerifyResult;
     try {
       const response = await fetch('https://api.waucaptcha.com/siteverify', {
@@ -73,11 +64,9 @@ export class LoginCaptchaService {
       throw new ServiceUnavailableException('auth.captcha_unavailable');
     }
 
-    if (
-      result.success !== true ||
-      result.behavior?.verdict !== 'human' ||
-      !allowedHostnames.includes(result.hostname?.toLowerCase() ?? '')
-    ) {
+    // Không ràng buộc hostname: token có thể được giải trên web deploy, localhost hoặc app mobile.
+    // App mobile không có tín hiệu chuột/bàn phím nên chỉ chặn khi WAU kết luận rõ là bot.
+    if (result.success !== true || result.behavior?.verdict === 'bot') {
       // Ghi lý do (không ghi token) để dễ chẩn đoán CAPTCHA trên web / mobile
       this.logger.warn(
         `WAU Captcha rejected: success=${String(result.success)} verdict=${result.behavior?.verdict ?? 'none'} ` +

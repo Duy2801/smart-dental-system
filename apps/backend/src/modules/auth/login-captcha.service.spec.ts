@@ -12,7 +12,6 @@ describe('LoginCaptchaService', () => {
 
   beforeEach(() => {
     values.WAU_SECRET_KEY = 'private-test-key';
-    values.WAU_CAPTCHA_ALLOWED_HOSTNAMES = 'patient.example.com,admin.example.com';
     jest.clearAllMocks();
   });
 
@@ -29,12 +28,12 @@ describe('LoginCaptchaService', () => {
     await expect(captcha.verify()).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it('accepts only a human token solved on an allowed hostname', async () => {
+  it('accepts a solved token from any hostname', async () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
         success: true,
-        hostname: 'patient.example.com',
+        hostname: 'smart-dental-system-frontend-patien.vercel.app',
         behavior: { verdict: 'human' },
       }),
     });
@@ -51,8 +50,7 @@ describe('LoginCaptchaService', () => {
 
   it.each([
     { success: false, hostname: 'patient.example.com', behavior: { verdict: 'human' } },
-    { success: true, hostname: 'other.example.com', behavior: { verdict: 'human' } },
-    { success: true, hostname: 'patient.example.com', behavior: { verdict: 'suspicious' } },
+    { success: true, hostname: 'patient.example.com', behavior: { verdict: 'bot' } },
   ])('rejects invalid verification results', async (result) => {
     global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => result });
     await expect(captcha.verify('token')).rejects.toBeInstanceOf(BadRequestException);
