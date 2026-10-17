@@ -15,6 +15,7 @@ import { Text } from 'react-native-paper';
 import { useDispatch, useSelector } from 'react-redux';
 import { Screen, toast } from '~src/components/ui';
 import { SCREEN_NAME } from '~src/constants/screenName';
+import { LoginRequiredView } from '~src/features/auth/components/LoginRequiredView';
 import { getClinicConfigInfo } from '~src/features/home/api';
 import { FloatingChatButton } from '~src/features/home/components/FloatingChatButton';
 import { PatientDrawerModal } from '~src/features/home/components/PatientDrawerModal';
@@ -187,6 +188,14 @@ export default function PersonalScreen() {
         user={user}
       />
 
+      {!isLoggedIn ? (
+        <LoginRequiredView
+          actionLabel="Đăng nhập ngay"
+          description="Đăng nhập để xem và cập nhật thông tin cá nhân, tài khoản y tế và lịch hẹn của bạn."
+          icon="user-lock"
+          title="Xem thông tin cá nhân"
+        />
+      ) : (
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContainer}
@@ -199,31 +208,7 @@ export default function PersonalScreen() {
           />
         }
       >
-        {!isLoggedIn ? (
-          <View style={styles.loginRequiredCard}>
-            <View style={styles.loginIconBox}>
-              <FontAwesome6
-                color="#0863c5"
-                iconStyle="solid"
-                name="user-lock"
-                size={28}
-              />
-            </View>
-            <Text style={styles.loginTitle}>Xem thông tin cá nhân</Text>
-            <Text style={styles.loginSub}>
-              Đăng nhập để xem và cập nhật thông tin cá nhân, tài khoản y tế và lịch hẹn.
-            </Text>
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={() =>
-                navigation.navigate(SCREEN_NAME.PATIENT_LOGIN as never)
-              }
-              style={styles.loginBtn}
-            >
-              <Text style={styles.loginBtnText}>Đăng nhập ngay</Text>
-            </TouchableOpacity>
-          </View>
-        ) : profileQuery.isLoading && !profile ? (
+        {profileQuery.isLoading && !profile ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator color="#0863c5" size="large" />
             <Text style={styles.loadingText}>
@@ -528,6 +513,7 @@ export default function PersonalScreen() {
           <PatientFooter clinic={clinicQuery.data} />
         </View>
       </ScrollView>
+      )}
 
       {/* Change Password Modal */}
       <ChangePasswordModal
@@ -742,49 +728,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     marginTop: 12,
-  },
-  loginBtn: {
-    backgroundColor: '#0863c5',
-    borderRadius: 14,
-    marginTop: 14,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
-  loginBtnText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  loginIconBox: {
-    alignItems: 'center',
-    backgroundColor: '#EFF6FF',
-    borderRadius: 999,
-    height: 60,
-    justifyContent: 'center',
-    marginBottom: 12,
-    width: 60,
-  },
-  loginRequiredCard: {
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderColor: '#CBD5E1',
-    borderRadius: 24,
-    borderStyle: 'dashed',
-    borderWidth: 1.5,
-    marginVertical: 24,
-    padding: 24,
-  },
-  loginSub: {
-    color: '#64748B',
-    fontSize: 12,
-    lineHeight: 18,
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  loginTitle: {
-    color: '#0F172A',
-    fontSize: 16,
-    fontWeight: '900',
   },
   mainCard: {
     backgroundColor: '#FFFFFF',

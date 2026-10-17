@@ -12,6 +12,7 @@ import { Text } from 'react-native-paper';
 import { useSelector } from 'react-redux';
 import { Screen } from '~src/components/ui';
 import { SCREEN_NAME } from '~src/constants/screenName';
+import { LoginRequiredView } from '~src/features/auth/components/LoginRequiredView';
 import { getClinicConfigInfo } from '~src/features/home/api';
 import { FloatingChatButton } from '~src/features/home/components/FloatingChatButton';
 import { PatientDrawerModal } from '~src/features/home/components/PatientDrawerModal';
@@ -20,7 +21,6 @@ import { PatientFooter } from '~src/features/home/components/PatientFooter';
 import { usePatientDrawerActions } from '~src/features/home/hooks/usePatientDrawerActions';
 import { CACHE_TIMES, queryKeys } from '~src/config/queryClient';
 import type { RootState } from '~src/reducers/store';
-import { LoginRequiredRecord } from '../components/LoginRequiredRecord';
 import { MedicalVisitCard } from '../components/MedicalVisitCard';
 import { PatientAdminCard } from '../components/PatientAdminCard';
 import { RecordPatientHeader } from '../components/RecordPatientHeader';
@@ -170,6 +170,14 @@ export function PatientRecordsScreen() {
         user={user}
       />
 
+      {isHydrated && !isLoggedIn ? (
+        <LoginRequiredView
+          actionLabel="Đăng nhập để xem hồ sơ"
+          description="Đăng nhập để xem hồ sơ bệnh án, phác đồ điều trị, đơn thuốc và hình ảnh X-quang của bạn và người thân."
+          icon="file-medical"
+          title="Hồ sơ bệnh án"
+        />
+      ) : (
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContainer}
@@ -182,9 +190,7 @@ export function PatientRecordsScreen() {
           />
         }
       >
-        {isHydrated && !isLoggedIn ? (
-          <LoginRequiredRecord />
-        ) : isLoading ? (
+        {isLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator color="#0863c5" size="large" />
             <Text style={styles.loadingText}>
@@ -245,6 +251,7 @@ export function PatientRecordsScreen() {
           <PatientFooter clinic={clinicQuery.data} />
         </View>
       </ScrollView>
+      )}
 
       {/* Floating Chat Button */}
       <FloatingChatButton />

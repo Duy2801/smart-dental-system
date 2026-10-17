@@ -283,11 +283,11 @@ export default function PatientHomeScreen() {
   );
 
   const goToServiceDetail = useCallback(
-    (serviceId: string) => {
+    (serviceId: string, methodId?: string) => {
       setShowResults(false);
       navigateTab(SCREEN_NAME.PATIENT_SERVICES, {
         screen: 'ServiceDetail',
-        params: { serviceId },
+        params: { serviceId, methodId },
       });
     },
     [navigateTab],

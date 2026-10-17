@@ -1,9 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import type { FormEventHandler, Ref } from "react";
 import { FormField } from "../common/FormField";
 import { PrimaryButton } from "../common/PrimaryButton";
+import { useClinicConfigQuery } from "@/features/dashboard/home/hooks/useHomeQueries";
 import { CaptchaWidget, type CaptchaHandle } from "./CaptchaWidget";
 
 type LoginFormProps = {
@@ -27,10 +29,26 @@ export function LoginForm({
   googleSubmitting,
   captchaRef,
 }: LoginFormProps) {
+  const { data: clinic } = useClinicConfigQuery();
+  const logoSrc = clinic?.logoUrl?.trim() ? clinic.logoUrl : "/clinic-logo.png";
+  const clinicName = clinic?.name || "Smart Dental Clinic";
+
   return (
     <section className="w-full flex-1 sm:flex-initial flex flex-col justify-center rounded-none sm:rounded-3xl border-0 sm:border sm:border-slate-200/90 bg-white p-5 sm:p-7 sm:px-8 shadow-none sm:shadow-xl sm:shadow-slate-200/70 transition-all">
       {/* Brand Header */}
       <div className="mb-4 sm:mb-5 tall:mb-8 text-center">
+        {/* Logo phòng khám (nhỏ hơn trên màn thấp để trang không phải cuộn) */}
+        <span className="mx-auto mb-3 tall:mb-4 grid h-12 w-12 tall:h-14 tall:w-14 place-items-center overflow-hidden rounded-2xl bg-white shadow-md shadow-blue-900/10 ring-1 ring-slate-200/80">
+          <Image
+            src={logoSrc}
+            alt={`Logo ${clinicName}`}
+            width={56}
+            height={56}
+            unoptimized
+            priority
+            className="h-9 w-9 tall:h-11 tall:w-11 object-contain"
+          />
+        </span>
         <h1 className="text-xl sm:text-2xl tall:text-[28px] font-black tracking-tight text-slate-900">
           Đăng nhập tài khoản
         </h1>

@@ -18,6 +18,7 @@ import { Text } from 'react-native-paper';
 import { useSelector } from 'react-redux';
 import { Screen, toast } from '~src/components/ui';
 import { SCREEN_NAME } from '~src/constants/screenName';
+import { LoginRequiredView } from '~src/features/auth/components/LoginRequiredView';
 import { PatientDrawerModal } from '~src/features/home/components/PatientDrawerModal';
 import { PatientFooter } from '~src/features/home/components/PatientFooter';
 import { PatientHomeHeader } from '~src/features/home/components/PatientHomeHeader';
@@ -81,6 +82,9 @@ function canJoinConsultation(item: PatientConsultation, now: number) {
 
 export default function ConsultationScreen({ navigation }: any) {
   const user = useSelector((state: RootState) => state.login?.user ?? null);
+  const accessToken = useSelector((state: RootState) => state.login?.accessToken);
+  const isHydrated = useSelector((state: RootState) => state.login?.isHydrated ?? true);
+  const isLoggedIn = Boolean(accessToken);
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<TabMode>('book');
   const [drawerVisible, setDrawerVisible] = useState(false);
@@ -122,6 +126,7 @@ export default function ConsultationScreen({ navigation }: any) {
 
   // Query: Consultation Packages
   const packagesQuery = useQuery({
+    enabled: isLoggedIn,
     queryFn: getConsultationPackages,
     queryKey: queryKeys.consultations.packages,
     staleTime: CACHE_TIMES.CATALOG.staleTime,
@@ -130,6 +135,7 @@ export default function ConsultationScreen({ navigation }: any) {
 
   // Query: Consultation Doctors
   const doctorsQuery = useQuery({
+    enabled: isLoggedIn,
     queryFn: getConsultationDoctors,
     queryKey: queryKeys.consultations.doctors,
     staleTime: CACHE_TIMES.CATALOG.staleTime,
@@ -138,7 +144,7 @@ export default function ConsultationScreen({ navigation }: any) {
 
   // Query: Available Slots
   const slotsQuery = useQuery({
-    enabled: Boolean(selectedDoctorId && selectedDate),
+    enabled: isLoggedIn && Boolean(selectedDoctorId && selectedDate),
     queryFn: () =>
       getAvailableConsultationSlots(
         selectedDoctorId,
@@ -156,6 +162,7 @@ export default function ConsultationScreen({ navigation }: any) {
 
   // Query: My Consultations
   const myConsultationsQuery = useQuery({
+    enabled: isLoggedIn,
     queryFn: getPatientConsultations,
     queryKey: queryKeys.consultations.myList,
     staleTime: CACHE_TIMES.APPOINTMENTS.staleTime,
@@ -1131,8 +1138,8 @@ export default function ConsultationScreen({ navigation }: any) {
     );
   };
 
-  return (
-    <Screen>
+  const renderHeaderAndDrawer = () => (
+    <>
       <PatientHomeHeader
         onMenuPress={() => setDrawerVisible(true)}
         onNotificationPress={() =>
@@ -1147,6 +1154,27 @@ export default function ConsultationScreen({ navigation }: any) {
         onNavigate={handleDrawerNavigate}
         user={user}
       />
+    </>
+  );
+
+  // Chưa đăng nhập: hiện thẻ yêu cầu đăng nhập giống Lịch hẹn / Hồ sơ / Tôi
+  if (isHydrated && !isLoggedIn) {
+    return (
+      <Screen>
+        {renderHeaderAndDrawer()}
+        <LoginRequiredView
+          actionLabel="Đăng nhập để đặt tư vấn"
+          description="Đăng nhập để chọn gói tư vấn, bác sĩ và khung giờ gọi video phù hợp, đồng thời theo dõi các buổi tư vấn của bạn."
+          icon="user-doctor"
+          title="Tư vấn trực tuyến"
+        />
+      </Screen>
+    );
+  }
+
+  return (
+    <Screen>
+      {renderHeaderAndDrawer()}
 
       <ScrollView
         contentContainerStyle={{ paddingBottom: 0 }}

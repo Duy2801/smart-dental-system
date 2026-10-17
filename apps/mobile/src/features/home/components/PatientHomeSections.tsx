@@ -28,7 +28,7 @@ type ActionHandlers = {
   onPromotionsPress: () => void;
   onServicePress: (keyword?: string) => void;
   /** Mở trang chi tiết nhóm dịch vụ (giống ô dịch vụ trên web) */
-  onServiceDetailPress: (serviceId: string) => void;
+  onServiceDetailPress: (serviceId: string, methodId?: string) => void;
 };
 
 const formatVnd = (value: string | number) =>
@@ -267,51 +267,63 @@ export function PopularMethodsSection({
               key={method.id}
               style={[styles.popularCard, styles.softShadow]}
             >
-              {/* Method Photo Banner */}
-              <View style={styles.popularPhotoWrap}>
-                <Image
-                  resizeMode="cover"
-                  source={imgSrc}
-                  style={styles.popularPhoto}
-                />
+              {/* Hàng trên: ảnh vuông hiện trọn + tên, giá — giống thẻ phương pháp trong trang dịch vụ */}
+              <View style={styles.popularTopRow}>
+                <View style={styles.popularPhotoWrap}>
+                  <Image
+                    resizeMode="cover"
+                    source={imgSrc}
+                    style={styles.popularPhoto}
+                  />
+                </View>
+
+                <View style={styles.popularInfo}>
+                  <Text numberOfLines={1} style={styles.popularCategoryBadge}>
+                    {service.name.toUpperCase()}
+                  </Text>
+                  <Text numberOfLines={2} style={styles.popularMethodName}>
+                    {method.name}
+                  </Text>
+                  <View style={styles.popularBadgeRow}>
+                    <View style={styles.popularPricePill}>
+                      <Text style={styles.popularPrice}>
+                        {formatVnd(method.basePrice)}
+                      </Text>
+                    </View>
+                    <View style={styles.popularCountPill}>
+                      <Text style={styles.popularBookingCount}>
+                        {method.bookingCount ?? 0} lượt đặt
+                      </Text>
+                    </View>
+                  </View>
+                </View>
               </View>
 
-              {/* Content Body */}
-              <View style={styles.popularContent}>
-                <Text style={styles.popularCategoryBadge}>
-                  {service.name.toUpperCase()}
-                </Text>
+              <Text numberOfLines={2} style={styles.popularDesc}>
+                {method.description ||
+                  service.description ||
+                  'Dịch vụ nha khoa công nghệ cao được cá nhân hóa.'}
+              </Text>
 
-                <Text numberOfLines={1} style={styles.popularMethodName}>
-                  {method.name}
-                </Text>
-
-                <Text numberOfLines={2} style={styles.popularDesc}>
-                  {method.description ||
-                    service.description ||
-                    'Dịch vụ nha khoa công nghệ cao được cá nhân hóa.'}
-                </Text>
-
-                <View style={styles.popularFooter}>
-                  <View>
-                    <Text style={styles.popularPrice}>
-                      {formatVnd(method.basePrice)}
-                    </Text>
-                    <Text style={styles.popularBookingCount}>
-                      {method.bookingCount ?? 0} lượt đặt
-                    </Text>
-                  </View>
-
-                  <TouchableOpacity
-                    activeOpacity={0.85}
-                    onPress={() =>
-                      handlers.onAppointmentPress(service.id, method.id)
-                    }
-                    style={styles.bookMethodBtn}
-                  >
-                    <Text style={styles.bookMethodBtnText}>Đặt lịch</Text>
-                  </TouchableOpacity>
-                </View>
+              <View style={styles.popularActionRow}>
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() =>
+                    handlers.onServiceDetailPress(service.id, method.id)
+                  }
+                  style={styles.popularDetailBtn}
+                >
+                  <Text style={styles.popularDetailBtnText}>Chi tiết</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={() =>
+                    handlers.onAppointmentPress(service.id, method.id)
+                  }
+                  style={styles.popularBookBtn}
+                >
+                  <Text style={styles.popularBookBtnText}>Đặt lịch</Text>
+                </TouchableOpacity>
               </View>
             </View>
           );
@@ -361,8 +373,6 @@ export function DoctorsPreviewSection({
   return (
     <View style={styles.sectionMargin}>
       <WebSectionHeader
-        actionLabel="Xem tất cả"
-        onActionPress={() => handlers.onDoctorsPress()}
         subtitle="Đội ngũ bác sĩ tận tâm, chuyên nghiệp, luôn lắng nghe và mang đến trải nghiệm điều trị tốt nhất."
         title="Gặp gỡ đội ngũ bác sĩ giàu kinh nghiệm"
       />
@@ -1180,17 +1190,6 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     fontWeight: '900',
   },
-  bookMethodBtn: {
-    backgroundColor: '#0863C5',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-  },
-  bookMethodBtnText: {
-    color: '#FFFFFF',
-    fontSize: 11.5,
-    fontWeight: '900',
-  },
   bulletDot: {
     backgroundColor: '#1E293B',
     borderRadius: 3,
@@ -1524,65 +1523,118 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 14,
   },
+  popularActionRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 12,
+  },
+  popularBadgeRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 8,
+  },
+  popularBookBtn: {
+    alignItems: 'center',
+    backgroundColor: '#0863C5',
+    borderRadius: 12,
+    flex: 1,
+    justifyContent: 'center',
+    paddingVertical: 10,
+  },
+  popularBookBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+  },
   popularBookingCount: {
-    color: '#94A3B8',
-    fontSize: 9.5,
-    marginTop: 1,
+    color: '#475569',
+    fontSize: 10.5,
+    fontWeight: '700',
   },
   popularCard: {
     backgroundColor: '#FFFFFF',
     borderColor: '#E2E8F0',
-    borderRadius: 22,
+    borderRadius: 20,
     borderWidth: 1,
     marginBottom: 14,
-    overflow: 'hidden',
+    padding: 12,
   },
   popularCategoryBadge: {
-    color: '#0863C5',
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 0.6,
+    color: '#94A3B8',
+    fontSize: 10.5,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
-  popularContent: {
-    padding: 14,
+  popularCountPill: {
+    backgroundColor: '#F1F5F9',
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
   popularDesc: {
-    color: '#475569',
-    fontSize: 12,
-    lineHeight: 17,
-    marginTop: 4,
-  },
-  popularFooter: {
-    alignItems: 'center',
-    borderTopColor: '#F1F5F9',
-    borderTopWidth: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    color: '#64748B',
+    fontSize: 13,
+    lineHeight: 19,
     marginTop: 10,
-    paddingTop: 10,
+  },
+  popularDetailBtn: {
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    borderWidth: 1,
+    flex: 1,
+    justifyContent: 'center',
+    paddingVertical: 10,
+  },
+  popularDetailBtnText: {
+    color: '#334155',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  popularInfo: {
+    flex: 1,
+    justifyContent: 'center',
+    minWidth: 0,
   },
   popularList: {
     paddingHorizontal: 16,
   },
   popularMethodName: {
     color: '#0F172A',
-    fontSize: 15.5,
-    fontWeight: '900',
-    marginTop: 3,
+    fontSize: 15,
+    fontWeight: '800',
+    lineHeight: 21,
+    marginTop: 2,
   },
   popularPhoto: {
     height: '100%',
     width: '100%',
   },
+  // Ảnh vuông nhỏ để hiện trọn ảnh phương pháp
   popularPhotoWrap: {
-    aspectRatio: 16 / 9,
     backgroundColor: '#EFF6FF',
-    width: '100%',
+    borderRadius: 14,
+    height: 104,
+    overflow: 'hidden',
+    width: 104,
   },
   popularPrice: {
     color: '#0863C5',
-    fontSize: 13,
-    fontWeight: '900',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  popularPricePill: {
+    backgroundColor: '#EFF6FF',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+  },
+  popularTopRow: {
+    flexDirection: 'row',
+    gap: 12,
   },
   promoActionRow: {
     alignItems: 'center',

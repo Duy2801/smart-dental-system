@@ -186,12 +186,20 @@ function PopularMethodCard({
               {method.bookingCount ?? 0} lượt đặt
             </span>
           </div>
-          <Link
-            href={buildRoute.appointmentBooking(service.id, method.id)}
-            className="rounded-xl bg-[#0863c5] px-3.5 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#0756aa] active:scale-95"
-          >
-            Đặt lịch
-          </Link>
+          <div className="flex shrink-0 items-center gap-2">
+            <Link
+              href={methodHref(service, method)}
+              className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:bg-slate-50 active:scale-95"
+            >
+              Chi tiết
+            </Link>
+            <Link
+              href={buildRoute.appointmentBooking(service.id, method.id)}
+              className="rounded-xl bg-[#0863c5] px-3.5 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#0756aa] active:scale-95"
+            >
+              Đặt lịch
+            </Link>
+          </div>
         </div>
       </div>
     </div>
