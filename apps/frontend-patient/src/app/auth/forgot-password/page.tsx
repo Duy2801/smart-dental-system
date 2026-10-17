@@ -41,16 +41,20 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="w-full sm:max-w-[400px] flex-1 sm:flex-initial flex flex-col justify-center px-4 sm:px-0 py-6 sm:py-0">
-      <section className="w-full bg-white border-0 sm:border sm:border-slate-200/80 rounded-none sm:rounded-2xl shadow-none sm:shadow-lg sm:shadow-slate-200/50 p-0 sm:p-7 transition-all">
-        <div className="mb-5 text-center">
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900">
-            Quên mật khẩu?
-          </h1>
-          <p className="mt-1 text-xs text-slate-500">
-            Nhập địa chỉ email đăng ký để nhận hướng dẫn đặt lại mật khẩu.
-          </p>
+    <section className="w-full flex-1 sm:flex-initial flex flex-col justify-center rounded-none sm:rounded-3xl border-0 sm:border sm:border-slate-200/90 bg-white p-5 sm:p-7 sm:px-8 shadow-none sm:shadow-xl sm:shadow-slate-200/70 transition-all">
+      <div className="mb-6 text-center">
+        <div className="hidden lg:inline-flex mx-auto mb-3 h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-tr from-blue-50 to-sky-100 ring-1 ring-blue-200/80 text-[#0863c5] shadow-xs">
+          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+          </svg>
         </div>
+        <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+          Quên mật khẩu?
+        </h1>
+        <p className="mt-1.5 text-xs sm:text-sm text-slate-500">
+          Nhập địa chỉ email đăng ký để nhận liên kết đặt lại mật khẩu.
+        </p>
+      </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {successMessage && (
@@ -93,6 +97,5 @@ export default function ForgotPasswordPage() {
           </p>
         </form>
       </section>
-    </div>
   );
 }

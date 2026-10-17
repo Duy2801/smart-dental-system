@@ -13,34 +13,45 @@ function getInitials(name: string) {
 
 type PatientAdminCardProps = {
   patient: PatientRecordsResponse['patient'];
+  recordDate?: string;
 };
 
-export function PatientAdminCard({ patient }: PatientAdminCardProps) {
-  const formattedDobAndAge = useMemo(() => {
-    if (!patient?.dateOfBirth) {
-      if (patient?.age !== null && patient?.age !== undefined && patient.age > 0) {
-        return `${patient.age} tuổi`;
-      }
-      return 'Chưa cập nhật';
-    }
+function InfoChip({
+  icon,
+  label,
+  value,
+  highlight = false,
+}: {
+  icon: string;
+  label: string;
+  value: string;
+  highlight?: boolean;
+}) {
+  return (
+    <View style={[styles.chip, highlight && styles.chipHighlight]}>
+      <View style={[styles.chipIcon, highlight && styles.chipIconHighlight]}>
+        <FontAwesome6 color="#0863c5" iconStyle="solid" name={icon as any} size={12} />
+      </View>
+      <View style={styles.chipBody}>
+        <Text numberOfLines={1} style={[styles.chipLabel, highlight && styles.chipLabelHighlight]}>
+          {label}
+        </Text>
+        <Text numberOfLines={1} style={[styles.chipValue, highlight && styles.chipValueHighlight]}>
+          {value}
+        </Text>
+      </View>
+    </View>
+  );
+}
 
+export function PatientAdminCard({ patient, recordDate }: PatientAdminCardProps) {
+  const formattedDob = useMemo(() => {
+    if (!patient?.dateOfBirth) return 'Chưa cập nhật';
     const dob = new Date(patient.dateOfBirth);
-    if (isNaN(dob.getTime())) {
-      if (patient?.age !== null && patient?.age !== undefined && patient.age > 0) {
-        return `${patient.age} tuổi`;
-      }
-      return 'Chưa cập nhật';
-    }
-
-    const birthYear = dob.getFullYear();
-    const currentYear = new Date().getFullYear();
-    const age = patient.age ?? currentYear - birthYear;
-
+    if (isNaN(dob.getTime())) return 'Chưa cập nhật';
     const day = String(dob.getDate()).padStart(2, '0');
     const month = String(dob.getMonth() + 1).padStart(2, '0');
-    const formattedDate = `${day}/${month}/${birthYear}`;
-
-    return age > 0 ? `${formattedDate} (${age} tuổi)` : formattedDate;
+    return `${day}/${month}/${dob.getFullYear()}`;
   }, [patient]);
 
   const genderText =
@@ -89,39 +100,25 @@ export function PatientAdminCard({ patient }: PatientAdminCardProps) {
         </View>
       </View>
 
-      {/* 2. Key Info Chips in 3 Columns */}
-      <View style={styles.chipsRow}>
-        <View style={styles.chip}>
-          <Text style={styles.chipLabel}>NGÀY SINH / TUỔI</Text>
-          <Text numberOfLines={1} style={styles.chipValue}>
-            {formattedDobAndAge}
-          </Text>
+      {/* 2. Key Info Chips */}
+      <View style={styles.chipsGrid}>
+        <View style={styles.chipsRow}>
+          <InfoChip icon="calendar" label="NGÀY SINH" value={formattedDob} />
+          <InfoChip icon="phone" label="SỐ ĐIỆN THOẠI" value={patient?.phone || 'Chưa cập nhật'} />
         </View>
-
-        <View style={styles.chip}>
-          <Text style={styles.chipLabel}>SỐ ĐIỆN THOẠI</Text>
-          <Text numberOfLines={1} style={styles.chipValue}>
-            {patient?.phone || 'Chưa cập nhật'}
-          </Text>
-        </View>
-
-        <View style={styles.chip}>
-          <Text style={styles.chipLabel}>GIỚI TÍNH</Text>
-          <Text numberOfLines={1} style={styles.chipValue}>
-            {genderText}
-          </Text>
+        <View style={styles.chipsRow}>
+          <InfoChip icon="user" label="GIỚI TÍNH" value={genderText} />
+          {recordDate ? (
+            <InfoChip highlight icon="clock" label="NGÀY LẬP HỒ SƠ" value={recordDate} />
+          ) : (
+            <View style={styles.chipSpacer} />
+          )}
         </View>
       </View>
 
       {/* 3. Medical History & Allergy Alert */}
       {patient?.medicalHistory ? (
         <View style={[styles.historyBox, hasAllergy && styles.historyBoxAlert]}>
-          <FontAwesome6
-            color={hasAllergy ? '#DC2626' : '#0863c5'}
-            iconStyle="solid"
-            name={hasAllergy ? 'triangle-exclamation' : 'shield-halved'}
-            size={14}
-          />
           <View style={styles.historyContent}>
             <Text style={[styles.historyLabel, hasAllergy && styles.historyLabelAlert]}>
               {hasAllergy ? 'CẢNH BÁO TIỀN SỬ DỊ ỨNG THUỐC' : 'TIỀN SỬ Y KHOA & SỨC KHỎE'}
@@ -229,38 +226,66 @@ const styles = StyleSheet.create({
     color: '#10B981',
     fontWeight: '700',
   },
-  chipsRow: {
-    flexDirection: 'row',
+  chipsGrid: {
     gap: 8,
     marginTop: 12,
   },
+  chipsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
   chip: {
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8FBFE',
     borderColor: '#F1F5F9',
     borderRadius: 12,
     borderWidth: 1,
     flex: 1,
+    flexDirection: 'row',
+    gap: 8,
+    padding: 10,
+  },
+  chipHighlight: {
+    backgroundColor: 'rgba(239, 246, 255, 0.6)',
+    borderColor: '#DBEAFE',
+  },
+  chipSpacer: {
+    flex: 1,
+  },
+  chipIcon: {
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    borderRadius: 8,
+    height: 30,
     justifyContent: 'center',
-    paddingHorizontal: 6,
-    paddingVertical: 10,
+    width: 30,
+  },
+  chipIconHighlight: {
+    backgroundColor: '#DBEAFE',
+  },
+  chipBody: {
+    flex: 1,
+    minWidth: 0,
   },
   chipLabel: {
     color: '#94A3B8',
     fontSize: 9.5,
-    fontWeight: '800',
+    fontWeight: '900',
     letterSpacing: 0.5,
-    textAlign: 'center',
+  },
+  chipLabelHighlight: {
+    color: '#0058bc',
   },
   chipValue: {
     color: '#1E293B',
     fontSize: 13,
     fontWeight: '800',
     marginTop: 2,
-    textAlign: 'center',
+  },
+  chipValueHighlight: {
+    color: '#07366f',
   },
   historyBox: {
-    alignItems: 'center',
     backgroundColor: '#F8FAFC',
     borderColor: '#E2E8F0',
     borderRadius: 12,

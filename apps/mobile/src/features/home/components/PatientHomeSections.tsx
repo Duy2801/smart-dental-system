@@ -27,6 +27,8 @@ type ActionHandlers = {
   onDoctorsPress: (keyword?: string) => void;
   onPromotionsPress: () => void;
   onServicePress: (keyword?: string) => void;
+  /** Mở trang chi tiết nhóm dịch vụ (giống ô dịch vụ trên web) */
+  onServiceDetailPress: (serviceId: string) => void;
 };
 
 const formatVnd = (value: string | number) =>
@@ -35,22 +37,17 @@ const formatVnd = (value: string | number) =>
 // ─── SECTION HEADER (CENTERED / SLEEK LIKE WEB) ─────────────────────────
 function WebSectionHeader({
   actionLabel,
-  eyebrow,
   onActionPress,
   subtitle,
   title,
 }: {
   actionLabel?: string;
-  eyebrow?: string;
   onActionPress?: () => void;
   subtitle?: string;
   title: string;
 }) {
   return (
     <View style={styles.sectionHeaderContainer}>
-      {eyebrow ? (
-        <Text style={styles.sectionEyebrow}>{eyebrow.toUpperCase()}</Text>
-      ) : null}
       <Text style={styles.sectionTitle}>{title}</Text>
       {subtitle ? (
         <Text style={styles.sectionSubtitle}>{subtitle}</Text>
@@ -165,7 +162,6 @@ export function ServicesPreviewSection({
   return (
     <View style={styles.sectionMargin}>
       <WebSectionHeader
-        eyebrow="Dịch vụ nổi bật"
         subtitle="Chọn nhóm dịch vụ để xem các dịch vụ, chi phí và quy trình điều trị chi tiết."
         title="Danh sách dịch vụ nha khoa"
       />
@@ -183,7 +179,7 @@ export function ServicesPreviewSection({
               <TouchableOpacity
                 activeOpacity={0.86}
                 key={service.id}
-                onPress={() => handlers.onServicePress(service.name)}
+                onPress={() => handlers.onServiceDetailPress(service.id)}
                 style={[styles.serviceTile, styles.softShadow]}
               >
                 {/* Centered Icon Container */}
@@ -256,7 +252,6 @@ export function PopularMethodsSection({
   return (
     <View style={styles.sectionMargin}>
       <WebSectionHeader
-        eyebrow="Được yêu thích"
         subtitle="Tự động xếp hạng theo số lượt đặt lịch thực tế trong hệ thống."
         title="Dịch vụ được đặt nhiều nhất"
       />
@@ -340,7 +335,6 @@ export function DoctorsPreviewSection({
     return (
       <View style={styles.sectionMargin}>
         <WebSectionHeader
-          eyebrow="Đội ngũ bác sĩ"
           subtitle="Đội ngũ bác sĩ tận tâm, chuyên nghiệp, luôn lắng nghe và mang đến trải nghiệm điều trị tốt nhất."
           title="Gặp gỡ đội ngũ bác sĩ giàu kinh nghiệm"
         />
@@ -368,34 +362,12 @@ export function DoctorsPreviewSection({
     <View style={styles.sectionMargin}>
       <WebSectionHeader
         actionLabel="Xem tất cả"
-        eyebrow="Đội ngũ bác sĩ"
         onActionPress={() => handlers.onDoctorsPress()}
         subtitle="Đội ngũ bác sĩ tận tâm, chuyên nghiệp, luôn lắng nghe và mang đến trải nghiệm điều trị tốt nhất."
         title="Gặp gỡ đội ngũ bác sĩ giàu kinh nghiệm"
       />
 
       <View style={[styles.doctorCarouselWrap, styles.softShadow]}>
-        {/* Navigation Arrows */}
-        {doctors.length > 1 ? (
-          <>
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={prevDoctor}
-              style={styles.arrowBtnLeft}
-            >
-              <Text style={styles.arrowBtnText}>‹</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={nextDoctor}
-              style={styles.arrowBtnRight}
-            >
-              <Text style={styles.arrowBtnText}>›</Text>
-            </TouchableOpacity>
-          </>
-        ) : null}
-
         {/* Doctor Info (Top) */}
         <View style={styles.doctorInfoTop}>
           <Text style={styles.doctorEyebrow}>Bác sĩ chuyên khoa</Text>
@@ -414,15 +386,6 @@ export function DoctorsPreviewSection({
               </View>
             ))}
           </View>
-
-          {/* Action Button */}
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={() => handlers.onDoctorsPress(currentDoctor.name)}
-            style={styles.viewDoctorBtn}
-          >
-            <Text style={styles.viewDoctorBtnText}>Xem chi tiết bác sĩ ›</Text>
-          </TouchableOpacity>
         </View>
 
         {/* Doctor Visual Area with Circular Backdrop & Cutout Photo */}
@@ -437,7 +400,39 @@ export function DoctorsPreviewSection({
             }
             style={styles.doctorCutoutImg}
           />
+
+          {/* Nút chuyển bác sĩ: căn giữa theo ảnh để không đè lên chữ / nút */}
+          {doctors.length > 1 ? (
+            <>
+              <TouchableOpacity
+                accessibilityLabel="Bác sĩ trước"
+                activeOpacity={0.8}
+                onPress={prevDoctor}
+                style={styles.arrowBtnLeft}
+              >
+                <Text style={styles.arrowBtnText}>‹</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                accessibilityLabel="Bác sĩ tiếp theo"
+                activeOpacity={0.8}
+                onPress={nextDoctor}
+                style={styles.arrowBtnRight}
+              >
+                <Text style={styles.arrowBtnText}>›</Text>
+              </TouchableOpacity>
+            </>
+          ) : null}
         </View>
+
+        {/* Action Button: đặt dưới ảnh, rộng hết thẻ */}
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => handlers.onDoctorsPress(currentDoctor.name)}
+          style={styles.viewDoctorBtn}
+        >
+          <Text style={styles.viewDoctorBtnText}>Xem chi tiết bác sĩ ›</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -465,7 +460,6 @@ export function ClinicalCasesPreviewSection({
   return (
     <View style={styles.sectionMargin}>
       <WebSectionHeader
-        eyebrow="Kết quả điều trị"
         subtitle="Hình ảnh trước và sau từ các ca điều trị thực tế đã được bệnh nhân đồng ý công khai."
         title="Kiệt tác Nụ cười"
       />
@@ -760,7 +754,6 @@ export function KnowledgePreviewSection({
   return (
     <View style={styles.sectionMargin}>
       <WebSectionHeader
-        eyebrow="Hỏi đáp nha khoa"
         subtitle="Những thắc mắc phổ biến được tổng hợp từ dữ liệu dịch vụ và cấu hình thực tế của phòng khám."
         title="Câu hỏi thường gặp"
       />
@@ -882,22 +875,10 @@ export function ClinicLocationPreviewSection({
     <View style={[styles.locationCard, styles.softShadow]}>
       {/* 1. Header Section */}
       <View style={styles.locationHeaderBlock}>
-        <View style={styles.locationEyebrowTag}>
-          <View style={styles.livePulseDot} />
-          <Text style={styles.locationEyebrowText}>Vị trí phòng khám & Bản đồ</Text>
-        </View>
         <Text style={styles.locationTitle}>Thông tin & Vị trí Phòng khám</Text>
-        <Text style={styles.locationSubtitle}>
-          Thông tin được lấy trực tiếp từ cấu hình phòng khám trong hệ thống.
+        <Text adjustsFontSizeToFit minimumFontScale={0.85} numberOfLines={1} style={styles.locationSubtitle}>
+          Cập nhật trực tiếp từ hệ thống phòng khám.
         </Text>
-
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={handleDirections}
-          style={styles.openMapDirectBtn}
-        >
-          <Text style={styles.openMapDirectText}>Mở chỉ đường Google Maps</Text>
-        </TouchableOpacity>
       </View>
 
       {/* 2. Card 1: Clinic Info Box */}
@@ -1117,7 +1098,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     left: 8,
     position: 'absolute',
-    top: '48%',
+    top: 77, // giữa vùng ảnh cao 190px (190 - 36) / 2
     width: 36,
     zIndex: 20,
   },
@@ -1132,7 +1113,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     position: 'absolute',
     right: 8,
-    top: '48%',
+    top: 77, // giữa vùng ảnh cao 190px (190 - 36) / 2
     width: 36,
     zIndex: 20,
   },
@@ -1457,19 +1438,6 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 12,
   },
-  locationEyebrowTag: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#EFF6FF',
-    borderRadius: 12,
-    paddingHorizontal: 9,
-    paddingVertical: 3,
-  },
-  locationEyebrowText: {
-    color: '#0058BC',
-    fontSize: 9,
-    fontWeight: '900',
-    letterSpacing: 0.8,
-  },
   locationHoursBox: {
     backgroundColor: '#F8FAFC',
     borderRadius: 14,
@@ -1504,13 +1472,15 @@ const styles = StyleSheet.create({
   locationSubtitle: {
     color: '#64748B',
     fontSize: 12,
-    marginTop: 4,
+    lineHeight: 18,
+    textAlign: 'center',
   },
   locationTitle: {
-    color: '#0F172A',
-    fontSize: 18,
+    color: '#07366F',
+    fontSize: 21,
     fontWeight: '900',
-    marginTop: 8,
+    letterSpacing: -0.3,
+    textAlign: 'center',
   },
   metaDot: {
     color: '#94A3B8',
@@ -1605,7 +1575,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   popularPhotoWrap: {
-    aspectRatio: 4 / 3,
+    aspectRatio: 16 / 9,
     backgroundColor: '#EFF6FF',
     width: '100%',
   },
@@ -1716,13 +1686,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     resizeMode: 'cover',
   },
-  sectionEyebrow: {
-    color: '#0058BC',
-    fontSize: 11,
-    fontWeight: '900',
-    letterSpacing: 1.5,
-    textAlign: 'center',
-  },
   sectionHeaderContainer: {
     alignItems: 'center',
     marginBottom: 12,
@@ -1743,7 +1706,6 @@ const styles = StyleSheet.create({
     fontSize: 21,
     fontWeight: '900',
     letterSpacing: -0.3,
-    marginTop: 4,
     textAlign: 'center',
   },
   serviceIconFallbackText: {
@@ -1964,30 +1926,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 24,
   },
-  livePulseDot: {
-    backgroundColor: '#0058BC',
-    borderRadius: 4,
-    height: 7,
-    width: 7,
-  },
   locationAddressWrap: {
     flex: 1,
   },
   locationHeaderBlock: {
+    alignItems: 'center',
     gap: 4,
-  },
-  openMapDirectBtn: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#EFF6FF',
-    borderRadius: 12,
-    marginTop: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  openMapDirectText: {
-    color: '#0058BC',
-    fontSize: 11.5,
-    fontWeight: '800',
+    marginBottom: 4,
   },
   clinicInfoBox: {
     backgroundColor: '#F8FAFC',
@@ -2239,16 +2184,18 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   viewDoctorBtn: {
-    alignSelf: 'flex-start',
+    alignItems: 'center',
     backgroundColor: '#ECF3FE',
-    borderRadius: 20,
+    borderColor: '#D6E6FD',
+    borderRadius: 14,
+    borderWidth: 1,
     marginTop: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 7,
+    paddingVertical: 11,
+    width: '100%',
   },
   viewDoctorBtnText: {
     color: '#2563EB',
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '800',
   },
 });

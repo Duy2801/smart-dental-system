@@ -309,7 +309,7 @@ export default function NotificationsScreen() {
                 <View className="flex-row items-start justify-between gap-3">
                   <View className="min-w-0 flex-1">
                     <View className="flex-row flex-wrap items-center gap-2">
-                      <Text className="text-xl font-black text-white">
+                      <Text className="text-xl font-black text-[#07366F]">
                         Trung tâm thông báo
                       </Text>
                       {unread > 0 ? (
@@ -320,7 +320,7 @@ export default function NotificationsScreen() {
                         </View>
                       ) : null}
                     </View>
-                    <Text className="mt-1 text-xs font-semibold leading-5 text-blue-100">
+                    <Text className="mt-1 text-xs font-medium leading-5 text-slate-600">
                       Cập nhật tức thì trạng thái lịch hẹn, hóa đơn thanh toán
                       và ưu đãi độc quyền.
                     </Text>
@@ -337,7 +337,7 @@ export default function NotificationsScreen() {
                     <FontAwesome6
                       color="#FFFFFF"
                       iconStyle="solid"
-                      name="tooth"
+                      name="check-double"
                       size={13}
                     />
                     <Text className="text-xs font-black text-white">
@@ -472,7 +472,7 @@ const styles = StyleSheet.create({
   },
   heroAction: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.16)',
+    backgroundColor: '#0863c5',
     borderRadius: 12,
     flexDirection: 'row',
     gap: 8,
@@ -480,19 +480,24 @@ const styles = StyleSheet.create({
     marginTop: 14,
     paddingVertical: 10,
   },
+  // Nền sáng, chữ tối để dễ đọc; thanh xanh bên trái giữ điểm nhấn thương hiệu
   heroCard: {
-    backgroundColor: '#0863c5',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#DBEAFE',
+    borderLeftColor: '#0863c5',
+    borderLeftWidth: 4,
     borderRadius: 22,
+    borderWidth: 1,
     padding: 16,
   },
   heroUnreadBadge: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#0863c5',
     borderRadius: 10,
     paddingHorizontal: 8,
     paddingVertical: 2,
   },
   heroUnreadText: {
-    color: '#0863c5',
+    color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '900',
   },

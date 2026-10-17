@@ -1,4 +1,7 @@
-import { Skeleton, SkeletonRows } from "@/src/components/admin/common";
+"use client";
+
+import { FolderSimple, MagnifyingGlass } from "@phosphor-icons/react";
+import { AdminEmptyState, Skeleton, SkeletonRows } from "@/src/components/admin/common";
 import type { DentalService, TreatmentMethod } from "../types";
 import { ServiceRow } from "./service-row";
 
@@ -39,8 +42,8 @@ export function ServiceGroupList({
 
   if (loading) {
     return (
-      <div className="overflow-hidden rounded-xl border border-border bg-white shadow-sm">
-        <div className="border-b border-border bg-muted/50 px-5 py-3">
+      <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
+        <div className="border-b border-slate-100 bg-slate-50/80 px-5 py-3.5">
           <Skeleton className="h-4 w-40" />
         </div>
         <SkeletonRows count={5} />
@@ -50,8 +53,12 @@ export function ServiceGroupList({
 
   if (entries.length === 0) {
     return (
-      <div className="rounded-xl border border-border border-dashed p-8 text-center text-sm text-muted-foreground">
-        Không tìm thấy dịch vụ nào phù hợp.
+      <div className="rounded-2xl border border-dashed border-slate-300 bg-white">
+        <AdminEmptyState
+          icon={<MagnifyingGlass size={24} weight="duotone" />}
+          title="Không tìm thấy dịch vụ nào phù hợp"
+          description="Thử từ khóa khác hoặc thêm dịch vụ mới."
+        />
       </div>
     );
   }
@@ -61,18 +68,21 @@ export function ServiceGroupList({
       {entries.map(([category, items]) => (
         <div
           key={category}
-          className="overflow-hidden rounded-xl border border-border bg-white shadow-sm"
+          className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs"
         >
-          <div className="border-b border-border bg-muted/50 px-5 py-3">
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="font-semibold text-brand-dark">{category}</h3>
-              <span className="text-xs font-medium text-muted-foreground">
-                {items.length} dịch vụ
+          <div className="flex items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/80 px-5 py-3.5">
+            <h3 className="flex items-center gap-2.5 text-[15px] font-bold text-slate-900">
+              <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-light text-brand">
+                <FolderSimple size={16} weight="duotone" />
               </span>
-            </div>
+              {category}
+            </h3>
+            <span className="rounded-full bg-white px-2.5 py-0.5 text-xs font-semibold text-slate-600 ring-1 ring-slate-200">
+              {items.length} dịch vụ
+            </span>
           </div>
 
-          <div className="divide-y divide-border">
+          <div className="divide-y divide-slate-100">
             {items.map((service) => (
               <ServiceRow
                 key={service.id}

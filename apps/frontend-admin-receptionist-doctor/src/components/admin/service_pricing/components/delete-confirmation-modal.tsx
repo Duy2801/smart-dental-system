@@ -1,3 +1,7 @@
+"use client";
+
+import { useEffect } from "react";
+
 type DeleteConfirmationModalProps = {
   description: string;
   itemName: string;
@@ -15,6 +19,14 @@ export function DeleteConfirmationModal({
   pending,
   title,
 }: DeleteConfirmationModalProps) {
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !pending) onCancel();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [pending, onCancel]);
+
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
       <button
@@ -22,14 +34,14 @@ export function DeleteConfirmationModal({
         aria-label="Đóng hộp thoại xác nhận"
         disabled={pending}
         onClick={onCancel}
-        className="absolute inset-0 bg-slate-950/55 backdrop-blur-[2px]"
+        className="absolute inset-0 animate-overlay-in bg-slate-950/55 backdrop-blur-[2px]"
       />
 
       <div
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="delete-confirmation-title"
-        className="relative w-full max-w-[420px] overflow-hidden rounded-[24px] border border-white/70 bg-white shadow-[0_24px_80px_-20px_rgba(15,23,42,0.45)]"
+        className="relative w-full max-w-[420px] animate-modal-in overflow-hidden rounded-[24px] border border-white/70 bg-white shadow-[0_24px_80px_-20px_rgba(15,23,42,0.45)]"
       >
         <button
           type="button"
@@ -44,28 +56,9 @@ export function DeleteConfirmationModal({
         </button>
 
         <div className="px-7 pb-6 pt-8 text-center">
-          <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-red-50 ring-8 ring-red-50/60">
-            <div className="grid h-11 w-11 place-items-center rounded-full bg-red-100 text-red-600">
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                className="h-6 w-6"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14M10 10v6m4-6v6"
-                />
-              </svg>
-            </div>
-          </div>
-
           <h3
             id="delete-confirmation-title"
-            className="mt-6 text-xl font-bold tracking-tight text-slate-900"
+            className="text-xl font-bold tracking-tight text-slate-900"
           >
             {title}
           </h3>

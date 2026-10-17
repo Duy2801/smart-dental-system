@@ -2,6 +2,8 @@
 
 Hướng dẫn triển khai riêng backend lên Botkeep: [BOTKEEP_DEPLOY.md](./BOTKEEP_DEPLOY.md).
 
+Hướng dẫn bật CAPTCHA khi đăng nhập: [WAU_CAPTCHA_SETUP.md](./WAU_CAPTCHA_SETUP.md).
+
 This Turborepo starter is maintained by the Turborepo core team.
 
 ## Using this example

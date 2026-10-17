@@ -128,15 +128,20 @@ export function UsersPageContent() {
     }
   };
 
-  const toggleLock = async (user: StaffUser) => {
+  const [lockTarget, setLockTarget] = useState<StaffUser | null>(null);
+
+  const handleConfirmToggleLock = async () => {
+    if (!lockTarget) return;
     const nextStatus: UserStatus =
-      user.status === "ACTIVE" ? "SUSPENDED" : "ACTIVE";
+      lockTarget.status === "ACTIVE" ? "SUSPENDED" : "ACTIVE";
 
     setError(null);
     try {
-      await statusMutation.mutateAsync({ user, status: nextStatus });
+      await statusMutation.mutateAsync({ user: lockTarget, status: nextStatus });
+      setLockTarget(null);
     } catch {
       // Error message is handled by the mutation onError callback.
+      setLockTarget(null);
     }
   };
 
@@ -179,7 +184,7 @@ export function UsersPageContent() {
         roleFilter={roleFilter}
         onPageChange={setPage}
         onEdit={openEditModal}
-        onToggleLock={(user) => void toggleLock(user)}
+        onToggleLock={setLockTarget}
         onRemove={(user) => void removeUser(user)}
       />
 
@@ -197,6 +202,31 @@ export function UsersPageContent() {
       ) : null}
 
       <AdminConfirmModal
+        isOpen={Boolean(lockTarget)}
+        title={lockTarget?.status === "ACTIVE" ? "Xác nhận khóa tài khoản" : "Xác nhận mở khóa tài khoản"}
+        description={
+          lockTarget?.status === "ACTIVE" ? (
+            <>
+              Bạn có chắc muốn khóa tài khoản của{" "}
+              <strong className="font-semibold text-slate-900">{lockTarget?.fullName}</strong>? Nhân viên này sẽ không thể đăng nhập cho tới khi được mở khóa.
+            </>
+          ) : (
+            <>
+              Mở khóa tài khoản của{" "}
+              <strong className="font-semibold text-slate-900">{lockTarget?.fullName}</strong>? Nhân viên sẽ đăng nhập lại được ngay.
+            </>
+          )
+        }
+        confirmText={lockTarget?.status === "ACTIVE" ? "Khóa tài khoản" : "Mở khóa"}
+        cancelText="Hủy bỏ"
+        variant={lockTarget?.status === "ACTIVE" ? "warning" : "primary"}
+        showIcon={false}
+        isLoading={statusMutation.isPending}
+        onConfirm={handleConfirmToggleLock}
+        onClose={() => setLockTarget(null)}
+      />
+
+      <AdminConfirmModal
         isOpen={Boolean(deactivatingUser)}
         title="Xác nhận vô hiệu hóa nhân viên"
         description={
@@ -211,6 +241,7 @@ export function UsersPageContent() {
         confirmText="Vô hiệu hóa"
         cancelText="Hủy bỏ"
         variant="warning"
+        showIcon={false}
         isLoading={deleteMutation.isPending}
         onConfirm={handleConfirmDeactivate}
         onClose={() => setDeactivatingUser(null)}

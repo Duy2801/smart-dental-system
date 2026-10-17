@@ -11,4 +11,8 @@ declare module '@env' {
   export const GOOGLE_WEB_CLIENT_ID: string;
   export const GOOGLE_ANDROID_CLIENT_ID: string;
   export const GOOGLE_IOS_CLIENT_ID: string;
+  /** Site key công khai WAU Captcha (pk_...), giống web bệnh nhân */
+  export const NEXT_PUBLIC_WAU_CAPTCHA_SITE_KEY: string;
+  /** Domain web bệnh nhân gửi kèm header Origin khi giải CAPTCHA, ví dụ http://localhost:3001 */
+  export const NEXT_PUBLIC_WAU_CAPTCHA_ORIGIN: string;
 }

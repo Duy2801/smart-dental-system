@@ -270,7 +270,7 @@ export function RecordMedicalVisitCard({ record }: { record: MedicalVisit }) {
             onClick={() => setSection(section === "all" ? null : "all")}
             className="rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-1.5 text-xs font-bold text-[#0863c5] hover:bg-blue-100 transition-colors cursor-pointer"
           >
-            {section === "all" ? "▲ Thu gọn tất cả" : "⚡ Hiện tất cả mục"}
+            {section === "all" ? "Thu gọn tất cả" : "Hiện tất cả mục"}
           </button>
         </div>
 

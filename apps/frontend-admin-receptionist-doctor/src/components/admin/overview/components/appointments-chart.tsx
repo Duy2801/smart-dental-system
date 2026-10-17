@@ -1,3 +1,9 @@
+"use client";
+
+import { ChartBar } from "@phosphor-icons/react";
+import { AdminCard, AdminEmptyState } from "@/src/components/admin/common";
+import { cn } from "@/src/lib/utils/cn";
+
 type DayData = {
   day: string;
   count: number;
@@ -8,55 +14,68 @@ type AppointmentsChartProps = {
 };
 
 export function AppointmentsChart({ data }: AppointmentsChartProps) {
-  const maxCount = Math.max(...data.map((item) => item.count));
+  const maxCount = Math.max(0, ...data.map((item) => item.count));
   const total = data.reduce((sum, item) => sum + item.count, 0);
+  const average = data.length ? Math.round((total / data.length) * 10) / 10 : 0;
 
   return (
-    <div className="rounded-xl border border-border bg-white p-6">
-      <h3 className="text-base font-semibold text-brand-dark">
-        Lịch hẹn 7 ngày qua
-      </h3>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Tổng {total} lịch hẹn
-      </p>
-
+    <AdminCard
+      title="Lịch hẹn 7 ngày qua"
+      description={`Tổng ${total} lịch hẹn · trung bình ${average}/ngày`}
+      icon={<ChartBar size={18} weight="duotone" />}
+      className="h-full"
+    >
       {total === 0 ? (
-        <div className="mt-6 flex h-44 items-center justify-center rounded-lg bg-muted/30 text-sm text-muted-foreground">
-          Chưa có lịch hẹn trong 7 ngày gần nhất.
-        </div>
-      ) : null}
+        <AdminEmptyState
+          icon={<ChartBar size={24} weight="duotone" />}
+          title="Chưa có lịch hẹn trong 7 ngày gần nhất"
+          className="h-56"
+        />
+      ) : (
+        <div className="relative h-60">
+          {/* Đường lưới ngang */}
+          <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-6 bottom-7 flex flex-col justify-between">
+            {[0, 1, 2, 3].map((line) => (
+              <span key={line} className="h-px w-full border-t border-dashed border-slate-100" />
+            ))}
+          </div>
 
-      {total > 0 ? (
-        <div className="mt-6 grid h-52 grid-cols-7 items-end gap-3">
-          {data.map((item) => {
-            const heightPercent =
-              maxCount > 0 ? (item.count / maxCount) * 100 : 0;
+          <div className="relative grid h-full grid-cols-7 items-end gap-2 sm:gap-4">
+            {data.map((item) => {
+              const heightPercent = maxCount > 0 ? (item.count / maxCount) * 100 : 0;
+              const isPeak = item.count === maxCount && maxCount > 0;
 
-            return (
-              <div
-                key={item.day}
-                className="flex h-full min-w-0 flex-col items-center justify-end gap-2"
-              >
-                <span className="text-xs font-medium text-brand-dark">
-                  {item.count}
-                </span>
-                <div className="flex h-32 w-full items-end rounded-t-md bg-brand-light/40">
-                  <div
-                    className="w-full rounded-t-md bg-brand transition-all"
-                    style={{
-                      height: `${heightPercent}%`,
-                      minHeight: heightPercent > 0 ? "8px" : "0",
-                    }}
-                  />
+              return (
+                <div key={item.day} className="group flex h-full min-w-0 flex-col items-center justify-end gap-2">
+                  <span
+                    className={cn(
+                      "rounded-md px-1.5 py-0.5 text-xs font-bold transition-colors",
+                      isPeak ? "bg-brand text-white" : "text-slate-600 group-hover:text-brand",
+                    )}
+                  >
+                    {item.count}
+                  </span>
+                  <div className="flex h-40 w-full max-w-12 items-end">
+                    <div
+                      className={cn(
+                        "w-full rounded-t-lg transition-all duration-300 group-hover:brightness-110",
+                        isPeak
+                          ? "bg-linear-to-t from-brand to-sky-400 shadow-md shadow-brand/25"
+                          : "bg-linear-to-t from-brand/70 to-sky-300/80",
+                      )}
+                      style={{
+                        height: `${heightPercent}%`,
+                        minHeight: heightPercent > 0 ? "8px" : "0",
+                      }}
+                    />
+                  </div>
+                  <span className="text-xs font-medium text-slate-500">{item.day}</span>
                 </div>
-                <span className="text-xs text-muted-foreground">
-                  {item.day}
-                </span>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
-      ) : null}
-    </div>
+      )}
+    </AdminCard>
   );
 }

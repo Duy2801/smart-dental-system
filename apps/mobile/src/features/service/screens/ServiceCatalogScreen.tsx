@@ -1,11 +1,13 @@
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
+import FontAwesome6 from '@react-native-vector-icons/fontawesome6';
 import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   RefreshControl,
   ScrollView,
   StyleSheet,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import { Text } from 'react-native-paper';
@@ -22,7 +24,6 @@ import { CACHE_TIMES, queryKeys } from '~src/config/queryClient';
 import type { RootState } from '~src/reducers/store';
 import { ServiceCatalogHeader } from '../components/ServiceCatalogHeader';
 import { ServiceCategoryGrid } from '../components/ServiceCategoryGrid';
-import { ServiceDetailModal } from '../components/ServiceDetailModal';
 import { TreatmentMethodCard } from '../components/TreatmentMethodCard';
 import { usePatientServices } from '../hooks/usePatientServices';
 import type { DentalService, TreatmentMethod } from '../types';
@@ -41,6 +42,7 @@ export function ServiceCatalogScreen() {
     selectedServiceId,
     setSelectedServiceId,
     selectedMethods,
+    serviceFaqs,
     isLoading,
     isRefetching,
     refetch,
@@ -55,23 +57,18 @@ export function ServiceCatalogScreen() {
 
   const [drawerVisible, setDrawerVisible] = useState(false);
 
-  // Detail Modal state
-  const [detailModalVisible, setDetailModalVisible] = useState(false);
-  const [detailService, setDetailService] = useState<DentalService | null>(null);
-  const [detailMethod, setDetailMethod] = useState<TreatmentMethod | null>(null);
+  const [openFaqId, setOpenFaqId] = useState<string | null>(null);
 
+  // "Chi tiết" mở trang chi tiết dịch vụ, chọn sẵn phương pháp (giống ?method= trên web)
   const handleOpenDetail = useCallback(
     (service: DentalService, method: TreatmentMethod) => {
-      setDetailService(service);
-      setDetailMethod(method);
-      setDetailModalVisible(true);
+      navigation.navigate('ServiceDetail', {
+        serviceId: service.id,
+        methodId: method.id,
+      });
     },
-    [],
+    [navigation],
   );
-
-  const handleCloseDetail = useCallback(() => {
-    setDetailModalVisible(false);
-  }, []);
 
   const handleBook = useCallback(
     (service: DentalService, method: TreatmentMethod) => {
@@ -163,7 +160,49 @@ export function ServiceCatalogScreen() {
               </View>
             ) : null}
 
-            {/* 3. Clinic Footer Section (Image 3) */}
+            {/* 3. Giải đáp liên quan đến dịch vụ (giống web) */}
+            {serviceFaqs.length > 0 ? (
+              <View style={styles.faqBox}>
+                <Text style={styles.methodsTitle}>
+                  Giải đáp liên quan đến dịch vụ
+                </Text>
+                <View style={styles.faqList}>
+                  {serviceFaqs.slice(0, 8).map(faq => {
+                    const open = openFaqId === faq.id;
+                    return (
+                      <View key={faq.id} style={styles.faqItem}>
+                        <TouchableOpacity
+                          accessibilityState={{ expanded: open }}
+                          activeOpacity={0.7}
+                          onPress={() => setOpenFaqId(open ? null : faq.id)}
+                          style={styles.faqQuestionRow}
+                        >
+                          <View style={styles.faqQuestionText}>
+                            <Text style={styles.faqQuestion}>
+                              {faq.question}
+                            </Text>
+                            <Text style={styles.faqMeta}>
+                              {faq.serviceTitle} · {faq.methodName}
+                            </Text>
+                          </View>
+                          <FontAwesome6
+                            color="#94A3B8"
+                            iconStyle="solid"
+                            name={open ? 'chevron-down' : 'chevron-right'}
+                            size={12}
+                          />
+                        </TouchableOpacity>
+                        {open ? (
+                          <Text style={styles.faqAnswer}>{faq.answer}</Text>
+                        ) : null}
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+            ) : null}
+
+            {/* 4. Clinic Footer Section (Image 3) */}
             <View style={styles.footerContainer}>
               <PatientFooter clinic={clinicQuery.data} />
             </View>
@@ -173,15 +212,6 @@ export function ServiceCatalogScreen() {
 
       {/* Floating AI Chat Button (bottom right matching web responsive) */}
       <FloatingChatButton />
-
-      {/* Treatment Method Detail Modal */}
-      <ServiceDetailModal
-        visible={detailModalVisible}
-        service={detailService}
-        method={detailMethod}
-        onClose={handleCloseDetail}
-        onBook={handleBook}
-      />
 
       {/* Patient Drawer Navigation */}
       <PatientDrawerModal
@@ -208,6 +238,51 @@ const styles = StyleSheet.create({
   emptyMethodsText: {
     color: '#94A3B8',
     fontSize: 12,
+  },
+  faqBox: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#F1F5F9',
+    borderRadius: 24,
+    borderWidth: 1,
+    marginTop: 16,
+    padding: 16,
+  },
+  faqList: {
+    marginTop: 8,
+  },
+  faqItem: {
+    borderBottomColor: '#F1F5F9',
+    borderBottomWidth: 1,
+    paddingVertical: 14,
+  },
+  faqQuestionRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+  },
+  faqQuestionText: {
+    flex: 1,
+  },
+  faqQuestion: {
+    color: '#020617',
+    fontSize: 14,
+    fontWeight: '800',
+    lineHeight: 20,
+  },
+  faqMeta: {
+    color: '#94A3B8',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+    marginTop: 4,
+    textTransform: 'uppercase',
+  },
+  faqAnswer: {
+    color: '#475569',
+    fontSize: 13,
+    lineHeight: 22,
+    marginTop: 10,
   },
   footerContainer: {
     marginHorizontal: -16,

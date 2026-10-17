@@ -1,3 +1,15 @@
+"use client";
+
+import { CalendarBlank, CreditCard, FileXls } from "@phosphor-icons/react";
+import {
+  AdminButton,
+  AdminFilterSelect,
+  AdminSearchInput,
+  AdminToolbar,
+  adminControlClass,
+  adminControlTone,
+} from "@/src/components/admin/common";
+import { cn } from "@/src/lib/utils/cn";
 import type {
   DateRangePreset,
   InvoiceStatusFilter,
@@ -36,118 +48,94 @@ export function FinanceToolbar({
   onExportExcel,
 }: FinanceToolbarProps) {
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-border bg-white p-4 shadow-xs">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        {/* Keyword Search */}
-        <div className="relative w-full lg:max-w-xs">
-          <svg
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <circle cx="11" cy="11" r="8" />
-            <path d="m21 21-4.3-4.3" />
-          </svg>
-          <input
-            type="text"
-            placeholder="Mã HD, bệnh nhân, bác sĩ..."
-            value={search}
-            onChange={(event) => onSearchChange(event.target.value)}
-            className="w-full rounded-xl border border-border bg-white py-2 pl-9 pr-4 text-sm font-medium outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand shadow-2xs"
-          />
-        </div>
-
-        {/* Filter Dropdowns */}
-        <div className="flex flex-wrap items-center gap-2.5">
-          {/* Status Filter */}
-          <select
-            value={statusFilter}
-            onChange={(event) =>
-              onStatusFilterChange(event.target.value as InvoiceStatusFilter)
-            }
-            className="rounded-xl border border-border bg-white px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:border-brand focus:ring-1 focus:ring-brand shadow-2xs"
-          >
-            <option value="ALL">Tất cả trạng thái</option>
-            <option value="PAID">✅ Đã thanh toán</option>
-            <option value="PARTIAL">🔷 Thanh toán 1 phần</option>
-            <option value="UNPAID">⏳ Chờ thanh toán</option>
-            <option value="CANCELLED">🛑 Đã hủy</option>
-          </select>
-
-          {/* Payment Method Filter */}
-          <select
-            value={paymentMethodFilter}
-            onChange={(event) =>
-              onPaymentMethodFilterChange(event.target.value as PaymentMethodFilter)
-            }
-            className="rounded-xl border border-border bg-white px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:border-brand focus:ring-1 focus:ring-brand shadow-2xs"
-          >
-            <option value="ALL">Tất cả p.thức TT</option>
-            <option value="CASH">💵 Tiền mặt</option>
-            <option value="BANK_TRANSFER">🏦 Chuyển khoản</option>
-            <option value="VIETQR">📲 VietQR</option>
-            <option value="VNPAY">💳 VNPAY</option>
-            <option value="MOMO">🟣 Ví MoMo</option>
-            <option value="CARD">💳 Quẹt thẻ</option>
-          </select>
-
-          {/* Date Range Filter */}
-          <select
-            value={datePreset}
-            onChange={(event) =>
-              onDatePresetChange(event.target.value as DateRangePreset)
-            }
-            className="rounded-xl border border-border bg-white px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:border-brand focus:ring-1 focus:ring-brand shadow-2xs"
-          >
-            <option value="ALL">Tất cả thời gian</option>
-            <option value="TODAY">📅 Hôm nay</option>
-            <option value="THIS_WEEK">📆 Tuần này</option>
-            <option value="THIS_MONTH">🗓️ Tháng này</option>
-            <option value="CUSTOM">⚙️ Tùy chỉnh ngày</option>
-          </select>
-
-          {/* Export Excel Button */}
-          <button
-            type="button"
+    <div className="space-y-3">
+      <AdminToolbar
+        actions={
+          <AdminButton
+            variant="plain"
             onClick={onExportExcel}
-            className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white shadow-xs transition-all hover:bg-emerald-700 active:scale-[0.98]"
+            className="bg-emerald-600 text-white shadow-sm shadow-emerald-600/25 hover:bg-emerald-700"
           >
-            <span>📊</span> Xuất Báo Cáo Excel
-          </button>
-        </div>
-      </div>
+            <FileXls size={17} weight="bold" />
+            Xuất Excel
+          </AdminButton>
+        }
+      >
+        <AdminSearchInput
+          value={search}
+          onChange={onSearchChange}
+          placeholder="Mã HĐ, bệnh nhân, bác sĩ..."
+          className="w-full sm:max-w-xs"
+        />
+        <AdminFilterSelect
+          value={statusFilter}
+          onChange={(event) => onStatusFilterChange(event.target.value as InvoiceStatusFilter)}
+          aria-label="Lọc theo trạng thái"
+          wrapperClassName="w-full sm:w-48"
+        >
+          <option value="ALL">Tất cả trạng thái</option>
+          <option value="PAID">Đã thanh toán</option>
+          <option value="PARTIAL">Thanh toán một phần</option>
+          <option value="UNPAID">Chờ thanh toán</option>
+          <option value="CANCELLED">Đã hủy</option>
+        </AdminFilterSelect>
+        <AdminFilterSelect
+          value={paymentMethodFilter}
+          onChange={(event) => onPaymentMethodFilterChange(event.target.value as PaymentMethodFilter)}
+          aria-label="Lọc theo phương thức thanh toán"
+          icon={<CreditCard size={15} />}
+          wrapperClassName="w-full sm:w-48"
+        >
+          <option value="ALL">Mọi phương thức</option>
+          <option value="CASH">Tiền mặt</option>
+          <option value="BANK_TRANSFER">Chuyển khoản</option>
+          <option value="VIETQR">VietQR</option>
+          <option value="VNPAY">VNPAY</option>
+          <option value="MOMO">Ví MoMo</option>
+          <option value="CARD">Quẹt thẻ</option>
+        </AdminFilterSelect>
+        <AdminFilterSelect
+          value={datePreset}
+          onChange={(event) => onDatePresetChange(event.target.value as DateRangePreset)}
+          aria-label="Lọc theo thời gian"
+          icon={<CalendarBlank size={15} />}
+          wrapperClassName="w-full sm:w-44"
+        >
+          <option value="ALL">Mọi thời gian</option>
+          <option value="TODAY">Hôm nay</option>
+          <option value="THIS_WEEK">Tuần này</option>
+          <option value="THIS_MONTH">Tháng này</option>
+          <option value="CUSTOM">Tùy chỉnh ngày</option>
+        </AdminFilterSelect>
+      </AdminToolbar>
 
-      {/* Custom Date Range Picker inputs when datePreset === 'CUSTOM' */}
-      {datePreset === "CUSTOM" && (
-        <div className="flex flex-wrap items-center gap-3 border-t border-border pt-3 text-sm font-medium text-slate-700 animate-in fade-in duration-150">
-          <span className="text-xs font-bold text-slate-500 uppercase">Khoảng ngày:</span>
-          <div className="flex items-center gap-2">
-            <span className="text-xs">Từ:</span>
+      {datePreset === "CUSTOM" ? (
+        <div className="flex flex-wrap items-end gap-3 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-xs">
+          <span className="mb-2.5 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
+            <CalendarBlank size={14} />
+            Khoảng ngày
+          </span>
+          <label className="flex flex-col gap-1 text-xs font-semibold text-slate-600">
+            Từ ngày
             <input
               type="date"
               value={startDate}
               onChange={(e) => onStartDateChange(e.target.value)}
-              className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold outline-none focus:border-brand"
+              className={cn(adminControlClass, adminControlTone(), "h-10 w-44")}
             />
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs">Đến:</span>
+          </label>
+          <label className="flex flex-col gap-1 text-xs font-semibold text-slate-600">
+            Đến ngày
             <input
               type="date"
               value={endDate}
+              min={startDate || undefined}
               onChange={(e) => onEndDateChange(e.target.value)}
-              className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold outline-none focus:border-brand"
+              className={cn(adminControlClass, adminControlTone(), "h-10 w-44")}
             />
-          </div>
+          </label>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

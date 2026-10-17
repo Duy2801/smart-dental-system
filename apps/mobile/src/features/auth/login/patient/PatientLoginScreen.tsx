@@ -8,8 +8,8 @@ const PatientLoginScreen = () => (
     initialPassword="Test@123456"
     role="PATIENT"
     showPatientActions
-    subtitle=""
-    title="Đăng nhập"
+    subtitle="Chào mừng trở lại! Vui lòng nhập thông tin để tiếp tục."
+    title="Đăng nhập tài khoản"
   />
 );
 

@@ -241,9 +241,6 @@ export default function SupportChatScreen() {
               </Text>
             </View>
           </View>
-          <TouchableOpacity accessibilityLabel="Đóng tư vấn lễ tân" onPress={() => navigation.goBack()} style={styles.closeBtn}>
-            <FontAwesome6 color="#94A3B8" iconStyle="solid" name="xmark" size={18} />
-          </TouchableOpacity>
         </View>
 
         <FlatList
@@ -336,7 +333,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 36,
   },
-  closeBtn: { alignItems: 'center', borderRadius: 18, height: 36, justifyContent: 'center', width: 36 },
   container: {
     backgroundColor: '#F6FAF9',
     flex: 1,

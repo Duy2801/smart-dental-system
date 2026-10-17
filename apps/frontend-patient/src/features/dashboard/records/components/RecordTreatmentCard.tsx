@@ -336,26 +336,25 @@ export function RecordTreatmentCard({
       {/* THANH NÚT BẤM TINH GỌN (TOGGLE BUTTONS HUB - MODERN UI) */}
       {/* ========================================================================= */}
       <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/90 shadow-xs space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-sm font-black text-slate-900 uppercase tracking-wide flex items-center gap-2">
-              <span>🔍</span>
-              <span>Xem Chi Tiết Hồ Sơ Khám & Phác Đồ</span>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <h3 className="text-sm font-black text-slate-900 uppercase tracking-wide">
+              Chi Tiết Phác Đồ: {treatment.title}
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              Nhấp vào các nút bên dưới để mở rộng xem từng mục chi tiết theo nhu cầu:
+              Ngày lập: <strong className="text-slate-700 font-semibold">{treatment.date}</strong> • Nhấp vào các nút bên dưới để mở rộng xem chi tiết
             </p>
           </div>
 
           <button
             type="button"
             onClick={() => setExpandedSection((prev) => (prev === "all" ? "none" : "all"))}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${expandedSection === "all"
+            className={`shrink-0 self-end sm:self-auto px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${expandedSection === "all"
               ? "bg-[#1996e0] text-white border-[#1996e0] shadow-sm"
               : "bg-blue-50 text-[#1996e0] border-blue-200 hover:bg-blue-100"
               }`}
           >
-            {expandedSection === "all" ? "▲ Thu gọn tất cả" : "⚡ Hiện tất cả mục"}
+            {expandedSection === "all" ? "Thu gọn tất cả" : "Hiện tất cả mục"}
           </button>
         </div>
 
@@ -365,18 +364,71 @@ export function RecordTreatmentCard({
           <button
             type="button"
             onClick={() => toggleSection("workflow")}
-            className={`w-full h-full p-4 rounded-2xl border text-left transition-all cursor-pointer group flex flex-col justify-start ${expandedSection === "workflow" || expandedSection === "all"
-              ? "border-[#1996e0] bg-[#1996e0]/10 ring-2 ring-[#1996e0]/30 shadow-md"
-              : "border-slate-200 bg-white hover:border-[#1996e0]/50 hover:bg-blue-50/50"
-              }`}
+            className={`w-full h-full p-4 rounded-2xl border text-left transition-all duration-200 cursor-pointer group flex flex-col justify-between hover:-translate-y-0.5 hover:shadow-md ${
+              expandedSection === "workflow" || expandedSection === "all"
+                ? "border-[#1996e0] bg-[#1996e0]/10 ring-2 ring-[#1996e0]/30 shadow-sm"
+                : "border-slate-200 bg-white hover:border-[#1996e0]/60 hover:bg-blue-50/30"
+            }`}
           >
             <div>
-              <h4 className="text-xs font-black text-slate-900 group-hover:text-[#1996e0]">
+              {/* Top Header: Icon & Count Badge */}
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <span className="grid size-9 place-items-center rounded-xl bg-blue-100 text-[#0863c5] group-hover:scale-105 transition-transform shadow-2xs">
+                  <svg className="size-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 11l3 3L22 4" />
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                  </svg>
+                </span>
+                <span className="rounded-lg bg-blue-50 border border-blue-200/60 px-2 py-0.5 text-[10px] font-bold text-[#0863c5]">
+                  {actualStepsCount} bước
+                </span>
+              </div>
+              <h4 className="text-xs font-black text-slate-900 group-hover:text-[#1996e0] transition-colors">
                 Quy Trình & Phác Đồ
               </h4>
               <p className="text-[11px] text-slate-500 mt-1 min-h-[32px] leading-relaxed">
                 Các giai đoạn điều trị & lịch tái khám
               </p>
+            </div>
+
+            {/* Bottom Action Pill */}
+            <div className={`mt-3 pt-2.5 border-t flex items-center justify-between transition-colors ${
+              expandedSection === "workflow" || expandedSection === "all"
+                ? "border-[#1996e0]/30"
+                : "border-slate-100"
+            }`}>
+              <span className={`text-[11px] font-bold flex items-center gap-1.5 ${
+                expandedSection === "workflow" || expandedSection === "all"
+                  ? "text-[#1996e0]"
+                  : "text-slate-500 group-hover:text-[#1996e0]"
+              }`}>
+                {expandedSection === "workflow" || expandedSection === "all" ? (
+                  <>
+                    <span className="size-1.5 rounded-full bg-[#1996e0] animate-pulse" />
+                    Đang xem
+                  </>
+                ) : (
+                  "Bấm để xem"
+                )}
+              </span>
+              <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-black transition-all shadow-2xs ${
+                expandedSection === "workflow" || expandedSection === "all"
+                  ? "bg-[#1996e0] text-white"
+                : "bg-blue-50 text-[#0863c5] group-hover:bg-[#1996e0] group-hover:text-white"
+              }`}>
+                <span>{expandedSection === "workflow" || expandedSection === "all" ? "Thu gọn" : "Chi tiết"}</span>
+                <svg className={`size-3 transition-transform ${
+                  expandedSection === "workflow" || expandedSection === "all"
+                    ? "rotate-180"
+                    : "group-hover:translate-x-0.5"
+                }`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  {expandedSection === "workflow" || expandedSection === "all" ? (
+                    <polyline points="18 15 12 9 6 15" />
+                  ) : (
+                    <polyline points="9 18 15 12 9 6" />
+                  )}
+                </svg>
+              </span>
             </div>
           </button>
 
@@ -384,18 +436,71 @@ export function RecordTreatmentCard({
           <button
             type="button"
             onClick={() => toggleSection("prescription")}
-            className={`w-full h-full p-4 rounded-2xl border text-left transition-all cursor-pointer group flex flex-col justify-start ${expandedSection === "prescription" || expandedSection === "all"
-              ? "border-[#1996e0] bg-[#1996e0]/10 ring-2 ring-[#1996e0]/30 shadow-md"
-              : "border-slate-200 bg-white hover:border-[#1996e0]/50 hover:bg-blue-50/50"
-              }`}
+            className={`w-full h-full p-4 rounded-2xl border text-left transition-all duration-200 cursor-pointer group flex flex-col justify-between hover:-translate-y-0.5 hover:shadow-md ${
+              expandedSection === "prescription" || expandedSection === "all"
+                ? "border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/30 shadow-sm"
+                : "border-slate-200 bg-white hover:border-emerald-500/60 hover:bg-emerald-50/30"
+            }`}
           >
             <div>
-              <h4 className="text-xs font-black text-slate-900 group-hover:text-[#1996e0]">
+              {/* Top Header: Icon & Count Badge */}
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <span className="grid size-9 place-items-center rounded-xl bg-emerald-100 text-emerald-700 group-hover:scale-105 transition-transform shadow-2xs">
+                  <svg className="size-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z" />
+                    <path d="m8.5 8.5 7 7" />
+                  </svg>
+                </span>
+                <span className="rounded-lg bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                  {allRichPrescriptions.length} đơn
+                </span>
+              </div>
+              <h4 className="text-xs font-black text-slate-900 group-hover:text-emerald-600 transition-colors">
                 Đơn Thuốc Bác Sĩ
               </h4>
               <p className="text-[11px] text-slate-500 mt-1 min-h-[32px] leading-relaxed">
                 Danh mục thuốc từ bệnh án
               </p>
+            </div>
+
+            {/* Bottom Action Pill */}
+            <div className={`mt-3 pt-2.5 border-t flex items-center justify-between transition-colors ${
+              expandedSection === "prescription" || expandedSection === "all"
+                ? "border-emerald-500/30"
+                : "border-slate-100"
+            }`}>
+              <span className={`text-[11px] font-bold flex items-center gap-1.5 ${
+                expandedSection === "prescription" || expandedSection === "all"
+                  ? "text-emerald-600"
+                  : "text-slate-500 group-hover:text-emerald-600"
+              }`}>
+                {expandedSection === "prescription" || expandedSection === "all" ? (
+                  <>
+                    <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    Đang xem
+                  </>
+                ) : (
+                  "Bấm để xem"
+                )}
+              </span>
+              <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-black transition-all shadow-2xs ${
+                expandedSection === "prescription" || expandedSection === "all"
+                  ? "bg-emerald-600 text-white"
+                  : "bg-emerald-50 text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white"
+              }`}>
+                <span>{expandedSection === "prescription" || expandedSection === "all" ? "Thu gọn" : "Chi tiết"}</span>
+                <svg className={`size-3 transition-transform ${
+                  expandedSection === "prescription" || expandedSection === "all"
+                    ? "rotate-180"
+                    : "group-hover:translate-x-0.5"
+                }`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  {expandedSection === "prescription" || expandedSection === "all" ? (
+                    <polyline points="18 15 12 9 6 15" />
+                  ) : (
+                    <polyline points="9 18 15 12 9 6" />
+                  )}
+                </svg>
+              </span>
             </div>
           </button>
 
@@ -403,18 +508,72 @@ export function RecordTreatmentCard({
           <button
             type="button"
             onClick={() => toggleSection("images")}
-            className={`w-full h-full p-4 rounded-2xl border text-left transition-all cursor-pointer group flex flex-col justify-start ${expandedSection === "images" || expandedSection === "all"
-              ? "border-[#1996e0] bg-[#1996e0]/10 ring-2 ring-[#1996e0]/30 shadow-md"
-              : "border-slate-200 bg-white hover:border-[#1996e0]/50 hover:bg-blue-50/50"
-              }`}
+            className={`w-full h-full p-4 rounded-2xl border text-left transition-all duration-200 cursor-pointer group flex flex-col justify-between hover:-translate-y-0.5 hover:shadow-md ${
+              expandedSection === "images" || expandedSection === "all"
+                ? "border-indigo-500 bg-indigo-500/10 ring-2 ring-indigo-500/30 shadow-sm"
+                : "border-slate-200 bg-white hover:border-indigo-500/60 hover:bg-indigo-50/30"
+            }`}
           >
             <div>
-              <h4 className="text-xs font-black text-slate-900 group-hover:text-[#1996e0]">
+              {/* Top Header: Icon & Count Badge */}
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <span className="grid size-9 place-items-center rounded-xl bg-indigo-100 text-indigo-700 group-hover:scale-105 transition-transform shadow-2xs">
+                  <svg className="size-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                    <circle cx="9" cy="9" r="2" />
+                    <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                  </svg>
+                </span>
+                <span className="rounded-lg bg-indigo-50 border border-indigo-200/60 px-2 py-0.5 text-[10px] font-bold text-indigo-700">
+                  {realClinicalImages.length} ảnh
+                </span>
+              </div>
+              <h4 className="text-xs font-black text-slate-900 group-hover:text-indigo-600 transition-colors">
                 Phim X-Quang & Ảnh
               </h4>
               <p className="text-[11px] text-slate-500 mt-1 min-h-[32px] leading-relaxed">
                 Xem ảnh thực tế & phim chụp chẩn đoán
               </p>
+            </div>
+
+            {/* Bottom Action Pill */}
+            <div className={`mt-3 pt-2.5 border-t flex items-center justify-between transition-colors ${
+              expandedSection === "images" || expandedSection === "all"
+                ? "border-indigo-500/30"
+                : "border-slate-100"
+            }`}>
+              <span className={`text-[11px] font-bold flex items-center gap-1.5 ${
+                expandedSection === "images" || expandedSection === "all"
+                  ? "text-indigo-600"
+                  : "text-slate-500 group-hover:text-indigo-600"
+              }`}>
+                {expandedSection === "images" || expandedSection === "all" ? (
+                  <>
+                    <span className="size-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                    Đang xem
+                  </>
+                ) : (
+                  "Bấm để xem"
+                )}
+              </span>
+              <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-black transition-all shadow-2xs ${
+                expandedSection === "images" || expandedSection === "all"
+                  ? "bg-indigo-600 text-white"
+                  : "bg-indigo-50 text-indigo-700 group-hover:bg-indigo-600 group-hover:text-white"
+              }`}>
+                <span>{expandedSection === "images" || expandedSection === "all" ? "Thu gọn" : "Chi tiết"}</span>
+                <svg className={`size-3 transition-transform ${
+                  expandedSection === "images" || expandedSection === "all"
+                    ? "rotate-180"
+                    : "group-hover:translate-x-0.5"
+                }`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  {expandedSection === "images" || expandedSection === "all" ? (
+                    <polyline points="18 15 12 9 6 15" />
+                  ) : (
+                    <polyline points="9 18 15 12 9 6" />
+                  )}
+                </svg>
+              </span>
             </div>
           </button>
 
@@ -428,18 +587,73 @@ export function RecordTreatmentCard({
                 el.scrollIntoView({ behavior: "smooth", block: "center" });
               }
             }}
-            className={`w-full h-full p-4 rounded-2xl border text-left transition-all cursor-pointer group flex flex-col justify-start ${expandedSection === "medical-record" || expandedSection === "all"
-                ? "border-[#1996e0] bg-[#1996e0]/10 ring-2 ring-[#1996e0]/30 shadow-md"
-                : "border-slate-200 bg-white hover:border-[#1996e0]/50 hover:bg-blue-50/50 hover:shadow-md"
-              }`}
+            className={`w-full h-full p-4 rounded-2xl border text-left transition-all duration-200 cursor-pointer group flex flex-col justify-between hover:-translate-y-0.5 hover:shadow-md ${
+              expandedSection === "medical-record" || expandedSection === "all"
+                ? "border-sky-500 bg-sky-500/10 ring-2 ring-sky-500/30 shadow-sm"
+                : "border-slate-200 bg-white hover:border-sky-500/60 hover:bg-sky-50/30"
+            }`}
           >
             <div>
-              <h4 className="text-xs font-black text-slate-900 group-hover:text-[#1996e0]">
+              {/* Top Header: Icon & Count Badge */}
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <span className="grid size-9 place-items-center rounded-xl bg-sky-100 text-[#0863c5] group-hover:scale-105 transition-transform shadow-2xs">
+                  <svg className="size-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="16" y1="13" x2="8" y2="13" />
+                    <line x1="16" y1="17" x2="8" y2="17" />
+                  </svg>
+                </span>
+                <span className="rounded-lg bg-sky-50 border border-sky-200/60 px-2 py-0.5 text-[10px] font-bold text-[#0863c5]">
+                  {planMedicalRecordCount} hồ sơ
+                </span>
+              </div>
+              <h4 className="text-xs font-black text-slate-900 group-hover:text-sky-600 transition-colors">
                 Hồ Sơ Bệnh Án
               </h4>
               <p className="text-[11px] text-slate-500 mt-1 min-h-[32px] leading-relaxed">
                 Xem chi tiết chẩn đoán & đơn thuốc y khoa
               </p>
+            </div>
+
+            {/* Bottom Action Pill */}
+            <div className={`mt-3 pt-2.5 border-t flex items-center justify-between transition-colors ${
+              expandedSection === "medical-record" || expandedSection === "all"
+                ? "border-sky-500/30"
+                : "border-slate-100"
+            }`}>
+              <span className={`text-[11px] font-bold flex items-center gap-1.5 ${
+                expandedSection === "medical-record" || expandedSection === "all"
+                  ? "text-sky-600"
+                  : "text-slate-500 group-hover:text-sky-600"
+              }`}>
+                {expandedSection === "medical-record" || expandedSection === "all" ? (
+                  <>
+                    <span className="size-1.5 rounded-full bg-sky-500 animate-pulse" />
+                    Đang xem
+                  </>
+                ) : (
+                  "Bấm để xem"
+                )}
+              </span>
+              <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-black transition-all shadow-2xs ${
+                expandedSection === "medical-record" || expandedSection === "all"
+                  ? "bg-[#1996e0] text-white"
+                  : "bg-sky-50 text-[#0863c5] group-hover:bg-[#1996e0] group-hover:text-white"
+              }`}>
+                <span>{expandedSection === "medical-record" || expandedSection === "all" ? "Thu gọn" : "Chi tiết"}</span>
+                <svg className={`size-3 transition-transform ${
+                  expandedSection === "medical-record" || expandedSection === "all"
+                    ? "rotate-180"
+                    : "group-hover:translate-x-0.5"
+                }`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  {expandedSection === "medical-record" || expandedSection === "all" ? (
+                    <polyline points="18 15 12 9 6 15" />
+                  ) : (
+                    <polyline points="9 18 15 12 9 6" />
+                  )}
+                </svg>
+              </span>
             </div>
           </button>
         </div>
@@ -467,7 +681,7 @@ export function RecordTreatmentCard({
               onClick={() => setExpandedSection("none")}
               className="text-xs font-bold text-[#1996e0] hover:underline cursor-pointer"
             >
-              ▲ Thu gọn mục này
+              Thu gọn mục này
             </button>
           </div>
 
@@ -477,7 +691,7 @@ export function RecordTreatmentCard({
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="space-y-1">
                   <span className="text-[10px] font-extrabold uppercase tracking-wider bg-white/20 text-white px-2.5 py-0.5 rounded-full border border-white/30">
-                    ⚡ Lịch hẹn tái khám tiếp theo
+                    Lịch hẹn tái khám tiếp theo
                   </span>
                   <h4 className="text-sm font-black text-white">
                     {nextAppointmentStep.title} - {nextAppointmentStep.appointment?.dateLabel || "Theo chỉ định bác sĩ"}
@@ -643,7 +857,7 @@ export function RecordTreatmentCard({
               onClick={() => setExpandedSection("none")}
               className="text-xs font-bold text-[#1996e0] hover:underline cursor-pointer"
             >
-              ▲ Thu gọn mục này
+              Thu gọn mục này
             </button>
           </div>
 
@@ -739,7 +953,7 @@ export function RecordTreatmentCard({
               onClick={() => setExpandedSection("none")}
               className="text-xs font-bold text-[#1996e0] hover:underline cursor-pointer"
             >
-              ▲ Thu gọn mục này
+              Thu gọn mục này
             </button>
           </div>
 
@@ -785,7 +999,7 @@ export function RecordTreatmentCard({
                       </h4>
                       <p className="text-[10px] text-slate-300 flex items-center justify-between">
                         <span>📅 {img.date}</span>
-                        <span className="font-semibold text-cyan-400">🔍 Nhấp để phóng to</span>
+                        <span className="font-semibold text-cyan-400">Nhấp để phóng to</span>
                       </p>
                     </div>
                   </div>
@@ -828,7 +1042,7 @@ export function RecordTreatmentCard({
                 onClick={() => setExpandedSection("none")}
                 className="text-xs font-bold text-[#1996e0] hover:underline cursor-pointer"
               >
-                ▲ Thu gọn mục này
+                Thu gọn mục này
               </button>
             </div>
           </div>

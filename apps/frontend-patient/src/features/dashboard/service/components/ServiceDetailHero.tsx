@@ -1,11 +1,8 @@
 import Link from "next/link";
 import { DashboardIcon } from "../../common/DashboardIcon";
-import { formatServicePrice } from "../api";
-import { minutesLabel } from "../service-detail-utils";
 import type { DentalService, TreatmentMethod } from "../types";
 import { EmptyContent } from "./ServiceDetailShared";
 import { ROUTES } from "../../common/routes";
-import { T } from "../../common/typography";
 
 type ServiceDetailHeroProps = {
   service: DentalService;
@@ -22,12 +19,6 @@ export function ServiceDetailHero({
     activeMethod?.description || service.detailSummary || service.description;
   const image = activeMethod?.imageUrl || heroMedia?.url || service.image;
   const imageAlt = heroMedia?.alt || service.imageAlt || title;
-  const price = activeMethod
-    ? formatServicePrice(activeMethod.basePrice)
-    : service.price;
-  const duration = activeMethod?.durationMinutes || service.durationMinutes;
-  const bookingHref = `${ROUTES.appointment}?service=${service.id}${activeMethod ? `&treatmentMethod=${activeMethod.id}` : ""
-    }&intent=booking`;
 
   return (
     <>
@@ -54,10 +45,10 @@ export function ServiceDetailHero({
 
       {/* Main Unified Hero Card */}
       <section className="max-w-full overflow-hidden rounded-3xl border border-slate-200/90 bg-white p-4 shadow-sm sm:p-7 lg:p-8">
-        <div className="grid items-center gap-7 lg:grid-cols-[380px_1fr] xl:grid-cols-[420px_1fr]">
+        <div className="grid items-center gap-6 lg:grid-cols-[300px_1fr] lg:gap-8 xl:grid-cols-[320px_1fr]">
           
           {/* Left: Media Showcase Frame */}
-          <div className="group relative flex min-h-[300px] sm:min-h-[360px] lg:min-h-[400px] items-center justify-center overflow-hidden rounded-2xl border border-blue-100/80 bg-gradient-to-br from-blue-50/70 via-slate-50 to-indigo-50/40 p-4 sm:p-6 shadow-inner">
+          <div className="group relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-blue-100/80 bg-gradient-to-br from-blue-50/70 via-slate-50 to-indigo-50/40 p-2.5 shadow-inner sm:mx-auto sm:max-w-md lg:max-w-none lg:aspect-square">
             {/* Ambient Background Glow */}
             <div className="absolute -top-24 -left-24 h-48 w-48 rounded-full bg-blue-300/20 blur-3xl" />
             <div className="absolute -bottom-24 -right-24 h-48 w-48 rounded-full bg-indigo-300/20 blur-3xl" />
@@ -66,12 +57,12 @@ export function ServiceDetailHero({
             <img
               src={image}
               alt={imageAlt}
-              className="relative z-10 max-h-[350px] sm:max-h-[380px] w-auto max-w-full rounded-xl object-contain shadow-lg ring-1 ring-slate-900/5 transition-transform duration-300 group-hover:scale-[1.02]"
+              className="relative z-10 h-full w-full rounded-xl object-cover object-center shadow-md ring-1 ring-slate-900/5 transition-transform duration-300 group-hover:scale-[1.02]"
             />
           </div>
 
           {/* Right: Content & Action Panel */}
-          <div className="min-w-0 flex flex-col justify-between space-y-6">
+          <div className="min-w-0 flex flex-col justify-center space-y-5">
             <div>
               {/* Category Badge & Status */}
               <div className="flex flex-wrap items-center gap-2">
@@ -128,29 +119,6 @@ export function ServiceDetailHero({
                   </strong>
                 </div>
               </div>
-            </div>
-
-            {/* Price Tag & CTA Booking Button */}
-            <div className="rounded-2xl border border-slate-200/80 bg-gradient-to-r from-slate-50/80 via-white to-blue-50/30 p-5 shadow-xs">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <span className="text-xs font-semibold text-slate-500">Chi phí ưu đãi từ</span>
-                  <p className="mt-0.5 text-3xl font-extrabold text-[#0863c5] tracking-tight">
-                    {price}
-                  </p>
-                </div>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3.5 py-1.5 text-xs font-bold text-slate-700 border border-slate-200/60">
-                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                  Tư vấn miễn phí
-                </span>
-              </div>
-
-              <Link
-                href={bookingHref}
-                className="mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#0863c5] text-base font-bold text-white shadow-md shadow-blue-500/20 transition-all duration-200 hover:bg-[#0756aa] hover:shadow-lg hover:shadow-blue-500/30 active:scale-[0.99]"
-              >
-                Đặt dịch vụ ngay
-              </Link>
             </div>
           </div>
 

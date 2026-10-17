@@ -253,14 +253,13 @@ export function RecordSectionTabs({
         {/* Hub Header */}
         <View style={styles.hubHeader}>
           <View style={styles.hubTitleGroup}>
-            <View style={styles.hubTitleRow}>
-              <Text style={styles.hubSearchEmoji}>🔍</Text>
-              <Text style={styles.hubTitle}>
-                Xem Chi Tiết Hồ Sơ Khám & Phác Đồ
-              </Text>
-            </View>
+            <Text style={styles.hubTitle}>
+              Chi Tiết Phác Đồ: {treatment.title}
+            </Text>
             <Text style={styles.hubSubtitle}>
-              Nhấp vào các nút bên dưới để mở rộng xem từng mục:
+              Ngày lập:{' '}
+              <Text style={styles.hubSubtitleStrong}>{treatment.date}</Text>
+              {' '}• Nhấp vào các nút bên dưới để mở rộng xem chi tiết
             </Text>
           </View>
 
@@ -284,125 +283,53 @@ export function RecordSectionTabs({
                   : styles.expandAllBtnTextDefault,
               ]}
             >
-              {expandedSection === 'all' ? '▲ Thu gọn' : '⚡ Hiện tất cả'}
+              {expandedSection === 'all' ? 'Thu gọn tất cả' : 'Hiện tất cả'}
             </Text>
           </TouchableOpacity>
         </View>
 
         {/* 2x2 Action Buttons Grid */}
         <View style={styles.gridContainer}>
-          {/* Row 1 */}
           <View style={styles.gridRow}>
-            {/* Button 1: Quy Trình & Phác Đồ */}
-            <TouchableOpacity
-              activeOpacity={0.85}
+            <HubCard
+              active={isWorkflowActive}
+              badge={`${actualStepsCount} bước`}
+              icon="list-check"
               onPress={() => toggleSection('workflow')}
-              style={[
-                styles.gridCard,
-                isWorkflowActive
-                  ? styles.gridCardActiveBlue
-                  : styles.gridCardDefault,
-              ]}
-            >
-              <View style={styles.cardBottom}>
-                <Text
-                  numberOfLines={1}
-                  style={[
-                    styles.actionTitle,
-                    isWorkflowActive && styles.actionTitleActiveBlue,
-                  ]}
-                >
-                  Quy Trình & Phác Đồ
-                </Text>
-                <Text numberOfLines={1} style={styles.actionSub}>
-                  Các giai đoạn điều trị
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            {/* Button 2: Đơn Thuốc Bác Sĩ */}
-            <TouchableOpacity
-              activeOpacity={0.85}
+              subtitle="Các giai đoạn điều trị & lịch tái khám"
+              title="Quy Trình & Phác Đồ"
+              tone="blue"
+            />
+            <HubCard
+              active={isPrescriptionActive}
+              badge={`${allRichPrescriptions.length} đơn`}
+              icon="capsules"
               onPress={() => toggleSection('prescription')}
-              style={[
-                styles.gridCard,
-                isPrescriptionActive
-                  ? styles.gridCardActiveEmerald
-                  : styles.gridCardDefault,
-              ]}
-            >
-              <View style={styles.cardBottom}>
-                <Text
-                  numberOfLines={1}
-                  style={[
-                    styles.actionTitle,
-                    isPrescriptionActive && styles.actionTitleActiveEmerald,
-                  ]}
-                >
-                  Đơn Thuốc Bác Sĩ
-                </Text>
-                <Text numberOfLines={1} style={styles.actionSub}>
-                  Danh mục thuốc từ bệnh án
-                </Text>
-              </View>
-            </TouchableOpacity>
+              subtitle="Danh mục thuốc từ bệnh án"
+              title="Đơn Thuốc Bác Sĩ"
+              tone="emerald"
+            />
           </View>
 
-          {/* Row 2 */}
           <View style={styles.gridRow}>
-            {/* Button 3: Phim X-Quang & Ảnh */}
-            <TouchableOpacity
-              activeOpacity={0.85}
+            <HubCard
+              active={isImagesActive}
+              badge={`${realClinicalImages.length} ảnh`}
+              icon="image"
               onPress={() => toggleSection('images')}
-              style={[
-                styles.gridCard,
-                isImagesActive
-                  ? styles.gridCardActiveIndigo
-                  : styles.gridCardDefault,
-              ]}
-            >
-              <View style={styles.cardBottom}>
-                <Text
-                  numberOfLines={1}
-                  style={[
-                    styles.actionTitle,
-                    isImagesActive && styles.actionTitleActiveIndigo,
-                  ]}
-                >
-                  Phim X-Quang & Ảnh
-                </Text>
-                <Text numberOfLines={1} style={styles.actionSub}>
-                  Xem ảnh & phim chụp
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            {/* Button 4: Hồ Sơ Bệnh Án */}
-            <TouchableOpacity
-              activeOpacity={0.85}
+              subtitle="Xem ảnh thực tế & phim chụp chẩn đoán"
+              title="Phim X-Quang & Ảnh"
+              tone="indigo"
+            />
+            <HubCard
+              active={isMedicalRecordActive}
+              badge={`${planMedicalRecordCount} hồ sơ`}
+              icon="file-lines"
               onPress={() => toggleSection('medical-record')}
-              style={[
-                styles.gridCard,
-                isMedicalRecordActive
-                  ? styles.gridCardActiveBlue
-                  : styles.gridCardDefault,
-              ]}
-            >
-              <View style={styles.cardBottom}>
-                <Text
-                  numberOfLines={1}
-                  style={[
-                    styles.actionTitle,
-                    isMedicalRecordActive && styles.actionTitleActiveBlue,
-                  ]}
-                >
-                  Hồ Sơ Bệnh Án
-                </Text>
-                <Text numberOfLines={1} style={styles.actionSub}>
-                  Chi tiết chẩn đoán & ghi chú
-                </Text>
-              </View>
-            </TouchableOpacity>
+              subtitle="Xem chi tiết chẩn đoán & đơn thuốc y khoa"
+              title="Hồ Sơ Bệnh Án"
+              tone="sky"
+            />
           </View>
         </View>
       </View>
@@ -435,7 +362,7 @@ export function RecordSectionTabs({
                 onPress={() => toggleSection('workflow')}
                 style={styles.collapseSectionBtn}
               >
-                <Text style={styles.collapseSectionText}>▲ Thu gọn</Text>
+                <Text style={styles.collapseSectionText}>Thu gọn</Text>
               </TouchableOpacity>
             </View>
 
@@ -629,7 +556,7 @@ export function RecordSectionTabs({
                 onPress={() => toggleSection('prescription')}
                 style={styles.collapseSectionBtn}
               >
-                <Text style={styles.collapseSectionText}>▲ Thu gọn</Text>
+                <Text style={styles.collapseSectionText}>Thu gọn</Text>
               </TouchableOpacity>
             </View>
 
@@ -754,7 +681,7 @@ export function RecordSectionTabs({
                 onPress={() => toggleSection('images')}
                 style={styles.collapseSectionBtn}
               >
-                <Text style={styles.collapseSectionText}>▲ Thu gọn</Text>
+                <Text style={styles.collapseSectionText}>Thu gọn</Text>
               </TouchableOpacity>
             </View>
 
@@ -795,7 +722,7 @@ export function RecordSectionTabs({
                           {img.title}
                         </Text>
                         <Text style={styles.imageCardDate}>
-                          📅 {img.date} • 🔍 Nhấp để phóng to
+                          {img.date} • Nhấp để phóng to
                         </Text>
                       </View>
                     </View>
@@ -831,7 +758,7 @@ export function RecordSectionTabs({
                 onPress={() => toggleSection('medical-record')}
                 style={styles.collapseSectionBtn}
               >
-                <Text style={styles.collapseSectionText}>▲ Thu gọn</Text>
+                <Text style={styles.collapseSectionText}>Thu gọn</Text>
               </TouchableOpacity>
             </View>
 
@@ -999,6 +926,78 @@ export function RecordSectionTabs({
   );
 }
 
+const hubTones = {
+  blue: { accent: '#1996E0', iconBg: '#DBEAFE', iconColor: '#0863c5', soft: '#EFF6FF', softBorder: '#BFDBFE', softText: '#0863c5', activeBg: '#E8F4FC' },
+  emerald: { accent: '#059669', iconBg: '#D1FAE5', iconColor: '#047857', soft: '#ECFDF5', softBorder: '#A7F3D0', softText: '#047857', activeBg: '#ECFDF5' },
+  indigo: { accent: '#4F46E5', iconBg: '#E0E7FF', iconColor: '#4338CA', soft: '#EEF2FF', softBorder: '#C7D2FE', softText: '#4338CA', activeBg: '#EEF2FF' },
+  sky: { accent: '#0EA5E9', iconBg: '#E0F2FE', iconColor: '#0863c5', soft: '#F0F9FF', softBorder: '#BAE6FD', softText: '#0863c5', activeBg: '#F0F9FF' },
+} as const;
+
+type HubCardProps = {
+  active: boolean;
+  badge: string;
+  icon: string;
+  onPress: () => void;
+  subtitle: string;
+  title: string;
+  tone: keyof typeof hubTones;
+};
+
+function HubCard({ active, badge, icon, onPress, subtitle, title, tone }: HubCardProps) {
+  const c = hubTones[tone];
+  return (
+    <TouchableOpacity
+      activeOpacity={0.85}
+      accessibilityRole="button"
+      accessibilityState={{ expanded: active }}
+      onPress={onPress}
+      style={[
+        styles.gridCard,
+        active
+          ? { backgroundColor: c.activeBg, borderColor: c.accent, elevation: 2, shadowColor: c.accent, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 5 }
+          : styles.gridCardDefault,
+      ]}
+    >
+      <View>
+        <View style={styles.hubCardTopRow}>
+          <View style={[styles.hubCardIcon, { backgroundColor: c.iconBg }]}>
+            <FontAwesome6 color={c.iconColor} iconStyle="solid" name={icon as any} size={14} />
+          </View>
+          <View style={[styles.hubCardBadge, { backgroundColor: c.soft, borderColor: c.softBorder }]}>
+            <Text style={[styles.hubCardBadgeText, { color: c.softText }]}>{badge}</Text>
+          </View>
+        </View>
+        <Text numberOfLines={1} style={[styles.actionTitle, active && { color: c.accent }]}>
+          {title}
+        </Text>
+        <Text numberOfLines={2} style={styles.actionSub}>
+          {subtitle}
+        </Text>
+      </View>
+
+      <View style={[styles.hubCardFooter, { borderTopColor: active ? `${c.accent}4D` : '#F1F5F9' }]}>
+        <View style={styles.hubCardStatus}>
+          {active && <View style={[styles.hubCardDot, { backgroundColor: c.accent }]} />}
+          <Text style={[styles.hubCardStatusText, { color: active ? c.accent : '#64748B' }]}>
+            {active ? 'Đang xem' : 'Bấm để xem'}
+          </Text>
+        </View>
+        <View style={[styles.hubCardPill, { backgroundColor: active ? c.accent : c.soft }]}>
+          <Text style={[styles.hubCardPillText, { color: active ? '#FFFFFF' : c.softText }]}>
+            {active ? 'Thu gọn' : 'Chi tiết'}
+          </Text>
+          <FontAwesome6
+            color={active ? '#FFFFFF' : c.softText}
+            iconStyle="solid"
+            name={active ? 'chevron-up' : 'chevron-right'}
+            size={8}
+          />
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
 const styles = StyleSheet.create({
   container: {
     marginTop: 8,
@@ -1017,26 +1016,17 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 2,
   },
+  // Tiêu đề chiếm hết chiều ngang, nút "Hiện tất cả" xuống dòng dưới để không bóp tiêu đề dài
   hubHeader: {
-    alignItems: 'flex-start',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: 10,
     marginBottom: 14,
   },
   hubTitleGroup: {
-    flex: 1,
-    marginRight: 8,
-  },
-  hubTitleRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-  },
-  hubSearchEmoji: {
-    fontSize: 14,
-    marginRight: 6,
+    width: '100%',
   },
   hubTitle: {
     color: '#0F172A',
+    flexShrink: 1,
     fontSize: 13,
     fontWeight: '900',
     textTransform: 'uppercase',
@@ -1046,7 +1036,71 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 2,
   },
+  hubSubtitleStrong: {
+    color: '#334155',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  hubCardTopRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  hubCardIcon: {
+    alignItems: 'center',
+    borderRadius: 12,
+    height: 34,
+    justifyContent: 'center',
+    width: 34,
+  },
+  hubCardBadge: {
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  hubCardBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  hubCardFooter: {
+    alignItems: 'center',
+    borderTopWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+    paddingTop: 8,
+  },
+  hubCardStatus: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    flexShrink: 1,
+    gap: 4,
+  },
+  hubCardDot: {
+    borderRadius: 3,
+    height: 6,
+    width: 6,
+  },
+  hubCardStatusText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  hubCardPill: {
+    alignItems: 'center',
+    borderRadius: 8,
+    flexDirection: 'row',
+    gap: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+  },
+  hubCardPillText: {
+    fontSize: 9.5,
+    fontWeight: '900',
+  },
   expandAllBtn: {
+    alignSelf: 'flex-end',
     borderRadius: 10,
     borderWidth: 1,
     paddingHorizontal: 10,
@@ -1089,33 +1143,6 @@ const styles = StyleSheet.create({
   },
   gridCardDefault: {
     borderColor: '#E2E8F0',
-  },
-  gridCardActiveBlue: {
-    backgroundColor: '#EFF6FF',
-    borderColor: '#0863c5',
-    elevation: 3,
-    shadowColor: '#0863c5',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 5,
-  },
-  gridCardActiveEmerald: {
-    backgroundColor: '#ECFDF5',
-    borderColor: '#059669',
-    elevation: 3,
-    shadowColor: '#059669',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 5,
-  },
-  gridCardActiveIndigo: {
-    backgroundColor: '#EEF2FF',
-    borderColor: '#4F46E5',
-    elevation: 3,
-    shadowColor: '#4F46E5',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 5,
   },
   cardTopRow: {
     alignItems: 'center',
@@ -1169,22 +1196,10 @@ const styles = StyleSheet.create({
   badgeTagTextActive: {
     color: '#FFFFFF',
   },
-  cardBottom: {
-    marginTop: 8,
-  },
   actionTitle: {
     color: '#0F172A',
     fontSize: 12,
     fontWeight: '800',
-  },
-  actionTitleActiveBlue: {
-    color: '#0863c5',
-  },
-  actionTitleActiveEmerald: {
-    color: '#059669',
-  },
-  actionTitleActiveIndigo: {
-    color: '#4F46E5',
   },
   actionSub: {
     color: '#64748B',

@@ -123,36 +123,29 @@ export function AppDialogProvider({ children }: { children: React.ReactNode }) {
             aria-describedby="app-dialog-description"
             className="w-full max-w-md rounded-2xl border border-slate-200/80 bg-white p-6 shadow-2xl"
           >
-            <div className="flex items-start gap-4">
-              <div
-                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${toneStyle.iconClass}`}
-              >
-                <Icon size={24} weight="duotone" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-start justify-between gap-3">
-                  <h2
-                    id="app-dialog-title"
-                    className="text-lg font-bold text-brand-dark"
-                  >
-                    {request.title}
-                  </h2>
-                  <button
-                    type="button"
-                    title="Đóng"
-                    onClick={() => close(false)}
-                    className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
-                  >
-                    <X size={18} />
-                  </button>
-                </div>
-                <p
-                  id="app-dialog-description"
-                  className="mt-2 whitespace-pre-line text-sm leading-relaxed text-slate-600"
+            <div>
+              <div className="flex items-start justify-between gap-3">
+                <h2
+                  id="app-dialog-title"
+                  className="text-lg font-bold text-brand-dark"
                 >
-                  {request.description}
-                </p>
+                  {request.title}
+                </h2>
+                <button
+                  type="button"
+                  title="Đóng"
+                  onClick={() => close(false)}
+                  className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                >
+                  <X size={18} />
+                </button>
               </div>
+              <p
+                id="app-dialog-description"
+                className="mt-2 whitespace-pre-line text-sm leading-relaxed text-slate-600"
+              >
+                {request.description}
+              </p>
             </div>
 
             <div className="mt-6 flex justify-end gap-3">

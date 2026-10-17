@@ -73,7 +73,7 @@ export function PromotionCalculatorSidebar({
               </div>
 
               <div className="flex justify-between text-emerald-600 font-bold">
-                <span>Mức giảm ({promotion.code}):</span>
+                <span>Mức giảm ưu đãi:</span>
                 <span>
                   -{formatCurrency(discountAmount)}
                 </span>

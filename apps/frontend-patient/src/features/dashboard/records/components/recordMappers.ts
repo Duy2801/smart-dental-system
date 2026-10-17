@@ -296,7 +296,7 @@ export function cleanRecordTitle(title?: string | null, service?: string | null)
   const lower = trimmed.toLowerCase();
 
   if (lower.includes("seed treatment plan 1") || lower.includes("seed diagnosis 1")) {
-    return "Phác đồ Cấy ghép Implant đơn lẻ (Răng 11)";
+    return "Phác đồ Cấy ghép Implant đơn lẻ";
   }
   if (lower.includes("seed treatment plan 2") || lower.includes("seed diagnosis 2")) {
     return "Phác đồ Bọc răng sứ thẩm mỹ Cercon";
@@ -308,7 +308,10 @@ export function cleanRecordTitle(title?: string | null, service?: string | null)
     return cleanService ? `Phác đồ điều trị ${cleanService}` : "Hồ sơ khám điều trị nha khoa";
   }
 
-  return trimmed;
+  return trimmed
+    .replace(/\s*\(\s*răng\s*[^)]*\)/gi, "")
+    .replace(/\s*[-–—:]\s*răng\s*\d+/gi, "")
+    .trim();
 }
 
 export function detectTreatmentCategory(title: string) {

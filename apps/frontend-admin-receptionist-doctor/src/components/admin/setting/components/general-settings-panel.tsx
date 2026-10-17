@@ -1,4 +1,13 @@
+"use client";
+
 import { ChangeEvent, useRef, useState } from "react";
+import { Buildings, ImageSquare, Trash, UploadSimple } from "@phosphor-icons/react";
+import {
+  AdminAlert,
+  AdminButton,
+  AdminCard,
+  AdminInput,
+} from "@/src/components/admin/common";
 import { ClinicLogo } from "@/src/components/layout/clinic-brand";
 import type { ClinicConfig } from "../types";
 
@@ -45,33 +54,26 @@ export function GeneralSettingsPanel({
   };
 
   return (
-    <div className="max-w-4xl space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+    <div className="max-w-4xl space-y-5">
       <div>
-        <h3 className="text-lg font-bold text-brand-dark">Cài đặt chung</h3>
-        <p className="text-sm text-muted-foreground">
-          Thông tin này sẽ hiển thị đồng bộ trên toàn bộ trang quản trị, giao diện bác sĩ và lễ tân.
+        <h3 className="text-lg font-bold text-slate-900">Cài đặt chung</h3>
+        <p className="text-sm text-slate-500">
+          Thông tin này hiển thị đồng bộ trên trang quản trị, giao diện bác sĩ và lễ tân.
         </p>
       </div>
 
-      <div className="space-y-8 rounded-2xl border border-border bg-white p-6 shadow-xs md:p-8">
-        <div className="flex flex-col gap-5 rounded-2xl border border-border bg-slate-50/50 p-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            <ClinicLogo
-              name={config.name}
-              logoUrl={config.logoUrl}
-              className="h-20 w-20 rounded-2xl shadow-xs"
-            />
-            <div>
-              <h4 className="text-sm font-bold text-brand-dark">
-                Logo phòng khám
-              </h4>
-              <p className="mt-1 max-w-md text-xs leading-relaxed text-muted-foreground">
-                Nên dùng ảnh vuông dạng PNG/JPG/WEBP. Logo sẽ được hiển thị ở góc thanh công cụ hệ thống.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex gap-2">
+      <AdminCard
+        title="Logo phòng khám"
+        description="Ảnh vuông PNG/JPG/WEBP, tối đa 2MB. Hiển thị ở góc thanh công cụ hệ thống."
+        icon={<ImageSquare size={18} weight="duotone" />}
+      >
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+          <ClinicLogo
+            name={config.name}
+            logoUrl={config.logoUrl}
+            className="h-20 w-20 rounded-2xl shadow-xs"
+          />
+          <div className="flex flex-wrap gap-2">
             <input
               ref={fileInputRef}
               type="file"
@@ -79,56 +81,58 @@ export function GeneralSettingsPanel({
               className="hidden"
               onChange={handleLogoChange}
             />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-brand-dark transition-colors hover:bg-slate-100 shadow-xs"
-            >
-              Tải ảnh lên
-            </button>
+            <AdminButton variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()}>
+              <UploadSimple size={14} weight="bold" />
+              {config.logoUrl ? "Đổi logo" : "Tải ảnh lên"}
+            </AdminButton>
             {config.logoUrl ? (
-              <button
-                type="button"
-                onClick={() => updateField("logoUrl", "")}
-                className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-100"
-              >
+              <AdminButton variant="danger" size="sm" onClick={() => updateField("logoUrl", "")}>
+                <Trash size={14} />
                 Xóa logo
-              </button>
+              </AdminButton>
             ) : null}
           </div>
         </div>
-
         {logoError ? (
-          <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-700">
-            <span>⚠️</span>
-            <span>{logoError}</span>
+          <div className="mt-4">
+            <AdminAlert message={logoError} />
           </div>
         ) : null}
+      </AdminCard>
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          <SettingsInput
+      <AdminCard
+        title="Thông tin liên hệ"
+        icon={<Buildings size={18} weight="duotone" />}
+      >
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+          <AdminInput
             label="Tên phòng khám"
             value={config.name}
-            onChange={(value) => updateField("name", value)}
+            onChange={(event) => updateField("name", event.target.value)}
+            placeholder="Smart Dental Clinic"
           />
-          <SettingsInput
+          <AdminInput
             label="Hotline / Số điện thoại"
+            type="tel"
             value={config.phone}
-            onChange={(value) => updateField("phone", value)}
+            onChange={(event) => updateField("phone", event.target.value)}
+            placeholder="1900 1234"
           />
-          <SettingsInput
+          <AdminInput
             label="Email liên hệ"
             type="email"
             value={config.email}
-            onChange={(value) => updateField("email", value)}
+            onChange={(event) => updateField("email", event.target.value)}
+            placeholder="contact@smartdental.vn"
           />
-          <SettingsInput
+          <AdminInput
             label="Địa chỉ phòng khám"
             value={config.address}
-            onChange={(value) => updateField("address", value)}
+            onChange={(event) => updateField("address", event.target.value)}
+            placeholder="Số nhà, đường, phường, quận..."
           />
         </div>
-      </div>
+      </AdminCard>
     </div>
   );
 }
@@ -170,30 +174,4 @@ function resizeLogo(file: File) {
 
     reader.readAsDataURL(file);
   });
-}
-
-type SettingsInputProps = {
-  label: string;
-  onChange: (value: string) => void;
-  type?: string;
-  value: string;
-};
-
-function SettingsInput({
-  label,
-  onChange,
-  type = "text",
-  value,
-}: SettingsInputProps) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-sm font-semibold text-brand-dark">{label}</label>
-      <input
-        value={value}
-        type={type}
-        onChange={(event) => onChange(event.target.value)}
-        className="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 font-medium"
-      />
-    </div>
-  );
 }

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CheckCircle, WarningCircle } from "@phosphor-icons/react";
 import { queryKeys } from "@/src/lib/query/query-keys";
 import { AdminConfirmModal } from "@/src/components/admin/common";
 import { PromoFormModal } from "./components/promo-form-modal";
@@ -120,18 +121,26 @@ export function PromotionsPageContent() {
     [promotions, search, statusFilter]
   );
 
-  const toggleStatus = async (id: string) => {
-    const current = promotions.find((p) => p.id === id);
-    if (!current) return;
+  const [statusConfirmPromotion, setStatusConfirmPromotion] =
+    useState<Promotion | null>(null);
 
+  const toggleStatus = (id: string) => {
+    const current = promotions.find((p) => p.id === id);
+    if (current) setStatusConfirmPromotion(current);
+  };
+
+  const handleConfirmToggleStatus = async () => {
+    if (!statusConfirmPromotion) return;
     setErrorMessage("");
     try {
       await statusMutation.mutateAsync({
-        id,
-        isActive: !current.is_active,
+        id: statusConfirmPromotion.id,
+        isActive: !statusConfirmPromotion.is_active,
       });
     } catch {
       // Handled by onError callback
+    } finally {
+      setStatusConfirmPromotion(null);
     }
   };
 
@@ -202,15 +211,15 @@ export function PromotionsPageContent() {
 
       {/* Notifications / Alerts */}
       {successMessage && (
-        <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800 shadow-xs">
-          <span>✅</span>
+        <div role="status" className="flex items-center gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
+          <CheckCircle size={18} weight="fill" className="shrink-0 text-emerald-500" />
           <span>{successMessage}</span>
         </div>
       )}
 
       {isError || errorMessage ? (
-        <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700 shadow-xs">
-          <span>⚠️</span>
+        <div role="alert" className="flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+          <WarningCircle size={18} weight="fill" className="shrink-0 text-red-500" />
           <span>{errorMessage || "Không tải được danh sách khuyến mãi."}</span>
         </div>
       ) : null}
@@ -241,6 +250,33 @@ export function PromotionsPageContent() {
           submitting={createMutation.isPending || updateMutation.isPending}
         />
       ) : null}
+
+      {/* Pause / Activate Confirmation Modal */}
+      <AdminConfirmModal
+        isOpen={Boolean(statusConfirmPromotion)}
+        title={statusConfirmPromotion?.is_active ? "Tạm ngưng chương trình khuyến mãi?" : "Kích hoạt lại chương trình khuyến mãi?"}
+        description={
+          statusConfirmPromotion?.is_active ? (
+            <>
+              Mã{" "}
+              <strong className="font-semibold text-slate-900">{statusConfirmPromotion?.code}</strong>{" "}
+              sẽ tạm thời không áp dụng được khi bệnh nhân đặt lịch cho tới khi được kích hoạt lại.
+            </>
+          ) : (
+            <>
+              Mã{" "}
+              <strong className="font-semibold text-slate-900">{statusConfirmPromotion?.code}</strong>{" "}
+              sẽ áp dụng được trở lại ngay sau khi kích hoạt.
+            </>
+          )
+        }
+        confirmText={statusConfirmPromotion?.is_active ? "Tạm ngưng" : "Kích hoạt"}
+        cancelText="Hủy bỏ"
+        variant={statusConfirmPromotion?.is_active ? "warning" : "primary"}
+        isLoading={statusMutation.isPending}
+        onConfirm={handleConfirmToggleStatus}
+        onClose={() => setStatusConfirmPromotion(null)}
+      />
 
       {/* Delete Confirmation Modal */}
       <AdminConfirmModal

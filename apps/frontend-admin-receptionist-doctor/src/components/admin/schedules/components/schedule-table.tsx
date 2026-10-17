@@ -1,4 +1,8 @@
+"use client";
+
+import { Moon, PencilSimple, Plus } from "@phosphor-icons/react";
 import { SkeletonRows } from "@/src/components/admin/common";
+import { cn } from "@/src/lib/utils/cn";
 import { weekDays } from "../constants";
 import { ScheduleChip } from "./schedule-chip";
 import type { AvailabilityApprovalStatus, AvailabilityResponse } from "../types";
@@ -22,107 +26,89 @@ export function ScheduleTable({
   schedule,
 }: ScheduleTableProps) {
   return (
-    <div className="flex flex-col rounded-xl border border-border bg-white">
+    <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
+      <div className="hidden items-center border-b border-slate-200 bg-slate-50/80 px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500 sm:flex">
+        <div className="w-40 shrink-0">Ngày</div>
+        <div className="flex-1">Ca làm việc</div>
+        <div className="shrink-0">Thao tác</div>
+      </div>
       {loading ? (
         <SkeletonRows count={7} />
       ) : (
-        weekDays.map((day) => {
-          const daySchedule = schedule?.weekly.find(
-            (item) => item.dayOfWeek === day.index,
-          );
-          const businessHour = businessHours.find(
-            (hour) => hour.id === day.index,
-          );
-          const canAddShift = Boolean(businessHour?.isOpen);
-          const shifts = daySchedule?.shifts ?? [];
-          const dateOverrides = daySchedule?.dateOverrides ?? [];
-          const timeOff = daySchedule?.timeOff ?? [];
+        <div className="divide-y divide-slate-100">
+          {weekDays.map((day) => {
+            const daySchedule = schedule?.weekly.find((item) => item.dayOfWeek === day.index);
+            const businessHour = businessHours.find((hour) => hour.id === day.index);
+            const isOpen = Boolean(businessHour?.isOpen);
+            const shifts = daySchedule?.shifts ?? [];
+            const dateOverrides = daySchedule?.dateOverrides ?? [];
+            const timeOff = daySchedule?.timeOff ?? [];
+            const isEmpty = shifts.length === 0 && dateOverrides.length === 0 && timeOff.length === 0;
 
-          return (
-            <div
-              key={day.index}
-              className="flex min-h-24 flex-col gap-4 border-b border-border p-5 last:border-b-0 sm:flex-row sm:items-center justify-between"
-            >
-              <div className="w-36 shrink-0">
-                <h4 className="text-sm font-semibold text-brand-dark">
-                  {day.label}
-                </h4>
-                {businessHour ? (
-                  <span className="mt-1 block text-xs text-muted-foreground">
-                    {businessHour.isOpen
-                      ? `${businessHour.start} - ${businessHour.end}`
-                      : "Phòng khám nghỉ"}
+            return (
+              <div
+                key={day.index}
+                className={cn(
+                  "flex flex-col gap-3 px-5 py-4 transition-colors sm:flex-row sm:items-center",
+                  isOpen ? "hover:bg-slate-50/60" : "bg-slate-50/50",
+                )}
+              >
+                <div className="flex w-40 shrink-0 items-center gap-3">
+                  <span
+                    className={cn(
+                      "grid h-10 w-10 shrink-0 place-items-center rounded-xl text-xs font-extrabold",
+                      isOpen ? "bg-brand-light text-brand" : "bg-slate-100 text-slate-400",
+                    )}
+                  >
+                    {day.index === 0 ? "CN" : `T${day.index + 1}`}
                   </span>
-                ) : null}
+                  <div>
+                    <h4 className={cn("text-sm font-bold", isOpen ? "text-slate-900" : "text-slate-400")}>
+                      {day.label}
+                    </h4>
+                    {businessHour ? (
+                      <span className="mt-0.5 flex items-center gap-1 text-xs text-slate-500">
+                        {isOpen ? (
+                          `${businessHour.start} - ${businessHour.end}`
+                        ) : (
+                          <>
+                            <Moon size={11} weight="fill" />
+                            Phòng khám nghỉ
+                          </>
+                        )}
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="flex flex-1 flex-wrap items-center gap-2">
+                  {isEmpty ? (
+                    <span className="rounded-lg border border-dashed border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-400">
+                      {isOpen ? "Chưa có ca làm việc" : "Không làm việc"}
+                    </span>
+                  ) : null}
+
+                  {[...timeOff, ...dateOverrides, ...shifts].map((record) => (
+                    <ScheduleChip key={record.id} record={record} onRemove={onRemove} onApprove={onApprove} />
+                  ))}
+                </div>
+
+                <div className="shrink-0 self-end sm:self-center">
+                  <button
+                    type="button"
+                    onClick={() => onAddDay(day.index)}
+                    disabled={!isOpen}
+                    className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-2xs transition-all hover:border-brand/30 hover:bg-brand-light hover:text-brand disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {shifts.length > 0 ? <PencilSimple size={14} weight="bold" /> : <Plus size={14} weight="bold" />}
+                    {shifts.length > 0 ? "Sửa ca" : "Thêm ca"}
+                  </button>
+                </div>
               </div>
-
-              <div className="flex flex-1 flex-wrap items-center gap-2">
-                {shifts.length === 0 && dateOverrides.length === 0 && timeOff.length === 0 ? (
-                  <span className="py-1 text-sm text-muted-foreground">
-                    Không có lịch làm việc
-                  </span>
-                ) : null}
-
-                {timeOff.map((record) => (
-                  <ScheduleChip
-                    key={record.id}
-                    record={record}
-                    onRemove={onRemove}
-                    onApprove={onApprove}
-                  />
-                ))}
-
-                {dateOverrides.map((record) => (
-                  <ScheduleChip
-                    key={record.id}
-                    record={record}
-                    onRemove={onRemove}
-                    onApprove={onApprove}
-                  />
-                ))}
-
-                {shifts.map((record) => (
-                  <ScheduleChip
-                    key={record.id}
-                    record={record}
-                    onRemove={onRemove}
-                    onApprove={onApprove}
-                  />
-                ))}
-              </div>
-
-              <div className="shrink-0 self-end sm:self-center">
-                <button
-                  type="button"
-                  onClick={() => onAddDay(day.index)}
-                  disabled={!canAddShift}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-semibold text-brand-dark shadow-2xs transition-all hover:border-brand hover:bg-brand/5 hover:text-brand disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  {shifts.length > 0 ? (
-                    <svg
-                      className="h-3.5 w-3.5 text-brand"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                      />
-                    </svg>
-                  ) : (
-                    <span className="text-base leading-none text-brand">+</span>
-                  )}
-                  Cập nhật
-                </button>
-              </div>
-            </div>
-          );
-        })
+            );
+          })}
+        </div>
       )}
     </div>
   );
 }
-

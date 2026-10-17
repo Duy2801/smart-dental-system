@@ -5,25 +5,17 @@ type Props = {
   patient: PatientRecordsResponse["patient"];
   doctor?: string;
   specialty?: string;
+  recordDate?: string;
 };
 
-function formatBirthAndAge(patient: Props["patient"]) {
-  if (!patient.dateOfBirth) return patient.age != null ? `${patient.age} tuổi` : "Chưa cập nhật";
+function formatBirthDate(patient: Props["patient"]) {
+  if (!patient.dateOfBirth) return "Chưa cập nhật";
   const birth = new Date(patient.dateOfBirth);
   if (Number.isNaN(birth.getTime())) return "Chưa cập nhật";
-  const today = new Date();
-  const age =
-    patient.age ??
-    today.getFullYear() -
-      birth.getFullYear() -
-      (today.getMonth() < birth.getMonth() ||
-      (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate())
-        ? 1
-        : 0);
-  return `${birth.toLocaleDateString("vi-VN")} (${age} tuổi)`;
+  return birth.toLocaleDateString("vi-VN");
 }
 
-export function RecordPatientHeader({ patient, doctor, specialty }: Props) {
+export function RecordPatientHeader({ patient, doctor, specialty, recordDate }: Props) {
   const hasAllergy =
     patient.medicalHistory &&
     /dị ứng|allergy|penicillin|kháng sinh/i.test(patient.medicalHistory);
@@ -61,37 +53,82 @@ export function RecordPatientHeader({ patient, doctor, specialty }: Props) {
         </div>
       </div>
 
-      {/* 2. Key Info Chips (Dedicated Full-Width 3-Column Grid) */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {/* Chip 1: Ngày sinh / Tuổi */}
-        <div className="flex flex-col items-center justify-center text-center rounded-xl border border-slate-100 bg-[#f8fbfe] p-3.5">
-          <span className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
-            Ngày sinh / Tuổi
+      {/* 2. Key Info Chips (Dedicated Full-Width Grid) */}
+      <div className={`grid grid-cols-1 gap-3 ${recordDate ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3"}`}>
+        {/* Chip 1: Ngày sinh */}
+        <div className="flex items-center gap-3 rounded-xl border border-slate-100 bg-[#f8fbfe] p-3 sm:px-3.5 text-left transition-colors hover:border-blue-100">
+          <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-blue-50 text-[#0863c5]">
+            <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
           </span>
-          <span className="mt-0.5 block text-sm font-extrabold text-slate-800 whitespace-nowrap">
-            {formatBirthAndAge(patient)}
-          </span>
+          <div className="min-w-0 flex-1">
+            <span className="block text-[10px] font-black uppercase tracking-wider text-slate-400 whitespace-nowrap">
+              Ngày sinh
+            </span>
+            <span className="mt-0.5 block text-sm font-extrabold text-slate-800 truncate">
+              {formatBirthDate(patient)}
+            </span>
+          </div>
         </div>
 
         {/* Chip 2: Số điện thoại */}
-        <div className="flex flex-col items-center justify-center text-center rounded-xl border border-slate-100 bg-[#f8fbfe] p-3.5">
-          <span className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
-            Số điện thoại
+        <div className="flex items-center gap-3 rounded-xl border border-slate-100 bg-[#f8fbfe] p-3 sm:px-3.5 text-left transition-colors hover:border-blue-100">
+          <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-blue-50 text-[#0863c5]">
+            <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+            </svg>
           </span>
-          <span className="mt-0.5 block text-sm font-extrabold text-slate-800 whitespace-nowrap">
-            {patient.phone || "Chưa cập nhật"}
-          </span>
+          <div className="min-w-0 flex-1">
+            <span className="block text-[10px] font-black uppercase tracking-wider text-slate-400 whitespace-nowrap">
+              Số điện thoại
+            </span>
+            <span className="mt-0.5 block text-sm font-extrabold text-slate-800 truncate">
+              {patient.phone || "Chưa cập nhật"}
+            </span>
+          </div>
         </div>
 
         {/* Chip 3: Giới tính */}
-        <div className="flex flex-col items-center justify-center text-center rounded-xl border border-slate-100 bg-[#f8fbfe] p-3.5">
-          <span className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 whitespace-nowrap">
-            Giới tính
+        <div className="flex items-center gap-3 rounded-xl border border-slate-100 bg-[#f8fbfe] p-3 sm:px-3.5 text-left transition-colors hover:border-blue-100">
+          <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-blue-50 text-[#0863c5]">
+            <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
           </span>
-          <span className="mt-0.5 block text-sm font-extrabold text-slate-800 whitespace-nowrap">
-            {getGenderLabel(patient.gender)}
-          </span>
+          <div className="min-w-0 flex-1">
+            <span className="block text-[10px] font-black uppercase tracking-wider text-slate-400 whitespace-nowrap">
+              Giới tính
+            </span>
+            <span className="mt-0.5 block text-sm font-extrabold text-slate-800 truncate">
+              {getGenderLabel(patient.gender)}
+            </span>
+          </div>
         </div>
+
+        {/* Chip 4: Ngày lập hồ sơ */}
+        {recordDate && (
+          <div className="flex items-center gap-3 rounded-xl border border-blue-100 bg-blue-50/40 p-3 sm:px-3.5 text-left transition-colors hover:border-blue-200">
+            <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-blue-100 text-[#0863c5]">
+              <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
+              </svg>
+            </span>
+            <div className="min-w-0 flex-1">
+              <span className="block text-[10px] font-black uppercase tracking-wider text-[#0058bc] whitespace-nowrap">
+                Ngày lập hồ sơ
+              </span>
+              <span className="mt-0.5 block text-sm font-extrabold text-[#07366f] truncate">
+                {recordDate}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 3. Bottom Medical Alert & In-Charge Doctor Strip */}
@@ -104,17 +141,6 @@ export function RecordPatientHeader({ patient, doctor, specialty }: Props) {
               : "border border-slate-200/80 bg-slate-50/70 text-slate-800"
           }`}
         >
-          <span
-            className={`grid size-7 shrink-0 place-items-center rounded-lg ${
-              hasAllergy
-                ? "bg-amber-100 text-amber-700"
-                : "bg-slate-200/80 text-slate-600"
-            }`}
-          >
-            <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 9v4m0 4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-            </svg>
-          </span>
           <div className="min-w-0 flex-1">
             <span
               className={`block text-[10px] font-black uppercase tracking-wider ${
@@ -131,12 +157,6 @@ export function RecordPatientHeader({ patient, doctor, specialty }: Props) {
 
         {/* Panel 2: In-Charge Doctor */}
         <div className="flex items-start gap-3 rounded-xl border border-blue-100 bg-[#f4f9fd]/80 p-3.5 text-slate-800">
-          <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-blue-100 text-[#0863c5]">
-            <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
-          </span>
           <div className="min-w-0 flex-1">
             <span className="block text-[10px] font-black uppercase tracking-wider text-[#1996e0]">
               Bác sĩ của mục đang xem

@@ -3,7 +3,13 @@ import { AuthSession } from './types';
 
 type ApiEnvelope<T> = { data: T; status: boolean; statusCode: number };
 
-export type LoginPayload = { email: string; password: string };
+export type LoginPayload = { email: string; password: string; captchaToken?: string };
+export type LoginCaptchaConfig = { enabled: boolean; mobileUrl: string | null };
+
+export const apiLoginCaptchaConfig = async () => {
+  const response = await api.get<ApiEnvelope<LoginCaptchaConfig>>('/auth/captcha/config');
+  return response.data.data;
+};
 export type RegisterPayload = {
   fullName: string;
   email: string;

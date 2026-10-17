@@ -1,3 +1,7 @@
+"use client";
+
+import { ChartLineUp } from "@phosphor-icons/react";
+import { AdminCard, AdminEmptyState } from "@/src/components/admin/common";
 import { cn } from "@/src/lib/utils/cn";
 import type { RevenueChartItem } from "../types";
 
@@ -6,66 +10,67 @@ type RevenueChartCardProps = {
 };
 
 export function RevenueChartCard({ data }: RevenueChartCardProps) {
-  const maxChartValue = Math.max(...data.map((item) => item.value));
+  const maxChartValue = Math.max(0, ...data.map((item) => item.value));
   const total = data.reduce((sum, item) => sum + item.value, 0);
 
   return (
-    <div className="flex flex-col rounded-xl border border-border bg-white p-6 shadow-sm lg:col-span-2">
-      <h3 className="text-base font-semibold text-brand-dark">
-        Doanh thu theo thang (Trieu VND)
-      </h3>
-
+    <AdminCard
+      title="Doanh thu theo tháng"
+      description={`Đơn vị: triệu VNĐ · tổng ${total.toLocaleString("vi-VN")} triệu`}
+      icon={<ChartLineUp size={18} weight="duotone" />}
+      className="lg:col-span-2"
+    >
       {total === 0 ? (
-        <div className="mt-8 flex h-56 items-center justify-center rounded-lg bg-muted/30 text-sm text-muted-foreground">
-          Chua co doanh thu trong khoang thoi gian nay.
-        </div>
-      ) : null}
+        <AdminEmptyState
+          icon={<ChartLineUp size={24} weight="duotone" />}
+          title="Chưa có doanh thu trong khoảng thời gian này"
+          className="h-60"
+        />
+      ) : (
+        <div className="relative h-64">
+          <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-7 bottom-8 flex flex-col justify-between">
+            {[0, 1, 2, 3].map((line) => (
+              <span key={line} className="h-px w-full border-t border-dashed border-slate-100" />
+            ))}
+          </div>
+          <div className="relative grid h-full grid-cols-6 items-end gap-3 sm:gap-6">
+            {data.map((item, index) => {
+              const heightPercent = maxChartValue > 0 ? (item.value / maxChartValue) * 100 : 0;
+              const isCurrent = index === data.length - 1;
 
-      {total > 0 ? (
-        <div className="mt-8 grid h-56 grid-cols-6 items-end gap-3 sm:gap-6">
-          {data.map((item, index) => {
-            const heightPercent =
-              maxChartValue > 0 ? (item.value / maxChartValue) * 100 : 0;
-            const isCurrent = index === data.length - 1;
-
-            return (
-              <div
-                key={item.label}
-                className="group relative flex h-full min-w-0 flex-col items-center justify-end gap-2"
-              >
-                <div className="absolute top-0 z-10 whitespace-nowrap rounded bg-brand-dark px-2 py-1 font-mono text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
-                  {item.value.toLocaleString("vi-VN")}M
-                </div>
-                <span className="font-mono text-xs font-semibold text-brand-dark">
-                  {item.value.toLocaleString("vi-VN")}M
-                </span>
-                <div className="flex h-36 w-full items-end justify-center rounded-t-md bg-brand-light/40">
-                  <div
+              return (
+                <div key={item.label} className="group flex h-full min-w-0 flex-col items-center justify-end gap-2">
+                  <span
                     className={cn(
-                      "w-full max-w-[48px] rounded-t-md transition-all duration-500",
-                      isCurrent ? "bg-brand" : "bg-brand-light hover:bg-brand/70",
+                      "rounded-md px-1.5 py-0.5 text-xs font-bold",
+                      isCurrent ? "bg-brand text-white" : "text-slate-600",
                     )}
-                    style={{
-                      height: `${heightPercent}%`,
-                      minHeight: heightPercent > 0 ? "8px" : "0",
-                    }}
-                  />
+                  >
+                    {item.value.toLocaleString("vi-VN")}
+                  </span>
+                  <div className="flex h-40 w-full items-end justify-center">
+                    <div
+                      className={cn(
+                        "w-full max-w-12 rounded-t-lg transition-all duration-500 group-hover:brightness-110",
+                        isCurrent
+                          ? "bg-linear-to-t from-brand to-sky-400 shadow-md shadow-brand/25"
+                          : "bg-linear-to-t from-sky-200 to-sky-100",
+                      )}
+                      style={{
+                        height: `${heightPercent}%`,
+                        minHeight: heightPercent > 0 ? "8px" : "0",
+                      }}
+                    />
+                  </div>
+                  <span className={cn("text-xs", isCurrent ? "font-bold text-slate-900" : "text-slate-500")}>
+                    {item.label}
+                  </span>
                 </div>
-                <span
-                  className={cn(
-                    "text-sm",
-                    isCurrent
-                      ? "font-semibold text-brand-dark"
-                      : "text-muted-foreground",
-                  )}
-                >
-                  {item.label}
-                </span>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
-      ) : null}
-    </div>
+      )}
+    </AdminCard>
   );
 }

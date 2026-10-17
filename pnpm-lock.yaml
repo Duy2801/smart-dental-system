@@ -267,6 +267,9 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.101.2
         version: 5.101.2(react@19.2.4)
+      '@waucaptcha-sdk/client':
+        specifier: 1.7.0
+        version: 1.7.0
       next:
         specifier: 16.2.9
         version: 16.2.9(@babel/core@7.29.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -340,6 +343,9 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.101.2
         version: 5.101.2(react@19.2.4)
+      '@waucaptcha-sdk/client':
+        specifier: 1.7.0
+        version: 1.7.0
       axios:
         specifier: ^1.18.1
         version: 1.18.1
@@ -3320,6 +3326,9 @@ packages:
 
   '@vscode/sudo-prompt@9.3.2':
     resolution: {integrity: sha512-gcXoCN00METUNFeQOFJ+C9xUI0DKB+0EGMVg7wbVYRHBw2Eq3fKisDZOkRdOz3kqXRKOENMfShPOmypw1/8nOw==}
+
+  '@waucaptcha-sdk/client@1.7.0':
+    resolution: {integrity: sha512-ibBRu2RMrdeicP7Zgq5rCFfmzm6Zoe16SjaEyS+MlT23nxMl3QLYqr5Av06IO9Ia7aX3SCvZLgC5ub8Nj2I5Sw==}
 
   '@webassemblyjs/ast@1.14.1':
     resolution: {integrity: sha512-nuBEDgQfm1ccRp/8bCQrx1frohyufl4JlbMMZ4P1wpeOfDhF6FQkxZJ1b/e+PLwr6X1Nhw6OLme5usuBWYBvuQ==}
@@ -11356,6 +11365,8 @@ snapshots:
       tinyrainbow: 3.1.1
 
   '@vscode/sudo-prompt@9.3.2': {}
+
+  '@waucaptcha-sdk/client@1.7.0': {}
 
   '@webassemblyjs/ast@1.14.1':
     dependencies:

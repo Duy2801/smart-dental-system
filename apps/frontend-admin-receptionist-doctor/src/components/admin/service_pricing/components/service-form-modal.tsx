@@ -1,9 +1,25 @@
-import { useEffect, useState } from "react";
+"use client";
+
+import { useEffect, useId, useState } from "react";
+import {
+  CurrencyCircleDollar,
+  Info,
+  ListChecks,
+  PencilSimple,
+  Plus,
+  Sparkle,
+  Trash,
+  Tooth,
+} from "@phosphor-icons/react";
 import {
   AdminButton,
+  AdminFormSection,
+  AdminIconButton,
+  AdminImagePicker as ImagePicker,
   AdminInput,
   AdminModal,
   AdminSelect,
+  AdminTextarea as TextareaField,
 } from "@/src/components/admin/common";
 import { formatVND } from "../service-pricing-utils";
 import type { ServiceFormState, TreatmentMethod } from "../types";
@@ -25,98 +41,26 @@ type HighlightItem = ServiceFormState["highlights"][number];
 
 const mediaTypes = ["BANNER", "PROCESS", "BEFORE_AFTER", "GALLERY"];
 const highlightIcons = ["shield", "sparkles", "checkup", "clock"];
-
-function TextareaField({
-  label,
-  onChange,
-  placeholder,
-  rows = 3,
-  value,
-}: {
-  label: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  rows?: number;
-  value: string;
-}) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-sm font-semibold text-brand-dark">{label}</label>
-      <textarea
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        rows={rows}
-        placeholder={placeholder}
-        className="resize-none rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand"
-      />
-    </div>
-  );
-}
+const highlightIconLabels: Record<string, string> = {
+  shield: "Khiên bảo vệ",
+  sparkles: "Lấp lánh",
+  checkup: "Thăm khám",
+  clock: "Đồng hồ",
+};
 
 function Section({
   children,
   title,
+  icon,
 }: {
   children: React.ReactNode;
   title: string;
+  icon?: React.ReactNode;
 }) {
   return (
-    <section className="space-y-4 rounded-xl border border-border bg-slate-50/60 p-4">
-      <h4 className="text-sm font-bold text-brand-dark">{title}</h4>
+    <AdminFormSection title={title} icon={icon}>
       {children}
-    </section>
-  );
-}
-
-function readFileAsDataUrl(file: File, onLoad: (value: string) => void) {
-  const reader = new FileReader();
-  reader.onload = () => {
-    if (typeof reader.result === "string") onLoad(reader.result);
-  };
-  reader.readAsDataURL(file);
-}
-
-function ImagePicker({
-  label,
-  onChange,
-  value,
-}: {
-  label: string;
-  onChange: (value: string) => void;
-  value: string;
-}) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-sm font-semibold text-brand-dark">{label}</label>
-      <div className="flex min-w-0 items-center gap-3 rounded-lg border border-border bg-white p-3">
-        <div className="flex h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-md bg-slate-100">
-          {value ? (
-            <img
-              src={value}
-              alt={label}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <span className="px-2 text-center text-xs text-muted-foreground">
-              Chưa chọn
-            </span>
-          )}
-        </div>
-        <label className="inline-flex min-w-24 shrink-0 cursor-pointer items-center justify-center rounded-md bg-brand px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-dark">
-          Chọn tệp
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              if (file) readFileAsDataUrl(file, onChange);
-              event.target.value = "";
-            }}
-            className="sr-only"
-          />
-        </label>
-      </div>
-    </div>
+    </AdminFormSection>
   );
 }
 
@@ -137,7 +81,7 @@ function ContentListSection({
 }) {
   return (
     <div className="space-y-3">
-      <h5 className="text-sm font-semibold text-brand-dark">{title}</h5>
+      <h5 className="text-[13px] font-semibold text-slate-700">{title}</h5>
       {items.map((item, index) => (
         <div key={index} className="flex gap-2">
           <AdminInput
@@ -145,16 +89,15 @@ function ContentListSection({
             value={item}
             onChange={(event) => onChange(index, event.target.value)}
           />
-          <AdminButton
-            variant="danger"
-            className="self-end"
-            onClick={() => onRemove(index)}
-          >
-            Xóa
-          </AdminButton>
+          <div className="self-end pb-1.5">
+            <AdminIconButton label="Xóa dòng" tone="red" onClick={() => onRemove(index)}>
+              <Trash size={16} />
+            </AdminIconButton>
+          </div>
         </div>
       ))}
-      <AdminButton variant="secondary" onClick={onAdd}>
+      <AdminButton variant="secondary" size="sm" onClick={onAdd}>
+        <Plus size={14} weight="bold" />
         {addLabel}
       </AdminButton>
     </div>
@@ -170,6 +113,7 @@ export function ServiceFormModal({
   onEditTreatmentMethod,
   onCreateTreatmentMethod,
 }: ServiceFormModalProps) {
+  const formId = useId();
   const [form, setForm] = useState<ServiceFormState>(initialValue);
 
   useEffect(() => {
@@ -322,16 +266,28 @@ export function ServiceFormModal({
     <AdminModal
       title={title}
       description="Quản lý thông tin chung nhóm dịch vụ, hình ảnh, quy trình và FAQ."
+      icon={<Tooth size={20} weight="duotone" />}
       onClose={onClose}
+      footer={
+        <>
+          <AdminButton variant="secondary" onClick={onClose} disabled={submitting}>
+            Hủy
+          </AdminButton>
+          <AdminButton type="submit" form={formId} loading={submitting}>
+            {submitting ? "Đang lưu..." : "Lưu dịch vụ"}
+          </AdminButton>
+        </>
+      }
     >
       <form
-        className="mt-4 flex flex-col gap-5"
+        id={formId}
+        className="mt-4 flex flex-col gap-4"
         onSubmit={(event) => {
           event.preventDefault();
           onSubmit(form);
         }}
       >
-        <Section title="Thông tin dịch vụ (Nhóm chính)">
+        <Section title="Thông tin dịch vụ (nhóm chính)" icon={<Info size={15} weight="bold" />}>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <AdminInput
               label="Danh mục"
@@ -380,43 +336,39 @@ export function ServiceFormModal({
         </Section>
 
         {/* Section: Treatment Methods Overview */}
-        <Section title="Các phương pháp điều trị đi kèm">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
-            <span className="text-xs font-medium text-muted-foreground">
-              Số lượng: <strong>{form.treatmentMethods.length} phương pháp</strong>. Nhấp vào phương pháp để chỉnh sửa giá & thông tin chi tiết riêng.
+        <Section title="Các phương pháp điều trị đi kèm" icon={<ListChecks size={15} weight="bold" />}>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-xs text-slate-500">
+              <strong className="font-bold text-slate-800">{form.treatmentMethods.length} phương pháp</strong> · bấm Sửa để chỉnh giá & thông tin riêng.
             </span>
 
-            {onCreateTreatmentMethod && (
-              <AdminButton
-                type="button"
-                variant="secondary"
-                onClick={onCreateTreatmentMethod}
-              >
-                + Thêm phương pháp mới
+            {onCreateTreatmentMethod ? (
+              <AdminButton variant="secondary" size="sm" onClick={onCreateTreatmentMethod}>
+                <Plus size={14} weight="bold" />
+                Thêm phương pháp
               </AdminButton>
-            )}
+            ) : null}
           </div>
 
           {form.treatmentMethods.length === 0 ? (
-            <p className="text-xs text-muted-foreground italic py-2">
-              Chưa có phương pháp điều trị nào. Hãy bấm "Thêm phương pháp mới".
+            <p className="rounded-xl border border-dashed border-slate-300 bg-white py-4 text-center text-xs text-slate-500">
+              Chưa có phương pháp điều trị nào. Bấm &quot;Thêm phương pháp&quot; để bổ sung.
             </p>
           ) : (
             <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
               {form.treatmentMethods.map((method, index) => (
                 <div
                   key={index}
-                  className="flex items-center justify-between gap-3 rounded-lg border border-border bg-white p-3 shadow-2xs transition-all hover:border-brand/40"
+                  className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3 transition-all hover:border-brand/40 hover:shadow-sm"
                 >
                   <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-semibold text-slate-800 text-sm truncate">
-                        {method.name || `Phương pháp #${index + 1}`}
-                      </span>
-                    </div>
-                    <div className="mt-0.5 font-mono text-xs font-bold text-brand-dark">
-                      {formatVND(method.basePrice)} • {method.durationMinutes} phút
-                    </div>
+                    <span className="block truncate text-sm font-semibold text-slate-800">
+                      {method.name || `Phương pháp #${index + 1}`}
+                    </span>
+                    <span className="mt-0.5 block text-xs font-bold text-brand-dark">
+                      {formatVND(method.basePrice)}
+                      <span className="font-medium text-slate-400"> · {method.durationMinutes} phút</span>
+                    </span>
                   </div>
 
                   {onEditTreatmentMethod && (
@@ -438,8 +390,9 @@ export function ServiceFormModal({
                           index
                         )
                       }
-                      className="shrink-0 rounded-md bg-blue-50 px-2.5 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100"
+                      className="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg bg-brand-light px-2.5 text-xs font-bold text-brand transition-colors hover:bg-brand hover:text-white"
                     >
+                      <PencilSimple size={13} weight="bold" />
                       Sửa
                     </button>
                   )}
@@ -449,7 +402,7 @@ export function ServiceFormModal({
           )}
         </Section>
 
-        <Section title="Giá mặc định & Sắp xếp">
+        <Section title="Giá mặc định & sắp xếp" icon={<CurrencyCircleDollar size={15} weight="bold" />}>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <AdminInput
               label="Thời lượng mặc định (Phút)"
@@ -487,7 +440,7 @@ export function ServiceFormModal({
           </div>
         </Section>
 
-        <Section title="Nội dung chi tiết & Điểm nổi bật">
+        <Section title="Nội dung chi tiết & điểm nổi bật" icon={<Sparkle size={15} weight="bold" />}>
           <TextareaField
             label="Ghi chú giá"
             rows={2}
@@ -497,13 +450,13 @@ export function ServiceFormModal({
           />
 
           <div className="space-y-3">
-            <h5 className="text-sm font-semibold text-brand-dark">
+            <h5 className="text-[13px] font-semibold text-slate-700">
               Điểm nổi bật
             </h5>
             {form.highlights.map((highlight, index) => (
               <div
                 key={index}
-                className="grid grid-cols-1 gap-3 rounded-lg border border-border bg-white p-3 lg:grid-cols-[160px_1fr_auto]"
+                className="grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-white p-3.5 lg:grid-cols-[170px_1fr_auto]"
               >
                 <AdminSelect
                   label="Icon"
@@ -514,7 +467,7 @@ export function ServiceFormModal({
                 >
                   {highlightIcons.map((icon) => (
                     <option key={icon} value={icon}>
-                      {icon}
+                      {highlightIconLabels[icon] ?? icon}
                     </option>
                   ))}
                 </AdminSelect>
@@ -535,40 +488,29 @@ export function ServiceFormModal({
                     }
                   />
                 </div>
-                <AdminButton
-                  variant="danger"
-                  className="self-end"
-                  onClick={() =>
-                    setField(
-                      "highlights",
-                      form.highlights.filter(
-                        (_, itemIndex) => itemIndex !== index
+                <div className="self-start lg:pt-7">
+                  <AdminIconButton
+                    label="Xóa điểm nổi bật"
+                    tone="red"
+                    onClick={() =>
+                      setField(
+                        "highlights",
+                        form.highlights.filter((_, itemIndex) => itemIndex !== index)
                       )
-                    )
-                  }
-                >
-                  Xóa
-                </AdminButton>
+                    }
+                  >
+                    <Trash size={16} />
+                  </AdminIconButton>
+                </div>
               </div>
             ))}
-            <AdminButton variant="secondary" onClick={addHighlight}>
+            <AdminButton variant="secondary" size="sm" onClick={addHighlight}>
+              <Plus size={14} weight="bold" />
               Thêm điểm nổi bật
             </AdminButton>
           </div>
         </Section>
 
-        <div className="mt-2 flex justify-end gap-3 border-t border-border bg-white pt-4">
-          <AdminButton
-            variant="secondary"
-            onClick={onClose}
-            disabled={submitting}
-          >
-            Hủy
-          </AdminButton>
-          <AdminButton type="submit" disabled={submitting}>
-            {submitting ? "Đang lưu..." : "Lưu dịch vụ"}
-          </AdminButton>
-        </div>
       </form>
     </AdminModal>
   );

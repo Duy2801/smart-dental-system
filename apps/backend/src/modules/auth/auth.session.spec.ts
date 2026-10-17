@@ -26,6 +26,7 @@ describe('AuthService multi-session refresh tokens', () => {
           id: 'user-1',
           email: 'doctor@example.com',
           roles: [],
+          role: { code: 'DOCTOR' },
           doctorProfile: null,
         })),
       },
@@ -37,6 +38,7 @@ describe('AuthService multi-session refresh tokens', () => {
       redis as never,
       config as never,
       prisma as never,
+      {} as never,
       {} as never,
     );
     jest.spyOn(service, 'me').mockResolvedValue({ id: 'user-1' } as never);

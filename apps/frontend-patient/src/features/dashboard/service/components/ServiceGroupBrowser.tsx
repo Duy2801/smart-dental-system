@@ -209,22 +209,22 @@ function MethodCard({
   const imageAlt = method.media?.[0]?.alt || method.name;
 
   return (
-    <div className="group grid h-full overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-lg sm:grid-cols-[200px_1fr]">
-      <div className="relative h-48 w-full overflow-hidden bg-slate-50 sm:h-full sm:min-h-[180px] sm:w-[200px]">
+    <div className="group grid h-full overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-lg sm:grid-cols-[164px_minmax(0,1fr)]">
+      <div className="flex h-44 w-full shrink-0 items-center justify-center bg-slate-50 p-4 sm:h-full sm:min-h-44 sm:w-[164px]">
         {imageUrl ? (
           <img
             src={imageUrl}
             alt={imageAlt}
-            className="h-full w-full object-cover object-center"
+            className="h-32 w-32 shrink-0 rounded-xl object-cover object-center transition duration-500 group-hover:scale-105"
           />
         ) : (
-          <div className="flex h-full min-h-[160px] w-full items-center justify-center bg-blue-50 px-5 text-center text-sm font-extrabold text-[#0863c5]">
+          <div className="flex h-32 w-32 shrink-0 items-center justify-center rounded-xl bg-blue-50 p-2 text-center text-xs font-extrabold text-[#0863c5]">
             {method.name}
           </div>
         )}
       </div>
 
-      <div className="flex min-w-0 flex-col justify-between p-4 sm:py-3.5 sm:px-4.5">
+      <div className="flex min-w-0 flex-col justify-between p-4 sm:p-5">
         <div>
           <span className={`${T.fieldLabel}`}>
             {service.title}

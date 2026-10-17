@@ -93,6 +93,8 @@ export function RecordPatientHeader({
       {/* Consolidated Top Panel for Profile Selector & Record Selector */}
       {(profiles.length > 0 || recordItems.length > 0) && (
         <View style={styles.profilePickerSection}>
+          {profiles.length > 0 && (
+          <>
           <View style={styles.pickerHeaderRow}>
             <FontAwesome6 color="#1996E0" iconStyle="solid" name="user" size={12} />
             <Text style={styles.pickerLabel}>
@@ -210,9 +212,11 @@ export function RecordPatientHeader({
               </View>
             </View>
           </Modal>
+          </>
+          )}
 
           {/* Section 2: Medical Record Picker (Chọn hồ sơ bệnh án) */}
-          {recordItems.length > 1 && (
+          {recordItems.length > 0 && (
             <>
               {profiles.length > 0 && <View style={styles.recordPickerDivider} />}
 
@@ -223,7 +227,7 @@ export function RecordPatientHeader({
                 </Text>
                 <View style={styles.recordTypePill}>
                   <Text style={styles.recordTypePillText}>
-                    {activeRecord?.kind ?? 'Bệnh án'}
+                    {recordItems.length} dịch vụ điều trị
                   </Text>
                 </View>
               </View>
@@ -269,7 +273,7 @@ export function RecordPatientHeader({
           )}
 
           {/* Modal to pick medical record */}
-          {recordItems.length > 1 && (
+          {recordItems.length > 0 && (
             <Modal
               animationType="fade"
               hardwareAccelerated

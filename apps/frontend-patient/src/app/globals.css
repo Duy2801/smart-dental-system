@@ -1,6 +1,8 @@
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
+/* Desktop có chiều cao đủ lớn: dùng cho khoảng cách thoáng hơn mà vẫn không phải cuộn trang */
+@custom-variant tall (@media (min-width: 1024px) and (min-height: 780px));
 
 :root {
   --background: #ffffff;

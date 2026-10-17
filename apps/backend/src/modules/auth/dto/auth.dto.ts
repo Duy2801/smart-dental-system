@@ -47,6 +47,12 @@ export class LoginDto {
   @ApiProperty()
   @IsString()
   password: string;
+
+  @ApiPropertyOptional({ description: 'WAU Captcha token' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(4096)
+  captchaToken?: string;
 }
 
 export class EmailDto {

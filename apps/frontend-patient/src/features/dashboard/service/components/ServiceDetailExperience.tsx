@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { DashboardIcon } from "../../common/DashboardIcon";
 import { usePatientServiceDetailQuery } from "../hooks";
@@ -49,16 +48,6 @@ export function ServiceDetailExperience({ serviceId }: { serviceId: string }) {
     activeMethod?.faqs && activeMethod.faqs.length > 0
       ? activeMethod.faqs
       : service.faqs;
-
-  const gallery =
-    activeMethod?.media && activeMethod.media.length > 0
-      ? activeMethod.media
-      : service.media;
-
-  const hasOverviewContent =
-    Boolean(service.detailSummary || service.description) ||
-    hasItems(service.suitableFor) ||
-    hasItems(service.includedItems);
 
   return (
     <main className="mx-auto w-full max-w-[1360px] min-w-0 px-3.5 py-5 sm:px-6 sm:py-7 lg:px-8">
@@ -140,73 +129,6 @@ export function ServiceDetailExperience({ serviceId }: { serviceId: string }) {
 
       <div className="mt-7 grid min-w-0 items-start gap-7 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="min-w-0 space-y-7">
-          <section className="max-w-full rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
-            <SectionHeading
-              eyebrow="Tổng quan"
-              title={`Vì sao nên chọn ${service.title}?`}
-              description="Nội dung trong phần này được lấy từ dữ liệu quản trị dịch vụ."
-            />
-            {hasOverviewContent ? (
-              <div className="mt-6 grid gap-6 sm:grid-cols-2 items-stretch">
-                <div className="flex h-full flex-col">
-                  <h3 className="text-sm font-extrabold text-slate-950">
-                    Dịch vụ phù hợp với ai?
-                  </h3>
-                  <div className="mt-3 flex-1 flex flex-col">
-                    {hasItems(service.suitableFor) ? (
-                      <div className="h-full rounded-2xl border border-slate-200/80 bg-slate-50/60 p-5">
-                        <ul className="space-y-3">
-                          {service.suitableFor.map((item) => (
-                            <li
-                              key={item}
-                              className="flex gap-3 text-sm leading-6 text-slate-600"
-                            >
-                              <span className="mt-1 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-blue-50 text-[10px] font-bold text-[#0863c5]">
-                                ✓
-                              </span>
-                              {item}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ) : (
-                      <EmptyContent label="Đối tượng phù hợp" />
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex h-full flex-col">
-                  <h3 className="text-sm font-extrabold text-slate-950">
-                    Bao gồm trong buổi hẹn
-                  </h3>
-                  <div className="mt-3 flex-1 flex flex-col">
-                    {hasItems(service.includedItems) ? (
-                      <div className="h-full rounded-2xl border border-slate-200/80 bg-slate-50/60 p-5">
-                        <ul className="space-y-3">
-                          {service.includedItems.map((item) => (
-                            <li
-                              key={item}
-                              className="flex gap-2 text-xs leading-5 text-slate-600"
-                            >
-                              <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#0863c5]" />
-                              {item}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ) : (
-                      <EmptyContent label="Quyền lợi buổi hẹn" />
-                    )}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="mt-6">
-                <EmptyContent label="Tổng quan dịch vụ" />
-              </div>
-            )}
-          </section>
-
           <section className="max-w-full rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
             <SectionHeading
               eyebrow="Quy trình"
@@ -345,44 +267,6 @@ export function ServiceDetailExperience({ serviceId }: { serviceId: string }) {
             </div>
           </section>
 
-          <section className="grid gap-5 md:grid-cols-2 items-stretch">
-            <article className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <SectionHeading eyebrow="Trước buổi hẹn" title="Chuẩn bị" />
-              <div className="mt-5 flex-1 flex flex-col">
-                {hasItems(service.preparationNotes) ? (
-                  <ul className="space-y-3">
-                    {service.preparationNotes.map((item) => (
-                      <li key={item} className="flex gap-3 text-sm leading-6 text-slate-600">
-                        <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#0863c5]" />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <EmptyContent label="Nội dung chuẩn bị" />
-                )}
-              </div>
-            </article>
-
-            <article className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <SectionHeading eyebrow="Sau điều trị" title="Chăm sóc" />
-              <div className="mt-5 flex-1 flex flex-col">
-                {hasItems(service.aftercareNotes) ? (
-                  <ul className="space-y-3">
-                    {service.aftercareNotes.map((item) => (
-                      <li key={item} className="flex gap-3 text-sm leading-6 text-slate-600">
-                        <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <EmptyContent label="Nội dung chăm sóc sau điều trị" />
-                )}
-              </div>
-            </article>
-          </section>
-
           {hasItems(service.importantNotes) ? (
             <section className="rounded-2xl border border-amber-200 bg-amber-50 p-6">
               <h2 className="flex items-center gap-2 text-base font-extrabold text-slate-950">
@@ -396,33 +280,6 @@ export function ServiceDetailExperience({ serviceId }: { serviceId: string }) {
                   </li>
                 ))}
               </ul>
-            </section>
-          ) : null}
-
-          {hasItems(gallery) ? (
-            <section className="max-w-full rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
-              <SectionHeading
-                eyebrow="Hình ảnh"
-                title="Hình ảnh dịch vụ"
-                description="Hình ảnh được lấy từ thư viện dịch vụ trong hệ thống quản trị."
-              />
-              <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                {gallery.map((media) => (
-                  <figure
-                    key={media.id}
-                    className="overflow-hidden rounded-2xl border border-slate-100 bg-slate-50"
-                  >
-                    <img
-                      src={media.url}
-                      alt={media.alt || service.title}
-                      className="aspect-[4/3] w-full object-cover"
-                    />
-                    <figcaption className={`p-3 ${T.caption}`}>
-                      {media.alt || service.title}
-                    </figcaption>
-                  </figure>
-                ))}
-              </div>
             </section>
           ) : null}
 
@@ -456,29 +313,6 @@ export function ServiceDetailExperience({ serviceId }: { serviceId: string }) {
             )}
           </section>
 
-          <section className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-[#0058bc] via-[#0863c5] to-[#02408b] p-6 text-white shadow-md sm:p-8">
-            <div className="absolute -top-12 -right-12 w-48 h-48 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-            <div className="relative grid gap-6 md:grid-cols-[1fr_auto] md:items-center">
-              <div>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-bold tracking-wider text-blue-100 uppercase backdrop-blur-xs">
-                  Sẵn sàng bắt đầu?
-                </span>
-                <h2 className="mt-2.5 text-xl sm:text-2xl font-extrabold text-white">
-                  Đặt lịch {service.title} với bác sĩ phù hợp
-                </h2>
-                <p className="mt-2.5 max-w-2xl text-xs sm:text-sm leading-relaxed text-blue-100/90">
-                  Khi bấm đặt lịch, hệ thống chuyển sang trang lịch hẹn và chọn
-                  sẵn dịch vụ này cho bạn.
-                </p>
-              </div>
-              <Link
-                href={`/appointment?service=${service.id}${activeMethod ? `&treatmentMethod=${activeMethod.id}` : ""}&intent=booking`}
-                className="inline-flex h-12 items-center justify-center rounded-xl bg-white px-6 text-sm font-extrabold text-[#0863c5] shadow-md transition hover:bg-blue-50 hover:shadow-lg"
-              >
-                Đặt dịch vụ ngay
-              </Link>
-            </div>
-          </section>
         </div>
 
         <BookingPanel service={service} activeMethod={activeMethod} />

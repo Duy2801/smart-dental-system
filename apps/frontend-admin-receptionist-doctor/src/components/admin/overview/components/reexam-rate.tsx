@@ -1,3 +1,8 @@
+"use client";
+
+import { ArrowDownRight, ArrowUpRight, ArrowsClockwise } from "@phosphor-icons/react";
+import { AdminCard } from "@/src/components/admin/common";
+import { cn } from "@/src/lib/utils/cn";
 import type { OverviewReexamRate } from "../types";
 
 type ReexamRateProps = {
@@ -5,28 +10,41 @@ type ReexamRateProps = {
 };
 
 export function ReexamRate({ data }: ReexamRateProps) {
+  const isUp = data.change >= 0;
+  const rate = Math.min(Math.max(data.rate, 0), 100);
+
   return (
-    <div className="rounded-xl border border-border bg-white p-6">
-      <h3 className="text-base font-semibold text-brand-dark">Ty le tai kham</h3>
-      <p className="mt-1 text-sm text-muted-foreground">6 thang gan nhat</p>
-      <div className="mt-4 flex items-end gap-2">
-        <span className="text-4xl font-semibold text-brand-dark">
-          {data.rate}%
-        </span>
-        <span className="mb-1 text-sm font-medium text-emerald-600">
-          {data.change >= 0 ? "+" : ""}
+    <AdminCard
+      title="Tỷ lệ tái khám"
+      description="6 tháng gần nhất"
+      icon={<ArrowsClockwise size={18} weight="duotone" />}
+    >
+      <div className="flex items-end gap-3">
+        <span className="text-4xl font-extrabold tracking-tight text-slate-900">{data.rate}%</span>
+        <span
+          className={cn(
+            "mb-1.5 inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-bold",
+            isUp ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600",
+          )}
+        >
+          {isUp ? <ArrowUpRight size={12} weight="bold" /> : <ArrowDownRight size={12} weight="bold" />}
+          {isUp ? "+" : ""}
           {data.change}%
         </span>
       </div>
-      <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted">
+      <div className="mt-5 h-2.5 overflow-hidden rounded-full bg-slate-100">
         <div
-          className="h-full rounded-full bg-brand"
-          style={{ width: `${Math.min(data.rate, 100)}%` }}
+          className="h-full rounded-full bg-linear-to-r from-brand to-emerald-400 transition-all"
+          style={{ width: `${rate}%` }}
         />
       </div>
-      <p className="mt-3 text-xs text-muted-foreground">
-        {data.rate}% benh nhan quay lai kham trong vong 6 thang.
+      <div className="mt-1.5 flex justify-between text-[11px] font-medium text-slate-400">
+        <span>0%</span>
+        <span>100%</span>
+      </div>
+      <p className="mt-3 rounded-xl bg-slate-50 px-3 py-2.5 text-xs leading-relaxed text-slate-600">
+        <strong className="font-bold text-slate-800">{data.rate}%</strong> bệnh nhân quay lại khám trong vòng 6 tháng.
       </p>
-    </div>
+    </AdminCard>
   );
 }

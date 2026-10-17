@@ -212,99 +212,51 @@ export function RecordHistorySection({
             )}
             {profilesLoading && <p className="text-xs text-slate-500">Đang tải danh sách người khám...</p>}
 
-            {/* Section 2: Header Hồ Sơ Bệnh Án */}
-            <div className={`space-y-2 ${profiles.length > 0 ? "pt-2 border-t border-slate-200/80" : ""}`}>
+            {/* Section 2: Medical Record Picker (Selectbox) */}
+            <div className={`space-y-2.5 ${profiles.length > 0 ? "pt-2 border-t border-slate-200/80" : ""}`}>
               <div className="flex items-center justify-between px-0.5">
-                <span className="text-xs font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                <label htmlFor="record-medical-plan" className="text-xs font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
                   <DashboardIcon name="document" className="h-3.5 w-3.5 text-[#0058bc]" />
                   Hồ Sơ Bệnh Án ({recordsList.length}):
-                </span>
-                <span className="text-[10px] font-bold text-[#0058bc] bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200/60">
-                  {recordsList.length > 1 ? `${recordsList.length} dịch vụ điều trị` : "1 dịch vụ điều trị"}
-                </span>
+                </label>
+                {recordsList.length > 0 && (
+                  <span className="text-[10px] font-bold text-[#0058bc] bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200/60">
+                    {recordsList.length > 1 ? `${recordsList.length} dịch vụ điều trị` : "1 dịch vụ điều trị"}
+                  </span>
+                )}
               </div>
-            </div>
 
-            {/* Section 3: Danh Sách Hồ Sơ Bệnh Án */}
-            <div className="space-y-3">
               {(plansLoading || profilesLoading || summaryLoading) && !recordsList.length ? (
-                <div className="rounded-2xl border border-slate-200 bg-white p-5 text-xs text-slate-500 animate-pulse">
+                <div className="rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-500 animate-pulse">
                   Đang tải hồ sơ bệnh án...
                 </div>
               ) : (plansError && summaryError) ? (
-                <p role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-700">
+                <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700">
                   Không tải được hồ sơ bệnh án. Vui lòng thử lại sau.
                 </p>
               ) : recordsList.length ? (
-                recordsList.map((item, index) => {
-                  const isSelected = activeRecord?.id === item.id;
-
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => setSelectedRecordId(item.id)}
-                      className={`group relative w-full overflow-hidden rounded-2xl border p-4 text-left transition-all duration-200 cursor-pointer ${
-                        isSelected
-                          ? "border-[#1996e0] bg-white shadow-lg shadow-[#1996e0]/10 ring-2 ring-[#1996e0]/30"
-                          : "border-slate-200/90 bg-white hover:border-[#1996e0]/50 hover:shadow-md"
-                      }`}
-                    >
-                      {/* Active Indicator Bar */}
-                      {isSelected && (
-                        <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#1996e0]" />
-                      )}
-
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${
-                                isSelected
-                                  ? "bg-[#1996e0] text-white"
-                                  : "bg-blue-50 text-[#0863c5] border border-blue-200/60"
-                              }`}
-                            >
-                              Hồ sơ #{index + 1}
-                            </span>
-                            <span
-                              className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
-                                item.type === "plan"
-                                  ? "bg-indigo-50 text-indigo-700 border border-indigo-100"
-                                  : "bg-sky-50 text-sky-700 border border-sky-100"
-                              }`}
-                            >
-                              {item.type === "plan" ? "Phác đồ" : "Khám dịch vụ"}
-                            </span>
-                            <span className="text-[10px] font-mono text-slate-400">
-                              {item.date}
-                            </span>
-                          </div>
-
-                          <h3
-                            className={`mt-2 text-sm font-bold truncate transition-colors ${
-                              isSelected
-                                ? "text-[#1996e0]"
-                                : "text-slate-900 group-hover:text-[#1996e0]"
-                            }`}
-                          >
-                            {item.title}
-                          </h3>
-
-                          {/* Service Footer */}
-                          <div className="mt-3 flex items-center justify-end text-[11px] text-slate-500 border-t border-slate-100 pt-2">
-                            <span className="rounded-full bg-blue-50 text-[#1996e0] border border-blue-100 px-2 py-0.5 text-[10px] font-bold">
-                              {item.category || "Nha khoa"}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })
+                <div className="relative">
+                  <select
+                    id="record-medical-plan"
+                    value={activeRecord?.id ?? ""}
+                    onChange={(event) => setSelectedRecordId(event.target.value)}
+                    className="w-full appearance-none rounded-xl border border-slate-200/90 bg-white pl-3.5 pr-10 py-2.5 text-sm font-semibold text-slate-800 shadow-xs outline-none transition hover:border-blue-300 focus:border-[#0058bc] focus:ring-2 focus:ring-blue-100 cursor-pointer"
+                  >
+                    {recordsList.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.title}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400">
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
               ) : (
-                <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center space-y-2">
-                  <DashboardIcon name="document" className="mx-auto h-8 w-8 text-slate-300" />
+                <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center space-y-2">
+                  <DashboardIcon name="document" className="mx-auto h-7 w-7 text-slate-300" />
                   <p className="text-xs font-bold text-slate-600">
                     Chưa có hồ sơ bệnh án
                   </p>
@@ -333,6 +285,7 @@ export function RecordHistorySection({
                 patient={recordsData.patient}
                 doctor={activeRecord?.doctor}
                 specialty={activeRecord?.type === "plan" ? activeRecord.treatment.specialty : undefined}
+                recordDate={activeRecord?.date}
               />
             )}
             {activeRecord?.type === "visit" ? (

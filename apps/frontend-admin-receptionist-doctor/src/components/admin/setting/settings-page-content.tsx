@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { SkeletonSettings } from "@/src/components/admin/common";
+import { FloppyDisk } from "@phosphor-icons/react";
+import { AdminAlert, AdminButton, SkeletonSettings } from "@/src/components/admin/common";
 import { queryKeys } from "@/src/lib/query/query-keys";
 import { emptyClinicConfig, initialBusinessHours } from "./constants";
 import { BusinessHoursPanel } from "./components/business-hours-panel";
@@ -226,39 +227,17 @@ export function SettingsPageContent() {
     <div className="flex min-h-[calc(100vh-4rem)] flex-col gap-8 p-6 md:p-8 lg:flex-row">
       <SettingsSidebar activeTab={activeTab} onTabChange={setActiveTab} />
 
-      <div className="flex flex-1 flex-col pb-20">
-        {/* Success Alert Banner */}
-        {successMessage ? (
-          <div className="mb-5 flex items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50/90 p-4 text-emerald-900 shadow-xs animate-in fade-in slide-in-from-top-2">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white">
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <div>
-                <p className="font-bold text-sm text-emerald-950">Thành công!</p>
-                <p className="text-xs font-medium text-emerald-800">{successMessage}</p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setSuccessMessage("")}
-              className="rounded-lg p-1 text-emerald-700 hover:bg-emerald-100"
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        ) : null}
-
-        {/* Error Alert Banner */}
-        {isError || errorMessage ? (
-          <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
-            {errorMessage || "Không tải được cấu hình thông tin phòng khám từ máy chủ."}
-          </div>
-        ) : null}
+      <div className="flex min-w-0 flex-1 flex-col pb-6">
+        <div className="mb-5 space-y-3 empty:hidden">
+          <AdminAlert variant="success" message={successMessage || null} />
+          <AdminAlert
+            message={
+              isError || errorMessage
+                ? errorMessage || "Không tải được cấu hình thông tin phòng khám từ máy chủ."
+                : null
+            }
+          />
+        </div>
 
         {isLoading ? <SkeletonSettings /> : null}
 
@@ -284,17 +263,14 @@ export function SettingsPageContent() {
           />
         ) : null}
 
-        <div className="mt-auto pt-8">
-          <div className="flex justify-end">
-            <button
-              type="button"
-              disabled={saveMutation.isPending}
-              onClick={handleSave}
-              className="rounded-xl bg-brand px-7 py-3 text-sm font-bold text-white shadow-md transition-all hover:bg-brand-dark hover:shadow-lg active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {saveMutation.isPending ? "Đang lưu..." : "Lưu thay đổi"}
-            </button>
-          </div>
+        <div className="sticky bottom-4 z-10 mt-8 flex max-w-4xl items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/90 px-4 py-3 shadow-lg shadow-slate-900/5 backdrop-blur-md">
+          <p className="flex items-center gap-2 text-xs text-slate-500">
+            <FloppyDisk size={16} className="text-slate-400" />
+            Thay đổi chỉ được áp dụng sau khi bấm lưu.
+          </p>
+          <AdminButton loading={saveMutation.isPending} onClick={handleSave}>
+            {saveMutation.isPending ? "Đang lưu..." : "Lưu thay đổi"}
+          </AdminButton>
         </div>
       </div>
 

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AdminAlert } from "@/src/components/admin/common";
+import { AdminAlert, AdminConfirmModal } from "@/src/components/admin/common";
 import { queryKeys } from "@/src/lib/query/query-keys";
 import {
   createService,
@@ -263,20 +263,37 @@ export function ServicesPageContent() {
     setTreatmentMethodModalTarget({ service });
   };
 
-  const handleToggleTreatmentMethodStatus = async (
+  const [methodStatusTarget, setMethodStatusTarget] = useState<{
+    service: DentalService;
+    index: number;
+  } | null>(null);
+
+  const handleToggleTreatmentMethodStatus = (
     service: DentalService,
     index: number
   ) => {
+    setMethodStatusTarget({ service, index });
+  };
+
+  const handleConfirmToggleTreatmentMethodStatus = async () => {
+    if (!methodStatusTarget) return;
     setError(null);
     try {
       await toggleTreatmentMethodStatusMutation.mutateAsync({
-        service,
-        methodIndex: index,
+        service: methodStatusTarget.service,
+        methodIndex: methodStatusTarget.index,
       });
     } catch {
       // Error handled by mutation onError
+    } finally {
+      setMethodStatusTarget(null);
     }
   };
+
+  const methodStatusTargetMethod = methodStatusTarget
+    ? methodStatusTarget.service.treatmentMethods?.[methodStatusTarget.index]
+    : undefined;
+  const methodStatusTargetActive = methodStatusTargetMethod?.isActive !== false;
 
   const handleRemoveTreatmentMethod = (
     service: DentalService,
@@ -346,9 +363,7 @@ export function ServicesPageContent() {
           onRemove={removeService}
           onEditTreatmentMethod={handleEditTreatmentMethod}
           onCreateTreatmentMethod={handleCreateTreatmentMethod}
-          onToggleTreatmentMethodStatus={(service, idx) =>
-            void handleToggleTreatmentMethodStatus(service, idx)
-          }
+          onToggleTreatmentMethodStatus={handleToggleTreatmentMethodStatus}
           onRemoveTreatmentMethod={handleRemoveTreatmentMethod}
         />
       </div>
@@ -388,6 +403,26 @@ export function ServicesPageContent() {
           }
         />
       ) : null}
+
+      <AdminConfirmModal
+        isOpen={Boolean(methodStatusTarget)}
+        title={methodStatusTargetActive ? "Tạm ngưng phương pháp điều trị?" : "Cung cấp lại phương pháp điều trị?"}
+        description={
+          <>
+            Phương pháp{" "}
+            <strong className="font-semibold text-slate-900">{methodStatusTargetMethod?.name}</strong>{" "}
+            {methodStatusTargetActive
+              ? "sẽ bị ẩn khỏi trang đặt lịch, bệnh nhân không thể chọn cho tới khi bật lại."
+              : "sẽ hiển thị lại để bệnh nhân có thể đặt lịch."}
+          </>
+        }
+        confirmText={methodStatusTargetActive ? "Tạm ngưng" : "Bật lại"}
+        cancelText="Hủy bỏ"
+        variant={methodStatusTargetActive ? "warning" : "primary"}
+        isLoading={toggleTreatmentMethodStatusMutation.isPending}
+        onConfirm={handleConfirmToggleTreatmentMethodStatus}
+        onClose={() => setMethodStatusTarget(null)}
+      />
 
       {deleteTarget ? (
         <DeleteConfirmationModal

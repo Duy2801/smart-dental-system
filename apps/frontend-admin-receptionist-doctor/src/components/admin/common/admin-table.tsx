@@ -1,10 +1,12 @@
+import { cn } from "@/src/lib/utils/cn";
+
 type AdminTableProps = {
   children: React.ReactNode;
 };
 
 export function AdminTable({ children }: AdminTableProps) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-border bg-white">
+    <div className="custom-scrollbar overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-xs">
       <table className="w-full text-left text-sm">{children}</table>
     </div>
   );
@@ -19,7 +21,10 @@ export function AdminTh({
 }) {
   return (
     <th
-      className={`whitespace-nowrap bg-muted/50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground ${className ?? ""}`}
+      className={cn(
+        "whitespace-nowrap border-b border-slate-200 bg-slate-50/80 px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500",
+        className,
+      )}
     >
       {children}
     </th>
@@ -34,9 +39,7 @@ export function AdminTd({
   className?: string;
 }) {
   return (
-    <td
-      className={`border-t border-border px-4 py-3 text-brand-dark ${className ?? ""}`}
-    >
+    <td className={cn("border-t border-slate-100 px-4 py-3 text-slate-700", className)}>
       {children}
     </td>
   );

@@ -1,3 +1,7 @@
+"use client";
+
+import { HourglassMedium, Receipt, Wallet, XCircle } from "@phosphor-icons/react";
+import { AdminStatCard } from "@/src/components/admin/common";
 import { formatVND } from "../finance-utils";
 
 type FinanceSummaryCardsProps = {
@@ -14,65 +18,36 @@ export function FinanceSummaryCards({
   totalInvoices = 0,
 }: FinanceSummaryCardsProps) {
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
-      <SummaryCard
-        label="Tổng Doanh thu (Thực thu)"
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <AdminStatCard
+        label="Doanh thu thực thu"
         value={formatVND(totalRevenue)}
-        icon="💰"
-        valueClassName="text-emerald-700"
+        hint="Theo bộ lọc hiện tại"
+        icon={<Wallet size={22} weight="duotone" />}
+        tone="emerald"
       />
-      <SummaryCard
-        label="Hóa đơn chờ/chưa thu xong"
-        value={String(pendingCount)}
+      <AdminStatCard
+        label="Chờ / chưa thu xong"
+        value={pendingCount}
         suffix="hóa đơn"
-        icon="⏳"
-        valueClassName="text-amber-600"
+        hint="Cần theo dõi công nợ"
+        icon={<HourglassMedium size={22} weight="duotone" />}
+        tone="amber"
       />
-      <SummaryCard
+      <AdminStatCard
         label="Hóa đơn đã hủy"
-        value={String(cancelledCount)}
+        value={cancelledCount}
         suffix="hóa đơn"
-        icon="🛑"
-        valueClassName="text-slate-500"
+        icon={<XCircle size={22} weight="duotone" />}
+        tone="slate"
       />
-      <SummaryCard
+      <AdminStatCard
         label="Tổng số hóa đơn"
-        value={String(totalInvoices)}
+        value={totalInvoices}
         suffix="hóa đơn"
-        icon="🧾"
-        valueClassName="text-brand"
+        icon={<Receipt size={22} weight="duotone" />}
+        tone="brand"
       />
-    </div>
-  );
-}
-
-type SummaryCardProps = {
-  label: string;
-  value: string;
-  icon?: string;
-  suffix?: string;
-  valueClassName?: string;
-};
-
-function SummaryCard({
-  label,
-  icon,
-  suffix,
-  value,
-  valueClassName = "text-slate-900",
-}: SummaryCardProps) {
-  return (
-    <div className="rounded-2xl border border-border bg-white p-5 shadow-xs transition-shadow hover:shadow-sm">
-      <div className="flex items-center justify-between">
-        <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">{label}</p>
-        {icon && <span className="text-xl">{icon}</span>}
-      </div>
-      <div className="mt-3 flex items-baseline gap-2">
-        <p className={`text-2xl font-extrabold font-mono ${valueClassName}`}>{value}</p>
-        {suffix ? (
-          <span className="text-xs font-semibold text-slate-500">{suffix}</span>
-        ) : null}
-      </div>
     </div>
   );
 }

@@ -18,6 +18,7 @@ import { RedisService } from '../redis/redis.service';
 import { UserResponseDto } from '../user/dto/user-response.dto';
 import { UserService } from '../user/user.service';
 import { RegisterDto, ResetPasswordDto, VerifyOtpDto } from './dto';
+import { LoginCaptchaService } from './login-captcha.service';
 
 const OTP_TTL_SECONDS = 3 * 60;
 const RESET_TOKEN_TTL_SECONDS = 15 * 60;
@@ -37,6 +38,7 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly prismaService: PrismaService,
     @InjectQueue('mail-queue') private readonly mailQueue: Queue,
+    private readonly captcha: LoginCaptchaService,
   ) {
     this.googleClient = new OAuth2Client();
   }
@@ -178,7 +180,7 @@ export class AuthService {
     return { message: 'auth.register_success' };
   }
 
-  async login(emailInput: string, password: string) {
+  async login(emailInput: string, password: string, captchaToken?: string) {
     const user = await this.userService.findByEmail(
       this.normalizeEmail(emailInput),
     );
@@ -191,6 +193,9 @@ export class AuthService {
     }
     if (!user.emailVerified) {
       throw new UnauthorizedException('auth.email_not_verified');
+    }
+    if (user.role.code === 'PATIENT') {
+      await this.captcha.verify(captchaToken);
     }
 
     const matches = await bcrypt.compare(password, user.passwordHash);

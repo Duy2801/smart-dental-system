@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AdminAlert, AdminConfirmModal } from "@/src/components/admin/common";
+import { AdminAlert, AdminConfirmModal, Tabs } from "@/src/components/admin/common";
 import { getClinicConfig } from "@/src/components/admin/setting/settings-api";
 import { queryKeys } from "@/src/lib/query/query-keys";
 import { defaultScheduleForm } from "./constants";
@@ -325,32 +325,14 @@ export function SchedulesPageContent() {
   return (
     <>
       <div className="space-y-6 p-6 md:p-8">
-        <div className="flex items-center justify-between border-b border-border pb-4">
-          <div className="flex gap-4">
-            <button
-              type="button"
-              onClick={() => setActiveTab("INDIVIDUAL")}
-              className={`pb-2 text-sm font-semibold transition-colors border-b-2 ${
-                activeTab === "INDIVIDUAL"
-                  ? "border-primary text-primary"
-                  : "border-transparent text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              Lịch từng bác sĩ
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("MATRIX")}
-              className={`pb-2 text-sm font-semibold transition-colors border-b-2 ${
-                activeTab === "MATRIX"
-                  ? "border-primary text-primary"
-                  : "border-transparent text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              Ma trận ca trực toàn phòng khám
-            </button>
-          </div>
-        </div>
+        <Tabs
+          tabs={[
+            { id: "INDIVIDUAL", label: "Lịch từng bác sĩ" },
+            { id: "MATRIX", label: "Ma trận ca trực toàn phòng khám" },
+          ]}
+          active={activeTab}
+          onChange={(id) => setActiveTab(id as typeof activeTab)}
+        />
 
         {activeTab === "INDIVIDUAL" ? (
           <>

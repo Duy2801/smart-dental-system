@@ -343,7 +343,7 @@ export function PatientMedicalRecordSection({
                   </span>
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
                     <span className="text-white text-xs font-semibold flex items-center gap-1">
-                      🔍 Bấm để xem phóng to
+                      Bấm để xem phóng to
                     </span>
                   </div>
                 </div>

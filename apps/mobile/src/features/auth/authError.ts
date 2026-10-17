@@ -8,9 +8,21 @@ const messages: Record<string, string> = {
   'auth.account_google_only': 'Tài khoản này cần đăng nhập bằng Google',
   'auth.google_invalid_token': 'Xác thực tài khoản Google không thành công',
   'auth.google_token_required': 'Ứng dụng chưa nhận được token Google',
+  'auth.captcha_required': 'Vui lòng xác minh CAPTCHA trước khi đăng nhập',
+  'auth.captcha_invalid': 'CAPTCHA không hợp lệ hoặc đã hết hạn. Vui lòng thử lại',
+  'auth.captcha_unavailable': 'Chưa thể xác minh CAPTCHA. Vui lòng thử lại sau',
+  'auth.captcha_puzzle_required': 'Vui lòng giải câu đố xác minh bên dưới rồi đăng nhập lại',
   'otp.expired_or_invalid': 'Mã OTP đã hết hạn hoặc không hợp lệ',
   'otp.incorrect': 'Mã OTP không chính xác',
   'otp.too_many_requests': 'Bạn đã yêu cầu quá nhiều mã OTP',
+};
+
+/** Mã lỗi thô backend trả về, ví dụ 'auth.captcha_puzzle_required' */
+export const getAuthErrorCode = (error: unknown): string | null => {
+  if (!axios.isAxiosError(error)) return null;
+  const response = error.response?.data as { message?: string | string[] } | undefined;
+  const raw = Array.isArray(response?.message) ? response.message[0] : response?.message;
+  return typeof raw === 'string' ? raw : null;
 };
 
 export const getAuthErrorMessage = (error: unknown) => {

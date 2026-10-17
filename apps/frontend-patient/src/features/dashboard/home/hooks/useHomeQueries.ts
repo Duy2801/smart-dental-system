@@ -72,35 +72,10 @@ export function useHomeClinicalCasesQuery() {
   });
 }
 
-const CLINIC_CONFIG_CACHE_KEY = "smart_dental_clinic_config_cache";
-
 export function useClinicConfigQuery() {
   return useQuery({
     queryKey: homeQueryKeys.clinicConfig(),
-    queryFn: async () => {
-      const data = await getLiveClinicConfigInfo();
-      if (typeof window !== "undefined" && data) {
-        try {
-          localStorage.setItem(CLINIC_CONFIG_CACHE_KEY, JSON.stringify(data));
-        } catch {
-          // ignore storage quota errors
-        }
-      }
-      return data;
-    },
-    initialData: () => {
-      if (typeof window !== "undefined") {
-        try {
-          const cached = localStorage.getItem(CLINIC_CONFIG_CACHE_KEY);
-          if (cached) {
-            return JSON.parse(cached);
-          }
-        } catch {
-          // ignore json parse errors
-        }
-      }
-      return undefined;
-    },
+    queryFn: getLiveClinicConfigInfo,
     staleTime: 30 * 60 * 1000,
     gcTime: 120 * 60 * 1000,
     refetchOnWindowFocus: false,

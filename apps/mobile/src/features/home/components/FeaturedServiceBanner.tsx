@@ -1,4 +1,3 @@
-import FontAwesome6 from '@react-native-vector-icons/fontawesome6';
 import React, { useEffect, useState } from 'react';
 import {
   ImageBackground,
@@ -12,7 +11,8 @@ import type { HomeServiceCard } from '../api';
 const fallbackServiceImage = require('~src/assets/home/bannerservice.png');
 
 type FeaturedServiceBannerProps = {
-  onPress: (serviceName?: string) => void;
+  /** Mở trang chi tiết dịch vụ (giống thẻ banner trên web) */
+  onPress: (serviceId: string) => void;
   services?: HomeServiceCard[];
 };
 
@@ -50,7 +50,7 @@ export function FeaturedServiceBanner({
             <TouchableOpacity
               activeOpacity={0.9}
               key={service.id}
-              onPress={() => onPress(service.name)}
+              onPress={() => onPress(service.id)}
               style={styles.cardContainer}
             >
               <ImageBackground
@@ -79,13 +79,7 @@ export function FeaturedServiceBanner({
                 <View style={styles.bottomRow}>
                   <Text style={styles.priceText}>{service.price}</Text>
                   <View style={styles.actionBtn}>
-                    <Text style={styles.actionBtnText}>Xem dịch vụ</Text>
-                    <FontAwesome6
-                      color="#0058bc"
-                      iconStyle="solid"
-                      name="chevron-right"
-                      size={9}
-                    />
+                    <Text style={styles.actionBtnText}>Xem dịch vụ ›</Text>
                   </View>
                 </View>
               </ImageBackground>
@@ -115,14 +109,14 @@ export function FeaturedServiceBanner({
 }
 
 const styles = StyleSheet.create({
+  // Giống nút "Xem dịch vụ ›" trên web: một khối chữ, bo góc 12, đệm 14 x 6
   actionBtn: {
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     elevation: 3,
-    flexDirection: 'row',
-    gap: 4,
-    paddingHorizontal: 11,
+    justifyContent: 'center',
+    paddingHorizontal: 14,
     paddingVertical: 6,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
@@ -131,8 +125,9 @@ const styles = StyleSheet.create({
   },
   actionBtnText: {
     color: '#0058bc',
-    fontSize: 11,
-    fontWeight: '900',
+    fontSize: 12,
+    fontWeight: '800',
+    lineHeight: 16,
   },
   badge: {
     alignSelf: 'flex-start',

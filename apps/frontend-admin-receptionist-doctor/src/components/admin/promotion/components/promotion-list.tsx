@@ -1,5 +1,26 @@
 import { useState } from "react";
-import { SkeletonRows } from "@/src/components/admin/common";
+import {
+  ArrowRight,
+  CalendarBlank,
+  Check,
+  Copy,
+  Globe,
+  Megaphone,
+  Pause,
+  PencilSimple,
+  Play,
+  SpinnerGap,
+  Tag,
+  Target,
+  Ticket,
+  Trash,
+} from "@phosphor-icons/react";
+import {
+  AdminIconButton,
+  AdminIconButtonDivider,
+  AdminIconButtonGroup,
+  SkeletonRows,
+} from "@/src/components/admin/common";
 import { cn } from "@/src/lib/utils/cn";
 import { formatDate } from "@/src/lib/utils/date";
 import {
@@ -31,19 +52,27 @@ export function PromotionList({
 }: PromotionListProps) {
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
-      <div className="hidden items-center border-b border-border bg-slate-50/80 px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-slate-500 sm:flex">
-        <div className="w-[38%]">Mã & Chương trình Khuyến mãi</div>
-        <div className="w-[17%]">Mức giảm & Điều kiện</div>
+      <div className="hidden items-center border-b border-border bg-slate-50/80 px-6 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500 sm:flex">
+        <div className="w-[36%]">Chương trình khuyến mãi</div>
+        <div className="w-[15%]">Mức giảm</div>
         <div className="w-[17%]">Lượt dùng</div>
-        <div className="w-[15%]">Thời hạn</div>
-        <div className="w-[13%] pr-4 text-right">Trạng thái & Thao tác</div>
+        <div className="w-[14%]">Thời hạn</div>
+        <div className="w-[18%] text-right">Trạng thái & Thao tác</div>
       </div>
       <div className="divide-y divide-border">
         {loading ? (
           <SkeletonRows count={5} />
         ) : promotions.length === 0 ? (
-          <div className="p-12 text-center text-sm font-medium text-slate-500">
-            Không tìm thấy chương trình khuyến mãi nào.
+          <div className="flex flex-col items-center gap-2 p-14 text-center">
+            <span className="grid h-14 w-14 place-items-center rounded-2xl bg-slate-100 text-slate-400">
+              <Ticket size={28} weight="duotone" />
+            </span>
+            <p className="text-sm font-semibold text-slate-700">
+              Không tìm thấy chương trình khuyến mãi nào
+            </p>
+            <p className="text-xs text-slate-500">
+              Thử đổi từ khóa tìm kiếm hoặc bộ lọc trạng thái.
+            </p>
           </div>
         ) : (
           promotions.map((promotion) => (
@@ -88,27 +117,22 @@ function PromotionRow({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const getScopeBadge = () => {
-    if (promotion.applicable_treatment_method) {
-      return (
-        <span className="inline-flex items-center gap-1 rounded-md bg-purple-50 px-2.5 py-1 text-xs font-bold text-purple-700 border border-purple-200 shadow-2xs">
-          🎯 {promotion.applicable_treatment_method.name}
-        </span>
-      );
-    }
-    if (promotion.applicable_service_slug) {
-      return (
-        <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700 border border-blue-200 shadow-2xs">
-          🏷️ Nhóm: {promotion.applicable_service_slug}
-        </span>
-      );
-    }
-    return (
-      <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700 border border-slate-200 shadow-2xs">
-        🌐 Toàn hệ thống
-      </span>
-    );
-  };
+  const scopeBadge = promotion.applicable_treatment_method ? (
+    <span className="inline-flex max-w-full items-center gap-1 rounded-md bg-violet-50 px-2 py-0.5 text-[11px] font-semibold text-violet-700 ring-1 ring-violet-200">
+      <Target size={12} weight="bold" className="shrink-0" />
+      <span className="truncate">{promotion.applicable_treatment_method.name}</span>
+    </span>
+  ) : promotion.applicable_service_slug ? (
+    <span className="inline-flex max-w-full items-center gap-1 rounded-md bg-sky-50 px-2 py-0.5 text-[11px] font-semibold text-sky-700 ring-1 ring-sky-200">
+      <Tag size={12} weight="bold" className="shrink-0" />
+      <span className="truncate">Nhóm: {promotion.applicable_service_slug}</span>
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200">
+      <Globe size={12} weight="bold" />
+      Toàn hệ thống
+    </span>
+  );
 
   const bannerSrc =
     promotion.image_url ||
@@ -116,57 +140,57 @@ function PromotionRow({
     null;
 
   return (
-    <div className="group relative flex flex-col gap-4 p-5 sm:p-6 transition-all hover:bg-slate-50/80 sm:flex-row sm:items-center sm:gap-0">
+    <div className="group flex flex-col gap-4 px-5 py-5 transition-colors hover:bg-slate-50/70 sm:flex-row sm:items-center sm:gap-0 sm:px-6">
       {/* Code & Campaign Info */}
-      <div className="flex shrink-0 pr-4 sm:w-[38%] gap-4 items-center">
+      <div className="flex min-w-0 items-center gap-4 sm:w-[36%] sm:pr-5">
         {bannerSrc ? (
-          <div className="relative h-20 w-24 sm:h-22 sm:w-28 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-100 shadow-xs transition-transform group-hover:scale-[1.02]">
+          <div className="h-20 w-24 shrink-0 overflow-hidden rounded-xl bg-slate-100 ring-1 ring-slate-200">
             <img
               src={bannerSrc}
               alt={promotion.name}
-              className="h-full w-full object-cover"
+              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
           </div>
         ) : (
-          <div className="flex h-20 w-24 sm:h-22 sm:w-28 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-light to-blue-100 text-brand text-3xl font-extrabold border border-brand/20 shadow-xs">
-            🎟️
+          <div className="grid h-20 w-24 shrink-0 place-items-center rounded-xl bg-linear-to-br from-brand-light to-blue-100 text-brand ring-1 ring-brand/15">
+            <Ticket size={30} weight="duotone" />
           </div>
         )}
-        <div className="flex flex-col min-w-0 flex-1 gap-1.5">
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
             <button
               type="button"
               onClick={handleCopyCode}
               title="Bấm để sao chép mã"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-slate-100 px-2.5 py-1 font-mono text-xs font-extrabold tracking-wider text-slate-900 transition-colors hover:bg-slate-200 shadow-2xs"
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-md border border-dashed px-2 py-0.5 font-mono text-[11px] font-bold tracking-wider transition-colors",
+                copied
+                  ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                  : "border-slate-300 bg-white text-slate-800 hover:border-brand hover:text-brand",
+              )}
             >
-              <span>{promotion.code}</span>
-              <span className="text-[11px] text-slate-500">
-                {copied ? "✓ Đã chép" : "📋"}
-              </span>
+              {promotion.code}
+              {copied ? <Check size={12} weight="bold" /> : <Copy size={12} />}
             </button>
-            {getScopeBadge()}
+            {scopeBadge}
           </div>
-          <span className="text-base font-extrabold text-slate-900 line-clamp-1 leading-snug">
+          <span className="line-clamp-1 text-[15px] font-bold leading-snug text-slate-900">
             {promotion.name}
           </span>
-          {promotion.description && (
-            <span className="line-clamp-2 text-xs text-slate-500 leading-relaxed">
+          {promotion.description ? (
+            <span className="line-clamp-2 text-xs leading-relaxed text-slate-500">
               {promotion.description}
             </span>
-          )}
+          ) : null}
         </div>
       </div>
 
       {/* Discount Value & Conditions */}
-      <div className="flex shrink-0 flex-col sm:w-[17%]">
-        <span className="font-mono text-base font-extrabold text-brand">
-          {formatPromotionValue(
-            promotion.discount_type,
-            promotion.discount_value
-          )}
+      <div className="flex flex-col sm:w-[15%] sm:pr-4">
+        <span className="inline-flex w-fit items-center rounded-lg bg-brand-light px-2.5 py-1 text-sm font-extrabold text-brand">
+          {formatPromotionValue(promotion.discount_type, promotion.discount_value)}
         </span>
-        <span className="mt-1 text-xs text-slate-500">
+        <span className="mt-1.5 text-xs text-slate-500">
           Đơn tối thiểu:{" "}
           <span className="font-semibold text-slate-800">
             {formatVND(promotion.min_order_amount)}
@@ -175,19 +199,27 @@ function PromotionRow({
       </div>
 
       {/* Usage Progress */}
-      <div className="flex shrink-0 flex-col pr-6 sm:w-[17%]">
+      <div className="flex flex-col sm:w-[17%] sm:pr-6">
         <div className="mb-1.5 flex justify-between text-xs">
           <span className="text-slate-500">
-            Đã dùng: <strong className="text-slate-900 font-extrabold">{promotion.used_count}</strong>
+            Đã dùng{" "}
+            <strong className="font-bold text-slate-900">{promotion.used_count}</strong>
             {promotion.max_uses ? ` / ${promotion.max_uses}` : ""}
           </span>
-          <span className="font-extrabold text-slate-900">{progress}%</span>
+          <span
+            className={cn(
+              "font-bold",
+              progress >= 100 ? "text-red-600" : progress >= 80 ? "text-amber-600" : "text-slate-700",
+            )}
+          >
+            {progress}%
+          </span>
         </div>
-        <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
           <div
             className={cn(
               "h-full rounded-full transition-all",
-              progress >= 100 ? "bg-red-500" : "bg-brand"
+              progress >= 100 ? "bg-red-500" : progress >= 80 ? "bg-amber-500" : "bg-brand",
             )}
             style={{ width: `${progress}%` }}
           />
@@ -195,73 +227,57 @@ function PromotionRow({
       </div>
 
       {/* Date Range */}
-      <div className="flex shrink-0 flex-col text-xs text-slate-600 sm:w-[15%]">
-        <span>
-          Bắt đầu:{" "}
-          <span className="font-bold text-slate-900">
-            {formatDate(promotion.start_date)}
-          </span>
+      <div className="flex flex-col gap-1 text-xs sm:w-[14%]">
+        <span className="flex items-center gap-1.5 text-slate-500" title="Ngày bắt đầu">
+          <CalendarBlank size={13} className="shrink-0 text-slate-400" />
+          <span className="font-semibold text-slate-800">{formatDate(promotion.start_date)}</span>
         </span>
-        <span className="mt-1">
-          Kết thúc:{" "}
-          <span className="font-bold text-slate-900">
-            {formatDate(promotion.end_date)}
-          </span>
+        <span className="flex items-center gap-1.5 text-slate-500" title="Ngày kết thúc">
+          <ArrowRight size={13} className="shrink-0 text-slate-400" />
+          <span className="font-semibold text-slate-800">{formatDate(promotion.end_date)}</span>
         </span>
       </div>
 
-      {/* Status Badge */}
-      <div className="flex shrink-0 sm:w-[13%] sm:justify-end sm:pr-4">
+      {/* Status & Actions */}
+      <div className="flex flex-col items-start gap-2.5 sm:w-[18%] sm:items-end">
         <span
           className={cn(
-            "inline-flex items-center rounded-full border px-3 py-1 text-center text-xs font-extrabold shadow-xs",
-            status.color
+            "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-bold",
+            status.color,
           )}
         >
+          <span className="h-1.5 w-1.5 rounded-full bg-current" />
           {status.label}
         </span>
-      </div>
 
-      {/* Action Buttons Toolbar */}
-      <div className="absolute right-4 top-1/2 flex -translate-y-1/2 items-center gap-1.5 rounded-xl border border-border bg-white p-1.5 opacity-100 shadow-lg transition-all sm:opacity-0 sm:group-hover:opacity-100">
-        <button
-          type="button"
-          title="Sửa Voucher"
-          onClick={() => onEdit(promotion)}
-          className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-100 hover:text-brand"
-        >
-          ✏️ Sửa
-        </button>
-
-        <button
-          type="button"
-          title="Gửi thông báo tới bệnh nhân"
-          disabled={isBroadcasting}
-          onClick={() => onBroadcast(promotion)}
-          className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-bold text-blue-700 transition-colors hover:bg-blue-50"
-        >
-          📢 {isBroadcasting ? "Đang gửi..." : "Phát thông báo"}
-        </button>
-
-        <button
-          type="button"
-          title={promotion.is_active ? "Tạm ngưng" : "Kích hoạt"}
-          onClick={() => onToggleStatus(promotion.id)}
-          className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-bold text-amber-700 transition-colors hover:bg-amber-50"
-        >
-          {promotion.is_active ? "⏸️ Ngưng" : "▶️ Bật"}
-        </button>
-
-        <div className="mx-0.5 h-4 w-[1px] bg-border" />
-
-        <button
-          type="button"
-          title="Xóa Voucher"
-          onClick={() => onDelete(promotion.id)}
-          className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-bold text-red-600 transition-colors hover:bg-red-50"
-        >
-          🗑️ Xóa
-        </button>
+        <AdminIconButtonGroup>
+          <AdminIconButton label="Sửa voucher" onClick={() => onEdit(promotion)}>
+            <PencilSimple size={16} />
+          </AdminIconButton>
+          <AdminIconButton
+            label={isBroadcasting ? "Đang gửi thông báo..." : "Phát thông báo tới bệnh nhân"}
+            onClick={() => onBroadcast(promotion)}
+            disabled={isBroadcasting}
+            tone="sky"
+          >
+            {isBroadcasting ? (
+              <SpinnerGap size={16} className="animate-spin" />
+            ) : (
+              <Megaphone size={16} />
+            )}
+          </AdminIconButton>
+          <AdminIconButton
+            label={promotion.is_active ? "Tạm ngưng" : "Kích hoạt"}
+            onClick={() => onToggleStatus(promotion.id)}
+            tone={promotion.is_active ? "amber" : "emerald"}
+          >
+            {promotion.is_active ? <Pause size={16} /> : <Play size={16} />}
+          </AdminIconButton>
+          <AdminIconButtonDivider />
+          <AdminIconButton label="Xóa voucher" onClick={() => onDelete(promotion.id)} tone="red">
+            <Trash size={16} />
+          </AdminIconButton>
+        </AdminIconButtonGroup>
       </div>
     </div>
   );

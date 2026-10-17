@@ -282,6 +282,17 @@ export default function PatientHomeScreen() {
     [navigateTab],
   );
 
+  const goToServiceDetail = useCallback(
+    (serviceId: string) => {
+      setShowResults(false);
+      navigateTab(SCREEN_NAME.PATIENT_SERVICES, {
+        screen: 'ServiceDetail',
+        params: { serviceId },
+      });
+    },
+    [navigateTab],
+  );
+
   const goToDoctorSearch = useCallback(
     (value?: string) => {
       setShowResults(false);
@@ -403,7 +414,7 @@ export default function PatientHomeScreen() {
     if (item.id === 'featured-service') {
       return (
         <FeaturedServiceBanner
-          onPress={serviceName => goToServiceSearch(serviceName)}
+          onPress={goToServiceDetail}
           services={services}
         />
       );
@@ -416,6 +427,7 @@ export default function PatientHomeScreen() {
       onPromotionsPress: () =>
         navigation.navigate(SCREEN_NAME.PATIENT_PROMOTIONS),
       onServicePress: goToServiceSearch,
+      onServiceDetailPress: goToServiceDetail,
     };
 
     if (item.id === 'trust') return <TrustMetricsSection />;

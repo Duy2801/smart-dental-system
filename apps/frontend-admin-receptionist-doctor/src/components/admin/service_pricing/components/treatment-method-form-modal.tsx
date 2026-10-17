@@ -1,9 +1,15 @@
-import { useEffect, useState } from "react";
+"use client";
+
+import { useId, useState } from "react";
+import { CurrencyCircleDollar, Info, Stethoscope } from "@phosphor-icons/react";
 import {
   AdminButton,
+  AdminFormSection,
+  AdminImagePicker,
   AdminInput,
   AdminModal,
   AdminSelect,
+  AdminTextarea,
 } from "@/src/components/admin/common";
 import type { DentalService, TreatmentMethod, TreatmentMethodFormItem } from "../types";
 
@@ -15,85 +21,6 @@ type TreatmentMethodFormModalProps = {
   submitting: boolean;
 };
 
-function TextareaField({
-  label,
-  onChange,
-  placeholder,
-  rows = 3,
-  value,
-}: {
-  label: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  rows?: number;
-  value: string;
-}) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-sm font-semibold text-brand-dark">{label}</label>
-      <textarea
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        rows={rows}
-        placeholder={placeholder}
-        className="resize-none rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand"
-      />
-    </div>
-  );
-}
-
-function readFileAsDataUrl(file: File, onLoad: (value: string) => void) {
-  const reader = new FileReader();
-  reader.onload = () => {
-    if (typeof reader.result === "string") onLoad(reader.result);
-  };
-  reader.readAsDataURL(file);
-}
-
-function ImagePicker({
-  label,
-  onChange,
-  value,
-}: {
-  label: string;
-  onChange: (value: string) => void;
-  value: string;
-}) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-sm font-semibold text-brand-dark">{label}</label>
-      <div className="flex min-w-0 items-center gap-3 rounded-lg border border-border bg-white p-3">
-        <div className="flex h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-md bg-slate-100 border border-slate-200">
-          {value ? (
-            <img
-              src={value}
-              alt={label}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <span className="px-2 text-center text-xs text-muted-foreground">
-              Chưa chọn
-            </span>
-          )}
-        </div>
-        <label className="inline-flex min-w-24 shrink-0 cursor-pointer items-center justify-center rounded-md bg-brand px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-dark">
-          Chọn ảnh
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              if (file) readFileAsDataUrl(file, onChange);
-              event.target.value = "";
-            }}
-            className="sr-only"
-          />
-        </label>
-      </div>
-    </div>
-  );
-}
-
 export function TreatmentMethodFormModal({
   service,
   method,
@@ -102,6 +29,7 @@ export function TreatmentMethodFormModal({
   submitting,
 }: TreatmentMethodFormModalProps) {
   const isEditing = Boolean(method);
+  const formId = useId();
 
   const [form, setForm] = useState<TreatmentMethodFormItem>({
     id: method?.id,
@@ -141,93 +69,94 @@ export function TreatmentMethodFormModal({
 
   return (
     <AdminModal
-      title={
-        isEditing
-          ? `Sửa phương pháp: ${method?.name}`
-          : `Thêm phương pháp điều trị mới`
-      }
+      title={isEditing ? `Sửa phương pháp: ${method?.name}` : "Thêm phương pháp điều trị mới"}
       description={`Thuộc nhóm dịch vụ "${service.name}" (${service.category})`}
+      icon={<Stethoscope size={20} weight="duotone" />}
+      size="md"
       onClose={onClose}
+      footer={
+        <>
+          <AdminButton variant="secondary" onClick={onClose} disabled={submitting}>
+            Hủy
+          </AdminButton>
+          <AdminButton type="submit" form={formId} loading={submitting}>
+            {submitting ? "Đang lưu..." : "Lưu phương pháp"}
+          </AdminButton>
+        </>
+      }
     >
       <form
+        id={formId}
         className="mt-4 flex flex-col gap-4"
         onSubmit={(event) => {
           event.preventDefault();
           onSubmit(form);
         }}
       >
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <AdminInput
-            label="Tên phương pháp điều trị"
-            required
-            value={form.name}
-            onChange={(e) => setField("name", e.target.value)}
-            placeholder="VD: Cấy ghép Implant Straumann Thụy Sĩ"
-          />
-          <AdminInput
-            label="Slug (tùy chọn)"
-            value={form.slug}
-            onChange={(e) => setField("slug", e.target.value)}
-            placeholder="implant-straumann"
-          />
-        </div>
+        <AdminFormSection title="Thông tin phương pháp" icon={<Info size={15} weight="bold" />}>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <AdminInput
+              label="Tên phương pháp điều trị"
+              required
+              value={form.name}
+              onChange={(e) => setField("name", e.target.value)}
+              placeholder="VD: Cấy ghép Implant Straumann Thụy Sĩ"
+            />
+            <AdminInput
+              label="Slug (tùy chọn)"
+              value={form.slug}
+              onChange={(e) => setField("slug", e.target.value)}
+              placeholder="implant-straumann"
+            />
+          </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <AdminInput
-            label="Giá cơ bản (VND)"
-            type="number"
-            required
-            min={0}
-            step={50000}
-            value={form.basePrice}
-            onChange={(e) => setField("basePrice", Number(e.target.value))}
-            className="text-right font-mono"
+          <AdminImagePicker
+            label="Ảnh đại diện phương pháp"
+            value={form.imageUrl}
+            onChange={(val) => setField("imageUrl", val)}
           />
-          <AdminInput
-            label="Thời lượng (Phút)"
-            type="number"
-            required
-            min={1}
-            value={form.durationMinutes}
-            onChange={(e) => setField("durationMinutes", Number(e.target.value))}
-            className="font-mono"
+
+          <AdminTextarea
+            label="Mô tả riêng của phương pháp"
+            rows={3}
+            value={form.description}
+            onChange={(val) => setField("description", val)}
+            placeholder="Mô tả ngắn gọn về đặc điểm, chất liệu, ưu điểm của phương pháp điều trị này."
           />
-          <AdminSelect
-            label="Trạng thái"
-            value={form.isActive ? "active" : "inactive"}
-            onChange={(e) => setField("isActive", e.target.value === "active")}
-          >
-            <option value="active">Đang cung cấp</option>
-            <option value="inactive">Ngừng cung cấp</option>
-          </AdminSelect>
-        </div>
+        </AdminFormSection>
 
-        <ImagePicker
-          label="Ảnh đại diện phương pháp"
-          value={form.imageUrl}
-          onChange={(val) => setField("imageUrl", val)}
-        />
-
-        <TextareaField
-          label="Mô tả riêng của phương pháp"
-          rows={3}
-          value={form.description}
-          onChange={(val) => setField("description", val)}
-          placeholder="Mô tả ngắn gọn về đặc điểm, chất liệu, ưu điểm của phương pháp điều trị này."
-        />
-
-        <div className="mt-4 flex justify-end gap-3 border-t border-border pt-4">
-          <AdminButton
-            variant="secondary"
-            onClick={onClose}
-            disabled={submitting}
-          >
-            Hủy
-          </AdminButton>
-          <AdminButton type="submit" disabled={submitting}>
-            {submitting ? "Đang lưu..." : "Lưu phương pháp"}
-          </AdminButton>
-        </div>
+        <AdminFormSection title="Giá & trạng thái" icon={<CurrencyCircleDollar size={15} weight="bold" />}>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <AdminInput
+              label="Giá cơ bản (VND)"
+              type="number"
+              required
+              min={0}
+              step={50000}
+              value={form.basePrice}
+              onChange={(e) => setField("basePrice", Number(e.target.value))}
+              className="font-mono"
+              hint={`≈ ${Number(form.basePrice || 0).toLocaleString("vi-VN")}đ`}
+            />
+            <AdminInput
+              label="Thời lượng (phút)"
+              type="number"
+              required
+              min={1}
+              value={form.durationMinutes}
+              onChange={(e) => setField("durationMinutes", Number(e.target.value))}
+              className="font-mono"
+            />
+            <AdminSelect
+              label="Trạng thái"
+              value={form.isActive ? "active" : "inactive"}
+              onChange={(e) => setField("isActive", e.target.value === "active")}
+            >
+              <option value="active">Đang cung cấp</option>
+              <option value="inactive">Ngừng cung cấp</option>
+            </AdminSelect>
+          </div>
+        </AdminFormSection>
       </form>
     </AdminModal>
   );

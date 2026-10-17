@@ -1,4 +1,7 @@
-import { SkeletonRows } from "@/src/components/admin/common";
+"use client";
+
+import { UsersThree } from "@phosphor-icons/react";
+import { AdminEmptyState, SkeletonRows } from "@/src/components/admin/common";
 import type { StaffUser } from "../types";
 import { StaffPagination } from "./staff-pagination";
 import { StaffRow } from "./staff-row";
@@ -31,14 +34,23 @@ export function StaffList({
   onPageChange,
 }: StaffListProps) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-xs">
+    <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
+      <div className="hidden items-center border-b border-slate-200 bg-slate-50/80 px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500 sm:flex">
+        <div className="w-[34%]">Nhân viên</div>
+        <div className="w-[20%]">Vai trò</div>
+        <div className="hidden w-[16%] md:block">Ngày tham gia</div>
+        <div className="w-[14%]">Trạng thái</div>
+        <div className="flex-1 text-right">Thao tác</div>
+      </div>
       <div className="divide-y divide-slate-100">
         {loading ? (
           <SkeletonRows count={5} hasAvatar />
         ) : users.length === 0 ? (
-          <div className="p-8 text-center text-sm font-medium text-muted-foreground">
-            Không tìm thấy nhân viên nào phù hợp.
-          </div>
+          <AdminEmptyState
+            icon={<UsersThree size={24} weight="duotone" />}
+            title="Không tìm thấy nhân viên nào phù hợp"
+            description="Thử đổi từ khóa tìm kiếm hoặc bộ lọc vai trò."
+          />
         ) : (
           users.map((user) => (
             <StaffRow
@@ -65,4 +77,3 @@ export function StaffList({
     </div>
   );
 }
-
