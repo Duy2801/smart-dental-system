@@ -1489,6 +1489,7 @@ export class AiService {
           confidence: number;
           bounding_box: { x: number; y: number; width: number; height: number };
           severity: string;
+          region_source?: 'DETECTED' | 'ESTIMATED' | 'UNLOCATED';
         }>;
         total_findings: number;
         summary: string;
@@ -1511,6 +1512,9 @@ export class AiService {
         confidence: finding.confidence,
         boundingBox: finding.bounding_box,
         severity: finding.severity,
+        ...(finding.region_source
+          ? { regionSource: finding.region_source }
+          : {}),
       }));
       const terminalErrorStatuses = new Set([
         'INVALID_IMAGE',
@@ -1693,6 +1697,9 @@ export class AiService {
             height: finding.boundingBox.height,
           },
           severity: finding.severity,
+          ...(finding.regionSource
+            ? { regionSource: finding.regionSource }
+            : {}),
           ...(finding.source ? { source: finding.source } : {}),
           doctorStatus: finding.doctorStatus,
           ...(finding.doctorNote ? { doctorNote: finding.doctorNote } : {}),

@@ -1410,7 +1410,7 @@ function MedicalRecordsContent() {
                   >
                     <div className="flex items-center justify-between border-b border-border pb-3">
                       <h3 className="text-base font-bold text-slate-900">
-                        Ảnh X-quang / nội khoa
+                        Ảnh X-quang
                       </h3>
                       {saved && (
                         <span className="flex items-center gap-1.5 text-xs font-medium text-green-600">

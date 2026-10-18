@@ -327,34 +327,38 @@ class PanoramicVisionService:
             )
 
         try:
-            # 1. Thuật toán quét điểm ảnh màu cục bộ (Pixel-level Color Dispersion)
-            # Phim X-quang y khoa là ảnh xám đơn sắc (Grayscale / Monochrome).
-            # Tất cả điểm ảnh trong phim X-quang đều có |R-G| < 8 và |G-B| < 8.
-            # Bất kỳ ảnh chụp màn hình máy tính nào (có icon cờ, nút bấm, UI xanh/đỏ)
-            # sẽ xuất hiện các điểm ảnh có |R-G| > 15 hoặc |G-B| > 15 với tỷ lệ > 1.2%.
+            # Phim Panorama có thể được xuất với tông xanh đồng nhất.
+            # Vẫn chặn các mảng màu cục bộ của giao diện/chụp màn hình.
             thumb = pil_image.copy().resize((100, 100)).convert("RGB")
             get_pixels = getattr(thumb, "get_flattened_data", thumb.getdata)
             pixels = list(get_pixels())
             total = len(pixels)
 
             colored_count = 0
+            blue_tint_count = 0
             diff_sum = 0
             for r, g, b in pixels:
                 d = max(abs(r - g), abs(g - b), abs(b - r))
                 diff_sum += d
-                if d > 14:  # Điểm ảnh có màu sắc rõ rệt (không phải xám y tế)
+                if d > 14:
                     colored_count += 1
+                    if b >= g >= r:
+                        blue_tint_count += 1
 
             colored_ratio = colored_count / total
             avg_diff = diff_sum / total
+            blue_tinted = (
+                colored_ratio >= 0.8
+                and blue_tint_count / colored_count >= 0.98
+            )
 
-            if colored_ratio > 0.012:  # > 1.2% diện tích ảnh có màu
+            if colored_ratio > 0.012 and not blue_tinted:
                 return False, (
                     f"Ảnh chứa các biểu tượng/chi tiết màu sắc ({colored_ratio * 100:.1f}% điểm ảnh có màu), "
                     f"đây là ảnh chụp màn hình/giao diện thiết bị máy tính chứ không phải phim X-quang y khoa"
                 )
 
-            if avg_diff > 5.5:
+            if avg_diff > 5.5 and not blue_tinted:
                 return (
                     False,
                     f"Độ lệch sắc độ trung bình cao ({avg_diff:.1f}), ảnh không phải phim X-quang đơn sắc y tế",
@@ -543,6 +547,7 @@ class PanoramicVisionService:
                 confidence=item.confidence,
                 bounding_box=item.bounding_box,
                 severity=item.severity,
+                region_source=item.region_source,
             )
             for item in local_findings
         ]

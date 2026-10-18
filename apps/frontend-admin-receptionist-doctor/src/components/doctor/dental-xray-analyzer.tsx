@@ -29,7 +29,10 @@ import {
 } from "@phosphor-icons/react";
 import apiClient from "@/src/lib/api/client";
 import axios from "axios";
-import { getVisibleFindings } from "./dental-xray-analysis-utils";
+import {
+  getVisibleFindings,
+  hasDrawableBoundingBox,
+} from "./dental-xray-analysis-utils";
 
 export interface DentalFinding {
   findingId?: string;
@@ -43,9 +46,20 @@ export interface DentalFinding {
     height: number; // percentage (0..100)
   };
   severity: "UNASSESSED" | "LOW" | "MEDIUM" | "HIGH";
+  regionSource?: "DETECTED" | "ESTIMATED" | "UNLOCATED" | "MANUAL";
   source?: "AI" | "DOCTOR";
   doctorStatus?: "PENDING" | "ACCEPTED" | "REJECTED";
   doctorNote?: string;
+}
+
+function isEstimatedRegion(finding: DentalFinding): boolean {
+  return (
+    finding.regionSource === "ESTIMATED" ||
+    (finding.regionSource === undefined &&
+      finding.source !== "DOCTOR" &&
+      finding.findingType === "Missing tooth" &&
+      hasDrawableBoundingBox(finding.boundingBox))
+  );
 }
 
 export interface AnalyzeXrayResponse {
@@ -270,6 +284,9 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
   const [hoveredFinding, setHoveredFinding] = useState<DentalFinding | null>(
     null,
   );
+  const [selectedFindingIndex, setSelectedFindingIndex] = useState<
+    number | null
+  >(null);
   const [selectedTypes, setSelectedTypes] = useState<Record<string, boolean>>(
     {},
   );
@@ -319,6 +336,7 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
     activeImageIdRef.current = image.id ?? null;
     activeAnalysisIdRef.current = null;
     setResult(null);
+    setSelectedFindingIndex(null);
     setApplied(false);
     setChartSynced(false);
     setReviewConfirmed(false);
@@ -340,6 +358,7 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
     setReviewConfirmed(false);
     setReviewError(null);
     setResult(null);
+    setSelectedFindingIndex(null);
     activeAnalysisIdRef.current = null;
 
     try {
@@ -553,6 +572,7 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
       confidence: 0,
       boundingBox: currentBox,
       severity: newSeverity,
+      regionSource: "MANUAL",
       source: "DOCTOR",
       doctorStatus: "ACCEPTED",
     };
@@ -561,6 +581,7 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
       findings: [newFinding, ...result.findings],
       totalFindings: result.findings.length + 1,
     });
+    setSelectedFindingIndex(0);
     setReviewConfirmed(false);
     setReviewError(null);
     setShowAddModal(false);
@@ -568,8 +589,33 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
   };
 
   const visibleFindings = useMemo(() => {
+    if (selectedFindingIndex !== null) {
+      const finding = result?.findings[selectedFindingIndex];
+      return finding && hasDrawableBoundingBox(finding.boundingBox)
+        ? [{ finding, originalIndex: selectedFindingIndex }]
+        : [];
+    }
     return getVisibleFindings(result?.findings || [], selectedTypes);
-  }, [result, selectedTypes]);
+  }, [result, selectedTypes, selectedFindingIndex]);
+  const selectedFinding =
+    selectedFindingIndex === null
+      ? null
+      : (result?.findings[selectedFindingIndex] ?? null);
+
+  const locatedFindingsCount =
+    result?.findings.filter((finding) =>
+      hasDrawableBoundingBox(finding.boundingBox),
+    ).length ?? 0;
+  const estimatedFindingsCount =
+    result?.findings.filter(
+      (finding) =>
+        isEstimatedRegion(finding) &&
+        hasDrawableBoundingBox(finding.boundingBox),
+    ).length ?? 0;
+  const modelRegionCount = getVisibleFindings(
+    result?.findings.filter((finding) => !isEstimatedRegion(finding)) ?? [],
+    {},
+  ).length;
 
   const acceptedFindings = useMemo(() => {
     return result?.findings.filter((f) => f.doctorStatus === "ACCEPTED") || [];
@@ -604,6 +650,7 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
             confidence: finding.confidence,
             boundingBox: finding.boundingBox,
             severity: finding.severity,
+            regionSource: finding.regionSource,
             source: finding.source,
             doctorStatus: finding.doctorStatus,
             doctorNote: finding.doctorNote,
@@ -725,7 +772,7 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
       )}
 
       {/* 2. ALBUM SELECTOR PILLS */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
+      <div className="flex flex-wrap items-center gap-2 text-xs">
         <span className="shrink-0 text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">
           Phim bệnh nhân
         </span>
@@ -740,9 +787,10 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
             <button
               key={idx}
               type="button"
+              title={imgItem.title || `Phim X-quang #${idx + 1}`}
               onClick={() => handleSelectPatientImage(imgItem)}
               disabled={loading || reviewSaving}
-              className={`inline-flex shrink-0 items-center gap-2 rounded-xl border px-3 py-1.5 font-medium transition cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 ${
+              className={`inline-flex min-w-0 max-w-full items-center gap-2 rounded-xl border px-3 py-1.5 font-medium transition cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 ${
                 isSelected
                   ? "border-brand/40 bg-brand-light text-brand-dark font-bold shadow-xs ring-1 ring-brand/20"
                   : "border-border bg-white text-slate-600 hover:border-brand/30 hover:bg-brand-light/30"
@@ -751,9 +799,13 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
               <span
                 className={`h-2 w-2 rounded-full ${isSelected ? "bg-brand" : "bg-slate-300"}`}
               />
-              <span>{imgItem.title || `Phim X-quang #${idx + 1}`}</span>
+              <span className="max-w-48 truncate">
+                {imgItem.title || `Phim X-quang #${idx + 1}`}
+              </span>
               {imgItem.date && (
-                <span className="text-[10px] opacity-60">({imgItem.date})</span>
+                <span className="hidden shrink-0 text-[10px] opacity-60 sm:inline">
+                  ({imgItem.date})
+                </span>
               )}
             </button>
           );
@@ -761,7 +813,7 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
       </div>
 
       {/* 3. MAIN WORKSPACE (2-COLUMN PACS WORKSTATION) */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
+      <div className="grid min-w-0 grid-cols-1 gap-5 lg:grid-cols-12">
         {/* === LEFT COLUMN: DICOM PACS VIEWER (7 COLS) === */}
         <div className="flex flex-col overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 shadow-xl lg:col-span-7">
           {/* Viewer Toolbar */}
@@ -778,7 +830,9 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
                 <>
                   <span className="h-3 w-px bg-slate-700" />
                   <span className="text-[10px] font-semibold text-slate-300">
-                    Vùng răng AI đề nghị kiểm tra
+                    {selectedFinding
+                      ? `Đang xem R${selectedFinding.fdiToothNumber} · ${FINDING_CONFIG[selectedFinding.findingType]?.label || selectedFinding.findingType}`
+                      : "Vùng răng AI đề nghị kiểm tra"}
                   </span>
                 </>
               )}
@@ -943,51 +997,62 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
                 {/* Bounding Boxes */}
                 {visibleFindings.map(({ finding: f, originalIndex }) => {
                   const isRejected = f.doctorStatus === "REJECTED";
+                  const isEstimated = isEstimatedRegion(f);
                   const cfg = FINDING_CONFIG[f.findingType] || {
                     border: "border-sky-400",
                     bg: "bg-sky-400/20",
                     badge: "bg-sky-500 text-white",
                   };
-                  const isHovered = hoveredFinding === f;
+                  const isFocused =
+                    selectedFindingIndex === originalIndex ||
+                    hoveredFinding === f;
 
                   return (
                     <div
                       key={`${f.fdiToothNumber}-${f.findingType}-${originalIndex}`}
-                      title={`Vùng răng ${f.fdiToothNumber} ${f.source === "DOCTOR" ? "do bác sĩ bổ sung" : "AI đề nghị kiểm tra"}; khung này không phải biên tổn thương.`}
+                      title={
+                        isEstimated
+                          ? `Điểm dự kiến của răng ${f.fdiToothNumber}; bác sĩ cần xác nhận.`
+                          : `Vùng răng ${f.fdiToothNumber} ${f.source === "DOCTOR" ? "do bác sĩ bổ sung" : "AI đề nghị kiểm tra"}; khung này không phải biên tổn thương.`
+                      }
                       onMouseEnter={() => setHoveredFinding(f)}
                       onMouseLeave={() => setHoveredFinding(null)}
                       onClick={() =>
                         !reviewConfirmed && handleOpenEditModal(originalIndex)
                       }
                       style={{
-                        left: `${f.boundingBox.x}%`,
-                        top: `${f.boundingBox.y}%`,
-                        width: `${f.boundingBox.width}%`,
-                        height: `${f.boundingBox.height}%`,
+                        left: `${f.boundingBox.x + (isEstimated ? f.boundingBox.width / 2 : 0)}%`,
+                        top: `${f.boundingBox.y + (isEstimated ? f.boundingBox.height / 2 : 0)}%`,
+                        width: isEstimated ? 14 : `${f.boundingBox.width}%`,
+                        height: isEstimated ? 14 : `${f.boundingBox.height}%`,
                       }}
-                      className={`absolute cursor-pointer rounded-sm border-2 transition-all ${
+                      className={`absolute cursor-pointer border-2 transition-all ${isEstimated ? "-translate-x-1/2 -translate-y-1/2 rounded-full" : "rounded-sm"} ${
                         isRejected
-                          ? "border-dashed border-slate-500 bg-slate-500/10 opacity-30"
-                          : `${cfg.border} ${cfg.bg} ${
-                              isHovered
+                          ? isFocused
+                            ? "z-30 border-dashed border-slate-200 bg-slate-500/15 ring-2 ring-white"
+                            : "border-dashed border-slate-500 bg-slate-500/10 opacity-30"
+                          : `${cfg.border} ${cfg.bg} ${isEstimated ? "border-dashed" : ""} ${
+                              isFocused
                                 ? "z-30 scale-105 ring-4 ring-sky-400 shadow-lg"
                                 : "z-10"
                             }`
                       }`}
                     >
                       <div
-                        className={`absolute -top-5 left-0 flex items-center gap-1 rounded px-1.5 py-0.2 text-[9px] font-extrabold shadow ${
+                        className={`absolute ${isEstimated ? "-top-7" : "-top-5"} left-0 flex items-center gap-1 rounded px-1.5 py-0.2 text-[9px] font-extrabold shadow ${
                           isRejected
                             ? "bg-slate-600 text-slate-300 line-through"
                             : cfg.badge
                         }`}
                       >
-                        <span>R{f.fdiToothNumber}</span>
+                        <span>
+                          {isEstimated ? "≈" : ""}R{f.fdiToothNumber}
+                        </span>
                         {isRejected ? (
                           <span>(Từ chối)</span>
                         ) : f.source === "DOCTOR" ? (
                           <span>(BS bổ sung)</span>
-                        ) : (
+                        ) : isEstimated ? null : (
                           <span className="opacity-80">
                             {Math.round(f.confidence * 100)}%
                           </span>
@@ -1040,6 +1105,15 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
           {/* Filter Chips Bar */}
           {result && result.findings.length > 0 && (
             <div className="flex flex-wrap items-center gap-2 border-t border-slate-800 bg-slate-900/90 px-3.5 py-2 text-xs">
+              {selectedFinding && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedFindingIndex(null)}
+                  className="rounded-lg bg-white px-2.5 py-1 text-[11px] font-bold text-slate-900 hover:bg-slate-100"
+                >
+                  Xem tất cả vùng
+                </button>
+              )}
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                 Lọc:
               </span>
@@ -1048,6 +1122,11 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
                   (f) => f.findingType === type,
                 ).length;
                 if (count === 0) return null;
+                const locatedCount = result.findings.filter(
+                  (f) =>
+                    f.findingType === type &&
+                    hasDrawableBoundingBox(f.boundingBox),
+                ).length;
                 const active = selectedTypes[type] !== false;
                 const cfg = FINDING_CONFIG[type];
 
@@ -1055,18 +1134,30 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
                   <button
                     key={type}
                     type="button"
-                    onClick={() =>
-                      setSelectedTypes((prev) => ({ ...prev, [type]: !active }))
-                    }
+                    title={`${locatedCount} phát hiện có vùng đánh dấu trên ${count} phát hiện`}
+                    disabled={locatedCount === 0}
+                    onClick={() => {
+                      setSelectedFindingIndex(null);
+                      setSelectedTypes((prev) => ({
+                        ...prev,
+                        [type]: !active,
+                      }));
+                    }}
                     className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-bold transition cursor-pointer ${
-                      active
-                        ? cfg.text
-                        : "bg-slate-800 text-slate-500 line-through"
+                      locatedCount === 0
+                        ? "bg-slate-800 text-slate-400 cursor-default"
+                        : active
+                          ? cfg.text
+                          : "bg-slate-800 text-slate-500 line-through"
                     }`}
                   >
-                    {active ? <Eye size={12} /> : <EyeSlash size={12} />}
+                    {active && locatedCount > 0 ? (
+                      <Eye size={12} />
+                    ) : (
+                      <EyeSlash size={12} />
+                    )}
                     <span>
-                      {cfg.label} ({count})
+                      {cfg.label} ({locatedCount}/{count})
                     </span>
                   </button>
                 );
@@ -1076,7 +1167,7 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
         </div>
 
         {/* === RIGHT COLUMN: CLINICAL DASHBOARD (5 COLS) === */}
-        <div className="flex flex-col gap-4 lg:col-span-5">
+        <div className="flex min-w-0 flex-col gap-4 lg:col-span-5">
           {/* Card 1: Analysis status */}
           {!result ? (
             /* STATE 1: CHƯA PHÂN TÍCH (NEUTRAL SLATE) */
@@ -1205,25 +1296,25 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
               </p>
             </div>
           ) : (
-            <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-blue-950 shadow-xs">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
+            <div className="rounded-2xl border border-brand/20 bg-brand-light/45 p-4 text-brand-dark shadow-xs">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="flex min-w-0 flex-1 items-center gap-2">
                   <Heartbeat
                     size={18}
                     weight="bold"
-                    className="text-blue-700"
+                    className="shrink-0 text-brand"
                   />
-                  <span className="text-xs font-black uppercase tracking-wider">
+                  <span className="min-w-0 text-[11px] font-bold uppercase tracking-wide leading-snug">
                     Tiến độ bác sĩ rà soát
                   </span>
                 </div>
                 <span
-                  className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                  className={`max-w-full shrink-0 rounded-full px-2.5 py-1 text-center text-[11px] font-bold leading-tight ${
                     reviewConfirmed
                       ? "bg-emerald-100 text-emerald-800"
                       : pendingFindings.length > 0
                         ? "bg-amber-100 text-amber-800"
-                        : "bg-blue-100 text-blue-800"
+                        : "bg-brand/10 text-brand-dark"
                   }`}
                 >
                   {reviewConfirmed
@@ -1233,14 +1324,28 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
                       : "Sẵn sàng xác nhận"}
                 </span>
               </div>
-              <p className="mt-3 text-sm font-bold">
+              <p className="mt-3 text-sm font-semibold leading-snug tabular-nums">
                 Đã duyệt {acceptedFindings.length}/{result.findings.length} phát
                 hiện · Từ chối{" "}
                 {result.findings.length -
                   acceptedFindings.length -
                   pendingFindings.length}
               </p>
-              <p className="mt-1 text-[11px] leading-relaxed text-blue-800">
+              <p className="mt-1 text-[11px] font-medium leading-relaxed text-brand-dark">
+                {modelRegionCount} vùng có khung từ model
+                {estimatedFindingsCount > 0 &&
+                  ` · ${estimatedFindingsCount} điểm răng dự kiến (≈)`}
+                {result.findings.length > locatedFindingsCount &&
+                  ` · ${result.findings.length - locatedFindingsCount} phát hiện chưa có tọa độ`}
+                .
+              </p>
+              {estimatedFindingsCount > 0 && (
+                <p className="mt-1 text-[11px] leading-relaxed text-slate-600">
+                  Dấu ≈ chỉ vị trí ước lượng, không phải ranh giới tổn thương;
+                  bác sĩ cần xác nhận.
+                </p>
+              )}
+              <p className="mt-1 text-[11px] leading-relaxed text-slate-600">
                 Đây là kết quả hỗ trợ đọc phim, không phải điểm sức khỏe hay
                 chẩn đoán độc lập. Chỉ được đưa vào bệnh án sau khi bác sĩ rà
                 soát toàn bộ.
@@ -1251,11 +1356,11 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
           {/* Card 2: Results Tabs (Findings / Diagnosis / Treatment) */}
           <div className="flex flex-1 flex-col rounded-2xl border border-border/80 bg-white p-4 shadow-xs">
             {/* Segmented Control Tabs */}
-            <div className="flex rounded-xl bg-brand-light/55 p-1 text-xs font-bold text-slate-600">
+            <div className="grid grid-cols-3 gap-1 rounded-xl bg-brand-light/55 p-1 text-[11px] font-bold text-slate-600">
               <button
                 type="button"
                 onClick={() => setActiveTab("findings")}
-                className={`flex-1 rounded-lg py-1.5 text-center transition cursor-pointer ${
+                className={`min-w-0 rounded-lg px-1.5 py-2 text-center leading-tight transition cursor-pointer ${
                   activeTab === "findings"
                     ? "bg-white text-brand-dark shadow-xs font-extrabold"
                     : "hover:text-brand-dark"
@@ -1266,7 +1371,7 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
               <button
                 type="button"
                 onClick={() => setActiveTab("diagnosis")}
-                className={`flex-1 rounded-lg py-1.5 text-center transition cursor-pointer ${
+                className={`min-w-0 rounded-lg px-1.5 py-2 text-center leading-tight transition cursor-pointer ${
                   activeTab === "diagnosis"
                     ? "bg-white text-brand-dark shadow-xs font-extrabold"
                     : "hover:text-brand-dark"
@@ -1277,7 +1382,7 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
               <button
                 type="button"
                 onClick={() => setActiveTab("treatment")}
-                className={`flex-1 rounded-lg py-1.5 text-center transition cursor-pointer ${
+                className={`min-w-0 rounded-lg px-1.5 py-2 text-center leading-tight transition cursor-pointer ${
                   activeTab === "treatment"
                     ? "bg-white text-brand-dark shadow-xs font-extrabold"
                     : "hover:text-brand-dark"
@@ -1373,98 +1478,110 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
                         icon: "🔍",
                       };
                       const isHovered = hoveredFinding === item;
+                      const isFocused = selectedFindingIndex === idx;
 
                       return (
                         <div
                           key={idx}
                           onMouseEnter={() => setHoveredFinding(item)}
                           onMouseLeave={() => setHoveredFinding(null)}
-                          className={`flex flex-col gap-2 rounded-xl border p-3 transition shadow-2xs ${
-                            isRejected
-                              ? "bg-slate-100/80 border-slate-200 opacity-60"
-                              : isPending
-                                ? "bg-amber-50/60 border-amber-200"
-                                : isHovered
-                                  ? "bg-white border-blue-500 ring-2 ring-blue-500/20"
-                                  : "bg-white border-slate-200"
+                          className={`flex min-w-0 flex-col gap-2 rounded-xl border p-3 transition shadow-2xs ${
+                            isFocused
+                              ? "bg-brand-light/40 border-brand ring-2 ring-brand/15"
+                              : isRejected
+                                ? "bg-slate-100/80 border-slate-200 opacity-60"
+                                : isPending
+                                  ? "bg-amber-50/60 border-amber-200"
+                                  : isHovered
+                                    ? "bg-white border-brand/50 ring-2 ring-brand/10"
+                                    : "bg-white border-slate-200"
                           }`}
                         >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2.5">
-                              <span
-                                className={`flex h-8 w-8 items-center justify-center rounded-lg font-extrabold text-xs text-white ${
-                                  isRejected
-                                    ? "bg-slate-500 line-through"
-                                    : "bg-slate-900"
-                                }`}
-                              >
-                                R{item.fdiToothNumber}
-                              </span>
-                              <div>
-                                <div className="flex items-center gap-1.5">
-                                  <span
-                                    className={`text-xs font-bold ${isRejected ? "line-through text-slate-500" : "text-slate-900"}`}
-                                  >
-                                    {cfg.label}
+                          <div className="flex min-w-0 items-start gap-2.5">
+                            <span
+                              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg font-mono text-xs font-extrabold text-white ${
+                                isRejected
+                                  ? "bg-slate-500 line-through"
+                                  : "bg-brand-dark"
+                              }`}
+                            >
+                              R{item.fdiToothNumber}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+                                <span
+                                  className={`min-w-0 break-words text-xs font-bold leading-snug ${isRejected ? "line-through text-slate-500" : "text-slate-900"}`}
+                                >
+                                  {cfg.label}
+                                </span>
+                                <span className="break-all text-[10px] text-slate-400">
+                                  ({item.findingType})
+                                </span>
+                              </div>
+                              {item.source === "DOCTOR" ? (
+                                <p className="mt-0.5 text-[10px] font-bold text-blue-700">
+                                  Bác sĩ bổ sung/chỉnh sửa
+                                </p>
+                              ) : (
+                                <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                                  <span className="text-[10px] text-slate-500">
+                                    Độ tin cậy AI:
                                   </span>
-                                  <span className="text-[10px] text-slate-400">
-                                    ({item.findingType})
+                                  <span className="font-mono text-[10px] font-bold tabular-nums text-slate-700">
+                                    {(item.confidence * 100).toFixed(1)}%
                                   </span>
                                 </div>
-                                {item.source === "DOCTOR" ? (
-                                  <p className="mt-0.5 text-[10px] font-bold text-blue-700">
-                                    Bác sĩ bổ sung/chỉnh sửa
+                              )}
+                              {!hasDrawableBoundingBox(item.boundingBox) && (
+                                <p className="mt-1 text-[10px] font-medium text-amber-700">
+                                  Chưa có vùng đánh dấu trên phim
+                                </p>
+                              )}
+                              {isEstimatedRegion(item) &&
+                                hasDrawableBoundingBox(item.boundingBox) && (
+                                  <p className="mt-1 text-[10px] font-medium text-slate-600">
+                                    Điểm vị trí ước lượng, cần bác sĩ xác nhận
                                   </p>
-                                ) : (
-                                  <div className="mt-0.5 flex items-center gap-2">
-                                    <span className="text-[10px] text-slate-500">
-                                      Độ tin cậy AI:
-                                    </span>
-                                    <span className="text-[10px] font-bold text-slate-700">
-                                      {(item.confidence * 100).toFixed(1)}%
-                                    </span>
-                                  </div>
                                 )}
-                              </div>
                             </div>
+                          </div>
 
-                            {/* Severity & Review Status Badge */}
-                            <div className="flex items-center gap-1.5">
-                              <span
-                                className={`rounded-md px-2 py-0.5 text-[10px] font-extrabold ${
-                                  isAccepted
-                                    ? "bg-emerald-100 text-emerald-800"
-                                    : isRejected
-                                      ? "bg-rose-100 text-rose-800"
-                                      : "bg-amber-100 text-amber-800"
-                                }`}
-                              >
-                                {isAccepted
-                                  ? "Đã duyệt"
+                          {/* Severity & Review Status Badge */}
+                          <div className="flex flex-wrap items-center gap-1.5 pl-10">
+                            <span
+                              className={`rounded-md px-2 py-0.5 text-[10px] font-bold ${
+                                isAccepted
+                                  ? "bg-emerald-100 text-emerald-800"
                                   : isRejected
-                                    ? "Đã từ chối"
-                                    : "Chờ duyệt"}
-                              </span>
-                              <span
-                                className={`rounded-md px-2 py-0.5 text-[10px] font-extrabold uppercase ${
-                                  isRejected || item.severity === "UNASSESSED"
-                                    ? "bg-slate-200 text-slate-600"
-                                    : item.severity === "HIGH"
-                                      ? "bg-rose-100 text-rose-700"
-                                      : item.severity === "MEDIUM"
-                                        ? "bg-amber-100 text-amber-700"
-                                        : "bg-emerald-100 text-emerald-700"
-                                }`}
-                              >
-                                {item.severity === "UNASSESSED"
-                                  ? "Chưa đánh giá"
+                                    ? "bg-rose-100 text-rose-800"
+                                    : "bg-amber-100 text-amber-800"
+                              }`}
+                            >
+                              {isAccepted
+                                ? "Đã duyệt"
+                                : isRejected
+                                  ? "Đã từ chối"
+                                  : "Chờ duyệt"}
+                            </span>
+                            <span
+                              className={`rounded-md px-2 py-0.5 text-[10px] font-bold ${
+                                isRejected || item.severity === "UNASSESSED"
+                                  ? "bg-slate-200 text-slate-600"
                                   : item.severity === "HIGH"
-                                    ? "Nặng"
+                                    ? "bg-rose-100 text-rose-700"
                                     : item.severity === "MEDIUM"
-                                      ? "Vừa"
-                                      : "Nhẹ"}
-                              </span>
-                            </div>
+                                      ? "bg-amber-100 text-amber-700"
+                                      : "bg-emerald-100 text-emerald-700"
+                              }`}
+                            >
+                              {item.severity === "UNASSESSED"
+                                ? "Chưa đánh giá"
+                                : item.severity === "HIGH"
+                                  ? "Nặng"
+                                  : item.severity === "MEDIUM"
+                                    ? "Vừa"
+                                    : "Nhẹ"}
+                            </span>
                           </div>
 
                           {/* Doctor Clinical Note if any */}
@@ -1475,8 +1592,8 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
                           )}
 
                           {/* DOCTOR REVIEW ACTION BUTTONS (ACCEPT / REJECT / EDIT / DELETE) */}
-                          <div className="flex items-center justify-between border-t border-slate-100 pt-2 text-xs">
-                            <div className="flex items-center gap-1">
+                          <div className="flex flex-wrap items-center gap-1 border-t border-slate-100 pt-2 text-xs">
+                            <div className="flex flex-wrap items-center gap-1">
                               {/* 1. Nút Duyệt / Chấp nhận */}
                               <button
                                 type="button"
@@ -1527,6 +1644,22 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
                               >
                                 <PencilSimple size={13} />
                                 <span>Sửa</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedFindingIndex(idx)}
+                                disabled={
+                                  !hasDrawableBoundingBox(item.boundingBox)
+                                }
+                                aria-label={`Xem trên phim: R${item.fdiToothNumber} ${cfg.label}`}
+                                className="inline-flex cursor-pointer items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-semibold text-brand-dark transition hover:bg-brand-light disabled:cursor-not-allowed disabled:opacity-40"
+                              >
+                                <Eye size={13} />
+                                <span>
+                                  {isEstimatedRegion(item)
+                                    ? "Xem điểm"
+                                    : "Xem vùng"}
+                                </span>
                               </button>
                             </div>
                           </div>
@@ -1641,23 +1774,24 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
                           acceptedFindings.length === 0 ||
                           chartSynced
                         }
-                        className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-900 transition hover:bg-blue-100 cursor-pointer shadow-2xs disabled:cursor-not-allowed disabled:opacity-50"
+                        className="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-xl border border-brand/20 bg-brand-light/60 px-2 py-2 text-center text-[11px] font-bold leading-snug text-brand-dark transition hover:bg-brand-light cursor-pointer shadow-2xs disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {chartSynced ? (
                           <>
                             <CheckCircle
                               size={15}
                               weight="fill"
-                              className="text-blue-600"
+                              className="shrink-0 text-brand"
                             />
                             <span>Đã thêm vào bản nháp</span>
                           </>
                         ) : (
                           <>
-                            <Sparkle size={15} className="text-blue-600" />
-                            <span>
-                              Đồng bộ Sơ đồ răng ({acceptedFindings.length})
-                            </span>
+                            <Sparkle
+                              size={15}
+                              className="shrink-0 text-brand"
+                            />
+                            <span>Đồng bộ sơ đồ răng</span>
                           </>
                         )}
                       </button>
@@ -1667,7 +1801,7 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
                       type="button"
                       onClick={() => setShowReportModal(true)}
                       disabled={!reviewConfirmed}
-                      className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-100 cursor-pointer shadow-2xs disabled:cursor-not-allowed disabled:opacity-50"
+                      className="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2 py-2 text-center text-[11px] font-bold leading-snug text-slate-700 transition hover:bg-slate-100 cursor-pointer shadow-2xs disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       <Printer size={15} />
                       <span>Xuất PDF / In</span>
@@ -1705,7 +1839,7 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
                         !reviewConfirmed ||
                         acceptedFindings.length === 0
                       }
-                      className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-emerald-500/20 transition hover:from-emerald-700 hover:to-teal-700 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+                      className="inline-flex w-full min-w-0 items-center justify-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-center text-xs font-bold leading-snug text-white shadow-sm transition hover:bg-brand-dark cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {applied ? (
                         <>
@@ -1715,10 +1849,7 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
                       ) : (
                         <>
                           <FloppyDisk size={16} />
-                          <span>
-                            Thêm {acceptedFindings.length} kết quả đã duyệt vào
-                            bản nháp bệnh án
-                          </span>
+                          <span>Thêm vào bản nháp bệnh án</span>
                         </>
                       )}
                     </button>

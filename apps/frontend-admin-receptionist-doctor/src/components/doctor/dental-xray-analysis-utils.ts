@@ -2,7 +2,11 @@ import type { DentalFinding } from "./dental-xray-analyzer";
 
 export const MAX_XRAY_FILE_BYTES = 10 * 1024 * 1024;
 export const MAX_XRAY_PIXELS = 25_000_000;
-export const ACCEPTED_XRAY_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
+export const ACCEPTED_XRAY_MIME_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+] as const;
 
 export function validateXrayFile(file: File): string | null {
   if (!(ACCEPTED_XRAY_MIME_TYPES as readonly string[]).includes(file.type)) {
@@ -16,7 +20,10 @@ export function validateXrayFile(file: File): string | null {
   return null;
 }
 
-export function validateXraySignature(bytes: Uint8Array, declaredType: string): string | null {
+export function validateXraySignature(
+  bytes: Uint8Array,
+  declaredType: string,
+): string | null {
   const isJpeg = bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
   const isPng =
     bytes[0] === 0x89 &&
@@ -35,10 +42,15 @@ export function validateXraySignature(bytes: Uint8Array, declaredType: string): 
     (declaredType === "image/png" && isPng) ||
     (declaredType === "image/webp" && isWebp);
 
-  return signatureMatches ? null : "Nội dung tệp không khớp với định dạng ảnh đã khai báo.";
+  return signatureMatches
+    ? null
+    : "Nội dung tệp không khớp với định dạng ảnh đã khai báo.";
 }
 
-export function validateXrayDimensions(width: number, height: number): string | null {
+export function validateXrayDimensions(
+  width: number,
+  height: number,
+): string | null {
   if (width < 256 || height < 128) {
     return "Ảnh có kích thước pixel quá nhỏ để phân tích an toàn.";
   }
@@ -50,13 +62,16 @@ export function validateXrayDimensions(width: number, height: number): string | 
   return null;
 }
 
-export async function readImageDimensions(file: File): Promise<{ width: number; height: number }> {
+export async function readImageDimensions(
+  file: File,
+): Promise<{ width: number; height: number }> {
   const objectUrl = URL.createObjectURL(file);
 
   try {
     return await new Promise((resolve, reject) => {
       const image = new Image();
-      image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight });
+      image.onload = () =>
+        resolve({ width: image.naturalWidth, height: image.naturalHeight });
       image.onerror = () => reject(new Error("Không thể đọc nội dung ảnh."));
       image.src = objectUrl;
     });
@@ -69,7 +84,35 @@ export function getVisibleFindings(
   findings: DentalFinding[],
   selectedTypes: Record<string, boolean>,
 ): Array<{ finding: DentalFinding; originalIndex: number }> {
+  const seenRegions = new Set<string>();
   return findings
     .map((finding, originalIndex) => ({ finding, originalIndex }))
-    .filter(({ finding }) => selectedTypes[finding.findingType] !== false);
+    .filter(({ finding }) => {
+      const box = finding.boundingBox;
+      if (
+        selectedTypes[finding.findingType] === false ||
+        !hasDrawableBoundingBox(box)
+      ) {
+        return false;
+      }
+      const region = `${finding.fdiToothNumber}:${box.x}:${box.y}:${box.width}:${box.height}`;
+      if (seenRegions.has(region)) return false;
+      seenRegions.add(region);
+      return true;
+    });
+}
+
+export function hasDrawableBoundingBox(
+  box: DentalFinding["boundingBox"] | null | undefined,
+): boolean {
+  return Boolean(
+    box &&
+    [box.x, box.y, box.width, box.height].every(Number.isFinite) &&
+    box.x >= 0 &&
+    box.y >= 0 &&
+    box.width > 0 &&
+    box.height > 0 &&
+    box.x + box.width <= 100 &&
+    box.y + box.height <= 100,
+  );
 }

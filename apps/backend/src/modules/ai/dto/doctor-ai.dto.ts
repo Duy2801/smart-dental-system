@@ -160,6 +160,10 @@ export class ReviewedXrayFindingDto {
   severity!: 'UNASSESSED' | 'LOW' | 'MEDIUM' | 'HIGH';
 
   @IsOptional()
+  @IsIn(['DETECTED', 'ESTIMATED', 'UNLOCATED', 'MANUAL'])
+  regionSource?: 'DETECTED' | 'ESTIMATED' | 'UNLOCATED' | 'MANUAL';
+
+  @IsOptional()
   @IsIn(['AI', 'DOCTOR'])
   source?: 'AI' | 'DOCTOR';
 

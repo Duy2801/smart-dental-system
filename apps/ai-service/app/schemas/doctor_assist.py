@@ -194,6 +194,7 @@ class DentalFinding(BaseModel):
     confidence: float  # 0.0 - 1.0 (e.g. 0.962)
     bounding_box: dict[str, float]  # {"x": 12.5, "y": 30.0, "width": 8.0, "height": 15.0} (% normalized)
     severity: str = "UNASSESSED"  # UNASSESSED until a doctor evaluates clinical severity
+    region_source: str = "DETECTED"  # DETECTED, ESTIMATED, or UNLOCATED
 
 
 class XrayAnalysisStatus(str, Enum):

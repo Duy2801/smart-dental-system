@@ -179,8 +179,17 @@ describe("DentalXrayAnalyzer safety states", () => {
             severity: "UNASSESSED",
             boundingBox: { x: 40, y: 30, width: 12, height: 24 },
           },
+          {
+            findingId: "88888888-8888-4888-8888-888888888888",
+            fdiToothNumber: 35,
+            findingType: "Missing tooth",
+            confidence: 0.9,
+            severity: "UNASSESSED",
+            regionSource: "ESTIMATED",
+            boundingBox: { x: 60, y: 30, width: 5, height: 20 },
+          },
         ],
-        totalFindings: 1,
+        totalFindings: 2,
         summary: "Có một vị trí cần bác sĩ kiểm tra.",
         diagnosisSuggestion: null,
         treatmentRecommendations: [],
@@ -210,6 +219,20 @@ describe("DentalXrayAnalyzer safety states", () => {
       await screen.findByText("Vùng răng AI đề nghị kiểm tra"),
     ).toBeInTheDocument();
     expect(screen.getByTitle(/Vùng răng 46/)).toBeInTheDocument();
+    const estimatedMarker = screen.getByTitle(/Điểm dự kiến của răng 35/);
+    expect(estimatedMarker).toHaveClass("border-dashed", "rounded-full");
+    expect(estimatedMarker).toHaveStyle({ width: "14px", height: "14px" });
+    expect(screen.getByText("≈R35")).toBeInTheDocument();
+    expect(screen.getByText(/Dấu ≈ chỉ vị trí ước lượng/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /Xem trên phim: R46/ }));
+    expect(screen.getByTitle(/Vùng răng 46/)).toBeInTheDocument();
+    expect(
+      screen.queryByTitle(/Điểm dự kiến của răng 35/),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Xem tất cả vùng" }));
+    expect(screen.getByTitle(/Điểm dự kiến của răng 35/)).toBeInTheDocument();
   });
 
   it("allows the doctor to drag on the radiograph and create a manual region", async () => {
@@ -264,9 +287,7 @@ describe("DentalXrayAnalyzer safety states", () => {
     fireEvent.mouseMove(drawingSurface, { clientX: 420, clientY: 210 });
     fireEvent.mouseUp(drawingSurface);
 
-    expect(
-      screen.getByText("Thêm tổn thương thủ công"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Thêm tổn thương thủ công")).toBeInTheDocument();
     expect(image).toHaveAttribute("draggable", "false");
   });
 
