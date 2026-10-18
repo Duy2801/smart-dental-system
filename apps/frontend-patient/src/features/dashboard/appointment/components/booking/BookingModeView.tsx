@@ -15,7 +15,6 @@ import { BookingPanel } from "./BookingPanel";
 import { BookingConfirmationView } from "./BookingConfirmationView";
 import { CurrentAppointmentCard } from "../sidebar/CurrentAppointmentCard";
 import { NotificationSettings } from "../sidebar/NotificationSettings";
-import { SupportCard } from "../sidebar/SupportCard";
 import { AppointmentWorkspaceHeader } from "../AppointmentWorkspaceHeader";
 import {
   appointmentQueryKeys,
@@ -253,7 +252,7 @@ export function BookingModeView({
       />
 
       {viewStep === "form" ? (
-        <div className="grid items-start gap-7 lg:grid-cols-[minmax(0,1.7fr)_360px]">
+        <div className="grid items-start gap-7 lg:grid-cols-[minmax(0,1.7fr)_360px] lg:items-stretch">
           <BookingPanel
             patients={patientProfiles}
             services={services}
@@ -306,10 +305,9 @@ export function BookingModeView({
             onOpenReview={() => setViewStep("confirmation")}
             onCancelBooking={onCancelBooking}
           />
-          <aside className="space-y-5 lg:sticky lg:top-24">
+          <aside className="flex flex-col gap-5">
             <CurrentAppointmentCard appointment={current} />
-            <NotificationSettings />
-            <SupportCard />
+            <NotificationSettings className="lg:flex-1" />
           </aside>
         </div>
       ) : (

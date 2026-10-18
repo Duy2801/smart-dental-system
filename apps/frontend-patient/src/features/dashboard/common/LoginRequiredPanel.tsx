@@ -19,8 +19,8 @@ export function LoginRequiredPanel({
   description,
   loginLabel,
   redirectTo,
-  secondaryHref = ROUTES.service,
-  secondaryLabel = "Xem dịch vụ",
+  secondaryHref,
+  secondaryLabel,
   icon = "shield",
 }: LoginRequiredPanelProps) {
   const loginHref = `${ROUTES.login}?redirect=${encodeURIComponent(redirectTo)}`;
@@ -39,7 +39,7 @@ export function LoginRequiredPanel({
             <h1 className="mt-2 text-2xl font-black text-slate-950 sm:text-3xl">
               {title}
             </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-500">
               {description}
             </p>
             <div className="mt-7 flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
@@ -50,12 +50,14 @@ export function LoginRequiredPanel({
                 <DashboardIcon name="user" className="h-4 w-4" />
                 {loginLabel}
               </Link>
-              <Link
-                href={secondaryHref}
-                className="inline-flex h-12 items-center justify-center rounded-xl border border-slate-200 bg-white px-6 text-sm font-bold text-slate-700 transition hover:border-blue-200 hover:bg-blue-50 hover:text-[#0863c5]"
-              >
-                {secondaryLabel}
-              </Link>
+              {secondaryHref && secondaryLabel ? (
+                <Link
+                  href={secondaryHref}
+                  className="inline-flex h-12 items-center justify-center rounded-xl border border-slate-200 bg-white px-6 text-sm font-bold text-slate-700 transition hover:border-blue-200 hover:bg-blue-50 hover:text-[#0863c5]"
+                >
+                  {secondaryLabel}
+                </Link>
+              ) : null}
             </div>
           </div>
         </div>

@@ -29,6 +29,7 @@ type FaqItem = {
   question: string;
   answer: string;
   href: string;
+  cta: string;
 };
 
 function formatOpenHours(hours: BusinessHour[] = []) {
@@ -42,7 +43,7 @@ function formatOpenHours(hours: BusinessHour[] = []) {
 }
 
 function buildServiceFaqs(services: HomeServiceCard[]): FaqItem[] {
-  const seededFaqs: FaqItem[] = services.flatMap((service, serviceIndex) =>
+  const faqsByService: FaqItem[][] = services.map((service, serviceIndex) =>
     service.faqs.map((faq, faqIndex): FaqItem => ({
       id: `service-${service.id}-faq-${faq.id}`,
       badge: service.title,
@@ -50,11 +51,22 @@ function buildServiceFaqs(services: HomeServiceCard[]): FaqItem[] {
       question: faq.question,
       answer: faq.answer,
       href: service.href,
+      cta: "Xem dịch vụ",
     })),
   );
 
+  // Lấy xen kẽ từng câu của mỗi dịch vụ để 4 thẻ không bị dồn vào cùng một dịch vụ
+  const seededFaqs: FaqItem[] = [];
+  const maxFaqs = Math.max(0, ...faqsByService.map((faqs) => faqs.length));
+  for (let round = 0; round < maxFaqs && seededFaqs.length < 4; round += 1) {
+    for (const faqs of faqsByService) {
+      if (faqs[round]) seededFaqs.push(faqs[round]);
+      if (seededFaqs.length >= 4) break;
+    }
+  }
+
   if (seededFaqs.length) {
-    return seededFaqs.slice(0, 4);
+    return seededFaqs;
   }
 
   return services.slice(0, 4).map((service, index) => {
@@ -78,6 +90,7 @@ function buildServiceFaqs(services: HomeServiceCard[]): FaqItem[] {
       question: questions[index % questions.length],
       answer: answers[index % answers.length],
       href: ROUTES.consultation,
+      cta: "Đặt lịch tư vấn",
     };
   });
 }
@@ -93,6 +106,7 @@ function buildClinicFaqs(
       question: "Phòng khám làm việc vào những khung giờ nào?",
       answer: formatOpenHours(clinic?.businessHours),
       href: ROUTES.consultation,
+      cta: "Đặt lịch tư vấn",
     },
     {
       id: "clinic-contact",
@@ -103,6 +117,7 @@ function buildClinicFaqs(
         ? `Bạn có thể gọi hotline ${clinic.phone}${clinic.email ? ` hoặc gửi email đến ${clinic.email}` : ""}.`
         : "Phòng khám chưa cập nhật hotline trong cấu hình hệ thống.",
       href: ROUTES.consultation,
+      cta: "Đặt lịch tư vấn",
     },
   ];
 }
@@ -130,33 +145,33 @@ function FaqCard({ item }: { item: FaqItem }) {
   return (
     <Link
       href={item.href}
-      className="group flex min-h-[220px] flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-6 shadow-[0_14px_36px_rgba(15,23,42,.05)] transition duration-300 hover:-translate-y-1 hover:border-blue-200 hover:shadow-[0_20px_48px_rgba(15,23,42,.08)]"
+      className="group flex h-full flex-col rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_10px_30px_rgba(15,23,42,.04)] transition duration-300 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-[0_18px_44px_rgba(15,23,42,.08)] sm:p-6"
     >
-      <div>
-        <div className="flex items-center justify-between gap-3">
-          <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1.5 text-[11px] font-extrabold text-[#0058bc]">
-            <DashboardIcon name={item.icon} className="h-3.5 w-3.5" />
-            FAQ
-          </span>
-          <span className="max-w-[58%] truncate rounded-full bg-slate-100 px-3 py-1.5 text-[11px] font-extrabold text-slate-600">
-            {item.badge}
-          </span>
+      <div className="flex flex-1 items-start gap-4 pb-5">
+        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-blue-50 text-[#0058bc] transition group-hover:bg-[#0058bc] group-hover:text-white">
+          <DashboardIcon name={item.icon} className="h-5 w-5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h3 className="line-clamp-2 text-base font-bold leading-snug text-slate-900 sm:text-[17px]">
+            {item.question}
+          </h3>
+          <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-500">
+            {item.answer}
+          </p>
         </div>
-
-        <h3 className={`mt-5 line-clamp-2 ${T.cardTitleLg}`}>
-          {item.question}
-        </h3>
-        <p className={`mt-3 line-clamp-3 ${T.body}`}>
-          {item.answer}
-        </p>
       </div>
 
-      <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4">
-        <span className={T.linkCta}>
-          Đặt lịch tư vấn
+      <div className="flex items-center justify-between gap-3 border-t border-slate-100 pt-4">
+        <span className="inline-flex min-w-0 items-center gap-2 text-xs font-semibold text-slate-500">
+          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#0058bc]/60" />
+          <span className="truncate">{item.badge}</span>
         </span>
-        <span className="inline-flex items-center justify-center rounded-xl bg-[#0058bc] px-3.5 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#004698]">
-          Đặt ngay
+        <span className="inline-flex shrink-0 items-center gap-1.5 text-sm font-bold text-[#0058bc]">
+          {item.cta}
+          <DashboardIcon
+            name="arrow"
+            className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
+          />
         </span>
       </div>
     </Link>

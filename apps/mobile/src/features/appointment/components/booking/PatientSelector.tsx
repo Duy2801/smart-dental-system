@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import { Text, TextInput } from 'react-native-paper';
-import { Button, Card } from '~src/components/ui';
+import { Button, Card, SheetBottomInset } from '~src/components/ui';
 import type { CreatePatientProfilePayload, PatientProfile } from '../../types';
 
 type PatientSelectorProps = {
@@ -322,6 +322,7 @@ export function PatientSelector({
                 </Button>
               </View>
             </ScrollView>
+            <SheetBottomInset />
           </View>
         </View>
       </Modal>

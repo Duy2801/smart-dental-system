@@ -65,7 +65,7 @@ export function ConsultationWorkspace() {
     return (
       <LoginRequiredPanel
         title="Đặt tư vấn nha khoa trực tuyến"
-        description="Đăng nhập để chọn bác sĩ, khung giờ tư vấn, thanh toán và theo dõi lịch tư vấn online của bạn."
+        description="Đăng nhập để chọn bác sĩ, khung giờ và theo dõi lịch tư vấn online."
         loginLabel="Đăng nhập để đặt tư vấn"
         redirectTo="/consultation"
         secondaryHref="/service"

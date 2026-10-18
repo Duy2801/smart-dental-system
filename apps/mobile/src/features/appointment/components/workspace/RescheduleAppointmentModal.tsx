@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import { Text } from 'react-native-paper';
-import { Button, toast } from '~src/components/ui';
+import { Button, SheetBottomInset, toast } from '~src/components/ui';
 import { getAppointmentOptions, reschedulePatientAppointment } from '../../api';
 import type { AppointmentItem } from '../../types';
 import { getBookingErrorMessage } from '../../utils/bookingErrorMessage';
@@ -283,6 +283,7 @@ export function RescheduleAppointmentModal({
               </View>
             </ScrollView>
           )}
+          <SheetBottomInset />
         </View>
       </View>
     </Modal>

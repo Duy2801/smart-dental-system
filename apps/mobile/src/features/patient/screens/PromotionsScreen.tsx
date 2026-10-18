@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useSelector } from 'react-redux';
-import { EmptyState, Screen } from '~src/components/ui';
+import { EmptyState, Screen, SheetBottomInset } from '~src/components/ui';
 import { SCREEN_NAME } from '~src/constants/screenName';
 import { getClinicConfigInfo } from '~src/features/home/api';
 import { FloatingChatButton } from '~src/features/home/components/FloatingChatButton';
@@ -613,6 +613,7 @@ export default function PromotionsScreen({ navigation }: any) {
                   <Text style={styles.modalCloseFooterText}>Đóng</Text>
                 </TouchableOpacity>
               </View>
+              <SheetBottomInset />
             </View>
           </View>
         </Modal>

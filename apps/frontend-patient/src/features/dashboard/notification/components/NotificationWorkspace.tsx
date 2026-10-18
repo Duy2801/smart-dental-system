@@ -104,7 +104,7 @@ export function NotificationWorkspace() {
     return (
       <LoginRequiredPanel
         title="Xem thông báo cá nhân"
-        description="Đăng nhập để xem thông báo lịch hẹn, nhắc khám, thanh toán và các cập nhật dành riêng cho tài khoản của bạn."
+        description="Đăng nhập để xem thông báo lịch hẹn, nhắc khám và thanh toán của bạn."
         loginLabel="Đăng nhập để xem thông báo"
         redirectTo="/notification"
         secondaryHref="/promotions"

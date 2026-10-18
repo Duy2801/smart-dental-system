@@ -165,33 +165,45 @@ export function AppointmentDetailModal({
     ? selectedInvoice
     : null;
 
-  // Unified notes list (prep notes for upcoming, doctor instructions for completed/cancelled)
-  const notesList = appointment.preparation?.length
-    ? appointment.preparation
-    : isCompleted
-      ? [
-          "Vệ sinh răng miệng 2 lần/ngày với kem đánh răng chứa fluoride",
-          "Tránh nhai thức ăn quá cứng hoặc đồ uống quá nóng/lạnh trong 24 giờ đầu",
-          "Sử dụng chỉ nha khoa và nước súc miệng kháng khuẩn sau bữa ăn",
-          "Hẹn tái khám định kỳ theo lịch tư vấn của bác sĩ",
-        ]
-      : isCancellationRequested
-        ? [
-            "Yêu cầu hủy đã được ghi nhận và slot bác sĩ đã được giải phóng. Lễ tân sẽ xác nhận hoàn tất thủ tục hủy.",
-          ]
-        : isCancelled
-          ? [
-              "Lịch hẹn đã được hủy. Quý khách có thể đặt lại lịch khám mới bất cứ lúc nào.",
-            ]
-          : [
-              "Đến trước giờ hẹn 10-15 phút để làm thủ tục check-in tại quầy lễ tân",
-              "Mang theo kết quả chẩn đoán hoặc hồ sơ răng hàm mặt trước đó (nếu có)",
-              "Giữ liên lạc điện thoại để phòng khám hỗ trợ khi cần thiết",
-            ];
+  const isUpcoming =
+    appointment.status === "pending" ||
+    appointment.status === "confirmed" ||
+    appointment.status === "rescheduled";
+
+  // Chỉ hiện lưu ý khi thật sự cần: hướng dẫn trước buổi hẹn, hoặc thông báo về việc hủy lịch
+  const notesList = isCancellationRequested
+    ? ["Yêu cầu hủy đã được ghi nhận. Lễ tân sẽ xác nhận hoàn tất thủ tục hủy."]
+    : isCancelled
+      ? ["Lịch hẹn đã được hủy. Bạn có thể đặt lịch khám mới bất cứ lúc nào."]
+      : isUpcoming
+        ? (appointment.preparation ?? [])
+        : [];
+
+  const priceLabel =
+    appointment.treatmentMethodPrice !== undefined
+      ? formatCurrency(appointment.treatmentMethodPrice)
+      : "Liên hệ báo giá";
+
+  const infoRows: Array<{ label: string; value: string; hint?: string | null }> = [
+    {
+      label: isCompleted ? "Thời gian đã khám" : "Thời gian hẹn",
+      value: formattedTime,
+      hint: appointment.date,
+    },
+    {
+      label: "Bệnh nhân",
+      value: appointment.patientName || "—",
+      hint: appointment.patientRelationship,
+    },
+    { label: "Bác sĩ", value: appointment.doctor || "—" },
+    {
+      label: "Thời lượng dự kiến",
+      value: `${appointment.durationMinutes || 30} phút`,
+    },
+  ];
 
   return (
     <>
-      {/* Drawer Overlay Backdrop */}
       <div
         className="fixed inset-0 z-[200] overflow-hidden"
         role="dialog"
@@ -204,208 +216,85 @@ export function AppointmentDetailModal({
           aria-hidden="true"
         />
 
-        {/* Drawer Slide-in Panel from Right Edge */}
-        <div className="fixed inset-y-0 right-0 flex max-w-full pl-0 sm:pl-10">
+        <div className="fixed inset-y-0 right-0 flex max-w-full">
           <aside
             onClick={(event) => event.stopPropagation()}
-            className="w-screen max-w-2xl bg-white shadow-2xl flex flex-col h-full transform transition ease-in-out duration-300 animate-in slide-in-from-right"
+            className="flex h-full w-screen max-w-2xl flex-col bg-white shadow-2xl animate-in slide-in-from-right duration-300"
           >
-            {/* Top Accent Gradient Bar */}
-            <div
-              className={`h-1.5 w-full shrink-0 ${
-                isCompleted
-                  ? "bg-gradient-to-r from-emerald-500 via-blue-600 to-indigo-500"
-                  : isCancelled
-                    ? "bg-gradient-to-r from-rose-500 to-amber-500"
-                    : "bg-gradient-to-r from-[#0058bc] via-cyan-500 to-emerald-400"
-              }`}
-            />
-
-            {/* Drawer Header */}
-            <header className="sticky top-0 z-10 bg-white/95 backdrop-blur px-5 py-3.5 sm:px-6 border-b border-slate-100 flex items-center justify-between gap-3 shrink-0">
-              <div className="space-y-1">
+            {/* Header */}
+            <header className="flex shrink-0 items-start gap-3 border-b border-slate-100 px-5 py-4 sm:px-6">
+              <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#0058bc] bg-blue-50 px-2.5 py-0.5 rounded-md border border-blue-100 font-mono">
-                    Mã: {appointmentCode}
-                  </span>
                   <span
-                    className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${status.className}`}
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${status.className}`}
                   >
-                    <span
-                      className={`h-1.5 w-1.5 rounded-full ${status.tone} ${
-                        appointment.status === "pending" ||
-                        appointment.status === "in_progress"
-                          ? "animate-pulse"
-                          : ""
-                      }`}
-                    />
+                    <span className={`h-1.5 w-1.5 rounded-full ${status.tone}`} />
                     {status.label}
+                  </span>
+                  <span className="font-mono text-[11px] font-semibold text-slate-400">
+                    {appointmentCode}
                   </span>
                 </div>
                 <h2
                   id="drawer-appointment-title"
-                  className="text-base sm:text-lg font-black text-slate-900 tracking-tight"
+                  className="mt-1.5 text-lg font-black tracking-tight text-slate-900"
                 >
-                  Chi Tiết Lịch Hẹn Khám Nha Khoa
+                  Chi tiết lịch hẹn
                 </h2>
               </div>
             </header>
 
-            {/* Scrollable Drawer Body Content */}
-            <div className="flex-1 overflow-y-auto bg-slate-50/50 p-5 sm:p-6 space-y-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
-              {/* 1. Main Time & Service Banner */}
-              <div
-                className={`grid gap-0 overflow-hidden rounded-2xl border shadow-2xs sm:grid-cols-[1.3fr_1.1fr_auto] ${
-                  isCancelled
-                    ? "border-rose-200 bg-rose-50/60"
-                    : "border-blue-200 bg-gradient-to-r from-blue-50/90 via-indigo-50/40 to-cyan-50/80"
+            {/* Body */}
+            <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5 sm:px-6 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300">
+              {/* Dịch vụ & chi phí */}
+              <section
+                className={`rounded-2xl border p-4 ${
+                  isCancelled ? "border-rose-200 bg-rose-50/50" : "border-blue-100 bg-blue-50/50"
                 }`}
               >
-                <div className="p-4 flex flex-col justify-center">
-                  <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">
-                    {isCompleted
-                      ? "Thời gian đã khám"
-                      : "Thời gian hẹn khám"}
-                  </p>
-                  <p className="mt-0.5 text-xs sm:text-sm font-black text-slate-900 truncate">
-                    {formattedTime}
-                  </p>
-                  <p className="text-[11px] font-semibold text-slate-600">
-                    {appointment.date}
-                  </p>
-                </div>
-
-                <div className="border-t border-slate-200/70 px-4 py-3 sm:border-l sm:border-t-0 sm:px-4 sm:py-3.5 flex flex-col justify-center">
-                  <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">
-                    Dịch vụ điều trị
-                  </p>
-                  <p className="text-xs sm:text-sm font-black text-[#0058bc] truncate">
-                    {appointment.service}
-                  </p>
-                  <p className="text-[11px] font-medium text-slate-600 line-clamp-1">
-                    {appointment.treatmentMethodName || "Phương pháp đang cập nhật"}
-                  </p>
-                </div>
-
-                <div className="flex items-center justify-between gap-3 border-t border-slate-200/70 bg-white/70 px-4 py-3 sm:block sm:min-w-28 sm:border-l sm:border-t-0 sm:px-4 sm:py-3.5 sm:text-right">
-                  <div>
-                    <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">
-                      Giá phương pháp
+                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                  Dịch vụ
+                </p>
+                <div className="mt-1 flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="text-base font-black text-[#0058bc]">
+                      {appointment.service}
                     </p>
-                    <p className="mt-0.5 text-xs sm:text-sm font-black text-emerald-700">
-                      {appointment.treatmentMethodPrice !== undefined
-                        ? formatCurrency(appointment.treatmentMethodPrice)
-                        : "Liên hệ báo giá"}
-                    </p>
-                  </div>
-                  <span className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-[10px] font-extrabold text-[#0058bc] sm:mt-1.5">
-                    {appointment.durationMinutes || 30} phút
-                  </span>
-                </div>
-              </div>
-
-              {/* 2. Key Information Grid */}
-              <div className="grid gap-3 sm:grid-cols-2">
-                {/* Patient Card */}
-                <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                      Bệnh nhân thăm khám
-                    </p>
-                    <span className="shrink-0 rounded-md bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-[#0058bc]">
-                      {appointment.patientRelationship || "Chính chủ"}
-                    </span>
-                  </div>
-                  <p className="mt-1 truncate text-sm font-extrabold text-slate-900">
-                    {appointment.patientName || "Nguyễn Văn An"}
-                  </p>
-                  <p className="text-[11px] font-medium text-slate-500">
-                    Hồ sơ y tế điện tử
-                  </p>
-                </div>
-
-                {/* Doctor Card */}
-                <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs">
-                  <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                    Bác sĩ thực hiện
-                  </p>
-                  <p className="mt-1 truncate text-sm font-extrabold text-slate-900">
-                    {appointment.doctor}
-                  </p>
-                  <p className="truncate text-[11px] font-medium text-slate-500">
-                    Chuyên khoa Răng - Hàm - Mặt
-                  </p>
-                </div>
-
-                {/* Location Card */}
-                <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs">
-                  <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                    Địa điểm phòng khám
-                  </p>
-                  <p className="mt-1 text-xs sm:text-sm font-bold text-slate-800">
-                    Smart Dental System - Tầng 2
-                  </p>
-                  <p className="text-[11px] text-slate-500">
-                    Khu vực khám lâm sàng tổng quát
-                  </p>
-                </div>
-
-                {/* Payment Card */}
-                <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xs">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                      Hình thức thanh toán
-                    </p>
-                    <span className="shrink-0 rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700">
-                      Tại quầy
-                    </span>
-                  </div>
-                  <p className="mt-1 text-xs sm:text-sm font-bold text-slate-800">
-                    {isCompleted
-                      ? "Đối soát theo hóa đơn sau khám"
-                      : "Thanh toán trực tiếp sau khám"}
-                  </p>
-                  <p className="text-[11px] text-slate-500">
-                    {isCompleted
-                      ? "Đã hoàn tất thanh toán dịch vụ"
-                      : "Miễn phí hủy hoặc đổi lịch hẹn"}
-                  </p>
-                </div>
-              </div>
-
-              {/* 3. INVOICE SECTION (HÓA ĐƠN ĐI KÈM SAU KHI KHÁM XONG) */}
-              {isCompleted ? (
-                <section className="overflow-hidden rounded-2xl border border-blue-200/80 bg-white shadow-2xs">
-                  {/* Invoice Ribbon Header */}
-                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-blue-100 bg-gradient-to-r from-blue-50/90 to-sky-50/40 px-4 py-3 sm:px-5">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-white bg-[#0058bc] px-2 py-0.5 rounded">
-                          Hóa Đơn Khám Nha Khoa
-                        </span>
-                        <span className="text-[10px] font-bold text-slate-500">
-                          (Đính kèm sau khám)
-                        </span>
-                      </div>
-                      <p className="mt-1 text-xs sm:text-sm font-bold text-slate-900">
-                        Chứng từ thanh toán dịch vụ y tế
+                    {appointment.treatmentMethodName ? (
+                      <p className="mt-0.5 text-sm text-slate-600">
+                        {appointment.treatmentMethodName}
                       </p>
-                    </div>
-
-                    {effectiveInvoices.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setSelectedInvoice(effectiveInvoices[0])}
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-white px-3 py-1.5 text-xs font-bold text-[#0058bc] shadow-2xs hover:bg-blue-50 transition cursor-pointer"
-                      >
-                        In / Xem bản in
-                      </button>
-                    )}
+                    ) : null}
                   </div>
+                  <p className="shrink-0 text-base font-black text-slate-900">
+                    {priceLabel}
+                  </p>
+                </div>
+              </section>
 
-                  {/* Render Invoices List */}
+              {/* Thông tin chính */}
+              <dl className="divide-y divide-slate-100 rounded-2xl border border-slate-200/80">
+                {infoRows.map((row) => (
+                  <div key={row.label} className="flex items-start justify-between gap-4 px-4 py-3">
+                    <dt className="pt-0.5 text-xs font-semibold text-slate-500">{row.label}</dt>
+                    <dd className="min-w-0 text-right">
+                      <p className="truncate text-sm font-bold text-slate-900">{row.value}</p>
+                      {row.hint ? (
+                        <p className="text-xs text-slate-500 first-letter:uppercase">{row.hint}</p>
+                      ) : null}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+
+              {/* Hóa đơn (chỉ khi đã khám xong) */}
+              {isCompleted ? (
+                <section>
+                  <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">
+                    Hóa đơn
+                  </h3>
                   {effectiveInvoices.length > 0 ? (
-                    <div className="divide-y divide-slate-100">
+                    <div className="space-y-2">
                       {effectiveInvoices.map((invoice) => {
                         const paymentLabel =
                           invoice.paymentState === "paid"
@@ -415,209 +304,91 @@ export function AppointmentDetailModal({
                               : "Chưa thanh toán";
                         const paymentClass =
                           invoice.paymentState === "paid"
-                            ? "bg-blue-50 text-[#0058bc] border-blue-200 font-bold"
+                            ? "bg-blue-50 text-[#0058bc]"
                             : invoice.paymentState === "partial"
-                              ? "bg-blue-50 text-[#0058bc] border-blue-200"
-                              : "bg-slate-100 text-slate-700 border-slate-200";
+                              ? "bg-amber-50 text-amber-700"
+                              : "bg-slate-100 text-slate-600";
 
                         return (
-                          <div key={invoice.id} className="p-4 sm:p-5 space-y-4">
-                            {/* Invoice Meta Row */}
-                            <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                              <div>
-                                <span className="text-slate-400">Mã hóa đơn: </span>
-                                <strong className="font-mono text-slate-900 font-bold">
-                                  {invoice.invoiceCode}
-                                </strong>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-slate-400">
-                                  {invoice.issuedAt
-                                    ? formatDateTime(invoice.issuedAt)
-                                    : "Đã xuất sau khám"}
-                                </span>
-                                <span
-                                  className={`rounded-full border px-2.5 py-0.5 text-[10px] uppercase ${paymentClass}`}
-                                >
-                                  ✓ {paymentLabel}
-                                </span>
-                              </div>
+                          <button
+                            key={invoice.id}
+                            type="button"
+                            onClick={() => setSelectedInvoice(invoice)}
+                            className="flex w-full items-center justify-between gap-3 rounded-2xl border border-slate-200/80 px-4 py-3 text-left transition hover:border-blue-200 hover:bg-blue-50/40"
+                          >
+                            <div className="min-w-0">
+                              <p className="font-mono text-xs font-bold text-slate-900">
+                                {invoice.invoiceCode}
+                              </p>
+                              <p className="mt-0.5 text-xs text-slate-500">
+                                {invoice.issuedAt ? formatDateTime(invoice.issuedAt) : "Đã xuất sau khám"}
+                                {invoice.remainingAmount > 0
+                                  ? ` · Còn lại ${formatCurrency(invoice.remainingAmount)}`
+                                  : ""}
+                              </p>
                             </div>
-
-                            {/* Itemized Table */}
-                            <div className="overflow-hidden rounded-xl border border-slate-200">
-                              <table className="w-full text-left text-xs">
-                                <thead className="border-b border-blue-100 bg-blue-50/60 text-[10px] uppercase font-bold text-[#0058bc]">
-                                  <tr>
-                                    <th className="px-3 py-2.5">Nội dung dịch vụ</th>
-                                    <th className="px-3 py-2.5 text-center w-14">SL</th>
-                                    <th className="px-3 py-2.5 text-right">Đơn giá</th>
-                                    <th className="px-3 py-2.5 text-right">Thành tiền</th>
-                                  </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
-                                  {invoice.items.map((item, idx) => (
-                                    <tr key={idx} className="hover:bg-blue-50/30">
-                                      <td className="px-3 py-2.5 font-semibold text-slate-900">
-                                        {item.description}
-                                      </td>
-                                      <td className="px-3 py-2.5 text-center text-slate-600">
-                                        {item.quantity}
-                                      </td>
-                                      <td className="px-3 py-2.5 text-right text-slate-600">
-                                        {formatCurrency(item.unitPrice)}
-                                      </td>
-                                      <td className="px-3 py-2.5 text-right font-bold text-[#0058bc]">
-                                        {formatCurrency(item.amount)}
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
+                            <div className="shrink-0 text-right">
+                              <p className="text-sm font-black text-slate-900">
+                                {formatCurrency(invoice.finalAmount)}
+                              </p>
+                              <span className={`mt-0.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${paymentClass}`}>
+                                {paymentLabel}
+                              </span>
                             </div>
-
-                            {/* Financial Summary Breakdown */}
-                            <div className="rounded-xl bg-gradient-to-br from-blue-50/40 via-white to-white p-3.5 border border-blue-100 space-y-1.5 text-xs shadow-2xs">
-                              <div className="flex justify-between text-slate-600">
-                                <span>Tạm tính chi phí</span>
-                                <span className="font-semibold text-slate-900">
-                                  {formatCurrency(invoice.subtotal)}
-                                </span>
-                              </div>
-                              {invoice.discountAmount > 0 && (
-                                <div className="flex justify-between text-emerald-600">
-                                  <span>Ưu đãi / Giảm giá</span>
-                                  <span className="font-semibold">
-                                    -{formatCurrency(invoice.discountAmount)}
-                                  </span>
-                                </div>
-                              )}
-                              <div className="flex justify-between items-center pt-2 border-t border-blue-100 text-sm">
-                                <span className="font-bold text-slate-900">
-                                  Tổng tiền thanh toán
-                                </span>
-                                <span className="font-black text-[#0058bc] text-base">
-                                  {formatCurrency(invoice.finalAmount)}
-                                </span>
-                              </div>
-                              <div className="flex justify-between text-[11px] text-slate-500 pt-1">
-                                <span>
-                                  Đã thanh toán:{" "}
-                                  <strong className="text-slate-900">
-                                    {formatCurrency(invoice.paidAmount)}
-                                  </strong>
-                                </span>
-                                <span>
-                                  Còn lại:{" "}
-                                  <strong className="text-slate-900">
-                                    {formatCurrency(invoice.remainingAmount)}
-                                  </strong>
-                                </span>
-                              </div>
-                            </div>
-                          </div>
+                          </button>
                         );
                       })}
                     </div>
                   ) : (
-                    <div className="flex items-center gap-3 p-4">
-                      <span className="relative flex h-2.5 w-2.5 shrink-0">
-                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-50" />
-                        <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-blue-500" />
-                      </span>
-                      <div>
-                        <p className="text-xs font-bold text-slate-700">
-                          Hóa đơn đang được lễ tân hoàn tất
-                        </p>
-                        <p className="text-[11px] text-slate-500">
-                          Toàn bộ chi phí thực tế sẽ xuất hiện ngay tại đây.
-                        </p>
-                      </div>
-                    </div>
+                    <p className="rounded-2xl border border-dashed border-slate-200 px-4 py-3 text-xs text-slate-500">
+                      Hóa đơn đang được lễ tân hoàn tất.
+                    </p>
                   )}
                 </section>
-              ) : (
-                /* Information notice for non-completed appointments */
-                <div className="rounded-2xl border border-blue-200 bg-blue-50/50 p-4 space-y-1.5">
-                  <p className="text-xs font-black uppercase tracking-wider text-[#0058bc]">
-                    Dự toán chi phí & Hóa đơn
-                  </p>
-                  <p className="text-xs text-slate-700 leading-relaxed">
-                    Chi phí ước tính theo phương pháp điều trị:{" "}
-                    <strong className="font-extrabold text-slate-900">
-                      {appointment.treatmentMethodPrice !== undefined
-                        ? formatCurrency(appointment.treatmentMethodPrice)
-                        : "Liên hệ phòng khám"}
-                    </strong>
-                    . Hóa đơn chi tiết kèm phiếu thu y tế sẽ được phát hành và tự động đính kèm tại đây ngay sau khi buổi khám hoàn tất.
-                  </p>
-                </div>
-              )}
+              ) : null}
 
-              {/* 4. Notes & Doctor Preparation Guide */}
-              <div
-                className={`rounded-2xl border p-4 space-y-2 ${
-                  isCancelled
-                    ? "border-rose-200/80 bg-rose-50/40"
-                    : "border-slate-200 bg-white shadow-2xs"
-                }`}
-              >
-                <p
-                  className={`text-xs font-extrabold uppercase tracking-wider ${
-                    isCancelled ? "text-rose-800" : "text-slate-800"
-                  }`}
-                >
-                  {isCompleted
-                    ? "Dặn dò và lưu ý sau khám từ Bác sĩ"
-                    : "Ghi chú & Hướng dẫn chuẩn bị"}
-                </p>
-                <ul className="grid gap-2 text-xs text-slate-700 font-medium">
-                  {notesList.map((prep, index) => (
-                    <li
-                      key={index}
-                      className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-xs leading-relaxed ${
-                        isCancelled
-                          ? "border-rose-100 bg-white/80"
-                          : "border-slate-100 bg-slate-50/80"
-                      }`}
-                    >
-                      <span
-                        className={`font-black ${
-                          isCancelled ? "text-rose-600" : "text-[#0058bc]"
-                        }`}
-                      >
-                        •
-                      </span>
-                      <span>{prep}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              {/* Lưu ý */}
+              {notesList.length > 0 ? (
+                <section>
+                  <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">
+                    Lưu ý
+                  </h3>
+                  <ul
+                    className={`space-y-1.5 rounded-2xl p-4 text-sm leading-6 ${
+                      isCancelled || isCancellationRequested
+                        ? "bg-rose-50/60 text-rose-800"
+                        : "bg-slate-50 text-slate-700"
+                    }`}
+                  >
+                    {notesList.map((note) => (
+                      <li key={note} className="flex gap-2">
+                        <span className="mt-2.5 h-1 w-1 shrink-0 rounded-full bg-current opacity-60" />
+                        <span>{note}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ) : null}
             </div>
 
-            {/* Sticky Drawer Footer */}
-            <footer className="sticky bottom-0 bg-white/95 backdrop-blur px-5 py-3.5 sm:px-6 border-t border-slate-100 flex items-center justify-between shrink-0">
-              <span className="text-xs text-slate-400 font-medium">
-                Smart Dental System © 2026
-              </span>
-              <div className="flex items-center gap-2">
-                {isCompleted && effectiveInvoices.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedInvoice(effectiveInvoices[0])}
-                    className="inline-flex h-9 items-center justify-center rounded-xl border border-blue-200 bg-white px-4 text-xs font-bold text-[#0058bc] transition hover:bg-blue-50 active:scale-95 cursor-pointer shadow-2xs"
-                  >
-                    Xem bản in hóa đơn
-                  </button>
-                )}
+            {/* Footer */}
+            <footer className="flex shrink-0 items-center justify-start gap-2 border-t border-slate-100 px-5 py-3.5 sm:px-6">
+              <button
+                type="button"
+                onClick={handleClose}
+                className="inline-flex h-10 items-center justify-center rounded-xl bg-[#0058bc] px-6 text-sm font-bold text-white transition hover:bg-[#004899]"
+              >
+                Đóng
+              </button>
+              {isCompleted && effectiveInvoices.length > 0 ? (
                 <button
                   type="button"
-                  onClick={handleClose}
-                  className="inline-flex h-9 items-center justify-center rounded-xl bg-[#0058bc] px-6 text-xs font-bold text-white transition hover:bg-[#004899] active:scale-95 cursor-pointer shadow-sm"
+                  onClick={() => setSelectedInvoice(effectiveInvoices[0])}
+                  className="inline-flex h-10 items-center justify-center rounded-xl border border-blue-200 bg-white px-4 text-sm font-bold text-[#0058bc] transition hover:bg-blue-50"
                 >
-                  Đóng
+                  Xem hóa đơn
                 </button>
-              </div>
+              ) : null}
             </footer>
           </aside>
         </div>

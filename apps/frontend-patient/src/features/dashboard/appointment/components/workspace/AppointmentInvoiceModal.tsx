@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { formatCurrency, formatDateTime } from "@/utils/helpers";
 import type { AppointmentInvoice } from "../../appointmentFinancials";
 
@@ -71,9 +72,10 @@ export function AppointmentInvoiceModal({
         },
       ];
 
-  return (
+  // Gắn thẳng vào <body> để khi in chỉ in hóa đơn, không in kèm ngăn chi tiết lịch hẹn phía sau
+  return createPortal(
     <div
-      className="fixed inset-0 z-[250] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs print:static print:bg-white print:p-0"
+      className="invoice-print-root fixed inset-0 z-[250] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs print:static print:block print:bg-white print:p-0"
       role="presentation"
       onClick={onClose}
     >
@@ -276,6 +278,7 @@ export function AppointmentInvoiceModal({
           </button>
         </footer>
       </article>
-    </div>
+    </div>,
+    document.body,
   );
 }

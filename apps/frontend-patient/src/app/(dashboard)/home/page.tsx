@@ -120,10 +120,7 @@ export default async function PatientHomePage() {
               <h2 className="mt-3 sm:mt-5 max-w-2xl text-xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight">
                 Cùng sẻ chia nụ cười, nhận ưu đãi không giới hạn
               </h2>
-              <p className="mt-2 sm:mt-3 max-w-2xl text-xs sm:text-base leading-5 sm:leading-6 text-white/85">
-                Khám phá các gói ưu đãi nha khoa cao cấp, tích điểm đổi quà và nhận Voucher giảm giá dịch vụ hấp dẫn dành riêng cho bạn và gia đình.
-              </p>
-              <div className="mt-4 sm:mt-6 flex flex-wrap gap-2.5 sm:gap-3">
+              <div className="mt-5 sm:mt-7 flex flex-wrap gap-2.5 sm:gap-3">
                 <Link
                   href={ROUTES.promotions}
                   className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 sm:px-6 sm:py-3.5 text-xs font-extrabold text-[#0058bc] shadow-lg transition hover:-translate-y-0.5 hover:bg-slate-50 active:translate-y-0"

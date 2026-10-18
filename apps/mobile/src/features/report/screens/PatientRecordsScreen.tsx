@@ -173,7 +173,7 @@ export function PatientRecordsScreen() {
       {isHydrated && !isLoggedIn ? (
         <LoginRequiredView
           actionLabel="Đăng nhập để xem hồ sơ"
-          description="Đăng nhập để xem hồ sơ bệnh án, phác đồ điều trị, đơn thuốc và hình ảnh X-quang của bạn và người thân."
+          description="Đăng nhập để xem phác đồ điều trị, lịch sử khám và thông tin y tế của bạn."
           icon="file-medical"
           title="Hồ sơ bệnh án"
         />

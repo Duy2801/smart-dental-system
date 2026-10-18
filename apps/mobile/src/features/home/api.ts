@@ -17,8 +17,15 @@ export type TreatmentMethod = {
   slug?: string | null;
 };
 
+export type HomeServiceFaq = {
+  answer: string;
+  id: string;
+  question: string;
+};
+
 type TreatmentMethodDto = {
   _count?: { appointments?: number };
+  faqs?: HomeServiceFaq[];
   basePrice: string | number;
   bookingCount?: number;
   description?: string | null;
@@ -98,6 +105,8 @@ type ClinicalCaseDto = {
 export type HomeServiceCard = {
   category?: string;
   description: string;
+  /** Câu hỏi thường gặp lấy từ các phương pháp điều trị (giống web) */
+  faqs: HomeServiceFaq[];
   displayOrder?: number;
   durationMinutes: number;
   icon: string | null;
@@ -265,6 +274,9 @@ const mapService = (service: ServiceDto): HomeServiceCard => {
     slug: service.slug,
     title: service.name,
     treatmentMethods: activeMethods,
+    faqs: rawMethods
+      .filter(m => m.isActive !== false)
+      .flatMap(m => m.faqs ?? []),
   };
 };
 

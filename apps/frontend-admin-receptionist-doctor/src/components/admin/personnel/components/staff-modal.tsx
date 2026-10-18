@@ -134,14 +134,15 @@ export function StaffModal({
       description="Nhập thông tin tài khoản nhân viên nội bộ phòng khám."
       icon={isEdit ? <UserGear size={20} weight="duotone" /> : <UserPlus size={20} weight="duotone" />}
       size="md"
+      variant="drawer"
       onClose={onClose}
       footer={
         <>
-          <AdminButton variant="secondary" onClick={onClose} disabled={submitting}>
-            Hủy
-          </AdminButton>
           <AdminButton type="submit" form={formId} loading={submitting}>
             {submitting ? "Đang lưu..." : isEdit ? "Lưu thay đổi" : "Tạo nhân viên"}
+          </AdminButton>
+          <AdminButton variant="secondary" onClick={onClose} disabled={submitting}>
+            Hủy
           </AdminButton>
         </>
       }

@@ -16,9 +16,18 @@ type AdminModalProps = {
   size?: AdminModalSize;
   /** Thanh nút cố định ở đáy modal (dùng thuộc tính form="id" để submit form bên trong) */
   footer?: ReactNode;
+  /** "dialog": hộp thoại giữa màn hình; "drawer": ngăn kéo trượt vào từ cạnh phải */
+  variant?: "dialog" | "drawer";
 };
 
 const sizes: Record<AdminModalSize, string> = {
+  sm: "max-w-lg",
+  md: "max-w-2xl",
+  lg: "max-w-3xl",
+  xl: "max-w-4xl",
+};
+
+const drawerSizes: Record<AdminModalSize, string> = {
   sm: "max-w-lg",
   md: "max-w-2xl",
   lg: "max-w-3xl",
@@ -33,8 +42,10 @@ export function AdminModal({
   icon,
   size = "xl",
   footer,
+  variant = "dialog",
 }: AdminModalProps) {
   const titleId = useId();
+  const isDrawer = variant === "drawer";
 
   // Đóng bằng phím Esc và khóa cuộn trang nền khi modal mở
   useEffect(() => {
@@ -51,7 +62,12 @@ export function AdminModal({
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div
+      className={cn(
+        "fixed inset-0 z-50 flex",
+        isDrawer ? "justify-end" : "items-center justify-center p-4",
+      )}
+    >
       <button
         type="button"
         aria-label="Đóng"
@@ -64,8 +80,10 @@ export function AdminModal({
         aria-modal="true"
         aria-labelledby={titleId}
         className={cn(
-          "relative flex max-h-[92vh] w-full animate-modal-in flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-900/5",
-          sizes[size],
+          "relative flex w-full flex-col overflow-hidden bg-white shadow-2xl ring-1 ring-slate-900/5",
+          isDrawer
+            ? cn("h-full animate-drawer-in", drawerSizes[size])
+            : cn("max-h-[92vh] animate-modal-in rounded-2xl", sizes[size]),
         )}
       >
         <div className="flex shrink-0 items-start gap-3 border-b border-slate-100 px-6 py-5">
@@ -97,7 +115,12 @@ export function AdminModal({
         </div>
 
         {footer ? (
-          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2.5 border-t border-slate-100 bg-slate-50/70 px-6 py-4">
+          <div
+            className={cn(
+              "flex shrink-0 flex-wrap items-center gap-2.5 border-t border-slate-100 bg-slate-50/70 px-6 py-4",
+              isDrawer ? "justify-start" : "justify-end",
+            )}
+          >
             {footer}
           </div>
         ) : null}

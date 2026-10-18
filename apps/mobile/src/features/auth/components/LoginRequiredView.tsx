@@ -31,8 +31,8 @@ export function LoginRequiredView({ icon, title, description, actionLabel }: Log
         <Text numberOfLines={1} style={styles.title}>
           {title}
         </Text>
-        {/* Cố định 3 dòng để mọi thẻ cao bằng nhau */}
-        <Text numberOfLines={3} style={styles.description}>
+        {/* Cố định 2 dòng để mọi thẻ cao bằng nhau */}
+        <Text numberOfLines={2} style={styles.description}>
           {description}
         </Text>
         <TouchableOpacity
@@ -87,8 +87,8 @@ const styles = StyleSheet.create({
   description: {
     color: '#64748B',
     fontSize: 13,
-    // Luôn chiếm đúng 3 dòng dù nội dung ngắn hay dài
-    height: DESCRIPTION_LINE_HEIGHT * 3,
+    // Luôn chiếm đúng 2 dòng dù nội dung ngắn hay dài
+    height: DESCRIPTION_LINE_HEIGHT * 2,
     lineHeight: DESCRIPTION_LINE_HEIGHT,
     marginTop: 8,
     textAlign: 'center',

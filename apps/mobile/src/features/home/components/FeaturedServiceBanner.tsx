@@ -6,6 +6,7 @@ import {
   View,
 } from 'react-native';
 import { Text } from 'react-native-paper';
+import { useResponsive } from '~src/hooks/useResponsive';
 import type { HomeServiceCard } from '../api';
 
 const fallbackServiceImage = require('~src/assets/home/bannerservice.png');
@@ -21,6 +22,7 @@ export function FeaturedServiceBanner({
   services = [],
 }: FeaturedServiceBannerProps) {
   const [activePage, setActivePage] = useState(0);
+  const { gutter, isSmall, isTablet } = useResponsive();
 
   // Group services into pairs (2 per slide page, just like web responsive)
   const totalPages = Math.ceil(Math.min(services.length, 6) / 2) || 1;
@@ -38,9 +40,9 @@ export function FeaturedServiceBanner({
   if (!services.length) return null;
 
   return (
-    <View style={styles.wrapper}>
-      {/* 2 Stacked Service Banners matching Web Responsive */}
-      <View style={styles.cardsStack}>
+    <View style={[styles.wrapper, { marginHorizontal: gutter }]}>
+      {/* Điện thoại: 2 thẻ xếp dọc · Tablet: 2 thẻ nằm cạnh nhau như web */}
+      <View style={[styles.cardsStack, isTablet ? styles.cardsRow : null]}>
         {currentPair.map(service => {
           const source = service.imageUrl
             ? { uri: service.imageUrl }
@@ -51,12 +53,12 @@ export function FeaturedServiceBanner({
               activeOpacity={0.9}
               key={service.id}
               onPress={() => onPress(service.id)}
-              style={styles.cardContainer}
+              style={[styles.cardContainer, isTablet ? styles.cardHalf : null]}
             >
               <ImageBackground
                 imageStyle={styles.bgImage}
                 source={source}
-                style={styles.cardContent}
+                style={[styles.cardContent, isSmall ? styles.cardContentSmall : null]}
               >
                 {/* Vibrant Gradient Background and Dark Bottom Shade */}
                 <View style={styles.gradientOverlay} />
@@ -67,7 +69,7 @@ export function FeaturedServiceBanner({
                   <View style={styles.badge}>
                     <Text style={styles.badgeText}>DỊCH VỤ NỔI BẬT</Text>
                   </View>
-                  <Text numberOfLines={1} style={styles.titleText}>
+                  <Text numberOfLines={1} style={[styles.titleText, isSmall ? styles.titleTextSmall : null]}>
                     {service.name}
                   </Text>
                   <Text numberOfLines={2} style={styles.descText}>
@@ -144,8 +146,9 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     letterSpacing: 0.8,
   },
+  // Ảnh dịch vụ hiện rõ (giống web), chỉ phủ một lớp màu nhẹ để chữ vẫn đọc được
   bgImage: {
-    opacity: 0.35,
+    opacity: 0.95,
     resizeMode: 'cover',
   },
   bottomRow: {
@@ -156,7 +159,7 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   bottomShadowOverlay: {
-    backgroundColor: 'rgba(15, 23, 42, 0.4)',
+    backgroundColor: 'rgba(15, 23, 42, 0.35)',
     bottom: 0,
     height: '55%',
     left: 0,
@@ -182,8 +185,24 @@ const styles = StyleSheet.create({
   cardsStack: {
     gap: 12,
   },
+  cardsRow: {
+    flexDirection: 'row',
+  },
+  cardHalf: {
+    flex: 1,
+  },
+  cardContentSmall: {
+    minHeight: 136,
+    padding: 12,
+  },
+  titleTextSmall: {
+    fontSize: 16,
+  },
   descText: {
-    color: '#DBEAFE',
+    color: '#F1F5F9',
+    textShadowColor: 'rgba(15, 23, 42, 0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
     fontSize: 11,
     lineHeight: 16,
     marginTop: 3,
@@ -205,21 +224,27 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   gradientOverlay: {
-    backgroundColor: '#0058bc',
+    backgroundColor: '#0b3a7a',
     bottom: 0,
     left: 0,
-    opacity: 0.75,
+    opacity: 0.35,
     position: 'absolute',
     right: 0,
     top: 0,
   },
   priceText: {
     color: '#FFFFFF',
+    textShadowColor: 'rgba(15, 23, 42, 0.55)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
     fontSize: 13,
     fontWeight: '900',
   },
   titleText: {
     color: '#FFFFFF',
+    textShadowColor: 'rgba(15, 23, 42, 0.55)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
     fontSize: 18,
     fontWeight: '900',
     letterSpacing: -0.2,

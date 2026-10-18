@@ -307,7 +307,7 @@ export function RecordSectionTabs({
               onPress={() => toggleSection('prescription')}
               subtitle="Danh mục thuốc từ bệnh án"
               title="Đơn Thuốc Bác Sĩ"
-              tone="emerald"
+              tone="blue"
             />
           </View>
 
@@ -319,7 +319,7 @@ export function RecordSectionTabs({
               onPress={() => toggleSection('images')}
               subtitle="Xem ảnh thực tế & phim chụp chẩn đoán"
               title="Phim X-Quang & Ảnh"
-              tone="indigo"
+              tone="blue"
             />
             <HubCard
               active={isMedicalRecordActive}
@@ -328,7 +328,7 @@ export function RecordSectionTabs({
               onPress={() => toggleSection('medical-record')}
               subtitle="Xem chi tiết chẩn đoán & đơn thuốc y khoa"
               title="Hồ Sơ Bệnh Án"
-              tone="sky"
+              tone="blue"
             />
           </View>
         </View>

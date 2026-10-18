@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { LoginRequiredPanel } from "@/features/dashboard/common/LoginRequiredPanel";
@@ -173,15 +172,6 @@ export default function ProfilePage() {
 
   return (
     <main className="mx-auto w-full max-w-[800px] px-4 py-7 sm:px-6 lg:px-8">
-      {/* Breadcrumb */}
-      <div className="mb-5 flex items-center gap-2 text-xs font-medium text-slate-500">
-        <Link href="/home" className="hover:text-[#0863c5]">
-          Trang chủ
-        </Link>
-        <span>/</span>
-        <span className="text-slate-900 font-semibold">Thông tin cá nhân</span>
-      </div>
-
       {/* Main Form Card */}
       <div className="w-full overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-6 sm:p-8 shadow-xs">
           {/* Card Header Title matching Image 3 */}

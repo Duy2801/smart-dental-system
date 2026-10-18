@@ -8,6 +8,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
+import { SheetBottomInset } from '~src/components/ui';
 import { Text } from 'react-native-paper';
 import type { PatientProfile } from '~src/features/appointment/types';
 
@@ -209,6 +210,7 @@ export function RecordPatientHeader({
                     );
                   })}
                 </View>
+                <SheetBottomInset />
               </View>
             </View>
           </Modal>
@@ -380,6 +382,7 @@ export function RecordPatientHeader({
                       })}
                     </View>
                   </ScrollView>
+                  <SheetBottomInset />
                 </View>
               </View>
             </Modal>

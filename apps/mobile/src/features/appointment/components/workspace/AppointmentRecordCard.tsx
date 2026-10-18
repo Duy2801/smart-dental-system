@@ -19,7 +19,7 @@ type AppointmentRecordCardProps = {
   isCancelling?: boolean;
 };
 
-const STATUS_META: Record<
+export const STATUS_META: Record<
   AppointmentStatus,
   { label: string; dotColor: string; bg: string; text: string; border: string }
 > = {

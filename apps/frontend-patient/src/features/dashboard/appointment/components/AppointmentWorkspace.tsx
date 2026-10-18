@@ -42,7 +42,7 @@ export function AppointmentWorkspace({
     return (
       <LoginRequiredPanel
         title="Đặt lịch khám nha khoa"
-        description="Đăng nhập để chọn người khám, dịch vụ, bác sĩ và khung giờ phù hợp. Tài khoản giúp phòng khám lưu đúng hồ sơ bệnh nhân và gửi thông báo lịch hẹn cho bạn."
+        description="Đăng nhập để chọn dịch vụ, bác sĩ và khung giờ khám phù hợp với bạn."
         loginLabel="Đăng nhập để đặt lịch"
         redirectTo={
           dedicatedDoctorId

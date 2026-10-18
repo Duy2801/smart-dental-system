@@ -191,7 +191,7 @@ export default function PersonalScreen() {
       {!isLoggedIn ? (
         <LoginRequiredView
           actionLabel="Đăng nhập ngay"
-          description="Đăng nhập để xem và cập nhật thông tin cá nhân, tài khoản y tế và lịch hẹn của bạn."
+          description="Đăng nhập để xem và cập nhật thông tin cá nhân, tài khoản y tế và lịch hẹn."
           icon="user-lock"
           title="Xem thông tin cá nhân"
         />
@@ -217,20 +217,6 @@ export default function PersonalScreen() {
           </View>
         ) : (
           <View style={styles.contentSection}>
-            {/* Breadcrumb */}
-            <View style={styles.breadcrumbRow}>
-              <TouchableOpacity
-                activeOpacity={0.7}
-                onPress={() =>
-                  navigation.getParent()?.navigate(SCREEN_NAME.HOME as never)
-                }
-              >
-                <Text style={styles.breadcrumbLink}>Trang chủ</Text>
-              </TouchableOpacity>
-              <Text style={styles.breadcrumbSeparator}>/</Text>
-              <Text style={styles.breadcrumbCurrent}>Thông tin cá nhân</Text>
-            </View>
-
             {/* Main Form Card */}
             <View style={styles.mainCard}>
               {/* Card Header Title */}
@@ -585,27 +571,6 @@ const styles = StyleSheet.create({
   },
   avatarWrapper: {
     position: 'relative',
-  },
-  breadcrumbCurrent: {
-    color: '#0F172A',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  breadcrumbLink: {
-    color: '#64748B',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  breadcrumbRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 6,
-    marginBottom: 14,
-    paddingHorizontal: 2,
-  },
-  breadcrumbSeparator: {
-    color: '#94A3B8',
-    fontSize: 12,
   },
   cardDivider: {
     backgroundColor: '#E2E8F0',

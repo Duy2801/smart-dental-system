@@ -139,7 +139,7 @@ export default function AppointmentWorkspaceScreen({
         {renderTopHeader()}
         <LoginRequiredView
           actionLabel="Đăng nhập để đặt lịch"
-          description="Đăng nhập để chọn dịch vụ, bác sĩ và khung giờ phù hợp. Phòng khám sẽ lưu hồ sơ và nhắc lịch hẹn cho bạn."
+          description="Đăng nhập để chọn dịch vụ, bác sĩ và khung giờ khám phù hợp với bạn."
           icon="calendar-days"
           title="Đặt lịch khám nha khoa"
         />

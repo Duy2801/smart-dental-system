@@ -465,11 +465,13 @@ export function HomeHeroSearchSlideshow() {
                           alt={slide.title}
                           fill
                           sizes="(max-width: 640px) 100vw, 50vw"
-                          className="object-cover opacity-30 transition duration-500 group-hover:scale-105 group-hover:opacity-40"
+                          className="object-cover opacity-90 transition duration-500 group-hover:scale-105 group-hover:opacity-100"
                         />
                       </div>
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/40 to-transparent pointer-events-none" />
+                    {/* Lớp phủ nhẹ: chỉ tối dần ở cạnh trái và đáy để chữ vẫn đọc rõ, giữ ảnh dịch vụ hiển thị */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-950/60 via-blue-900/25 to-transparent pointer-events-none" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent pointer-events-none" />
 
                     <div className="relative z-10">
                       {slide.badge && (

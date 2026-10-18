@@ -32,6 +32,43 @@ export function ServiceDetailNotFound() {
   );
 }
 
+export function ServiceDetailLoadError({
+  onRetry,
+  retrying,
+}: {
+  onRetry: () => void;
+  retrying: boolean;
+}) {
+  return (
+    <main className="mx-auto grid min-h-[60vh] w-full max-w-[960px] place-items-center px-4 py-10 text-center">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">
+          Chưa tải được thông tin dịch vụ
+        </h1>
+        <p className={`mt-2 ${T.body}`}>
+          Kết nối tới máy chủ đang gián đoạn. Vui lòng thử lại sau giây lát.
+        </p>
+        <div className="mt-5 flex flex-wrap justify-center gap-3">
+          <button
+            type="button"
+            onClick={onRetry}
+            disabled={retrying}
+            className="inline-flex rounded-xl bg-[#0863c5] px-5 py-3 text-sm font-bold text-white disabled:opacity-60"
+          >
+            {retrying ? "Đang tải lại..." : "Thử lại"}
+          </button>
+          <Link
+            href={ROUTES.service}
+            className="inline-flex rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700"
+          >
+            Quay lại danh sách
+          </Link>
+        </div>
+      </div>
+    </main>
+  );
+}
+
 export function SectionHeading({
   description,
   eyebrow,

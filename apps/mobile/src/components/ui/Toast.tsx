@@ -274,7 +274,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.16,
     shadowRadius: 20,
-    width: 326,
+    maxWidth: 360,
+    width: '100%',
   },
   closeButton: {
     alignItems: 'center',
@@ -284,8 +285,10 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     width: 28,
   },
+  // Neo cả hai lề để thông báo không tràn ra ngoài trên máy hẹp (320dp)
   container: {
     alignItems: 'flex-end',
+    left: 12,
     position: 'absolute',
     right: 12,
     zIndex: 1000,

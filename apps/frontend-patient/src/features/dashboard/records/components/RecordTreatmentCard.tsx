@@ -438,24 +438,24 @@ export function RecordTreatmentCard({
             onClick={() => toggleSection("prescription")}
             className={`w-full h-full p-4 rounded-2xl border text-left transition-all duration-200 cursor-pointer group flex flex-col justify-between hover:-translate-y-0.5 hover:shadow-md ${
               expandedSection === "prescription" || expandedSection === "all"
-                ? "border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/30 shadow-sm"
-                : "border-slate-200 bg-white hover:border-emerald-500/60 hover:bg-emerald-50/30"
+                ? "border-[#1996e0] bg-[#1996e0]/10 ring-2 ring-[#1996e0]/30 shadow-sm"
+                : "border-slate-200 bg-white hover:border-[#1996e0]/60 hover:bg-blue-50/30"
             }`}
           >
             <div>
               {/* Top Header: Icon & Count Badge */}
               <div className="flex items-center justify-between gap-2 mb-3">
-                <span className="grid size-9 place-items-center rounded-xl bg-emerald-100 text-emerald-700 group-hover:scale-105 transition-transform shadow-2xs">
+                <span className="grid size-9 place-items-center rounded-xl bg-blue-100 text-[#0863c5] group-hover:scale-105 transition-transform shadow-2xs">
                   <svg className="size-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z" />
                     <path d="m8.5 8.5 7 7" />
                   </svg>
                 </span>
-                <span className="rounded-lg bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                <span className="rounded-lg bg-blue-50 border border-blue-200/60 px-2 py-0.5 text-[10px] font-bold text-[#0863c5]">
                   {allRichPrescriptions.length} đơn
                 </span>
               </div>
-              <h4 className="text-xs font-black text-slate-900 group-hover:text-emerald-600 transition-colors">
+              <h4 className="text-xs font-black text-slate-900 group-hover:text-[#1996e0] transition-colors">
                 Đơn Thuốc Bác Sĩ
               </h4>
               <p className="text-[11px] text-slate-500 mt-1 min-h-[32px] leading-relaxed">
@@ -466,17 +466,17 @@ export function RecordTreatmentCard({
             {/* Bottom Action Pill */}
             <div className={`mt-3 pt-2.5 border-t flex items-center justify-between transition-colors ${
               expandedSection === "prescription" || expandedSection === "all"
-                ? "border-emerald-500/30"
+                ? "border-[#1996e0]/30"
                 : "border-slate-100"
             }`}>
               <span className={`text-[11px] font-bold flex items-center gap-1.5 ${
                 expandedSection === "prescription" || expandedSection === "all"
-                  ? "text-emerald-600"
-                  : "text-slate-500 group-hover:text-emerald-600"
+                  ? "text-[#1996e0]"
+                  : "text-slate-500 group-hover:text-[#1996e0]"
               }`}>
                 {expandedSection === "prescription" || expandedSection === "all" ? (
                   <>
-                    <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="size-1.5 rounded-full bg-[#1996e0] animate-pulse" />
                     Đang xem
                   </>
                 ) : (
@@ -485,8 +485,8 @@ export function RecordTreatmentCard({
               </span>
               <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-black transition-all shadow-2xs ${
                 expandedSection === "prescription" || expandedSection === "all"
-                  ? "bg-emerald-600 text-white"
-                  : "bg-emerald-50 text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white"
+                  ? "bg-[#1996e0] text-white"
+                  : "bg-blue-50 text-[#0863c5] group-hover:bg-[#1996e0] group-hover:text-white"
               }`}>
                 <span>{expandedSection === "prescription" || expandedSection === "all" ? "Thu gọn" : "Chi tiết"}</span>
                 <svg className={`size-3 transition-transform ${
@@ -510,25 +510,25 @@ export function RecordTreatmentCard({
             onClick={() => toggleSection("images")}
             className={`w-full h-full p-4 rounded-2xl border text-left transition-all duration-200 cursor-pointer group flex flex-col justify-between hover:-translate-y-0.5 hover:shadow-md ${
               expandedSection === "images" || expandedSection === "all"
-                ? "border-indigo-500 bg-indigo-500/10 ring-2 ring-indigo-500/30 shadow-sm"
-                : "border-slate-200 bg-white hover:border-indigo-500/60 hover:bg-indigo-50/30"
+                ? "border-[#1996e0] bg-[#1996e0]/10 ring-2 ring-[#1996e0]/30 shadow-sm"
+                : "border-slate-200 bg-white hover:border-[#1996e0]/60 hover:bg-blue-50/30"
             }`}
           >
             <div>
               {/* Top Header: Icon & Count Badge */}
               <div className="flex items-center justify-between gap-2 mb-3">
-                <span className="grid size-9 place-items-center rounded-xl bg-indigo-100 text-indigo-700 group-hover:scale-105 transition-transform shadow-2xs">
+                <span className="grid size-9 place-items-center rounded-xl bg-blue-100 text-[#0863c5] group-hover:scale-105 transition-transform shadow-2xs">
                   <svg className="size-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                     <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
                     <circle cx="9" cy="9" r="2" />
                     <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
                   </svg>
                 </span>
-                <span className="rounded-lg bg-indigo-50 border border-indigo-200/60 px-2 py-0.5 text-[10px] font-bold text-indigo-700">
+                <span className="rounded-lg bg-blue-50 border border-blue-200/60 px-2 py-0.5 text-[10px] font-bold text-[#0863c5]">
                   {realClinicalImages.length} ảnh
                 </span>
               </div>
-              <h4 className="text-xs font-black text-slate-900 group-hover:text-indigo-600 transition-colors">
+              <h4 className="text-xs font-black text-slate-900 group-hover:text-[#1996e0] transition-colors">
                 Phim X-Quang & Ảnh
               </h4>
               <p className="text-[11px] text-slate-500 mt-1 min-h-[32px] leading-relaxed">
@@ -539,17 +539,17 @@ export function RecordTreatmentCard({
             {/* Bottom Action Pill */}
             <div className={`mt-3 pt-2.5 border-t flex items-center justify-between transition-colors ${
               expandedSection === "images" || expandedSection === "all"
-                ? "border-indigo-500/30"
+                ? "border-[#1996e0]/30"
                 : "border-slate-100"
             }`}>
               <span className={`text-[11px] font-bold flex items-center gap-1.5 ${
                 expandedSection === "images" || expandedSection === "all"
-                  ? "text-indigo-600"
-                  : "text-slate-500 group-hover:text-indigo-600"
+                  ? "text-[#1996e0]"
+                  : "text-slate-500 group-hover:text-[#1996e0]"
               }`}>
                 {expandedSection === "images" || expandedSection === "all" ? (
                   <>
-                    <span className="size-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                    <span className="size-1.5 rounded-full bg-[#1996e0] animate-pulse" />
                     Đang xem
                   </>
                 ) : (
@@ -558,8 +558,8 @@ export function RecordTreatmentCard({
               </span>
               <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-black transition-all shadow-2xs ${
                 expandedSection === "images" || expandedSection === "all"
-                  ? "bg-indigo-600 text-white"
-                  : "bg-indigo-50 text-indigo-700 group-hover:bg-indigo-600 group-hover:text-white"
+                  ? "bg-[#1996e0] text-white"
+                  : "bg-blue-50 text-[#0863c5] group-hover:bg-[#1996e0] group-hover:text-white"
               }`}>
                 <span>{expandedSection === "images" || expandedSection === "all" ? "Thu gọn" : "Chi tiết"}</span>
                 <svg className={`size-3 transition-transform ${
@@ -589,14 +589,14 @@ export function RecordTreatmentCard({
             }}
             className={`w-full h-full p-4 rounded-2xl border text-left transition-all duration-200 cursor-pointer group flex flex-col justify-between hover:-translate-y-0.5 hover:shadow-md ${
               expandedSection === "medical-record" || expandedSection === "all"
-                ? "border-sky-500 bg-sky-500/10 ring-2 ring-sky-500/30 shadow-sm"
-                : "border-slate-200 bg-white hover:border-sky-500/60 hover:bg-sky-50/30"
+                ? "border-[#1996e0] bg-[#1996e0]/10 ring-2 ring-[#1996e0]/30 shadow-sm"
+                : "border-slate-200 bg-white hover:border-[#1996e0]/60 hover:bg-blue-50/30"
             }`}
           >
             <div>
               {/* Top Header: Icon & Count Badge */}
               <div className="flex items-center justify-between gap-2 mb-3">
-                <span className="grid size-9 place-items-center rounded-xl bg-sky-100 text-[#0863c5] group-hover:scale-105 transition-transform shadow-2xs">
+                <span className="grid size-9 place-items-center rounded-xl bg-blue-100 text-[#0863c5] group-hover:scale-105 transition-transform shadow-2xs">
                   <svg className="size-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                     <polyline points="14 2 14 8 20 8" />
@@ -604,11 +604,11 @@ export function RecordTreatmentCard({
                     <line x1="16" y1="17" x2="8" y2="17" />
                   </svg>
                 </span>
-                <span className="rounded-lg bg-sky-50 border border-sky-200/60 px-2 py-0.5 text-[10px] font-bold text-[#0863c5]">
+                <span className="rounded-lg bg-blue-50 border border-blue-200/60 px-2 py-0.5 text-[10px] font-bold text-[#0863c5]">
                   {planMedicalRecordCount} hồ sơ
                 </span>
               </div>
-              <h4 className="text-xs font-black text-slate-900 group-hover:text-sky-600 transition-colors">
+              <h4 className="text-xs font-black text-slate-900 group-hover:text-[#1996e0] transition-colors">
                 Hồ Sơ Bệnh Án
               </h4>
               <p className="text-[11px] text-slate-500 mt-1 min-h-[32px] leading-relaxed">
@@ -619,17 +619,17 @@ export function RecordTreatmentCard({
             {/* Bottom Action Pill */}
             <div className={`mt-3 pt-2.5 border-t flex items-center justify-between transition-colors ${
               expandedSection === "medical-record" || expandedSection === "all"
-                ? "border-sky-500/30"
+                ? "border-[#1996e0]/30"
                 : "border-slate-100"
             }`}>
               <span className={`text-[11px] font-bold flex items-center gap-1.5 ${
                 expandedSection === "medical-record" || expandedSection === "all"
-                  ? "text-sky-600"
-                  : "text-slate-500 group-hover:text-sky-600"
+                  ? "text-[#1996e0]"
+                  : "text-slate-500 group-hover:text-[#1996e0]"
               }`}>
                 {expandedSection === "medical-record" || expandedSection === "all" ? (
                   <>
-                    <span className="size-1.5 rounded-full bg-sky-500 animate-pulse" />
+                    <span className="size-1.5 rounded-full bg-[#1996e0] animate-pulse" />
                     Đang xem
                   </>
                 ) : (
@@ -639,7 +639,7 @@ export function RecordTreatmentCard({
               <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-black transition-all shadow-2xs ${
                 expandedSection === "medical-record" || expandedSection === "all"
                   ? "bg-[#1996e0] text-white"
-                  : "bg-sky-50 text-[#0863c5] group-hover:bg-[#1996e0] group-hover:text-white"
+                  : "bg-blue-50 text-[#0863c5] group-hover:bg-[#1996e0] group-hover:text-white"
               }`}>
                 <span>{expandedSection === "medical-record" || expandedSection === "all" ? "Thu gọn" : "Chi tiết"}</span>
                 <svg className={`size-3 transition-transform ${

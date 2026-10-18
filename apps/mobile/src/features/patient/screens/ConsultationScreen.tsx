@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useSelector } from 'react-redux';
-import { Screen, toast } from '~src/components/ui';
+import { Screen, SheetBottomInset, toast } from '~src/components/ui';
 import { SCREEN_NAME } from '~src/constants/screenName';
 import { LoginRequiredView } from '~src/features/auth/components/LoginRequiredView';
 import { PatientDrawerModal } from '~src/features/home/components/PatientDrawerModal';
@@ -1164,7 +1164,7 @@ export default function ConsultationScreen({ navigation }: any) {
         {renderHeaderAndDrawer()}
         <LoginRequiredView
           actionLabel="Đăng nhập để đặt tư vấn"
-          description="Đăng nhập để chọn gói tư vấn, bác sĩ và khung giờ gọi video phù hợp, đồng thời theo dõi các buổi tư vấn của bạn."
+          description="Đăng nhập để chọn bác sĩ, khung giờ và theo dõi lịch tư vấn online."
           icon="user-doctor"
           title="Tư vấn trực tuyến"
         />
@@ -1439,6 +1439,7 @@ export default function ConsultationScreen({ navigation }: any) {
                 );
               })}
             </View>
+            <SheetBottomInset />
           </View>
         </View>
       </Modal>
@@ -1541,6 +1542,7 @@ export default function ConsultationScreen({ navigation }: any) {
                   </TouchableOpacity>
                 ) : null}
               </ScrollView>
+              <SheetBottomInset />
             </View>
           </View>
         </Modal>
@@ -1589,6 +1591,7 @@ export default function ConsultationScreen({ navigation }: any) {
                   }}
                 />
               </ScrollView>
+              <SheetBottomInset />
             </View>
           </View>
         </Modal>

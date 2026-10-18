@@ -61,11 +61,9 @@ export function PatientRecordsPageClient() {
     return (
       <LoginRequiredPanel
         title="Xem hồ sơ bệnh án"
-        description="Đăng nhập để chọn người khám trong gia đình, xem phác đồ điều trị, lịch sử khám và các thông tin y tế cá nhân."
+        description="Đăng nhập để xem phác đồ điều trị, lịch sử khám và thông tin y tế của bạn."
         loginLabel="Đăng nhập để xem hồ sơ"
         redirectTo="/records"
-        secondaryHref="/service"
-        secondaryLabel="Xem dịch vụ"
         icon="document"
       />
     );

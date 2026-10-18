@@ -1,7 +1,6 @@
 import {
   View,
   TouchableOpacity,
-  Dimensions,
   Animated,
   ActivityIndicator,
   Platform,
@@ -10,13 +9,12 @@ import {
   ViewStyle,
   Text,
   TextStyle,
+  useWindowDimensions,
 } from 'react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-const width = Dimensions.get('window').width;
 
 type BodyProps = {
   children: React.ReactNode;
@@ -113,6 +111,8 @@ const Header = (props: HeaderProps) => {
     props;
   const navigation = useNavigation();
   const route = useRoute();
+  // Đọc lại mỗi lần render để tiêu đề không tràn khi xoay máy / chia đôi màn hình
+  const { width } = useWindowDimensions();
 
   const resolvedHeaderLeft =
     headerLeft !== undefined

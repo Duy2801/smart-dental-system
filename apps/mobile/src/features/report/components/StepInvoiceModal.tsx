@@ -1,6 +1,7 @@
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6';
 import React from 'react';
 import { Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { SheetBottomInset } from '~src/components/ui';
 import { Text } from 'react-native-paper';
 import { formatMoney } from '../api';
 import type { TimelineStepView } from '../types';
@@ -131,6 +132,7 @@ export function StepInvoiceModal({ visible, step, onClose }: StepInvoiceModalPro
           >
             <Text style={styles.actionBtnText}>Đóng</Text>
           </TouchableOpacity>
+          <SheetBottomInset />
         </View>
       </View>
     </Modal>

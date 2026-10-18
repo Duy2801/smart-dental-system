@@ -74,7 +74,7 @@ export default function PaymentPage() {
     return (
       <LoginRequiredPanel
         title="Xem thanh toán và hóa đơn"
-        description="Đăng nhập để xem hóa đơn, lịch sử giao dịch, phương thức thanh toán và các khoản cần thanh toán của bạn."
+        description="Đăng nhập để xem hóa đơn, lịch sử giao dịch và các khoản cần thanh toán."
         loginLabel="Đăng nhập để xem thanh toán"
         redirectTo="/payment"
         secondaryHref="/service"

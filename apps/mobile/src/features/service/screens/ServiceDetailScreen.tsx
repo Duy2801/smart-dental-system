@@ -1,7 +1,7 @@
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { useQuery } from '@tanstack/react-query';
-import React, { useEffect, useMemo, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -14,7 +14,7 @@ import {
 import { Text } from 'react-native-paper';
 import { Screen } from '~src/components/ui';
 import { SCREEN_NAME } from '~src/constants/screenName';
-import { CACHE_TIMES } from '~src/config/queryClient';
+import { CACHE_TIMES, queryKeys } from '~src/config/queryClient';
 import { FloatingChatButton } from '~src/features/home/components/FloatingChatButton';
 import { formatServicePrice, getPatientServiceDetail } from '../api';
 import type { DentalService, TreatmentMethod } from '../types';
@@ -29,6 +29,11 @@ const HIGHLIGHT_ICONS: Record<string, string> = {
   checkup: 'stethoscope',
   clock: 'clock',
 };
+
+/** true khi API trả 404 — dịch vụ thật sự không tồn tại (khác với lỗi mạng/máy chủ) */
+function isNotFoundError(error: unknown) {
+  return (error as { response?: { status?: number } } | null)?.response?.status === 404;
+}
 
 function hasItems<T>(values?: T[] | null): values is T[] {
   return Array.isArray(values) && values.length > 0;
@@ -67,6 +72,8 @@ export function ServiceDetailScreen() {
   const { serviceId, methodId } = (route.params ?? {}) as RouteParams;
   const [selectedMethodId, setSelectedMethodId] = useState<string | null>(null);
   const [openFaqId, setOpenFaqId] = useState<string | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
+  const queryClient = useQueryClient();
 
   // Mở sang dịch vụ / phương pháp khác: bỏ lựa chọn cũ để theo đúng tham số mới
   useEffect(() => {
@@ -80,8 +87,20 @@ export function ServiceDetailScreen() {
     enabled: Boolean(serviceId),
     staleTime: CACHE_TIMES.CATALOG.staleTime,
     gcTime: CACHE_TIMES.CATALOG.gcTime,
+    // Không thử lại khi dịch vụ không tồn tại; lỗi mạng thì thử lại tối đa 2 lần
+    retry: (failureCount, error) => !isNotFoundError(error) && failureCount < 2,
   });
   const service: DentalService | null = serviceQuery.data ?? null;
+  const loadFailed = serviceQuery.isError && !isNotFoundError(serviceQuery.error);
+  const isMissing =
+    !serviceQuery.isLoading && !loadFailed && (!service || service.isActive === false);
+
+  // Dịch vụ đã bị xóa/ẩn: làm mới danh sách đã lưu để thẻ cũ không còn hiện ở trang chủ / danh mục
+  useEffect(() => {
+    if (!isMissing) return;
+    void queryClient.invalidateQueries({ queryKey: queryKeys.home.services });
+    void queryClient.invalidateQueries({ queryKey: ['patient-services'] });
+  }, [isMissing, queryClient]);
   const methods = useMemo(() => service?.treatmentMethods ?? [], [service]);
 
   const activeMethod: TreatmentMethod | null =
@@ -130,6 +149,31 @@ export function ServiceDetailScreen() {
     );
   }
 
+  if (loadFailed) {
+    return (
+      <Screen>
+        {topBar}
+        <View style={styles.centerBox}>
+          <Text style={styles.notFoundTitle}>Chưa tải được thông tin dịch vụ</Text>
+          <Text style={styles.centerText}>Kết nối tới máy chủ đang gián đoạn. Vui lòng thử lại sau giây lát.</Text>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            disabled={serviceQuery.isRefetching}
+            onPress={() => void serviceQuery.refetch()}
+            style={[styles.primaryButton, styles.notFoundButton]}
+          >
+            <Text style={styles.primaryButtonText}>
+              {serviceQuery.isRefetching ? 'Đang tải lại...' : 'Thử lại'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity activeOpacity={0.85} onPress={goToCatalog} style={[styles.outlineButton, styles.notFoundButton]}>
+            <Text style={styles.outlineButtonText}>Quay lại danh sách</Text>
+          </TouchableOpacity>
+        </View>
+      </Screen>
+    );
+  }
+
   if (!service || service.isActive === false) {
     return (
       <Screen>
@@ -158,6 +202,7 @@ export function ServiceDetailScreen() {
     <Screen>
       {topBar}
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -221,52 +266,6 @@ export function ServiceDetailScreen() {
             </View>
           </View>
         </View>
-
-        {/* 2. Phương pháp điều trị */}
-        {hasItems(methods) ? (
-          <View style={[styles.card, styles.methodsCard]}>
-            <SectionHeading
-              eyebrow="Tùy chọn & Phương pháp"
-              title="Các phương pháp điều trị"
-              description="Lựa chọn phương pháp điều trị phù hợp với nhu cầu và ngân sách của bạn."
-            />
-            <View style={styles.stack}>
-              {methods.map(method => {
-                const selected = activeMethod?.id === method.id;
-                return (
-                  <TouchableOpacity
-                    key={method.id}
-                    activeOpacity={0.85}
-                    accessibilityState={{ selected }}
-                    onPress={() => setSelectedMethodId(method.id)}
-                    style={[styles.methodOption, selected ? styles.methodOptionActive : null]}
-                  >
-                    <View style={styles.methodTop}>
-                      <View style={styles.methodTag}>
-                        <Text style={styles.methodTagText}>Phương pháp</Text>
-                      </View>
-                      {selected ? (
-                        <View style={styles.checkCircle}>
-                          <FontAwesome6 color="#FFFFFF" iconStyle="solid" name="check" size={10} />
-                        </View>
-                      ) : null}
-                    </View>
-                    <Text numberOfLines={2} style={styles.methodName}>
-                      {method.name}
-                    </Text>
-                    <Text numberOfLines={3} style={styles.methodDesc}>
-                      {method.description || 'Chi tiết phương pháp điều trị chuyên sâu.'}
-                    </Text>
-                    <View style={styles.methodFooter}>
-                      <Text style={styles.methodCostLabel}>Chi phí:</Text>
-                      <Text style={styles.methodCost}>{formatServicePrice(method.basePrice)}</Text>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-        ) : null}
 
         {/* 3. Điểm nổi bật */}
         {hasItems(service.highlights) ? (
@@ -442,6 +441,56 @@ export function ServiceDetailScreen() {
             </View>
           ) : null}
         </View>
+
+        {/* Phương pháp điều trị (đặt cuối trang, giống web) */}
+        {hasItems(methods) ? (
+          <View style={[styles.card, styles.methodsCard]}>
+            <SectionHeading
+              eyebrow="Tùy chọn & Phương pháp"
+              title="Các phương pháp điều trị"
+              description="Lựa chọn phương pháp điều trị phù hợp với nhu cầu và ngân sách của bạn."
+            />
+            <View style={styles.stack}>
+              {methods.map(method => {
+                const selected = activeMethod?.id === method.id;
+                return (
+                  <TouchableOpacity
+                    key={method.id}
+                    activeOpacity={0.85}
+                    accessibilityState={{ selected }}
+                    onPress={() => {
+                      setSelectedMethodId(method.id);
+                      // Cuộn lên đầu để xem thông tin, quy trình và chi phí của phương pháp vừa chọn
+                      scrollRef.current?.scrollTo({ y: 0, animated: true });
+                    }}
+                    style={[styles.methodOption, selected ? styles.methodOptionActive : null]}
+                  >
+                    <View style={styles.methodTop}>
+                      <View style={styles.methodTag}>
+                        <Text style={styles.methodTagText}>Phương pháp</Text>
+                      </View>
+                      {selected ? (
+                        <View style={styles.checkCircle}>
+                          <FontAwesome6 color="#FFFFFF" iconStyle="solid" name="check" size={10} />
+                        </View>
+                      ) : null}
+                    </View>
+                    <Text numberOfLines={2} style={styles.methodName}>
+                      {method.name}
+                    </Text>
+                    <Text numberOfLines={3} style={styles.methodDesc}>
+                      {method.description || 'Chi tiết phương pháp điều trị chuyên sâu.'}
+                    </Text>
+                    <View style={styles.methodFooter}>
+                      <Text style={styles.methodCostLabel}>Chi phí:</Text>
+                      <Text style={styles.methodCost}>{formatServicePrice(method.basePrice)}</Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        ) : null}
       </ScrollView>
 
       <FloatingChatButton />
