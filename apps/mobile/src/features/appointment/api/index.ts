@@ -14,6 +14,10 @@ import type {
   PromotionDto,
   TreatmentMethodItem,
 } from '../types';
+import {
+  mapAppointmentFinancials,
+  type RawAppointmentInvoice,
+} from '../utils/appointmentFinancials';
 
 type TreatmentMethodDto = {
   id: string;
@@ -68,7 +72,9 @@ type AppointmentDto = {
     id: string;
     name: string;
     durationMinutes?: number | null;
+    basePrice?: string | number | null;
   } | null;
+  invoices?: RawAppointmentInvoice[] | null;
   scheduledAt: string;
   endAt: string;
   status: string;
@@ -148,6 +154,10 @@ const mapAppointment = (item: AppointmentDto): AppointmentItem => {
   const serviceName = item.service?.name ?? 'Dịch vụ nha khoa';
   const patientName =
     item.patient?.fullName ?? item.patient?.user?.fullName ?? null;
+  const financials = mapAppointmentFinancials({
+    basePrice: item.treatmentMethod?.basePrice,
+    invoices: item.invoices,
+  });
 
   return {
     id: item.id,
@@ -160,6 +170,8 @@ const mapAppointment = (item: AppointmentDto): AppointmentItem => {
     treatmentMethodId:
       item.treatmentMethodId ?? item.treatmentMethod?.id ?? undefined,
     treatmentMethodName: item.treatmentMethod?.name,
+    treatmentMethodPrice: financials.treatmentPrice,
+    invoices: financials.invoices,
     scheduledAt: item.scheduledAt,
     endAt: item.endAt,
     durationMinutes:

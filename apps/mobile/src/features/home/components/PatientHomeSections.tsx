@@ -1221,6 +1221,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   badgesRow: {
+    flexWrap: 'wrap',
+    rowGap: 8,
     backgroundColor: '#F5FAFF',
     flexDirection: 'row',
     paddingHorizontal: 10,
@@ -1485,6 +1487,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   locationActionButtons: {
+    flexWrap: 'wrap',
+    rowGap: 8,
     flexDirection: 'row',
     gap: 10,
     marginTop: 14,
@@ -1595,6 +1599,8 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   popularActionRow: {
+    flexWrap: 'wrap',
+    rowGap: 8,
     flexDirection: 'row',
     gap: 10,
     marginTop: 12,
@@ -1708,6 +1714,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   promoActionRow: {
+    flexWrap: 'wrap',
+    rowGap: 8,
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
@@ -1744,6 +1752,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   promoBadgesRow: {
+    flexWrap: 'wrap',
+    rowGap: 8,
     flexDirection: 'row',
     gap: 10,
     marginTop: 14,
@@ -2016,6 +2026,8 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   footerLinksRow: {
+    flexWrap: 'wrap',
+    rowGap: 8,
     flexDirection: 'row',
     gap: 20,
     marginTop: 2,

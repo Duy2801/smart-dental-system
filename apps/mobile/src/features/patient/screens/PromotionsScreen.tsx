@@ -626,6 +626,8 @@ export default function PromotionsScreen({ navigation }: any) {
 
 const styles = StyleSheet.create({
   actionsRow: {
+    flexWrap: 'wrap',
+    rowGap: 8,
     alignItems: 'center',
     flexDirection: 'row',
     gap: 8,
@@ -671,6 +673,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   cardFooter: {
+    flexWrap: 'wrap',
+    rowGap: 8,
     alignItems: 'center',
     borderTopColor: '#F1F5F9',
     borderTopWidth: 1,

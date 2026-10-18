@@ -231,6 +231,8 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   chipsRow: {
+    flexWrap: 'wrap',
+    rowGap: 8,
     flexDirection: 'row',
     gap: 8,
   },

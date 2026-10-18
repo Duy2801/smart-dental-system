@@ -331,7 +331,7 @@ export function BookingPanel({
                 onClick={() => setActiveStep(2)}
                 className="w-full sm:w-auto inline-flex h-11 items-center justify-center rounded-xl bg-[#0863c5] px-6 text-sm font-bold text-white transition hover:bg-[#0753a8] disabled:cursor-not-allowed disabled:bg-slate-300 shadow-sm"
               >
-                Tiếp tục: Chọn dịch vụ
+                Chọn dịch vụ
               </button>
             </div>
           </div>
@@ -369,7 +369,7 @@ export function BookingPanel({
                 onClick={() => setActiveStep(3)}
                 className="w-full sm:w-auto inline-flex h-11 items-center justify-center rounded-xl bg-[#0863c5] px-6 text-sm font-bold text-white transition hover:bg-[#0753a8] disabled:cursor-not-allowed disabled:bg-slate-300 shadow-sm"
               >
-                Tiếp tục: Chọn ngày & giờ
+                Chọn ngày & giờ
               </button>
             </div>
           </div>
@@ -411,7 +411,7 @@ export function BookingPanel({
                 onClick={() => setActiveStep(4)}
                 className="w-full sm:w-auto inline-flex h-11 items-center justify-center rounded-xl bg-[#0863c5] px-6 text-sm font-bold text-white transition hover:bg-[#0753a8] disabled:cursor-not-allowed disabled:bg-slate-300 shadow-sm"
               >
-                Tiếp tục: Chọn bác sĩ
+                Chọn bác sĩ
               </button>
             </div>
           </div>
@@ -453,7 +453,7 @@ export function BookingPanel({
                     Mở màn hình xác nhận...
                   </>
                 ) : (
-                  "Tiếp tục đến bước xác nhận"
+                  "Xác nhận lịch hẹn"
                 )}
               </button>
             </div>

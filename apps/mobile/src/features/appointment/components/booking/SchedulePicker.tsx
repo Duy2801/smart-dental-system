@@ -236,7 +236,7 @@ export function SchedulePicker({
           onPress={onContinue}
           className="flex-1"
         >
-          Tiếp tục: Chọn bác sĩ
+          Chọn bác sĩ
         </Button>
       </View>
 
@@ -610,6 +610,8 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   quickDateRow: {
+    flexWrap: 'wrap',
+    rowGap: 8,
     flexDirection: 'row',
     gap: 8,
     paddingBottom: 8,

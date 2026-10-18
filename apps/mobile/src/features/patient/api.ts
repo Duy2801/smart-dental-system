@@ -481,6 +481,23 @@ export const cancelMyConsultation = async (id: string): Promise<any> => {
   return unwrapData<any>(response);
 };
 
+export type ConsultationRefundPayload = {
+  videoConsultationId: string;
+  bankName: string;
+  accountNumber: string;
+  accountHolder: string;
+  qrCodeUrl?: string;
+  reason?: string;
+};
+
+/** Hủy buổi tư vấn đã thanh toán & gửi yêu cầu hoàn tiền (giống web: POST /refund-requests) */
+export const createConsultationRefundRequest = async (
+  payload: ConsultationRefundPayload,
+): Promise<any> => {
+  const response = await api.post('/refund-requests', payload);
+  return unwrapData<any>(response);
+};
+
 export const getConsultationPaymentInfo = async (id: string): Promise<ConsultationPaymentInfo> => {
   const response = await api.get(`/video-consultations/patient/${id}/payment-info`);
   return unwrapData<ConsultationPaymentInfo>(response);

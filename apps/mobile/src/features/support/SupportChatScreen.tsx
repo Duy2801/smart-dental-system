@@ -19,6 +19,7 @@ import {
 import { Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Screen } from '~src/components/ui';
+import { useKeyboardOverlap } from '~src/hooks/useKeyboardOverlap';
 import type { SupportConversationStatus, SupportMessage } from './api';
 import { useSupportChat } from './useSupportChat';
 
@@ -48,6 +49,7 @@ export default function SupportChatScreen() {
   const [replyingTo, setReplyingTo] = useState<SupportMessage | null>(null);
   const [activeMessageId, setActiveMessageId] = useState<string | null>(null);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const { containerRef, keyboardOverlap } = useKeyboardOverlap();
 
   useEffect(() => {
     if (startedRef.current) return;
@@ -202,8 +204,13 @@ export default function SupportChatScreen() {
 
   return (
     <Screen>
+      <View
+        ref={containerRef}
+        style={[styles.container, { paddingBottom: keyboardOverlap }]}
+      >
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        enabled={Platform.OS === 'ios'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
         style={styles.container}
       >
@@ -297,6 +304,7 @@ export default function SupportChatScreen() {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+      </View>
     </Screen>
   );
 }

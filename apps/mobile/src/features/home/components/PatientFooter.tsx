@@ -225,6 +225,8 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   footerLinksRow: {
+    flexWrap: 'wrap',
+    rowGap: 8,
     flexDirection: 'row',
     gap: 20,
     marginTop: 2,

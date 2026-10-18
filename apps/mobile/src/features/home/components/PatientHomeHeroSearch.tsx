@@ -478,6 +478,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   quickLinkRow: {
+    flexWrap: 'wrap',
+    rowGap: 8,
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
