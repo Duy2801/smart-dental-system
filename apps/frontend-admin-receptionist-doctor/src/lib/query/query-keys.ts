@@ -9,8 +9,8 @@ export const queryKeys = {
       availability: (doctorId: string) =>
         ["admin", "schedules", "availability", doctorId] as const,
     },
-    personnel: (roleFilter: string, search: string) =>
-      ["admin", "personnel", roleFilter, search] as const,
+    personnel: (roleFilter: string, search: string, page: number = 1) =>
+      ["admin", "personnel", roleFilter, search, page] as const,
     promotions: (search: string) => ["admin", "promotions", search] as const,
     finance: (status: string, search: string) =>
       ["admin", "finance", status, search] as const,

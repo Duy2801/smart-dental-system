@@ -64,3 +64,43 @@ export async function uploadImageBuffer(
   }
   return data.secure_url;
 }
+
+/** Upload a support-chat image or document without exposing Cloudinary credentials. */
+export async function uploadSupportAttachment(
+  config: ConfigService,
+  buffer: Buffer,
+  filename: string,
+  mimeType: string,
+): Promise<string> {
+  const { cloudName, apiKey, apiSecret } = cloudCreds(config);
+  const timestamp = String(Math.floor(Date.now() / 1000));
+  const folder = 'smart-dental/support-chat';
+  const form = new FormData();
+  form.append(
+    'file',
+    new Blob([new Uint8Array(buffer)], { type: mimeType }),
+    filename,
+  );
+  form.append('api_key', apiKey);
+  form.append('timestamp', timestamp);
+  form.append('folder', folder);
+  form.append('signature', sign({ folder, timestamp }, apiSecret));
+  const resourceType = mimeType.startsWith('image/') ? 'image' : 'raw';
+  const res = await fetch(
+    `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`,
+    {
+      method: 'POST',
+      body: form,
+    },
+  );
+  const data = (await res.json()) as {
+    secure_url?: string;
+    error?: { message?: string };
+  };
+  if (!res.ok || !data.secure_url) {
+    throw new BadRequestException(
+      data.error?.message || `Upload failed (HTTP ${res.status})`,
+    );
+  }
+  return data.secure_url;
+}

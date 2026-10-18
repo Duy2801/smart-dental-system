@@ -9,6 +9,7 @@ type TreatmentMethodDto = {
   imageUrl?: string | null;
   basePrice: string | number;
   durationMinutes?: number;
+  isActive?: boolean;
 };
 
 type PaginatedServicesResponse = {
@@ -61,6 +62,7 @@ export async function fetchServicesForPromotions(): Promise<ServiceOption[]> {
             .treatment_methods;
         if (methods && methods.length > 0) {
           for (const tm of methods) {
+            if (tm.isActive === false) continue;
             options.push({
               id: tm.id,
               serviceId: service.id,

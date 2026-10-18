@@ -8,19 +8,26 @@ import type {
   UserStatus,
 } from "./types";
 
-type StaffQuery = {
+export type StaffQuery = {
   roleFilter: RoleFilter;
   search: string;
+  page?: number;
+  limit?: number;
 };
 
 function buildDoctorCode() {
   return `DOC-${Date.now().toString().slice(-6)}`;
 }
 
-export async function getStaffUsers({ roleFilter, search }: StaffQuery) {
+export async function getStaffUsers({
+  roleFilter,
+  search,
+  page = 1,
+  limit = 10,
+}: StaffQuery): Promise<StaffResponse> {
   const params: Record<string, string> = {
-    page: "1",
-    limit: "100",
+    page: String(page),
+    limit: String(limit),
   };
 
   if (search.trim()) params.search = search.trim();
@@ -30,7 +37,7 @@ export async function getStaffUsers({ roleFilter, search }: StaffQuery) {
     params,
   });
 
-  return response.data.data;
+  return response.data;
 }
 
 export async function createStaffUser(form: StaffFormState) {

@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useSelector } from 'react-redux';
-import { EmptyState, Screen } from '~src/components/ui';
+import { EmptyState, Screen, SheetBottomInset } from '~src/components/ui';
 import { SCREEN_NAME } from '~src/constants/screenName';
 import { getClinicConfigInfo } from '~src/features/home/api';
 import { FloatingChatButton } from '~src/features/home/components/FloatingChatButton';
@@ -228,9 +228,6 @@ export default function PromotionsScreen({ navigation }: any) {
             source={{ uri: item.image_url || defaultPromoBanner }}
             style={styles.cardImage}
           />
-          <View style={styles.discountBadge}>
-            <Text style={styles.discountBadgeText}>{discountLabel}</Text>
-          </View>
         </View>
 
         {/* Card Content */}
@@ -261,26 +258,6 @@ export default function PromotionsScreen({ navigation }: any) {
             {item.description}
           </Text>
 
-          {/* Progress Bar (if max_uses > 0) */}
-          {item.max_uses > 0 && (
-            <View style={styles.progressContainer}>
-              <View style={styles.progressLabelRow}>
-                <Text style={styles.progressLabel}>Lượt đã dùng</Text>
-                <Text style={styles.progressValue}>
-                  {item.used_count}/{item.max_uses}
-                </Text>
-              </View>
-              <View style={styles.progressBarTrack}>
-                <View
-                  style={[
-                    styles.progressBarFill,
-                    { width: `${usagePercent}%` },
-                    usagePercent >= 90 && styles.progressBarWarn,
-                  ]}
-                />
-              </View>
-            </View>
-          )}
 
           {/* Bottom Row */}
           <View style={styles.cardFooter}>
@@ -636,6 +613,7 @@ export default function PromotionsScreen({ navigation }: any) {
                   <Text style={styles.modalCloseFooterText}>Đóng</Text>
                 </TouchableOpacity>
               </View>
+              <SheetBottomInset />
             </View>
           </View>
         </Modal>

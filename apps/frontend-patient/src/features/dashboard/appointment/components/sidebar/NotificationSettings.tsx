@@ -12,6 +12,7 @@ type EditableNotificationKey = Exclude<keyof NotificationPreferences, "sms">;
 type NotificationSettingsProps = {
   initialValue?: NotificationPreferences;
   onChange?: (key: EditableNotificationKey, value: boolean) => void;
+  className?: string;
 };
 
 const settings: Array<{
@@ -37,6 +38,7 @@ const settings: Array<{
 export function NotificationSettings({
   initialValue = { email: true, app: true, sms: false },
   onChange,
+  className,
 }: NotificationSettingsProps) {
   const [preferences, setPreferences] =
     useState<NotificationPreferences>({ ...initialValue, sms: false });
@@ -74,7 +76,7 @@ export function NotificationSettings({
   };
 
   return (
-    <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
+    <section className={`rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm ${className ?? ""}`}>
       <h2 className="text-lg font-bold text-slate-900">
         Cài đặt thông báo
       </h2>

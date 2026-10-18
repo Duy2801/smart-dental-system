@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import { Text } from 'react-native-paper';
-import { Button } from '~src/components/ui';
+import { Button, SheetBottomInset } from '~src/components/ui';
 import {
   calculateDiscount,
   formatCurrency,
@@ -416,6 +416,7 @@ export function BookingConfirmationView({
                 );
               })}
             </ScrollView>
+            <SheetBottomInset />
           </View>
         </View>
       </Modal>

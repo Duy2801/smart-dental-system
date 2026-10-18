@@ -1,5 +1,57 @@
 import { PatientService } from './patient.service';
 
+describe('PatientService patient record sections', () => {
+  it('returns a newly saved medical record even when no treatment plan exists', async () => {
+    const findUniqueOrThrow = jest.fn().mockResolvedValue({
+      id: 'patient-1',
+      patientCode: 'PAT-001',
+      fullName: 'Nguyen Van A',
+      phone: null,
+      email: null,
+      user: null,
+      gender: 'MALE',
+      dateOfBirth: null,
+      address: null,
+      medicalHistory: null,
+      appointments: [],
+      treatmentPlans: [],
+      medicalRecords: [{
+        id: 'record-1',
+        createdAt: new Date('2026-10-03T01:00:00.000Z'),
+        doctor: { user: { fullName: 'Bac si A' } },
+        appointment: null,
+        chiefComplaint: 'Dau rang',
+        diagnosis: 'Sau rang',
+        treatmentNotes: null,
+        followUpDate: null,
+        dentalChart: null,
+        images: [],
+        prescriptionRecords: [],
+      }],
+    });
+    const service = new PatientService({
+      patientAccount: { findUnique: jest.fn().mockResolvedValue({ patientId: 'patient-1' }) },
+      patient: { findUniqueOrThrow },
+    } as never, {} as never, {} as never);
+
+    const result = await service.getMyRecordsSummary('user-1', 'patient-1');
+
+    expect(result.medicalRecords).toMatchObject([{ id: 'record-1', diagnosis: 'Sau rang' }]);
+    expect(findUniqueOrThrow.mock.calls[0][0].include.treatmentPlans.where).toEqual({ id: { in: [] } });
+  });
+
+  it('does not allow reading another account patient records', async () => {
+    const findUniqueOrThrow = jest.fn();
+    const service = new PatientService({
+      patientAccount: { findUnique: jest.fn().mockResolvedValue(null) },
+      patient: { findUniqueOrThrow },
+    } as never, {} as never, {} as never);
+
+    await expect(service.getMyRecordsPlans('user-1', 'patient-2')).rejects.toThrow('patient.profile_forbidden');
+    expect(findUniqueOrThrow).not.toHaveBeenCalled();
+  });
+});
+
 describe('PatientService doctor patient list', () => {
   it('reports completed care separately from upcoming and cancelled appointments', async () => {
     const prisma = {

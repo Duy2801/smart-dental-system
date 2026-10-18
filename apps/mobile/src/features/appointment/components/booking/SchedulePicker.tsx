@@ -8,7 +8,7 @@ import {
   View,
 } from 'react-native';
 import { Text } from 'react-native-paper';
-import { Button } from '~src/components/ui';
+import { Button, SheetBottomInset } from '~src/components/ui';
 import type { BookingDate } from '../../types';
 
 type SchedulePickerProps = {
@@ -398,6 +398,7 @@ export function SchedulePicker({
                 );
               })}
             </View>
+            <SheetBottomInset />
           </View>
         </View>
       </Modal>

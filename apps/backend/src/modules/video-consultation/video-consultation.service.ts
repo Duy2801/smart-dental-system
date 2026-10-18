@@ -10,6 +10,7 @@ import {
 import { InjectQueue } from '@nestjs/bull';
 import type { Queue } from 'bull';
 import { randomUUID } from 'crypto';
+import { Prisma } from '../../../prisma/generated/client';
 import {
   InvoiceStatus,
   InvoiceType,
@@ -23,6 +24,10 @@ import { PrismaService } from '../prisma/prisma.service';
 import { EventsGateway } from '../socket/events.gateway';
 import { RedisService } from '../redis/redis.service';
 import { OCCUPYING_APPOINTMENT_STATUSES } from '../appointment/appointment-status-policy';
+import {
+  lockDoctorSchedule,
+  lockPatientSchedule,
+} from '../appointment/doctor-schedule-lock';
 import { CreateVideoConsultationDto } from './dto/create-video-consultation.dto';
 
 const consultInclude = {
@@ -180,9 +185,19 @@ export class VideoConsultationService implements OnModuleInit {
     const expiredIds = expiredConsultations.map((c) => c.id);
 
     await this.prisma.videoConsultation.updateMany({
-      where: { id: { in: expiredIds } },
+      where: {
+        id: { in: expiredIds },
+        status: VideoConsultationStatus.PENDING_PAYMENT,
+        expiresAt: { lte: now },
+      },
       data: { status: VideoConsultationStatus.EXPIRED },
     });
+
+    const confirmedExpired = await this.prisma.videoConsultation.findMany({
+      where: { id: { in: expiredIds }, status: VideoConsultationStatus.EXPIRED },
+      select: { id: true },
+    });
+    const confirmedExpiredIds = new Set(confirmedExpired.map((row) => row.id));
 
     const invoices = await this.prisma.invoice.findMany({
       where: {
@@ -194,9 +209,12 @@ export class VideoConsultationService implements OnModuleInit {
       const items = Array.isArray(inv.items)
         ? (inv.items as Array<Record<string, any>>)
         : [];
-      if (items.some((it) => expiredIds.includes(it?.videoConsultationId))) {
-        await this.prisma.invoice.update({
-          where: { id: inv.id },
+      if (items.some((it) => confirmedExpiredIds.has(it?.videoConsultationId))) {
+        await this.prisma.invoice.updateMany({
+          where: {
+            id: inv.id,
+            status: { in: [InvoiceStatus.DRAFT, InvoiceStatus.ISSUED] },
+          },
           data: { status: InvoiceStatus.CANCELLED },
         });
       }
@@ -645,6 +663,7 @@ export class VideoConsultationService implements OnModuleInit {
 
     const result = await this.prisma.$transaction(
       async (tx) => {
+        await lockDoctorSchedule(tx, dto.doctorId);
         let patient = await tx.patient.findUnique({
           where: { userId: user.userId },
           include: { user: { select: { fullName: true } } },
@@ -666,6 +685,8 @@ export class VideoConsultationService implements OnModuleInit {
             include: { user: { select: { fullName: true } } },
           });
         }
+
+        await lockPatientSchedule(tx, patient.id);
 
         const doctor = await tx.doctor.findUnique({
           where: { id: dto.doctorId },
@@ -867,7 +888,11 @@ export class VideoConsultationService implements OnModuleInit {
           payment: paymentDetails,
         };
       },
-      { maxWait: 15000, timeout: 30000 },
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
+        maxWait: 15000,
+        timeout: 30000,
+      },
     );
 
     void this.invalidateConsultationSlots(dto.doctorId);

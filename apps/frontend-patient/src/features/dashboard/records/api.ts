@@ -24,14 +24,20 @@ export type PatientRecordsResponse = {
     diagnosis: string | null;
     treatmentNotes: string | null;
     followUpDate: string | null;
+    treatmentPlanStepId?: string | null;
     images?: ClinicalImageRecord[] | null;
+    prescriptions?: TreatmentPlanStepRecord["medicalRecords"][number]["prescriptions"];
   }>;
 };
+
+export type PatientRecordsSummary = Pick<PatientRecordsResponse, "patient" | "medicalRecords">;
+export type PatientRecordsPlans = Pick<PatientRecordsResponse, "treatmentPlans">;
 
 export type ClinicalImageRecord = {
   id?: string;
   type?: string;
   title?: string;
+  notes?: string | null;
   url?: string | null;
   imageUrl?: string | null;
   src?: string | null;
@@ -53,6 +59,7 @@ export type TreatmentPlanRecord = {
   schedulePaymentStatus: string;
   invoices: InvoiceSummary[];
   steps: TreatmentPlanStepRecord[];
+  items?: Array<{ service?: string; [key: string]: any }>;
 };
 
 export type TreatmentPlanStepRecord = {
@@ -113,5 +120,15 @@ export async function getPatientRecords(patientId?: string) {
     "/patients/me/records",
     { params: patientId ? { patientId } : undefined },
   );
+  return response.data;
+}
+
+export async function getPatientRecordsSummary(patientId: string) {
+  const response = await apiClient.get<PatientRecordsSummary>("/patients/me/records/summary", { params: { patientId } });
+  return response.data;
+}
+
+export async function getPatientRecordsPlans(patientId: string) {
+  const response = await apiClient.get<PatientRecordsPlans>("/patients/me/records/plans", { params: { patientId } });
   return response.data;
 }

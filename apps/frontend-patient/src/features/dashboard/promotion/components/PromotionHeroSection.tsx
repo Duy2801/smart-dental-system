@@ -36,8 +36,8 @@ export function PromotionHeroSection({
               <p className="mt-3 text-xs font-bold uppercase tracking-wider text-slate-400">
                 Khuyến mãi nha khoa
               </p>
-              <p className="mt-1 text-lg font-black text-[#0863c5]">
-                {promotion.code}
+              <p className="mt-1 text-base font-black text-[#0863c5] line-clamp-2">
+                {promotion.name}
               </p>
             </div>
           )}
@@ -65,26 +65,14 @@ export function PromotionHeroSection({
             </p>
           </div>
 
-          <div className="flex flex-col gap-3 rounded-2xl border border-blue-200 bg-blue-50/50 p-4 sm:flex-row sm:items-center">
-            <div className="flex-1">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Mã ưu đãi
-              </p>
-              <p className="text-xl font-black tracking-wide text-[#0863c5]">
-                {promotion.code}
-              </p>
-              <p className="mt-1 text-xs text-slate-500">
-                Mã này sẽ có trong danh sách ưu đãi khi bạn đặt lịch.
-              </p>
-            </div>
-
+          <div className="pt-1">
             <button
               type="button"
               onClick={onBookNow}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#0863c5] px-5 text-xs font-bold text-white shadow-md shadow-blue-500/20 transition hover:bg-[#0753a8]"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#0863c5] px-6 text-sm font-bold text-white shadow-md shadow-blue-500/20 transition hover:bg-[#0753a8]"
             >
               <DashboardIcon name="calendar" className="h-4 w-4" />
-              Đặt lịch dùng mã
+              Đặt lịch ngay
             </button>
           </div>
         </div>

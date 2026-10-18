@@ -523,11 +523,8 @@ export function DoctorDirectory() {
       <div className="mx-auto max-w-[1440px] px-3.5 sm:px-6 lg:px-12">
         {/* Top Header Section */}
         <div className="relative mx-auto mb-8 max-w-4xl text-center lg:mb-12">
-          <p className={T.overline}>
-            Đội ngũ bác sĩ
-          </p>
-          <h2 className="mx-auto mt-2 text-2xl font-bold tracking-tight text-[#173761] sm:text-4xl lg:text-5xl">
-            Gặp gỡ đội ngũ bác sĩ giàu kinh nghiệm
+          <h2 className="mx-auto text-2xl font-bold tracking-tight text-[#173761] sm:text-4xl lg:text-5xl">
+            Đội ngũ bác sĩ giàu kinh nghiệm
           </h2>
           <p className={`mx-auto mt-3 text-xs sm:text-base ${T.body}`}>
             Đội ngũ bác sĩ tận tâm, chuyên nghiệp, luôn lắng nghe và mang đến trải nghiệm điều trị tốt nhất.

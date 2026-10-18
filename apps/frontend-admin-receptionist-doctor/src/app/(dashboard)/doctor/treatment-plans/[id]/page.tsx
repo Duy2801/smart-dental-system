@@ -22,6 +22,7 @@ import {
   PaperPlaneTilt,
 } from "@phosphor-icons/react";
 import apiClient from "@/src/lib/api/client";
+import { AdminConfirmModal } from "@/src/components/admin/common";
 import { TreatmentPlanExplanation } from "@/src/components/doctor/treatment-plan-explanation";
 
 type PlanStatus = "PLANNED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
@@ -267,16 +268,15 @@ export default function TreatmentPlanDetailPage() {
     }
   };
 
-  const handleStepStatus = async (step: PlanStep, newStatus: StepStatus) => {
-    if (!plan || newStatus === step.status) return;
+  const [cancelPaidStepConfirm, setCancelPaidStepConfirm] = useState<{
+    step: PlanStep;
+    newStatus: StepStatus;
+  } | null>(null);
 
-    if (step.paymentStatus === "PAID" && newStatus === "CANCELLED") {
-      const ok = window.confirm(
-        `Bước "${step.title}" đã được lễ tân thu tiền (Đã thanh toán). Bạn có chắc chắn muốn hủy bước này không?`,
-      );
-      if (!ok) return;
-    }
-
+  const executeStepStatusChange = async (
+    step: PlanStep,
+    newStatus: StepStatus,
+  ) => {
     setStepLoading((prev) => ({ ...prev, [step.id]: true }));
     setActionError(null);
     try {
@@ -320,6 +320,17 @@ export default function TreatmentPlanDetailPage() {
     } finally {
       setStepLoading((prev) => ({ ...prev, [step.id]: false }));
     }
+  };
+
+  const handleStepStatus = async (step: PlanStep, newStatus: StepStatus) => {
+    if (!plan || newStatus === step.status) return;
+
+    if (step.paymentStatus === "PAID" && newStatus === "CANCELLED") {
+      setCancelPaidStepConfirm({ step, newStatus });
+      return;
+    }
+
+    await executeStepStatusChange(step, newStatus);
   };
 
   if (loading) {
@@ -770,6 +781,26 @@ export default function TreatmentPlanDetailPage() {
           </button>
         </div>
       )}
+
+      <AdminConfirmModal
+        isOpen={Boolean(cancelPaidStepConfirm)}
+        title="Xác nhận hủy bước đã thanh toán"
+        description={
+          <>
+            Bước <strong className="font-semibold text-slate-900">&quot;{cancelPaidStepConfirm?.step.title}&quot;</strong> đã được lễ tân thu tiền (Đã thanh toán). Bạn có chắc chắn muốn hủy bước điều trị này không?
+          </>
+        }
+        confirmText="Hủy bước này"
+        cancelText="Quay lại"
+        variant="danger"
+        onConfirm={async () => {
+          if (!cancelPaidStepConfirm) return;
+          const { step, newStatus } = cancelPaidStepConfirm;
+          setCancelPaidStepConfirm(null);
+          await executeStepStatusChange(step, newStatus);
+        }}
+        onClose={() => setCancelPaidStepConfirm(null)}
+      />
     </div>
   );
 }

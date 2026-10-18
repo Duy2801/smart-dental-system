@@ -58,12 +58,14 @@ export function SupportSocketProvider({ children }: { children: ReactNode }) {
     socket.on("support:claimed", refreshLists);
     socket.on("support:requeued", refreshLists);
     socket.on("support:message", refreshLists);
+    socket.on("connect", refreshLists);
 
     return () => {
       socket.off("support:new", refreshLists);
       socket.off("support:claimed", refreshLists);
       socket.off("support:requeued", refreshLists);
       socket.off("support:message", refreshLists);
+      socket.off("connect", refreshLists);
     };
   }, [socket, queryClient]);
 

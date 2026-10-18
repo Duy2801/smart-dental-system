@@ -47,9 +47,8 @@ function OtpVerificationCard({
   onResend: () => void;
 }) {
   return (
-    <div className="w-full sm:max-w-[400px] flex-1 sm:flex-initial flex flex-col justify-center px-4 sm:px-0 py-6 sm:py-0">
-      <section className="w-full bg-white border-0 sm:border sm:border-slate-200/80 rounded-none sm:rounded-2xl shadow-none sm:shadow-lg sm:shadow-slate-200/50 p-0 sm:p-7 transition-all">
-        <div className="mb-5 text-center">
+    <section className="w-full flex-1 sm:flex-initial flex flex-col justify-center rounded-none sm:rounded-3xl border-0 sm:border sm:border-slate-200/90 bg-white p-5 sm:p-7 sm:px-8 shadow-none sm:shadow-xl sm:shadow-slate-200/70 transition-all">
+      <div className="mb-5 text-center">
           <div className="mx-auto mb-2.5 grid h-10 w-10 place-items-center rounded-xl bg-blue-50 text-[#0863c5] ring-1 ring-blue-100">
             <svg
               className="h-5 w-5"
@@ -190,7 +189,6 @@ function OtpVerificationCard({
           </Link>
         </div>
       </section>
-    </div>
   );
 }
 

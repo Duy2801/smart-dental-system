@@ -13,7 +13,6 @@ import { formatCurrency } from "@/utils/helpers";
 import { usePromotions } from "../hooks/usePromotions";
 import type { PromotionDto } from "../types";
 import { PromotionHeroSection } from "./PromotionHeroSection";
-import { PromotionServicesList } from "./PromotionServicesList";
 import { PromotionCalculatorSidebar } from "./PromotionCalculatorSidebar";
 import { PromotionInstructions } from "./PromotionInstructions";
 
@@ -177,14 +176,6 @@ export function PromotionDetailExperience({ promotionId }: { promotionId: string
         {/* Left Column: Services & Instructions */}
         <div className="space-y-7">
           <PromotionInstructions promotion={promotion} />
-
-          <PromotionServicesList
-            promotion={promotion}
-            applicableServices={applicableServices}
-            selectedServiceId={selectedService?.id || ""}
-            onSelectService={setSelectedServiceId}
-            onBookNow={handleBookNow}
-          />
         </div>
 
         {/* Right Column: Sticky Sidebar Calculator */}

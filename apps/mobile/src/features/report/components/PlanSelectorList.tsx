@@ -122,17 +122,8 @@ export function PlanSelectorList({
                 {treatment.title}
               </Text>
 
-              <Text style={styles.doctorText}>👨‍⚕️ {treatment.doctor}</Text>
-
-              {/* Progress Footer */}
-              <View style={styles.progressRow}>
-                <Text style={styles.progressText}>
-                  Tiến trình:{' '}
-                  <Text style={styles.progressBold}>
-                    {treatment.completedStepsCount}/{treatment.totalStepsCount} bước
-                  </Text>
-                </Text>
-
+              {/* Category Footer */}
+              <View style={[styles.progressRow, { justifyContent: 'flex-end' }]}>
                 <View style={styles.categoryBadge}>
                   <Text style={styles.categoryBadgeText}>
                     {treatment.category}

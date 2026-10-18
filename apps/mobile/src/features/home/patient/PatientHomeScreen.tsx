@@ -47,7 +47,6 @@ import {
   getHomeClinicalCases,
   getHomeDoctors,
   getHomeServices,
-  type HomeServiceCard,
 } from '../api';
 
 type HomeRow =
@@ -80,49 +79,6 @@ const rows: HomeRow[] = [
   { id: 'knowledge' },
   { id: 'location' },
   { id: 'footer' },
-];
-
-const fallbackServices: HomeServiceCard[] = [
-  {
-    category: 'Thẩm mỹ',
-    description:
-      'Mặt dán sứ siêu mỏng bảo tồn răng thật tối đa, mang lại nụ cười rạng rỡ.',
-    durationMinutes: 45,
-    icon: null,
-    id: 'veneer',
-    imageUrl: null,
-    name: 'Dán sứ Veneer',
-    price: 'Từ 8.000.000 đ',
-    priceValue: 8000000,
-    title: 'Dán sứ Veneer',
-    treatmentMethods: [],
-  },
-  {
-    category: 'Cấy ghép',
-    description: 'Khôi phục răng mất bằng trụ Implant hiện đại và bền vững.',
-    durationMinutes: 60,
-    icon: null,
-    id: 'implant',
-    imageUrl: null,
-    name: 'Trồng răng Implant',
-    price: 'Từ 15.000.000 đ',
-    priceValue: 15000000,
-    title: 'Trồng răng Implant',
-    treatmentMethods: [],
-  },
-  {
-    category: 'Thẩm mỹ',
-    description: 'Phục hình răng thẩm mỹ tự nhiên, cá nhân hóa theo nụ cười.',
-    durationMinutes: 45,
-    icon: null,
-    id: 'porcelain',
-    imageUrl: null,
-    name: 'Bọc răng sứ',
-    price: 'Liên hệ',
-    priceValue: 0,
-    title: 'Bọc răng sứ',
-    treatmentMethods: [],
-  },
 ];
 
 export default function PatientHomeScreen() {
@@ -187,13 +143,8 @@ export default function PatientHomeScreen() {
     gcTime: CACHE_TIMES.CATALOG.gcTime,
   });
 
-  const services = useMemo(
-    () =>
-      servicesQuery.data && servicesQuery.data.length > 0
-        ? servicesQuery.data
-        : fallbackServices,
-    [servicesQuery.data],
-  );
+  // Chỉ hiển thị dịch vụ thật từ API — không dùng dữ liệu mẫu, tránh bấm vào lại "không tìm thấy dịch vụ"
+  const services = useMemo(() => servicesQuery.data ?? [], [servicesQuery.data]);
   const doctors = useMemo(() => doctorsQuery.data ?? [], [doctorsQuery.data]);
   const banner = bannersQuery.data?.[0];
 
@@ -277,6 +228,17 @@ export default function PatientHomeScreen() {
       navigateTab(SCREEN_NAME.PATIENT_SERVICES, {
         screen: 'ServiceCatalogMain',
         params: value ? { keyword: value } : undefined,
+      });
+    },
+    [navigateTab],
+  );
+
+  const goToServiceDetail = useCallback(
+    (serviceId: string, methodId?: string) => {
+      setShowResults(false);
+      navigateTab(SCREEN_NAME.PATIENT_SERVICES, {
+        screen: 'ServiceDetail',
+        params: { serviceId, methodId },
       });
     },
     [navigateTab],
@@ -403,7 +365,7 @@ export default function PatientHomeScreen() {
     if (item.id === 'featured-service') {
       return (
         <FeaturedServiceBanner
-          onPress={serviceName => goToServiceSearch(serviceName)}
+          onPress={goToServiceDetail}
           services={services}
         />
       );
@@ -416,6 +378,7 @@ export default function PatientHomeScreen() {
       onPromotionsPress: () =>
         navigation.navigate(SCREEN_NAME.PATIENT_PROMOTIONS),
       onServicePress: goToServiceSearch,
+      onServiceDetailPress: goToServiceDetail,
     };
 
     if (item.id === 'trust') return <TrustMetricsSection />;

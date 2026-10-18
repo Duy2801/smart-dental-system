@@ -110,7 +110,7 @@ function mapTreatmentPlan(
 
   return {
     id: plan.id,
-    title: plan.title,
+    title: cleanRecordTitle(plan.title),
     date: plan.startDate ? formatLongDate(plan.startDate) : "Chưa bắt đầu",
     tooth:
       sortedSteps.find((step) => step.targetTooth)?.targetTooth ??
@@ -122,7 +122,7 @@ function mapTreatmentPlan(
       firstRecord?.treatmentNotes ??
       "Kế hoạch điều trị được bác sĩ lập và cập nhật theo từng lần khám.",
     active,
-    category: detectTreatmentCategory(plan.title),
+    category: detectTreatmentCategory(cleanRecordTitle(plan.title)),
     treatmentPlan,
     prescriptions:
       prescriptions.length > 0 ? prescriptions : [NO_PRESCRIPTION],
@@ -167,14 +167,14 @@ function buildTimelineSteps(
         code: `DT-${(p.id || step.id).slice(0, 6).toUpperCase()}`,
         doctor: doctorName,
         date: formatStepDate(step),
-        notes: p.notes || "Uống thuốc đúng giờ, tái khám đúng lịch hẹn.",
+        notes: p.notes || "",
         prescriptionImageUrl: null,
         items: p.items.map((item) => ({
           medicineName: item.medicineName,
           dosage: item.dosage,
-          frequency: item.frequency || "2 lần/ngày (Sáng, Tối)",
-          duration: item.duration || "5 ngày",
-          instruction: item.instruction || "Uống sau khi ăn 30 phút, uống nhiều nước.",
+          frequency: item.frequency || "Chưa ghi",
+          duration: item.duration || "Chưa ghi",
+          instruction: item.instruction || "Chưa ghi",
         })),
       })),
     );
@@ -250,9 +250,7 @@ function buildTimelineSteps(
       prescriptions:
         allPrescriptions.length > 0 ? allPrescriptions : [NO_PRESCRIPTION],
       richPrescriptions:
-        allRichPrescriptions.length > 0
-          ? allRichPrescriptions
-          : [getDefaultRichPrescription(doctorName)],
+        allRichPrescriptions,
       careInstructions: [
         "Xem lại toàn bộ ghi chú điều trị và dặn dò của bác sĩ.",
         "Liên hệ phòng khám khi cần tư vấn thêm về quy trình đã thực hiện.",
@@ -267,44 +265,6 @@ function buildTimelineSteps(
       appointment: null,
     },
   ];
-}
-
-export function getDefaultRichPrescription(
-  doctorName: string,
-  dateString?: string | null,
-): RichPrescription {
-  const dateFormatted = dateString ? formatShortDate(dateString) : "24/08/2026";
-  return {
-    id: "default-presc-01",
-    code: "DT-SDS-8821",
-    doctor: doctorName || "BS. Trần Thu Hà",
-    date: dateFormatted,
-    notes: "Uống thuốc đầy đủ theo liều lượng chỉ định. Nếu có hiện tượng bất thường liên hệ ngay với phòng khám.",
-    prescriptionImageUrl: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?q=80&w=800&auto=format&fit=crop",
-    items: [
-      {
-        medicineName: "Amoxicillin 500mg",
-        dosage: "1 viên / lần",
-        frequency: "2 lần/ngày (Sáng, Tối)",
-        duration: "5 ngày (10 viên)",
-        instruction: "Uống sau khi ăn 30 phút, uống với nhiều nước lọc.",
-      },
-      {
-        medicineName: "Paracetamol (Hapacol) 500mg",
-        dosage: "1 viên / lần",
-        frequency: "Khi đau (cách 4 - 6 giờ)",
-        duration: "3 ngày (6 viên)",
-        instruction: "Uống khi có cảm giác đau nhức nhiều. Không uống quá 4 viên/ngày.",
-      },
-      {
-        medicineName: "Nước súc miệng Chlorhexidine 0.12%",
-        dosage: "15ml / lần",
-        frequency: "2 - 3 lần/ngày",
-        duration: "7 ngày (1 chai 250ml)",
-        instruction: "Súc miệng kỹ 30 giây sau khi chải răng. Không được nuốt.",
-      },
-    ],
-  };
 }
 
 function pickClinicalImages(images: ClinicalImageRecord[]) {
@@ -326,15 +286,45 @@ function pickClinicalImages(images: ClinicalImageRecord[]) {
   };
 }
 
-function detectTreatmentCategory(title: string) {
-  const value = title.toLowerCase();
-  if (value.includes("implant")) return "Implant";
-  if (value.includes("chỉnh") || value.includes("nieng") || value.includes("niềng")) {
-    return "Chỉnh nha";
+export function cleanRecordTitle(title?: string | null, service?: string | null): string {
+  const cleanService = service && service.trim() ? service.trim() : "";
+  if (!title || !title.trim()) {
+    return cleanService ? `Khám & Điều trị ${cleanService}` : "Khám nha khoa tổng quát";
   }
-  if (value.includes("nội nha") || value.includes("tủy")) return "Nội nha";
-  if (value.includes("thẩm mỹ") || value.includes("sứ")) return "Nha khoa thẩm mỹ";
-  return "Khác";
+
+  const trimmed = title.trim();
+  const lower = trimmed.toLowerCase();
+
+  if (lower.includes("seed treatment plan 1") || lower.includes("seed diagnosis 1")) {
+    return "Phác đồ Cấy ghép Implant đơn lẻ";
+  }
+  if (lower.includes("seed treatment plan 2") || lower.includes("seed diagnosis 2")) {
+    return "Phác đồ Bọc răng sứ thẩm mỹ Cercon";
+  }
+  if (lower.includes("seed treatment plan 3") || lower.includes("seed diagnosis 3")) {
+    return "Phác đồ Dán sứ Veneer Emax 2 hàm";
+  }
+  if (lower.startsWith("seed treatment plan") || lower.startsWith("seed diagnosis")) {
+    return cleanService ? `Phác đồ điều trị ${cleanService}` : "Hồ sơ khám điều trị nha khoa";
+  }
+
+  return trimmed
+    .replace(/\s*\(\s*răng\s*[^)]*\)/gi, "")
+    .replace(/\s*[-–—:]\s*răng\s*\d+/gi, "")
+    .trim();
+}
+
+export function detectTreatmentCategory(title: string) {
+  const value = title.toLowerCase();
+  if (value.includes("implant")) return "Trồng răng Implant";
+  if (value.includes("chỉnh") || value.includes("nieng") || value.includes("niềng")) {
+    return "Chỉnh nha - Niềng răng";
+  }
+  if (value.includes("nội nha") || value.includes("tủy")) return "Điều trị tủy - Nội nha";
+  if (value.includes("thẩm mỹ") || value.includes("sứ") || value.includes("veneer")) return "Nha khoa thẩm mỹ";
+  if (value.includes("nhổ") || value.includes("tiểu phẫu")) return "Tiểu phẫu - Nhổ răng";
+  if (value.includes("trẻ em")) return "Nha khoa trẻ em";
+  return "Nha khoa tổng quát";
 }
 
 function getCurrentStepIndex(steps: TreatmentPlanStepRecord[]) {
@@ -363,17 +353,7 @@ function formatStepDate(step: TreatmentPlanStepRecord) {
 }
 
 function buildCareInstructions(treatmentNotes?: string | null) {
-  if (!treatmentNotes) {
-    return [
-      "Vệ sinh răng miệng nhẹ nhàng theo hướng dẫn của bác sĩ.",
-      "Liên hệ phòng khám nếu đau, sưng hoặc có dấu hiệu bất thường.",
-    ];
-  }
-
-  return [
-    treatmentNotes,
-    "Tái khám đúng lịch để bác sĩ đánh giá bước điều trị tiếp theo.",
-  ];
+  return treatmentNotes ? [treatmentNotes] : [];
 }
 
 export function getInitials(name: string) {

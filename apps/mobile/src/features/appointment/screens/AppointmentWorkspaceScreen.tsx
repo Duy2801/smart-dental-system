@@ -1,12 +1,11 @@
-import FontAwesome6 from '@react-native-vector-icons/fontawesome6';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useCallback, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View } from 'react-native';
 import { useSelector } from 'react-redux';
-import { Button, Screen, toast } from '~src/components/ui';
+import { Screen, toast } from '~src/components/ui';
 import { CACHE_TIMES, queryKeys } from '~src/config/queryClient';
 import { SCREEN_NAME } from '~src/constants/screenName';
+import { LoginRequiredView } from '~src/features/auth/components/LoginRequiredView';
 import { getClinicConfigInfo } from '~src/features/home/api';
 import { FloatingChatButton } from '~src/features/home/components/FloatingChatButton';
 import { PatientDrawerModal } from '~src/features/home/components/PatientDrawerModal';
@@ -138,29 +137,13 @@ export default function AppointmentWorkspaceScreen({
     return (
       <Screen>
         {renderTopHeader()}
-        <View style={styles.loginRequiredContainer}>
-          <View className="h-16 w-16 items-center justify-center rounded-3xl bg-blue-50 mb-4">
-            <FontAwesome6
-              color="#0058bc"
-              iconStyle="solid"
-              name="calendar-days"
-              size={28}
-            />
-          </View>
-          <Text className="text-xl font-black text-slate-900 text-center">
-            Đặt lịch khám nha khoa
-          </Text>
-          <Text className="mt-2 text-xs text-slate-500 text-center leading-5 max-w-[280px]">
-            Đăng nhập để chọn người khám, dịch vụ, bác sĩ và khung giờ phù hợp.
-            Tài khoản giúp phòng khám lưu hồ sơ và thông báo lịch hẹn cho bạn.
-          </Text>
-          <Button
-            className="mt-6 w-full max-w-[260px]"
-            onPress={() => navigation?.navigate(SCREEN_NAME.PATIENT_LOGIN)}
-          >
-            Đăng nhập để tiếp tục
-          </Button>
-        </View>
+        <LoginRequiredView
+          actionLabel="Đăng nhập để đặt lịch"
+          description="Đăng nhập để chọn dịch vụ, bác sĩ và khung giờ khám phù hợp với bạn."
+          icon="calendar-days"
+          title="Đặt lịch khám nha khoa"
+        />
+        <FloatingChatButton />
         {renderDrawer()}
       </Screen>
     );
@@ -211,12 +194,3 @@ export default function AppointmentWorkspaceScreen({
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  loginRequiredContainer: {
-    alignItems: 'center',
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-  },
-});

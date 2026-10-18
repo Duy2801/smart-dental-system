@@ -32,6 +32,43 @@ export function ServiceDetailNotFound() {
   );
 }
 
+export function ServiceDetailLoadError({
+  onRetry,
+  retrying,
+}: {
+  onRetry: () => void;
+  retrying: boolean;
+}) {
+  return (
+    <main className="mx-auto grid min-h-[60vh] w-full max-w-[960px] place-items-center px-4 py-10 text-center">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">
+          Chưa tải được thông tin dịch vụ
+        </h1>
+        <p className={`mt-2 ${T.body}`}>
+          Kết nối tới máy chủ đang gián đoạn. Vui lòng thử lại sau giây lát.
+        </p>
+        <div className="mt-5 flex flex-wrap justify-center gap-3">
+          <button
+            type="button"
+            onClick={onRetry}
+            disabled={retrying}
+            className="inline-flex rounded-xl bg-[#0863c5] px-5 py-3 text-sm font-bold text-white disabled:opacity-60"
+          >
+            {retrying ? "Đang tải lại..." : "Thử lại"}
+          </button>
+          <Link
+            href={ROUTES.service}
+            className="inline-flex rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700"
+          >
+            Quay lại danh sách
+          </Link>
+        </div>
+      </div>
+    </main>
+  );
+}
+
 export function SectionHeading({
   description,
   eyebrow,
@@ -83,14 +120,15 @@ export function BookingPanel({
   return (
     <aside className="min-w-0 space-y-5 lg:sticky lg:top-24">
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="bg-slate-950 p-5 text-white">
-          <p className={`${T.fieldLabel} text-blue-200`}>
-            Đặt lịch ưu tiên
-          </p>
-          <h2 className="mt-2 text-xl font-extrabold">
+        <div className="relative overflow-hidden bg-gradient-to-br from-[#0058bc] via-[#0863c5] to-[#02408b] p-5 text-white shadow-inner">
+          <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-xl pointer-events-none" />
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-0.5 text-[11px] font-bold tracking-wider text-blue-100 uppercase backdrop-blur-xs">
+            ⭐ Đặt lịch ưu tiên
+          </span>
+          <h2 className="mt-2 text-lg sm:text-xl font-extrabold leading-snug text-white">
             Chọn ngay {activeMethod?.name ?? service.title}
           </h2>
-          <p className={`mt-2 ${T.bodySm} text-slate-300`}>
+          <p className="mt-1.5 text-xs leading-relaxed text-blue-100/90">
             Hệ thống sẽ chuyển sang lịch hẹn và tự chọn dịch vụ này cho bạn.
           </p>
         </div>

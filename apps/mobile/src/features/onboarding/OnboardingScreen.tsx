@@ -5,17 +5,20 @@ import ONBOARDING_SLIDES from './data';
 import { SCREEN_NAME } from '~src/constants/screenName';
 import React from 'react';
 import { PRIMARY_COLOR, SECONDARY_COLOR } from '~src/constants/color';
-import { Dimensions, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import Button from '~src/components/Button/Button';
 import Body from '~src/components/Layout/Body';
-
-const { width } = Dimensions.get('window');
+import { useResponsive } from '~src/hooks/useResponsive';
 
 const OnboardingScreen = () => {
   const [index, setIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
 
   const navigation = useNavigation<any>();
+  const { width, height, isShort, isSmall } = useResponsive();
+
+  // Ảnh co theo cả chiều rộng lẫn chiều cao để máy nhỏ / màn thấp không đẩy thẻ chữ và nút ra khỏi màn hình
+  const imageSize = Math.min(width - 48, 370, Math.round(height * (isShort ? 0.34 : 0.42)));
 
   const handleNext = () => {
     if (index < ONBOARDING_SLIDES.length - 1) {
@@ -43,10 +46,13 @@ const OnboardingScreen = () => {
             setIndex(newIndex);
           }}
           renderItem={({ item }) => (
-            <View style={styles.page}>
-              <Image source={item.image} style={styles.image} />
-              <View style={styles.card}>
-                <Text style={styles.title}>{item.title}</Text>
+            <View style={[styles.page, { paddingTop: isShort ? 24 : 60, width }]}>
+              <Image
+                source={item.image}
+                style={[styles.image, { borderRadius: imageSize * 0.135, height: imageSize, width: imageSize }]}
+              />
+              <View style={[styles.card, { marginTop: isShort ? 20 : 40, padding: isSmall ? 18 : 24 }]}>
+                <Text style={[styles.title, isSmall ? styles.titleSmall : null]}>{item.title}</Text>
                 <Text style={styles.description}>{item.description}</Text>
               </View>
             </View>
@@ -74,22 +80,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   page: {
-    width,
     alignItems: 'center',
-    paddingTop: 60,
   },
   image: {
-    width: 370,
-    height: 370,
     resizeMode: 'contain',
-    borderRadius: 50,
     borderWidth: 1,
     borderColor: '#ddd',
   },
   card: {
     backgroundColor: '#fff',
-    marginTop: 40,
-    padding: 24,
     borderRadius: 20,
     width: '85%',
     elevation: 3,
@@ -99,6 +98,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: 12,
     textAlign: 'center',
+  },
+  titleSmall: {
+    fontSize: 24,
   },
   description: {
     fontSize: 16,

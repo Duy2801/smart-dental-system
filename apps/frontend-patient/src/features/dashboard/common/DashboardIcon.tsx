@@ -14,6 +14,7 @@ export type DashboardIconName =
   | "document"
   | "heart"
   | "home"
+  | "image"
   | "grid"
   | "headset"
   | "implant"
@@ -91,6 +92,7 @@ export function DashboardIcon({ name, className = "h-5 w-5" }: DashboardIconProp
     ),
     mail: <path d="M4 6h16v12H4V6Zm.5.5L12 13l7.5-6.5" />,
     home: <path d="m3 11 9-8 9 8v10h-6v-6H9v6H3V11Z" />,
+    image: <><rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="8" cy="9" r="1.5" /><path d="m4 18 5-5 3 3 3-4 5 6" /></>,
     search: <path d="m20 20-4.5-4.5M18 10.5a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z" />,
     shield: <path d="M12 3 5 6v5.5c0 4.5 2.8 7.5 7 9.5 4.2-2 7-5 7-9.5V6l-7-3Zm-3 9 2 2 4-4" />,
     sparkles: <path d="m12 3 1.2 3.8L17 8l-3.8 1.2L12 13l-1.2-3.8L7 8l3.8-1.2L12 3Zm6 10 .8 2.2L21 16l-2.2.8L18 19l-.8-2.2L15 16l2.2-.8L18 13ZM6 14l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3Z" />,

@@ -9,6 +9,20 @@ const getItems = <T>(payload: unknown): T[] => {
   return Array.isArray(items) ? items : [];
 };
 
+export function unwrapData<T>(res: any): T {
+  let current = res?.data !== undefined ? res.data : res;
+  while (
+    current &&
+    typeof current === 'object' &&
+    !Array.isArray(current) &&
+    'data' in current &&
+    current.data !== undefined
+  ) {
+    current = current.data;
+  }
+  return current as T;
+}
+
 const asNumber = (value: unknown) => Number(value || 0);
 
 export const formatVnd = (value?: number | string | null) =>
@@ -90,6 +104,20 @@ export type PatientPromotion = {
   } | null;
 };
 
+export type NotificationPaginationMeta = {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasMore: boolean;
+  unreadCount: number;
+};
+
+export type PaginatedNotificationsResponse = {
+  data: PatientNotification[];
+  meta: NotificationPaginationMeta;
+};
+
 export type PatientNotification = {
   id: string;
   title: string;
@@ -138,6 +166,36 @@ export type CreateConsultationPayload = {
   notes?: string;
 };
 
+export type ConsultationPayment = {
+  id: string;
+  invoiceId: string;
+  invoiceCode: string;
+  amount: number;
+  method: string;
+  status: string;
+  transferContent: string;
+  bankAccountNo: string;
+  bankAccountName: string;
+  bankBin: string;
+  bankName: string;
+  qrImageUrl: string;
+  provider: string;
+};
+
+export type ConsultationPaymentInfo = {
+  consultationId?: string;
+  isPaid: boolean;
+  fee?: number;
+  invoice?: { id: string; invoiceCode: string; finalAmount: number };
+  payment?: ConsultationPayment;
+};
+
+export type ConsultationBookingResult = {
+  consultation: { id: string; scheduledAt: string; durationMinutes: number; fee: number; isPaid: boolean };
+  invoice: { id: string; invoiceCode: string; finalAmount: number };
+  payment: ConsultationPayment;
+};
+
 export type PatientConsultation = {
   id: string;
   doctor: string;
@@ -154,6 +212,18 @@ export type PatientConsultation = {
   meetingUrl?: string | null;
   fee?: number;
 };
+
+export type PatientConsultationRoom = {
+  id: string;
+  meetingUrl: string | null;
+  status: string;
+  isDoctorStarted: boolean;
+};
+
+export async function joinPatientConsultationRoom(id: string): Promise<PatientConsultationRoom> {
+  const response = await api.post(`/video-consultations/patient/${id}/join`);
+  return unwrapData<PatientConsultationRoom>(response);
+}
 
 export const getPatientServices = async (): Promise<PatientService[]> => {
   const response = await api.get('/services', {
@@ -262,26 +332,67 @@ export const getPatientPromotions = async (search?: string): Promise<PatientProm
   });
 };
 
-export const getPatientNotifications = async (): Promise<PatientNotification[]> => {
+export const getPatientNotificationsPaginated = async (params?: {
+  page?: number;
+  limit?: number;
+  type?: string;
+  unreadOnly?: boolean;
+}): Promise<PaginatedNotificationsResponse> => {
   try {
+    const page = params?.page || 1;
+    const limit = params?.limit || 5;
+    const apiParams: Record<string, any> = { page, limit };
+    if (params?.type && params.type !== 'ALL') {
+      apiParams.type = params.type;
+    }
+    if (params?.unreadOnly) {
+      apiParams.unreadOnly = 'true';
+    }
+
     const response = await api.get('/notifications/my-notifications', {
-      params: { limit: 30, page: 1 },
+      params: apiParams,
     });
 
-    return getItems<AnyRecord>(response.data).map(item => ({
+    const envelope = response.data;
+    const rootData = envelope?.data ?? envelope;
+    const rawItems = Array.isArray(rootData?.data)
+      ? rootData.data
+      : Array.isArray(rootData)
+      ? rootData
+      : [];
+    const meta: NotificationPaginationMeta = rootData?.meta ?? envelope?.meta ?? {
+      total: rawItems.length,
+      page,
+      limit,
+      totalPages: Math.ceil(rawItems.length / limit) || 1,
+      hasMore: false,
+      unreadCount: 0,
+    };
+
+    const data: PatientNotification[] = rawItems.map((item: AnyRecord) => ({
       id: String(item.id),
       title: item.title || 'Thông báo',
       message: item.message || item.content || 'Bạn có cập nhật mới từ Smart Dental.',
       type: item.type || 'GENERAL',
-      isRead: Boolean(item.isRead ?? item.is_read ?? item.readAt),
+      isRead: Boolean(item.isRead ?? item.is_read ?? item.readAt ?? item.read),
       createdAt: formatDate(item.createdAt || item.created_at),
     }));
+
+    return { data, meta };
   } catch (error) {
     if (axios.isAxiosError(error) && [401, 404].includes(error.response?.status || 0)) {
-      return [];
+      return {
+        data: [],
+        meta: { total: 0, page: 1, limit: 5, totalPages: 1, hasMore: false, unreadCount: 0 },
+      };
     }
     throw error;
   }
+};
+
+export const getPatientNotifications = async (): Promise<PatientNotification[]> => {
+  const result = await getPatientNotificationsPaginated({ page: 1, limit: 30 });
+  return result.data;
 };
 
 export const markPatientNotificationRead = async (id: string) => {
@@ -360,19 +471,19 @@ export const getAvailableConsultationSlots = async (
 
 export const createConsultationBooking = async (
   payload: CreateConsultationPayload,
-): Promise<any> => {
+): Promise<ConsultationBookingResult> => {
   const response = await api.post('/video-consultations/booking', payload);
-  return response.data;
+  return unwrapData<ConsultationBookingResult>(response);
 };
 
 export const cancelMyConsultation = async (id: string): Promise<any> => {
   const response = await api.patch(`/video-consultations/patient/${id}/cancel`);
-  return response.data;
+  return unwrapData<any>(response);
 };
 
-export const getConsultationPaymentInfo = async (id: string): Promise<any> => {
+export const getConsultationPaymentInfo = async (id: string): Promise<ConsultationPaymentInfo> => {
   const response = await api.get(`/video-consultations/patient/${id}/payment-info`);
-  return response.data;
+  return unwrapData<ConsultationPaymentInfo>(response);
 };
 
 export const getPatientConsultations = async (): Promise<PatientConsultation[]> => {

@@ -4273,6 +4273,12 @@ export const SupportMessageScalarFieldEnum = {
   senderType: 'senderType',
   senderId: 'senderId',
   content: 'content',
+  attachmentUrl: 'attachmentUrl',
+  attachmentName: 'attachmentName',
+  attachmentMime: 'attachmentMime',
+  replyToId: 'replyToId',
+  replyPreview: 'replyPreview',
+  replySenderType: 'replySenderType',
   readAt: 'readAt',
   createdAt: 'createdAt'
 } as const

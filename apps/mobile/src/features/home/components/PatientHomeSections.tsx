@@ -12,6 +12,7 @@ import {
 import { WebView } from 'react-native-webview';
 import { Text } from 'react-native-paper';
 import { HOME_ASSETS } from '~src/assets';
+import { useResponsive } from '~src/hooks/useResponsive';
 import type {
   ClinicConfigInfo,
   HomeClinicalCase,
@@ -27,6 +28,8 @@ type ActionHandlers = {
   onDoctorsPress: (keyword?: string) => void;
   onPromotionsPress: () => void;
   onServicePress: (keyword?: string) => void;
+  /** Mở trang chi tiết nhóm dịch vụ (giống ô dịch vụ trên web) */
+  onServiceDetailPress: (serviceId: string, methodId?: string) => void;
 };
 
 const formatVnd = (value: string | number) =>
@@ -35,22 +38,17 @@ const formatVnd = (value: string | number) =>
 // ─── SECTION HEADER (CENTERED / SLEEK LIKE WEB) ─────────────────────────
 function WebSectionHeader({
   actionLabel,
-  eyebrow,
   onActionPress,
   subtitle,
   title,
 }: {
   actionLabel?: string;
-  eyebrow?: string;
   onActionPress?: () => void;
   subtitle?: string;
   title: string;
 }) {
   return (
     <View style={styles.sectionHeaderContainer}>
-      {eyebrow ? (
-        <Text style={styles.sectionEyebrow}>{eyebrow.toUpperCase()}</Text>
-      ) : null}
       <Text style={styles.sectionTitle}>{title}</Text>
       {subtitle ? (
         <Text style={styles.sectionSubtitle}>{subtitle}</Text>
@@ -165,7 +163,6 @@ export function ServicesPreviewSection({
   return (
     <View style={styles.sectionMargin}>
       <WebSectionHeader
-        eyebrow="Dịch vụ nổi bật"
         subtitle="Chọn nhóm dịch vụ để xem các dịch vụ, chi phí và quy trình điều trị chi tiết."
         title="Danh sách dịch vụ nha khoa"
       />
@@ -183,7 +180,7 @@ export function ServicesPreviewSection({
               <TouchableOpacity
                 activeOpacity={0.86}
                 key={service.id}
-                onPress={() => handlers.onServicePress(service.name)}
+                onPress={() => handlers.onServiceDetailPress(service.id)}
                 style={[styles.serviceTile, styles.softShadow]}
               >
                 {/* Centered Icon Container */}
@@ -256,7 +253,6 @@ export function PopularMethodsSection({
   return (
     <View style={styles.sectionMargin}>
       <WebSectionHeader
-        eyebrow="Được yêu thích"
         subtitle="Tự động xếp hạng theo số lượt đặt lịch thực tế trong hệ thống."
         title="Dịch vụ được đặt nhiều nhất"
       />
@@ -272,51 +268,63 @@ export function PopularMethodsSection({
               key={method.id}
               style={[styles.popularCard, styles.softShadow]}
             >
-              {/* Method Photo Banner */}
-              <View style={styles.popularPhotoWrap}>
-                <Image
-                  resizeMode="cover"
-                  source={imgSrc}
-                  style={styles.popularPhoto}
-                />
+              {/* Hàng trên: ảnh vuông hiện trọn + tên, giá — giống thẻ phương pháp trong trang dịch vụ */}
+              <View style={styles.popularTopRow}>
+                <View style={styles.popularPhotoWrap}>
+                  <Image
+                    resizeMode="cover"
+                    source={imgSrc}
+                    style={styles.popularPhoto}
+                  />
+                </View>
+
+                <View style={styles.popularInfo}>
+                  <Text numberOfLines={1} style={styles.popularCategoryBadge}>
+                    {service.name.toUpperCase()}
+                  </Text>
+                  <Text numberOfLines={2} style={styles.popularMethodName}>
+                    {method.name}
+                  </Text>
+                  <View style={styles.popularBadgeRow}>
+                    <View style={styles.popularPricePill}>
+                      <Text style={styles.popularPrice}>
+                        {formatVnd(method.basePrice)}
+                      </Text>
+                    </View>
+                    <View style={styles.popularCountPill}>
+                      <Text style={styles.popularBookingCount}>
+                        {method.bookingCount ?? 0} lượt đặt
+                      </Text>
+                    </View>
+                  </View>
+                </View>
               </View>
 
-              {/* Content Body */}
-              <View style={styles.popularContent}>
-                <Text style={styles.popularCategoryBadge}>
-                  {service.name.toUpperCase()}
-                </Text>
+              <Text numberOfLines={2} style={styles.popularDesc}>
+                {method.description ||
+                  service.description ||
+                  'Dịch vụ nha khoa công nghệ cao được cá nhân hóa.'}
+              </Text>
 
-                <Text numberOfLines={1} style={styles.popularMethodName}>
-                  {method.name}
-                </Text>
-
-                <Text numberOfLines={2} style={styles.popularDesc}>
-                  {method.description ||
-                    service.description ||
-                    'Dịch vụ nha khoa công nghệ cao được cá nhân hóa.'}
-                </Text>
-
-                <View style={styles.popularFooter}>
-                  <View>
-                    <Text style={styles.popularPrice}>
-                      {formatVnd(method.basePrice)}
-                    </Text>
-                    <Text style={styles.popularBookingCount}>
-                      {method.bookingCount ?? 0} lượt đặt
-                    </Text>
-                  </View>
-
-                  <TouchableOpacity
-                    activeOpacity={0.85}
-                    onPress={() =>
-                      handlers.onAppointmentPress(service.id, method.id)
-                    }
-                    style={styles.bookMethodBtn}
-                  >
-                    <Text style={styles.bookMethodBtnText}>Đặt lịch</Text>
-                  </TouchableOpacity>
-                </View>
+              <View style={styles.popularActionRow}>
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() =>
+                    handlers.onServiceDetailPress(service.id, method.id)
+                  }
+                  style={styles.popularDetailBtn}
+                >
+                  <Text style={styles.popularDetailBtnText}>Chi tiết</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={() =>
+                    handlers.onAppointmentPress(service.id, method.id)
+                  }
+                  style={styles.popularBookBtn}
+                >
+                  <Text style={styles.popularBookBtnText}>Đặt lịch</Text>
+                </TouchableOpacity>
               </View>
             </View>
           );
@@ -340,7 +348,6 @@ export function DoctorsPreviewSection({
     return (
       <View style={styles.sectionMargin}>
         <WebSectionHeader
-          eyebrow="Đội ngũ bác sĩ"
           subtitle="Đội ngũ bác sĩ tận tâm, chuyên nghiệp, luôn lắng nghe và mang đến trải nghiệm điều trị tốt nhất."
           title="Gặp gỡ đội ngũ bác sĩ giàu kinh nghiệm"
         />
@@ -367,35 +374,11 @@ export function DoctorsPreviewSection({
   return (
     <View style={styles.sectionMargin}>
       <WebSectionHeader
-        actionLabel="Xem tất cả"
-        eyebrow="Đội ngũ bác sĩ"
-        onActionPress={() => handlers.onDoctorsPress()}
         subtitle="Đội ngũ bác sĩ tận tâm, chuyên nghiệp, luôn lắng nghe và mang đến trải nghiệm điều trị tốt nhất."
         title="Gặp gỡ đội ngũ bác sĩ giàu kinh nghiệm"
       />
 
       <View style={[styles.doctorCarouselWrap, styles.softShadow]}>
-        {/* Navigation Arrows */}
-        {doctors.length > 1 ? (
-          <>
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={prevDoctor}
-              style={styles.arrowBtnLeft}
-            >
-              <Text style={styles.arrowBtnText}>‹</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={nextDoctor}
-              style={styles.arrowBtnRight}
-            >
-              <Text style={styles.arrowBtnText}>›</Text>
-            </TouchableOpacity>
-          </>
-        ) : null}
-
         {/* Doctor Info (Top) */}
         <View style={styles.doctorInfoTop}>
           <Text style={styles.doctorEyebrow}>Bác sĩ chuyên khoa</Text>
@@ -414,15 +397,6 @@ export function DoctorsPreviewSection({
               </View>
             ))}
           </View>
-
-          {/* Action Button */}
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={() => handlers.onDoctorsPress(currentDoctor.name)}
-            style={styles.viewDoctorBtn}
-          >
-            <Text style={styles.viewDoctorBtnText}>Xem chi tiết bác sĩ ›</Text>
-          </TouchableOpacity>
         </View>
 
         {/* Doctor Visual Area with Circular Backdrop & Cutout Photo */}
@@ -437,7 +411,39 @@ export function DoctorsPreviewSection({
             }
             style={styles.doctorCutoutImg}
           />
+
+          {/* Nút chuyển bác sĩ: căn giữa theo ảnh để không đè lên chữ / nút */}
+          {doctors.length > 1 ? (
+            <>
+              <TouchableOpacity
+                accessibilityLabel="Bác sĩ trước"
+                activeOpacity={0.8}
+                onPress={prevDoctor}
+                style={styles.arrowBtnLeft}
+              >
+                <Text style={styles.arrowBtnText}>‹</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                accessibilityLabel="Bác sĩ tiếp theo"
+                activeOpacity={0.8}
+                onPress={nextDoctor}
+                style={styles.arrowBtnRight}
+              >
+                <Text style={styles.arrowBtnText}>›</Text>
+              </TouchableOpacity>
+            </>
+          ) : null}
         </View>
+
+        {/* Action Button: đặt dưới ảnh, rộng hết thẻ */}
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => handlers.onDoctorsPress(currentDoctor.name)}
+          style={styles.viewDoctorBtn}
+        >
+          <Text style={styles.viewDoctorBtnText}>Xem chi tiết bác sĩ ›</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -465,7 +471,6 @@ export function ClinicalCasesPreviewSection({
   return (
     <View style={styles.sectionMargin}>
       <WebSectionHeader
-        eyebrow="Kết quả điều trị"
         subtitle="Hình ảnh trước và sau từ các ca điều trị thực tế đã được bệnh nhân đồng ý công khai."
         title="Kiệt tác Nụ cười"
       />
@@ -632,11 +637,6 @@ export function PromotionCtaSection({
         {promotion?.title || 'Cùng sẻ chia nụ cười, nhận ưu đãi không giới hạn'}
       </Text>
 
-      <Text numberOfLines={3} style={styles.promoDesc}>
-        {promotion?.description ||
-          'Khám phá các gói ưu đãi nha khoa cao cấp, tích điểm đổi quà và nhận Voucher giảm giá dịch vụ hấp dẫn dành riêng cho bạn và gia đình.'}
-      </Text>
-
       {/* 2 CTA Buttons Row matching Web */}
       <View style={styles.promoButtonsRow}>
         <TouchableOpacity
@@ -714,53 +714,98 @@ export function KnowledgePreviewSection({
   handlers: ActionHandlers;
   services: HomeServiceCard[];
 }) {
-  const serviceFaqs = services.slice(0, 2).map((service, index) => {
-    const questions = [
-      `Dịch vụ ${service.name} mất bao lâu?`,
-      `${service.name} có chi phí từ bao nhiêu?`,
-      `Khi nào nên đặt lịch ${service.name}?`,
-      `${service.name} có cần tư vấn trước không?`,
-    ];
-    const answers = [
-      `Thời gian dự kiến khoảng ${service.durationMinutes} phút, tùy tình trạng răng miệng thực tế khi bác sĩ thăm khám.`,
-      `Chi phí tham khảo ${service.price}. Mức cuối cùng sẽ được xác nhận sau khi bác sĩ đánh giá.`,
-      service.description,
-      'Bạn nên đặt lịch trước để phòng khám chuẩn bị khung giờ phù hợp và tư vấn đúng nhu cầu điều trị.',
-    ];
+  type FaqItem = {
+    answer: string;
+    badge: string;
+    cta: string;
+    icon: string;
+    id: string;
+    onPress: () => void;
+    question: string;
+  };
 
-    return {
-      answer: answers[index % answers.length],
-      badge: service.name,
-      question: questions[index % questions.length],
-    };
-  });
+  // Lấy xen kẽ câu hỏi thật của từng dịch vụ để các thẻ không dồn vào cùng một dịch vụ (giống web)
+  const faqsByService = services.map((service, serviceIndex) =>
+    service.faqs.map(
+      (faq, faqIndex): FaqItem => ({
+        answer: faq.answer,
+        badge: service.name,
+        cta: 'Xem dịch vụ',
+        icon: (serviceIndex + faqIndex) % 2 === 0 ? 'tooth' : 'wand-magic-sparkles',
+        id: `service-${service.id}-faq-${faq.id}`,
+        onPress: () => handlers.onServiceDetailPress(service.id),
+        question: faq.question,
+      }),
+    ),
+  );
+  const seededFaqs: FaqItem[] = [];
+  const maxFaqs = Math.max(0, ...faqsByService.map(faqs => faqs.length));
+  for (let round = 0; round < maxFaqs && seededFaqs.length < 4; round += 1) {
+    for (const faqs of faqsByService) {
+      if (faqs[round]) seededFaqs.push(faqs[round]);
+      if (seededFaqs.length >= 4) break;
+    }
+  }
 
-  const clinicFaqs = [
+  const serviceFaqs: FaqItem[] = seededFaqs.length
+    ? seededFaqs
+    : services.slice(0, 4).map((service, index) => {
+        const questions = [
+          `Dịch vụ ${service.name} mất bao lâu?`,
+          `${service.name} có chi phí từ bao nhiêu?`,
+          `Khi nào nên đặt lịch ${service.name}?`,
+          `${service.name} có cần tư vấn trước không?`,
+        ];
+        const answers = [
+          `Thời gian dự kiến khoảng ${service.durationMinutes} phút, tùy tình trạng răng miệng thực tế khi bác sĩ thăm khám.`,
+          `Chi phí tham khảo ${service.price}. Mức cuối cùng sẽ được xác nhận sau khi bác sĩ đánh giá.`,
+          service.description,
+          'Bạn nên đặt lịch trước để phòng khám chuẩn bị khung giờ phù hợp và tư vấn đúng nhu cầu điều trị.',
+        ];
+
+        return {
+          answer: answers[index % answers.length],
+          badge: service.name,
+          cta: 'Đặt lịch tư vấn',
+          icon: index % 2 === 0 ? 'tooth' : 'wand-magic-sparkles',
+          id: `service-${service.id}`,
+          onPress: handlers.onConsultationPress,
+          question: questions[index % questions.length],
+        };
+      });
+
+  const clinicFaqs: FaqItem[] = [
     {
       answer:
         clinic?.businessHours
           ?.filter(day => day.isOpen)
           .map(day => `${day.label} ${day.start} - ${day.end}`)
-          .join(', ') ||
-        'Phòng khám mở cửa đón khách các ngày trong tuần từ 08:00 - 20:00.',
+          .join(', ') || 'Phòng khám chưa cấu hình lịch làm việc.',
       badge: 'Giờ làm việc',
+      cta: 'Đặt lịch tư vấn',
+      icon: 'clock',
+      id: 'clinic-hours',
+      onPress: handlers.onConsultationPress,
       question: 'Phòng khám làm việc vào những khung giờ nào?',
     },
     {
       answer: clinic?.phone
-        ? `Bạn có thể gọi trực tiếp hotline ${clinic.phone}${clinic.email ? ` hoặc gửi email tới ${clinic.email}` : ''} để được phản hồi nhanh nhất.`
-        : 'Bạn có thể gọi hotline phòng khám hoặc đặt lịch tư vấn trực tuyến bất kỳ lúc nào.',
+        ? `Bạn có thể gọi hotline ${clinic.phone}${clinic.email ? ` hoặc gửi email đến ${clinic.email}` : ''}.`
+        : 'Phòng khám chưa cập nhật hotline trong cấu hình hệ thống.',
       badge: 'Tư vấn nhanh',
+      cta: 'Đặt lịch tư vấn',
+      icon: 'comment-dots',
+      id: 'clinic-contact',
+      onPress: handlers.onConsultationPress,
       question: 'Tôi có thể liên hệ phòng khám bằng cách nào?',
     },
   ];
 
-  const faqItems = [...serviceFaqs, ...clinicFaqs];
+  const faqItems = [...serviceFaqs, ...clinicFaqs].slice(0, 4);
 
   return (
     <View style={styles.sectionMargin}>
       <WebSectionHeader
-        eyebrow="Hỏi đáp nha khoa"
         subtitle="Những thắc mắc phổ biến được tổng hợp từ dữ liệu dịch vụ và cấu hình thực tế của phòng khám."
         title="Câu hỏi thường gặp"
       />
@@ -770,33 +815,43 @@ export function KnowledgePreviewSection({
           {faqItems.map(item => (
             <TouchableOpacity
               activeOpacity={0.86}
-              key={item.question}
-              onPress={handlers.onConsultationPress}
+              key={item.id}
+              onPress={item.onPress}
               style={[styles.faqCard, styles.softShadow]}
             >
-              <View style={styles.faqHeaderRow}>
-                <View style={styles.faqTag}>
-                  <Text style={styles.faqTagText}>FAQ</Text>
+              <View style={styles.faqBodyRow}>
+                <View style={styles.faqIconBox}>
+                  <FontAwesome6
+                    color="#0058BC"
+                    iconStyle="solid"
+                    name={item.icon as never}
+                    size={15}
+                  />
                 </View>
-                <Text numberOfLines={1} style={styles.faqCategoryBadge}>
-                  {item.badge}
-                </Text>
+                <View style={styles.faqTextCol}>
+                  <Text numberOfLines={2} style={styles.faqQuestion}>
+                    {item.question}
+                  </Text>
+                  <Text numberOfLines={3} style={styles.faqAnswer}>
+                    {item.answer}
+                  </Text>
+                </View>
               </View>
 
-              <Text style={styles.faqQuestion}>{item.question}</Text>
-              <Text numberOfLines={3} style={styles.faqAnswer}>
-                {item.answer}
-              </Text>
-
               <View style={styles.faqFooterRow}>
-                <Text style={styles.faqCtaText}>Đặt lịch tư vấn</Text>
-                <View style={styles.faqBookBtn}>
-                  <Text style={styles.faqBookBtnText}>Đặt ngay</Text>
+                <View style={styles.faqBadgeRow}>
+                  <View style={styles.faqBadgeDot} />
+                  <Text numberOfLines={1} style={styles.faqBadgeText}>
+                    {item.badge}
+                  </Text>
+                </View>
+                <View style={styles.faqCtaRow}>
+                  <Text style={styles.faqCtaText}>{item.cta}</Text>
                   <FontAwesome6
-                    color="#FFFFFF"
+                    color="#0058BC"
                     iconStyle="solid"
-                    name="chevron-right"
-                    size={8}
+                    name="arrow-right"
+                    size={11}
                   />
                 </View>
               </View>
@@ -824,6 +879,9 @@ export function ClinicLocationPreviewSection({
 }) {
   const [copied, setCopied] = useState(false);
   const openHours = clinic?.businessHours?.filter(day => day.isOpen) ?? [];
+  const { isSmall, isTablet } = useResponsive();
+  // Bản đồ vừa phải: thấp hơn trên máy nhỏ, cao hơn một chút trên tablet
+  const mapHeight = isSmall ? 180 : isTablet ? 280 : 210;
 
   const handleCopy = () => {
     setCopied(true);
@@ -859,6 +917,8 @@ export function ClinicLocationPreviewSection({
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link rel="preconnect" href="https://maps.google.com" />
+    <link rel="preconnect" href="https://maps.gstatic.com" crossorigin />
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
       html, body { width: 100%; height: 100%; overflow: hidden; background: #F8FAFC; }
@@ -869,7 +929,7 @@ export function ClinicLocationPreviewSection({
     <iframe
       src="${mapEmbedUrl}"
       allowfullscreen=""
-      loading="lazy"
+      loading="eager"
       referrerpolicy="no-referrer-when-downgrade"
     ></iframe>
   </body>
@@ -880,22 +940,10 @@ export function ClinicLocationPreviewSection({
     <View style={[styles.locationCard, styles.softShadow]}>
       {/* 1. Header Section */}
       <View style={styles.locationHeaderBlock}>
-        <View style={styles.locationEyebrowTag}>
-          <View style={styles.livePulseDot} />
-          <Text style={styles.locationEyebrowText}>Vị trí phòng khám & Bản đồ</Text>
-        </View>
         <Text style={styles.locationTitle}>Thông tin & Vị trí Phòng khám</Text>
-        <Text style={styles.locationSubtitle}>
-          Thông tin được lấy trực tiếp từ cấu hình phòng khám trong hệ thống.
+        <Text adjustsFontSizeToFit minimumFontScale={0.85} numberOfLines={1} style={styles.locationSubtitle}>
+          Cập nhật trực tiếp từ hệ thống phòng khám.
         </Text>
-
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={handleDirections}
-          style={styles.openMapDirectBtn}
-        >
-          <Text style={styles.openMapDirectText}>Mở chỉ đường Google Maps</Text>
-        </TouchableOpacity>
       </View>
 
       {/* 2. Card 1: Clinic Info Box */}
@@ -960,7 +1008,7 @@ export function ClinicLocationPreviewSection({
       </View>
 
       {/* 3. Card 2: Google Map (Live Google Maps embed) */}
-      <View style={styles.mapContainerCard}>
+      <View style={[styles.mapContainerCard, { height: mapHeight }]}>
         <WebView
           source={{
             html: mapHtml,
@@ -1115,7 +1163,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     left: 8,
     position: 'absolute',
-    top: '48%',
+    top: 77, // giữa vùng ảnh cao 190px (190 - 36) / 2
     width: 36,
     zIndex: 20,
   },
@@ -1130,7 +1178,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     position: 'absolute',
     right: 8,
-    top: '48%',
+    top: 77, // giữa vùng ảnh cao 190px (190 - 36) / 2
     width: 36,
     zIndex: 20,
   },
@@ -1195,17 +1243,6 @@ const styles = StyleSheet.create({
   bookHereBtnText: {
     color: '#FFFFFF',
     fontSize: 12.5,
-    fontWeight: '900',
-  },
-  bookMethodBtn: {
-    backgroundColor: '#0863C5',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-  },
-  bookMethodBtnText: {
-    color: '#FFFFFF',
-    fontSize: 11.5,
     fontWeight: '900',
   },
   bulletDot: {
@@ -1337,9 +1374,50 @@ const styles = StyleSheet.create({
   },
   faqAnswer: {
     color: '#64748B',
-    fontSize: 12,
-    lineHeight: 18,
+    fontSize: 12.5,
+    lineHeight: 19,
     marginTop: 4,
+  },
+  faqBadgeDot: {
+    backgroundColor: 'rgba(0, 88, 188, 0.6)',
+    borderRadius: 3,
+    height: 6,
+    width: 6,
+  },
+  faqBadgeRow: {
+    alignItems: 'center',
+    flex: 1,
+    flexDirection: 'row',
+    gap: 6,
+    minWidth: 0,
+  },
+  faqBadgeText: {
+    color: '#64748B',
+    flexShrink: 1,
+    fontSize: 11.5,
+    fontWeight: '600',
+  },
+  faqBodyRow: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 12,
+  },
+  faqCtaRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 5,
+  },
+  faqIconBox: {
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    borderRadius: 12,
+    height: 40,
+    justifyContent: 'center',
+    width: 40,
+  },
+  faqTextCol: {
+    flex: 1,
+    minWidth: 0,
   },
   faqArrowCircle: {
     alignItems: 'center',
@@ -1357,33 +1435,20 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     padding: 16,
   },
-  faqCategoryBadge: {
-    backgroundColor: '#F1F5F9',
-    borderRadius: 12,
-    color: '#475569',
-    fontSize: 10,
-    fontWeight: '700',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
   faqCtaText: {
     color: '#0058BC',
-    fontSize: 11.5,
-    fontWeight: '900',
+    fontSize: 12.5,
+    fontWeight: '800',
   },
   faqFooterRow: {
     alignItems: 'center',
     borderTopColor: '#F1F5F9',
     borderTopWidth: 1,
     flexDirection: 'row',
+    gap: 12,
     justifyContent: 'space-between',
-    marginTop: 12,
-    paddingTop: 10,
-  },
-  faqHeaderRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    marginTop: 14,
+    paddingTop: 12,
   },
   faqList: {
     paddingHorizontal: 16,
@@ -1391,20 +1456,8 @@ const styles = StyleSheet.create({
   faqQuestion: {
     color: '#0F172A',
     fontSize: 14.5,
-    fontWeight: '900',
+    fontWeight: '800',
     lineHeight: 20,
-    marginTop: 8,
-  },
-  faqTag: {
-    backgroundColor: '#EFF6FF',
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  faqTagText: {
-    color: '#0058BC',
-    fontSize: 10,
-    fontWeight: '900',
   },
   getDirectionsBtn: {
     alignItems: 'center',
@@ -1455,19 +1508,6 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 12,
   },
-  locationEyebrowTag: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#EFF6FF',
-    borderRadius: 12,
-    paddingHorizontal: 9,
-    paddingVertical: 3,
-  },
-  locationEyebrowText: {
-    color: '#0058BC',
-    fontSize: 9,
-    fontWeight: '900',
-    letterSpacing: 0.8,
-  },
   locationHoursBox: {
     backgroundColor: '#F8FAFC',
     borderRadius: 14,
@@ -1502,13 +1542,15 @@ const styles = StyleSheet.create({
   locationSubtitle: {
     color: '#64748B',
     fontSize: 12,
-    marginTop: 4,
+    lineHeight: 18,
+    textAlign: 'center',
   },
   locationTitle: {
-    color: '#0F172A',
-    fontSize: 18,
+    color: '#07366F',
+    fontSize: 21,
     fontWeight: '900',
-    marginTop: 8,
+    letterSpacing: -0.3,
+    textAlign: 'center',
   },
   metaDot: {
     color: '#94A3B8',
@@ -1552,65 +1594,118 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 14,
   },
+  popularActionRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 12,
+  },
+  popularBadgeRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 8,
+  },
+  popularBookBtn: {
+    alignItems: 'center',
+    backgroundColor: '#0863C5',
+    borderRadius: 12,
+    flex: 1,
+    justifyContent: 'center',
+    paddingVertical: 10,
+  },
+  popularBookBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+  },
   popularBookingCount: {
-    color: '#94A3B8',
-    fontSize: 9.5,
-    marginTop: 1,
+    color: '#475569',
+    fontSize: 10.5,
+    fontWeight: '700',
   },
   popularCard: {
     backgroundColor: '#FFFFFF',
     borderColor: '#E2E8F0',
-    borderRadius: 22,
+    borderRadius: 20,
     borderWidth: 1,
     marginBottom: 14,
-    overflow: 'hidden',
+    padding: 12,
   },
   popularCategoryBadge: {
-    color: '#0863C5',
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 0.6,
+    color: '#94A3B8',
+    fontSize: 10.5,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
-  popularContent: {
-    padding: 14,
+  popularCountPill: {
+    backgroundColor: '#F1F5F9',
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
   popularDesc: {
-    color: '#475569',
-    fontSize: 12,
-    lineHeight: 17,
-    marginTop: 4,
-  },
-  popularFooter: {
-    alignItems: 'center',
-    borderTopColor: '#F1F5F9',
-    borderTopWidth: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    color: '#64748B',
+    fontSize: 13,
+    lineHeight: 19,
     marginTop: 10,
-    paddingTop: 10,
+  },
+  popularDetailBtn: {
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    borderWidth: 1,
+    flex: 1,
+    justifyContent: 'center',
+    paddingVertical: 10,
+  },
+  popularDetailBtnText: {
+    color: '#334155',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  popularInfo: {
+    flex: 1,
+    justifyContent: 'center',
+    minWidth: 0,
   },
   popularList: {
     paddingHorizontal: 16,
   },
   popularMethodName: {
     color: '#0F172A',
-    fontSize: 15.5,
-    fontWeight: '900',
-    marginTop: 3,
+    fontSize: 15,
+    fontWeight: '800',
+    lineHeight: 21,
+    marginTop: 2,
   },
   popularPhoto: {
     height: '100%',
     width: '100%',
   },
+  // Ảnh vuông nhỏ để hiện trọn ảnh phương pháp
   popularPhotoWrap: {
-    aspectRatio: 4 / 3,
     backgroundColor: '#EFF6FF',
-    width: '100%',
+    borderRadius: 14,
+    height: 104,
+    overflow: 'hidden',
+    width: 104,
   },
   popularPrice: {
     color: '#0863C5',
-    fontSize: 13,
-    fontWeight: '900',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  popularPricePill: {
+    backgroundColor: '#EFF6FF',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+  },
+  popularTopRow: {
+    flexDirection: 'row',
+    gap: 12,
   },
   promoActionRow: {
     alignItems: 'center',
@@ -1671,12 +1766,6 @@ const styles = StyleSheet.create({
     top: -40,
     width: 180,
   },
-  promoDesc: {
-    color: 'rgba(255, 255, 255, 0.88)',
-    fontSize: 12,
-    lineHeight: 18,
-    marginTop: 6,
-  },
   promoShadow: {
     elevation: 6,
     shadowColor: '#0058BC',
@@ -1714,13 +1803,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     resizeMode: 'cover',
   },
-  sectionEyebrow: {
-    color: '#0058BC',
-    fontSize: 11,
-    fontWeight: '900',
-    letterSpacing: 1.5,
-    textAlign: 'center',
-  },
   sectionHeaderContainer: {
     alignItems: 'center',
     marginBottom: 12,
@@ -1741,7 +1823,6 @@ const styles = StyleSheet.create({
     fontSize: 21,
     fontWeight: '900',
     letterSpacing: -0.3,
-    marginTop: 4,
     textAlign: 'center',
   },
   serviceIconFallbackText: {
@@ -1884,20 +1965,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
   },
-  faqBookBtn: {
-    alignItems: 'center',
-    backgroundColor: '#0058BC',
-    borderRadius: 10,
-    flexDirection: 'row',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  faqBookBtnText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '800',
-  },
   footerBlock: {
     marginBottom: 20,
   },
@@ -1962,30 +2029,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 24,
   },
-  livePulseDot: {
-    backgroundColor: '#0058BC',
-    borderRadius: 4,
-    height: 7,
-    width: 7,
-  },
   locationAddressWrap: {
     flex: 1,
   },
   locationHeaderBlock: {
+    alignItems: 'center',
     gap: 4,
-  },
-  openMapDirectBtn: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#EFF6FF',
-    borderRadius: 12,
-    marginTop: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  openMapDirectText: {
-    color: '#0058BC',
-    fontSize: 11.5,
-    fontWeight: '800',
+    marginBottom: 4,
   },
   clinicInfoBox: {
     backgroundColor: '#F8FAFC',
@@ -2101,7 +2151,6 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
     borderRadius: 20,
     borderWidth: 1,
-    height: 340,
     marginTop: 16,
     overflow: 'hidden',
     position: 'relative',
@@ -2186,7 +2235,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
-    marginTop: 14,
+    marginTop: 18,
   },
   promoOutlineBtn: {
     alignItems: 'center',
@@ -2237,16 +2286,18 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   viewDoctorBtn: {
-    alignSelf: 'flex-start',
+    alignItems: 'center',
     backgroundColor: '#ECF3FE',
-    borderRadius: 20,
+    borderColor: '#D6E6FD',
+    borderRadius: 14,
+    borderWidth: 1,
     marginTop: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 7,
+    paddingVertical: 11,
+    width: '100%',
   },
   viewDoctorBtnText: {
     color: '#2563EB',
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '800',
   },
 });

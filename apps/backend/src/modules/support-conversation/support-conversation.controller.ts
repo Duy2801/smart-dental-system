@@ -5,9 +5,13 @@ import {
   Param,
   Patch,
   Post,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import { CurrentUser } from '../../common/decorators/curent-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -66,7 +70,28 @@ export class SupportConversationController {
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: SendSupportMessageDto,
   ) {
-    return this.service.sendMessage(id, user, dto.content);
+    return this.service.sendMessage(id, user, dto.content, undefined, dto.replyToId);
+  }
+
+  @Post(':id/attachments')
+  @Roles('PATIENT', 'RECEPTIONIST', 'ADMIN')
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: 4 * 1024 * 1024 },
+    }),
+  )
+  sendAttachment(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @UploadedFile()
+    file:
+      | { buffer: Buffer; mimetype: string; originalname: string }
+      | undefined,
+    @Body('replyToId') replyToId?: string,
+  ) {
+    return this.service.sendAttachment(id, user, file, replyToId);
   }
 
   @Patch(':id/read')

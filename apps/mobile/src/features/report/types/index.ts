@@ -76,6 +76,7 @@ export type TreatmentPlanRecord = {
   schedulePaymentStatus: string;
   invoices: InvoiceSummary[];
   steps: TreatmentPlanStepRecord[];
+  items?: Array<{ service?: string; [key: string]: any }>;
 };
 
 export type MedicalRecord = {
@@ -87,7 +88,19 @@ export type MedicalRecord = {
   diagnosis: string | null;
   treatmentNotes: string | null;
   followUpDate: string | null;
+  treatmentPlanStepId?: string | null;
   images?: ClinicalImageRecord[] | null;
+  prescriptions?: Array<{
+    id: string;
+    notes: string | null;
+    items: Array<{
+      medicineName: string;
+      dosage: string;
+      frequency: string | null;
+      duration: string | null;
+      instruction: string | null;
+    }>;
+  }>;
 };
 
 export type PatientRecordsResponse = {

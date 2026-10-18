@@ -31,32 +31,34 @@ export function RegisterForm({
   const clinicName = clinic?.name || "Smart Dental System";
 
   return (
-    <div className="w-full sm:max-w-[440px] flex-1 sm:flex-initial flex flex-col justify-center px-4 sm:px-0 py-6 sm:py-0">
-      <section className="w-full bg-white border-0 sm:border sm:border-slate-200/80 rounded-none sm:rounded-2xl shadow-none sm:shadow-lg sm:shadow-slate-200/50 p-0 sm:p-7 transition-all">
-        {/* Brand Header */}
-        <div className="mb-5 text-center">
-          <div className="mx-auto mb-2 flex items-center justify-center gap-2">
-            <span className="grid h-10 w-10 place-items-center overflow-hidden rounded-xl bg-blue-50 ring-1 ring-blue-100/90 shadow-2xs">
-              <Image
-                src={logoSrc}
-                alt={`Logo ${clinicName}`}
-                width={32}
-                height={32}
-                unoptimized
-                className="h-7 w-7 object-contain"
-              />
-            </span>
-            <span className="text-sm font-extrabold tracking-tight text-slate-800">
-              {clinicName}
-            </span>
-          </div>
-
-          <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900">
-            Tạo tài khoản bệnh nhân
-          </h1>
+    <section className="w-full flex-1 sm:flex-initial flex flex-col justify-center rounded-none sm:rounded-3xl border-0 sm:border sm:border-slate-200/90 bg-white p-5 sm:p-7 sm:px-8 shadow-none sm:shadow-xl sm:shadow-slate-200/70 transition-all">
+      {/* Brand Header */}
+      <div className="mb-6 sm:mb-7 text-center">
+        <div className="mx-auto mb-3 inline-flex items-center gap-2.5 rounded-full bg-blue-50/80 px-3.5 py-1.5 ring-1 ring-blue-100 shadow-2xs">
+          <span className="grid h-6 w-6 place-items-center overflow-hidden rounded-full bg-white shadow-2xs">
+            <Image
+              src={logoSrc}
+              alt={`Logo ${clinicName}`}
+              width={24}
+              height={24}
+              unoptimized
+              className="h-5 w-5 object-contain"
+            />
+          </span>
+          <span className="text-xs font-bold tracking-tight text-[#0863c5]">
+            {clinicName}
+          </span>
         </div>
 
-        <form className="space-y-3.5 sm:space-y-4" onSubmit={onSubmit}>
+        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
+          Tạo tài khoản bệnh nhân
+        </h1>
+        <p className="mt-1.5 text-xs sm:text-sm text-slate-500">
+          Đăng ký để chủ động đặt lịch và theo dõi hồ sơ điều trị.
+        </p>
+      </div>
+
+      <form className="space-y-3.5 sm:space-y-4" onSubmit={onSubmit}>
           <FormField
             label="Họ và tên"
             icon="user"
@@ -171,12 +173,7 @@ export function RegisterForm({
                   Đang xử lý...
                 </span>
               ) : (
-                <span className="flex items-center gap-2">
-                  Đăng ký tài khoản
-                  <svg className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                  </svg>
-                </span>
+                <span>Đăng ký tài khoản</span>
               )}
             </PrimaryButton>
           </div>
@@ -192,7 +189,6 @@ export function RegisterForm({
           </Link>
         </p>
       </section>
-    </div>
-  );
+    );
 }
 

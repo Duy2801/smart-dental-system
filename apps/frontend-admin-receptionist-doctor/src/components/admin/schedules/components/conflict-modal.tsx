@@ -1,4 +1,7 @@
-import { AdminModal } from "@/src/components/admin/common";
+"use client";
+
+import { CalendarX, Clock, Phone, WarningCircle } from "@phosphor-icons/react";
+import { AdminButton, AdminModal } from "@/src/components/admin/common";
 import type { AppointmentConflictItem } from "../types";
 
 type ConflictModalProps = {
@@ -21,53 +24,57 @@ export function ConflictModal({
   return (
     <AdminModal
       onClose={onClose}
-      title="Cảnh báo xung đột lịch hẹn bệnh nhân"
-    >
-
-      <div className="space-y-4">
-        <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-900">
-          <p className="font-semibold">
-            Thao tác &quot;{actionName}&quot; bị xung đột với {conflicts.length} lịch hẹn hiện có của bệnh nhân:
-          </p>
-          <p className="mt-1 text-xs text-amber-700">
-            Vui lòng kiểm tra danh sách bệnh nhân bị ảnh hưởng bên dưới. Bạn có thể buộc lưu và liên hệ sắp xếp lại lịch hẹn cho bệnh nhân sau.
-          </p>
-        </div>
-
-        <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
-          {conflicts.map((item) => (
-            <div key={item.id} className="rounded-md border border-slate-200 bg-slate-50 p-3 text-xs flex justify-between items-center">
-              <div>
-                <div className="font-semibold text-slate-800">
-                  {item.patientName} - {item.patientPhone}
-                </div>
-                <div className="text-slate-600">
-                  Mã: <span className="font-mono">{item.appointmentCode}</span> | Dịch vụ: {item.serviceName}
-                </div>
-                <div className="text-brand font-medium mt-0.5">
-                  Thời gian: {new Date(item.scheduledAt).toLocaleString("vi-VN")} - {new Date(item.endAt).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' })}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="flex justify-end gap-3 pt-2 border-t border-border">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-          >
+      title="Xung đột với lịch hẹn của bệnh nhân"
+      icon={<CalendarX size={20} weight="duotone" />}
+      size="md"
+      footer={
+        <>
+          <AdminButton variant="secondary" onClick={onClose}>
             Hủy bỏ
-          </button>
-          <button
-            type="button"
-            onClick={onConfirmForce}
-            className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-medium text-white hover:bg-rose-700 transition-colors"
-          >
-            Vẫn tiếp tục (Xác nhận ép lưu)
-          </button>
+          </AdminButton>
+          <AdminButton variant="plain" onClick={onConfirmForce} className="bg-rose-600 text-white shadow-sm shadow-rose-600/25 hover:bg-rose-700">
+            Vẫn tiếp tục lưu
+          </AdminButton>
+        </>
+      }
+    >
+      <div className="mt-4 space-y-4">
+        <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-sm text-amber-900">
+          <WarningCircle size={18} weight="fill" className="mt-0.5 shrink-0 text-amber-500" />
+          <div>
+            <p className="font-semibold">
+              Thao tác &quot;{actionName}&quot; xung đột với {conflicts.length} lịch hẹn hiện có.
+            </p>
+            <p className="mt-1 text-xs text-amber-800">
+              Bạn có thể vẫn lưu và liên hệ sắp xếp lại lịch hẹn cho các bệnh nhân bên dưới.
+            </p>
+          </div>
         </div>
+
+        <ul className="custom-scrollbar max-h-72 space-y-2 overflow-y-auto pr-1">
+          {conflicts.map((item) => (
+            <li key={item.id} className="rounded-xl border border-slate-200 bg-white p-3.5 text-xs">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-sm font-bold text-slate-900">{item.patientName}</span>
+                <span className="rounded-md bg-slate-100 px-2 py-0.5 font-mono text-[11px] font-bold text-slate-600">
+                  {item.appointmentCode}
+                </span>
+              </div>
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-600">
+                <span className="inline-flex items-center gap-1">
+                  <Phone size={12} />
+                  {item.patientPhone}
+                </span>
+                <span>{item.serviceName}</span>
+              </div>
+              <div className="mt-1.5 inline-flex items-center gap-1 font-semibold text-brand">
+                <Clock size={12} weight="bold" />
+                {new Date(item.scheduledAt).toLocaleString("vi-VN")} -{" "}
+                {new Date(item.endAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}
+              </div>
+            </li>
+          ))}
+        </ul>
       </div>
     </AdminModal>
   );

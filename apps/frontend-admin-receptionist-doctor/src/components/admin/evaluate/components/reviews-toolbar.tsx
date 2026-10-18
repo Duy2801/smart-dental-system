@@ -1,3 +1,11 @@
+"use client";
+
+import { Eye, Star } from "@phosphor-icons/react";
+import {
+  AdminFilterSelect,
+  AdminSearchInput,
+  AdminToolbar,
+} from "@/src/components/admin/common";
 import type { RatingFilter, VisibilityFilter } from "../types";
 
 type ReviewsToolbarProps = {
@@ -18,56 +26,35 @@ export function ReviewsToolbar({
   onVisibilityFilterChange,
 }: ReviewsToolbarProps) {
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-      <div className="relative flex-1 sm:max-w-md">
-        <svg
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-          xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <circle cx="11" cy="11" r="8" />
-          <path d="m21 21-4.3-4.3" />
-        </svg>
-        <input
-          type="text"
-          placeholder="Tìm theo tên bệnh nhân hoặc nội dung..."
-          value={search}
-          onChange={(event) => onSearchChange(event.target.value)}
-          className="w-full rounded-lg border border-border bg-white py-2 pl-9 pr-4 text-sm outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand"
-        />
-      </div>
-      <div className="flex gap-3">
-        <select
-          value={ratingFilter}
-          onChange={(event) =>
-            onRatingFilterChange(event.target.value as RatingFilter)
-          }
-          className="rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand"
-        >
-          <option value="ALL">Mọi số sao</option>
-          <option value="5">5 sao</option>
-          <option value="4">4 sao</option>
-          <option value="3">Từ 3 sao trở xuống</option>
-        </select>
-        <select
-          value={visibilityFilter}
-          onChange={(event) =>
-            onVisibilityFilterChange(event.target.value as VisibilityFilter)
-          }
-          className="rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand"
-        >
-          <option value="ALL">Tất cả trạng thái</option>
-          <option value="VISIBLE">Đang hiển thị</option>
-          <option value="HIDDEN">Đã ẩn</option>
-        </select>
-      </div>
-    </div>
+    <AdminToolbar>
+      <AdminSearchInput
+        value={search}
+        onChange={onSearchChange}
+        placeholder="Tìm theo tên bệnh nhân hoặc nội dung..."
+      />
+      <AdminFilterSelect
+        value={ratingFilter}
+        onChange={(event) => onRatingFilterChange(event.target.value as RatingFilter)}
+        aria-label="Lọc theo số sao"
+        icon={<Star size={15} />}
+        wrapperClassName="w-full sm:w-48"
+      >
+        <option value="ALL">Mọi số sao</option>
+        <option value="5">5 sao</option>
+        <option value="4">4 sao</option>
+        <option value="3">Từ 3 sao trở xuống</option>
+      </AdminFilterSelect>
+      <AdminFilterSelect
+        value={visibilityFilter}
+        onChange={(event) => onVisibilityFilterChange(event.target.value as VisibilityFilter)}
+        aria-label="Lọc theo trạng thái hiển thị"
+        icon={<Eye size={15} />}
+        wrapperClassName="w-full sm:w-48"
+      >
+        <option value="ALL">Tất cả trạng thái</option>
+        <option value="VISIBLE">Đang hiển thị</option>
+        <option value="HIDDEN">Đã ẩn</option>
+      </AdminFilterSelect>
+    </AdminToolbar>
   );
 }

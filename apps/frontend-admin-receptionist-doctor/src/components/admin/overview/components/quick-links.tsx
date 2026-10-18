@@ -33,11 +33,6 @@ const links = [
     description: "Xuất PDF/Excel",
   },
   {
-    href: ROUTES.ADMIN.REVIEWS,
-    label: "Đánh giá",
-    description: "Duyệt review BN",
-  },
-  {
     href: ROUTES.ADMIN.MARKETING,
     label: "Marketing",
     description: "Gửi email ưu đãi",

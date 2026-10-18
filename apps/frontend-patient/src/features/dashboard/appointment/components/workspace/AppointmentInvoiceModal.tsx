@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { formatCurrency, formatDateTime } from "@/utils/helpers";
 import type { AppointmentInvoice } from "../../appointmentFinancials";
 
@@ -19,15 +20,15 @@ const paymentStateInfo = {
   },
   partial: {
     label: "Thanh toán một phần",
-    className: "bg-blue-50 text-blue-700 border-blue-200",
+    className: "bg-blue-50 text-[#0058bc] border-blue-200",
   },
   paid: {
     label: "Đã thanh toán",
-    className: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    className: "bg-blue-50 text-[#0058bc] border-blue-200 font-bold",
   },
   cancelled: {
     label: "Đã hủy / hoàn tiền",
-    className: "bg-slate-100 text-slate-600 border-slate-200",
+    className: "bg-slate-100 text-slate-500 border-slate-200",
   },
 };
 
@@ -71,9 +72,10 @@ export function AppointmentInvoiceModal({
         },
       ];
 
-  return (
+  // Gắn thẳng vào <body> để khi in chỉ in hóa đơn, không in kèm ngăn chi tiết lịch hẹn phía sau
+  return createPortal(
     <div
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm print:static print:bg-white print:p-0"
+      className="invoice-print-root fixed inset-0 z-[250] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs print:static print:block print:bg-white print:p-0"
       role="presentation"
       onClick={onClose}
     >
@@ -82,90 +84,96 @@ export function AppointmentInvoiceModal({
         aria-modal="true"
         aria-labelledby="appointment-invoice-title"
         onClick={(event) => event.stopPropagation()}
-        className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl print:max-h-none print:max-w-none print:rounded-none print:shadow-none"
+        className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl print:max-h-none print:max-w-none print:rounded-none print:shadow-none"
       >
-        <header className="flex items-start justify-between gap-4 bg-gradient-to-r from-[#0058bc] to-cyan-600 px-5 py-4 text-white sm:px-7">
+        {/* Brand Blue Invoice Header */}
+        <header className="flex items-start justify-between gap-4 bg-gradient-to-r from-[#0058bc] to-[#0863c5] px-6 py-4.5 text-white sm:px-7">
           <div>
-            <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-cyan-100">
+            <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-blue-100">
               Smart Dental System
             </p>
             <h3
               id="appointment-invoice-title"
-              className="mt-1 text-xl font-black"
+              className="mt-0.5 text-lg sm:text-xl font-black text-white"
             >
               Hóa đơn dịch vụ nha khoa
             </h3>
-            <p className="mt-1 font-mono text-xs text-blue-100">
-              Mã hóa đơn: {invoice.invoiceCode}
+            <p className="mt-1 font-mono text-xs text-blue-100/90">
+              Mã hóa đơn:{" "}
+              <span className="font-bold text-white bg-white/15 px-2 py-0.5 rounded">
+                {invoice.invoiceCode}
+              </span>
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="grid h-9 w-9 place-items-center rounded-full border border-white/30 bg-white/15 text-lg transition hover:bg-white/25 print:hidden"
+            className="grid h-8 w-8 place-items-center rounded-full bg-white/15 text-white hover:bg-white/25 transition print:hidden text-xs cursor-pointer border border-white/20"
             aria-label="Đóng hóa đơn"
           >
-            ×
+            ✕
           </button>
         </header>
 
-        <div className="flex-1 overflow-y-auto bg-slate-50/60 p-5 sm:p-7">
+        <div className="flex-1 overflow-y-auto bg-slate-50/50 p-5 sm:p-7 space-y-4">
+          {/* Top 3 Info Cards */}
           <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-xl border border-slate-200 bg-white p-3">
-              <p className="text-[10px] font-bold uppercase text-slate-400">
+            <div className="rounded-xl border border-blue-100/80 bg-white p-3.5 shadow-2xs">
+              <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
                 Bệnh nhân
               </p>
               <p className="mt-1 text-sm font-extrabold text-slate-900">
                 {patientName || "Bệnh nhân"}
               </p>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-white p-3">
-              <p className="text-[10px] font-bold uppercase text-slate-400">
+            <div className="rounded-xl border border-blue-100/80 bg-white p-3.5 shadow-2xs">
+              <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
                 Bác sĩ thực hiện
               </p>
               <p className="mt-1 text-sm font-extrabold text-slate-900">
                 {doctorName}
               </p>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-white p-3">
-              <p className="text-[10px] font-bold uppercase text-slate-400">
+            <div className="rounded-xl border border-blue-100/80 bg-white p-3.5 shadow-2xs">
+              <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
                 Ngày phát hành
               </p>
-              <p className="mt-1 text-sm font-extrabold text-slate-900">
+              <p className="mt-1 text-sm font-bold text-slate-800">
                 {formatDateTime(invoice.issuedAt)}
               </p>
             </div>
           </div>
 
-          <section className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white">
-            <div className="border-b border-slate-200 bg-slate-100 px-4 py-3">
-              <h4 className="text-xs font-extrabold uppercase tracking-wide text-slate-700">
+          {/* Service Items Table */}
+          <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xs">
+            <div className="border-b border-blue-100 bg-blue-50/60 px-4 py-2.5">
+              <h4 className="text-[11px] font-extrabold uppercase tracking-wider text-[#0058bc]">
                 Chi tiết dịch vụ
               </h4>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[560px] text-left text-xs">
-                <thead className="border-b border-slate-200 bg-slate-50 text-[10px] uppercase text-slate-500">
+                <thead className="border-b border-slate-200 bg-slate-50/70 text-[10px] uppercase font-bold text-slate-500">
                   <tr>
-                    <th className="px-4 py-3">Nội dung</th>
-                    <th className="px-4 py-3 text-center">SL</th>
-                    <th className="px-4 py-3 text-right">Đơn giá</th>
-                    <th className="px-4 py-3 text-right">Thành tiền</th>
+                    <th className="px-4 py-2.5">Nội dung</th>
+                    <th className="px-4 py-2.5 text-center w-16">SL</th>
+                    <th className="px-4 py-2.5 text-right">Đơn giá</th>
+                    <th className="px-4 py-2.5 text-right">Thành tiền</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
                   {items.map((item, index) => (
-                    <tr key={`${item.description}-${index}`}>
-                      <td className="px-4 py-3 font-bold text-slate-800">
+                    <tr key={`${item.description}-${index}`} className="hover:bg-blue-50/30">
+                      <td className="px-4 py-3 font-semibold text-slate-800">
                         {item.description}
                       </td>
                       <td className="px-4 py-3 text-center text-slate-600">
                         {item.quantity}
                       </td>
-                      <td className="px-4 py-3 text-right font-mono text-slate-600">
+                      <td className="px-4 py-3 text-right text-slate-600">
                         {formatCurrency(item.unitPrice)}
                       </td>
-                      <td className="px-4 py-3 text-right font-mono font-extrabold text-slate-900">
+                      <td className="px-4 py-3 text-right font-bold text-[#0058bc]">
                         {formatCurrency(item.amount)}
                       </td>
                     </tr>
@@ -175,9 +183,11 @@ export function AppointmentInvoiceModal({
             </div>
           </section>
 
-          <div className="mt-5 grid gap-4 sm:grid-cols-[1fr_280px]">
-            <section className="rounded-2xl border border-slate-200 bg-white p-4">
-              <h4 className="text-xs font-extrabold uppercase text-slate-700">
+          {/* Bottom Grid: Payment History & Blue Accent Summary Card */}
+          <div className="grid gap-4 sm:grid-cols-[1fr_280px]">
+            {/* Payment History */}
+            <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
+              <h4 className="text-[11px] font-extrabold uppercase tracking-wider text-slate-600">
                 Lịch sử thanh toán
               </h4>
               {invoice.payments.filter(
@@ -189,78 +199,86 @@ export function AppointmentInvoiceModal({
                     .map((payment) => (
                       <li
                         key={payment.id}
-                        className="flex items-center justify-between rounded-xl bg-emerald-50 px-3 py-2 text-xs"
+                        className="flex items-center justify-between rounded-lg border border-blue-100 bg-blue-50/40 px-3.5 py-2.5 text-xs"
                       >
                         <div>
-                          <p className="font-bold text-emerald-800">
+                          <p className="font-bold text-slate-800">
                             {paymentMethodLabel(payment.paymentMethod)}
                           </p>
-                          <p className="text-[10px] text-emerald-700">
+                          <p className="text-[10px] text-slate-400">
                             {formatDateTime(payment.paidAt)}
                           </p>
                         </div>
-                        <strong className="font-mono text-emerald-800">
+                        <strong className="font-bold text-[#0058bc]">
                           {formatCurrency(payment.amount)}
                         </strong>
                       </li>
                     ))}
                 </ul>
               ) : (
-                <p className="mt-3 text-xs text-slate-500">
+                <p className="mt-3 text-xs text-slate-400">
                   Chưa ghi nhận giao dịch thanh toán thành công.
                 </p>
               )}
             </section>
 
-            <section className="rounded-2xl bg-slate-900 p-4 text-white">
+            {/* Summary Card with Primary Blue Accent */}
+            <section className="rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50/40 via-white to-white p-4 space-y-2 shadow-2xs">
               <div className="space-y-2 text-xs">
-                <div className="flex justify-between text-slate-300">
+                <div className="flex justify-between text-slate-500">
                   <span>Tạm tính</span>
-                  <span>{formatCurrency(invoice.subtotal)}</span>
+                  <span className="font-medium text-slate-800">{formatCurrency(invoice.subtotal)}</span>
                 </div>
-                <div className="flex justify-between text-slate-300">
-                  <span>Giảm giá</span>
-                  <span>-{formatCurrency(invoice.discountAmount)}</span>
-                </div>
-                <div className="flex justify-between border-t border-white/15 pt-2 font-bold">
+                {invoice.discountAmount > 0 && (
+                  <div className="flex justify-between text-emerald-600">
+                    <span>Giảm giá</span>
+                    <span className="font-semibold">-{formatCurrency(invoice.discountAmount)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between border-t border-blue-100 pt-2 text-sm font-bold text-slate-900">
                   <span>Tổng cộng</span>
-                  <span>{formatCurrency(invoice.finalAmount)}</span>
+                  <span className="font-black text-[#0058bc] text-base">{formatCurrency(invoice.finalAmount)}</span>
                 </div>
-                <div className="flex justify-between text-emerald-300">
+                <div className="flex justify-between text-slate-600 pt-1">
                   <span>Đã thanh toán</span>
-                  <span>{formatCurrency(invoice.paidAmount)}</span>
+                  <span className="font-semibold text-slate-900">{formatCurrency(invoice.paidAmount)}</span>
                 </div>
-                <div className="flex justify-between text-amber-300">
+                <div className="flex justify-between text-slate-600">
                   <span>Còn phải trả</span>
-                  <span>{formatCurrency(invoice.remainingAmount)}</span>
+                  <span className="font-semibold text-slate-900">{formatCurrency(invoice.remainingAmount)}</span>
                 </div>
               </div>
-              <span
-                className={`mt-4 inline-flex rounded-full border px-3 py-1 text-[10px] font-extrabold ${state.className}`}
-              >
-                {state.label}
-              </span>
+              <div className="mt-3 pt-2.5 border-t border-blue-100/80 flex items-center justify-between">
+                <span className="text-[11px] text-slate-400 font-medium">Trạng thái</span>
+                <span
+                  className={`inline-flex rounded-full border px-2.5 py-0.5 text-[10px] ${state.className}`}
+                >
+                  ✓ {state.label}
+                </span>
+              </div>
             </section>
           </div>
         </div>
 
+        {/* Modal Footer */}
         <footer className="flex items-center justify-end gap-2 border-t border-slate-200 bg-white px-5 py-3 print:hidden sm:px-7">
           <button
             type="button"
             onClick={() => window.print()}
-            className="rounded-xl border border-slate-300 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"
+            className="rounded-xl border border-blue-200 bg-white px-4 py-2 text-xs font-bold text-[#0058bc] hover:bg-blue-50 transition cursor-pointer shadow-2xs"
           >
             In / Lưu PDF
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl bg-slate-900 px-5 py-2 text-xs font-bold text-white hover:bg-slate-800"
+            className="rounded-xl bg-[#0058bc] px-5 py-2 text-xs font-bold text-white hover:bg-[#004899] transition cursor-pointer shadow-sm"
           >
             Đóng
           </button>
         </footer>
       </article>
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -60,8 +60,8 @@ export function useLogout() {
     queryClient.clear();
     clearClientAuth();
 
-    // 2. Perform fast client-side redirect
-    router.replace(ROUTES.login);
+    // 2. Perform fast client-side redirect to home screen
+    router.replace(ROUTES.home);
 
     // 3. Fire-and-forget backend apiLogout request
     void apiLogout().catch((error) => {

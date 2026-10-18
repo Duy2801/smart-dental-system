@@ -22,6 +22,12 @@ export type SupportMessage = {
   senderType: SupportMessageSender;
   senderId: string | null;
   content: string;
+  attachmentUrl: string | null;
+  attachmentName: string | null;
+  attachmentMime: string | null;
+  replyToId: string | null;
+  replyPreview: string | null;
+  replySenderType: SupportMessageSender | null;
   readAt: string | null;
   createdAt: string;
 };
@@ -51,10 +57,22 @@ export async function getSupportMessages(conversationId: string): Promise<Suppor
 export async function sendSupportMessage(
   conversationId: string,
   content: string,
+  replyToId?: string,
 ): Promise<SupportMessage> {
   const response = await apiClient.post<SupportMessage>(
     `/support-conversations/${conversationId}/messages`,
-    { content },
+    { content, replyToId },
+  );
+  return response.data;
+}
+
+export async function sendSupportAttachment(conversationId: string, file: File, replyToId?: string): Promise<SupportMessage> {
+  const form = new FormData();
+  form.append('file', file);
+  if (replyToId) form.append('replyToId', replyToId);
+  const response = await apiClient.post<SupportMessage>(
+    `/support-conversations/${conversationId}/attachments`, form,
+    { headers: { 'Content-Type': undefined } },
   );
   return response.data;
 }

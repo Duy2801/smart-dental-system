@@ -10,6 +10,9 @@ import {
   CheckCircle,
   Clock,
   Tray,
+  Paperclip,
+  ArrowBendUpLeft,
+  X,
 } from "@phosphor-icons/react";
 import {
   claimConversation,
@@ -19,6 +22,7 @@ import {
   listUnclaimedConversations,
   markConversationRead,
   sendConversationMessage,
+  sendConversationAttachment,
   type SupportConversation,
   type SupportMessage,
 } from "@/src/features/support-inbox/api";
@@ -100,11 +104,13 @@ export default function SupportInboxPage() {
   const [tab, setTab] = useState<Tab>("unclaimed");
   const [activeId, setActiveId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
+  const [fileError, setFileError] = useState<string | null>(null);
+  const [replyingTo, setReplyingTo] = useState<SupportMessage | null>(null);
+  const [activeMessageId, setActiveMessageId] = useState<string | null>(null);
   const { socket } = useSupportSocketContext();
   const queryClient = useQueryClient();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const activeIdRef = useRef<string | null>(null);
-  activeIdRef.current = activeId;
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const unclaimedQuery = useQuery({
     queryKey: ["support", "unclaimed"],
@@ -130,11 +136,27 @@ export default function SupportInboxPage() {
       void queryClient.invalidateQueries({ queryKey: ["support", "mine"] });
       setTab("mine");
       setActiveId(conversation.id);
+      setReplyingTo(null);
     },
   });
 
   const sendMutation = useMutation({
-    mutationFn: (content: string) => sendConversationMessage(activeId as string, content),
+    mutationFn: ({ content, replyToId }: { content: string; replyToId?: string }) => sendConversationMessage(activeId as string, content, replyToId),
+    onSuccess: (message) => {
+      queryClient.setQueryData<SupportMessage[]>(["support", "messages", message.conversationId],
+        (prev) => prev?.some((item) => item.id === message.id) ? prev : [...(prev ?? []), message]);
+      setReplyingTo(null);
+    },
+    onError: (_error, variables) => setDraft(variables.content),
+  });
+
+  const attachmentMutation = useMutation({
+    mutationFn: ({ file, replyToId }: { file: File; replyToId?: string }) => sendConversationAttachment(activeId as string, file, replyToId),
+    onSuccess: (message) => {
+      queryClient.setQueryData<SupportMessage[]>(["support", "messages", message.conversationId],
+        (prev) => prev?.some((item) => item.id === message.id) ? prev : [...(prev ?? []), message]);
+      setReplyingTo(null);
+    },
   });
 
   const closeMutation = useMutation({
@@ -149,11 +171,17 @@ export default function SupportInboxPage() {
   // it read for the receptionist viewing it.
   useEffect(() => {
     if (!socket || !activeId) return;
-    socket.emit("support:join", { conversationId: activeId });
+    function rejoin() {
+      socket?.emit("support:join", { conversationId: activeId });
+      void queryClient.invalidateQueries({ queryKey: ["support", "messages", activeId] });
+    }
+    rejoin();
+    socket.on("connect", rejoin);
     void markConversationRead(activeId).then(() => {
       void queryClient.invalidateQueries({ queryKey: ["support", "mine"] });
     });
     return () => {
+      socket.off("connect", rejoin);
       socket.emit("support:leave", { conversationId: activeId });
     };
   }, [socket, activeId, queryClient]);
@@ -165,7 +193,7 @@ export default function SupportInboxPage() {
     if (!socket) return;
 
     function onMessage(message: SupportMessage) {
-      if (message.conversationId !== activeIdRef.current) return;
+      if (message.conversationId !== activeId) return;
       queryClient.setQueryData<SupportMessage[]>(
         ["support", "messages", message.conversationId],
         (prev) => (prev?.some((m) => m.id === message.id) ? prev : [...(prev ?? []), message]),
@@ -176,7 +204,7 @@ export default function SupportInboxPage() {
     return () => {
       socket.off("support:message", onMessage);
     };
-  }, [socket, queryClient]);
+  }, [socket, queryClient, activeId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -191,7 +219,19 @@ export default function SupportInboxPage() {
     const value = draft.trim();
     if (!value || !activeId) return;
     setDraft("");
-    sendMutation.mutate(value);
+    sendMutation.mutate({ content: value, replyToId: replyingTo?.id });
+  }
+
+  function chooseFile(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || !activeId) return;
+    if (file.size > 4 * 1024 * 1024) {
+      setFileError("Tệp tối đa 4 MB.");
+      return;
+    }
+    setFileError(null);
+    attachmentMutation.mutate({ file, replyToId: replyingTo?.id });
   }
 
   return (
@@ -236,7 +276,7 @@ export default function SupportInboxPage() {
                 key={conversation.id}
                 conversation={conversation}
                 active={conversation.id === activeId}
-                onClick={() => setActiveId(conversation.id)}
+                onClick={() => { setActiveId(conversation.id); setReplyingTo(null); }}
                 actionLabel={tab === "unclaimed" ? "Nhận xử lý" : undefined}
                 actionPending={claimMutation.isPending && claimMutation.variables === conversation.id}
                 onAction={
@@ -289,29 +329,60 @@ export default function SupportInboxPage() {
                       message.senderType === "SYSTEM"
                         ? "mx-auto max-w-[80%] text-center"
                         : message.senderType === "STAFF"
-                          ? "ml-auto max-w-[70%]"
-                          : "max-w-[70%]"
+                          ? "group ml-auto max-w-[90%]"
+                          : "group max-w-[90%]"
                     }
                   >
                     {message.senderType === "SYSTEM" ? (
                       <p className="text-[11px] italic text-muted-foreground">{message.content}</p>
                     ) : (
+                      <div className={`flex items-center gap-2 ${message.senderType === "STAFF" ? "flex-row-reverse" : ""}`}>
                       <div
-                        className={`rounded-2xl px-4 py-2.5 text-sm shadow-sm ${
+                        onPointerDown={(event) => {
+                          if (event.pointerType === "touch") setActiveMessageId((current) => current === message.id ? null : message.id);
+                        }}
+                        className={`min-w-0 rounded-2xl px-4 py-2.5 text-sm shadow-sm ${
                           message.senderType === "STAFF"
                             ? "rounded-tr-sm bg-brand text-white"
                             : "rounded-tl-sm border border-border bg-white text-foreground"
                         }`}
                       >
-                        {message.content}
+                        {message.replyToId && <div className="mb-2 rounded-lg border-l-2 border-current bg-black/5 px-2 py-1 text-xs opacity-80"><strong>Trả lời {message.replySenderType === "PATIENT" ? "bệnh nhân" : "lễ tân"}</strong><p className="line-clamp-2">{message.replyPreview}</p></div>}
+                        {message.attachmentUrl ? (
+                          message.attachmentMime?.startsWith("image/") ? (
+                            <a href={message.attachmentUrl} target="_blank" rel="noopener noreferrer">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={message.attachmentUrl} alt={message.attachmentName || "Ảnh đính kèm"} className="max-h-60 max-w-full rounded-lg object-contain" />
+                            </a>
+                          ) : (
+                            <a href={message.attachmentUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 underline"><Paperclip size={16} />{message.attachmentName || "Tệp đính kèm"}</a>
+                          )
+                        ) : message.content}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => { setReplyingTo(message); setActiveMessageId(null); }}
+                        aria-label={`Trả lời tin nhắn ${message.content || message.attachmentName || "đính kèm"}`}
+                        title="Trả lời"
+                        className={`grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white text-brand shadow-sm transition hover:bg-muted focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-brand ${activeMessageId === message.id ? "opacity-100" : "opacity-0 [@media(hover:hover)]:group-hover:opacity-100"}`}
+                      >
+                        <ArrowBendUpLeft size={16} weight="bold" />
+                      </button>
                       </div>
                     )}
+                    <time dateTime={message.createdAt} className={`mt-1 block text-[10px] text-muted-foreground ${message.senderType === "STAFF" ? "text-right" : "text-left"}`}>
+                      {new Date(message.createdAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}
+                    </time>
                   </div>
                 ))}
                 <div ref={messagesEndRef} />
               </div>
 
+              {(sendMutation.isError || attachmentMutation.isError || fileError) && <p role="alert" className="px-3 text-xs text-red-600">{fileError || "Không gửi được tin nhắn hoặc tệp. Vui lòng thử lại."}</p>}
+              {replyingTo && <div className="flex items-center gap-2 border-t border-border bg-white px-3 py-2 text-xs text-muted-foreground"><ArrowBendUpLeft size={18} className="text-brand" /><div className="min-w-0 flex-1"><strong>Đang trả lời {replyingTo.senderType === "PATIENT" ? "bệnh nhân" : "lễ tân"}</strong><p className="truncate">{replyingTo.content || replyingTo.attachmentName}</p></div><button type="button" aria-label="Bỏ trả lời" onClick={() => setReplyingTo(null)}><X size={18} /></button></div>}
               <form onSubmit={submit} className="flex gap-2 border-t border-border bg-white p-3">
+                <input ref={fileInputRef} type="file" className="hidden" onChange={chooseFile} />
+                <button type="button" title="Gửi ảnh hoặc file" aria-label="Gửi ảnh hoặc file" disabled={isClosed || tab !== "mine" || attachmentMutation.isPending} onClick={() => fileInputRef.current?.click()} className="text-brand disabled:opacity-40"><Paperclip size={20} /></button>
                 <input
                   value={draft}
                   onChange={(event) => setDraft(event.target.value)}

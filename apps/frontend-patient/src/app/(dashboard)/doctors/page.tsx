@@ -120,6 +120,8 @@ function DoctorCard({ doctor }: { doctor: HomeDoctorCard }) {
   );
 }
 
+const PAGE_SIZE = 5;
+
 function DoctorsPageContent() {
   const searchParams = useSearchParams();
   const keywordFromUrl = searchParams.get("keyword") || "";
@@ -127,6 +129,11 @@ function DoctorsPageContent() {
   const [doctorName, setDoctorName] = useState(keywordFromUrl);
   const [selectedDoctorId, setSelectedDoctorId] = useState("");
   const [searched, setSearched] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedServiceId, doctorName, selectedDoctorId]);
 
   useEffect(() => {
     if (keywordFromUrl) {
@@ -189,18 +196,31 @@ function DoctorsPageContent() {
     });
   }, [doctorName, doctors, relatedDoctors, searched, selectedDoctorId, selectedService]);
 
+  const totalDoctors = visibleDoctors.length;
+  const totalPages = Math.ceil(totalDoctors / PAGE_SIZE) || 1;
+  const safePage = Math.min(Math.max(currentPage, 1), totalPages);
+
+  const paginatedDoctors = useMemo(() => {
+    const start = (safePage - 1) * PAGE_SIZE;
+    return visibleDoctors.slice(start, start + PAGE_SIZE);
+  }, [visibleDoctors, safePage]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    const resultsElement = document.getElementById("doctor-results");
+    if (resultsElement) {
+      resultsElement.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
   return (
     <main className="mx-auto w-full max-w-[1360px] space-y-8 px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
       {/* Intro Header Section (Left-aligned) */}
       <section className="py-2 space-y-3">
         <div>
-          <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 border border-blue-200 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-[#0058bc]">
-            <DashboardIcon name="sparkles" className="h-3.5 w-3.5 text-[#0058bc]" />
-            Đội Ngũ Chuyên Gia
-          </span>
         </div>
 
-        <h1 className="text-2xl sm:text-3xl font-black text-slate-900">
+        <h1 className="text-2xl sm:text-3xl font-black text-[#07366f]">
           Đội Ngũ Bác Sĩ Răng Hàm Mặt
         </h1>
 
@@ -343,12 +363,86 @@ function DoctorsPageContent() {
                 />
               ))}
             </div>
-          ) : visibleDoctors.length ? (
-            <div className="grid gap-8 xl:grid-cols-2">
-              {visibleDoctors.map((doctor) => (
-                <DoctorCard key={doctor.id} doctor={doctor} />
-              ))}
-            </div>
+          ) : paginatedDoctors.length ? (
+            <>
+              <div className="grid gap-8 xl:grid-cols-2">
+                {paginatedDoctors.map((doctor) => (
+                  <DoctorCard key={doctor.id} doctor={doctor} />
+                ))}
+              </div>
+
+              {totalPages > 1 ? (
+                <nav
+                  aria-label="Phân trang danh sách bác sĩ"
+                  className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-slate-200/80 pt-6"
+                >
+                  <p className="text-xs font-semibold text-slate-500">
+                    Trang {safePage} / {totalPages} (Hiển thị {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, totalDoctors)} trong {totalDoctors} bác sĩ)
+                  </p>
+
+                  <div className="flex items-center gap-1.5">
+                    {/* Nút quay lại trang trước: < */}
+                    <button
+                      type="button"
+                      onClick={() => handlePageChange(safePage - 1)}
+                      disabled={safePage <= 1}
+                      aria-label="Trang trước"
+                      className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-xs transition hover:bg-slate-50 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-30"
+                    >
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+
+                    {/* Danh sách các số trang */}
+                    {Array.from({ length: totalPages }, (_, index) => {
+                      const pageNum = index + 1;
+                      const isActive = pageNum === safePage;
+                      return (
+                        <button
+                          key={pageNum}
+                          type="button"
+                          onClick={() => handlePageChange(pageNum)}
+                          aria-current={isActive ? "page" : undefined}
+                          className={`flex h-9 min-w-9 items-center justify-center rounded-xl px-2.5 text-xs font-bold transition ${
+                            isActive
+                              ? "bg-[#0058bc] text-white shadow-xs"
+                              : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+
+                    {/* Nút sang trang sau: > */}
+                    <button
+                      type="button"
+                      onClick={() => handlePageChange(safePage + 1)}
+                      disabled={safePage >= totalPages}
+                      aria-label="Trang sau"
+                      className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-xs transition hover:bg-slate-50 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-30"
+                    >
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </div>
+                </nav>
+              ) : null}
+            </>
           ) : (
             <EmptySearchResult
               title="Không tìm thấy dịch vụ hoặc bác sĩ"

@@ -4,16 +4,6 @@ import {
   type ClinicLunchBreak,
 } from "@/lib/clinic-schedule";
 
-type PaginatedResponse<T> = {
-  data: T[];
-  meta: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-};
-
 type TreatmentMethodDto = {
   id: string;
   name: string;
@@ -24,6 +14,14 @@ type TreatmentMethodDto = {
   durationMinutes?: number | null;
   displayOrder?: number;
   isActive?: boolean;
+  faqs?: ServiceFaqDto[];
+};
+
+type ServiceFaqDto = {
+  id: string;
+  question: string;
+  answer: string;
+  sortOrder: number;
 };
 
 type ServiceDto = {
@@ -137,6 +135,7 @@ export type HomeServiceCard = {
   imageUrl: string | null;
   imageAlt: string;
   durationMinutes: number;
+  faqs: ServiceFaqDto[];
 };
 
 export type HomeDoctorCard = {
@@ -258,6 +257,7 @@ function mapService(service: ServiceDto): HomeServiceCard {
     imageUrl,
     imageAlt: service.name,
     durationMinutes: minDuration,
+    faqs: methods.flatMap((method) => method.faqs ?? []),
   };
 }
 

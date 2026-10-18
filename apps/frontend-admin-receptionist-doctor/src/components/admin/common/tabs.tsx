@@ -12,22 +12,30 @@ type TabsProps = {
 
 export function Tabs({ tabs, active, onChange }: TabsProps) {
   return (
-    <div className="flex gap-1 overflow-x-auto border-b border-border">
-      {tabs.map((tab) => (
-        <button
-          key={tab.id}
-          type="button"
-          onClick={() => onChange(tab.id)}
-          className={cn(
-            "shrink-0 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors",
-            active === tab.id
-              ? "border-brand text-brand"
-              : "border-transparent text-muted-foreground hover:text-brand-dark",
-          )}
-        >
-          {tab.label}
-        </button>
-      ))}
+    <div
+      role="tablist"
+      className="inline-flex max-w-full gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-slate-100/80 p-1"
+    >
+      {tabs.map((tab) => {
+        const isActive = active === tab.id;
+        return (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={isActive}
+            onClick={() => onChange(tab.id)}
+            className={cn(
+              "shrink-0 rounded-lg px-4 py-2 text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30",
+              isActive
+                ? "bg-white text-brand shadow-sm ring-1 ring-slate-900/5"
+                : "text-slate-500 hover:bg-white/60 hover:text-slate-800",
+            )}
+          >
+            {tab.label}
+          </button>
+        );
+      })}
     </div>
   );
 }

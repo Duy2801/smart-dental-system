@@ -19,13 +19,9 @@ export function ServiceCatalogExperience() {
       {/* Intro Header Section (Left-aligned, renders instantly) */}
       <section className="py-2 space-y-3">
         <div>
-          <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 border border-blue-200 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-[#0058bc]">
-            <DashboardIcon name="sparkles" className="h-3.5 w-3.5 text-[#0058bc]" />
-            Chăm Sóc Nụ Cười Toàn Diện
-          </span>
         </div>
 
-        <h1 className="text-2xl sm:text-3xl font-black text-slate-900">
+        <h1 className="text-2xl sm:text-3xl font-black text-[#07366f]">
           Danh Sách Dịch Vụ Nha Khoa
         </h1>
 

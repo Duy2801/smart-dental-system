@@ -1,3 +1,7 @@
+"use client";
+
+import { CalendarBlank, ChartLine, DownloadSimple } from "@phosphor-icons/react";
+import { AdminButton, AdminFilterSelect, AdminToolbar } from "@/src/components/admin/common";
 import type { ReportTimeFilter } from "../types";
 
 type ReportToolbarProps = {
@@ -5,6 +9,7 @@ type ReportToolbarProps = {
   onExport: () => void;
   timeFilter: ReportTimeFilter;
   onTimeFilterChange: (value: ReportTimeFilter) => void;
+  refreshing?: boolean;
 };
 
 export function ReportToolbar({
@@ -12,67 +17,42 @@ export function ReportToolbar({
   onExport,
   timeFilter,
   onTimeFilterChange,
+  refreshing = false,
 }: ReportToolbarProps) {
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex items-center gap-3">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="text-muted-foreground"
-        >
-          <path d="M3 3v18h18" />
-          <path d="m19 9-5 5-4-4-3 3" />
-        </svg>
-        <h2 className="text-lg font-semibold text-brand-dark">
-          Tổng quan thống kê
-        </h2>
-      </div>
-
-      <div className="flex gap-3">
-        <select
-          value={timeFilter}
-          onChange={(event) =>
-            onTimeFilterChange(event.target.value as ReportTimeFilter)
-          }
-          className="rounded-lg border border-border bg-white px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand"
-        >
-          <option value="this_month">Tháng này</option>
-          <option value="last_month">Tháng trước</option>
-          <option value="this_quarter">Quý này</option>
-          <option value="this_year">Năm này</option>
-        </select>
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={onExport}
-          className="flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-dark active:scale-[0.98]"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+    <AdminToolbar
+      actions={
+        <>
+          <AdminFilterSelect
+            value={timeFilter}
+            onChange={(event) => onTimeFilterChange(event.target.value as ReportTimeFilter)}
+            aria-label="Khoảng thời gian báo cáo"
+            icon={<CalendarBlank size={15} />}
+            wrapperClassName="w-full sm:w-44"
           >
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-            <polyline points="7 10 12 15 17 10" />
-            <line x1="12" x2="12" y1="15" y2="3" />
-          </svg>
-          Xuất báo cáo
-        </button>
+            <option value="this_month">Tháng này</option>
+            <option value="last_month">Tháng trước</option>
+            <option value="this_quarter">Quý này</option>
+            <option value="this_year">Năm nay</option>
+          </AdminFilterSelect>
+          <AdminButton disabled={disabled} onClick={onExport}>
+            <DownloadSimple size={16} weight="bold" />
+            Xuất báo cáo
+          </AdminButton>
+        </>
+      }
+    >
+      <div className="flex items-center gap-3">
+        <span className="grid h-10 w-10 place-items-center rounded-xl bg-brand-light text-brand">
+          <ChartLine size={20} weight="duotone" />
+        </span>
+        <div>
+          <h2 className="text-[15px] font-bold text-slate-900">Tổng quan thống kê</h2>
+          <p className="text-xs text-slate-500">
+            {refreshing ? "Đang cập nhật dữ liệu..." : "Số liệu kinh doanh của phòng khám"}
+          </p>
+        </div>
       </div>
-    </div>
+    </AdminToolbar>
   );
 }

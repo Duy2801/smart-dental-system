@@ -61,9 +61,8 @@ export function ManualScheduleFields({
       </AdminSelect>
 
       {selectedBusinessHour?.isOpen ? (
-        <p className="text-xs text-muted-foreground">
-          Khung giờ phòng khám: {selectedBusinessHour.start} -{" "}
-          {selectedBusinessHour.end}
+        <p className="-mt-2 inline-flex w-fit items-center gap-1.5 rounded-lg bg-brand-light px-2.5 py-1 text-xs font-semibold text-brand">
+          Khung giờ phòng khám: {selectedBusinessHour.start} - {selectedBusinessHour.end}
         </p>
       ) : null}
 

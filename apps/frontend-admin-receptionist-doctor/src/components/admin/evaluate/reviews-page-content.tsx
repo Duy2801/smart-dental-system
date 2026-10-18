@@ -7,6 +7,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
+import { AdminAlert, AdminConfirmModal } from "@/src/components/admin/common";
 import { queryKeys } from "@/src/lib/query/query-keys";
 import { ReviewList } from "./components/review-list";
 import { ReviewPagination } from "./components/review-pagination";
@@ -217,6 +218,14 @@ export function ReviewsPageContent() {
     ],
   );
 
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+  const handleConfirmDelete = () => {
+    if (!deleteConfirmId) return;
+    deleteMutation.mutate(deleteConfirmId);
+    setDeleteConfirmId(null);
+  };
+
   const toggleVisibility = (id: string) => {
     const review = reviews.find((item) => item.id === id);
     if (!review) return;
@@ -254,11 +263,14 @@ export function ReviewsPageContent() {
         onRatingFilterChange={changeRatingFilter}
         onVisibilityFilterChange={changeVisibilityFilter}
       />
+      <AdminAlert
+        message={isError || errorMessage ? errorMessage || "Không tải được dữ liệu đánh giá từ máy chủ." : null}
+      />
       <ReviewList
         loading={isLoading}
         reviews={reviews}
         pendingReviewIds={pendingReviewIds}
-        onDelete={(id) => deleteMutation.mutate(id)}
+        onDelete={setDeleteConfirmId}
         onToggleVisibility={toggleVisibility}
       />
       <ReviewPagination
@@ -267,11 +279,16 @@ export function ReviewsPageContent() {
         total={data?.pagination.total ?? 0}
         onPageChange={setPage}
       />
-      {isError || errorMessage ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
-          {errorMessage || "Không tải được dữ liệu đánh giá từ máy chủ."}
-        </div>
-      ) : null}
+      <AdminConfirmModal
+        isOpen={Boolean(deleteConfirmId)}
+        title="Xóa đánh giá này?"
+        description="Đánh giá sẽ bị xóa vĩnh viễn khỏi hệ thống. Nếu chỉ muốn tạm che, hãy dùng nút Ẩn."
+        confirmText="Xóa đánh giá"
+        cancelText="Hủy bỏ"
+        variant="danger"
+        onConfirm={handleConfirmDelete}
+        onClose={() => setDeleteConfirmId(null)}
+      />
     </div>
   );
 }

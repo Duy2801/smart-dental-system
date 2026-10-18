@@ -42,10 +42,7 @@ export function HomeServicesSection() {
   return (
     <section id="services" className="scroll-mt-24">
       <div className="relative mx-auto mb-6 sm:mb-10 max-w-3xl text-center">
-        <p className="text-[13px] font-semibold uppercase tracking-[0.26em] text-[#0058bc]">
-          Dịch vụ nổi bật
-        </p>
-        <h2 className="mx-auto mt-3 text-3xl font-bold leading-tight tracking-[-0.025em] text-[#07366f] sm:text-[40px]">
+        <h2 className="mx-auto text-3xl font-bold leading-tight tracking-[-0.025em] text-[#07366f] sm:text-[40px]">
           Danh sách dịch vụ nha khoa
         </h2>
         <p className="mx-auto mt-3 max-w-2xl text-[15px] leading-7 text-slate-600 sm:text-base">

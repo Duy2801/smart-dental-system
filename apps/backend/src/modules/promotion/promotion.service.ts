@@ -13,19 +13,29 @@ export class PromotionService {
     private readonly notificationService: NotificationService,
   ) {}
 
-  async findAll(query: PromotionQueryDto) {
+  async findAll(query: PromotionQueryDto, isAdmin = false) {
     const search = query.search?.trim();
+    const now = new Date();
 
-    const promotions = await this.prisma.promotion.findMany({
-      where: search
-        ? {
-            OR: [
-              { code: { contains: search, mode: 'insensitive' } },
-              { name: { contains: search, mode: 'insensitive' } },
-              { description: { contains: search, mode: 'insensitive' } },
-            ],
-          }
-        : undefined,
+    const where: any = {};
+
+    if (search) {
+      where.OR = [
+        { code: { contains: search, mode: 'insensitive' } },
+        { name: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    // Với giao diện bệnh nhân: không gọi các gói ưu đãi bị đóng hoặc hết hạn
+    if (!isAdmin && !query.all) {
+      where.isActive = true;
+      where.startDate = { lte: now };
+      where.endDate = { gte: now };
+    }
+
+    let promotions = await this.prisma.promotion.findMany({
+      where: Object.keys(where).length > 0 ? where : undefined,
       include: {
         applicableTreatmentMethod: {
           include: {
@@ -36,6 +46,16 @@ export class PromotionService {
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    // Với giao diện bệnh nhân: lọc bỏ các gói ưu đãi đã hết lượt sử dụng
+    if (!isAdmin && !query.all) {
+      promotions = promotions.filter(
+        (promotion) =>
+          promotion.maxUses == null ||
+          promotion.maxUses <= 0 ||
+          promotion.usedCount < promotion.maxUses,
+      );
+    }
 
     return promotions.map((promotion) => ({
       id: promotion.id,
@@ -77,18 +97,34 @@ export class PromotionService {
   }
 
   async create(dto: CreatePromotionDto) {
-    const codeUpper = dto.code.trim().toUpperCase();
+    let codeUpper = dto.code?.trim().toUpperCase();
 
-    const existing = await this.prisma.promotion.findUnique({
-      where: { code: codeUpper },
-    });
-    if (existing) {
-      throw new BadRequestException('Mã khuyến mãi này đã tồn tại');
+    if (!codeUpper) {
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      let exists = true;
+      while (exists) {
+        let rand = '';
+        for (let i = 0; i < 6; i++) {
+          rand += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        codeUpper = `KM${rand}`;
+        const existingCode = await this.prisma.promotion.findUnique({
+          where: { code: codeUpper },
+        });
+        exists = !!existingCode;
+      }
+    } else {
+      const existing = await this.prisma.promotion.findUnique({
+        where: { code: codeUpper },
+      });
+      if (existing) {
+        throw new BadRequestException('Mã khuyến mãi này đã tồn tại');
+      }
     }
 
     const promotion = await this.prisma.promotion.create({
       data: {
-        code: codeUpper,
+        code: codeUpper as string,
         name: dto.name.trim(),
         description: dto.description?.trim(),
         imageUrl: dto.image_url?.trim() || null,

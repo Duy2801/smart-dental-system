@@ -45,6 +45,7 @@ export type RefreshSession = {
 export type LoginBody = {
   email: string;
   password: string;
+  captchaToken?: string;
 };
 
 export type RegisterBody = {

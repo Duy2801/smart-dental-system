@@ -63,6 +63,7 @@ export type DentalService = {
   priceValue: number;
   durationMinutes: number;
   displayOrder?: number;
+  isActive?: boolean;
   image: string;
   imageAlt: string;
   badge?: string;

@@ -1,6 +1,7 @@
 package com.smartdental.mobile
 
 import android.app.Application
+import android.content.Context
 import com.facebook.react.PackageList
 import com.facebook.react.ReactApplication
 import com.facebook.react.ReactHost
@@ -18,6 +19,11 @@ class MainApplication : Application(), ReactApplication {
           // add(MyReactNativePackage())
         },
     )
+  }
+
+  /** Giới hạn cỡ chữ hệ thống ngay từ context của ứng dụng (React Native đọc thông số hiển thị tại đây) */
+  override fun attachBaseContext(base: Context) {
+    super.attachBaseContext(FontScaleLimiter.wrap(base))
   }
 
   override fun onCreate() {

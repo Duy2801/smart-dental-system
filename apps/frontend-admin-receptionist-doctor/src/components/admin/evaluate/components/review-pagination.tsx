@@ -16,7 +16,7 @@ export function ReviewPagination({
   if (total === 0) return null;
 
   return (
-    <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3">
+    <div className="flex items-center justify-between rounded-2xl border border-slate-200/80 bg-white px-5 py-3 shadow-xs">
       <span className="text-xs font-medium text-muted-foreground">
         {total} đánh giá phù hợp
       </span>
@@ -27,7 +27,7 @@ export function ReviewPagination({
           aria-label="Trang trước"
           disabled={page <= 1}
           onClick={() => onPageChange(page - 1)}
-          className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+          className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
         >
           <CaretLeft size={16} weight="bold" />
         </button>
@@ -40,7 +40,7 @@ export function ReviewPagination({
           aria-label="Trang sau"
           disabled={page >= totalPages}
           onClick={() => onPageChange(page + 1)}
-          className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+          className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
         >
           <CaretRight size={16} weight="bold" />
         </button>

@@ -1,6 +1,18 @@
-import { useRef, useState, type FormEvent } from "react";
+"use client";
+
+import { useId, useRef, useState, type FormEvent } from "react";
+import { ImagesSquare, Megaphone, PencilSimple, Trash, UploadSimple } from "@phosphor-icons/react";
+import {
+  AdminButton,
+  AdminInput,
+  AdminModal,
+  adminControlClass,
+  adminControlTone,
+} from "@/src/components/admin/common";
+import { cn } from "@/src/lib/utils/cn";
 import type { CreateBannerPayload } from "../marketing-api";
 import type { Banner } from "../types";
+import { toast } from "@/src/lib/toast";
 
 type BannerModalProps = {
   initialData?: Banner | null;
@@ -24,6 +36,8 @@ export function CampaignModal({
   onSubmit,
 }: BannerModalProps) {
   const isEditing = Boolean(initialData);
+  const formId = useId();
+  const descriptionId = useId();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [imageUrl, setImageUrl] = useState<string>(
@@ -35,7 +49,7 @@ export function CampaignModal({
     if (!files || files.length === 0) return;
     const file = files[0];
     if (!file.type.startsWith("image/")) {
-      alert("Vui lòng chọn một tệp hình ảnh (.png, .jpg, .jpeg, .webp)");
+      toast.warning("Vui lòng chọn một tệp hình ảnh (.png, .jpg, .jpeg, .webp)");
       return;
     }
     setImageError(false);
@@ -64,187 +78,131 @@ export function CampaignModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity"
-        onClick={onClose}
-      />
-
-      {/* Modal Dialog */}
-      <div className="relative flex w-full max-w-xl flex-col rounded-3xl border border-border bg-white p-6 shadow-2xl sm:p-7">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-          <div>
-            <h3 className="text-xl font-bold text-brand-dark">
-              {isEditing ? "Chỉnh Sửa Banner" : "Thêm Banner Mới"}
-            </h3>
-            <p className="mt-0.5 text-xs text-slate-500">
-              {isEditing
-                ? "Cập nhật thông tin và hình ảnh banner quảng cáo"
-                : "Tải ảnh banner và nhập thông tin để hiển thị trên ứng dụng"}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-full p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
-          >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Form Body */}
-        <form id="banner-form" className="mt-5 flex flex-col gap-4" onSubmit={handleSubmit}>
-          {/* Tiêu đề Banner */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-semibold text-brand-dark">
-              Tiêu đề Banner <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              name="title"
-              required
-              defaultValue={initialData?.title || ""}
-              placeholder="Nhập tiêu đề banner (ví dụ: Ưu Đãi Niềng Răng Thẩm Mỹ 30%)"
-              className="rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand/20"
-            />
-          </div>
-
-          {/* Mô tả Banner */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-semibold text-brand-dark">
-              Mô tả chi tiết
-            </label>
-            <textarea
-              name="description"
-              rows={2}
-              defaultValue={initialData?.description || ""}
-              placeholder="Nhập thông điệp quảng cáo ngắn gọn..."
-              className="resize-none rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand/20"
-            />
-          </div>
-
-          {/* Tải ảnh Banner File Input Dropzone */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-semibold text-brand-dark">
-              Hình ảnh Banner <span className="text-red-500">*</span>
-            </label>
-
-            <input
-              type="file"
-              ref={fileInputRef}
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => handleFileSelect(e.target.files)}
-            />
-
-            {imageUrl ? (
-              <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-2">
-                <div className="relative h-36 w-full overflow-hidden rounded-xl bg-slate-900/5">
-                  <img
-                    src={imageUrl}
-                    alt="Banner Preview"
-                    className="h-full w-full object-cover"
-                    onError={() => {
-                      // fallback
-                    }}
-                  />
-                </div>
-                <div className="mt-2 flex items-center justify-between px-1">
-                  <span className="text-xs text-slate-500">Đã chọn hình ảnh</span>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="rounded-lg bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-200"
-                    >
-                      Đổi ảnh khác
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setImageUrl("")}
-                      className="rounded-lg bg-red-50 px-3 py-1 text-xs font-semibold text-red-600 transition-colors hover:bg-red-100"
-                    >
-                      Xóa
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  handleFileSelect(e.dataTransfer.files);
-                }}
-                className={`flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 text-center transition-all ${
-                  imageError
-                    ? "border-red-300 bg-red-50/50"
-                    : "border-slate-300 bg-slate-50/50 hover:border-brand hover:bg-brand-light/30"
-                }`}
-              >
-                <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-brand-light text-brand">
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <p className="text-sm font-semibold text-brand-dark">
-                  Kéo thả hoặc bấm để tải ảnh banner lên
-                </p>
-                <p className="mt-1 text-xs text-slate-400">
-                  Hỗ trợ định dạng PNG, JPG, JPEG, WEBP
-                </p>
-                {imageError ? (
-                  <p className="mt-2 text-xs font-semibold text-red-500">
-                    Vui lòng chọn hình ảnh cho banner!
-                  </p>
-                ) : null}
-              </div>
-            )}
-          </div>
-
-          {/* Trạng thái Kích hoạt */}
-          <div className="flex items-center gap-2.5 pt-1">
-            <input
-              type="checkbox"
-              id="isActive"
-              name="isActive"
-              defaultChecked={initialData ? initialData.isActive : true}
-              className="h-4.5 w-4.5 rounded-md border-slate-300 text-brand focus:ring-brand"
-            />
-            <label
-              htmlFor="isActive"
-              className="cursor-pointer select-none text-sm font-medium text-brand-dark"
-            >
-              Hiển thị banner ngay trên trang chủ
-            </label>
-          </div>
-        </form>
-
-        {/* Footer Actions */}
-        <div className="mt-6 flex shrink-0 justify-end gap-3 border-t border-slate-100 pt-4">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={loading}
-            className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 active:scale-[0.98] disabled:opacity-50"
-          >
+    <AdminModal
+      title={isEditing ? "Chỉnh sửa banner" : "Thêm banner mới"}
+      description={
+        isEditing
+          ? "Cập nhật thông tin và hình ảnh banner quảng cáo."
+          : "Tải ảnh banner và nhập thông tin để hiển thị trên ứng dụng."
+      }
+      icon={isEditing ? <PencilSimple size={20} weight="duotone" /> : <Megaphone size={20} weight="duotone" />}
+      size="sm"
+      onClose={onClose}
+      footer={
+        <>
+          <AdminButton variant="secondary" onClick={onClose} disabled={loading}>
             Hủy
-          </button>
-          <button
-            type="submit"
-            form="banner-form"
-            disabled={loading}
-            className="rounded-xl bg-brand px-6 py-2.5 text-sm font-semibold text-white shadow-xs transition-all hover:bg-brand-dark active:scale-[0.98] disabled:opacity-50"
-          >
-            {loading ? "Đang xử lý..." : isEditing ? "Lưu Cập Nhật" : "Tạo Banner"}
-          </button>
+          </AdminButton>
+          <AdminButton type="submit" form={formId} loading={loading}>
+            {loading ? "Đang xử lý..." : isEditing ? "Lưu cập nhật" : "Tạo banner"}
+          </AdminButton>
+        </>
+      }
+    >
+      <form id={formId} className="mt-4 flex flex-col gap-4" onSubmit={handleSubmit}>
+        <AdminInput
+          label="Tiêu đề banner"
+          name="title"
+          required
+          defaultValue={initialData?.title || ""}
+          placeholder="VD: Ưu đãi niềng răng thẩm mỹ 30%"
+        />
+
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor={descriptionId} className="text-[13px] font-semibold text-slate-700">
+            Mô tả chi tiết
+          </label>
+          <textarea
+            id={descriptionId}
+            name="description"
+            rows={2}
+            defaultValue={initialData?.description || ""}
+            placeholder="Nhập thông điệp quảng cáo ngắn gọn..."
+            className={cn(adminControlClass, adminControlTone(), "w-full resize-none py-2.5 leading-relaxed")}
+          />
         </div>
-      </div>
-    </div>
+
+        <div className="flex flex-col gap-1.5">
+          <span className="text-[13px] font-semibold text-slate-700">
+            Hình ảnh banner <span className="text-rose-500">*</span>
+          </span>
+
+          <input
+            type="file"
+            ref={fileInputRef}
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => handleFileSelect(e.target.files)}
+          />
+
+          {imageUrl ? (
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-2">
+              <div className="relative h-40 w-full overflow-hidden rounded-xl bg-slate-900/5">
+                <img src={imageUrl} alt="Xem trước banner" className="h-full w-full object-cover" />
+              </div>
+              <div className="mt-2 flex items-center justify-between gap-2 px-1">
+                <span className="text-xs font-medium text-slate-500">Đã chọn hình ảnh</span>
+                <div className="flex gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100"
+                  >
+                    <UploadSimple size={13} weight="bold" />
+                    Đổi ảnh
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImageUrl("")}
+                    className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-red-200 bg-white px-2.5 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
+                  >
+                    <Trash size={13} />
+                    Gỡ ảnh
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                handleFileSelect(e.dataTransfer.files);
+              }}
+              className={cn(
+                "flex w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed p-7 text-center transition-all focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-brand/25",
+                imageError
+                  ? "border-red-300 bg-red-50/50"
+                  : "border-slate-300 bg-slate-50/50 hover:border-brand hover:bg-brand-light/40",
+              )}
+            >
+              <span className="mb-2 grid h-12 w-12 place-items-center rounded-2xl bg-brand-light text-brand">
+                <ImagesSquare size={24} weight="duotone" />
+              </span>
+              <span className="text-sm font-semibold text-slate-800">Kéo thả hoặc bấm để tải ảnh banner</span>
+              <span className="mt-1 text-xs text-slate-400">Hỗ trợ PNG, JPG, JPEG, WEBP</span>
+              {imageError ? (
+                <span className="mt-2 text-xs font-semibold text-red-500">Vui lòng chọn hình ảnh cho banner.</span>
+              ) : null}
+            </button>
+          )}
+        </div>
+
+        <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 transition-colors hover:bg-slate-50">
+          <input
+            type="checkbox"
+            name="isActive"
+            defaultChecked={initialData ? initialData.isActive : true}
+            className="h-4 w-4 rounded border-slate-300 accent-brand"
+          />
+          <span>
+            <span className="block text-sm font-semibold text-slate-800">Hiển thị ngay trên trang chủ</span>
+            <span className="block text-xs text-slate-500">Bỏ chọn để lưu banner ở trạng thái tạm ẩn.</span>
+          </span>
+        </label>
+      </form>
+    </AdminModal>
   );
 }

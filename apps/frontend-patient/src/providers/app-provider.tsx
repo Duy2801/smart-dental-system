@@ -37,7 +37,10 @@ function AuthHydrator({ queryClient }: { queryClient: QueryClient }) {
     if (startedRef.current) return;
     startedRef.current = true;
 
-    if (window.location.pathname.startsWith("/auth")) {
+    if (
+      window.location.pathname.startsWith("/auth") ||
+      window.location.pathname === "/captcha/mobile"
+    ) {
       store.dispatch(finishHydration());
       return;
     }

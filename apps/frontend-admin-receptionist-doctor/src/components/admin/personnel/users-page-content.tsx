@@ -2,9 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AdminAlert } from "@/src/components/admin/common";
+import { AdminAlert, AdminConfirmModal } from "@/src/components/admin/common";
 import { queryKeys } from "@/src/lib/query/query-keys";
-import { emptyStaffForm } from "./constants";
+import { emptyStaffForm, roleConfig } from "./constants";
 import {
   createStaffUser,
   deleteStaffUser,
@@ -23,21 +23,43 @@ import type {
   UserStatus,
 } from "./types";
 
+const PAGE_SIZE = 10;
+
 export function UsersPageContent() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("ALL");
+  const [page, setPage] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState<StaffUser | null>(null);
 
-  const { data: users = [], isLoading: loading } = useQuery({
-    queryKey: queryKeys.admin.personnel(roleFilter, search),
-    queryFn: () => getStaffUsers({ roleFilter, search }),
+  const { data, isLoading: loading } = useQuery({
+    queryKey: queryKeys.admin.personnel(roleFilter, search, page),
+    queryFn: () =>
+      getStaffUsers({ roleFilter, search, page, limit: PAGE_SIZE }),
   });
+
+  const users = data?.data ?? [];
+  const meta = data?.meta ?? {
+    page: 1,
+    limit: PAGE_SIZE,
+    total: 0,
+    totalPages: 1,
+  };
 
   const invalidateUsers = () =>
     queryClient.invalidateQueries({ queryKey: ["admin", "personnel"] });
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setPage(1);
+  };
+
+  const handleRoleFilterChange = (role: RoleFilter) => {
+    setRoleFilter(role);
+    setPage(1);
+  };
 
   const submitMutation = useMutation({
     mutationFn: (form: StaffFormState) =>
@@ -63,7 +85,12 @@ export function UsersPageContent() {
 
   const deleteMutation = useMutation({
     mutationFn: deleteStaffUser,
-    onSuccess: invalidateUsers,
+    onSuccess: async () => {
+      if (users.length === 1 && page > 1) {
+        setPage((p) => p - 1);
+      }
+      await invalidateUsers();
+    },
     onError: (err) => {
       setError(getErrorMessage(err, "Xóa nhân viên thất bại"));
     },
@@ -101,27 +128,35 @@ export function UsersPageContent() {
     }
   };
 
-  const toggleLock = async (user: StaffUser) => {
+  const [lockTarget, setLockTarget] = useState<StaffUser | null>(null);
+
+  const handleConfirmToggleLock = async () => {
+    if (!lockTarget) return;
     const nextStatus: UserStatus =
-      user.status === "ACTIVE" ? "SUSPENDED" : "ACTIVE";
+      lockTarget.status === "ACTIVE" ? "SUSPENDED" : "ACTIVE";
 
     setError(null);
     try {
-      await statusMutation.mutateAsync({ user, status: nextStatus });
+      await statusMutation.mutateAsync({ user: lockTarget, status: nextStatus });
+      setLockTarget(null);
     } catch {
       // Error message is handled by the mutation onError callback.
+      setLockTarget(null);
     }
   };
 
-  const removeUser = async (user: StaffUser) => {
-    const confirmed = window.confirm(
-      "Bạn chắc chắn muốn vô hiệu hóa nhân viên này?",
-    );
-    if (!confirmed) return;
+  const [deactivatingUser, setDeactivatingUser] = useState<StaffUser | null>(null);
 
+  const removeUser = (user: StaffUser) => {
+    setDeactivatingUser(user);
+  };
+
+  const handleConfirmDeactivate = async () => {
+    if (!deactivatingUser) return;
     setError(null);
     try {
-      await deleteMutation.mutateAsync(user);
+      await deleteMutation.mutateAsync(deactivatingUser);
+      setDeactivatingUser(null);
     } catch {
       // Error message is handled by the mutation onError callback.
     }
@@ -132,8 +167,8 @@ export function UsersPageContent() {
       <PersonnelToolbar
         search={search}
         roleFilter={roleFilter}
-        onSearchChange={setSearch}
-        onRoleFilterChange={setRoleFilter}
+        onSearchChange={handleSearchChange}
+        onRoleFilterChange={handleRoleFilterChange}
         onCreate={openCreateModal}
       />
 
@@ -142,8 +177,14 @@ export function UsersPageContent() {
       <StaffList
         loading={loading}
         users={visibleUsers}
+        page={meta.page}
+        totalPages={meta.totalPages}
+        total={meta.total}
+        limit={meta.limit}
+        roleFilter={roleFilter}
+        onPageChange={setPage}
         onEdit={openEditModal}
-        onToggleLock={(user) => void toggleLock(user)}
+        onToggleLock={setLockTarget}
         onRemove={(user) => void removeUser(user)}
       />
 
@@ -159,6 +200,52 @@ export function UsersPageContent() {
           onSubmit={(form) => void handleSubmit(form)}
         />
       ) : null}
+
+      <AdminConfirmModal
+        isOpen={Boolean(lockTarget)}
+        title={lockTarget?.status === "ACTIVE" ? "Xác nhận khóa tài khoản" : "Xác nhận mở khóa tài khoản"}
+        description={
+          lockTarget?.status === "ACTIVE" ? (
+            <>
+              Bạn có chắc muốn khóa tài khoản của{" "}
+              <strong className="font-semibold text-slate-900">{lockTarget?.fullName}</strong>? Nhân viên này sẽ không thể đăng nhập cho tới khi được mở khóa.
+            </>
+          ) : (
+            <>
+              Mở khóa tài khoản của{" "}
+              <strong className="font-semibold text-slate-900">{lockTarget?.fullName}</strong>? Nhân viên sẽ đăng nhập lại được ngay.
+            </>
+          )
+        }
+        confirmText={lockTarget?.status === "ACTIVE" ? "Khóa tài khoản" : "Mở khóa"}
+        cancelText="Hủy bỏ"
+        variant={lockTarget?.status === "ACTIVE" ? "warning" : "primary"}
+        showIcon={false}
+        isLoading={statusMutation.isPending}
+        onConfirm={handleConfirmToggleLock}
+        onClose={() => setLockTarget(null)}
+      />
+
+      <AdminConfirmModal
+        isOpen={Boolean(deactivatingUser)}
+        title="Xác nhận vô hiệu hóa nhân viên"
+        description={
+          <>
+            Bạn có chắc chắn muốn vô hiệu hóa tài khoản của nhân viên{" "}
+            <strong className="font-semibold text-slate-900">
+              {deactivatingUser?.fullName}
+            </strong>{" "}
+            ({deactivatingUser?.role ? roleConfig[deactivatingUser.role]?.label : ""}) không? Tài khoản này sẽ không thể đăng nhập vào hệ thống.
+          </>
+        }
+        confirmText="Vô hiệu hóa"
+        cancelText="Hủy bỏ"
+        variant="warning"
+        showIcon={false}
+        isLoading={deleteMutation.isPending}
+        onConfirm={handleConfirmDeactivate}
+        onClose={() => setDeactivatingUser(null)}
+      />
     </div>
   );
 }

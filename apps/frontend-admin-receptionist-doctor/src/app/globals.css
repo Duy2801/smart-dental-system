@@ -25,6 +25,36 @@
   --font-sans: var(--font-be-vietnam);
 }
 
+/* Hiệu ứng mở modal / overlay dùng chung cho trang quản trị */
+@theme {
+  --animate-overlay-in: overlay-in 160ms ease-out;
+  --animate-modal-in: modal-in 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-drawer-in: drawer-in 280ms cubic-bezier(0.16, 1, 0.3, 1);
+
+  @keyframes drawer-in {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+  }
+
+  @keyframes overlay-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes modal-in {
+    from { opacity: 0; transform: translateY(8px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-overlay-in,
+  .animate-modal-in,
+  .animate-drawer-in {
+    animation: none;
+  }
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
@@ -49,6 +79,12 @@ body {
   #print-area,
   #print-area * {
     visibility: visible !important;
+  }
+  /* Nội dung in nằm trong modal: bỏ giới hạn chiều cao / vùng cuộn để không bị cắt */
+  [role="dialog"],
+  [role="dialog"] * {
+    max-height: none !important;
+    overflow: visible !important;
   }
   #print-area {
     position: absolute !important;

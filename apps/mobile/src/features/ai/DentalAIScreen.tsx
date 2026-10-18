@@ -21,6 +21,10 @@ import {
   type AiChatSuggestion,
 } from './api';
 
+type DentalAIScreenProps = {
+  onDismiss?: () => void;
+};
+
 type ChatMessage = {
   id: number;
   metadata?: Record<string, unknown>;
@@ -44,7 +48,7 @@ const initialMessages: ChatMessage[] = [
   },
 ];
 
-export default function DentalAIScreen() {
+export default function DentalAIScreen({ onDismiss }: DentalAIScreenProps) {
   const insets = useSafeAreaInsets();
   const listRef = useRef<FlatList<ChatMessage>>(null);
   const messageIdRef = useRef(2);
@@ -210,11 +214,26 @@ export default function DentalAIScreen() {
   return (
     <Screen>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
         style={styles.container}
       >
         <View style={styles.header}>
+          {onDismiss ? (
+            <TouchableOpacity
+              accessibilityLabel="Đóng trợ lý AI"
+              hitSlop={{ bottom: 8, left: 8, right: 8, top: 8 }}
+              onPress={onDismiss}
+              style={styles.backButton}
+            >
+              <FontAwesome6
+                color="#FFFFFF"
+                iconStyle="solid"
+                name="chevron-left"
+                size={16}
+              />
+            </TouchableOpacity>
+          ) : null}
           <View style={styles.headerIcon}>
             <FontAwesome6
               color="#FBBF24"
@@ -272,6 +291,13 @@ export default function DentalAIScreen() {
 }
 
 const styles = StyleSheet.create({
+  backButton: {
+    alignItems: 'center',
+    height: 36,
+    justifyContent: 'center',
+    marginLeft: -6,
+    width: 28,
+  },
   botBubble: {
     backgroundColor: '#FFFFFF',
     borderColor: '#E2E8F0',

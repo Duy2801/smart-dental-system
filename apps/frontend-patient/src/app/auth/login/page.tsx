@@ -3,9 +3,10 @@
 import { AxiosError } from "axios";
 import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { apiLogin, apiLoginWithGoogle } from "@/features/auth/api";
 import { LoginForm } from "@/features/auth";
+import type { CaptchaHandle } from "@/features/auth/login/CaptchaWidget";
 import { login, useAppDispatch } from "@/providers";
 
 const authErrorMessages: Record<string, string> = {
@@ -16,7 +17,19 @@ const authErrorMessages: Record<string, string> = {
     "Tài khoản của bạn đang bị khóa hoặc ngừng hoạt động.",
   "auth.email_not_verified":
     "Email chưa được xác thực. Vui lòng kiểm tra OTP trong email.",
+  "auth.captcha_required": "Vui lòng hoàn thành CAPTCHA trước khi đăng nhập.",
+  "auth.captcha_invalid": "CAPTCHA không hợp lệ hoặc đã hết hạn. Vui lòng thử lại.",
+  "auth.captcha_unavailable": "Chưa thể xác minh CAPTCHA. Vui lòng thử lại sau.",
+  "auth.captcha_puzzle_required": "Vui lòng giải câu đố xác minh bên dưới rồi đăng nhập lại.",
 };
+
+function getErrorCode(error: unknown) {
+  if (error instanceof AxiosError) {
+    const message = error.response?.data?.message;
+    if (typeof message === "string") return message;
+  }
+  return null;
+}
 
 function getErrorMessage(error: unknown) {
   if (error instanceof AxiosError) {
@@ -66,6 +79,8 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
   const [googleSubmitting, setGoogleSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const captchaRef = useRef<CaptchaHandle>(null);
+  const captchaEnabled = Boolean(process.env.NEXT_PUBLIC_WAU_CAPTCHA_SITE_KEY);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -89,7 +104,6 @@ export default function LoginPage() {
 
       if (!roles.includes("PATIENT")) {
         setError("Tài khoản này không phải tài khoản bệnh nhân.");
-        setGoogleSubmitting(false);
         return;
       }
 
@@ -103,6 +117,7 @@ export default function LoginPage() {
       router.replace(redirectPath);
     } catch (googleError) {
       setError(getErrorMessage(googleError));
+    } finally {
       setGoogleSubmitting(false);
     }
   }
@@ -145,7 +160,6 @@ export default function LoginPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
     const formData = new FormData(event.currentTarget);
     const credentials = {
       email: String(formData.get("email") ?? "")
@@ -158,12 +172,15 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      const response = await apiLogin(credentials);
+      const captchaToken = captchaEnabled ? await captchaRef.current?.verify() : undefined;
+      if (captchaEnabled && !captchaToken) return;
+      const response = await apiLogin({ ...credentials, captchaToken: captchaToken ?? undefined });
       const session = response.data;
       const roles = session.user.roles ?? [];
 
       if (!roles.includes("PATIENT")) {
         setError("Tài khoản này không phải tài khoản bệnh nhân.");
+        captchaRef.current?.refresh();
         return;
       }
 
@@ -177,6 +194,12 @@ export default function LoginPage() {
       router.replace(redirectPath);
     } catch (loginError) {
       setError(getErrorMessage(loginError));
+      if (getErrorCode(loginError) === "auth.captcha_puzzle_required") {
+        captchaRef.current?.requirePuzzle();
+      } else {
+        captchaRef.current?.refresh();
+      }
+    } finally {
       setSubmitting(false);
     }
   }
@@ -190,6 +213,7 @@ export default function LoginPage() {
       onTogglePassword={() => setPasswordVisible((current) => !current)}
       onSubmit={handleSubmit}
       onGoogleClick={handleGoogleClick}
+      captchaRef={captchaRef}
     />
   );
 }

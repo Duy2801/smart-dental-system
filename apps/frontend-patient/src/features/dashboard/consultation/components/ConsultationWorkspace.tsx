@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createConsultationBooking } from "../api";
 import type {
   ConsultationBookingResult,
@@ -42,6 +42,14 @@ export function ConsultationWorkspace() {
     useState<ConsultationBookingResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>("");
 
+  const showMyConsultations = useCallback(() => {
+    setBookingResult(null);
+    setActiveTab("my-consultations");
+    void queryClient.invalidateQueries({
+      queryKey: consultationQueryKeys.myConsultations(),
+    });
+  }, [queryClient]);
+
   useEffect(() => {
     const now = new Date();
     // Nếu quá 17h00 (kết thúc giờ làm việc tư vấn hôm nay), mặc định chọn ngày mai
@@ -57,7 +65,7 @@ export function ConsultationWorkspace() {
     return (
       <LoginRequiredPanel
         title="Đặt tư vấn nha khoa trực tuyến"
-        description="Đăng nhập để chọn bác sĩ, khung giờ tư vấn, thanh toán và theo dõi lịch tư vấn online của bạn."
+        description="Đăng nhập để chọn bác sĩ, khung giờ và theo dõi lịch tư vấn online."
         loginLabel="Đăng nhập để đặt tư vấn"
         redirectTo="/consultation"
         secondaryHref="/service"
@@ -109,51 +117,50 @@ export function ConsultationWorkspace() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-[1360px] px-4 py-6 sm:px-6 lg:px-8 space-y-6">
+    <main className="mx-auto w-full max-w-[1360px] px-4 py-7 sm:px-6 sm:py-9 lg:px-8 space-y-8">
       {/* Header & Tab Switcher (Matching standard workspace layout) */}
-      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-0.5 text-[11px] font-bold uppercase tracking-wider text-[#0058bc]">
-              <DashboardIcon name="video" className="h-3.5 w-3.5" />
-              Telehealth Center
-            </span>
-          </div>
-          <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
-            Tư Vấn Nha Khoa Trực Tuyến
-          </h1>
-          <p className="mt-1 text-xs text-slate-500 sm:text-sm">
-            Kết nối trực tiếp Video Call 1-1 với Bác sĩ chuyên khoa nha khoa hàng đầu.
-          </p>
+      <section className="py-2 space-y-3">
+        <div>
         </div>
 
-        <div className="inline-flex w-full md:w-auto shrink-0 rounded-2xl border border-slate-200 bg-white p-1 shadow-[0_10px_28px_rgba(15,23,42,.05)]">
-          <button
-            type="button"
-            onClick={() => setActiveTab("book")}
-            className={`inline-flex h-11 flex-1 md:flex-none items-center justify-center gap-2 rounded-xl px-4 text-xs sm:text-sm font-bold transition ${
-              activeTab === "book"
-                ? "bg-[#0058bc] text-white shadow-sm"
-                : "text-slate-600 hover:bg-blue-50 hover:text-[#0058bc]"
-            }`}
-          >
-            <DashboardIcon name="calendar" className="h-4 w-4" />
-            Đặt lịch tư vấn mới
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("my-consultations")}
-            className={`inline-flex h-11 flex-1 md:flex-none items-center justify-center gap-2 rounded-xl px-4 text-xs sm:text-sm font-bold transition ${
-              activeTab === "my-consultations"
-                ? "bg-[#0058bc] text-white shadow-sm"
-                : "text-slate-600 hover:bg-blue-50 hover:text-[#0058bc]"
-            }`}
-          >
-            <DashboardIcon name="appointment" className="h-4 w-4" />
-            Lịch tư vấn của tôi
-          </button>
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div className="min-w-0 space-y-1">
+            <h1 className="text-2xl sm:text-3xl font-black text-[#07366f]">
+              Tư Vấn Nha Khoa Trực Tuyến
+            </h1>
+            <p className="text-sm text-slate-600 leading-relaxed max-w-3xl">
+              Kết nối trực tiếp Video Call 1-1 với Bác sĩ chuyên khoa nha khoa hàng đầu.
+            </p>
+          </div>
+
+          <div className="inline-flex w-full md:w-auto shrink-0 rounded-2xl border border-slate-200 bg-white p-1 shadow-[0_10px_28px_rgba(15,23,42,.05)]">
+            <button
+              type="button"
+              onClick={() => setActiveTab("book")}
+              className={`inline-flex h-11 flex-1 md:flex-none items-center justify-center gap-2 rounded-xl px-4 text-xs sm:text-sm font-bold transition cursor-pointer ${
+                activeTab === "book"
+                  ? "bg-[#0058bc] text-white shadow-sm"
+                  : "text-slate-600 hover:bg-blue-50 hover:text-[#0058bc]"
+              }`}
+            >
+              <DashboardIcon name="calendar" className="h-4 w-4" />
+              Đặt lịch tư vấn mới
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("my-consultations")}
+              className={`inline-flex h-11 flex-1 md:flex-none items-center justify-center gap-2 rounded-xl px-4 text-xs sm:text-sm font-bold transition cursor-pointer ${
+                activeTab === "my-consultations"
+                  ? "bg-[#0058bc] text-white shadow-sm"
+                  : "text-slate-600 hover:bg-blue-50 hover:text-[#0058bc]"
+              }`}
+            >
+              <DashboardIcon name="appointment" className="h-4 w-4" />
+              Lịch tư vấn của tôi
+            </button>
+          </div>
         </div>
-      </div>
+      </section>
 
       {/* Main Workspace Body */}
       {activeTab === "book" && (
@@ -161,7 +168,8 @@ export function ConsultationWorkspace() {
           {bookingResult ? (
             <PaymentCheckoutView
               bookingResult={bookingResult}
-              onViewMyConsultations={() => setActiveTab("my-consultations")}
+              onViewMyConsultations={showMyConsultations}
+              onPaymentConfirmed={showMyConsultations}
               onBookAnother={() => setBookingResult(null)}
             />
           ) : (
@@ -261,6 +269,6 @@ export function ConsultationWorkspace() {
       {activeTab === "my-consultations" && (
         <MyConsultationsList onBookNew={() => setActiveTab("book")} />
       )}
-    </div>
+    </main>
   );
 }

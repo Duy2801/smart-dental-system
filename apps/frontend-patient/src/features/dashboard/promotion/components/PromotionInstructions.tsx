@@ -61,12 +61,12 @@ export function PromotionInstructions({ promotion }: PromotionInstructionsProps)
           <InstructionStep
             number="1"
             title="Bắt đầu đặt lịch"
-            description="Bấm Đặt lịch dùng mã hoặc vào trang Đặt lịch khám, sau đó chọn người khám, dịch vụ và thời gian phù hợp."
+            description="Bấm Đặt lịch ngay hoặc vào trang Đặt lịch khám, sau đó chọn người khám, dịch vụ và thời gian phù hợp."
           />
           <InstructionStep
             number="2"
             title="Chọn ưu đãi"
-            description={`Ở bước xác nhận, mở mục Ưu đãi áp dụng và chọn mã ${promotion.code} trong danh sách.`}
+            description="Ở bước xác nhận, chọn ưu đãi tương ứng trong danh sách để được áp dụng giảm giá."
           />
           <InstructionStep
             number="3"

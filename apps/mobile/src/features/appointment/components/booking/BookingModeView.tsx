@@ -85,7 +85,7 @@ export function BookingModeView({
     ? promotionsQuery.data
     : [];
 
-  // Tá»± Ä‘á»™ng chá»n há»“ sÆ¡ chÃ­nh chá»§ khi táº£i xong
+  // Tự động chọn hồ sơ chính chủ khi tải xong
   useEffect(() => {
     if (!selectedPatientId && patientProfiles.length > 0) {
       const defaultPatient =
@@ -280,7 +280,7 @@ export function BookingModeView({
               selectedDoctor={selectedDoctor}
             />
 
-            {/* Step 1: Chá»n ngÆ°á»i khÃ¡m */}
+            {/* Step 1: Chọn người khám */}
             {activeStep === 1 && (
               <PatientSelector
                 patients={patientProfiles}
@@ -297,7 +297,7 @@ export function BookingModeView({
               />
             )}
 
-            {/* Step 2: Chá»n dá»‹ch vá»¥ & Ä‘iá»u trá»‹ */}
+            {/* Step 2: Chọn dịch vụ & điều trị */}
             {activeStep === 2 && (
               <ServiceSelector
                 services={services}
@@ -321,7 +321,7 @@ export function BookingModeView({
               />
             )}
 
-            {/* Step 3: Chá»n ngÃ y vÃ  giá» khÃ¡m */}
+            {/* Step 3: Chọn ngày và giờ khám */}
             {activeStep === 3 && (
               <SchedulePicker
                 dates={dates}
@@ -341,7 +341,7 @@ export function BookingModeView({
               />
             )}
 
-            {/* Step 4: Chá»n bÃ¡c sÄ© */}
+            {/* Step 4: Chọn bác sĩ */}
             {activeStep === 4 && (
               <DoctorSelector
                 doctors={doctors}

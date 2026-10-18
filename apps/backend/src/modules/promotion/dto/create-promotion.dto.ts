@@ -11,8 +11,9 @@ import {
 import { DiscountType } from '../../../../prisma/generated/enums';
 
 export class CreatePromotionDto {
+  @IsOptional()
   @IsString()
-  code: string;
+  code?: string;
 
   @IsString()
   name: string;

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { AdminAlert } from "@/src/components/admin/common";
 import { queryKeys } from "@/src/lib/query/query-keys";
 import { FinanceSummaryCards } from "./components/finance-summary-cards";
 import { FinanceToolbar } from "./components/finance-toolbar";
@@ -91,20 +92,16 @@ export function FinancePageContent() {
         onExportExcel={handleExportExcel}
       />
 
+      {isError ? (
+        <AdminAlert message="Không tải được dữ liệu hóa đơn tài chính. Vui lòng kiểm tra lại kết nối." />
+      ) : null}
+
       {/* Invoice Data Table */}
       <InvoiceList
         loading={isLoading}
         invoices={filteredInvoices}
         onSelectInvoice={setSelectedInvoice}
       />
-
-      {/* Error Alert */}
-      {isError ? (
-        <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700 shadow-xs">
-          <span>⚠️</span>
-          <span>Không tải được dữ liệu hóa đơn tài chính. Vui lòng kiểm tra lại kết nối.</span>
-        </div>
-      ) : null}
 
       {/* Invoice Detail Modal */}
       {selectedInvoice ? (

@@ -73,7 +73,7 @@ export function ManageModeView({
     activeMainTab === "upcoming" ? upcoming.length : historyItems.length;
 
   return (
-    <main className="mx-auto w-full max-w-[1360px] px-4 py-6 sm:px-6 lg:px-8 space-y-6">
+    <main className="mx-auto w-full max-w-[1360px] space-y-8 px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
       <AppointmentWorkspaceHeader
         mode="manage"
         title="Quản lý lịch hẹn"

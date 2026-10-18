@@ -5,7 +5,7 @@ export type { SavePromotionPayload };
 
 export async function getPromotions(search?: string) {
   const response = await apiClient.get<Promotion[]>("/promotions", {
-    params: { search: search?.trim() || undefined },
+    params: { search: search?.trim() || undefined, all: true },
   });
   return response.data;
 }

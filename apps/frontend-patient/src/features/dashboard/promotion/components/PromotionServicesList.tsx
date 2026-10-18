@@ -53,25 +53,25 @@ export function PromotionServicesList({
                   : "border-slate-200/90 bg-white hover:border-blue-300 hover:shadow-md"
               }`}
             >
-              <div className="grid grid-cols-1 sm:grid-cols-[180px_1fr] md:grid-cols-[210px_1fr]">
+              <div className="grid grid-cols-1 sm:grid-cols-[164px_minmax(0,1fr)]">
                 {/* Left Media Image Frame */}
-                <div className="relative min-h-[150px] sm:min-h-[170px] bg-slate-100 overflow-hidden">
+                <div className="relative flex h-44 w-full shrink-0 items-center justify-center bg-slate-50 p-4 sm:h-full sm:min-h-44 sm:w-[164px]">
                   {service.imageUrl ? (
                     <img
                       src={service.imageUrl}
                       alt={service.name}
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      className="h-32 w-32 shrink-0 rounded-xl object-cover object-center transition duration-500 group-hover:scale-105"
                     />
                   ) : (
-                    <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 p-4 text-center">
-                      <DashboardIcon name="sparkles" className="h-9 w-9 text-[#0058bc]/40" />
-                      <span className="mt-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                        {service.category || "NHA KHOA TỔNG QUÁT"}
+                    <div className="flex h-32 w-32 shrink-0 flex-col items-center justify-center rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 p-4 text-center">
+                      <DashboardIcon name="sparkles" className="h-8 w-8 text-[#0058bc]/40" />
+                      <span className="mt-1 text-[9px] font-bold text-slate-400 uppercase tracking-wider line-clamp-1">
+                        {service.category || "NHA KHOA"}
                       </span>
                     </div>
                   )}
                   {isSelected && (
-                    <div className="absolute top-3 left-3 rounded-full bg-[#0058bc] px-2.5 py-1 text-[10px] font-extrabold text-white shadow-sm flex items-center gap-1">
+                    <div className="absolute top-2.5 left-2.5 rounded-full bg-[#0058bc] px-2.5 py-1 text-[10px] font-extrabold text-white shadow-sm flex items-center gap-1 z-10">
                       <span>✓</span> Đã chọn
                     </div>
                   )}

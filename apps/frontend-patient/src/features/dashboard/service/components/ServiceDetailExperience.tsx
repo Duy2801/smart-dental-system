@@ -1,10 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { DashboardIcon } from "../../common/DashboardIcon";
-import { usePatientServiceDetailQuery } from "../hooks";
+import { homeQueryKeys } from "../../home/hooks/useHomeQueries";
+import {
+  isServiceNotFoundError,
+  patientServiceQueryKeys,
+  usePatientServiceDetailQuery,
+} from "../hooks";
 import { formatServicePrice } from "../api";
 import {
   hasItems,
@@ -15,6 +20,7 @@ import {
   BookingPanel,
   EmptyContent,
   SectionHeading,
+  ServiceDetailLoadError,
   ServiceDetailLoadingState,
   ServiceDetailNotFound,
 } from "./ServiceDetailShared";
@@ -24,15 +30,43 @@ import { T } from "../../common/typography";
 export function ServiceDetailExperience({ serviceId }: { serviceId: string }) {
   const searchParams = useSearchParams();
   const methodIdFromUrl = searchParams.get("method");
-  const { data: service = null, isLoading } =
-    usePatientServiceDetailQuery(serviceId);
+  const queryClient = useQueryClient();
+  const {
+    data: service = null,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isRefetching,
+  } = usePatientServiceDetailQuery(serviceId);
 
   const [selectedMethodId, setSelectedMethodId] = useState<string | null>(null);
   const treatmentMethods = service?.treatmentMethods ?? [];
 
+  const isMissing =
+    (isError && isServiceNotFoundError(error)) ||
+    (!isError && !isLoading && (!service || service.isActive === false));
+
+  // Dịch vụ đã bị xóa/ẩn: làm mới danh sách đã cache để thẻ cũ không còn hiện ở trang chủ / trang dịch vụ
+  useEffect(() => {
+    if (!isMissing) return;
+    void queryClient.invalidateQueries({ queryKey: homeQueryKeys.services() });
+    void queryClient.invalidateQueries({ queryKey: patientServiceQueryKeys.all });
+  }, [isMissing, queryClient]);
+
   if (isLoading) return <ServiceDetailLoadingState />;
 
-  if (!service) return <ServiceDetailNotFound />;
+  if (isMissing || !service) {
+    if (isError && !isServiceNotFoundError(error)) {
+      return (
+        <ServiceDetailLoadError
+          onRetry={() => void refetch()}
+          retrying={isRefetching}
+        />
+      );
+    }
+    return <ServiceDetailNotFound />;
+  }
 
   const activeMethod =
     treatmentMethods.find((m) => m.id === selectedMethodId) ||
@@ -50,72 +84,9 @@ export function ServiceDetailExperience({ serviceId }: { serviceId: string }) {
       ? activeMethod.faqs
       : service.faqs;
 
-  const gallery =
-    activeMethod?.media && activeMethod.media.length > 0
-      ? activeMethod.media
-      : service.media;
-
-  const hasOverviewContent =
-    Boolean(service.detailSummary || service.description) ||
-    hasItems(service.suitableFor) ||
-    hasItems(service.includedItems);
-
   return (
     <main className="mx-auto w-full max-w-[1360px] min-w-0 px-3.5 py-5 sm:px-6 sm:py-7 lg:px-8">
       <ServiceDetailHero service={service} activeMethod={activeMethod} />
-
-      {hasItems(treatmentMethods) ? (
-        <section className="mt-7 rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50/50 to-indigo-50/30 p-6 shadow-sm sm:p-8">
-          <SectionHeading
-            eyebrow="Tùy chọn & Phương pháp"
-            title="Các phương pháp điều trị"
-            description="Lựa chọn phương pháp điều trị phù hợp với nhu cầu và ngân sách của bạn."
-          />
-
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 items-stretch">
-            {treatmentMethods.map((method) => {
-              const isSelected = activeMethod?.id === method.id;
-              return (
-                <div
-                  key={method.id}
-                  onClick={() => setSelectedMethodId(method.id)}
-                  className={`group flex h-full flex-col justify-between cursor-pointer rounded-2xl border p-5 transition-all duration-200 ${isSelected
-                    ? "border-[#0863c5] bg-white shadow-md ring-2 ring-[#0863c5]/20"
-                    : "border-slate-200 bg-white/80 hover:border-blue-300 hover:bg-white"
-                    }`}
-                >
-                  <div className="flex flex-1 flex-col">
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="inline-block rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-bold text-[#0863c5]">
-                        Phương pháp
-                      </span>
-                      {isSelected ? (
-                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#0863c5] text-[10px] font-extrabold text-white">
-                          ✓
-                        </span>
-                      ) : (
-                        <span className="h-5 w-5 shrink-0" />
-                      )}
-                    </div>
-                    <h3 className="mt-3 min-h-[3rem] text-base font-extrabold leading-6 text-slate-950 line-clamp-2">
-                      {method.name}
-                    </h3>
-                    <p className="mt-2 min-h-[3.75rem] flex-1 text-xs leading-5 text-slate-500 line-clamp-3">
-                      {method.description || "Chi tiết phương pháp điều trị chuyên sâu."}
-                    </p>
-                  </div>
-                  <div className="mt-4 border-t border-slate-100 pt-3">
-                    <span className={`${T.caption} text-slate-400`}>Chi phí:</span>
-                    <p className="text-lg font-extrabold text-[#0863c5]">
-                      {formatServicePrice(method.basePrice)}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      ) : null}
 
       {hasItems(service.highlights) ? (
         <section className="mt-7 grid gap-4 md:grid-cols-3 items-stretch">
@@ -140,73 +111,6 @@ export function ServiceDetailExperience({ serviceId }: { serviceId: string }) {
 
       <div className="mt-7 grid min-w-0 items-start gap-7 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="min-w-0 space-y-7">
-          <section className="max-w-full rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
-            <SectionHeading
-              eyebrow="Tổng quan"
-              title={`Vì sao nên chọn ${service.title}?`}
-              description="Nội dung trong phần này được lấy từ dữ liệu quản trị dịch vụ."
-            />
-            {hasOverviewContent ? (
-              <div className="mt-6 grid gap-6 sm:grid-cols-2 items-stretch">
-                <div className="flex h-full flex-col">
-                  <h3 className="text-sm font-extrabold text-slate-950">
-                    Dịch vụ phù hợp với ai?
-                  </h3>
-                  <div className="mt-3 flex-1 flex flex-col">
-                    {hasItems(service.suitableFor) ? (
-                      <div className="h-full rounded-2xl border border-slate-200/80 bg-slate-50/60 p-5">
-                        <ul className="space-y-3">
-                          {service.suitableFor.map((item) => (
-                            <li
-                              key={item}
-                              className="flex gap-3 text-sm leading-6 text-slate-600"
-                            >
-                              <span className="mt-1 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-blue-50 text-[10px] font-bold text-[#0863c5]">
-                                ✓
-                              </span>
-                              {item}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ) : (
-                      <EmptyContent label="Đối tượng phù hợp" />
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex h-full flex-col">
-                  <h3 className="text-sm font-extrabold text-slate-950">
-                    Bao gồm trong buổi hẹn
-                  </h3>
-                  <div className="mt-3 flex-1 flex flex-col">
-                    {hasItems(service.includedItems) ? (
-                      <div className="h-full rounded-2xl border border-slate-200/80 bg-slate-50/60 p-5">
-                        <ul className="space-y-3">
-                          {service.includedItems.map((item) => (
-                            <li
-                              key={item}
-                              className="flex gap-2 text-xs leading-5 text-slate-600"
-                            >
-                              <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#0863c5]" />
-                              {item}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ) : (
-                      <EmptyContent label="Quyền lợi buổi hẹn" />
-                    )}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="mt-6">
-                <EmptyContent label="Tổng quan dịch vụ" />
-              </div>
-            )}
-          </section>
-
           <section className="max-w-full rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
             <SectionHeading
               eyebrow="Quy trình"
@@ -345,44 +249,6 @@ export function ServiceDetailExperience({ serviceId }: { serviceId: string }) {
             </div>
           </section>
 
-          <section className="grid gap-5 md:grid-cols-2 items-stretch">
-            <article className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <SectionHeading eyebrow="Trước buổi hẹn" title="Chuẩn bị" />
-              <div className="mt-5 flex-1 flex flex-col">
-                {hasItems(service.preparationNotes) ? (
-                  <ul className="space-y-3">
-                    {service.preparationNotes.map((item) => (
-                      <li key={item} className="flex gap-3 text-sm leading-6 text-slate-600">
-                        <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#0863c5]" />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <EmptyContent label="Nội dung chuẩn bị" />
-                )}
-              </div>
-            </article>
-
-            <article className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <SectionHeading eyebrow="Sau điều trị" title="Chăm sóc" />
-              <div className="mt-5 flex-1 flex flex-col">
-                {hasItems(service.aftercareNotes) ? (
-                  <ul className="space-y-3">
-                    {service.aftercareNotes.map((item) => (
-                      <li key={item} className="flex gap-3 text-sm leading-6 text-slate-600">
-                        <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <EmptyContent label="Nội dung chăm sóc sau điều trị" />
-                )}
-              </div>
-            </article>
-          </section>
-
           {hasItems(service.importantNotes) ? (
             <section className="rounded-2xl border border-amber-200 bg-amber-50 p-6">
               <h2 className="flex items-center gap-2 text-base font-extrabold text-slate-950">
@@ -396,33 +262,6 @@ export function ServiceDetailExperience({ serviceId }: { serviceId: string }) {
                   </li>
                 ))}
               </ul>
-            </section>
-          ) : null}
-
-          {hasItems(gallery) ? (
-            <section className="max-w-full rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
-              <SectionHeading
-                eyebrow="Hình ảnh"
-                title="Hình ảnh dịch vụ"
-                description="Hình ảnh được lấy từ thư viện dịch vụ trong hệ thống quản trị."
-              />
-              <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                {gallery.map((media) => (
-                  <figure
-                    key={media.id}
-                    className="overflow-hidden rounded-2xl border border-slate-100 bg-slate-50"
-                  >
-                    <img
-                      src={media.url}
-                      alt={media.alt || service.title}
-                      className="aspect-[4/3] w-full object-cover"
-                    />
-                    <figcaption className={`p-3 ${T.caption}`}>
-                      {media.alt || service.title}
-                    </figcaption>
-                  </figure>
-                ))}
-              </div>
             </section>
           ) : null}
 
@@ -456,32 +295,67 @@ export function ServiceDetailExperience({ serviceId }: { serviceId: string }) {
             )}
           </section>
 
-          <section className="rounded-[28px] bg-slate-950 p-6 text-white shadow-sm sm:p-8">
-            <div className="grid gap-6 md:grid-cols-[1fr_auto] md:items-center">
-              <div>
-                <p className={`${T.overline} text-blue-200`}>
-                  Sẵn sàng bắt đầu?
-                </p>
-                <h2 className="mt-2 text-2xl font-extrabold">
-                  Đặt lịch {service.title} với bác sĩ phù hợp
-                </h2>
-                <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
-                  Khi bấm đặt lịch, hệ thống chuyển sang trang lịch hẹn và chọn
-                  sẵn dịch vụ này cho bạn.
-                </p>
-              </div>
-              <Link
-                href={`/appointment?service=${service.id}${activeMethod ? `&treatmentMethod=${activeMethod.id}` : ""}&intent=booking`}
-                className="inline-flex h-12 items-center justify-center rounded-xl bg-white px-6 text-sm font-extrabold text-[#0863c5] transition hover:bg-blue-50"
-              >
-                Đặt dịch vụ ngay
-              </Link>
-            </div>
-          </section>
         </div>
 
         <BookingPanel service={service} activeMethod={activeMethod} />
       </div>
+
+      {hasItems(treatmentMethods) ? (
+        <section className="mt-7 rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50/50 to-indigo-50/30 p-6 shadow-sm sm:p-8">
+          <SectionHeading
+            eyebrow="Tùy chọn & Phương pháp"
+            title="Các phương pháp điều trị"
+            description="Lựa chọn phương pháp điều trị phù hợp với nhu cầu và ngân sách của bạn."
+          />
+
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 items-stretch">
+            {treatmentMethods.map((method) => {
+              const isSelected = activeMethod?.id === method.id;
+              return (
+                <div
+                  key={method.id}
+                  onClick={() => {
+                    setSelectedMethodId(method.id);
+                    // Cuộn lên đầu trang để xem thông tin, quy trình và chi phí của phương pháp vừa chọn
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  className={`group flex h-full flex-col justify-between cursor-pointer rounded-2xl border p-5 transition-all duration-200 ${isSelected
+                    ? "border-[#0863c5] bg-white shadow-md ring-2 ring-[#0863c5]/20"
+                    : "border-slate-200 bg-white/80 hover:border-blue-300 hover:bg-white"
+                    }`}
+                >
+                  <div className="flex flex-1 flex-col">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="inline-block rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-bold text-[#0863c5]">
+                        Phương pháp
+                      </span>
+                      {isSelected ? (
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#0863c5] text-[10px] font-extrabold text-white">
+                          ✓
+                        </span>
+                      ) : (
+                        <span className="h-5 w-5 shrink-0" />
+                      )}
+                    </div>
+                    <h3 className="mt-3 min-h-[3rem] text-base font-extrabold leading-6 text-slate-950 line-clamp-2">
+                      {method.name}
+                    </h3>
+                    <p className="mt-2 min-h-[3.75rem] flex-1 text-xs leading-5 text-slate-500 line-clamp-3">
+                      {method.description || "Chi tiết phương pháp điều trị chuyên sâu."}
+                    </p>
+                  </div>
+                  <div className="mt-4 border-t border-slate-100 pt-3">
+                    <span className={`${T.caption} text-slate-400`}>Chi phí:</span>
+                    <p className="text-lg font-extrabold text-[#0863c5]">
+                      {formatServicePrice(method.basePrice)}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
     </main>
   );
 }

@@ -1,11 +1,10 @@
-﻿import FontAwesome6 from '@react-native-vector-icons/fontawesome6';
+import FontAwesome6 from '@react-native-vector-icons/fontawesome6';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Image,
-  Linking,
   Modal,
   RefreshControl,
   ScrollView,
@@ -17,8 +16,9 @@ import {
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useSelector } from 'react-redux';
-import { Screen, toast } from '~src/components/ui';
+import { Screen, SheetBottomInset, toast } from '~src/components/ui';
 import { SCREEN_NAME } from '~src/constants/screenName';
+import { LoginRequiredView } from '~src/features/auth/components/LoginRequiredView';
 import { PatientDrawerModal } from '~src/features/home/components/PatientDrawerModal';
 import { PatientFooter } from '~src/features/home/components/PatientFooter';
 import { PatientHomeHeader } from '~src/features/home/components/PatientHomeHeader';
@@ -33,11 +33,15 @@ import {
   getConsultationDoctors,
   getConsultationPackages,
   getPatientConsultations,
+  unwrapData,
   type ConsultationDoctor,
   type ConsultationDurationMinutes,
   type ConsultationDurationOption,
+  type ConsultationBookingResult,
   type PatientConsultation,
 } from '../api';
+import { ConsultationPaymentDetails } from '../components/ConsultationPaymentDetails';
+import { ConsultationVideoRoomModal } from '../components/ConsultationVideoRoomModal';
 
 type TabMode = 'book' | 'my-consultations';
 
@@ -46,7 +50,7 @@ const DOCTORS_PER_PAGE = 4;
 const CONSULTATIONS_PER_PAGE = 10;
 
 function formatDisplayDate(dateStr: string) {
-  if (!dateStr) return 'Chá»n ngÃ y';
+  if (!dateStr) return 'Chọn ngày';
   const parts = dateStr.split('-');
   if (parts.length === 3) {
     return `${parts[2]}/${parts[1]}/${parts[0]}`;
@@ -65,8 +69,22 @@ function getInitialDateStr() {
   return `${y}-${m}-${d}`;
 }
 
+function canJoinConsultation(item: PatientConsultation, now: number) {
+  if (!item.isPaid || ['CANCELLED', 'COMPLETED', 'EXPIRED', 'DOCTOR_MISSED'].includes(item.status)) {
+    return false;
+  }
+  if (item.status === 'IN_PROGRESS') return true;
+  const scheduledAt = new Date(item.scheduledAt).getTime();
+  return item.status === 'SCHEDULED' && Number.isFinite(scheduledAt) &&
+    now >= scheduledAt - 15 * 60_000 &&
+    now <= scheduledAt + item.durationMinutes * 60_000 + 15 * 60_000;
+}
+
 export default function ConsultationScreen({ navigation }: any) {
   const user = useSelector((state: RootState) => state.login?.user ?? null);
+  const accessToken = useSelector((state: RootState) => state.login?.accessToken);
+  const isHydrated = useSelector((state: RootState) => state.login?.isHydrated ?? true);
+  const isLoggedIn = Boolean(accessToken);
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<TabMode>('book');
   const [drawerVisible, setDrawerVisible] = useState(false);
@@ -84,7 +102,7 @@ export default function ConsultationScreen({ navigation }: any) {
   const [selectedSlot, setSelectedSlot] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [bookingResult, setBookingResult] = useState<any | null>(null);
+  const [bookingResult, setBookingResult] = useState<ConsultationBookingResult | null>(null);
 
   // Date Picker Modal state
   const [dateModalVisible, setDateModalVisible] = useState(false);
@@ -100,12 +118,15 @@ export default function ConsultationScreen({ navigation }: any) {
     useState<PatientConsultation | null>(null);
   const [paymentModalItem, setPaymentModalItem] =
     useState<PatientConsultation | null>(null);
+  const [videoRoomItem, setVideoRoomItem] = useState<PatientConsultation | null>(null);
+  const [currentTime, setCurrentTime] = useState(Date.now());
   const [cancellingId, setCancellingId] = useState<string | null>(null);
 
   const { handleDrawerNavigate, handleLogout } = usePatientDrawerActions();
 
   // Query: Consultation Packages
   const packagesQuery = useQuery({
+    enabled: isLoggedIn,
     queryFn: getConsultationPackages,
     queryKey: queryKeys.consultations.packages,
     staleTime: CACHE_TIMES.CATALOG.staleTime,
@@ -114,6 +135,7 @@ export default function ConsultationScreen({ navigation }: any) {
 
   // Query: Consultation Doctors
   const doctorsQuery = useQuery({
+    enabled: isLoggedIn,
     queryFn: getConsultationDoctors,
     queryKey: queryKeys.consultations.doctors,
     staleTime: CACHE_TIMES.CATALOG.staleTime,
@@ -122,7 +144,7 @@ export default function ConsultationScreen({ navigation }: any) {
 
   // Query: Available Slots
   const slotsQuery = useQuery({
-    enabled: Boolean(selectedDoctorId && selectedDate),
+    enabled: isLoggedIn && Boolean(selectedDoctorId && selectedDate),
     queryFn: () =>
       getAvailableConsultationSlots(
         selectedDoctorId,
@@ -140,11 +162,19 @@ export default function ConsultationScreen({ navigation }: any) {
 
   // Query: My Consultations
   const myConsultationsQuery = useQuery({
+    enabled: isLoggedIn,
     queryFn: getPatientConsultations,
     queryKey: queryKeys.consultations.myList,
     staleTime: CACHE_TIMES.APPOINTMENTS.staleTime,
     gcTime: CACHE_TIMES.APPOINTMENTS.gcTime,
+    refetchInterval: activeTab === 'my-consultations' ? 5000 : false,
   });
+
+  useEffect(() => {
+    if (activeTab !== 'my-consultations') return;
+    const timer = setInterval(() => setCurrentTime(Date.now()), 30_000);
+    return () => clearInterval(timer);
+  }, [activeTab]);
 
   const packages = useMemo(() => {
     return packagesQuery.data ?? [];
@@ -218,12 +248,13 @@ export default function ConsultationScreen({ navigation }: any) {
       await queryClient.invalidateQueries({
         queryKey: ['consultation', 'my-consultations'],
       });
-      setBookingResult(result);
+      const data = unwrapData<ConsultationBookingResult>(result);
+      setBookingResult(data);
     } catch (err: any) {
       const msg =
         err?.response?.data?.message ||
         err?.message ||
-        'CÃ³ lá»—i xáº£y ra khi táº¡o Ä‘Æ¡n Ä‘áº·t tÆ° váº¥n. Vui lÃ²ng thá»­ láº¡i.';
+        'Có lỗi xảy ra khi tạo đơn đặt tư vấn. Vui lòng thử lại.';
       toast.error(
         'Đặt lịch thất bại',
         Array.isArray(msg) ? msg.join(', ') : msg,
@@ -235,13 +266,13 @@ export default function ConsultationScreen({ navigation }: any) {
 
   const handleCancelBooking = async (id: string) => {
     Alert.alert(
-      'XÃ¡c nháº­n há»§y lá»‹ch',
-      'Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n há»§y lá»‹ch tÆ° váº¥n trá»±c tuyáº¿n nÃ y?',
+      'Xác nhận hủy lịch',
+      'Bạn có chắc chắn muốn hủy lịch tư vấn trực tuyến này?',
       [
-        { text: 'Bá» qua', style: 'cancel' },
+        { text: 'Bỏ qua', style: 'cancel' },
         {
           style: 'destructive',
-          text: 'Há»§y lá»‹ch',
+          text: 'Hủy lịch',
           onPress: async () => {
             setCancellingId(id);
             try {
@@ -267,18 +298,7 @@ export default function ConsultationScreen({ navigation }: any) {
     );
   };
 
-  const handleJoinVideoRoom = (item: PatientConsultation) => {
-    if (item.meetingUrl) {
-      Linking.openURL(item.meetingUrl).catch(() => {
-        toast.error('Không thể mở phòng video', 'Vui lòng thử lại sau.');
-      });
-    } else {
-      toast.info(
-        'Phòng tư vấn video',
-        'Phòng tư vấn đang được bác sĩ kích hoạt. Vui lòng quay lại trước giờ hẹn 5 phút.',
-      );
-    }
-  };
+  const handleJoinVideoRoom = (item: PatientConsultation) => setVideoRoomItem(item);
 
   // Calendar generation helpers
   const calendarDays = useMemo(() => {
@@ -317,29 +337,44 @@ export default function ConsultationScreen({ navigation }: any) {
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.successTitle}>
-            Khá»Ÿi Táº¡o ÄÆ¡n TÆ° Váº¥n ThÃ nh CÃ´ng!
+            Khởi Tạo Đơn Tư Vấn Thành Công!
           </Text>
           <Text style={styles.successSub}>
-            MÃ£ Ä‘Æ¡n: #{bookingResult?.consultation?.id?.slice?.(0, 8) || 'SD'}
+            Mã hóa đơn: {bookingResult?.invoice?.invoiceCode || (bookingResult as any)?.payment?.invoiceCode || 'INV-VC'}
           </Text>
         </View>
       </View>
 
       <View style={styles.successInfoBox}>
         <Text style={styles.successInfoRow}>
-          Thá»i gian: {formatDisplayDate(selectedDate)} lÃºc {selectedSlot}
+          Thời gian: {formatDisplayDate(selectedDate)} lúc {selectedSlot}
         </Text>
         <Text style={styles.successInfoRow}>
-          Thá»i lÆ°á»£ng: {selectedDuration} phÃºt
+          Thời lượng: {selectedDuration} phút
         </Text>
         <Text style={styles.successInfoRow}>
-          Tá»•ng phÃ­:{' '}
-          {selectedDurationOption?.formattedPrice ||
-            (selectedDurationOption
-              ? formatVnd(selectedDurationOption.price)
-              : '0 Ä‘')}
+          Tổng phí:{' '}
+          {formatVnd(
+            bookingResult?.invoice?.finalAmount ??
+              (bookingResult as any)?.payment?.amount ??
+              (bookingResult as any)?.consultation?.fee ??
+              0,
+          )}
         </Text>
       </View>
+
+      {bookingResult && (
+        <View className="mt-4">
+          <ConsultationPaymentDetails
+            consultationId={bookingResult.consultation?.id || (bookingResult as any)?.id || ''}
+            bookingResult={bookingResult}
+            onPaymentConfirmed={() => {
+              setBookingResult(null);
+              setActiveTab('my-consultations');
+            }}
+          />
+        </View>
+      )}
 
       <View style={styles.successActions}>
         <TouchableOpacity
@@ -351,7 +386,7 @@ export default function ConsultationScreen({ navigation }: any) {
           style={styles.successPrimaryBtn}
         >
           <Text style={styles.successPrimaryBtnText}>
-            Xem Lá»‹ch TÆ° Váº¥n Cá»§a TÃ´i
+            Xem Lịch Tư Vấn Của Tôi
           </Text>
         </TouchableOpacity>
 
@@ -365,7 +400,7 @@ export default function ConsultationScreen({ navigation }: any) {
           style={styles.successSecondaryBtn}
         >
           <Text style={styles.successSecondaryBtnText}>
-            Äáº·t Buá»•i TÆ° Váº¥n KhÃ¡c
+            Đặt Buổi Tư Vấn Khác
           </Text>
         </TouchableOpacity>
       </View>
@@ -374,14 +409,14 @@ export default function ConsultationScreen({ navigation }: any) {
 
   const renderBookingFormCard = () => (
     <View style={styles.formCard}>
-      {/* BÆ¯á»šC 1: Chá»n gÃ³i thá»i lÆ°á»£ng (LÆ°á»›i 2 cá»™t cÄƒn chá»‰nh Ä‘áº¹p) */}
+      {/* BƯỚC 1: Chọn gói thời lượng (Lưới 2 cột căn chỉnh đẹp) */}
       <View style={[styles.stepSection, { borderTopWidth: 0, paddingTop: 0 }]}>
         <View style={styles.stepTitleRow}>
           <View style={styles.stepNumberBadge}>
             <Text style={styles.stepNumberText}>1</Text>
           </View>
           <Text style={styles.stepTitle}>
-            Chá»n GÃ³i Thá»i LÆ°á»£ng TÆ° Váº¥n
+            Chọn Gói Thời Lượng Tư Vấn
           </Text>
         </View>
 
@@ -389,25 +424,25 @@ export default function ConsultationScreen({ navigation }: any) {
           <View style={styles.slotLoadingBox}>
             <ActivityIndicator color="#0058bc" size="small" />
             <Text style={styles.slotLoadingText}>
-              Äang táº£i danh sÃ¡ch gÃ³i tÆ° váº¥n tá»« há»‡ thá»‘ng...
+              Đang tải danh sách gói tư vấn từ hệ thống...
             </Text>
           </View>
         ) : packagesQuery.isError ? (
           <View style={styles.slotEmptyBox}>
             <Text style={styles.slotEmptyText}>
-              KhÃ´ng thá»ƒ táº£i danh sÃ¡ch gÃ³i tÆ° váº¥n tá»« mÃ¡y chá»§.
+              Không thể tải danh sách gói tư vấn từ máy chủ.
             </Text>
             <TouchableOpacity
               onPress={() => packagesQuery.refetch()}
               style={styles.retryBtn}
             >
-              <Text style={styles.retryBtnText}>Thá»­ láº¡i</Text>
+              <Text style={styles.retryBtnText}>Thử lại</Text>
             </TouchableOpacity>
           </View>
         ) : packages.length === 0 ? (
           <View style={styles.slotEmptyBox}>
             <Text style={styles.slotEmptyText}>
-              Hiá»‡n chÆ°a cÃ³ gÃ³i tÆ° váº¥n nÃ o trong há»‡ thá»‘ng.
+              Hiện chưa có gói tư vấn nào trong hệ thống.
             </Text>
           </View>
         ) : (
@@ -456,7 +491,7 @@ export default function ConsultationScreen({ navigation }: any) {
                   <Text style={styles.packageDesc}>{pkg.description}</Text>
 
                   <View style={styles.packageBottomRow}>
-                    <Text style={styles.packagePayNote}>Thanh toÃ¡n 100%</Text>
+                    <Text style={styles.packagePayNote}>Thanh toán 100%</Text>
                     <Text style={styles.packagePrice}>
                       {pkg.formattedPrice}
                     </Text>
@@ -467,7 +502,7 @@ export default function ConsultationScreen({ navigation }: any) {
           </View>
         )}
 
-        {/* PhÃ¢n trang gÃ³i thá»i lÆ°á»£ng náº¿u nhiá»u hÆ¡n 10 */}
+        {/* Phân trang gói thời lượng nếu nhiều hơn 10 */}
         {packages.length > PACKAGES_PER_PAGE && (
           <View style={styles.paginationRow}>
             <TouchableOpacity
@@ -490,7 +525,7 @@ export default function ConsultationScreen({ navigation }: any) {
                   packagePage === 1 && styles.pageBtnTextDisabled,
                 ]}
               >
-                TrÆ°á»›c
+                Trước
               </Text>
             </TouchableOpacity>
 
@@ -530,38 +565,38 @@ export default function ConsultationScreen({ navigation }: any) {
         )}
       </View>
 
-      {/* BÆ¯á»šC 2: Chá»n bÃ¡c sÄ© (Chia lÃ m 2 cá»™t / hÃ ng cÃ³ phÃ¢n trang) */}
+      {/* BƯỚC 2: Chọn bác sĩ (Chia làm 2 cột / hàng có phân trang) */}
       <View style={styles.stepSection}>
         <View style={styles.stepTitleRow}>
           <View style={styles.stepNumberBadge}>
             <Text style={styles.stepNumberText}>2</Text>
           </View>
-          <Text style={styles.stepTitle}>Chá»n BÃ¡c SÄ© TÆ° Váº¥n</Text>
+          <Text style={styles.stepTitle}>Chọn Bác Sĩ Tư Vấn</Text>
         </View>
 
         {doctorsQuery.isLoading ? (
           <View style={styles.slotLoadingBox}>
             <ActivityIndicator color="#0058bc" size="small" />
             <Text style={styles.slotLoadingText}>
-              Äang táº£i danh sÃ¡ch bÃ¡c sÄ© tÆ° váº¥n...
+              Đang tải danh sách bác sĩ tư vấn...
             </Text>
           </View>
         ) : doctorsQuery.isError ? (
           <View style={styles.slotEmptyBox}>
             <Text style={styles.slotEmptyText}>
-              KhÃ´ng thá»ƒ táº£i danh sÃ¡ch bÃ¡c sÄ© tá»« mÃ¡y chá»§.
+              Không thể tải danh sách bác sĩ từ máy chủ.
             </Text>
             <TouchableOpacity
               onPress={() => doctorsQuery.refetch()}
               style={styles.retryBtn}
             >
-              <Text style={styles.retryBtnText}>Thá»­ láº¡i</Text>
+              <Text style={styles.retryBtnText}>Thử lại</Text>
             </TouchableOpacity>
           </View>
         ) : doctors.length === 0 ? (
           <View style={styles.slotEmptyBox}>
             <Text style={styles.slotEmptyText}>
-              Hiá»‡n chÆ°a cÃ³ bÃ¡c sÄ© tÆ° váº¥n trá»±c tuyáº¿n.
+              Hiện chưa có bác sĩ tư vấn trực tuyến.
             </Text>
           </View>
         ) : (
@@ -608,7 +643,7 @@ export default function ConsultationScreen({ navigation }: any) {
                     {doctor.specialization}
                   </Text>
                   <Text style={styles.doctorGridExp}>
-                    {doctor.yearsExperience} nÄƒm KN
+                    {doctor.yearsExperience} năm KN
                   </Text>
                 </TouchableOpacity>
               );
@@ -616,7 +651,7 @@ export default function ConsultationScreen({ navigation }: any) {
           </View>
         )}
 
-        {/* PhÃ¢n trang danh sÃ¡ch bÃ¡c sÄ© náº¿u nhiá»u hÆ¡n DOCTORS_PER_PAGE */}
+        {/* Phân trang danh sách bác sĩ nếu nhiều hơn DOCTORS_PER_PAGE */}
         {doctors.length > DOCTORS_PER_PAGE && (
           <View style={styles.paginationRow}>
             <TouchableOpacity
@@ -639,7 +674,7 @@ export default function ConsultationScreen({ navigation }: any) {
                   doctorPage === 1 && styles.pageBtnTextDisabled,
                 ]}
               >
-                TrÆ°á»›c
+                Trước
               </Text>
             </TouchableOpacity>
 
@@ -676,17 +711,17 @@ export default function ConsultationScreen({ navigation }: any) {
         )}
       </View>
 
-      {/* BÆ¯á»šC 3: Chá»n ngÃ y & slot (NÃºt chá»n ngÃ y tinh gá»n giá»‘ng web) */}
+      {/* BƯỚC 3: Chọn ngày & slot (Nút chọn ngày tinh gọn giống web) */}
       <View style={styles.stepSection}>
         <View style={styles.stepHeaderBetween}>
           <View style={styles.stepTitleRow}>
             <View style={styles.stepNumberBadge}>
               <Text style={styles.stepNumberText}>3</Text>
             </View>
-            <Text style={styles.stepTitle}>Chá»n NgÃ y & Khung Giá»</Text>
+            <Text style={styles.stepTitle}>Chọn Ngày & Khung Giờ</Text>
           </View>
 
-          {/* NÃºt chá»n ngÃ y kiá»ƒu web [ 09/06/2026 ðŸ“… ] */}
+          {/* Nút chọn ngày kiểu web [ 09/06/2026 📅 ] */}
           <TouchableOpacity
             activeOpacity={0.82}
             onPress={() => setDateModalVisible(true)}
@@ -706,21 +741,21 @@ export default function ConsultationScreen({ navigation }: any) {
 
         {/* Slots Grid */}
         <Text style={styles.slotSectionSubtitle}>
-          Khung giá» kháº£ dá»¥ng ({formatDisplayDate(selectedDate)}):
+          Khung giờ khả dụng ({formatDisplayDate(selectedDate)}):
         </Text>
 
         {slotsQuery.isLoading ? (
           <View style={styles.slotLoadingBox}>
             <ActivityIndicator color="#0058bc" size="small" />
             <Text style={styles.slotLoadingText}>
-              Äang tÃ¬m khung giá» ráº£nh...
+              Đang tìm khung giờ rảnh...
             </Text>
           </View>
         ) : availableSlots.length === 0 ? (
           <View style={styles.slotEmptyBox}>
             <Text style={styles.slotEmptyText}>
-              NgÃ y nÃ y khÃ´ng cÃ²n khung giá» tÆ° váº¥n ráº£nh. Vui lÃ²ng
-              chá»n ngÃ y khÃ¡c.
+              Ngày này không còn khung giờ tư vấn rảnh. Vui lòng
+              chọn ngày khác.
             </Text>
           </View>
         ) : (
@@ -749,20 +784,20 @@ export default function ConsultationScreen({ navigation }: any) {
         )}
       </View>
 
-      {/* BÆ¯á»šC 4: LÃ½ do khÃ¡m & Triá»‡u chá»©ng */}
+      {/* BƯỚC 4: Lý do khám & Triệu chứng */}
       <View style={styles.stepSection}>
         <View style={styles.stepTitleRow}>
           <View style={styles.stepNumberBadge}>
             <Text style={styles.stepNumberText}>4</Text>
           </View>
-          <Text style={styles.stepTitle}>LÃ½ Do KhÃ¡m & Triá»‡u Chá»©ng</Text>
+          <Text style={styles.stepTitle}>Lý Do Khám & Triệu Chứng</Text>
         </View>
 
         <TextInput
           multiline
           numberOfLines={3}
           onChangeText={setNotes}
-          placeholder="Nháº­p mÃ´ táº£ chi tiáº¿t vá» tÃ¬nh tráº¡ng rÄƒng miá»‡ng hoáº·c tháº¯c máº¯c báº¡n cáº§n BÃ¡c sÄ© giáº£i Ä‘Ã¡p..."
+          placeholder="Nhập mô tả chi tiết về tình trạng răng miệng hoặc thắc mắc bạn cần Bác sĩ giải đáp..."
           placeholderTextColor="#94A3B8"
           style={styles.notesInput}
           value={notes}
@@ -772,20 +807,20 @@ export default function ConsultationScreen({ navigation }: any) {
       {/* Policy Information */}
       <View style={styles.policyBox}>
         <Text style={styles.policyTitle}>
-          â„¹ï¸ ChÃ­nh sÃ¡ch Há»§y lá»‹ch & ThÃ´ng bÃ¡o:
+          ℹ️ Chính sách Hủy lịch & Thông báo:
         </Text>
         <Text style={styles.policyItem}>
-          â€¢ Há»‡ thá»‘ng tá»± Ä‘á»™ng gá»­i thÃ´ng bÃ¡o nháº¯c lá»‹ch trÆ°á»›c
-          10 phÃºt.
+          • Hệ thống tự động gửi thông báo nhắc lịch trước
+          10 phút.
         </Text>
         <Text style={styles.policyItem}>
-          â€¢ Há»§y trÆ°á»›c &gt;24 tiáº¿ng: HoÃ n 100% phÃ­ dá»‹ch vá»¥.
+          • Hủy trước &gt;24 tiếng: Hoàn 100% phí dịch vụ.
         </Text>
         <Text style={styles.policyItem}>
-          â€¢ Há»§y tá»« 4 - 24 tiáº¿ng: HoÃ n 50% phÃ­ dá»‹ch vá»¥.
+          • Hủy từ 4 - 24 tiếng: Hoàn 50% phí dịch vụ.
         </Text>
         <Text style={styles.policyItem}>
-          â€¢ Há»§y dÆ°á»›i 4 tiáº¿ng hoáº·c váº¯ng máº·t: KhÃ´ng hoÃ n tiá»n.
+          • Hủy dưới 4 tiếng hoặc vắng mặt: Không hoàn tiền.
         </Text>
       </View>
 
@@ -793,13 +828,13 @@ export default function ConsultationScreen({ navigation }: any) {
       <View style={styles.submitSection}>
         <View>
           <Text style={styles.submitTotalLabel}>
-            Tá»•ng chi phÃ­ (Thanh toÃ¡n 100%):
+            Tổng chi phí (Thanh toán 100%):
           </Text>
           <Text style={styles.submitTotalPrice}>
             {selectedDurationOption?.formattedPrice ||
               (selectedDurationOption
                 ? formatVnd(selectedDurationOption.price)
-                : '0 Ä‘')}
+                : '0 đ')}
           </Text>
         </View>
 
@@ -815,7 +850,7 @@ export default function ConsultationScreen({ navigation }: any) {
           {isSubmitting ? (
             <ActivityIndicator color="#FFFFFF" size="small" />
           ) : (
-            <Text style={styles.submitBtnText}>XÃ¡c Nháº­n & Äáº·t Lá»‹ch</Text>
+            <Text style={styles.submitBtnText}>Xác Nhận & Đặt Lịch</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -824,8 +859,9 @@ export default function ConsultationScreen({ navigation }: any) {
 
   const renderConsultationCard = ({ item }: { item: PatientConsultation }) => {
     const isPaid = item.isPaid;
-    const isCancelled = item.status === 'CANCELLED';
+    const isCancelled = ['CANCELLED', 'EXPIRED', 'DOCTOR_MISSED'].includes(item.status);
     const isCompleted = item.status === 'COMPLETED';
+    const canJoinRoom = canJoinConsultation(item, currentTime);
 
     return (
       <View style={styles.consultCard}>
@@ -840,7 +876,7 @@ export default function ConsultationScreen({ navigation }: any) {
               </View>
             </View>
             <Text style={styles.consultDoctorSpec}>
-              {item.doctorSpecialization || 'BÃ¡c sÄ© RÄƒng HÃ m Máº·t'}
+              {item.doctorSpecialization || 'Bác sĩ Răng Hàm Mặt'}
             </Text>
           </View>
 
@@ -869,12 +905,12 @@ export default function ConsultationScreen({ navigation }: any) {
               ]}
             >
               {isCancelled
-                ? 'ÄÃ£ há»§y'
+                ? 'Đã hủy'
                 : isCompleted
-                ? 'ÄÃ£ hoÃ n thÃ nh'
+                ? 'Đã hoàn thành'
                 : isPaid
-                ? 'ÄÃ£ thanh toÃ¡n 100%'
-                : 'Chá» thanh toÃ¡n'}
+                ? 'Đã thanh toán 100%'
+                : 'Chờ thanh toán'}
             </Text>
           </View>
         </View>
@@ -887,7 +923,7 @@ export default function ConsultationScreen({ navigation }: any) {
             size={12}
           />
           <Text style={styles.consultTimeText}>
-            Thá»i gian háº¹n:{' '}
+            Thời gian hẹn:{' '}
             <Text style={styles.consultTimeBold}>{item.time}</Text>
           </Text>
         </View>
@@ -907,7 +943,7 @@ export default function ConsultationScreen({ navigation }: any) {
             onPress={() => setSelectedConsultation(item)}
             style={styles.consultDetailBtn}
           >
-            <Text style={styles.consultDetailBtnText}>Chi tiáº¿t</Text>
+            <Text style={styles.consultDetailBtnText}>Chi tiết</Text>
           </TouchableOpacity>
 
           <View style={styles.consultActionRightGroup}>
@@ -924,7 +960,7 @@ export default function ConsultationScreen({ navigation }: any) {
                     name="qrcode"
                     size={11}
                   />
-                  <Text style={styles.consultPayBtnText}>Thanh toÃ¡n</Text>
+                  <Text style={styles.consultPayBtnText}>Thanh toán</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -934,13 +970,13 @@ export default function ConsultationScreen({ navigation }: any) {
                   style={styles.consultCancelBtn}
                 >
                   <Text style={styles.consultCancelBtnText}>
-                    {cancellingId === item.id ? 'Äang há»§y...' : 'Há»§y Ä‘Æ¡n'}
+                    {cancellingId === item.id ? 'Đang hủy...' : 'Hủy đơn'}
                   </Text>
                 </TouchableOpacity>
               </>
             )}
 
-            {!isCancelled && !isCompleted && isPaid && (
+            {canJoinRoom && (
               <TouchableOpacity
                 activeOpacity={0.84}
                 onPress={() => handleJoinVideoRoom(item)}
@@ -952,7 +988,7 @@ export default function ConsultationScreen({ navigation }: any) {
                   name="video"
                   size={12}
                 />
-                <Text style={styles.consultJoinBtnText}>VÃ o Video Call</Text>
+                <Text style={styles.consultJoinBtnText}>Vào Video Call</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -963,10 +999,10 @@ export default function ConsultationScreen({ navigation }: any) {
 
   const renderMyConsultationsCard = () => (
     <View style={styles.formCard}>
-      {/* TiÃªu Ä‘á» & NÃºt lÃ m má»›i */}
+      {/* Tiêu đề & Nút làm mới */}
       <View style={styles.myConsultHeaderRow}>
         <Text style={styles.myConsultHeaderTitle}>
-          Danh SÃ¡ch Buá»•i TÆ° Váº¥n Cá»§a TÃ´i
+          Danh Sách Buổi Tư Vấn Của Tôi
         </Text>
         <TouchableOpacity
           activeOpacity={0.7}
@@ -979,7 +1015,7 @@ export default function ConsultationScreen({ navigation }: any) {
             name="arrows-rotate"
             size={11}
           />
-          <Text style={styles.myConsultRefreshText}>LÃ m má»›i</Text>
+          <Text style={styles.myConsultRefreshText}>Làm mới</Text>
         </TouchableOpacity>
       </View>
 
@@ -987,19 +1023,19 @@ export default function ConsultationScreen({ navigation }: any) {
         <View style={styles.slotLoadingBox}>
           <ActivityIndicator color="#0058bc" size="small" />
           <Text style={styles.slotLoadingText}>
-            Äang táº£i danh sÃ¡ch lá»‹ch tÆ° váº¥n...
+            Đang tải danh sách lịch tư vấn...
           </Text>
         </View>
       ) : myConsultationsQuery.isError ? (
         <View style={styles.slotEmptyBox}>
           <Text style={styles.slotEmptyText}>
-            KhÃ´ng thá»ƒ táº£i danh sÃ¡ch lá»‹ch tÆ° váº¥n tá»« mÃ¡y chá»§.
+            Không thể tải danh sách lịch tư vấn từ máy chủ.
           </Text>
           <TouchableOpacity
             onPress={() => void myConsultationsQuery.refetch()}
             style={styles.retryBtn}
           >
-            <Text style={styles.retryBtnText}>Thá»­ láº¡i</Text>
+            <Text style={styles.retryBtnText}>Thử lại</Text>
           </TouchableOpacity>
         </View>
       ) : myConsultations.length === 0 ? (
@@ -1013,11 +1049,11 @@ export default function ConsultationScreen({ navigation }: any) {
             />
           </View>
           <Text style={styles.emptyConsultTitle}>
-            ChÆ°a cÃ³ lá»‹ch tÆ° váº¥n nÃ o
+            Chưa có lịch tư vấn nào
           </Text>
           <Text style={styles.emptyConsultDesc}>
-            Báº¡n chÆ°a cÃ³ buá»•i tÆ° váº¥n trá»±c tuyáº¿n nÃ o. HÃ£y Ä‘áº·t
-            lá»‹ch Ä‘á»ƒ nháº­n tÆ° váº¥n tá»« BÃ¡c sÄ© ngay!
+            Bạn chưa có buổi tư vấn trực tuyến nào. Hãy đặt
+            lịch để nhận tư vấn từ Bác sĩ ngay!
           </Text>
           <TouchableOpacity
             activeOpacity={0.84}
@@ -1025,7 +1061,7 @@ export default function ConsultationScreen({ navigation }: any) {
             style={styles.emptyConsultBookBtn}
           >
             <Text style={styles.emptyConsultBookBtnText}>
-              Äáº·t Lá»‹ch TÆ° Váº¥n Ngay
+              Đặt Lịch Tư Vấn Ngay
             </Text>
           </TouchableOpacity>
         </View>
@@ -1039,7 +1075,7 @@ export default function ConsultationScreen({ navigation }: any) {
         </View>
       )}
 
-      {/* PhÃ¢n trang lá»‹ch tÆ° váº¥n */}
+      {/* Phân trang lịch tư vấn */}
       {renderMyConsultationsFooter()}
     </View>
   );
@@ -1065,7 +1101,7 @@ export default function ConsultationScreen({ navigation }: any) {
               consultPage === 1 && styles.pageBtnTextDisabled,
             ]}
           >
-            TrÆ°á»›c
+            Trước
           </Text>
         </TouchableOpacity>
 
@@ -1102,8 +1138,8 @@ export default function ConsultationScreen({ navigation }: any) {
     );
   };
 
-  return (
-    <Screen>
+  const renderHeaderAndDrawer = () => (
+    <>
       <PatientHomeHeader
         onMenuPress={() => setDrawerVisible(true)}
         onNotificationPress={() =>
@@ -1118,6 +1154,27 @@ export default function ConsultationScreen({ navigation }: any) {
         onNavigate={handleDrawerNavigate}
         user={user}
       />
+    </>
+  );
+
+  // Chưa đăng nhập: hiện thẻ yêu cầu đăng nhập giống Lịch hẹn / Hồ sơ / Tôi
+  if (isHydrated && !isLoggedIn) {
+    return (
+      <Screen>
+        {renderHeaderAndDrawer()}
+        <LoginRequiredView
+          actionLabel="Đăng nhập để đặt tư vấn"
+          description="Đăng nhập để chọn bác sĩ, khung giờ và theo dõi lịch tư vấn online."
+          icon="user-doctor"
+          title="Tư vấn trực tuyến"
+        />
+      </Screen>
+    );
+  }
+
+  return (
+    <Screen>
+      {renderHeaderAndDrawer()}
 
       <ScrollView
         contentContainerStyle={{ paddingBottom: 0 }}
@@ -1138,7 +1195,7 @@ export default function ConsultationScreen({ navigation }: any) {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.formContainer}>
-          {/* Header Info - Cá» Äá»ŠNH CHO Cáº¢ 2 BÃŠN */}
+          {/* Header Info - CỐ ĐỊNH CHO CẢ 2 BÊN */}
           <View style={styles.introHeader}>
             <View style={styles.badge}>
               <FontAwesome6
@@ -1149,15 +1206,15 @@ export default function ConsultationScreen({ navigation }: any) {
               />
               <Text style={styles.badgeText}>Telehealth Center</Text>
             </View>
-            <Text style={styles.title}>TÆ° Váº¥n Nha Khoa Trá»±c Tuyáº¿n</Text>
+            <Text style={styles.title}>Tư Vấn Nha Khoa Trực Tuyến</Text>
             <Text style={styles.subtitle}>
-              Káº¿t ná»‘i trá»±c tiáº¿p Video Call 1-1 vá»›i BÃ¡c sÄ© chuyÃªn
-              khoa nha khoa hÃ ng Ä‘áº§u Ä‘á»ƒ Ä‘Æ°á»£c cháº©n Ä‘oÃ¡n vÃ  tÆ°
-              váº¥n táº­n tÃ¢m.
+              Kết nối trực tiếp Video Call 1-1 với Bác sĩ chuyên
+              khoa nha khoa hàng đầu để được chẩn đoán và tư
+              vấn tận tâm.
             </Text>
           </View>
 
-          {/* Tabs Switcher - Cá» Äá»ŠNH CHO Cáº¢ 2 BÃŠN */}
+          {/* Tabs Switcher - CỐ ĐỊNH CHO CẢ 2 BÊN */}
           <View style={styles.tabSwitcher}>
             <TouchableOpacity
               activeOpacity={0.8}
@@ -1179,7 +1236,7 @@ export default function ConsultationScreen({ navigation }: any) {
                   activeTab === 'book' && styles.tabBtnTextActive,
                 ]}
               >
-                Äáº·t lá»‹ch má»›i
+                Đặt lịch mới
               </Text>
             </TouchableOpacity>
 
@@ -1203,12 +1260,12 @@ export default function ConsultationScreen({ navigation }: any) {
                   activeTab === 'my-consultations' && styles.tabBtnTextActive,
                 ]}
               >
-                Lá»‹ch cá»§a tÃ´i ({myConsultations.length})
+                Lịch của tôi ({myConsultations.length})
               </Text>
             </TouchableOpacity>
           </View>
 
-          {/* SÆ¯á»œN BÃŠN NGOÃ€I Äá»’NG NHáº¤T: Cáº¢ 2 BÃŠN Äá»€U Náº°M TRONG formCard */}
+          {/* SƯỜN BÊN NGOÀI ĐỒNG NHẤT: CẢ 2 BÊN ĐỀU NẰM TRONG formCard */}
           {activeTab === 'book'
             ? bookingResult
               ? renderBookingSuccess()
@@ -1219,7 +1276,7 @@ export default function ConsultationScreen({ navigation }: any) {
         <PatientFooter />
       </ScrollView>
 
-      {/* Date Picker Modal (TÆ°Æ¡ng á»©ng nÃºt 09/06/2026 ðŸ“…) */}
+      {/* Date Picker Modal (Tương ứng nút 09/06/2026 📅) */}
       <Modal
         animationType="fade"
         hardwareAccelerated
@@ -1235,7 +1292,7 @@ export default function ConsultationScreen({ navigation }: any) {
 
           <View style={styles.dateModalSheet}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalHeaderTitle}>Chá»n NgÃ y TÆ° Váº¥n</Text>
+              <Text style={styles.modalHeaderTitle}>Chọn Ngày Tư Vấn</Text>
               <TouchableOpacity
                 hitSlop={{ bottom: 8, left: 8, right: 8, top: 8 }}
                 onPress={() => setDateModalVisible(false)}
@@ -1253,10 +1310,10 @@ export default function ConsultationScreen({ navigation }: any) {
             {/* Quick date choices */}
             <View style={styles.quickDateRow}>
               {[
-                { label: 'HÃ´m nay', offset: 0 },
-                { label: 'NgÃ y mai', offset: 1 },
-                { label: 'Sau 3 ngÃ y', offset: 3 },
-                { label: 'Tuáº§n sau', offset: 7 },
+                { label: 'Hôm nay', offset: 0 },
+                { label: 'Ngày mai', offset: 1 },
+                { label: 'Sau 3 ngày', offset: 3 },
+                { label: 'Tuần sau', offset: 7 },
               ].map(q => {
                 const target = new Date();
                 target.setDate(target.getDate() + q.offset);
@@ -1311,7 +1368,7 @@ export default function ConsultationScreen({ navigation }: any) {
               </TouchableOpacity>
 
               <Text style={styles.calendarMonthText}>
-                ThÃ¡ng {String(calendarMonth + 1).padStart(2, '0')} /{' '}
+                Tháng {String(calendarMonth + 1).padStart(2, '0')} /{' '}
                 {calendarYear}
               </Text>
 
@@ -1382,6 +1439,7 @@ export default function ConsultationScreen({ navigation }: any) {
                 );
               })}
             </View>
+            <SheetBottomInset />
           </View>
         </View>
       </Modal>
@@ -1406,7 +1464,7 @@ export default function ConsultationScreen({ navigation }: any) {
             <View style={styles.modalSheet}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalHeaderTitle}>
-                  Chi Tiáº¿t Buá»•i TÆ° Váº¥n
+                  Chi Tiết Buổi Tư Vấn
                 </Text>
                 <TouchableOpacity
                   hitSlop={{ bottom: 8, left: 8, right: 8, top: 8 }}
@@ -1424,53 +1482,67 @@ export default function ConsultationScreen({ navigation }: any) {
 
               <ScrollView contentContainerStyle={styles.modalBody}>
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>BÃ¡c sÄ© tÆ° váº¥n:</Text>
+                  <Text style={styles.detailLabel}>Bác sĩ tư vấn:</Text>
                   <Text style={styles.detailValue}>
                     {selectedConsultation.doctor}
                   </Text>
                 </View>
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>ChuyÃªn khoa:</Text>
+                  <Text style={styles.detailLabel}>Chuyên khoa:</Text>
                   <Text style={styles.detailValue}>
                     {selectedConsultation.doctorSpecialization ||
-                      'RÄƒng HÃ m Máº·t'}
+                      'Răng Hàm Mặt'}
                   </Text>
                 </View>
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Thá»i gian háº¹n:</Text>
+                  <Text style={styles.detailLabel}>Thời gian hẹn:</Text>
                   <Text style={styles.detailValue}>
                     {selectedConsultation.time}
                   </Text>
                 </View>
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Thá»i lÆ°á»£ng:</Text>
+                  <Text style={styles.detailLabel}>Thời lượng:</Text>
                   <Text style={styles.detailValue}>
                     {selectedConsultation.duration}
                   </Text>
                 </View>
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Tráº¡ng thÃ¡i:</Text>
+                  <Text style={styles.detailLabel}>Trạng thái:</Text>
                   <Text style={styles.detailValue}>
                     {selectedConsultation.status === 'CANCELLED'
-                      ? 'ÄÃ£ há»§y'
+                      ? 'Đã hủy'
                       : selectedConsultation.status === 'COMPLETED'
-                      ? 'ÄÃ£ hoÃ n thÃ nh'
+                      ? 'Đã hoàn thành'
                       : selectedConsultation.isPaid
-                      ? 'ÄÃ£ thanh toÃ¡n 100%'
-                      : 'Chá» thanh toÃ¡n'}
+                      ? 'Đã thanh toán 100%'
+                      : 'Chờ thanh toán'}
                   </Text>
                 </View>
                 {Boolean(selectedConsultation.notes) && (
                   <View style={{ marginTop: 10 }}>
                     <Text style={styles.detailLabel}>
-                      Ghi chÃº triá»‡u chá»©ng:
+                      Ghi chú triệu chứng:
                     </Text>
                     <Text style={styles.detailNotesText}>
                       "{selectedConsultation.notes}"
                     </Text>
                   </View>
                 )}
+                {canJoinConsultation(selectedConsultation, currentTime) ? (
+                  <TouchableOpacity
+                    activeOpacity={0.84}
+                    onPress={() => {
+                      const consultation = selectedConsultation;
+                      setSelectedConsultation(null);
+                      handleJoinVideoRoom(consultation);
+                    }}
+                    style={styles.consultJoinBtn}
+                  >
+                    <Text style={styles.consultJoinBtnText}>Vào Video Call</Text>
+                  </TouchableOpacity>
+                ) : null}
               </ScrollView>
+              <SheetBottomInset />
             </View>
           </View>
         </Modal>
@@ -1494,7 +1566,7 @@ export default function ConsultationScreen({ navigation }: any) {
             <View style={styles.modalSheet}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalHeaderTitle}>
-                  Thanh ToÃ¡n TÆ° Váº¥n Trá»±c Tuyáº¿n
+                  Thanh Toán Tư Vấn Trực Tuyến
                 </Text>
                 <TouchableOpacity
                   hitSlop={{ bottom: 8, left: 8, right: 8, top: 8 }}
@@ -1511,60 +1583,29 @@ export default function ConsultationScreen({ navigation }: any) {
               </View>
 
               <ScrollView contentContainerStyle={styles.modalBody}>
-                <View style={styles.qrInfoBox}>
-                  <Text style={styles.qrTitle}>
-                    QuÃ©t mÃ£ VietQR hoáº·c chuyá»ƒn khoáº£n:
-                  </Text>
-                  <View style={styles.qrBankDetails}>
-                    <Text style={styles.qrTextRow}>
-                      NgÃ¢n hÃ ng:{' '}
-                      <Text style={styles.qrBold}>MB Bank (QuÃ¢n Äá»™i)</Text>
-                    </Text>
-                    <Text style={styles.qrTextRow}>
-                      Sá»‘ tÃ i khoáº£n:{' '}
-                      <Text style={styles.qrBold}>09012345678</Text>
-                    </Text>
-                    <Text style={styles.qrTextRow}>
-                      Chá»§ tÃ i khoáº£n:{' '}
-                      <Text style={styles.qrBold}>NHA KHOA SMART DENTAL</Text>
-                    </Text>
-                    <Text style={styles.qrTextRow}>
-                      Sá»‘ tiá»n:{' '}
-                      <Text style={[styles.qrBold, { color: '#0058bc' }]}>
-                        {paymentModalItem.fee
-                          ? formatVnd(paymentModalItem.fee)
-                          : '100.000 Ä‘'}
-                      </Text>
-                    </Text>
-                    <Text style={styles.qrTextRow}>
-                      Ná»™i dung:{' '}
-                      <Text style={[styles.qrBold, { color: '#16A34A' }]}>
-                        TV {paymentModalItem.id.slice(0, 8)}
-                      </Text>
-                    </Text>
-                  </View>
-                </View>
-
-                <TouchableOpacity
-                  activeOpacity={0.88}
-                  onPress={() => {
+                <ConsultationPaymentDetails
+                  consultationId={paymentModalItem.id}
+                  onPaymentConfirmed={() => {
                     setPaymentModalItem(null);
-                    toast.info(
-                      'Đã ghi nhận thanh toán',
-                      'Hệ thống đang kiểm tra giao dịch chuyển khoản của bạn.',
-                    );
-                    myConsultationsQuery.refetch();
+                    setActiveTab('my-consultations');
                   }}
-                  style={styles.qrDoneBtn}
-                >
-                  <Text style={styles.qrDoneBtnText}>
-                    TÃ´i ÄÃ£ Chuyá»ƒn Khoáº£n
-                  </Text>
-                </TouchableOpacity>
+                />
               </ScrollView>
+              <SheetBottomInset />
             </View>
           </View>
         </Modal>
+      )}
+
+      {videoRoomItem && (
+        <ConsultationVideoRoomModal
+          consultation={videoRoomItem}
+          patientName={user?.fullName || 'Bệnh nhân'}
+          onClose={() => {
+            setVideoRoomItem(null);
+            myConsultationsQuery.refetch();
+          }}
+        />
       )}
     </Screen>
   );
@@ -2179,47 +2220,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
     marginBottom: 4,
-  },
-  qrBankDetails: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#BFDBFE',
-    borderRadius: 10,
-    borderWidth: 1,
-    marginTop: 8,
-    padding: 12,
-  },
-  qrBold: {
-    color: '#0F172A',
-    fontWeight: '800',
-  },
-  qrDoneBtn: {
-    alignItems: 'center',
-    backgroundColor: '#0058bc',
-    borderRadius: 12,
-    marginTop: 16,
-    paddingVertical: 13,
-  },
-  qrDoneBtnText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  qrInfoBox: {
-    backgroundColor: '#EFF6FF',
-    borderColor: '#BFDBFE',
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 12,
-  },
-  qrTextRow: {
-    color: '#475569',
-    fontSize: 12,
-    paddingVertical: 3,
-  },
-  qrTitle: {
-    color: '#0058bc',
-    fontSize: 13,
-    fontWeight: '800',
   },
   quickDateBtn: {
     backgroundColor: '#F1F5F9',

@@ -7,6 +7,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { TABLET_CONTENT_MAX_WIDTH, useResponsive } from '~src/hooks/useResponsive';
 
 type ScreenProps = {
   children: React.ReactNode;
@@ -14,10 +15,22 @@ type ScreenProps = {
 };
 
 export function Screen({ children, className = '' }: ScreenProps) {
+  const { isTablet } = useResponsive();
+
   return (
-    <SafeAreaView edges={['top']} className={`flex-1 bg-background ${className}`}>
+    // left/right: tránh tai thỏ / camera đục lỗ khi máy nằm ngang (tablet, máy gập)
+    <SafeAreaView edges={['top', 'left', 'right']} className={`flex-1 bg-background ${className}`}>
       <StatusBar barStyle="dark-content" backgroundColor="#F6F8FC" />
-      {children}
+      {/* Trên tablet, giữ nội dung ở một cột giữa màn hình để không bị kéo giãn quá rộng */}
+      <View
+        style={
+          isTablet
+            ? { alignSelf: 'center', flex: 1, maxWidth: TABLET_CONTENT_MAX_WIDTH, width: '100%' }
+            : { flex: 1 }
+        }
+      >
+        {children}
+      </View>
     </SafeAreaView>
   );
 }
@@ -33,9 +46,14 @@ export function ScreenList<T>({
   refreshing,
   ...props
 }: ScreenListProps<T>) {
+  const { gutter } = useResponsive();
+
   return (
     <FlatList
-      contentContainerStyle={[{ padding: 18, paddingBottom: 120, gap: 14 }, contentContainerStyle]}
+      contentContainerStyle={[
+        { padding: gutter + 2, paddingBottom: 120, gap: 14 },
+        contentContainerStyle,
+      ]}
       refreshControl={
         onRefresh ? (
           <RefreshControl
@@ -52,5 +70,11 @@ export function ScreenList<T>({
 }
 
 export function ScreenContent({ children, className = '' }: ScreenProps) {
-  return <View className={`px-[18px] pt-3 ${className}`}>{children}</View>;
+  const { gutter } = useResponsive();
+
+  return (
+    <View className={`pt-3 ${className}`} style={{ paddingHorizontal: gutter + 2 }}>
+      {children}
+    </View>
+  );
 }

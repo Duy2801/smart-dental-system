@@ -1,15 +1,27 @@
+"use client";
+
 import { useState } from "react";
+import {
+  CaretDown,
+  Clock,
+  Eye,
+  EyeSlash,
+  Images,
+  ListNumbers,
+  PencilSimple,
+  Plus,
+  Question,
+  Trash,
+  Tooth,
+} from "@phosphor-icons/react";
+import {
+  AdminIconButton,
+  AdminIconButtonDivider,
+  AdminIconButtonGroup,
+} from "@/src/components/admin/common";
 import { cn } from "@/src/lib/utils/cn";
 import { formatVND } from "../service-pricing-utils";
 import type { DentalService, TreatmentMethod } from "../types";
-import {
-  ClockIcon,
-  EditIcon,
-  EyeIcon,
-  PauseIcon,
-  TrashIcon,
-  PlusIcon,
-} from "./service-pricing-icons";
 
 type ServiceRowProps = {
   onEdit: (service: DentalService) => void;
@@ -32,10 +44,18 @@ type ServiceRowProps = {
   service: DentalService;
 };
 
+function MetaItem({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+      <span className="text-slate-400">{icon}</span>
+      {children}
+    </span>
+  );
+}
+
 export function ServiceRow({
   onEdit,
   onRemove,
-  onToggleStatus,
   onEditTreatmentMethod,
   onCreateTreatmentMethod,
   onToggleTreatmentMethodStatus,
@@ -53,149 +73,116 @@ export function ServiceRow({
   const faqCount = service.faqs?.length ?? primaryMethod?.faqs?.length ?? 0;
   const duration = service.durationMinutes ?? primaryMethod?.durationMinutes ?? 30;
 
-  // Compute price range across treatment methods
-  let priceDisplay = formatVND(service.basePrice ?? primaryMethod?.basePrice ?? 0);
-  if (methods.length > 0) {
-    const prices = methods.map((m) => Number(m.basePrice ?? 0));
-    const minPrice = Math.min(...prices);
-    const maxPrice = Math.max(...prices);
-    if (minPrice === maxPrice) {
-      priceDisplay = formatVND(minPrice);
-    } else {
-      priceDisplay = `Từ ${formatVND(minPrice)} - ${formatVND(maxPrice)}`;
-    }
-  }
-
   return (
-    <div className="group/row transition-colors">
-      <div className="grid grid-cols-1 gap-4 p-5 transition-colors hover:bg-muted/20 lg:grid-cols-[minmax(0,1fr)_140px_auto] lg:items-center">
-        <div className="flex min-w-0 gap-4 pr-4">
-          <div className="flex h-20 w-28 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-slate-100">
+    <div>
+      <div className="grid grid-cols-1 gap-4 px-5 py-4 transition-colors hover:bg-slate-50/60 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-6">
+        <div className="flex min-w-0 gap-4">
+          <div className="flex h-20 w-28 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-100 ring-1 ring-slate-200">
             {thumbnail ? (
-              <img
-                src={thumbnail}
-                alt={service.name}
-                className="h-full w-full object-cover"
-              />
+              <img src={thumbnail} alt={service.name} className="h-full w-full object-cover" />
             ) : (
-              <span className="px-2 text-center text-xs font-semibold text-muted-foreground">
-                Chưa có ảnh
-              </span>
+              <Tooth size={28} weight="duotone" className="text-slate-300" />
             )}
           </div>
 
-          <div className="min-w-0 space-y-2">
+          <div className="min-w-0 space-y-1.5">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-bold text-slate-900 text-base">
-                {service.name}
-              </span>
-              <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700 border border-blue-200">
+              <span className="text-[15px] font-bold text-slate-900">{service.name}</span>
+              <span className="rounded-full bg-brand-light px-2 py-0.5 text-[11px] font-bold text-brand">
                 {methods.length} phương pháp
               </span>
             </div>
-            <p className="line-clamp-2 text-xs leading-5 text-muted-foreground">
+            <p className="line-clamp-2 text-xs leading-5 text-slate-500">
               {service.shortDescription || service.description || "Chưa có mô tả"}
             </p>
-            <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-              <span>{mediaCount} ảnh</span>
-              <span>{stepCount} bước</span>
-              <span>{faqCount} FAQ</span>
-              {service.slug ? <span>/{service.slug}</span> : null}
-
-              <button
-                type="button"
-                onClick={() => setIsExpanded(!isExpanded)}
-                className="inline-flex items-center gap-1 font-bold text-brand transition-colors hover:text-brand-dark hover:underline"
-              >
-                {isExpanded ? "▲ Thu gọn" : "▼ Xem phương pháp điều trị"}
-              </button>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <MetaItem icon={<Images size={13} />}>{mediaCount} ảnh</MetaItem>
+              <MetaItem icon={<ListNumbers size={13} />}>{stepCount} bước</MetaItem>
+              <MetaItem icon={<Question size={13} />}>{faqCount} FAQ</MetaItem>
+              {service.slug ? <span className="font-mono text-[11px] text-slate-400">/{service.slug}</span> : null}
             </div>
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center text-sm text-muted-foreground lg:justify-end">
-          <ClockIcon />
-          {duration} phút
-        </div>
 
         <div className="flex items-center gap-2 lg:justify-end">
           <button
             type="button"
-            title="Sửa nhóm dịch vụ"
-            onClick={() => onEdit(service)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700 transition-colors hover:bg-blue-100"
+            onClick={() => setIsExpanded((current) => !current)}
+            aria-expanded={isExpanded}
+            className={cn(
+              "inline-flex h-9 items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold transition-colors",
+              isExpanded
+                ? "border-brand/30 bg-brand-light text-brand"
+                : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50",
+            )}
           >
-            <EditIcon />
-            <span>Sửa</span>
+            Phương pháp
+            <CaretDown size={12} weight="bold" className={cn("transition-transform", isExpanded && "rotate-180")} />
           </button>
-          <button
-            type="button"
-            title="Xóa dịch vụ"
-            onClick={() => onRemove(service)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-600 transition-colors hover:bg-red-100"
-          >
-            <TrashIcon />
-            <span>Xóa</span>
-          </button>
+          <AdminIconButtonGroup>
+            <AdminIconButton label="Sửa nhóm dịch vụ" onClick={() => onEdit(service)}>
+              <PencilSimple size={16} />
+            </AdminIconButton>
+            <AdminIconButtonDivider />
+            <AdminIconButton label="Xóa dịch vụ" tone="red" onClick={() => onRemove(service)}>
+              <Trash size={16} />
+            </AdminIconButton>
+          </AdminIconButtonGroup>
         </div>
       </div>
 
-      {/* Expanded Accordion of Treatment Methods */}
-      {isExpanded && (
-        <div className="border-t border-dashed border-border/80 bg-slate-50/90 px-6 py-4">
+      {isExpanded ? (
+        <div className="border-t border-dashed border-slate-200 bg-slate-50/70 px-5 py-4">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <div>
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                Các phương pháp điều trị thuộc dịch vụ này ({methods.length})
+                Phương pháp điều trị ({methods.length})
               </h4>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Bấm trực tiếp vào từng phương pháp bên dưới để chỉnh sửa giá và thông tin riêng.
+              <p className="mt-0.5 text-xs text-slate-500">
+                Bấm vào từng phương pháp để chỉnh sửa giá và thông tin riêng.
               </p>
             </div>
 
-            {onCreateTreatmentMethod && (
+            {onCreateTreatmentMethod ? (
               <button
                 type="button"
                 onClick={() => onCreateTreatmentMethod(service)}
-                className="inline-flex items-center gap-1.5 rounded-md bg-brand px-3 py-1.5 text-xs font-bold text-white shadow-xs transition-colors hover:bg-brand-dark"
+                className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-brand px-3.5 text-xs font-bold text-white shadow-sm shadow-brand/25 transition-colors hover:bg-[#0084e0]"
               >
-                <PlusIcon />
-                Thêm phương pháp mới
+                <Plus size={14} weight="bold" />
+                Thêm phương pháp
               </button>
-            )}
+            ) : null}
           </div>
 
           {methods.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-xs text-slate-500">
-              Chưa có phương pháp điều trị nào. Hãy ấn nút "Thêm phương pháp mới" ở trên để bổ sung!
+            <div className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center text-xs text-slate-500">
+              Chưa có phương pháp điều trị nào. Bấm &quot;Thêm phương pháp&quot; để bổ sung.
             </div>
           ) : (
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               {methods.map((method, index) => {
                 const mImage = method.imageUrl || method.media?.[0]?.url;
                 const mStepCount = method.procedureSteps?.length ?? 0;
                 const mFaqCount = method.faqs?.length ?? 0;
+                const isActive = method.isActive !== false;
 
                 return (
                   <div
                     key={method.id || index}
-                    className="group/item flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-2xs transition-all hover:border-brand/50 hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
+                    className="group/item flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-3.5 transition-all hover:border-brand/40 hover:shadow-sm sm:flex-row sm:items-center sm:justify-between"
                   >
-                    <div
-                      className="flex min-w-0 flex-1 cursor-pointer items-center gap-3.5"
-                      onClick={() =>
-                        onEditTreatmentMethod?.(service, method, index)
-                      }
+                    <button
+                      type="button"
+                      className="flex min-w-0 flex-1 items-center gap-3.5 text-left"
+                      onClick={() => onEditTreatmentMethod?.(service, method, index)}
                     >
-                      <div className="flex h-14 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-100 bg-slate-100">
+                      <div className="flex h-14 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-100 ring-1 ring-slate-200">
                         {mImage ? (
-                          <img
-                            src={mImage}
-                            alt={method.name}
-                            className="h-full w-full object-cover"
-                          />
+                          <img src={mImage} alt={method.name} className="h-full w-full object-cover" />
                         ) : (
-                          <span className="text-[10px] font-bold text-slate-400">
+                          <span className="text-[11px] font-bold text-slate-400">
                             {method.name.slice(0, 2).toUpperCase()}
                           </span>
                         )}
@@ -203,80 +190,66 @@ export function ServiceRow({
 
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-bold text-slate-900 text-sm group-hover/item:text-brand transition-colors">
+                          <span className="text-sm font-bold text-slate-900 transition-colors group-hover/item:text-brand">
                             {method.name}
                           </span>
                           <span
                             className={cn(
-                              "rounded-full px-2 py-0.25 text-[10px] font-semibold border",
-                              method.isActive !== false
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                : "bg-slate-100 text-slate-500 border-slate-200"
+                              "inline-flex items-center gap-1 rounded-full border px-2 py-px text-[10px] font-semibold",
+                              isActive
+                                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                                : "border-slate-200 bg-slate-100 text-slate-500",
                             )}
                           >
-                            {method.isActive !== false ? "Đang cung cấp" : "Ngừng cung cấp"}
+                            <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                            {isActive ? "Đang cung cấp" : "Ngừng cung cấp"}
                           </span>
                         </div>
-                        <p className="line-clamp-1 text-xs text-slate-500 mt-1">
+                        <p className="mt-0.5 line-clamp-1 text-xs text-slate-500">
                           {method.description || "Chưa có mô tả riêng"}
                         </p>
-                        <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
-                          <span>{method.durationMinutes ?? duration} phút</span>
-                          <span>•</span>
-                          <span>{mStepCount} bước</span>
-                          <span>•</span>
-                          <span>{mFaqCount} FAQ</span>
+                        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                          <MetaItem icon={<Clock size={12} />}>{method.durationMinutes ?? duration} phút</MetaItem>
+                          <MetaItem icon={<ListNumbers size={12} />}>{mStepCount} bước</MetaItem>
+                          <MetaItem icon={<Question size={12} />}>{mFaqCount} FAQ</MetaItem>
                         </div>
                       </div>
-                    </div>
+                    </button>
 
-                    <div className="flex items-center justify-between gap-4 border-t border-slate-100 pt-2.5 sm:border-t-0 sm:pt-0 sm:justify-end">
-                      <div className="font-mono text-base font-bold text-brand-dark">
-                        {formatVND(method.basePrice)}
-                      </div>
+                    <div className="flex items-center justify-between gap-3 border-t border-slate-100 pt-2.5 sm:justify-end sm:border-t-0 sm:pt-0">
+                      <span className="text-[15px] font-extrabold text-brand-dark">{formatVND(method.basePrice)}</span>
 
-                      <div className="flex items-center gap-1">
-                        {onEditTreatmentMethod && (
-                          <button
-                            type="button"
-                            title="Sửa phương pháp này"
-                            onClick={() =>
-                              onEditTreatmentMethod(service, method, index)
-                            }
-                            className="rounded-lg bg-blue-50 px-2.5 py-1.5 text-xs font-bold text-blue-700 transition-colors hover:bg-blue-100"
+                      <AdminIconButtonGroup>
+                        {onEditTreatmentMethod ? (
+                          <AdminIconButton
+                            label="Sửa phương pháp này"
+                            onClick={() => onEditTreatmentMethod(service, method, index)}
                           >
-                            Sửa
-                          </button>
-                        )}
-                        {onToggleTreatmentMethodStatus && (
-                          <button
-                            type="button"
-                            title={
-                              method.isActive !== false
-                                ? "Tạm ngưng phương pháp này"
-                                : "Bật lại phương pháp này"
-                            }
-                            onClick={() =>
-                              onToggleTreatmentMethodStatus(service, index)
-                            }
-                            className="rounded-lg bg-slate-100 px-2 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-200"
+                            <PencilSimple size={16} />
+                          </AdminIconButton>
+                        ) : null}
+                        {onToggleTreatmentMethodStatus ? (
+                          <AdminIconButton
+                            label={isActive ? "Tạm ngưng phương pháp này" : "Bật lại phương pháp này"}
+                            tone={isActive ? "amber" : "emerald"}
+                            onClick={() => onToggleTreatmentMethodStatus(service, index)}
                           >
-                            {method.isActive !== false ? "Ẩn" : "Hiện"}
-                          </button>
-                        )}
-                        {onRemoveTreatmentMethod && (
-                          <button
-                            type="button"
-                            title="Xóa phương pháp này"
-                            onClick={() =>
-                              onRemoveTreatmentMethod(service, index)
-                            }
-                            className="rounded-lg bg-red-50 px-2 py-1.5 text-xs font-semibold text-red-600 transition-colors hover:bg-red-100"
-                          >
-                            Xóa
-                          </button>
-                        )}
-                      </div>
+                            {isActive ? <EyeSlash size={16} /> : <Eye size={16} />}
+                          </AdminIconButton>
+                        ) : null}
+                        {onRemoveTreatmentMethod ? (
+                          <>
+                            <AdminIconButtonDivider />
+                            <AdminIconButton
+                              label="Xóa phương pháp này"
+                              tone="red"
+                              onClick={() => onRemoveTreatmentMethod(service, index)}
+                            >
+                              <Trash size={16} />
+                            </AdminIconButton>
+                          </>
+                        ) : null}
+                      </AdminIconButtonGroup>
                     </div>
                   </div>
                 );
@@ -284,7 +257,7 @@ export function ServiceRow({
             </div>
           )}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

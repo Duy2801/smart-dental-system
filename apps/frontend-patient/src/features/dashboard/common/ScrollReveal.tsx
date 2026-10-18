@@ -25,7 +25,19 @@ export function ScrollReveal({
 }) {
   const ref = useRef<HTMLElement>(null);
   const [visible, setVisible] = useState(false);
-  const Component = as;
+  const setRef = (node: HTMLElement | null) => {
+    ref.current = node;
+  };
+  const revealProps = {
+    ref: setRef,
+    style: { "--reveal-delay": `${delay}ms` } as CSSProperties,
+    className: joinClasses(
+      "patient-reveal",
+      visible && "patient-reveal-visible",
+      className,
+    ),
+    children,
+  };
 
   useEffect(() => {
     const node = ref.current;
@@ -45,81 +57,12 @@ export function ScrollReveal({
     return () => observer.disconnect();
   }, []);
 
-  return (
-    <Component
-      ref={ref as any}
-      style={{ "--reveal-delay": `${delay}ms` } as CSSProperties}
-      className={joinClasses(
-        "patient-reveal",
-        visible && "patient-reveal-visible",
-        className,
-      )}
-    >
-      {children}
-    </Component>
-  );
+  if (as === "section") return <section {...revealProps} />;
+  if (as === "article") return <article {...revealProps} />;
+  if (as === "aside") return <aside {...revealProps} />;
+  return <div {...revealProps} />;
 }
 
 export function ScrollRevealProvider({ children }: { children: ReactNode }) {
-  const rootRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const root = rootRef.current;
-    if (!root) return;
-
-    const selector = [
-      "[data-scroll-reveal]",
-      "main > section",
-      "main > div > section",
-      "main aside > div",
-      "main article",
-    ].join(",");
-
-    const revealNodes = () => {
-      root.querySelectorAll<HTMLElement>(selector).forEach((node, index) => {
-        if (node.dataset.revealReady === "true") return;
-        if (node.dataset.noReveal === "true") {
-          node.dataset.revealReady = "true";
-          node.classList.add("patient-reveal-visible");
-          return;
-        }
-        node.dataset.revealReady = "true";
-        node.style.setProperty("--reveal-delay", `${Math.min(index, 8) * 45}ms`);
-        node.classList.add("patient-reveal");
-
-        const rect = node.getBoundingClientRect();
-        if (rect.top < window.innerHeight + 100 && rect.bottom > -50) {
-          node.classList.add("patient-reveal-visible");
-        } else {
-          observer.observe(node);
-        }
-      });
-    };
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (!entry.isIntersecting) return;
-          entry.target.classList.add("patient-reveal-visible");
-          observer.unobserve(entry.target);
-        });
-      },
-      { rootMargin: "80px 0px", threshold: 0.08 },
-    );
-
-    const mutationObserver = new MutationObserver(revealNodes);
-    revealNodes();
-    mutationObserver.observe(root, { childList: true, subtree: true });
-
-    return () => {
-      mutationObserver.disconnect();
-      observer.disconnect();
-    };
-  }, []);
-
-  return (
-    <div ref={rootRef} className="patient-scroll-reveal-root">
-      {children}
-    </div>
-  );
+  return <div className="patient-scroll-reveal-root">{children}</div>;
 }

@@ -74,7 +74,7 @@ export default function PaymentPage() {
     return (
       <LoginRequiredPanel
         title="Xem thanh toán và hóa đơn"
-        description="Đăng nhập để xem hóa đơn, lịch sử giao dịch, phương thức thanh toán và các khoản cần thanh toán của bạn."
+        description="Đăng nhập để xem hóa đơn, lịch sử giao dịch và các khoản cần thanh toán."
         loginLabel="Đăng nhập để xem thanh toán"
         redirectTo="/payment"
         secondaryHref="/service"
@@ -85,17 +85,27 @@ export default function PaymentPage() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-[1360px] px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <main className="mx-auto w-full max-w-[1360px] space-y-8 px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
+      {/* Intro Header Section (Left-aligned) */}
+      <section className="py-2 space-y-3">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-[-0.03em] text-[#0863c5]">Thanh toán &amp; Hóa đơn</h1>
-          <p className="mt-1 text-xs text-slate-500">Quản lý tài chính nha khoa và các đặc quyền thành viên của bạn.</p>
         </div>
-        <div className="inline-flex items-center gap-2 self-start rounded-lg bg-blue-50 px-3 py-2 text-[10px] font-semibold text-[#0863c5] sm:self-auto">
-          <DashboardIcon name="sparkles" className="h-4 w-4" />
-          Bảo hiểm của bạn đã giúp tiết kiệm 15% trong tháng này.
+
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-black text-[#07366f]">
+              Thanh Toán &amp; Hóa Đơn
+            </h1>
+            <p className="text-sm text-slate-600 leading-relaxed max-w-3xl mt-1">
+              Quản lý tài chính nha khoa và các đặc quyền thành viên của bạn.
+            </p>
+          </div>
+          <div className="inline-flex items-center gap-2 self-start rounded-lg bg-blue-50 px-3 py-2 text-[10px] font-semibold text-[#0863c5] sm:self-auto">
+            <DashboardIcon name="sparkles" className="h-4 w-4" />
+            Bảo hiểm của bạn đã giúp tiết kiệm 15% trong tháng này.
+          </div>
         </div>
-      </div>
+      </section>
 
       <div className="mt-5 space-y-7">
         <PaymentSummary

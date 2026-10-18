@@ -1,6 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
-import { useMutation } from '@tanstack/react-query';
-import React, { useEffect, useState } from 'react';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -19,8 +19,11 @@ import { SCREEN_NAME } from '~src/constants/screenName';
 import { setSession } from '~src/reducers/loginReducer';
 import { AppDispatch } from '~src/reducers/store';
 import { getHomeRoute } from '~src/routes/roleRoutes';
-import { apiLogin, apiLoginWithGoogle } from '../../api';
-import { getAuthErrorMessage } from '../../authError';
+import { apiLogin, apiLoginCaptchaConfig, apiLoginWithGoogle } from '../../api';
+import { getAuthErrorCode, getAuthErrorMessage } from '../../authError';
+import AuthBrandBadge from '../../components/AuthBrandBadge';
+import NativeCaptcha, { type CaptchaHandle } from '../../components/NativeCaptcha';
+import { getCaptchaOrigin, WAU_CAPTCHA_SITE_KEY } from '../../captcha/captchaConfig';
 import AuthTextField from '../../components/AuthTextField';
 import {
   configureGoogleSignIn,
@@ -41,7 +44,6 @@ type LoginFormProps = {
   initialPassword?: string;
 };
 
-const clinicLogo = require('~src/assets/home/clinic-logo.png');
 const googleLogo = require('~src/assets/home/google-icon.png');
 
 const LoginForm = ({
@@ -65,6 +67,14 @@ const LoginForm = ({
     Partial<Record<'email' | 'password', string>>
   >({});
   const [formError, setFormError] = useState('');
+  const [captchaSubmitting, setCaptchaSubmitting] = useState(false);
+  const captchaRef = useRef<CaptchaHandle>(null);
+  const captchaConfig = useQuery({
+    queryKey: ['auth', 'captcha-config'],
+    queryFn: apiLoginCaptchaConfig,
+    enabled: role === 'PATIENT',
+    staleTime: 60_000,
+  });
   const loginMutation = useMutation({ mutationFn: apiLogin });
   const googleLoginMutation = useMutation({ mutationFn: apiLoginWithGoogle });
   const isDoctor = role === 'DOCTOR';
@@ -73,6 +83,37 @@ const LoginForm = ({
     configureGoogleSignIn();
   }, []);
 
+  // Hiện CAPTCHA khi có site key, trừ khi backend báo rõ đã tắt CAPTCHA.
+  // Không phụ thuộc việc gọi được API cấu hình: token thừa không ảnh hưởng gì nếu backend tắt CAPTCHA.
+  const captchaDisabledByBackend = captchaConfig.data?.enabled === false;
+  const showCaptcha = role === 'PATIENT' && Boolean(WAU_CAPTCHA_SITE_KEY) && !captchaDisabledByBackend;
+  const captchaOrigin = getCaptchaOrigin(captchaConfig.data?.mobileUrl);
+
+  const verifyCaptcha = async (): Promise<string | null | undefined> => {
+    if (role !== 'PATIENT' || captchaDisabledByBackend) return undefined;
+    if (!WAU_CAPTCHA_SITE_KEY) {
+      if (captchaConfig.data?.enabled) {
+        setFormError('Ứng dụng chưa cấu hình NEXT_PUBLIC_WAU_CAPTCHA_SITE_KEY.');
+        return null;
+      }
+      return undefined;
+    }
+    if (!captchaRef.current) {
+      setFormError('CAPTCHA đang tải. Vui lòng thử lại.');
+      return null;
+    }
+
+    setCaptchaSubmitting(true);
+    try {
+      // Lỗi CAPTCHA đã hiện ngay trong ô CAPTCHA, không lặp lại ở dưới form
+      const result = await captchaRef.current.verify();
+      return result.token;
+    } finally {
+      setCaptchaSubmitting(false);
+    }
+  };
+
+  /** Trả về false nếu tài khoản không đúng vai trò của màn hình đăng nhập */
   const completeLogin = async (session: Awaited<ReturnType<typeof apiLogin>>) => {
     if (!session.user.roles.includes(role)) {
       setFormError(
@@ -80,7 +121,7 @@ const LoginForm = ({
           ? 'Tài khoản này không có quyền truy cập dành cho bác sĩ.'
           : 'Tài khoản này không có quyền truy cập dành cho bệnh nhân.',
       );
-      return;
+      return false;
     }
 
     await saveAuthSession(session, role);
@@ -89,6 +130,7 @@ const LoginForm = ({
       index: 0,
       routes: [{ name: getHomeRoute(role) }],
     });
+    return true;
   };
 
   const handleLogin = async () => {
@@ -97,14 +139,29 @@ const LoginForm = ({
     setFormError('');
     if (Object.keys(fieldErrors).length) return;
 
+    let captchaToken: string | undefined;
     try {
+      const verifiedToken = await verifyCaptcha();
+      if (verifiedToken === null) return;
+      captchaToken = verifiedToken;
       const session = await loginMutation.mutateAsync({
         email: normalizeEmail(email),
         password,
+        captchaToken,
       });
-      await completeLogin(session);
+      const loggedIn = await completeLogin(session);
+      // Token đã được backend dùng: tải ảnh mã mới cho lần thử sau
+      if (!loggedIn && captchaToken) captchaRef.current?.refresh();
     } catch (error) {
       setFormError(getAuthErrorMessage(error));
+      // Token CAPTCHA chỉ dùng một lần: xác minh lại (hoặc chuyển sang câu đố) cho lần thử sau
+      if (captchaToken) {
+        if (getAuthErrorCode(error) === 'auth.captcha_puzzle_required') {
+          captchaRef.current?.requirePuzzle();
+        } else {
+          captchaRef.current?.refresh();
+        }
+      }
     }
   };
 
@@ -119,7 +176,9 @@ const LoginForm = ({
         return;
       }
 
-      const session = await googleLoginMutation.mutateAsync(googleToken);
+      const session = await googleLoginMutation.mutateAsync({
+        ...googleToken,
+      });
       console.log('[LoginForm] Google backend login completed', {
         userId: session.user.id,
         roles: session.user.roles,
@@ -132,7 +191,7 @@ const LoginForm = ({
     }
   };
 
-  const isSubmitting = loginMutation.isPending || googleLoginMutation.isPending;
+  const isSubmitting = captchaSubmitting || loginMutation.isPending || googleLoginMutation.isPending;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -165,16 +224,7 @@ const LoginForm = ({
 
             <View style={styles.card}>
               <View style={styles.brandHeader}>
-                <View style={styles.brand}>
-                  <View style={styles.brandIcon}>
-                    <Image
-                      accessibilityLabel="Logo Smart Dental System"
-                      source={clinicLogo}
-                      style={styles.logo}
-                    />
-                  </View>
-                  <Text style={styles.brandName}>Smart Dental System</Text>
-                </View>
+                <AuthBrandBadge />
 
                 <Text style={styles.title}>{title || 'Đăng nhập'}</Text>
                 {!!subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
@@ -226,6 +276,22 @@ const LoginForm = ({
                 returnKeyType="done"
                 value={password}
               />
+
+              {showCaptcha ? (
+                <NativeCaptcha ref={captchaRef} siteKey={WAU_CAPTCHA_SITE_KEY} origin={captchaOrigin} />
+              ) : null}
+
+              {role === 'PATIENT' && !WAU_CAPTCHA_SITE_KEY && captchaConfig.isError && (
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  onPress={() => void captchaConfig.refetch()}
+                  style={styles.captchaButton}
+                >
+                  <Text style={styles.captchaButtonText}>
+                    Tải lại cấu hình CAPTCHA
+                  </Text>
+                </TouchableOpacity>
+              )}
 
               {!!formError && <Text style={styles.formError}>{formError}</Text>}
 
@@ -348,24 +414,6 @@ const styles = StyleSheet.create({
     paddingTop: 24,
   },
   brandHeader: { alignItems: 'center', gap: 12 },
-  brand: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 10,
-    justifyContent: 'center',
-  },
-  brandIcon: {
-    alignItems: 'center',
-    backgroundColor: '#EFF6FF',
-    borderColor: '#DBEAFE',
-    borderRadius: 13,
-    borderWidth: 1,
-    height: 52,
-    justifyContent: 'center',
-    width: 52,
-  },
-  logo: { height: 38, resizeMode: 'contain', width: 38 },
-  brandName: { color: '#10213F', fontSize: 14, fontWeight: '800' },
   title: {
     color: '#061733',
     fontSize: 24,
@@ -386,6 +434,16 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     textAlign: 'center',
   },
+  captchaButton: {
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    borderColor: '#BFDBFE',
+    borderRadius: 11,
+    borderWidth: 1,
+    justifyContent: 'center',
+    minHeight: 48,
+  },
+  captchaButtonText: { color: '#0758A8', fontSize: 14, fontWeight: '700' },
   primaryButton: {
     alignItems: 'center',
     borderRadius: 11,

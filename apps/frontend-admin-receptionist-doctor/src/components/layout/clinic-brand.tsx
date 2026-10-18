@@ -38,10 +38,10 @@ export function ClinicHeaderBrand() {
       />
       <div className="hidden min-w-0 text-right sm:block">
         <p className="max-w-48 truncate text-sm font-semibold text-brand-dark">
-          {clinic.name || "Chua cau hinh phong kham"}
+          {clinic.name || "Chưa cấu hình phòng khám"}
         </p>
         <p className="max-w-48 truncate text-xs text-muted-foreground">
-          {clinic.phone || "Chua co hotline"}
+          {clinic.phone || "Chưa có hotline"}
         </p>
       </div>
     </div>
@@ -50,7 +50,7 @@ export function ClinicHeaderBrand() {
 
 export function ClinicSidebarName() {
   const clinic = useClinicBrand();
-  return <>{clinic.name || "Chua cau hinh"}</>;
+  return <>{clinic.name || "Chưa cấu hình"}</>;
 }
 
 export function ClinicSidebarBrand({ title }: { title: string }) {
@@ -61,11 +61,11 @@ export function ClinicSidebarBrand({ title }: { title: string }) {
       <ClinicLogo
         name={clinic.name}
         logoUrl={clinic.logoUrl}
-        className="h-11 w-11 rounded-xl bg-white/10 text-white ring-white/15"
+        className="h-11 w-11 rounded-xl bg-white p-1.5 text-brand shadow-xs ring-1 ring-white/20"
       />
       <div className="min-w-0">
         <p className="truncate text-xs font-medium uppercase tracking-wide text-white/60">
-          {clinic.name || "Chua cau hinh phong kham"}
+          {clinic.name || "Chưa cấu hình phòng khám"}
         </p>
         <h2 className="mt-1 truncate text-lg font-semibold text-white">
           {title}
@@ -98,7 +98,7 @@ export function ClinicLogo({
           width={80}
           height={80}
           unoptimized
-          className="h-full w-full object-cover"
+          className="h-full w-full object-contain"
         />
       ) : (
         <span>{getInitials(name) || "SD"}</span>

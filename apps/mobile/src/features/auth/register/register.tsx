@@ -4,7 +4,6 @@ import { useMutation } from '@tanstack/react-query';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
-  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -18,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { SCREEN_NAME } from '~src/constants/screenName';
 import { apiRegister } from '../api';
 import { getAuthErrorMessage } from '../authError';
+import AuthBrandBadge from '../components/AuthBrandBadge';
 import AuthTextField from '../components/AuthTextField';
 import { normalizeEmail, validateRegister } from '../validation';
 
@@ -28,7 +28,6 @@ type RegisterField =
   | 'confirmPassword'
   | 'terms';
 
-const clinicLogo = require('~src/assets/home/clinic-logo.png');
 
 const RegisterScreen = () => {
   const navigation = useNavigation<any>();
@@ -90,17 +89,11 @@ const RegisterScreen = () => {
           <View style={styles.screen}>
             <View style={styles.card}>
               <View style={styles.brandHeader}>
-                <View style={styles.brand}>
-                  <View style={styles.brandIcon}>
-                    <Image
-                      accessibilityLabel="Logo Smart Dental System"
-                      source={clinicLogo}
-                      style={styles.logo}
-                    />
-                  </View>
-                  <Text style={styles.brandName}>Smart Dental System</Text>
-                </View>
+                <AuthBrandBadge />
                 <Text style={styles.title}>Tạo tài khoản bệnh nhân</Text>
+                <Text style={styles.subtitle}>
+                  Đăng ký để chủ động đặt lịch và theo dõi hồ sơ điều trị.
+                </Text>
               </View>
 
               <AuthTextField
@@ -280,28 +273,17 @@ const styles = StyleSheet.create({
     shadowRadius: 28,
   },
   brandHeader: { alignItems: 'center', gap: 12, marginBottom: 2 },
-  brand: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 10,
-    justifyContent: 'center',
-  },
-  brandIcon: {
-    alignItems: 'center',
-    backgroundColor: '#EFF6FF',
-    borderColor: '#DBEAFE',
-    borderRadius: 13,
-    borderWidth: 1,
-    height: 52,
-    justifyContent: 'center',
-    width: 52,
-  },
-  logo: { height: 38, resizeMode: 'contain', width: 38 },
-  brandName: { color: '#10213F', fontSize: 16, fontWeight: '800' },
   title: {
     color: '#061733',
     fontSize: 25,
     fontWeight: '900',
+    textAlign: 'center',
+  },
+  subtitle: {
+    color: '#667085',
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: -6,
     textAlign: 'center',
   },
   termsRow: {

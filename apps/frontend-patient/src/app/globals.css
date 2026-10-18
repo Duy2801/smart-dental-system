@@ -1,6 +1,8 @@
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
+/* Desktop có chiều cao đủ lớn: dùng cho khoảng cách thoáng hơn mà vẫn không phải cuộn trang */
+@custom-variant tall (@media (min-width: 1024px) and (min-height: 780px));
 
 :root {
   --background: #ffffff;
@@ -144,4 +146,34 @@ body {
 .no-scrollbar {
   -ms-overflow-style: none !important;
   scrollbar-width: none !important;
+}
+
+/* In hóa đơn: chỉ in khung hóa đơn, ẩn toàn bộ phần còn lại của trang */
+@media print {
+  @page {
+    margin: 12mm;
+  }
+
+  html:has(.invoice-print-root),
+  body:has(.invoice-print-root) {
+    overflow: visible !important;
+    padding-right: 0 !important;
+  }
+
+  body:has(.invoice-print-root) > *:not(.invoice-print-root) {
+    display: none !important;
+  }
+
+  .invoice-print-root,
+  .invoice-print-root * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .invoice-print-root article,
+  .invoice-print-root article > div {
+    max-height: none !important;
+    overflow: visible !important;
+    border: 0 !important;
+  }
 }

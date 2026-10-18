@@ -1,4 +1,4 @@
-import {
+﻿import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
@@ -6,6 +6,8 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { uploadSupportAttachment } from '../../common/cloudinary';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   EventsGateway,
@@ -36,6 +38,7 @@ export class SupportConversationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventsGateway: EventsGateway,
+    private readonly config: ConfigService,
   ) {}
 
   private async resolvePatientId(userId: string): Promise<string> {
@@ -80,14 +83,20 @@ export class SupportConversationService {
     createdAt: true,
     closedAt: true,
     patient: {
-      select: { id: true, userId: true, fullName: true, phone: true, email: true },
+      select: {
+        id: true,
+        userId: true,
+        fullName: true,
+        phone: true,
+        email: true,
+      },
     },
     assignedTo: { select: { id: true, fullName: true } },
   } as const;
 
   /**
    * Returns the patient's currently open conversation (WAITING/ASSIGNED)
-   * without creating anything — used when the chat panel opens so an empty
+   * without creating anything â€” used when the chat panel opens so an empty
    * "I want to chat" click doesn't create a row or notify staff by itself.
    */
   async getCurrentForPatient(userId: string) {
@@ -102,7 +111,7 @@ export class SupportConversationService {
   /**
    * Returns the patient's currently open conversation if one exists,
    * otherwise creates a new (empty, WAITING, unassigned) one. Staff are not
-   * notified and auto-assign does not run yet — that only happens once the
+   * notified and auto-assign does not run yet â€” that only happens once the
    * patient actually sends a first message (see `sendMessage`), so nobody
    * gets assigned a conversation with nothing to respond to.
    */
@@ -119,7 +128,7 @@ export class SupportConversationService {
 
   /** Least-workload auto-assignment among currently online staff. */
   private async autoAssign(conversationId: string) {
-    const onlineStaffIds = this.eventsGateway.getOnlineSupportStaffIds();
+    const onlineStaffIds = await this.eventsGateway.getOnlineSupportStaffIds();
     if (onlineStaffIds.length === 0) return null;
 
     const workloadCounts = await this.prisma.supportConversation.groupBy({
@@ -131,7 +140,8 @@ export class SupportConversationService {
       onlineStaffIds.map((id) => [id, 0]),
     );
     for (const row of workloadCounts) {
-      if (row.assignedToId) workloadByStaff.set(row.assignedToId, row._count._all);
+      if (row.assignedToId)
+        workloadByStaff.set(row.assignedToId, row._count._all);
     }
 
     const eligible = onlineStaffIds.filter(
@@ -139,7 +149,9 @@ export class SupportConversationService {
     );
     if (eligible.length === 0) return null;
 
-    const minLoad = Math.min(...eligible.map((id) => workloadByStaff.get(id) ?? 0));
+    const minLoad = Math.min(
+      ...eligible.map((id) => workloadByStaff.get(id) ?? 0),
+    );
     const candidates = eligible.filter(
       (id) => (workloadByStaff.get(id) ?? 0) === minLoad,
     );
@@ -148,7 +160,7 @@ export class SupportConversationService {
     return this.assignTo(conversationId, chosen, { auto: true });
   }
 
-  /** Manual claim from the "unclaimed" queue — atomic so two staff can't both win. */
+  /** Manual claim from the "unclaimed" queue â€” atomic so two staff can't both win. */
   async claim(conversationId: string, user: AuthenticatedUser) {
     if (!this.isStaff(user)) {
       throw new ForbiddenException('support_conversation.staff_only');
@@ -169,7 +181,11 @@ export class SupportConversationService {
   ) {
     const { count } = await this.prisma.supportConversation.updateMany({
       where: { id: conversationId, status: 'WAITING' },
-      data: { status: 'ASSIGNED', assignedToId: staffUserId, assignedAt: new Date() },
+      data: {
+        status: 'ASSIGNED',
+        assignedToId: staffUserId,
+        assignedAt: new Date(),
+      },
     });
     if (count === 0) return null;
 
@@ -183,7 +199,11 @@ export class SupportConversationService {
       conversationId,
       assignedTo: conversation.assignedTo,
     });
-    this.eventsGateway.emitToUser(staffUserId, 'support:assigned', conversation);
+    this.eventsGateway.emitToUser(
+      staffUserId,
+      'support:assigned',
+      conversation,
+    );
     this.notifyPatient(conversation, 'support:assigned', conversation);
 
     if (auto) {
@@ -211,7 +231,10 @@ export class SupportConversationService {
     }
   }
 
-  private async requeueIfUnanswered(conversationId: string, staffUserId: string) {
+  private async requeueIfUnanswered(
+    conversationId: string,
+    staffUserId: string,
+  ) {
     this.pendingTimeouts.delete(conversationId);
 
     const hasStaffReply = await this.prisma.supportMessage.findFirst({
@@ -221,15 +244,22 @@ export class SupportConversationService {
     if (hasStaffReply) return;
 
     const { count } = await this.prisma.supportConversation.updateMany({
-      where: { id: conversationId, status: 'ASSIGNED', assignedToId: staffUserId },
+      where: {
+        id: conversationId,
+        status: 'ASSIGNED',
+        assignedToId: staffUserId,
+      },
       data: { status: 'WAITING', assignedToId: null, assignedAt: null },
     });
     if (count === 0) return;
 
+    this.eventsGateway.removeUserFromConversation(staffUserId, conversationId);
     this.logger.log(
       `Conversation ${conversationId} requeued: staff ${staffUserId} did not respond in time`,
     );
-    this.eventsGateway.emitToUser(staffUserId, 'support:requeued', { conversationId });
+    this.eventsGateway.emitToUser(staffUserId, 'support:requeued', {
+      conversationId,
+    });
     this.eventsGateway.emitToRoom(SUPPORT_STAFF_ROOM, 'support:new', {
       id: conversationId,
       requeued: true,
@@ -286,7 +316,9 @@ export class SupportConversationService {
 
     if (this.isStaff(user)) {
       if (conversation.assignedToId !== user.userId) {
-        throw new ForbiddenException('support_conversation.not_assigned_to_you');
+        throw new ForbiddenException(
+          'support_conversation.not_assigned_to_you',
+        );
       }
       return conversation;
     }
@@ -298,7 +330,11 @@ export class SupportConversationService {
     return conversation;
   }
 
-  async getMessages(conversationId: string, user: AuthenticatedUser, limit = 50) {
+  async getMessages(
+    conversationId: string,
+    user: AuthenticatedUser,
+    limit = 50,
+  ) {
     await this.assertAccess(conversationId, user);
     const messages = await this.prisma.supportMessage.findMany({
       where: { conversationId },
@@ -312,6 +348,8 @@ export class SupportConversationService {
     conversationId: string,
     user: AuthenticatedUser,
     content: string,
+    attachment?: { url: string; name: string; mime: string },
+    replyToId?: string,
   ) {
     const conversation = await this.assertAccess(conversationId, user);
     if (conversation.status === 'CLOSED') {
@@ -319,12 +357,27 @@ export class SupportConversationService {
     }
 
     const isStaffSender = this.isStaff(user);
+    const reply = replyToId
+      ? await this.prisma.supportMessage.findFirst({
+          where: { id: replyToId, conversationId, senderType: { not: 'SYSTEM' } },
+          select: { id: true, content: true, attachmentName: true, senderType: true },
+        })
+      : null;
+    if (replyToId && !reply) {
+      throw new BadRequestException('support_conversation.invalid_reply_target');
+    }
     const message = await this.prisma.supportMessage.create({
       data: {
         conversationId,
         senderType: isStaffSender ? 'STAFF' : 'PATIENT',
         senderId: user.userId,
         content,
+        attachmentUrl: attachment?.url,
+        attachmentName: attachment?.name,
+        attachmentMime: attachment?.mime,
+        replyToId: reply?.id,
+        replyPreview: reply ? (reply.content || reply.attachmentName || 'Tệp đính kèm').slice(0, 200) : undefined,
+        replySenderType: reply?.senderType,
       },
     });
 
@@ -333,36 +386,62 @@ export class SupportConversationService {
       data: { lastMessageAt: message.createdAt },
     });
 
-    if (isStaffSender) {
-      this.clearTimeout(conversationId);
-    } else if (conversation.status === 'WAITING') {
-      // First message from the patient on a still-unassigned conversation:
-      // this is the moment staff should actually learn about it and the
-      // auto-assign algorithm should run — not at the earlier "I want to
-      // chat" click, which may never turn into a real question.
-      const messageCount = await this.prisma.supportMessage.count({
-        where: { conversationId },
-      });
-      if (messageCount === 1) {
-        this.eventsGateway.emitToRoom(SUPPORT_STAFF_ROOM, 'support:new', conversation);
-        await this.autoAssign(conversationId);
-      }
-    }
-
     this.eventsGateway.emitToRoom(
       supportConversationRoom(conversationId),
       'support:message',
       message,
     );
-    // Also deliver to whichever side isn't currently viewing the thread so
-    // the receptionist's conversation list (and the patient widget) can
-    // update its badge/preview without having that room open.
     if (conversation.assignedToId) {
-      this.eventsGateway.emitToUser(conversation.assignedToId, 'support:message', message);
+      this.eventsGateway.emitToUser(
+        conversation.assignedToId,
+        'support:message',
+        message,
+      );
     }
     this.notifyPatient(conversation, 'support:message', message);
 
+    if (isStaffSender) {
+      this.clearTimeout(conversationId);
+    } else if (conversation.status === 'WAITING') {
+      // Notify staff on each waiting message; assignment runs after delivery.
+      this.eventsGateway.emitToRoom(
+        SUPPORT_STAFF_ROOM,
+        'support:new',
+        conversation,
+      );
+      void this.autoAssign(conversationId).catch((error: unknown) => {
+        this.logger.error('Support auto-assignment failed', error);
+      });
+    }
+
     return message;
+  }
+
+  async sendAttachment(
+    conversationId: string,
+    user: AuthenticatedUser,
+    file:
+      | { buffer: Buffer; mimetype: string; originalname: string }
+      | undefined,
+    replyToId?: string,
+  ) {
+    const conversation = await this.assertAccess(conversationId, user);
+    if (conversation.status === 'CLOSED') {
+      throw new BadRequestException('support_conversation.already_closed');
+    }
+    if (!file)
+      throw new BadRequestException('support_conversation.file_required');
+    if (!file.buffer.length) throw new BadRequestException('support_conversation.empty_file');
+    const name = file.originalname.replace(/[\\/\r\n]/g, '_').slice(0, 180);
+    const url = await uploadSupportAttachment(
+      this.config,
+      file.buffer,
+      name,
+      file.mimetype,
+    );
+    return this.sendMessage(conversationId, user, '', {
+      url, name, mime: file.mimetype || 'application/octet-stream',
+    }, replyToId);
   }
 
   async markRead(conversationId: string, user: AuthenticatedUser) {
@@ -395,7 +474,7 @@ export class SupportConversationService {
       data: {
         conversationId,
         senderType: 'SYSTEM',
-        content: 'Hội thoại đã được đóng.',
+        content: 'Há»™i thoáº¡i Ä‘Ã£ Ä‘Æ°á»£c Ä‘Ã³ng.',
       },
     });
 

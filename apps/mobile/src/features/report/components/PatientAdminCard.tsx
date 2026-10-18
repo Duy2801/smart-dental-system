@@ -1,7 +1,8 @@
+import FontAwesome6 from '@react-native-vector-icons/fontawesome6';
 import React, { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
-import type { PatientRecordsResponse, TreatmentRecordView } from '../types';
+import type { PatientRecordsResponse } from '../types';
 
 function getInitials(name: string) {
   if (!name || !name.trim()) return 'BN';
@@ -12,35 +13,45 @@ function getInitials(name: string) {
 
 type PatientAdminCardProps = {
   patient: PatientRecordsResponse['patient'];
-  treatment: TreatmentRecordView;
+  recordDate?: string;
 };
 
-export function PatientAdminCard({ patient, treatment }: PatientAdminCardProps) {
-  const formattedDobAndAge = useMemo(() => {
-    if (!patient?.dateOfBirth) {
-      if (patient?.age !== null && patient?.age !== undefined && patient.age > 0) {
-        return `${patient.age} tuổi`;
-      }
-      return 'Chưa cập nhật';
-    }
+function InfoChip({
+  icon,
+  label,
+  value,
+  highlight = false,
+}: {
+  icon: string;
+  label: string;
+  value: string;
+  highlight?: boolean;
+}) {
+  return (
+    <View style={[styles.chip, highlight && styles.chipHighlight]}>
+      <View style={[styles.chipIcon, highlight && styles.chipIconHighlight]}>
+        <FontAwesome6 color="#0863c5" iconStyle="solid" name={icon as any} size={12} />
+      </View>
+      <View style={styles.chipBody}>
+        <Text numberOfLines={1} style={[styles.chipLabel, highlight && styles.chipLabelHighlight]}>
+          {label}
+        </Text>
+        <Text numberOfLines={1} style={[styles.chipValue, highlight && styles.chipValueHighlight]}>
+          {value}
+        </Text>
+      </View>
+    </View>
+  );
+}
 
+export function PatientAdminCard({ patient, recordDate }: PatientAdminCardProps) {
+  const formattedDob = useMemo(() => {
+    if (!patient?.dateOfBirth) return 'Chưa cập nhật';
     const dob = new Date(patient.dateOfBirth);
-    if (isNaN(dob.getTime())) {
-      if (patient?.age !== null && patient?.age !== undefined && patient.age > 0) {
-        return `${patient.age} tuổi`;
-      }
-      return 'Chưa cập nhật';
-    }
-
-    const birthYear = dob.getFullYear();
-    const currentYear = new Date().getFullYear();
-    const age = patient.age ?? currentYear - birthYear;
-
+    if (isNaN(dob.getTime())) return 'Chưa cập nhật';
     const day = String(dob.getDate()).padStart(2, '0');
     const month = String(dob.getMonth() + 1).padStart(2, '0');
-    const formattedDate = `${day}/${month}/${birthYear}`;
-
-    return age > 0 ? `${formattedDate} (${age} tuổi)` : formattedDate;
+    return `${day}/${month}/${dob.getFullYear()}`;
   }, [patient]);
 
   const genderText =
@@ -51,198 +62,263 @@ export function PatientAdminCard({ patient, treatment }: PatientAdminCardProps) 
       : 'Khác';
 
   const initials = getInitials(patient?.fullName || '');
+  const hasAllergy = Boolean(
+    patient?.medicalHistory &&
+      /dị ứng|allergy|penicillin|kháng sinh/i.test(patient.medicalHistory),
+  );
 
   return (
     <View style={styles.card}>
-      {/* Top row with Avatar and Badges + Name (Image 2) */}
-      <View style={styles.patientTopRow}>
+      {/* 1. Identity Row */}
+      <View style={styles.topIdentityRow}>
         <View style={styles.avatarBox}>
           <Text style={styles.avatarText}>{initials}</Text>
+          <View style={styles.activeDot} />
         </View>
 
-        <View style={styles.patientMeta}>
-          <View style={styles.headerBadges}>
-            <View style={styles.codeBadge}>
-              <Text style={styles.codeBadgeText}>
-                MÃ BN: {patient?.patientCode || 'Chưa cấp mã'}
-              </Text>
-            </View>
-
-            <View style={styles.statusBadge}>
-              <Text style={styles.statusBadgeText}>● Hồ sơ đang hoạt động</Text>
-            </View>
-          </View>
-
+        <View style={styles.identityMeta}>
           <Text numberOfLines={1} style={styles.fullName}>
             {patient?.fullName || 'Bệnh Nhân'}
           </Text>
-        </View>
-      </View>
 
-      {/* 3 Rows Admin Info (Image 2) */}
-      <View style={styles.infoCard}>
-        <View style={styles.infoItem}>
-          <Text style={styles.infoLabel}>📅 NGÀY SINH / TUỔI</Text>
-          <Text style={styles.infoValue}>{formattedDobAndAge}</Text>
-        </View>
+          <View style={styles.badgeRow}>
+            <View style={styles.codeBadge}>
+              <Text style={styles.codeBadgeText}>
+                {patient?.patientCode || 'PAT-RECORD'}
+              </Text>
+            </View>
 
-        <View style={styles.infoDivider} />
+            <View style={styles.primaryBadge}>
+              <Text style={styles.primaryBadgeText}>Hồ sơ chính</Text>
+            </View>
+          </View>
 
-        <View style={styles.infoItem}>
-          <Text style={styles.infoLabel}>📞 SỐ ĐIỆN THOẠI</Text>
-          <Text style={styles.infoValue}>{patient?.phone || 'Chưa cập nhật'}</Text>
-        </View>
-
-        <View style={styles.infoDivider} />
-
-        <View style={styles.infoItem}>
-          <Text style={styles.infoLabel}>🚻 GIỚI TÍNH</Text>
-          <Text style={styles.infoValue}>{genderText}</Text>
-        </View>
-      </View>
-
-      {/* Safety & Medical History Box (Image 2) */}
-      <View style={styles.allergyBox}>
-        <Text style={styles.shieldIcon}>🛡️</Text>
-        <View style={styles.allergyContent}>
-          <Text style={styles.allergyLabel}>TIỀN SỬ Y KHOA & DỊ ỨNG</Text>
-          <Text style={styles.allergyValue}>
-            {patient?.medicalHistory || 'Không ghi nhận dị ứng thuốc - Sức khỏe bình thường'}
+          <Text style={styles.statusSub}>
+            Hồ sơ y tế SmartDental •{' '}
+            <Text style={styles.statusActive}>Đồng bộ hoạt động</Text>
           </Text>
         </View>
       </View>
+
+      {/* 2. Key Info Chips */}
+      <View style={styles.chipsGrid}>
+        <View style={styles.chipsRow}>
+          <InfoChip icon="calendar" label="NGÀY SINH" value={formattedDob} />
+          <InfoChip icon="phone" label="SỐ ĐIỆN THOẠI" value={patient?.phone || 'Chưa cập nhật'} />
+        </View>
+        <View style={styles.chipsRow}>
+          <InfoChip icon="user" label="GIỚI TÍNH" value={genderText} />
+          {recordDate ? (
+            <InfoChip highlight icon="clock" label="NGÀY LẬP HỒ SƠ" value={recordDate} />
+          ) : (
+            <View style={styles.chipSpacer} />
+          )}
+        </View>
+      </View>
+
+      {/* 3. Medical History & Allergy Alert */}
+      {patient?.medicalHistory ? (
+        <View style={[styles.historyBox, hasAllergy && styles.historyBoxAlert]}>
+          <View style={styles.historyContent}>
+            <Text style={[styles.historyLabel, hasAllergy && styles.historyLabelAlert]}>
+              {hasAllergy ? 'CẢNH BÁO TIỀN SỬ DỊ ỨNG THUỐC' : 'TIỀN SỬ Y KHOA & SỨC KHỎE'}
+            </Text>
+            <Text style={[styles.historyValue, hasAllergy && styles.historyValueAlert]}>
+              {patient.medicalHistory}
+            </Text>
+          </View>
+        </View>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  allergyBox: {
-    alignItems: 'center',
+  card: {
     backgroundColor: '#FFFFFF',
     borderColor: '#E2E8F0',
-    borderRadius: 18,
+    borderRadius: 20,
     borderWidth: 1,
+    marginBottom: 14,
+    padding: 16,
+  },
+  topIdentityRow: {
+    alignItems: 'center',
+    borderBottomColor: '#F1F5F9',
+    borderBottomWidth: 1,
     flexDirection: 'row',
-    marginTop: 12,
-    padding: 14,
-  },
-  allergyContent: {
-    flex: 1,
-    marginLeft: 10,
-  },
-  allergyLabel: {
-    color: '#0863c5',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  allergyValue: {
-    color: '#1E293B',
-    fontSize: 13,
-    fontWeight: '700',
-    marginTop: 2,
+    gap: 14,
+    paddingBottom: 14,
   },
   avatarBox: {
     alignItems: 'center',
     backgroundColor: '#0863c5',
     borderRadius: 18,
-    height: 56,
+    height: 52,
     justifyContent: 'center',
-    width: 56,
+    position: 'relative',
+    width: 52,
   },
   avatarText: {
     color: '#FFFFFF',
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '900',
   },
-  card: {
-    backgroundColor: '#F8FAFC',
-    borderColor: '#E2E8F0',
-    borderRadius: 24,
-    borderWidth: 1,
-    marginBottom: 14,
-    padding: 16,
+  activeDot: {
+    backgroundColor: '#10B981',
+    borderColor: '#FFFFFF',
+    borderRadius: 6,
+    borderWidth: 2,
+    bottom: -2,
+    height: 12,
+    position: 'absolute',
+    right: -2,
+    width: 12,
   },
-  codeBadge: {
-    backgroundColor: '#EFF6FF',
-    borderColor: '#BFDBFE',
-    borderRadius: 999,
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-  },
-  codeBadgeText: {
-    color: '#0863c5',
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0.5,
+  identityMeta: {
+    flex: 1,
   },
   fullName: {
     color: '#0F172A',
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '900',
-    letterSpacing: -0.3,
-    marginTop: 4,
+    letterSpacing: -0.2,
   },
-  headerBadges: {
+  badgeRow: {
     alignItems: 'center',
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
+    marginTop: 4,
   },
-  infoCard: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E2E8F0',
-    borderRadius: 20,
-    borderWidth: 1,
-    marginTop: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  infoDivider: {
+  codeBadge: {
     backgroundColor: '#F1F5F9',
-    height: 1,
-    marginVertical: 8,
+    borderColor: '#E2E8F0',
+    borderRadius: 6,
+    borderWidth: 1,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
   },
-  infoItem: {
-    paddingVertical: 4,
+  codeBadgeText: {
+    color: '#475569',
+    fontSize: 10.5,
+    fontWeight: '800',
   },
-  infoLabel: {
+  primaryBadge: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#BFDBFE',
+    borderRadius: 6,
+    borderWidth: 1,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  primaryBadgeText: {
+    color: '#0863c5',
+    fontSize: 10.5,
+    fontWeight: '800',
+  },
+  statusSub: {
+    color: '#64748B',
+    fontSize: 11,
+    marginTop: 4,
+  },
+  statusActive: {
+    color: '#10B981',
+    fontWeight: '700',
+  },
+  chipsGrid: {
+    gap: 8,
+    marginTop: 12,
+  },
+  chipsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  chip: {
+    alignItems: 'center',
+    backgroundColor: '#F8FBFE',
+    borderColor: '#F1F5F9',
+    borderRadius: 12,
+    borderWidth: 1,
+    flex: 1,
+    flexDirection: 'row',
+    gap: 8,
+    padding: 10,
+  },
+  chipHighlight: {
+    backgroundColor: 'rgba(239, 246, 255, 0.6)',
+    borderColor: '#DBEAFE',
+  },
+  chipSpacer: {
+    flex: 1,
+  },
+  chipIcon: {
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    borderRadius: 8,
+    height: 30,
+    justifyContent: 'center',
+    width: 30,
+  },
+  chipIconHighlight: {
+    backgroundColor: '#DBEAFE',
+  },
+  chipBody: {
+    flex: 1,
+    minWidth: 0,
+  },
+  chipLabel: {
     color: '#94A3B8',
+    fontSize: 9.5,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  chipLabelHighlight: {
+    color: '#0058bc',
+  },
+  chipValue: {
+    color: '#1E293B',
+    fontSize: 13,
+    fontWeight: '800',
+    marginTop: 2,
+  },
+  chipValueHighlight: {
+    color: '#07366f',
+  },
+  historyBox: {
+    backgroundColor: '#F8FAFC',
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 12,
+    padding: 12,
+  },
+  historyBoxAlert: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FECDD3',
+  },
+  historyContent: {
+    flex: 1,
+  },
+  historyLabel: {
+    color: '#0863c5',
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0.5,
-    textTransform: 'uppercase',
   },
-  infoValue: {
-    color: '#0F172A',
-    fontSize: 14,
-    fontWeight: '900',
-    marginTop: 3,
+  historyLabelAlert: {
+    color: '#DC2626',
   },
-  patientMeta: {
-    flex: 1,
-    marginLeft: 12,
+  historyValue: {
+    color: '#334155',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 2,
   },
-  patientTopRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-  },
-  shieldIcon: {
-    fontSize: 22,
-  },
-  statusBadge: {
-    backgroundColor: '#ECFDF5',
-    borderColor: '#A7F3D0',
-    borderRadius: 999,
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-  },
-  statusBadgeText: {
-    color: '#047857',
-    fontSize: 11,
+  historyValueAlert: {
+    color: '#991B1B',
     fontWeight: '700',
   },
 });

@@ -14,6 +14,7 @@ import type { Request, Response } from 'express';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RefreshTokenGuard } from '../../common/guards/jwt-refresh.guard';
 import { AuthService } from './auth.service';
+import { LoginCaptchaService } from './login-captcha.service';
 import {
   EmailDto,
   GoogleLoginDto,
@@ -36,6 +37,7 @@ export class AuthController {
   constructor(
     private readonly auth: AuthService,
     private readonly config: ConfigService,
+    private readonly captcha: LoginCaptchaService,
   ) {}
 
   private setRefreshCookie(response: Response, refreshToken: string) {
@@ -81,8 +83,17 @@ export class AuthController {
     @Body() dto: LoginDto,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const session = await this.auth.login(dto.email, dto.password);
+    const session = await this.auth.login(
+      dto.email,
+      dto.password,
+      dto.captchaToken,
+    );
     return this.hideRefreshToken(session, response);
+  }
+
+  @Get('captcha/config')
+  captchaConfig() {
+    return this.captcha.publicConfig;
   }
 
   @ApiBearerAuth()

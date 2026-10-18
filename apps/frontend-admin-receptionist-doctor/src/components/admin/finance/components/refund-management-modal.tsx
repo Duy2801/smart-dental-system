@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { MagnifyingGlassPlus, X } from "@phosphor-icons/react";
 import apiClient from "@/src/lib/api/client";
 import { formatVND } from "../finance-utils";
+import { toast } from "@/src/lib/toast";
 
 interface RefundRequestItem {
   id: string;
@@ -100,7 +101,7 @@ export function RefundManagementModal({ onClose }: RefundManagementModalProps) {
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      alert("Dung lượng tệp ảnh không được vượt quá 5MB.");
+      toast.warning("Dung lượng tệp ảnh không được vượt quá 5MB.");
       return;
     }
 
@@ -116,7 +117,7 @@ export function RefundManagementModal({ onClose }: RefundManagementModalProps) {
     if (!processingItem) return;
 
     if (actionType === "REJECT" && !rejectReason.trim()) {
-      alert("Vui lòng nhập lý do từ chối hoàn tiền.");
+      toast.warning("Vui lòng nhập lý do từ chối hoàn tiền.");
       return;
     }
 
@@ -128,7 +129,7 @@ export function RefundManagementModal({ onClose }: RefundManagementModalProps) {
         rejectReason: rejectReason.trim() || undefined,
       });
 
-      alert(
+      toast.success(
         actionType === "COMPLETE"
           ? "Đã xác nhận chuyển khoản hoàn tiền thành công!"
           : "Đã từ chối yêu cầu hoàn tiền."
@@ -138,7 +139,7 @@ export function RefundManagementModal({ onClose }: RefundManagementModalProps) {
       setRejectReason("");
       void fetchRefundRequests();
     } catch (err) {
-      alert("Xử lý thất bại. Vui lòng thử lại.");
+      toast.error("Xử lý thất bại. Vui lòng thử lại.");
     } finally {
       setSubmitting(false);
     }

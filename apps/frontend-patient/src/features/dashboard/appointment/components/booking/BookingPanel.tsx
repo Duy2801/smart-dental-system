@@ -309,7 +309,7 @@ export function BookingPanel({
         {activeStep === 1 && (
           <div className="space-y-6">
             <div className="border-b border-slate-100 pb-3">
-              <h2 className="text-lg font-extrabold text-slate-900">
+              <h2 className="text-lg font-extrabold text-[#07366f]">
                 1. Chọn người khám
               </h2>
               <p className="mt-0.5 text-xs text-slate-500">
@@ -341,7 +341,7 @@ export function BookingPanel({
         {activeStep === 2 && (
           <div className="space-y-6">
             <div className="border-b border-slate-100 pb-3">
-              <h2 className="text-lg font-extrabold text-slate-900">
+              <h2 className="text-lg font-extrabold text-[#07366f]">
                 2. Chọn dịch vụ & phương pháp điều trị
               </h2>
               <p className="mt-0.5 text-xs text-slate-500">
@@ -379,7 +379,7 @@ export function BookingPanel({
         {activeStep === 3 && (
           <div className="space-y-6">
             <div className="border-b border-slate-100 pb-3">
-              <h2 className="text-lg font-extrabold text-slate-900">
+              <h2 className="text-lg font-extrabold text-[#07366f]">
                 3. Chọn ngày và giờ khám
               </h2>
               <p className="mt-0.5 text-xs text-slate-500">
@@ -421,7 +421,7 @@ export function BookingPanel({
         {activeStep === 4 && (
           <div className="space-y-6">
             <div className="border-b border-slate-100 pb-3">
-              <h2 className="text-lg font-extrabold text-slate-900">
+              <h2 className="text-lg font-extrabold text-[#07366f]">
                 4. Chọn bác sĩ phụ trách
               </h2>
               <p className="mt-0.5 text-xs text-slate-500">

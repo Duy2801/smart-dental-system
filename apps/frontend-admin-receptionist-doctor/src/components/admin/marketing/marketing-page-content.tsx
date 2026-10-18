@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/src/lib/query/query-keys";
+import { Eye, EyeSlash } from "@phosphor-icons/react";
+import { AdminAlert, AdminConfirmModal } from "@/src/components/admin/common";
 import { CampaignList } from "./components/campaign-list";
 import { CampaignModal } from "./components/campaign-modal";
 import { MarketingSummaryCards } from "./components/marketing-summary-cards";
@@ -89,25 +91,41 @@ export function MarketingPageContent() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa Banner này không?")) return;
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+  const handleDelete = (id: string) => {
+    setDeleteConfirmId(id);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirmId) return;
     setErrorMessage("");
     try {
-      await deleteMutation.mutateAsync(id);
+      await deleteMutation.mutateAsync(deleteConfirmId);
+      setDeleteConfirmId(null);
     } catch {
       // Error callback handles message
     }
   };
 
-  const handleToggleStatus = async (banner: Banner) => {
+  const [statusConfirmBanner, setStatusConfirmBanner] = useState<Banner | null>(null);
+
+  const handleToggleStatus = (banner: Banner) => {
+    setStatusConfirmBanner(banner);
+  };
+
+  const handleConfirmToggleStatus = async () => {
+    if (!statusConfirmBanner) return;
     setErrorMessage("");
     try {
       await updateMutation.mutateAsync({
-        id: banner.id,
-        data: { isActive: !banner.isActive },
+        id: statusConfirmBanner.id,
+        data: { isActive: !statusConfirmBanner.isActive },
       });
     } catch {
       // Error callback handles message
+    } finally {
+      setStatusConfirmBanner(null);
     }
   };
 
@@ -137,6 +155,10 @@ export function MarketingPageContent() {
         onStatusFilterChange={setStatusFilter}
       />
 
+      <AdminAlert
+        message={isError || errorMessage ? errorMessage || "Không tải được dữ liệu danh sách banner từ máy chủ." : null}
+      />
+
       <CampaignList
         loading={isLoading}
         banners={filteredBanners}
@@ -144,12 +166,6 @@ export function MarketingPageContent() {
         onEdit={handleOpenEdit}
         onToggleStatus={handleToggleStatus}
       />
-
-      {isError || errorMessage ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
-          {errorMessage || "Không tải được dữ liệu danh sách Banner từ máy chủ."}
-        </div>
-      ) : null}
 
       {isModalOpen ? (
         <CampaignModal
@@ -162,6 +178,45 @@ export function MarketingPageContent() {
           onSubmit={handleSubmitForm}
         />
       ) : null}
+
+      <AdminConfirmModal
+        isOpen={Boolean(statusConfirmBanner)}
+        title={statusConfirmBanner?.isActive ? "Ẩn banner này?" : "Hiển thị lại banner?"}
+        description={
+          <>
+            Banner{" "}
+            <strong className="font-semibold text-slate-900">{statusConfirmBanner?.title}</strong>{" "}
+            {statusConfirmBanner?.isActive
+              ? "sẽ không còn xuất hiện trên trang chủ cho tới khi được hiển thị lại."
+              : "sẽ xuất hiện trở lại trên trang chủ ngay sau khi xác nhận."}
+          </>
+        }
+        confirmText={statusConfirmBanner?.isActive ? "Ẩn banner" : "Hiển thị"}
+        cancelText="Hủy bỏ"
+        variant={statusConfirmBanner?.isActive ? "warning" : "primary"}
+        icon={
+          statusConfirmBanner?.isActive ? (
+            <EyeSlash size={24} weight="duotone" />
+          ) : (
+            <Eye size={24} weight="duotone" />
+          )
+        }
+        isLoading={updateMutation.isPending}
+        onConfirm={handleConfirmToggleStatus}
+        onClose={() => setStatusConfirmBanner(null)}
+      />
+
+      <AdminConfirmModal
+        isOpen={Boolean(deleteConfirmId)}
+        title="Xác nhận xóa Banner"
+        description="Bạn có chắc chắn muốn xóa Banner này không? Banner sẽ không còn xuất hiện trên trang chủ của phòng khám."
+        confirmText="Xóa Banner"
+        cancelText="Hủy bỏ"
+        variant="danger"
+        isLoading={deleteMutation.isPending}
+        onConfirm={handleConfirmDelete}
+        onClose={() => setDeleteConfirmId(null)}
+      />
     </div>
   );
 }

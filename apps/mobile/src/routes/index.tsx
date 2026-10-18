@@ -13,6 +13,7 @@ import VerifyEmailScreen from '~src/features/auth/verifyEmail/VerifyEmailScreen'
 import PatientTabNavigator from './tabs/patient/PatientTabNavigator';
 import DoctorTabNavigator from './tabs/doctor/DoctorTabNavigator';
 import SupportChatScreen from '~src/features/support/SupportChatScreen';
+import AIAssistantModalScreen from '~src/features/ai/AIAssistantModalScreen';
 const Stack = createNativeStackNavigator();
 function ApplicationNavigator() {
   const ref: any = useNavigationContainerRef();
@@ -44,6 +45,11 @@ function ApplicationNavigator() {
             component={SupportChatScreen}
             name={SCREEN_NAME.SUPPORT_CHAT}
             options={{ headerShown: false, presentation: 'modal' }}
+          />
+          <Stack.Screen
+            component={AIAssistantModalScreen}
+            name={SCREEN_NAME.AI_CHAT}
+            options={{ headerShown: false, presentation: 'fullScreenModal' }}
           />
         </Stack.Navigator>
       </NavigationContainer>

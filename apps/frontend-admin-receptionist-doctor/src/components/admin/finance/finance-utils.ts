@@ -4,6 +4,7 @@ import type {
   InvoiceStatus,
   PaymentMethodFilter,
 } from "./types";
+import { toast } from "@/src/lib/toast";
 
 export const invoiceStatusConfig: Record<
   InvoiceStatus,
@@ -155,7 +156,7 @@ export function getFinanceStats(invoices: Invoice[]) {
 
 export function exportInvoicesToExcel(invoices: Invoice[], filename = "Bao_Cao_Thu_Chi_Nha_Khoa.csv") {
   if (!invoices || invoices.length === 0) {
-    alert("Không có dữ liệu hóa đơn để xuất báo cáo!");
+    toast.warning("Không có dữ liệu hóa đơn để xuất báo cáo!");
     return;
   }
 

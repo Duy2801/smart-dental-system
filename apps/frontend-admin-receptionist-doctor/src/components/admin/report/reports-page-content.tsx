@@ -2,7 +2,14 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { SkeletonCardGrid, SkeletonChart, SkeletonRows } from "@/src/components/admin/common";
+import { Trophy } from "@phosphor-icons/react";
+import {
+  AdminAlert,
+  AdminModal,
+  SkeletonCardGrid,
+  SkeletonChart,
+  SkeletonRows,
+} from "@/src/components/admin/common";
 import { queryKeys } from "@/src/lib/query/query-keys";
 import { BookingSourcesCard } from "./components/booking-sources-card";
 import { ReportStatCard } from "./components/report-stat-card";
@@ -81,16 +88,17 @@ export function ReportsPageContent() {
         onExport={handleExport}
         timeFilter={timeFilter}
         onTimeFilterChange={setTimeFilter}
+        refreshing={isFetching && !isLoading}
       />
 
-      {isLoading || isFetching ? (
+      {isLoading ? (
         <div className="space-y-6">
           <SkeletonCardGrid count={4} />
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <div className="lg:col-span-2">
               <SkeletonChart />
             </div>
-            <div className="rounded-2xl border border-border bg-white shadow-xs">
+            <div className="rounded-2xl border border-slate-200/80 bg-white shadow-xs">
               <SkeletonRows count={5} />
             </div>
           </div>
@@ -98,16 +106,14 @@ export function ReportsPageContent() {
       ) : null}
 
       {isError ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
-          Không tải được dữ liệu báo cáo thống kê.
-        </div>
+        <AdminAlert message="Không tải được dữ liệu báo cáo thống kê." />
       ) : null}
 
       {!isLoading && report ? (
         <>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {report.statCards.map((stat) => (
-              <ReportStatCard key={stat.label} stat={stat} />
+            {report.statCards.map((stat, index) => (
+              <ReportStatCard key={stat.label} stat={stat} index={index} />
             ))}
           </div>
 
@@ -140,50 +146,29 @@ function AllServicesModal({
   services: ReportOverview["topServices"];
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <button
-        type="button"
-        aria-label="Đóng danh sách dịch vụ"
-        className="absolute inset-0 bg-slate-950/40 backdrop-blur-xs"
-        onClick={onClose}
-      />
-      <div className="relative max-h-[88vh] w-full max-w-2xl overflow-hidden rounded-2xl border border-border bg-white shadow-2xl">
-        <div className="flex items-center justify-between border-b border-border px-6 py-4">
-          <h3 className="text-lg font-bold text-brand-dark">
-            Tất cả dịch vụ theo doanh thu
-          </h3>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-xl border border-slate-200 px-3.5 py-1.5 text-xs font-semibold text-brand-dark hover:bg-slate-100 transition-colors"
-          >
-            Đóng
-          </button>
-        </div>
-        <div className="max-h-[70vh] overflow-y-auto p-6">
-          <div className="divide-y divide-slate-100 rounded-xl border border-slate-200">
-            {services.map((service, index) => (
-              <div
-                key={service.name}
-                className="flex items-center justify-between gap-4 px-4 py-3"
-              >
-                <div className="flex min-w-0 items-center gap-3">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand/10 text-xs font-bold text-brand">
-                    {index + 1}
-                  </span>
-                  <span className="truncate text-sm font-semibold text-brand-dark">
-                    {service.name}
-                  </span>
-                </div>
-                <span className="shrink-0 font-mono text-sm font-bold text-brand-dark">
-                  {new Intl.NumberFormat("vi-VN").format(service.revenue)}đ
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
+    <AdminModal
+      title="Tất cả dịch vụ theo doanh thu"
+      description={`${services.length} dịch vụ`}
+      icon={<Trophy size={20} weight="duotone" />}
+      size="md"
+      onClose={onClose}
+    >
+      <ol className="mt-4 divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200">
+        {services.map((service, index) => (
+          <li key={service.name} className="flex items-center justify-between gap-4 px-4 py-3 transition-colors hover:bg-slate-50">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-brand-light text-xs font-extrabold text-brand">
+                {index + 1}
+              </span>
+              <span className="truncate text-sm font-semibold text-slate-800">{service.name}</span>
+            </div>
+            <span className="shrink-0 text-sm font-bold text-slate-900">
+              {new Intl.NumberFormat("vi-VN").format(service.revenue)}đ
+            </span>
+          </li>
+        ))}
+      </ol>
+    </AdminModal>
   );
 }
 

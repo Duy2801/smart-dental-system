@@ -126,7 +126,7 @@ export default function EditProfilePage() {
     return (
       <LoginRequiredPanel
         title="Chỉnh sửa hồ sơ"
-        description="Đăng nhập để cập nhật thông tin cá nhân, liên hệ và ghi chú y tế trong tài khoản bệnh nhân của bạn."
+        description="Đăng nhập để cập nhật thông tin cá nhân, liên hệ và ghi chú y tế của bạn."
         loginLabel="Đăng nhập để chỉnh sửa"
         redirectTo="/profile/edit"
         secondaryHref="/profile"

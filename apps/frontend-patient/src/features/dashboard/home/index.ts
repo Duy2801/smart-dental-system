@@ -2,6 +2,7 @@ export { AppointmentCard } from "./components/AppointmentCard";
 export type { Appointment } from "./components/AppointmentCard";
 export { ClinicalCasesSection } from "./components/ClinicalCasesSection";
 export { ClinicLocationSection } from "./components/ClinicLocationSection";
+export { CachedClinicMap } from "./components/CachedClinicMap";
 export { DoctorSection } from "./components/DoctorSection";
 export type { Doctor } from "./components/DoctorSection";
 export { DoctorContactPanel } from "./components/DoctorContactPanel";
@@ -17,4 +18,3 @@ export type { FeaturedArticle } from "./components/InsightsSection";
 export { QuickActions } from "./components/QuickActions";
 export type { QuickAction } from "./components/QuickActions";
 export * from "./hooks/useHomeQueries";
-

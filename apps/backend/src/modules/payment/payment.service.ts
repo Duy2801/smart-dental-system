@@ -20,6 +20,7 @@ import {
 } from '../../../prisma/generated/enums';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface';
 import { PrismaService } from '../prisma/prisma.service';
+import { lockDoctorSchedule } from '../appointment/doctor-schedule-lock';
 import { NotificationService } from '../notification/notification.service';
 import { EventsGateway } from '../socket/events.gateway';
 import { CreatePaymentDto } from './dto/create-payment.dto';
@@ -397,6 +398,37 @@ export class PaymentService {
         throw new NotFoundException('invoice.not_found');
       }
 
+      const invoiceItems = Array.isArray(invoice.items)
+        ? (invoice.items as Array<Record<string, unknown>>)
+        : [];
+      const consultationId = invoiceItems.find(
+        (item) => typeof item?.videoConsultationId === 'string',
+      )?.videoConsultationId as string | undefined;
+      if (consultationId) {
+        const consultation = await tx.videoConsultation.findUnique({
+          where: { id: consultationId },
+          select: { doctorId: true },
+        });
+        if (!consultation) {
+          throw new NotFoundException('consultation.not_found');
+        }
+        await lockDoctorSchedule(tx, consultation.doctorId);
+        const current = await tx.videoConsultation.findUnique({
+          where: { id: consultationId },
+          select: { status: true, expiresAt: true },
+        });
+        if (
+          invoice.status === InvoiceStatus.CANCELLED ||
+          current?.status !== VideoConsultationStatus.PENDING_PAYMENT ||
+          !current.expiresAt ||
+          current.expiresAt <= new Date()
+        ) {
+          throw new BadRequestException(
+            'Lịch tư vấn đã hết hạn thanh toán; vui lòng đặt lịch mới',
+          );
+        }
+      }
+
       const prior = await tx.payment.aggregate({
         where: {
           invoiceId: input.invoiceId,
@@ -514,15 +546,9 @@ export class PaymentService {
         (invoice.invoiceCode.startsWith('INV-VC-') ||
           invoice.invoiceCode.startsWith('SEVQR'))
       ) {
-        const items = Array.isArray(invoice.items)
-          ? (invoice.items as Array<Record<string, any>>)
-          : [];
-        const targetVcId = items.find((it) => it?.videoConsultationId)
-          ?.videoConsultationId;
-
-        if (targetVcId) {
+        if (consultationId) {
           await tx.videoConsultation.update({
-            where: { id: targetVcId },
+            where: { id: consultationId },
             data: {
               isPaid: true,
               status: VideoConsultationStatus.SCHEDULED,
