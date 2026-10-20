@@ -15,7 +15,7 @@ on:
   workflow_dispatch: # cho phép bấm chạy tay trong tab Actions
 
 concurrency:
-  group: deploy-backend
+  group: deploy-vm
   cancel-in-progress: false
 
 jobs:

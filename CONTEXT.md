@@ -17,15 +17,7 @@ The clinical and identity record for a Patient, including information needed for
 _Avoid_: User profile
 
 **Patient Account**:
-The relationship that allows a User to manage or book appointments for a Patient.
-_Avoid_: Family member table, owner link
 
-**Relationship**:
-The role of a Patient relative to a User, such as SELF, CHILD, FATHER, MOTHER, or OTHER.
-_Avoid_: Role when referring to family relationship
-
-**Appointment**:
-A scheduled in-clinic visit for a Patient with a Doctor for a Service during a specific time range.
 _Avoid_: Booking when the clinical appointment record is meant
 
 **Appointment Creator**:

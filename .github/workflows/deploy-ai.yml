@@ -1,0 +1,58 @@
+# Đặt file này tại: .github/workflows/deploy-ai.yml
+# Mỗi lần push lên main có thay đổi ở apps/ai-service -> SSH vào VM, pull code, cài thư viện, restart pm2.
+
+name: Deploy AI Service
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/ai-service/**"
+      - "download_models.py"
+      - ".github/workflows/deploy-ai.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-vm # dùng chung nhóm để không chạy song song với deploy backend
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Deploy qua SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST_BE }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          command_timeout: 15m
+          script: |
+            set -e
+            cd ~/smart-dental-system
+
+            echo ">>> Lấy code mới nhất"
+            git fetch origin main
+            git reset --hard origin/main
+
+            echo ">>> Cài thư viện Python"
+            cd apps/ai-service
+            .venv/bin/pip install -q -r requirements.txt
+
+            echo ">>> Khởi động lại AI service"
+            pm2 restart dental-ai --update-env
+            pm2 save
+
+            echo ">>> Chờ AI service khởi động (tối đa 60 giây)"
+            for i in $(seq 1 20); do
+              if curl -fsS -o /dev/null http://127.0.0.1:8001/health; then
+                echo ">>> Deploy AI thành công sau $((i*3)) giây"
+                exit 0
+              fi
+              sleep 3
+            done
+
+            echo ">>> AI service không khởi động được, log gần nhất:"
+            pm2 logs dental-ai --lines 60 --nostream
+            exit 1
