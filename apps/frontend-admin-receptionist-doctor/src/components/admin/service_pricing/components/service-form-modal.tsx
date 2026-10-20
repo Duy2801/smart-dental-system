@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import {
   CurrencyCircleDollar,
   Info,
@@ -20,9 +20,60 @@ import {
   AdminModal,
   AdminSelect,
   AdminTextarea as TextareaField,
+  collapseSpaces,
+  focusFirstError,
+  hasErrors,
+  validateNumber,
+  validateSlug,
+  validateText,
+  type FieldErrors,
 } from "@/src/components/admin/common";
 import { formatVND } from "../service-pricing-utils";
 import type { ServiceFormState, TreatmentMethod } from "../types";
+import { MAX_SERVICE_PRICE } from "./treatment-method-form-modal";
+
+function validateServiceForm(form: ServiceFormState): FieldErrors {
+  const errors: FieldErrors = {
+    category: validateText(form.category, { label: "Danh mục", required: true, min: 2, max: 100 }),
+    name: validateText(form.name, { label: "Tên dịch vụ", required: true, min: 2, max: 150 }),
+    slug: validateSlug(form.slug),
+    shortDescription: validateText(form.shortDescription, { label: "Mô tả ngắn", max: 255 }),
+    description: validateText(form.description, { label: "Mô tả chi tiết", max: 5000 }),
+    durationMinutes: validateNumber(form.durationMinutes, { label: "Thời lượng", min: 5, max: 600, unit: "phút" }),
+    basePrice: validateNumber(form.basePrice, { label: "Giá khởi điểm", min: 0, max: MAX_SERVICE_PRICE, unit: "đ" }),
+    displayOrder: validateNumber(form.displayOrder, { label: "Thứ tự hiển thị", min: 0, max: 9999, required: false }),
+    pricingNote: validateText(form.pricingNote, { label: "Ghi chú giá", max: 500 }),
+  };
+  form.highlights.forEach((item, index) => {
+    errors[`highlight-${index}-title`] = validateText(item.title, {
+      label: "Tiêu đề điểm nổi bật",
+      required: true,
+      max: 100,
+    });
+    errors[`highlight-${index}-description`] = validateText(item.description, {
+      label: "Mô tả điểm nổi bật",
+      max: 300,
+    });
+  });
+  return errors;
+}
+
+function normalizeServiceForm(form: ServiceFormState): ServiceFormState {
+  return {
+    ...form,
+    category: collapseSpaces(form.category),
+    name: collapseSpaces(form.name),
+    slug: form.slug.trim(),
+    shortDescription: form.shortDescription.trim(),
+    description: form.description.trim(),
+    pricingNote: form.pricingNote.trim(),
+    highlights: form.highlights.map((item) => ({
+      ...item,
+      title: collapseSpaces(item.title),
+      description: item.description.trim(),
+    })),
+  };
+}
 
 type ServiceFormModalProps = {
   initialValue: ServiceFormState;
@@ -115,15 +166,22 @@ export function ServiceFormModal({
 }: ServiceFormModalProps) {
   const formId = useId();
   const [form, setForm] = useState<ServiceFormState>(initialValue);
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     setForm(initialValue);
+    setErrors({});
   }, [initialValue]);
+
+  const clearError = (key: string) =>
+    setErrors((current) => (current[key] ? { ...current, [key]: undefined } : current));
 
   const setField = <Key extends keyof ServiceFormState>(
     key: Key,
     value: ServiceFormState[Key]
   ) => {
+    clearError(key);
     setForm((current) => ({ ...current, [key]: value }));
   };
 
@@ -171,6 +229,7 @@ export function ServiceFormModal({
     key: Key,
     value: HighlightItem[Key]
   ) => {
+    clearError(`highlight-${index}-${key}`);
     setForm((current) => ({
       ...current,
       highlights: current.highlights.map((item, itemIndex) =>
@@ -283,10 +342,18 @@ export function ServiceFormModal({
     >
       <form
         id={formId}
+        ref={formRef}
+        noValidate
         className="mt-4 flex flex-col gap-4"
         onSubmit={(event) => {
           event.preventDefault();
-          onSubmit(form);
+          const nextErrors = validateServiceForm(form);
+          setErrors(nextErrors);
+          if (hasErrors(nextErrors)) {
+            focusFirstError(formRef.current);
+            return;
+          }
+          onSubmit(normalizeServiceForm(form));
         }}
       >
         <Section title="Thông tin dịch vụ (nhóm chính)" icon={<Info size={15} weight="bold" />}>
@@ -294,6 +361,8 @@ export function ServiceFormModal({
             <AdminInput
               label="Danh mục"
               required
+              maxLength={100}
+              error={errors.category}
               value={form.category}
               onChange={(event) => setField("category", event.target.value)}
               placeholder="VD: Implant, Phục hình, Thẩm mỹ..."
@@ -301,6 +370,8 @@ export function ServiceFormModal({
             <AdminInput
               label="Tên dịch vụ"
               required
+              maxLength={150}
+              error={errors.name}
               value={form.name}
               onChange={(event) => setField("name", event.target.value)}
               placeholder="VD: Trồng răng Implant"
@@ -310,6 +381,9 @@ export function ServiceFormModal({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <AdminInput
               label="Slug"
+              maxLength={150}
+              error={errors.slug}
+              hint="Không bắt buộc. Chữ thường không dấu, nối bằng dấu gạch ngang."
               value={form.slug}
               onChange={(event) => setField("slug", event.target.value)}
               placeholder="trong-rang-implant"
@@ -324,6 +398,8 @@ export function ServiceFormModal({
           <TextareaField
             label="Mô tả ngắn"
             rows={2}
+            maxLength={255}
+            error={errors.shortDescription}
             value={form.shortDescription}
             onChange={(value) => setField("shortDescription", value)}
             placeholder="Một câu ngắn để hiển thị ở card dịch vụ."
@@ -331,6 +407,8 @@ export function ServiceFormModal({
 
           <TextareaField
             label="Mô tả chi tiết"
+            maxLength={5000}
+            error={errors.description}
             value={form.description}
             onChange={(value) => setField("description", value)}
             placeholder="Thông tin chuyên môn, lợi ích và lưu ý của dịch vụ."
@@ -410,7 +488,10 @@ export function ServiceFormModal({
               label="Thời lượng mặc định (Phút)"
               type="number"
               required
-              min={1}
+              min={5}
+              max={600}
+              inputMode="numeric"
+              error={errors.durationMinutes}
               value={form.durationMinutes}
               onChange={(event) =>
                 setField("durationMinutes", Number(event.target.value))
@@ -422,7 +503,10 @@ export function ServiceFormModal({
               type="number"
               required
               min={0}
-              step={50000}
+              max={MAX_SERVICE_PRICE}
+              inputMode="numeric"
+              error={errors.basePrice}
+              hint={`≈ ${Number(form.basePrice || 0).toLocaleString("vi-VN")}đ`}
               value={form.basePrice}
               onChange={(event) =>
                 setField("basePrice", Number(event.target.value))
@@ -433,6 +517,9 @@ export function ServiceFormModal({
               label="Thứ tự hiển thị"
               type="number"
               min={0}
+              max={9999}
+              inputMode="numeric"
+              error={errors.displayOrder}
               value={form.displayOrder}
               onChange={(event) =>
                 setField("displayOrder", Number(event.target.value))
@@ -446,6 +533,8 @@ export function ServiceFormModal({
           <TextareaField
             label="Ghi chú giá"
             rows={2}
+            maxLength={500}
+            error={errors.pricingNote}
             value={form.pricingNote}
             onChange={(value) => setField("pricingNote", value)}
             placeholder="VD: Giá hiển thị là mức khởi điểm, chi phí cuối cùng xác nhận sau thăm khám."
@@ -476,6 +565,9 @@ export function ServiceFormModal({
                 <div className="space-y-3">
                   <AdminInput
                     label="Tiêu đề"
+                    required
+                    maxLength={100}
+                    error={errors[`highlight-${index}-title`]}
                     value={highlight.title}
                     onChange={(event) =>
                       updateHighlight(index, "title", event.target.value)
@@ -484,6 +576,8 @@ export function ServiceFormModal({
                   <TextareaField
                     label="Mô tả"
                     rows={2}
+                    maxLength={300}
+                    error={errors[`highlight-${index}-description`]}
                     value={highlight.description}
                     onChange={(value) =>
                       updateHighlight(index, "description", value)

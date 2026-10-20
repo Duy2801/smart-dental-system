@@ -9,15 +9,19 @@ import {
   AdminInput,
 } from "@/src/components/admin/common";
 import { ClinicLogo } from "@/src/components/layout/clinic-brand";
+import type { FieldErrors } from "@/src/components/admin/common";
+import type { GeneralField } from "../settings-validation";
 import type { ClinicConfig } from "../types";
 
 type GeneralSettingsPanelProps = {
   config: ClinicConfig;
+  errors?: FieldErrors<GeneralField>;
   onChange: (config: ClinicConfig) => void;
 };
 
 export function GeneralSettingsPanel({
   config,
+  errors = {},
   onChange,
 }: GeneralSettingsPanelProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -103,6 +107,9 @@ export function GeneralSettingsPanel({
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
           <AdminInput
             label="Tên phòng khám"
+            required
+            maxLength={150}
+            error={errors.name}
             value={config.name}
             onChange={(event) => updateField("name", event.target.value)}
             placeholder="Smart Dental Clinic"
@@ -110,19 +117,28 @@ export function GeneralSettingsPanel({
           <AdminInput
             label="Hotline / Số điện thoại"
             type="tel"
+            required
+            maxLength={20}
+            error={errors.phone}
             value={config.phone}
-            onChange={(event) => updateField("phone", event.target.value)}
+            onChange={(event) => updateField("phone", event.target.value.replace(/[^\d\s.+-]/g, ""))}
             placeholder="1900 1234"
           />
           <AdminInput
             label="Email liên hệ"
             type="email"
+            required
+            maxLength={254}
+            error={errors.email}
             value={config.email}
             onChange={(event) => updateField("email", event.target.value)}
             placeholder="contact@smartdental.vn"
           />
           <AdminInput
             label="Địa chỉ phòng khám"
+            required
+            maxLength={255}
+            error={errors.address}
             value={config.address}
             onChange={(event) => updateField("address", event.target.value)}
             placeholder="Số nhà, đường, phường, quận..."

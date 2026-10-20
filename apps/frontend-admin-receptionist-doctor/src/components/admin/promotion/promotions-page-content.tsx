@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/src/lib/query/query-keys";
+import { getApiErrorMessage } from "@/src/lib/utils/api-error";
 import { AdminAlert, AdminConfirmModal } from "@/src/components/admin/common";
 import { PromoFormModal } from "./components/promo-form-modal";
 import { PromotionAnalyticsCards } from "./components/promotion-analytics-cards";
@@ -53,8 +54,8 @@ export function PromotionsPageContent() {
       await invalidatePromotions();
       setTimeout(() => setSuccessMessage(""), 4000);
     },
-    onError: () => {
-      setErrorMessage("Tạo mới khuyến mãi thất bại. Vui lòng kiểm tra lại mã code.");
+    onError: (err) => {
+      setErrorMessage(getApiErrorMessage(err, "Tạo mới khuyến mãi thất bại. Vui lòng kiểm tra lại mã code."));
     },
   });
 
@@ -73,8 +74,8 @@ export function PromotionsPageContent() {
       await invalidatePromotions();
       setTimeout(() => setSuccessMessage(""), 4000);
     },
-    onError: () => {
-      setErrorMessage("Cập nhật thông tin khuyến mãi thất bại.");
+    onError: (err) => {
+      setErrorMessage(getApiErrorMessage(err, "Cập nhật thông tin khuyến mãi thất bại."));
     },
   });
 

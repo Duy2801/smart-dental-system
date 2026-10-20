@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/src/lib/query/query-keys";
+import { getApiErrorMessage } from "@/src/lib/utils/api-error";
 import { Eye, EyeSlash } from "@phosphor-icons/react";
 import { AdminAlert, AdminConfirmModal } from "@/src/components/admin/common";
 import { CampaignList } from "./components/campaign-list";
@@ -47,8 +48,8 @@ export function MarketingPageContent() {
       setEditingBanner(null);
       await invalidateBanners();
     },
-    onError: () => {
-      setErrorMessage("Thêm Banner quảng cáo thất bại. Vui lòng kiểm tra lại dữ liệu.");
+    onError: (err) => {
+      setErrorMessage(getApiErrorMessage(err, "Thêm Banner quảng cáo thất bại. Vui lòng kiểm tra lại dữ liệu."));
     },
   });
 
@@ -59,8 +60,8 @@ export function MarketingPageContent() {
       setEditingBanner(null);
       await invalidateBanners();
     },
-    onError: () => {
-      setErrorMessage("Cập nhật Banner thất bại. Vui lòng kiểm tra lại.");
+    onError: (err) => {
+      setErrorMessage(getApiErrorMessage(err, "Cập nhật Banner thất bại. Vui lòng kiểm tra lại."));
     },
   });
 

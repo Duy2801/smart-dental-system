@@ -218,6 +218,7 @@ export function BusinessHoursPanel({
                 <input
                   type="text"
                   aria-label="Tên ngày đặc biệt"
+                  maxLength={120}
                   value={item.label}
                   onChange={(event) => onChangeSpecialDate(index, "label", event.target.value)}
                   placeholder="Tên ngày lễ, kỷ niệm..."

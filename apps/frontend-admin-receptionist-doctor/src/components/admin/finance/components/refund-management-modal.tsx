@@ -6,6 +6,8 @@ import { MagnifyingGlassPlus, X } from "@phosphor-icons/react";
 import apiClient from "@/src/lib/api/client";
 import { formatVND } from "../finance-utils";
 import { toast } from "@/src/lib/toast";
+import { getApiErrorMessage } from "@/src/lib/utils/api-error";
+import { validateImageFile, validateText } from "@/src/components/admin/common";
 
 interface RefundRequestItem {
   id: string;
@@ -100,8 +102,10 @@ export function RefundManagementModal({ onClose }: RefundManagementModalProps) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast.warning("Dung lượng tệp ảnh không được vượt quá 5MB.");
+    e.target.value = "";
+    const invalid = validateImageFile(file, 5);
+    if (invalid) {
+      toast.warning(invalid);
       return;
     }
 
@@ -116,9 +120,21 @@ export function RefundManagementModal({ onClose }: RefundManagementModalProps) {
     e.preventDefault();
     if (!processingItem) return;
 
-    if (actionType === "REJECT" && !rejectReason.trim()) {
-      toast.warning("Vui lòng nhập lý do từ chối hoàn tiền.");
+    if (actionType === "COMPLETE" && !proofImageUrl) {
+      toast.warning("Vui lòng tải ảnh bill chuyển khoản để làm chứng từ hoàn tiền.");
       return;
+    }
+    if (actionType === "REJECT") {
+      const reasonError = validateText(rejectReason, {
+        label: "Lý do từ chối",
+        required: true,
+        min: 10,
+        max: 500,
+      });
+      if (reasonError) {
+        toast.warning(reasonError);
+        return;
+      }
     }
 
     setSubmitting(true);
@@ -139,7 +155,7 @@ export function RefundManagementModal({ onClose }: RefundManagementModalProps) {
       setRejectReason("");
       void fetchRefundRequests();
     } catch (err) {
-      toast.error("Xử lý thất bại. Vui lòng thử lại.");
+      toast.error(getApiErrorMessage(err, "Xử lý thất bại. Vui lòng thử lại."));
     } finally {
       setSubmitting(false);
     }
@@ -395,7 +411,8 @@ export function RefundManagementModal({ onClose }: RefundManagementModalProps) {
                 {actionType === "COMPLETE" ? (
                   <div>
                     <label className="block font-semibold text-slate-700 mb-1">
-                      Ảnh chứng từ chuyển khoản (Bill ngân hàng)
+                      Ảnh chứng từ chuyển khoản (Bill ngân hàng){" "}
+                      <span className="text-rose-500" aria-hidden="true">*</span>
                     </label>
                     <input
                       type="file"
@@ -448,9 +465,13 @@ export function RefundManagementModal({ onClose }: RefundManagementModalProps) {
                       placeholder="Nhập lý do từ chối hoàn tiền cho bệnh nhân..."
                       value={rejectReason}
                       onChange={(e) => setRejectReason(e.target.value)}
+                      maxLength={500}
                       required
                       className="w-full p-2.5 rounded-xl border border-slate-300 font-medium focus:outline-none focus:ring-2 focus:ring-rose-500"
                     />
+                    <p className="mt-1 text-right text-[10px] text-slate-400">
+                      {rejectReason.trim().length}/500 · tối thiểu 10 ký tự
+                    </p>
                   </div>
                 )}
 

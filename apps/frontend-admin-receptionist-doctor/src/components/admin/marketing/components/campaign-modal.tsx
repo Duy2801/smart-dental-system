@@ -6,13 +6,18 @@ import {
   AdminButton,
   AdminInput,
   AdminModal,
-  adminControlClass,
-  adminControlTone,
+  AdminTextarea,
+  IMAGE_ACCEPT,
+  collapseSpaces,
+  focusFirstError,
+  hasErrors,
+  validateImageFile,
+  validateText,
+  type FieldErrors,
 } from "@/src/components/admin/common";
 import { cn } from "@/src/lib/utils/cn";
 import type { CreateBannerPayload } from "../marketing-api";
 import type { Banner } from "../types";
-import { toast } from "@/src/lib/toast";
 
 type BannerModalProps = {
   initialData?: Banner | null;
@@ -20,6 +25,10 @@ type BannerModalProps = {
   onClose: () => void;
   onSubmit: (payload: CreateBannerPayload) => void;
 };
+
+type BannerField = "title" | "description" | "imageUrl";
+
+const BANNER_MAX_MB = 5;
 
 function readFileAsDataUrl(file: File, onLoad: (value: string) => void) {
   const reader = new FileReader();
@@ -37,44 +46,50 @@ export function CampaignModal({
 }: BannerModalProps) {
   const isEditing = Boolean(initialData);
   const formId = useId();
-  const descriptionId = useId();
+  const formRef = useRef<HTMLFormElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [imageUrl, setImageUrl] = useState<string>(
-    initialData?.imageUrl || "",
-  );
-  const [imageError, setImageError] = useState(false);
+  const [title, setTitle] = useState(initialData?.title || "");
+  const [description, setDescription] = useState(initialData?.description || "");
+  const [imageUrl, setImageUrl] = useState<string>(initialData?.imageUrl || "");
+  const [isActive, setIsActive] = useState(initialData ? initialData.isActive : true);
+  const [errors, setErrors] = useState<FieldErrors<BannerField>>({});
+
+  const clearError = (field: BannerField) =>
+    setErrors((current) => (current[field] ? { ...current, [field]: undefined } : current));
 
   const handleFileSelect = (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-    const file = files[0];
-    if (!file.type.startsWith("image/")) {
-      toast.warning("Vui lòng chọn một tệp hình ảnh (.png, .jpg, .jpeg, .webp)");
+    const file = files?.[0];
+    if (!file) return;
+    const invalid = validateImageFile(file, BANNER_MAX_MB);
+    if (invalid) {
+      setErrors((current) => ({ ...current, imageUrl: invalid }));
       return;
     }
-    setImageError(false);
-    readFileAsDataUrl(file, (dataUrl) => {
-      setImageUrl(dataUrl);
-    });
+    clearError("imageUrl");
+    readFileAsDataUrl(file, setImageUrl);
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const formData = new FormData(event.currentTarget);
 
-    if (!imageUrl) {
-      setImageError(true);
+    const nextErrors: FieldErrors<BannerField> = {
+      title: validateText(title, { label: "Tiêu đề banner", required: true, min: 3, max: 120 }),
+      description: validateText(description, { label: "Mô tả", max: 300 }),
+      imageUrl: imageUrl ? undefined : "Vui lòng chọn hình ảnh cho banner.",
+    };
+    setErrors(nextErrors);
+    if (hasErrors(nextErrors)) {
+      focusFirstError(formRef.current);
       return;
     }
 
-    const payload: CreateBannerPayload = {
-      title: String(formData.get("title")).trim(),
-      description: String(formData.get("description") || "").trim() || undefined,
+    onSubmit({
+      title: collapseSpaces(title),
+      description: description.trim() || undefined,
       imageUrl: imageUrl.trim(),
-      isActive: formData.get("isActive") === "on",
-    };
-
-    onSubmit(payload);
+      isActive,
+    });
   };
 
   return (
@@ -100,28 +115,32 @@ export function CampaignModal({
         </>
       }
     >
-      <form id={formId} className="mt-4 flex flex-col gap-4" onSubmit={handleSubmit}>
+      <form id={formId} ref={formRef} noValidate className="mt-4 flex flex-col gap-4" onSubmit={handleSubmit}>
         <AdminInput
           label="Tiêu đề banner"
-          name="title"
           required
-          defaultValue={initialData?.title || ""}
+          maxLength={120}
+          value={title}
+          error={errors.title}
+          onChange={(event) => {
+            clearError("title");
+            setTitle(event.target.value);
+          }}
           placeholder="VD: Ưu đãi niềng răng thẩm mỹ 30%"
         />
 
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor={descriptionId} className="text-[13px] font-semibold text-slate-700">
-            Mô tả chi tiết
-          </label>
-          <textarea
-            id={descriptionId}
-            name="description"
-            rows={2}
-            defaultValue={initialData?.description || ""}
-            placeholder="Nhập thông điệp quảng cáo ngắn gọn..."
-            className={cn(adminControlClass, adminControlTone(), "w-full resize-none py-2.5 leading-relaxed")}
-          />
-        </div>
+        <AdminTextarea
+          label="Mô tả chi tiết"
+          rows={2}
+          maxLength={300}
+          value={description}
+          error={errors.description}
+          onChange={(value) => {
+            clearError("description");
+            setDescription(value);
+          }}
+          placeholder="Nhập thông điệp quảng cáo ngắn gọn..."
+        />
 
         <div className="flex flex-col gap-1.5">
           <span className="text-[13px] font-semibold text-slate-700">
@@ -131,9 +150,12 @@ export function CampaignModal({
           <input
             type="file"
             ref={fileInputRef}
-            accept="image/*"
+            accept={IMAGE_ACCEPT}
             className="hidden"
-            onChange={(e) => handleFileSelect(e.target.files)}
+            onChange={(e) => {
+              handleFileSelect(e.target.files);
+              e.target.value = "";
+            }}
           />
 
           {imageUrl ? (
@@ -162,10 +184,14 @@ export function CampaignModal({
                   </button>
                 </div>
               </div>
+              {errors.imageUrl ? (
+                <p className="mt-1.5 px-1 text-xs font-medium text-rose-600">{errors.imageUrl}</p>
+              ) : null}
             </div>
           ) : (
             <button
               type="button"
+              data-invalid={errors.imageUrl ? "true" : undefined}
               onClick={() => fileInputRef.current?.click()}
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => {
@@ -174,7 +200,7 @@ export function CampaignModal({
               }}
               className={cn(
                 "flex w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed p-7 text-center transition-all focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-brand/25",
-                imageError
+                errors.imageUrl
                   ? "border-red-300 bg-red-50/50"
                   : "border-slate-300 bg-slate-50/50 hover:border-brand hover:bg-brand-light/40",
               )}
@@ -183,9 +209,9 @@ export function CampaignModal({
                 <ImagesSquare size={24} weight="duotone" />
               </span>
               <span className="text-sm font-semibold text-slate-800">Kéo thả hoặc bấm để tải ảnh banner</span>
-              <span className="mt-1 text-xs text-slate-400">Hỗ trợ PNG, JPG, JPEG, WEBP</span>
-              {imageError ? (
-                <span className="mt-2 text-xs font-semibold text-red-500">Vui lòng chọn hình ảnh cho banner.</span>
+              <span className="mt-1 text-xs text-slate-400">PNG, JPG, WEBP · tối đa {BANNER_MAX_MB}MB · nên dùng ảnh ngang</span>
+              {errors.imageUrl ? (
+                <span className="mt-2 text-xs font-semibold text-red-500">{errors.imageUrl}</span>
               ) : null}
             </button>
           )}
@@ -194,8 +220,8 @@ export function CampaignModal({
         <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 transition-colors hover:bg-slate-50">
           <input
             type="checkbox"
-            name="isActive"
-            defaultChecked={initialData ? initialData.isActive : true}
+            checked={isActive}
+            onChange={(event) => setIsActive(event.target.checked)}
             className="h-4 w-4 rounded border-slate-300 accent-brand"
           />
           <span>

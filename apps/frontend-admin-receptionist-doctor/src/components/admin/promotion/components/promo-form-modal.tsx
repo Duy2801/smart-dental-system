@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowsClockwise,
@@ -24,6 +24,13 @@ import {
   AdminModal,
   AdminSelect,
   AdminTextarea as TextareaField,
+  collapseSpaces,
+  focusFirstError,
+  hasErrors,
+  todayISODate,
+  validateNumber,
+  validateText,
+  type FieldErrors,
 } from "@/src/components/admin/common";
 import { cn } from "@/src/lib/utils/cn";
 import { getServices } from "@/src/components/admin/service_pricing/service-pricing-api";
@@ -46,6 +53,16 @@ function generateVoucherCode(): string {
 }
 
 type ScopeType = "ALL" | "SERVICE" | "METHOD";
+
+type PromoField =
+  | "name"
+  | "description"
+  | "maxUses"
+  | "discountValue"
+  | "minOrderAmount"
+  | "scope"
+  | "startDate"
+  | "endDate";
 
 const scopeOptions: { value: ScopeType; label: string; description: string; icon: Icon }[] = [
   { value: "ALL", label: "Toàn hệ thống", description: "Áp dụng cho mọi dịch vụ", icon: Globe },
@@ -96,12 +113,16 @@ export function PromoFormModal({
   const [startDate, setStartDate] = useState<string>(() =>
     initialValue?.start_date
       ? new Date(initialValue.start_date).toISOString().slice(0, 10)
-      : new Date().toISOString().slice(0, 10)
+      : todayISODate()
   );
   const [endDate, setEndDate] = useState<string>(() =>
     initialValue?.end_date
       ? new Date(initialValue.end_date).toISOString().slice(0, 10)
-      : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+      : (() => {
+          const date = new Date(`${todayISODate()}T00:00:00`);
+          date.setDate(date.getDate() + 30);
+          return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+        })()
   );
   const [imageUrl, setImageUrl] = useState<string>(
     initialValue?.image_url ?? ""
@@ -124,7 +145,25 @@ export function PromoFormModal({
   );
 
   const [broadcastNotification, setBroadcastNotification] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<FieldErrors<PromoField>>({});
+  const formRef = useRef<HTMLFormElement>(null);
+  const today = todayISODate();
+  const originalStartDate = initialValue?.start_date
+    ? new Date(initialValue.start_date).toISOString().slice(0, 10)
+    : null;
+
+  /** Bọc setter để xóa lỗi của trường khi người dùng sửa lại */
+  const withClear =
+    <Value,>(field: PromoField | PromoField[], setter: (value: Value) => void) =>
+    (value: Value) => {
+      const fields = Array.isArray(field) ? field : [field];
+      setErrors((current) =>
+        fields.some((key) => current[key])
+          ? { ...current, ...Object.fromEntries(fields.map((key) => [key, undefined])) }
+          : current,
+      );
+      setter(value);
+    };
 
   // Flatten all treatment methods across services
   const allTreatmentMethods = services.flatMap((s) =>
@@ -138,58 +177,76 @@ export function PromoFormModal({
   const usedCount = initialValue?.used_count ?? 0;
   const minAllowedUses = isEditing ? usedCount : 1;
 
+  const validate = (): FieldErrors<PromoField> => {
+    const numericDiscount = discountValue === "" ? "" : Number(discountValue);
+    const numericMinOrder = minOrderAmount === "" ? 0 : Number(minOrderAmount);
+    const next: FieldErrors<PromoField> = {
+      name: validateText(name, { label: "Tên chương trình", required: true, min: 3, max: 150 }),
+      description: validateText(description, { label: "Mô tả", max: 1000 }),
+      maxUses: validateNumber(maxUses, {
+        label: "Giới hạn số lượt dùng",
+        min: Math.max(1, minAllowedUses),
+        max: 1_000_000,
+      }),
+      discountValue:
+        discountType === "PERCENTAGE"
+          ? validateNumber(numericDiscount, { label: "Mức giảm", min: 1, max: 100, unit: "%" })
+          : validateNumber(numericDiscount, { label: "Mức giảm", min: 1_000, max: 1_000_000_000, unit: "đ" }),
+      minOrderAmount: validateNumber(minOrderAmount, {
+        label: "Đơn hàng tối thiểu",
+        min: 0,
+        max: 10_000_000_000,
+        required: false,
+        unit: "đ",
+      }),
+      scope:
+        scopeType === "SERVICE" && !selectedServiceSlug
+          ? "Vui lòng chọn nhóm dịch vụ được áp dụng."
+          : scopeType === "METHOD" && !selectedMethodId
+            ? "Vui lòng chọn phương pháp điều trị được áp dụng."
+            : undefined,
+      startDate: !startDate
+        ? "Vui lòng chọn ngày bắt đầu."
+        : // Ngày bắt đầu mới không được ở quá khứ (giữ nguyên ngày cũ khi sửa thì cho phép)
+          startDate < today && startDate !== originalStartDate
+          ? "Ngày bắt đầu không được ở trong quá khứ."
+          : undefined,
+      endDate: !endDate
+        ? "Vui lòng chọn ngày kết thúc."
+        : startDate && endDate < startDate
+          ? "Ngày kết thúc phải sau hoặc trùng ngày bắt đầu."
+          : endDate < today
+            ? "Ngày kết thúc đã qua — voucher sẽ hết hạn ngay."
+            : undefined,
+    };
+    if (
+      !next.discountValue &&
+      discountType === "FIXED_AMOUNT" &&
+      numericMinOrder > 0 &&
+      Number(numericDiscount) > numericMinOrder
+    ) {
+      next.discountValue = "Mức giảm không được lớn hơn giá trị đơn hàng tối thiểu.";
+    }
+    return next;
+  };
+
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    setError(null);
 
-    const numericMaxUses = maxUses === "" ? 0 : Number(maxUses);
-    if (!numericMaxUses || numericMaxUses <= 0) {
-      setError("Vui lòng nhập giới hạn số lượt dùng hợp lệ (lớn hơn 0).");
-      return;
-    }
-    if (isEditing && numericMaxUses < usedCount) {
-      setError(
-        `Giới hạn số lượt dùng (${numericMaxUses}) không được ít hơn số lượt đã sử dụng (${usedCount}).`
-      );
+    const nextErrors = validate();
+    setErrors(nextErrors);
+    if (hasErrors(nextErrors)) {
+      focusFirstError(formRef.current);
       return;
     }
 
-    const numericDiscount = discountValue === "" ? 0 : Number(discountValue);
-    if (numericDiscount <= 0) {
-      setError("Mức giảm giá phải lớn hơn 0.");
-      return;
-    }
-    if (discountType === "PERCENTAGE" && numericDiscount > 100) {
-      setError("Mức giảm theo phần trăm không được vượt quá 100%.");
-      return;
-    }
-
-    if (!name.trim()) {
-      setError("Vui lòng nhập tên chương trình khuyến mãi.");
-      return;
-    }
-    if (scopeType === "SERVICE" && !selectedServiceSlug) {
-      setError("Vui lòng chọn nhóm dịch vụ được áp dụng.");
-      return;
-    }
-    if (scopeType === "METHOD" && !selectedMethodId) {
-      setError("Vui lòng chọn phương pháp điều trị được áp dụng.");
-      return;
-    }
-    if (!startDate || !endDate) {
-      setError("Vui lòng chọn đầy đủ thời gian bắt đầu và kết thúc.");
-      return;
-    }
-    if (endDate < startDate) {
-      setError("Ngày kết thúc phải sau hoặc trùng ngày bắt đầu.");
-      return;
-    }
-
+    const numericMaxUses = Number(maxUses);
+    const numericDiscount = Number(discountValue);
     const numericMinOrder = minOrderAmount === "" ? 0 : Number(minOrderAmount);
 
     const payload: SavePromotionPayload = {
       code: code.trim().toUpperCase(),
-      name: name.trim(),
+      name: collapseSpaces(name),
       description: description.trim(),
       discount_type: discountType,
       discount_value: numericDiscount,
@@ -230,16 +287,16 @@ export function PromoFormModal({
           <AdminButton variant="secondary" onClick={onClose} disabled={submitting}>
             Hủy
           </AdminButton>
-          {error ? (
+          {hasErrors(errors) ? (
             <p role="alert" className="flex items-center gap-1.5 text-xs font-semibold text-red-600">
               <WarningCircle size={16} weight="fill" className="shrink-0" />
-              {error}
+              Vui lòng kiểm tra lại các trường được đánh dấu.
             </p>
           ) : null}
         </>
       }
     >
-      <form id={formId} noValidate className="mt-4 flex flex-col gap-4" onSubmit={handleSubmit}>
+      <form id={formId} ref={formRef} noValidate className="mt-4 flex flex-col gap-4" onSubmit={handleSubmit}>
         <AdminFormSection title="Thông tin chương trình" icon={<Ticket size={15} weight="bold" />}>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
@@ -290,13 +347,11 @@ export function PromoFormModal({
               type="number"
               required
               min={minAllowedUses}
+              max={1_000_000}
+              inputMode="numeric"
               value={maxUses}
-              onChange={handleNumericChange(setMaxUses)}
-              onBlur={() => {
-                if (maxUses === "" || Number(maxUses) <= 0) {
-                  setMaxUses(isEditing ? usedCount : 100);
-                }
-              }}
+              error={errors.maxUses}
+              onChange={handleNumericChange(withClear("maxUses", setMaxUses))}
               className="font-mono"
               placeholder="100"
               hint={
@@ -310,16 +365,20 @@ export function PromoFormModal({
           <AdminInput
             label="Tên chương trình khuyến mãi"
             required
+            maxLength={150}
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            error={errors.name}
+            onChange={(e) => withClear("name", setName)(e.target.value)}
             placeholder="VD: Giảm giá niềng răng chào hè 2026"
           />
 
           <TextareaField
             label="Mô tả chương trình"
             rows={3}
+            maxLength={1000}
             value={description}
-            onChange={setDescription}
+            error={errors.description}
+            onChange={withClear("description", setDescription)}
             placeholder="Mô tả chi tiết điều kiện, đối tượng và phạm vi ưu đãi..."
           />
         </AdminFormSection>
@@ -352,7 +411,7 @@ export function PromoFormModal({
                       type="button"
                       role="radio"
                       aria-checked={selected}
-                      onClick={() => setDiscountType(option.value)}
+                      onClick={() => withClear("discountValue", setDiscountType)(option.value)}
                       className={cn(
                         "inline-flex items-center justify-center gap-1.5 rounded-lg text-xs font-bold transition-all",
                         selected ? "bg-white text-brand shadow-sm ring-1 ring-slate-900/5" : "text-slate-500 hover:text-slate-800",
@@ -370,28 +429,24 @@ export function PromoFormModal({
               label={discountType === "PERCENTAGE" ? "Mức giảm (%)" : "Mức giảm (VNĐ)"}
               type="number"
               required
-              step={discountType === "PERCENTAGE" ? 1 : 50000}
+              min={discountType === "PERCENTAGE" ? 1 : 1000}
+              max={discountType === "PERCENTAGE" ? 100 : undefined}
+              inputMode="numeric"
               value={discountValue}
-              onChange={handleNumericChange(setDiscountValue)}
-              onBlur={() => {
-                if (discountValue === "" || Number(discountValue) <= 0) {
-                  setDiscountValue(10);
-                }
-              }}
+              error={errors.discountValue}
+              onChange={handleNumericChange(withClear("discountValue", setDiscountValue))}
               className="font-mono font-bold text-brand"
+              hint={discountType === "PERCENTAGE" ? "Từ 1 đến 100%." : "Tối thiểu 1.000đ."}
             />
 
             <AdminInput
               label="Đơn hàng tối thiểu (VNĐ)"
               type="number"
-              step={50000}
+              min={0}
+              inputMode="numeric"
               value={minOrderAmount}
-              onChange={handleNumericChange(setMinOrderAmount)}
-              onBlur={() => {
-                if (minOrderAmount === "" || Number(minOrderAmount) < 0) {
-                  setMinOrderAmount(0);
-                }
-              }}
+              error={errors.minOrderAmount}
+              onChange={handleNumericChange(withClear(["minOrderAmount", "discountValue"], setMinOrderAmount))}
               className="font-mono"
               placeholder="0"
               hint="Để 0 nếu không yêu cầu."
@@ -416,7 +471,7 @@ export function PromoFormModal({
                     type="radio"
                     name="scopeType"
                     checked={selected}
-                    onChange={() => setScopeType(option.value)}
+                    onChange={() => withClear("scope", setScopeType)(option.value)}
                     className="sr-only"
                   />
                   <span
@@ -443,7 +498,8 @@ export function PromoFormModal({
               label="Nhóm dịch vụ áp dụng"
               required
               value={selectedServiceSlug}
-              onChange={(e) => setSelectedServiceSlug(e.target.value)}
+              error={errors.scope}
+              onChange={(e) => withClear("scope", setSelectedServiceSlug)(e.target.value)}
             >
               <option value="">-- Chọn nhóm dịch vụ --</option>
               {services.map((s) => (
@@ -459,7 +515,8 @@ export function PromoFormModal({
               label="Phương pháp điều trị áp dụng"
               required
               value={selectedMethodId}
-              onChange={(e) => setSelectedMethodId(e.target.value)}
+              error={errors.scope}
+              onChange={(e) => withClear("scope", setSelectedMethodId)(e.target.value)}
             >
               <option value="">-- Chọn phương pháp điều trị --</option>
               {allTreatmentMethods.map((m) => (
@@ -477,16 +534,19 @@ export function PromoFormModal({
               label="Từ ngày"
               type="date"
               required
+              min={isEditing ? undefined : today}
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              error={errors.startDate}
+              onChange={(e) => withClear(["startDate", "endDate"], setStartDate)(e.target.value)}
             />
             <AdminInput
               label="Đến ngày"
               type="date"
               required
-              min={startDate}
+              min={startDate > today ? startDate : today}
               value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
+              error={errors.endDate}
+              onChange={(e) => withClear("endDate", setEndDate)(e.target.value)}
             />
           </div>
         </AdminFormSection>
