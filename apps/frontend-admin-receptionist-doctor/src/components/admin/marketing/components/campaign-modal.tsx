@@ -86,15 +86,16 @@ export function CampaignModal({
           : "Tải ảnh banner và nhập thông tin để hiển thị trên ứng dụng."
       }
       icon={isEditing ? <PencilSimple size={20} weight="duotone" /> : <Megaphone size={20} weight="duotone" />}
-      size="sm"
+      size="md"
+      variant="drawer"
       onClose={onClose}
       footer={
         <>
-          <AdminButton variant="secondary" onClick={onClose} disabled={loading}>
-            Hủy
-          </AdminButton>
           <AdminButton type="submit" form={formId} loading={loading}>
             {loading ? "Đang xử lý..." : isEditing ? "Lưu cập nhật" : "Tạo banner"}
+          </AdminButton>
+          <AdminButton variant="secondary" onClick={onClose} disabled={loading}>
+            Hủy
           </AdminButton>
         </>
       }
@@ -199,7 +200,7 @@ export function CampaignModal({
           />
           <span>
             <span className="block text-sm font-semibold text-slate-800">Hiển thị ngay trên trang chủ</span>
-            <span className="block text-xs text-slate-500">Bỏ chọn để lưu banner ở trạng thái tạm ẩn.</span>
+            <span className="block text-xs text-slate-500">Trang chủ chỉ hiển thị 1 banner — bật banner này sẽ tự động ẩn banner đang hiển thị khác.</span>
           </span>
         </label>
       </form>

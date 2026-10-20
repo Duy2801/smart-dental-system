@@ -13,7 +13,6 @@ type ScheduleToolbarProps = {
   onOpenAuto: () => void;
   onOpenManual: () => void;
   scheduleDisabled: boolean;
-  selectedDoctor?: Doctor;
 };
 
 export function ScheduleToolbar({
@@ -24,7 +23,6 @@ export function ScheduleToolbar({
   onOpenAuto,
   onOpenManual,
   scheduleDisabled,
-  selectedDoctor,
 }: ScheduleToolbarProps) {
   const actionDisabled = !doctorId || scheduleDisabled;
 
@@ -61,18 +59,6 @@ export function ScheduleToolbar({
           ))
         )}
       </AdminFilterSelect>
-      {selectedDoctor ? (
-        <div className="flex flex-wrap items-center gap-1.5 text-xs">
-          <span className="rounded-md bg-slate-100 px-2 py-1 font-mono font-bold text-slate-700">
-            {selectedDoctor.doctorCode}
-          </span>
-          {selectedDoctor.specialization ? (
-            <span className="rounded-md bg-brand-light px-2 py-1 font-semibold text-brand">
-              {selectedDoctor.specialization}
-            </span>
-          ) : null}
-        </div>
-      ) : null}
     </AdminToolbar>
   );
 }

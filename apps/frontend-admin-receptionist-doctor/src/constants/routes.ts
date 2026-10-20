@@ -9,7 +9,6 @@ export const ROUTES = {
     SERVICES: "/admin/services",
     PROMOTIONS: "/admin/promotions",
     FINANCE: "/admin/finance",
-    REPORTS: "/admin/reports",
     REVIEWS: "/admin/reviews",
     MARKETING: "/admin/marketing",
     SETTINGS: "/admin/settings",

@@ -28,11 +28,6 @@ const links = [
     description: "Doanh thu dịch vụ",
   },
   {
-    href: ROUTES.ADMIN.REPORTS,
-    label: "Báo cáo",
-    description: "Xuất PDF/Excel",
-  },
-  {
     href: ROUTES.ADMIN.MARKETING,
     label: "Marketing",
     description: "Gửi email ưu đãi",

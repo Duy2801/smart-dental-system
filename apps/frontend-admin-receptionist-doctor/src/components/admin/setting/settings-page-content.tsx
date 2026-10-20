@@ -228,16 +228,14 @@ export function SettingsPageContent() {
       <SettingsSidebar activeTab={activeTab} onTabChange={setActiveTab} />
 
       <div className="flex min-w-0 flex-1 flex-col pb-6">
-        <div className="mb-5 space-y-3 empty:hidden">
-          <AdminAlert variant="success" message={successMessage || null} />
-          <AdminAlert
-            message={
-              isError || errorMessage
-                ? errorMessage || "Không tải được cấu hình thông tin phòng khám từ máy chủ."
-                : null
-            }
-          />
-        </div>
+        <AdminAlert variant="success" message={successMessage || null} />
+        <AdminAlert
+          message={
+            isError || errorMessage
+              ? errorMessage || "Không tải được cấu hình thông tin phòng khám từ máy chủ."
+              : null
+          }
+        />
 
         {isLoading ? <SkeletonSettings /> : null}
 

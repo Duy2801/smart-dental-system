@@ -1,0 +1,56 @@
+# Đặt file này tại: .github/workflows/deploy-backend.yml
+# Mỗi lần push lên nhánh main có thay đổi ở backend -> SSH vào VM, pull code, build, migrate, restart pm2.
+
+name: Deploy Backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/backend/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/deploy-backend.yml"
+  workflow_dispatch: # cho phép bấm chạy tay trong tab Actions
+
+concurrency:
+  group: deploy-backend
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Deploy qua SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST_BE }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          command_timeout: 15m
+          script: |
+            set -e
+            cd ~/smart-dental-system
+
+            echo ">>> Lấy code mới nhất"
+            git fetch origin main
+            git reset --hard origin/main
+
+            echo ">>> Cài dependency"
+            pnpm install --frozen-lockfile --filter "backend..."
+
+            echo ">>> Build backend"
+            pnpm --filter backend build
+
+            echo ">>> Chạy migration database"
+            cd apps/backend
+            npx prisma migrate deploy
+
+            echo ">>> Khởi động lại app"
+            pm2 restart dental-be --update-env
+            pm2 save
+
+            sleep 5
+            curl -fsS -o /dev/null http://localhost:3000/ && echo ">>> Deploy thành công"

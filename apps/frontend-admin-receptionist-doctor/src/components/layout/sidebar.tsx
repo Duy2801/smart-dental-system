@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import {
   CalendarBlank,
   CalendarCheck,
-  ChartBar,
   ChatsCircle,
   ClipboardText,
   CreditCard,
@@ -55,7 +54,6 @@ const NAV_ICONS: Record<string, Icon> = {
   [ROUTES.ADMIN.SERVICES]: Tooth,
   [ROUTES.ADMIN.PROMOTIONS]: Ticket,
   [ROUTES.ADMIN.FINANCE]: Wallet,
-  [ROUTES.ADMIN.REPORTS]: ChartBar,
   [ROUTES.ADMIN.MARKETING]: Megaphone,
   [ROUTES.ADMIN.SETTINGS]: GearSix,
   [ROUTES.RECEPTIONIST.ROOT]: SquaresFour,

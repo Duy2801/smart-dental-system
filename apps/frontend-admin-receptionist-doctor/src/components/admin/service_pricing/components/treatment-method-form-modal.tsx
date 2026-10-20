@@ -73,14 +73,15 @@ export function TreatmentMethodFormModal({
       description={`Thuộc nhóm dịch vụ "${service.name}" (${service.category})`}
       icon={<Stethoscope size={20} weight="duotone" />}
       size="md"
+      variant="drawer"
       onClose={onClose}
       footer={
         <>
-          <AdminButton variant="secondary" onClick={onClose} disabled={submitting}>
-            Hủy
-          </AdminButton>
           <AdminButton type="submit" form={formId} loading={submitting}>
             {submitting ? "Đang lưu..." : "Lưu phương pháp"}
+          </AdminButton>
+          <AdminButton variant="secondary" onClick={onClose} disabled={submitting}>
+            Hủy
           </AdminButton>
         </>
       }

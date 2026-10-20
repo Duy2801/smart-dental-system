@@ -7,7 +7,6 @@ export const adminNavItems = [
   { label: "Dịch vụ & Giá", href: ROUTES.ADMIN.SERVICES },
   { label: "Khuyến mãi", href: ROUTES.ADMIN.PROMOTIONS },
   { label: "Tài chính", href: ROUTES.ADMIN.FINANCE },
-  { label: "Báo cáo", href: ROUTES.ADMIN.REPORTS },
   { label: "Marketing", href: ROUTES.ADMIN.MARKETING },
   { label: "Cài đặt", href: ROUTES.ADMIN.SETTINGS },
 ];

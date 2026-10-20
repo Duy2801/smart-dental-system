@@ -267,14 +267,16 @@ export function ServiceFormModal({
       title={title}
       description="Quản lý thông tin chung nhóm dịch vụ, hình ảnh, quy trình và FAQ."
       icon={<Tooth size={20} weight="duotone" />}
+      size="md"
+      variant="drawer"
       onClose={onClose}
       footer={
         <>
-          <AdminButton variant="secondary" onClick={onClose} disabled={submitting}>
-            Hủy
-          </AdminButton>
           <AdminButton type="submit" form={formId} loading={submitting}>
             {submitting ? "Đang lưu..." : "Lưu dịch vụ"}
+          </AdminButton>
+          <AdminButton variant="secondary" onClick={onClose} disabled={submitting}>
+            Hủy
           </AdminButton>
         </>
       }

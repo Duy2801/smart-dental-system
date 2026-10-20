@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useIsFetching, useQueryClient } from "@tanstack/react-query";
-import { ArrowsCounterClockwise, CheckCircle, Clock } from "@phosphor-icons/react";
+import { ArrowsCounterClockwise, CheckCircle } from "@phosphor-icons/react";
 import { cn } from "@/src/lib/utils/cn";
 
 export function DataRefreshControl() {
@@ -61,19 +61,6 @@ export function DataRefreshControl() {
 
   return (
     <div className="flex items-center gap-2">
-      {/* Auto-sync indicator badge */}
-      <div
-        className="hidden xl:flex items-center gap-1.5 rounded-full border border-slate-200/80 bg-slate-50/90 px-2.5 py-1 text-[11px] font-medium text-slate-600 shadow-2xs"
-        title="Dữ liệu được lưu cache để tải trang tức thì và tự động đồng bộ lại mỗi 15 phút"
-      >
-        <span className="relative flex h-2 w-2">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-        </span>
-        <Clock size={12} className="text-slate-400" />
-        <span>Tự động cập nhật mỗi 15p</span>
-      </div>
-
       {/* Manual refresh button with live timestamp */}
       <div className="flex items-center rounded-xl border border-border bg-white p-1 shadow-2xs">
         <button

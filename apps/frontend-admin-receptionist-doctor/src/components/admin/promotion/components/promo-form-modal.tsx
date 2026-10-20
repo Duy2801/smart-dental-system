@@ -219,21 +219,23 @@ export function PromoFormModal({
       title={isEditing ? `Sửa voucher ${initialValue?.code}` : "Tạo voucher khuyến mãi mới"}
       description="Thiết lập chương trình khuyến mãi, phạm vi áp dụng và thời hạn cho khách hàng."
       icon={<Ticket size={20} weight="duotone" />}
+      size="md"
+      variant="drawer"
       onClose={onClose}
       footer={
         <>
+          <AdminButton type="submit" form={formId} loading={submitting}>
+            {submitting ? "Đang lưu..." : isEditing ? "Cập nhật voucher" : "Tạo voucher"}
+          </AdminButton>
+          <AdminButton variant="secondary" onClick={onClose} disabled={submitting}>
+            Hủy
+          </AdminButton>
           {error ? (
-            <p role="alert" className="mr-auto flex items-center gap-1.5 text-xs font-semibold text-red-600">
+            <p role="alert" className="flex items-center gap-1.5 text-xs font-semibold text-red-600">
               <WarningCircle size={16} weight="fill" className="shrink-0" />
               {error}
             </p>
           ) : null}
-          <AdminButton variant="secondary" onClick={onClose} disabled={submitting}>
-            Hủy
-          </AdminButton>
-          <AdminButton type="submit" form={formId} loading={submitting}>
-            {submitting ? "Đang lưu..." : isEditing ? "Cập nhật voucher" : "Tạo voucher"}
-          </AdminButton>
         </>
       }
     >

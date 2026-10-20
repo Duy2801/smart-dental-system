@@ -93,11 +93,7 @@ export function GeneralSettingsPanel({
             ) : null}
           </div>
         </div>
-        {logoError ? (
-          <div className="mt-4">
-            <AdminAlert message={logoError} />
-          </div>
-        ) : null}
+        <AdminAlert message={logoError || null} />
       </AdminCard>
 
       <AdminCard
