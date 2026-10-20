@@ -5,19 +5,7 @@
 **Scope:** Public (logged-out) patient frontend: home, services, doctors, promotions, legal pages, auth pages, login-gated pages, search, floating chat widgets (opened only). Desktop 1440x900 and mobile 390x844.
 **Tester:** Hermes Agent (automated exploratory QA)
 
----
 
-## Executive Summary
-
-| Severity | Count |
-|----------|-------|
-| Critical | 0 |
-| High | 1 |
-| Medium | 5 |
-| Low | 6 |
-| **Total** | **12** |
-
-**Overall assessment:** The UI is polished and stable. I saw no JS exceptions, broken images or mobile overflow. The main problems are a login form that ships with demo credentials prefilled, one dead footer link, an inconsistent login gate on "Tư vấn", and demo/placeholder content (prices, licence number, stock images) that would mislead real patients.
 
 ---
 
