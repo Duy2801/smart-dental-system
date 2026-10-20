@@ -39,7 +39,7 @@ export function useBookingAuthGuard({
           ? "/appointment"
           : `${window.location.pathname}${window.location.search}`;
 
-      router.push(`/auth/login?redirect=${encodeURIComponent(redirectPath)}`);
+      router.push(`/login?redirect=${encodeURIComponent(redirectPath)}`);
       return false;
     }
   }

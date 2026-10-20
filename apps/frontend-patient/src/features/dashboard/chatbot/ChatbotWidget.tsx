@@ -59,7 +59,7 @@ export function ChatbotWidget() {
 
   const goToLogin = () => {
     const redirect = `${window.location.pathname}${window.location.search}`;
-    window.location.href = `/auth/login?redirect=${encodeURIComponent(redirect)}`;
+    window.location.href = `/login?redirect=${encodeURIComponent(redirect)}`;
   };
 
   const scrollToBottom = () => {

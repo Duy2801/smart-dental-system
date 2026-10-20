@@ -182,7 +182,7 @@ export function RegisterForm({
         <p className="mt-5 border-t border-slate-100 pt-3.5 text-center text-xs text-slate-500">
           Đã có tài khoản?{" "}
           <Link
-            href="/auth/login"
+            href="/login"
             className="font-extrabold text-[#0863c5] transition hover:underline"
           >
             Đăng nhập ngay

@@ -182,7 +182,7 @@ function OtpVerificationCard({
             {resending ? "Đang gửi lại..." : "Gửi lại mã OTP qua Email"}
           </button>
           <Link
-            href="/auth/login"
+            href="/login"
             className="text-slate-500 hover:text-slate-800 hover:underline"
           >
             Quay lại trang đăng nhập

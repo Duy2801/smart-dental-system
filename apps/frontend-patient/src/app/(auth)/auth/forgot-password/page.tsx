@@ -89,7 +89,7 @@ export default function ForgotPasswordPage() {
           <p className="mt-5 border-t border-slate-100 pt-3.5 text-center text-xs text-slate-500">
             Nhớ lại mật khẩu?{" "}
             <Link
-              href="/auth/login"
+              href="/login"
               className="font-extrabold text-[#0863c5] transition hover:underline"
             >
               Đăng nhập ngay
