@@ -52,5 +52,15 @@ jobs:
             pm2 restart dental-be --update-env
             pm2 save
 
-            sleep 5
-            curl -fsS -o /dev/null http://localhost:3000/ && echo ">>> Deploy thành công"
+            echo ">>> Chờ app khởi động (tối đa 90 giây)"
+            for i in $(seq 1 30); do
+              if curl -fsS -o /dev/null http://localhost:3000/; then
+                echo ">>> Deploy thành công sau $((i*3)) giây"
+                exit 0
+              fi
+              sleep 3
+            done
+
+            echo ">>> App không khởi động được, log gần nhất:"
+            pm2 logs dental-be --lines 60 --nostream
+            exit 1
