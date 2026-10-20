@@ -32,6 +32,10 @@ type ChatbotApiPayload = {
 
 const CHATBOT_REQUEST_TIMEOUT_MS = 75_000;
 
+// Khách chưa đăng nhập vẫn chat bình thường; AI chỉ yêu cầu đăng nhập khi đặt lịch.
+const isLoginRequiredReply = (text: string) =>
+  text.toLowerCase().includes("vui lòng đăng nhập");
+
 const initialMessages: ChatMessage[] = [
   {
     id: 1,
@@ -52,6 +56,11 @@ export function ChatbotWidget() {
     (state) => state.login
   );
   const isLoggedIn = isAuthenticated && Boolean(accessToken);
+
+  const goToLogin = () => {
+    const redirect = `${window.location.pathname}${window.location.search}`;
+    window.location.href = `/auth/login?redirect=${encodeURIComponent(redirect)}`;
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -251,6 +260,18 @@ export function ChatbotWidget() {
                     ))}
                   </div>
                 )}
+
+                {message.sender === "bot" &&
+                  !isLoggedIn &&
+                  isLoginRequiredReply(message.text) && (
+                    <button
+                      type="button"
+                      onClick={goToLogin}
+                      className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-[#0863c5] px-3 py-1.5 text-[10px] sm:text-[11px] font-bold text-white shadow-xs transition hover:bg-[#0756aa] active:scale-95"
+                    >
+                      Đăng nhập để đặt lịch
+                    </button>
+                  )}
               </div>
             ))}
 

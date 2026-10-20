@@ -1,4 +1,5 @@
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6';
+import { useNavigation } from '@react-navigation/native';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -14,6 +15,7 @@ import { Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSelector } from 'react-redux';
 import { Screen } from '~src/components/ui';
+import { SCREEN_NAME } from '~src/constants/screenName';
 import { useKeyboardOverlap } from '~src/hooks/useKeyboardOverlap';
 import type { RootState } from '~src/reducers/store';
 import {
@@ -41,6 +43,10 @@ const quickSuggestions = [
   'Giờ làm việc phòng khám',
 ];
 
+// Khách chưa đăng nhập vẫn chat bình thường; AI chỉ yêu cầu đăng nhập khi đặt lịch.
+const isLoginRequiredReply = (text: string) =>
+  text.toLowerCase().includes('vui lòng đăng nhập');
+
 const initialMessages: ChatMessage[] = [
   {
     id: 1,
@@ -59,6 +65,7 @@ export default function DentalAIScreen({ onDismiss }: DentalAIScreenProps) {
     (state: RootState) => state.login.accessToken,
   );
   const isLoggedIn = Boolean(accessToken);
+  const navigation = useNavigation<any>();
 
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -196,6 +203,16 @@ export default function DentalAIScreen({ onDismiss }: DentalAIScreenProps) {
             )}
           </View>
         ) : null}
+
+        {isBot && !isLoggedIn && isLoginRequiredReply(item.text) ? (
+          <TouchableOpacity
+            activeOpacity={0.86}
+            onPress={() => navigation.navigate(SCREEN_NAME.PATIENT_LOGIN)}
+            style={styles.loginButton}
+          >
+            <Text style={styles.loginButtonText}>Đăng nhập để đặt lịch</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
     );
   };
@@ -326,6 +343,19 @@ export default function DentalAIScreen({ onDismiss }: DentalAIScreenProps) {
 }
 
 const styles = StyleSheet.create({
+  loginButton: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#0863c5',
+    borderRadius: 999,
+    marginTop: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  loginButtonText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
   backButton: {
     alignItems: 'center',
     height: 36,

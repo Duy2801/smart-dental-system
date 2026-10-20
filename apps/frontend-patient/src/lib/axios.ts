@@ -87,7 +87,18 @@ const clearAuthState = () => {
   store.dispatch(logout());
 };
 
-const API_ORIGIN = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+const redirectToLogin = () => {
+  if (
+    typeof window === "undefined" ||
+    window.location.pathname.startsWith("/auth")
+  ) {
+    return;
+  }
+  const redirect = `${window.location.pathname}${window.location.search}`;
+  window.location.href = `/auth/login?redirect=${encodeURIComponent(redirect)}`;
+};
+
+const API_ORIGIN =(process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
 
 const apiClient = axios.create({
   baseURL: `${API_ORIGIN}/api/v1`,
@@ -203,14 +214,13 @@ apiClient.interceptors.response.use(
       return Promise.reject(error);
     }
 
+    // Khách chưa đăng nhập vẫn được xem trang công khai: chỉ đá về trang
+    // đăng nhập khi người dùng đã có phiên và phiên đó hết hạn.
+    const hadSession = Boolean(getAccessToken());
+
     if (originalRequest._retry) {
       clearAuthState();
-      if (
-        typeof window !== "undefined" &&
-        window.location.pathname !== "/auth/login"
-      ) {
-        window.location.href = "/auth/login";
-      }
+      redirectToLogin();
       return Promise.reject(error);
     }
 
@@ -250,12 +260,7 @@ apiClient.interceptors.response.use(
     } catch (refreshError) {
       processQueue(refreshError, null);
       clearAuthState();
-      if (
-        typeof window !== "undefined" &&
-        window.location.pathname !== "/auth/login"
-      ) {
-        window.location.href = "/auth/login";
-      }
+      if (hadSession) redirectToLogin();
       return Promise.reject(refreshError);
     } finally {
       isRefreshing = false;
