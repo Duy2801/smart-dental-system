@@ -98,8 +98,12 @@ jobs:
             cd apps/backend
             npx prisma migrate deploy
 
-            echo ">>> Khởi động lại app"
-            pm2 restart dental-be --update-env
+            echo ">>> Khởi động app (start lần đầu, restart các lần sau)"
+            if pm2 describe dental-be >/dev/null 2>&1; then
+              pm2 restart dental-be --update-env
+            else
+              pm2 start dist/src/main.js --name dental-be --update-env
+            fi
             pm2 save
 
             echo ">>> Chờ app khởi động (tối đa 90 giây)"
