@@ -52,11 +52,6 @@ Docs: http://127.0.0.1:8001/docs
 | OpenAI | `LLM_PROVIDER=openai` + `OPENAI_API_KEY=` | https://platform.openai.com/api-keys |
 | Gemini | `LLM_PROVIDER=gemini` + `GEMINI_API_KEY=` | https://aistudio.google.com/apikey |
 
-3. Restart `pnpm dev` (đổi `.env` không luôn tự reload).
-
-`.env` đã nằm trong `.gitignore` — **đừng commit key**.
-
-## Luồng hệ thống
 
 ```
 Patient / Doctor UI  →  NestJS (apps/backend)  →  AI Service (apps/ai-service)
