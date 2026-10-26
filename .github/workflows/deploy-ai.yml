@@ -40,8 +40,12 @@ jobs:
             cd apps/ai-service
             .venv/bin/pip install -q -r requirements.txt
 
-            echo ">>> Khởi động lại AI service"
-            pm2 restart dental-ai --update-env
+            echo ">>> Khởi động AI service (start lần đầu, restart các lần sau)"
+            if pm2 describe dental-ai >/dev/null 2>&1; then
+              pm2 restart dental-ai --update-env
+            else
+              pm2 start .venv/bin/python --name dental-ai --interpreter none --cwd "$PWD" -- -m uvicorn app.main:app --host 0.0.0.0 --port 8001
+            fi
             pm2 save
 
             echo ">>> Chờ AI service khởi động (tối đa 60 giây)"
