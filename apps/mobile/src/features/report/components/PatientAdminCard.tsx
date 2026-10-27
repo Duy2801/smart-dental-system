@@ -62,10 +62,6 @@ export function PatientAdminCard({ patient, recordDate }: PatientAdminCardProps)
       : 'Khác';
 
   const initials = getInitials(patient?.fullName || '');
-  const hasAllergy = Boolean(
-    patient?.medicalHistory &&
-      /dị ứng|allergy|penicillin|kháng sinh/i.test(patient.medicalHistory),
-  );
 
   return (
     <View style={styles.card}>
@@ -115,20 +111,6 @@ export function PatientAdminCard({ patient, recordDate }: PatientAdminCardProps)
           )}
         </View>
       </View>
-
-      {/* 3. Medical History & Allergy Alert */}
-      {patient?.medicalHistory ? (
-        <View style={[styles.historyBox, hasAllergy && styles.historyBoxAlert]}>
-          <View style={styles.historyContent}>
-            <Text style={[styles.historyLabel, hasAllergy && styles.historyLabelAlert]}>
-              {hasAllergy ? 'CẢNH BÁO TIỀN SỬ DỊ ỨNG THUỐC' : 'TIỀN SỬ Y KHOA & SỨC KHỎE'}
-            </Text>
-            <Text style={[styles.historyValue, hasAllergy && styles.historyValueAlert]}>
-              {patient.medicalHistory}
-            </Text>
-          </View>
-        </View>
-      ) : null}
     </View>
   );
 }
@@ -286,41 +268,5 @@ const styles = StyleSheet.create({
   },
   chipValueHighlight: {
     color: '#07366f',
-  },
-  historyBox: {
-    backgroundColor: '#F8FAFC',
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 12,
-    padding: 12,
-  },
-  historyBoxAlert: {
-    backgroundColor: '#FEF2F2',
-    borderColor: '#FECDD3',
-  },
-  historyContent: {
-    flex: 1,
-  },
-  historyLabel: {
-    color: '#0863c5',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  historyLabelAlert: {
-    color: '#DC2626',
-  },
-  historyValue: {
-    color: '#334155',
-    fontSize: 12,
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  historyValueAlert: {
-    color: '#991B1B',
-    fontWeight: '700',
   },
 });

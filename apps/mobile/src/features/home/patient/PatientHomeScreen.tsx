@@ -375,6 +375,8 @@ export default function PatientHomeScreen() {
       onAppointmentPress: goToAppointment,
       onConsultationPress: goToConsultation,
       onDoctorsPress: goToDoctorSearch,
+      onDoctorDetailPress: (doctorId: string) =>
+        navigation.navigate(SCREEN_NAME.PATIENT_DOCTOR_DETAIL, { doctorId }),
       onPromotionsPress: () =>
         navigation.navigate(SCREEN_NAME.PATIENT_PROMOTIONS),
       onServicePress: goToServiceSearch,

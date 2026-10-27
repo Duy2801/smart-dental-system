@@ -1,4 +1,4 @@
-"use client";
+Xin chào. Bạn có thể... kiểm tra kỹ. Cái việc chọn chúng tôi từ cái khúc này à, cái tiêu chuẩn của nó chỉ có nhiêu đây thôi à. Với lại mãi giờ chúng tôi sẽ có tiền. Xin chào."use client";
 
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
@@ -273,7 +273,21 @@ export function DoctorDetailExperience({ doctorId }: { doctorId: string }) {
                       alt={certificate.title}
                       className="aspect-[16/9] w-full object-cover"
                     />
-                  ) : null}
+                  ) : (
+                    // Chưa có ảnh scan thật: hiển thị huy hiệu chứng nhận thay vì ảnh minh họa
+                    <div className="relative flex aspect-[16/9] w-full flex-col items-center justify-center gap-2 overflow-hidden bg-gradient-to-br from-[#eff6ff] via-white to-[#ecfeff] p-4 text-center">
+                      <div className="absolute inset-3 rounded-xl border border-dashed border-blue-200" />
+                      <span className="relative grid h-14 w-14 place-items-center rounded-full bg-[#0058bc] text-white shadow-lg shadow-blue-200 ring-4 ring-blue-100">
+                        <DashboardIcon name="shield" className="h-7 w-7" />
+                      </span>
+                      <p className="relative text-[11px] font-bold uppercase tracking-[0.18em] text-[#0058bc]">
+                        Chứng nhận chuyên môn
+                      </p>
+                      <p className="relative line-clamp-1 text-xs font-semibold text-slate-500">
+                        {certificate.issuer}
+                      </p>
+                    </div>
+                  )}
                   <div className="p-4">
                     <h3 className="font-bold text-slate-900">
                       {certificate.title}

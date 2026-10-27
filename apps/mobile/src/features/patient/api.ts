@@ -69,6 +69,45 @@ export type PatientDoctor = {
   initials: string;
 };
 
+export type DoctorEducation = {
+  id: string;
+  degree: string;
+  school: string;
+  graduationYear?: number | null;
+  description?: string | null;
+};
+
+export type DoctorCertificate = {
+  id: string;
+  title: string;
+  issuer: string;
+  issuedAt?: string | null;
+  imageUrl?: string | null;
+  description?: string | null;
+};
+
+export type DoctorMedia = {
+  id: string;
+  url: string;
+  alt?: string | null;
+};
+
+export type DoctorReview = {
+  id: string;
+  rating: number;
+  comment?: string | null;
+  patientName: string;
+  serviceName: string;
+};
+
+export type PatientDoctorDetail = PatientDoctor & {
+  educations: DoctorEducation[];
+  certificates: DoctorCertificate[];
+  media: DoctorMedia[];
+  reviews: DoctorReview[];
+  averageRating: number;
+};
+
 export type PatientPromotion = {
   id: string;
   name: string;
@@ -284,6 +323,48 @@ export const getPatientDoctors = async (): Promise<PatientDoctor[]> => {
         initials: getInitials(name) || 'BS',
       };
     });
+};
+
+// Hồ sơ chi tiết một bác sĩ — cùng nguồn dữ liệu với trang /doctor/[id] trên web
+export const getPatientDoctorDetail = async (
+  id: string,
+): Promise<PatientDoctorDetail> => {
+  const response = await api.get(`/doctors/${id}`);
+  const item = unwrapData<AnyRecord>(response) ?? {};
+  const name = item.user?.fullName || item.fullName || 'Bác sĩ nha khoa';
+  const reviews: AnyRecord[] = Array.isArray(item.reviews) ? item.reviews : [];
+  const averageRating = reviews.length
+    ? reviews.reduce((total, review) => total + asNumber(review.rating), 0) /
+      reviews.length
+    : 0;
+
+  return {
+    avatarUrl: item.avatarUrl || null,
+    bio:
+      item.bio ||
+      'Bác sĩ đang cập nhật phần giới thiệu chuyên môn và triết lý điều trị.',
+    bullets: [],
+    doctorCode: item.doctorCode,
+    id: String(item.id ?? id),
+    name,
+    specialization: item.specialization || 'Răng Hàm Mặt',
+    position: item.position || 'Bác sĩ điều trị',
+    workplace: item.workplace || 'Smart Dental',
+    yearsExperience: asNumber(item.yearsExperience),
+    initials: getInitials(name) || 'BS',
+    educations: Array.isArray(item.educations) ? item.educations : [],
+    certificates: Array.isArray(item.certificates) ? item.certificates : [],
+    media: Array.isArray(item.media) ? item.media : [],
+    reviews: reviews.map(review => ({
+      id: String(review.id),
+      rating: asNumber(review.rating),
+      comment: review.comment,
+      patientName: review.patient?.user?.fullName || 'Bệnh nhân ẩn danh',
+      serviceName:
+        review.appointment?.service?.name || 'Khám & Điều trị nha khoa',
+    })),
+    averageRating: Number(averageRating.toFixed(1)),
+  };
 };
 
 export const getPatientPromotions = async (search?: string): Promise<PatientPromotion[]> => {

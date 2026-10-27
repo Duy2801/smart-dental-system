@@ -26,6 +26,8 @@ type ActionHandlers = {
   onAppointmentPress: (serviceId?: string, methodId?: string) => void;
   onConsultationPress: () => void;
   onDoctorsPress: (keyword?: string) => void;
+  /** Mở trang hồ sơ chi tiết một bác sĩ (giống /doctor/[id] trên web) */
+  onDoctorDetailPress: (doctorId: string) => void;
   onPromotionsPress: () => void;
   onServicePress: (keyword?: string) => void;
   /** Mở trang chi tiết nhóm dịch vụ (giống ô dịch vụ trên web) */
@@ -439,7 +441,7 @@ export function DoctorsPreviewSection({
         {/* Action Button: đặt dưới ảnh, rộng hết thẻ */}
         <TouchableOpacity
           activeOpacity={0.85}
-          onPress={() => handlers.onDoctorsPress(currentDoctor.name)}
+          onPress={() => handlers.onDoctorDetailPress(currentDoctor.id)}
           style={styles.viewDoctorBtn}
         >
           <Text style={styles.viewDoctorBtnText}>Xem chi tiết bác sĩ ›</Text>
@@ -1645,10 +1647,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   popularCountPill: {
+    alignItems: 'center',
     backgroundColor: '#F1F5F9',
     borderRadius: 999,
+    flexGrow: 1,
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: 4,
   },
   popularDesc: {
     color: '#64748B',
@@ -1704,10 +1708,12 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   popularPricePill: {
+    alignItems: 'center',
     backgroundColor: '#EFF6FF',
     borderRadius: 999,
+    flexGrow: 1,
     paddingHorizontal: 10,
-    paddingVertical: 3,
+    paddingVertical: 4,
   },
   popularTopRow: {
     flexDirection: 'row',

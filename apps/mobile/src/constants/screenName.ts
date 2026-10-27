@@ -15,9 +15,11 @@ export const SCREEN_NAME = {
   PERSONAL: 'Personal',
   PATIENT_SERVICES: 'PatientServices',
   PATIENT_DOCTORS: 'PatientDoctors',
+  PATIENT_DOCTOR_DETAIL: 'PatientDoctorDetail',
   PATIENT_CONSULTATION: 'PatientConsultation',
   SUPPORT_CHAT: 'SupportChat',
   PATIENT_PAYMENT: 'PatientPayment',
   PATIENT_NOTIFICATIONS: 'PatientNotifications',
   PATIENT_PROMOTIONS: 'PatientPromotions',
+  PATIENT_PROMOTION_DETAIL: 'PatientPromotionDetail',
 } as const;
