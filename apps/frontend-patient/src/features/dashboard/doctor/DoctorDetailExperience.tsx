@@ -1,4 +1,4 @@
-Xin chào. Bạn có thể... kiểm tra kỹ. Cái việc chọn chúng tôi từ cái khúc này à, cái tiêu chuẩn của nó chỉ có nhiêu đây thôi à. Với lại mãi giờ chúng tôi sẽ có tiền. Xin chào."use client";
+"use client";
 
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";

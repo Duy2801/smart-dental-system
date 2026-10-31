@@ -15,7 +15,8 @@ export function usePatientRecordsSummaryQuery(patientId: string, enabled: boolea
     queryFn: () => getPatientRecordsSummary(patientId),
     enabled,
     staleTime: 5_000,
-    refetchInterval: 5_000,
+    // Mỗi lần poll tốn vài query DB; quay lại tab đã có refetchOnWindowFocus làm mới ngay
+    refetchInterval: 60_000,
     refetchOnWindowFocus: true,
   });
 }
@@ -26,7 +27,7 @@ export function usePatientRecordsPlansQuery(patientId: string, enabled: boolean)
     queryFn: () => getPatientRecordsPlans(patientId),
     enabled,
     staleTime: 5_000,
-    refetchInterval: 5_000,
+    refetchInterval: 60_000,
     refetchOnWindowFocus: true,
   });
 }
