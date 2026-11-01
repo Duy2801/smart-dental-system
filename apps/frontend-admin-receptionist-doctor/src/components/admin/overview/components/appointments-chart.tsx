@@ -11,20 +11,16 @@ type DayData = {
 
 type AppointmentsChartProps = {
   data: DayData[];
-  title?: string;
 };
 
-export function AppointmentsChart({
-  data,
-  title = "Lịch hẹn 7 ngày qua",
-}: AppointmentsChartProps) {
+export function AppointmentsChart({ data }: AppointmentsChartProps) {
   const maxCount = Math.max(0, ...data.map((item) => item.count));
   const total = data.reduce((sum, item) => sum + item.count, 0);
   const average = data.length ? Math.round((total / data.length) * 10) / 10 : 0;
 
   return (
     <AdminCard
-      title={title}
+      title="Lịch hẹn 7 ngày qua"
       description={`Tổng ${total} lịch hẹn · trung bình ${average}/ngày`}
       icon={<ChartBar size={18} weight="duotone" />}
       className="h-full"
@@ -32,7 +28,7 @@ export function AppointmentsChart({
       {total === 0 ? (
         <AdminEmptyState
           icon={<ChartBar size={24} weight="duotone" />}
-          title="Chưa có lịch hẹn trong 7 ngày này"
+          title="Chưa có lịch hẹn trong 7 ngày gần nhất"
           className="h-56"
         />
       ) : (

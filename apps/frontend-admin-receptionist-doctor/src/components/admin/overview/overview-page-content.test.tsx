@@ -1,16 +1,12 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import type { ReactNode } from "react";
+import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { useQuery } from "@tanstack/react-query";
 import { OverviewPageContent } from "./overview-page-content";
 import type { OverviewAppointment, OverviewDashboard } from "./types";
 
-vi.mock("@tanstack/react-query", () => ({
-  useQuery: vi.fn(),
-  keepPreviousData: vi.fn(),
-}));
+vi.mock("@tanstack/react-query", () => ({ useQuery: vi.fn() }));
 vi.mock("@/src/components/layout/header", () => ({
-  Header: ({ children }: { children?: ReactNode }) => <header>{children}</header>,
+  Header: () => <header />,
 }));
 
 const dashboard: OverviewDashboard = {
@@ -72,29 +68,5 @@ describe("admin overview today schedule", () => {
 
     expect(screen.getByText("Patient FUTURE_STATUS")).toBeInTheDocument();
     expect(screen.getByText("FUTURE_STATUS")).toBeInTheDocument();
-  });
-
-  it("reloads the dashboard for the date chosen in the picker", () => {
-    vi.mocked(useQuery).mockReturnValue({
-      data: dashboard,
-      isLoading: false,
-      isError: false,
-    } as ReturnType<typeof useQuery>);
-
-    render(<OverviewPageContent />);
-    expect(screen.getByText("Lịch trình hôm nay")).toBeInTheDocument();
-
-    fireEvent.change(screen.getByLabelText("Chọn ngày xem tổng quan"), {
-      target: { value: "2026-11-05" },
-    });
-
-    const lastCall = vi.mocked(useQuery).mock.calls.at(-1)?.[0] as {
-      queryKey: unknown[];
-    };
-    expect(lastCall.queryKey).toEqual(["admin", "overview", "2026-11-05"]);
-    expect(screen.getByText("Lịch trình ngày 05/11/2026")).toBeInTheDocument();
-    expect(
-      screen.getByText("Ngày 05/11/2026 không có lịch hẹn nào"),
-    ).toBeInTheDocument();
   });
 });

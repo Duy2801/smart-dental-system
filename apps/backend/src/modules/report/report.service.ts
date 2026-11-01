@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import {
   AppointmentStatus,
   BookingSource,
@@ -16,31 +16,15 @@ type DateRange = {
 export class ReportService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getDashboard(date?: string) {
-    const selectedDate = date ? this.parseDateKey(date) : new Date();
-    const isToday = this.toDateKey(selectedDate) === this.toDateKey(new Date());
-    const dayLabel = isToday
-      ? 'hôm nay'
-      : `ngày ${String(selectedDate.getDate()).padStart(2, '0')}/${String(
-          selectedDate.getMonth() + 1,
-        ).padStart(2, '0')}`;
-    const compareLabel = isToday ? 'so với hôm qua' : 'so với ngày trước';
-
-    const today = this.getDayRange(selectedDate);
+  async getDashboard() {
+    const today = this.getDayRange(new Date());
     const yesterday = this.shiftRange(today, -1);
-    const month = {
-      start: new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1),
-      end: new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 1),
-    };
+    const month = this.getDateRange('this_month');
     const previousMonth = this.getPreviousRange(month);
-    const lastSevenDays = this.getLastSevenDayRanges(selectedDate);
+    const lastSevenDays = this.getLastSevenDayRanges(new Date());
     const lastSixMonths = {
-      start: new Date(
-        selectedDate.getFullYear(),
-        selectedDate.getMonth() - 5,
-        1,
-      ),
-      end: new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 1),
+      start: new Date(new Date().getFullYear(), new Date().getMonth() - 5, 1),
+      end: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1),
     };
 
     const [
@@ -78,30 +62,29 @@ export class ReportService {
     ]);
 
     return {
-      selectedDate: this.toDateKey(selectedDate),
       statCards: [
         {
-          label: `Doanh thu ${dayLabel}`,
+          label: 'Doanh thu hôm nay',
           value: todayRevenue,
           suffix: 'đ',
           trend: this.getTrendPercent(todayRevenue, yesterdayRevenue),
-          trendLabel: compareLabel,
+          trendLabel: 'so với hôm qua',
           type: 'currency',
         },
         {
-          label: `Lịch khám ${dayLabel}`,
+          label: 'Lịch khám hôm nay',
           value: todayAppointments,
           suffix: 'ca',
           trend: this.getTrendPercent(todayAppointments, yesterdayAppointments),
-          trendLabel: compareLabel,
+          trendLabel: 'so với hôm qua',
           type: 'number',
         },
         {
-          label: isToday ? 'Bệnh nhân mới' : `Bệnh nhân mới ${dayLabel}`,
+          label: 'Bệnh nhân mới',
           value: newPatientsToday,
           suffix: 'người',
           trend: this.getTrendPercent(newPatientsToday, newPatientsYesterday),
-          trendLabel: compareLabel,
+          trendLabel: 'so với hôm qua',
           type: 'number',
         },
         {
@@ -433,10 +416,7 @@ export class ReportService {
       id: appointment.id,
       start_time: this.formatTime(appointment.scheduledAt),
       end_time: this.formatTime(appointment.endAt),
-      patient_name:
-        appointment.patient?.fullName ??
-        appointment.patient?.user?.fullName ??
-        appointment.creator.fullName,
+      patient_name: appointment.patient?.fullName ?? appointment.patient?.user?.fullName ?? appointment.creator.fullName,
       service_name: appointment.treatmentMethod?.name ?? 'Dịch vụ',
       doctor_name: appointment.doctor.user.fullName,
       status: appointment.status,
@@ -547,9 +527,7 @@ export class ReportService {
     return Promise.all(
       ranges.map(async (range) => ({
         label: `T${range.start.getMonth() + 1}`,
-        value:
-          Math.round(((await this.getPaidRevenue(range)) / 1_000_000) * 10) /
-          10,
+        value: Math.round(((await this.getPaidRevenue(range)) / 1_000_000) * 10) / 10,
       })),
     );
   }
@@ -596,9 +574,8 @@ export class ReportService {
       serviceRevenue.set(service.id, current);
     });
 
-    return Array.from(serviceRevenue.values()).sort(
-      (a, b) => b.revenue - a.revenue,
-    );
+    return Array.from(serviceRevenue.values())
+      .sort((a, b) => b.revenue - a.revenue);
   }
 
   private async getBookingSources(range: DateRange) {
@@ -669,28 +646,6 @@ export class ReportService {
       start: new Date(year, month, 1),
       end: new Date(year, month + 1, 1),
     };
-  }
-
-  /** "YYYY-MM-DD" -> nửa đêm theo giờ server, cùng mốc với getDayRange(new Date()). */
-  private parseDateKey(value: string): Date {
-    const [year, month, day] = value.split('-').map(Number);
-    const date = new Date(year, month - 1, day);
-    if (
-      date.getFullYear() !== year ||
-      date.getMonth() !== month - 1 ||
-      date.getDate() !== day
-    ) {
-      throw new BadRequestException('report.invalid_date');
-    }
-    return date;
-  }
-
-  private toDateKey(date: Date) {
-    return [
-      date.getFullYear(),
-      String(date.getMonth() + 1).padStart(2, '0'),
-      String(date.getDate()).padStart(2, '0'),
-    ].join('-');
   }
 
   private getDayRange(date: Date): DateRange {

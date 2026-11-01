@@ -8,7 +8,6 @@ import {
   BellRinging,
   CalendarBlank,
   CalendarCheck,
-  CalendarDots,
   CaretLeft,
   CaretRight,
   CheckCircle,
@@ -22,7 +21,7 @@ import {
   type Icon,
 } from "@phosphor-icons/react";
 import { useState } from "react";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import {
   AdminAlert,
   AdminCard,
@@ -33,7 +32,6 @@ import {
 } from "@/src/components/admin/common";
 import { Header } from "@/src/components/layout/header";
 import { queryKeys } from "@/src/lib/query/query-keys";
-import { localDateStr } from "@/src/lib/receptionist/mappers";
 import { cn } from "@/src/lib/utils/cn";
 import { AppointmentsChart } from "./components/appointments-chart";
 import { getOverviewDashboard } from "./overview-api";
@@ -85,49 +83,26 @@ const statusConfig: Record<
   },
 };
 
-function formatDateKey(dateKey: string, options: Intl.DateTimeFormatOptions) {
-  return new Date(`${dateKey}T12:00:00+07:00`).toLocaleDateString("vi-VN", {
-    timeZone: "Asia/Ho_Chi_Minh",
-    ...options,
-  });
-}
-
 export function OverviewPageContent() {
-  const today = localDateStr();
-  const [selectedDate, setSelectedDate] = useState(today);
-  const isToday = selectedDate === today;
-
   const {
     data: dashboard,
     isLoading,
     isError,
-    isPlaceholderData,
   } = useQuery({
-    queryKey: [...queryKeys.admin.overview, selectedDate],
-    queryFn: () => getOverviewDashboard(selectedDate),
-    placeholderData: keepPreviousData,
+    queryKey: queryKeys.admin.overview,
+    queryFn: getOverviewDashboard,
   });
 
-  const selectedDateLabel = formatDateKey(selectedDate, {
+  const currentDate = new Date().toLocaleDateString("vi-VN", {
     weekday: "long",
     day: "numeric",
     month: "long",
     year: "numeric",
   });
-  const shortDateLabel = formatDateKey(selectedDate, {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
 
   return (
     <>
-      <Header
-        title="Tổng quan quản lý"
-        description={isToday ? selectedDateLabel : `Đang xem: ${selectedDateLabel}`}
-      >
-        <OverviewDatePicker value={selectedDate} onChange={setSelectedDate} />
-      </Header>
+      <Header title="Tổng quan quản lý" description={currentDate} />
 
       <div className="space-y-6 p-4 sm:p-6 lg:p-8">
         {isLoading ? (
@@ -152,13 +127,7 @@ export function OverviewPageContent() {
         ) : null}
 
         {!isLoading && dashboard ? (
-          <div
-            className={cn(
-              "space-y-6 transition-opacity",
-              isPlaceholderData && "pointer-events-none opacity-60",
-            )}
-            aria-busy={isPlaceholderData}
-          >
+          <>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
               {dashboard.statCards.map((stat, index) => (
                 <OverviewStat key={stat.label} stat={stat} index={index} />
@@ -167,29 +136,13 @@ export function OverviewPageContent() {
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
               <div className="lg:col-span-2">
-                <AppointmentsChart
-                  data={dashboard.appointmentsLast7Days}
-                  title={
-                    isToday
-                      ? "Lịch hẹn 7 ngày qua"
-                      : `Lịch hẹn 7 ngày đến ${shortDateLabel}`
-                  }
-                />
+                <AppointmentsChart data={dashboard.appointmentsLast7Days} />
               </div>
               <ActionItems items={dashboard.actionItems} />
             </div>
 
-            <TodaySchedule
-              key={selectedDate}
-              appointments={dashboard.todayAppointments}
-              title={isToday ? "Lịch trình hôm nay" : `Lịch trình ngày ${shortDateLabel}`}
-              emptyTitle={
-                isToday
-                  ? "Hôm nay chưa có lịch hẹn nào"
-                  : `Ngày ${shortDateLabel} không có lịch hẹn nào`
-              }
-            />
-          </div>
+            <TodaySchedule appointments={dashboard.todayAppointments} />
+          </>
         ) : null}
       </div>
     </>
@@ -299,39 +252,10 @@ function ActionItems({ items }: { items: OverviewDashboard["actionItems"] }) {
 
 const TODAY_SCHEDULE_PAGE_SIZE = 10;
 
-function OverviewDatePicker({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (date: string) => void;
-}) {
-  return (
-    <label className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-xs transition-colors hover:bg-slate-50">
-      <CalendarDots size={15} className="shrink-0 text-brand" />
-      <input
-        type="date"
-        aria-label="Chọn ngày xem tổng quan"
-        value={value}
-        onChange={(event) => {
-          if (/^\d{4}-\d{2}-\d{2}$/.test(event.target.value)) {
-            onChange(event.target.value);
-          }
-        }}
-        className="w-28 cursor-pointer bg-transparent text-xs font-semibold text-slate-700 outline-none"
-      />
-    </label>
-  );
-}
-
 function TodaySchedule({
   appointments,
-  title,
-  emptyTitle,
 }: {
   appointments: OverviewAppointment[];
-  title: string;
-  emptyTitle: string;
 }) {
   const [page, setPage] = useState(1);
   const totalPages = Math.max(1, Math.ceil(appointments.length / TODAY_SCHEDULE_PAGE_SIZE));
@@ -341,14 +265,14 @@ function TodaySchedule({
 
   return (
     <AdminCard
-      title={title}
+      title="Lịch trình hôm nay"
       description={`${appointments.length} lịch hẹn`}
       icon={<Clock size={18} weight="duotone" />}
     >
       {appointments.length === 0 ? (
         <AdminEmptyState
           icon={<CalendarBlank size={24} weight="duotone" />}
-          title={emptyTitle}
+          title="Hôm nay chưa có lịch hẹn nào"
         />
       ) : (
         <div className="relative ml-2 space-y-3 border-l-2 border-dashed border-slate-200 md:ml-3">

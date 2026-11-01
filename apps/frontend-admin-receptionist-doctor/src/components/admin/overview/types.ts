@@ -63,7 +63,6 @@ export type OverviewReexamRate = {
 };
 
 export type OverviewDashboard = {
-  selectedDate?: string;
   statCards: OverviewStatCard[];
   appointmentsLast7Days: OverviewChartItem[];
   recentActivities: OverviewActivity[];

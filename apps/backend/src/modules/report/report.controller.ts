@@ -3,7 +3,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
-import { DashboardQueryDto, ReportQueryDto } from './dto/report-query.dto';
+import { ReportQueryDto } from './dto/report-query.dto';
 import { ReportService } from './report.service';
 
 @ApiTags('Report')
@@ -20,7 +20,8 @@ export class ReportController {
   }
 
   @Get('dashboard')
-  getDashboard(@Query() query: DashboardQueryDto) {
-    return this.reportService.getDashboard(query.date);
+  getDashboard() {
+    return this.reportService.getDashboard();
   }
 }
+
