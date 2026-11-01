@@ -120,6 +120,20 @@ async def fetch_available_doctors() -> List[Dict[str, Any]]:
         return []
 
 
+async def fetch_clinic_info() -> Dict[str, Any]:
+    settings = get_settings()
+    url = f"{settings.backend_base_url}/chatbot-conversations/internal/clinic-info"
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            res = await client.get(url, headers={"x-api-key": settings.ai_service_api_key})
+            res.raise_for_status()
+            data = unwrap_backend_data(res.json())
+            return data if isinstance(data, dict) else {}
+    except Exception as err:
+        logger.error(f"[booking_tools] fetch_clinic_info error: {err}")
+        return {}
+
+
 async def check_available_slots(
     date: str,
     doctor_id: Optional[str] = None,
