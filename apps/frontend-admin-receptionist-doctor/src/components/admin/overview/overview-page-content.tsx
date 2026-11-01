@@ -85,12 +85,6 @@ const statusConfig: Record<
   },
 };
 
-function shiftDateKey(dateKey: string, days: number) {
-  const date = new Date(`${dateKey}T12:00:00+07:00`);
-  date.setUTCDate(date.getUTCDate() + days);
-  return localDateStr(date);
-}
-
 function formatDateKey(dateKey: string, options: Intl.DateTimeFormatOptions) {
   return new Date(`${dateKey}T12:00:00+07:00`).toLocaleDateString("vi-VN", {
     timeZone: "Asia/Ho_Chi_Minh",
@@ -132,11 +126,7 @@ export function OverviewPageContent() {
         title="Tổng quan quản lý"
         description={isToday ? selectedDateLabel : `Đang xem: ${selectedDateLabel}`}
       >
-        <OverviewDatePicker
-          value={selectedDate}
-          today={today}
-          onChange={setSelectedDate}
-        />
+        <OverviewDatePicker value={selectedDate} onChange={setSelectedDate} />
       </Header>
 
       <div className="space-y-6 p-4 sm:p-6 lg:p-8">
@@ -311,64 +301,26 @@ const TODAY_SCHEDULE_PAGE_SIZE = 10;
 
 function OverviewDatePicker({
   value,
-  today,
   onChange,
 }: {
   value: string;
-  today: string;
   onChange: (date: string) => void;
 }) {
-  const navButton =
-    "flex h-9 w-9 cursor-pointer items-center justify-center text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900";
-
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <div className="flex items-center overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
-        <button
-          type="button"
-          aria-label="Ngày trước"
-          onClick={() => onChange(shiftDateKey(value, -1))}
-          className={navButton}
-        >
-          <CaretLeft size={15} weight="bold" />
-        </button>
-        <button
-          type="button"
-          onClick={() => onChange(today)}
-          aria-pressed={value === today}
-          className={cn(
-            "h-9 cursor-pointer border-x border-slate-200 px-3 text-xs font-bold transition-colors",
-            value === today
-              ? "bg-brand text-white"
-              : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
-          )}
-        >
-          Hôm nay
-        </button>
-        <button
-          type="button"
-          aria-label="Ngày sau"
-          onClick={() => onChange(shiftDateKey(value, 1))}
-          className={navButton}
-        >
-          <CaretRight size={15} weight="bold" />
-        </button>
-      </div>
-      <label className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-xs transition-colors hover:bg-slate-50">
-        <CalendarDots size={15} className="shrink-0 text-brand" />
-        <input
-          type="date"
-          aria-label="Chọn ngày xem tổng quan"
-          value={value}
-          onChange={(event) => {
-            if (/^\d{4}-\d{2}-\d{2}$/.test(event.target.value)) {
-              onChange(event.target.value);
-            }
-          }}
-          className="w-28 cursor-pointer bg-transparent text-xs font-semibold text-slate-700 outline-none"
-        />
-      </label>
-    </div>
+    <label className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-xs transition-colors hover:bg-slate-50">
+      <CalendarDots size={15} className="shrink-0 text-brand" />
+      <input
+        type="date"
+        aria-label="Chọn ngày xem tổng quan"
+        value={value}
+        onChange={(event) => {
+          if (/^\d{4}-\d{2}-\d{2}$/.test(event.target.value)) {
+            onChange(event.target.value);
+          }
+        }}
+        className="w-28 cursor-pointer bg-transparent text-xs font-semibold text-slate-700 outline-none"
+      />
+    </label>
   );
 }
 
