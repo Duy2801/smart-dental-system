@@ -315,7 +315,12 @@ def parse_new_patient_info(text: str) -> Dict[str, Any]:
             "nguoi khac",
         ]
         candidate_norm = normalize_text(candidate_name)
-        if not any(sw in candidate_norm for sw in stop_words) and len(candidate_name) > 1:
+        candidate_words = candidate_norm.split()
+        pronoun_words = {"cua", "toi", "minh", "tui", "em", "anh", "chi", "nha", "ay", "nay", "voi", "nhe", "a", "oi"}
+        relation_words = {"be", "con", "chau", "vo", "chong", "me", "ba", "bo", "cha"}
+        meaningful_words = [w for w in candidate_words if w not in pronoun_words | relation_words]
+        looks_like_name = bool(meaningful_words) and not any(w in {"cua", "toi", "minh", "tui"} for w in candidate_words)
+        if not any(sw in candidate_norm for sw in stop_words) and len(candidate_name) > 1 and looks_like_name:
             info["fullName"] = candidate_name.title()
 
     return info
@@ -465,6 +470,22 @@ def with_state(state: Dict[str, Any], extra: Dict[str, Any]) -> Dict[str, Any]:
     return {**extra, "bookingState": next_state}
 
 
+def new_patient_form_metadata(state: Dict[str, Any]) -> Dict[str, Any]:
+    """Metadata yêu cầu frontend hiển thị form "Thông tin người khám" trong tin nhắn."""
+    metadata = with_state(state, {"creatingNewPatient": True})
+    metadata["form"] = {
+        "type": "new_patient",
+        "defaults": {
+            "fullName": state.get("newPatientName") or "",
+            "phone": state.get("newPatientPhone") or "",
+            "dateOfBirth": state.get("newPatientDob") or "",
+            "relationship": state.get("newPatientRelationship") or "CHILD",
+            "gender": state.get("newPatientGender") or "",
+        },
+    }
+    return metadata
+
+
 def patient_suggestions(
     patients: List[Dict[str, Any]],
     state: Dict[str, Any],
@@ -544,9 +565,16 @@ def method_suggestions(
     for method in service.get("treatmentMethods") or []:
         name = method.get("name") or "Phuong phap dieu tri"
         label = name
+        price_value = method.get("finalPrice")
+        if price_value is None:
+            price_value = method.get("basePrice")
+        if price_value is None:
+            price_value = method.get("price")
+        if price_value is not None:
+            label = f"{label} · {format_money(price_value)}"
         duration = method.get("durationMinutes")
         if duration:
-            label = f"{label} - {duration} phut"
+            label = f"{label} - {duration} phút"
         suggestions.append(
             {
                 "type": "treatment_method",
@@ -681,7 +709,7 @@ def find_by_id(items: List[Dict[str, Any]], item_id: Optional[str]) -> Optional[
 def token_match(needle: str, haystack: str) -> bool:
     needle_norm = compact_text(needle)
     haystack_norm = compact_text(haystack)
-    if not needle_norm:
+    if not needle_norm or not haystack_norm:
         return False
     return needle_norm in haystack_norm or haystack_norm in needle_norm
 
@@ -1117,6 +1145,12 @@ BẢO MẬT VÀ PHẠM VI:
 class BookingAgent:
     async def process_chat(self, body: ChatRequest) -> ChatResponse:
         user_msg = body.message.strip()
+        # Form "Thông tin người khám" gửi dữ liệu có cấu trúc qua metadata. Không
+        # phân tích câu chữ của tin nhắn đó nữa, tránh lấy nhầm ngày sinh làm
+        # ngày khám hay đoán sai quan hệ/giới tính từ nhãn hiển thị.
+        form_submitted = bool((body.metadata or {}).get("patientFormSubmitted"))
+        if form_submitted:
+            user_msg = ""
         user_norm = normalize_text(user_msg)
         full_text = " ".join([m.content for m in body.history[-8:]] + [user_msg])
 
@@ -1355,10 +1389,12 @@ class BookingAgent:
                 state["creatingNewPatient"] = False
                 patients = await fetch_patient_profiles(body.created_by_user_id)
             elif isinstance(res_patient, dict) and res_patient.get("error"):
+                state["creatingNewPatient"] = True
                 return ChatResponse(
-                    reply=f"Chưa thể tạo hồ sơ cho người thân ({res_patient.get('error')}). Quý khách vui lòng thử lại ạ.",
+                    reply=f"Chưa thể tạo hồ sơ cho người thân ({res_patient.get('error')}). Quý khách vui lòng kiểm tra lại thông tin trong form và gửi lại ạ.",
                     should_book=True,
-                    suggestions=patient_suggestions(patients, state),
+                    suggestions=[],
+                    metadata=new_patient_form_metadata(state),
                 )
 
         # Early Doctor extraction from text
@@ -1442,10 +1478,10 @@ class BookingAgent:
                     info_notes.append(f"SĐT: {state['newPatientPhone']}")
                 note_str = f" ({', '.join(info_notes)})" if info_notes else ""
                 return ChatResponse(
-                    reply=f"Dạ, mình đã ghi nhận nhu cầu đặt lịch cho {rel_title}{note_str}. Quý khách vui lòng cung cấp **Họ và tên đầy đủ** của {rel_title} (kèm theo Số điện thoại hoặc Tuổi/Ngày sinh nếu có) để hệ thống tạo hồ sơ bệnh nhân trước khi tiến hành các bước đặt lịch nhé ạ! (Ví dụ: Nguyễn Văn An - 0912345678)",
+                    reply=f"Dạ, mình đã ghi nhận nhu cầu đặt lịch cho {rel_title}{note_str}. Quý khách vui lòng điền **Họ và tên đầy đủ** và thông tin của {rel_title} vào form bên dưới để hệ thống tạo hồ sơ người khám, sau đó mình sẽ tiếp tục các bước đặt lịch nhé ạ!",
                     should_book=True,
                     suggestions=[],
-                    metadata=with_state(state, {"creatingNewPatient": True}),
+                    metadata=new_patient_form_metadata(state),
                 )
             else:
                 suggestions = patient_suggestions(patients, state)

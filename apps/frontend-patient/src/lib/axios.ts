@@ -87,11 +87,27 @@ const clearAuthState = () => {
   store.dispatch(logout());
 };
 
+// Chỉ những trang bắt buộc đăng nhập mới bị đẩy sang /login khi phiên hết hạn.
+// Trang công khai (home, dịch vụ, bác sĩ, ưu đãi...) chỉ xoá phiên và hiển thị
+// như khách — tránh việc vừa mở /home đã bị văng sang trang đăng nhập do token
+// cũ trong localStorage hết hạn và refresh cookie không còn hợp lệ.
+const PROTECTED_PATH_PREFIXES = [
+  "/profile",
+  "/payment",
+  "/records",
+  "/notification",
+  "/consultation",
+];
+
+const isProtectedPath = (pathname: string) =>
+  PROTECTED_PATH_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+
 const redirectToLogin = () => {
   if (
     typeof window === "undefined" ||
-    window.location.pathname.startsWith("/auth") ||
-    window.location.pathname === "/login"
+    !isProtectedPath(window.location.pathname)
   ) {
     return;
   }

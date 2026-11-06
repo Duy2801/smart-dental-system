@@ -62,6 +62,7 @@ type ConsultRow = {
   fee: unknown;
   isPaid: boolean;
   notes: string | null;
+  rescheduleHistory?: unknown;
   createdAt: Date;
   patient: {
     id?: string;
@@ -83,6 +84,21 @@ type ConsultRow = {
     user: { fullName: string };
   };
 };
+
+/** Giống đổi lịch khám: tối đa 1 lần, trước giờ hẹn ít nhất 6 tiếng */
+const CONSULTATION_RESCHEDULE_LIMIT = 1;
+const CONSULTATION_RESCHEDULE_NOTICE_HOURS = 6;
+
+function formatIctDateTime(value: Date): string {
+  return new Intl.DateTimeFormat('vi-VN', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    hour: '2-digit',
+    minute: '2-digit',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(value);
+}
 
 const DEFAULT_JITSI_DOMAIN = process.env.JITSI_DOMAIN || 'meet.darmstadt.social';
 
@@ -299,7 +315,8 @@ export class VideoConsultationService implements OnModuleInit {
   async invalidateConsultationSlots(doctorId?: string) {
     try {
       if (doctorId) {
-        await this.redis.delByPrefix(`consultation:slots:${doctorId}:`);
+        // Key thật là `consultation:slots:v2:<doctorId>:...` (xem getAvailableSlots)
+        await this.redis.delByPrefix(`consultation:slots:v2:${doctorId}:`);
       } else {
         await this.redis.delByPrefix('consultation:slots:');
       }
@@ -395,8 +412,12 @@ export class VideoConsultationService implements OnModuleInit {
     doctorId: string,
     dateStr: string,
     durationMinutes: number,
+    excludeConsultationId?: string,
   ): Promise<string[]> {
-    const cacheKey = `consultation:slots:v2:${doctorId}:${dateStr}:${durationMinutes}`;
+    // excludeConsultationId: khi đổi lịch, buổi tư vấn hiện tại không được tự chặn slot của chính nó
+    const cacheKey = `consultation:slots:v2:${doctorId}:${dateStr}:${durationMinutes}${
+      excludeConsultationId ? `:x:${excludeConsultationId}` : ''
+    }`;
     return this.redis.rememberJson(cacheKey, 60, async () => {
       const {
         formattedDateStr,
@@ -500,6 +521,9 @@ export class VideoConsultationService implements OnModuleInit {
               status: 'PENDING_PAYMENT',
               expiresAt: { lte: now },
             },
+            ...(excludeConsultationId
+              ? { id: { not: excludeConsultationId } }
+              : {}),
           },
           select: { scheduledAt: true, durationMinutes: true },
         });
@@ -1060,6 +1084,276 @@ export class VideoConsultationService implements OnModuleInit {
     return result;
   }
 
+  /**
+   * Bệnh nhân đổi lịch tư vấn (cùng bác sĩ, cùng thời lượng).
+   * Quy tắc giống đổi lịch khám: chỉ lịch đã thanh toán & đang chờ tư vấn,
+   * phải trước giờ hẹn hiện tại và giờ hẹn mới ít nhất 6 tiếng, tối đa 1 lần.
+   */
+  async rescheduleBookingByPatient(
+    user: AuthenticatedUser,
+    id: string,
+    dto: { scheduledAt: string },
+  ) {
+    const patient = await this.prisma.patient.findUnique({
+      where: { userId: user.userId },
+      select: { id: true },
+    });
+    if (!patient) {
+      throw new NotFoundException('Không tìm thấy thông tin bệnh nhân');
+    }
+
+    const consultation = await this.prisma.videoConsultation.findUnique({
+      where: { id },
+      include: consultInclude,
+    });
+    if (!consultation || consultation.patientId !== patient.id) {
+      throw new NotFoundException('Không tìm thấy lịch tư vấn này');
+    }
+
+    if (
+      consultation.status !== VideoConsultationStatus.SCHEDULED ||
+      !consultation.isPaid
+    ) {
+      throw new BadRequestException(
+        'Chỉ có thể đổi lịch tư vấn đã thanh toán và chưa diễn ra',
+      );
+    }
+
+    const history = Array.isArray(consultation.rescheduleHistory)
+      ? (consultation.rescheduleHistory as Prisma.JsonArray)
+      : [];
+    if (history.length >= CONSULTATION_RESCHEDULE_LIMIT) {
+      throw new ConflictException(
+        'Lịch tư vấn này đã được đổi 1 lần, không thể đổi thêm',
+      );
+    }
+
+    const noticeMs = CONSULTATION_RESCHEDULE_NOTICE_HOURS * 60 * 60 * 1000;
+    if (consultation.scheduledAt.getTime() - Date.now() < noticeMs) {
+      throw new ConflictException(
+        `Chỉ được đổi lịch trước giờ tư vấn ít nhất ${CONSULTATION_RESCHEDULE_NOTICE_HOURS} tiếng`,
+      );
+    }
+
+    const scheduledAt = new Date(dto.scheduledAt);
+    if (Number.isNaN(scheduledAt.getTime())) {
+      throw new BadRequestException('Thời gian hẹn không hợp lệ');
+    }
+    if (scheduledAt.getTime() - Date.now() < noticeMs) {
+      throw new BadRequestException(
+        `Giờ tư vấn mới phải cách hiện tại ít nhất ${CONSULTATION_RESCHEDULE_NOTICE_HOURS} tiếng`,
+      );
+    }
+    if (scheduledAt.getTime() === consultation.scheduledAt.getTime()) {
+      throw new BadRequestException('Vui lòng chọn khung giờ khác lịch hiện tại');
+    }
+
+    const durationMs = consultation.durationMinutes * 60 * 1000;
+    const scheduledEnd = new Date(scheduledAt.getTime() + durationMs);
+    const { formattedDateStr } = getIctDateDetails(scheduledAt);
+    const selectedTime = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Ho_Chi_Minh',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).format(scheduledAt);
+
+    // Kiểm tra giờ mở cửa, nghỉ trưa, lịch làm việc & lịch bận của bác sĩ
+    const availableSlots = await this.getAvailableSlots(
+      consultation.doctorId,
+      formattedDateStr,
+      consultation.durationMinutes,
+      consultation.id,
+    );
+    if (!availableSlots.includes(selectedTime)) {
+      throw new BadRequestException(
+        'Khung giờ này không còn trống, vui lòng chọn khung giờ khác',
+      );
+    }
+
+    const previousScheduledAt = consultation.scheduledAt;
+    const updated = await this.prisma.$transaction(
+      async (tx) => {
+        await lockDoctorSchedule(tx, consultation.doctorId);
+        await lockPatientSchedule(tx, patient.id);
+        const now = new Date();
+        const overlapsNewRange = (vc: {
+          scheduledAt: Date;
+          durationMinutes: number;
+        }) => {
+          const start = vc.scheduledAt.getTime();
+          const end = start + vc.durationMinutes * 60 * 1000;
+          return start < scheduledEnd.getTime() && end > scheduledAt.getTime();
+        };
+        const activeConsultationWhere = {
+          id: { not: consultation.id },
+          status: {
+            notIn: [
+              VideoConsultationStatus.CANCELLED,
+              VideoConsultationStatus.EXPIRED,
+            ],
+          },
+          NOT: {
+            status: VideoConsultationStatus.PENDING_PAYMENT,
+            expiresAt: { lte: now },
+          },
+          scheduledAt: { lt: scheduledEnd },
+        };
+
+        const doctorAppointment = await tx.appointment.findFirst({
+          where: {
+            doctorId: consultation.doctorId,
+            status: { in: OCCUPYING_APPOINTMENT_STATUSES },
+            scheduledAt: { lt: scheduledEnd },
+            endAt: { gt: scheduledAt },
+          },
+          select: { id: true },
+        });
+        if (doctorAppointment) {
+          throw new BadRequestException(
+            'Bác sĩ đã có lịch khám tại phòng khám vào khung giờ này',
+          );
+        }
+
+        const doctorConsultations = await tx.videoConsultation.findMany({
+          where: { ...activeConsultationWhere, doctorId: consultation.doctorId },
+          select: { scheduledAt: true, durationMinutes: true },
+        });
+        if (doctorConsultations.some(overlapsNewRange)) {
+          throw new BadRequestException(
+            'Bác sĩ đã có lịch tư vấn trực tuyến vào khung giờ này',
+          );
+        }
+
+        const patientAppointment = await tx.appointment.findFirst({
+          where: {
+            patientId: patient.id,
+            status: { in: OCCUPYING_APPOINTMENT_STATUSES },
+            scheduledAt: { lt: scheduledEnd },
+            endAt: { gt: scheduledAt },
+          },
+          select: { id: true },
+        });
+        if (patientAppointment) {
+          throw new BadRequestException(
+            'Bạn đã có lịch khám khác tại phòng khám vào khung giờ này',
+          );
+        }
+
+        const patientConsultations = await tx.videoConsultation.findMany({
+          where: { ...activeConsultationWhere, patientId: patient.id },
+          select: { scheduledAt: true, durationMinutes: true },
+        });
+        if (patientConsultations.some(overlapsNewRange)) {
+          throw new BadRequestException(
+            'Bạn đã có cuộc hẹn tư vấn trực tuyến khác vào khung giờ này',
+          );
+        }
+
+        const transitioned = await tx.videoConsultation.updateMany({
+          where: {
+            id: consultation.id,
+            status: VideoConsultationStatus.SCHEDULED,
+            scheduledAt: previousScheduledAt,
+          },
+          data: {
+            scheduledAt,
+            rescheduleHistory: [
+              ...history,
+              {
+                scheduledAt: previousScheduledAt.toISOString(),
+                changedAt: now.toISOString(),
+                changedBy: user.userId,
+              },
+            ],
+          },
+        });
+        if (transitioned.count !== 1) {
+          throw new ConflictException(
+            'Buổi tư vấn đã được xử lý bởi yêu cầu khác',
+          );
+        }
+
+        const doctorName = consultation.doctor.user.fullName;
+        const patientUserId = consultation.patient.user?.id ?? user.userId;
+        const patientName =
+          consultation.patient.fullName ??
+          consultation.patient.user?.fullName ??
+          'Bệnh nhân';
+        const doctorUser = await tx.doctor.findUnique({
+          where: { id: consultation.doctorId },
+          select: { userId: true },
+        });
+
+        // Dời nhắc lịch "trước 10 phút" của giờ cũ sang giờ mới
+        const oldReminderAt = new Date(
+          previousScheduledAt.getTime() - 10 * 60 * 1000,
+        );
+        const newReminderAt = new Date(scheduledAt.getTime() - 10 * 60 * 1000);
+        const reminderUserIds = [patientUserId, doctorUser?.userId].filter(
+          (value): value is string => Boolean(value),
+        );
+        await tx.notification.updateMany({
+          where: {
+            userId: { in: reminderUserIds },
+            type: 'APPOINTMENT_REMINDER',
+            status: 'PENDING',
+            scheduledAt: oldReminderAt,
+          },
+          data: { scheduledAt: newReminderAt },
+        });
+
+        const oldLabel = formatIctDateTime(previousScheduledAt);
+        const newLabel = formatIctDateTime(scheduledAt);
+        await tx.notification.create({
+          data: {
+            userId: patientUserId,
+            type: 'APPOINTMENT_RESCHEDULED',
+            title: 'Đổi lịch tư vấn trực tuyến thành công',
+            content: `Buổi tư vấn với Bác sĩ ${doctorName} đã được đổi từ ${oldLabel} sang ${newLabel}.`,
+            channel: 'IN_APP',
+            status: 'SENT',
+            sentAt: now,
+          },
+        });
+        if (doctorUser?.userId) {
+          await tx.notification.create({
+            data: {
+              userId: doctorUser.userId,
+              type: 'APPOINTMENT_RESCHEDULED',
+              title: 'Bệnh nhân đổi lịch tư vấn trực tuyến',
+              content: `Bệnh nhân ${patientName} đã đổi buổi tư vấn từ ${oldLabel} sang ${newLabel}.`,
+              channel: 'IN_APP',
+              status: 'SENT',
+              sentAt: now,
+            },
+          });
+        }
+
+        return tx.videoConsultation.findUnique({
+          where: { id: consultation.id },
+          include: consultInclude,
+        });
+      },
+      { maxWait: 15000, timeout: 30000 },
+    );
+
+    if (!updated) throw new NotFoundException('Không tìm thấy lịch tư vấn');
+
+    void this.invalidateConsultationSlots(consultation.doctorId);
+    try {
+      this.eventsGateway.broadcast('consultation_updated', {
+        id: updated.id,
+        status: updated.status,
+        scheduledAt: updated.scheduledAt.toISOString(),
+      });
+    } catch {
+      // Ignore socket error
+    }
+
+    return this.toSummary(updated, false);
+  }
+
   /** Lấy thông tin thanh toán (VietQR) cho lịch tư vấn chưa thanh toán */
   async getConsultationPaymentInfo(user: AuthenticatedUser, id: string) {
     const patient = await this.prisma.patient.findUnique({
@@ -1388,6 +1682,9 @@ export class VideoConsultationService implements OnModuleInit {
       fee: feeNum,
       isPaid: row.isPaid,
       notes: row.notes,
+      rescheduleCount: Array.isArray(row.rescheduleHistory)
+        ? row.rescheduleHistory.length
+        : 0,
       meetingUrl,
       ...(includeRoomPin ? { roomPin } : {}),
       createdAt: row.createdAt.toISOString(),

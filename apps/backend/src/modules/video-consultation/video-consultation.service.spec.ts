@@ -560,4 +560,57 @@ describe('VideoConsultationService', () => {
       expect(res.chatbotSessions[0].messages).toHaveLength(2);
     });
   });
+
+  describe('rescheduleBookingByPatient', () => {
+    const patientUser: AuthenticatedUser = {
+      userId: 'user-pat-1',
+      email: 'patient@gmail.com',
+      roles: ['PATIENT'],
+      permissions: [],
+    };
+    const inTwoDays = () => new Date(Date.now() + 48 * 60 * 60 * 1000);
+
+    it('rejects when the consultation was already rescheduled once', async () => {
+      prismaMock.videoConsultation.findUnique.mockResolvedValueOnce({
+        ...sampleConsultation,
+        scheduledAt: inTwoDays(),
+        rescheduleHistory: [{ scheduledAt: new Date().toISOString() }],
+      });
+
+      await expect(
+        service.rescheduleBookingByPatient(patientUser, 'consult-1', {
+          scheduledAt: new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString(),
+        }),
+      ).rejects.toThrow('đã được đổi 1 lần');
+    });
+
+    it('rejects when the current consultation starts in less than 6 hours', async () => {
+      prismaMock.videoConsultation.findUnique.mockResolvedValueOnce({
+        ...sampleConsultation,
+        scheduledAt: new Date(Date.now() + 2 * 60 * 60 * 1000),
+        rescheduleHistory: null,
+      });
+
+      await expect(
+        service.rescheduleBookingByPatient(patientUser, 'consult-1', {
+          scheduledAt: inTwoDays().toISOString(),
+        }),
+      ).rejects.toThrow('ít nhất 6 tiếng');
+    });
+
+    it('rejects unpaid consultations', async () => {
+      prismaMock.videoConsultation.findUnique.mockResolvedValueOnce({
+        ...sampleConsultation,
+        scheduledAt: inTwoDays(),
+        isPaid: false,
+        status: VideoConsultationStatus.PENDING_PAYMENT,
+      });
+
+      await expect(
+        service.rescheduleBookingByPatient(patientUser, 'consult-1', {
+          scheduledAt: new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString(),
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+  });
 });

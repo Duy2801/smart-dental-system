@@ -703,3 +703,75 @@ async def test_named_relative_replaces_stale_self_patient_and_continues_booking(
     assert state["date"] == "2026-09-24"
     assert any(item.type == "time_slot" for item in res.suggestions)
 
+
+
+@pytest.mark.asyncio
+async def test_book_for_child_shows_form_instead_of_guessing_name():
+    agent = BookingAgent()
+    req = ChatRequest(
+        message="tôi muốn đặt lịch khám cho con của tôi",
+        created_by_user_id="user-123",
+        history=[],
+        metadata={},
+    )
+    with patch("app.services.booking_agent.fetch_available_services", new_callable=AsyncMock) as mock_services, \
+         patch("app.services.booking_agent.fetch_available_doctors", new_callable=AsyncMock) as mock_doctors, \
+         patch("app.services.booking_agent.fetch_patient_profiles", new_callable=AsyncMock) as mock_patients, \
+         patch("app.services.booking_agent.create_patient_profile", new_callable=AsyncMock) as mock_create:
+        mock_services.return_value = [{"id": "srv-1", "name": "Nha khoa trẻ em", "treatmentMethods": []}]
+        mock_doctors.return_value = []
+        mock_patients.return_value = [{"id": "pat-self", "fullName": "Bố", "relationship": "SELF", "canBook": True}]
+
+        res = await agent.process_chat(req)
+
+    mock_create.assert_not_called()
+    assert res.metadata["form"]["type"] == "new_patient"
+    assert res.metadata["form"]["defaults"]["relationship"] == "CHILD"
+    assert res.metadata["form"]["defaults"]["fullName"] == ""
+    assert res.metadata["bookingState"]["creatingNewPatient"] is True
+
+
+@pytest.mark.asyncio
+async def test_new_patient_form_submission_creates_profile_then_asks_service():
+    agent = BookingAgent()
+    form_state = {
+        "creatingNewPatient": True,
+        "newPatientName": "Nguyễn Văn An",
+        "newPatientDob": "2018-02-01",
+        "newPatientGender": "MALE",
+        "newPatientRelationship": "CHILD",
+    }
+    req = ChatRequest(
+        message="Người khám: Nguyễn Văn An · Con · 01/02/2018",
+        created_by_user_id="user-123",
+        history=[],
+        metadata={"bookingState": form_state, "patientFormSubmitted": True, **form_state},
+    )
+    with patch("app.services.booking_agent.fetch_available_services", new_callable=AsyncMock) as mock_services, \
+         patch("app.services.booking_agent.fetch_available_doctors", new_callable=AsyncMock) as mock_doctors, \
+         patch("app.services.booking_agent.fetch_patient_profiles", new_callable=AsyncMock) as mock_patients, \
+         patch("app.services.booking_agent.create_patient_profile", new_callable=AsyncMock) as mock_create:
+        mock_services.return_value = [{"id": "srv-1", "name": "Nha khoa trẻ em", "treatmentMethods": []}]
+        mock_doctors.return_value = []
+        mock_patients.return_value = [{"id": "pat-self", "fullName": "Bố", "relationship": "SELF", "canBook": True}]
+        mock_create.return_value = {"id": "pat-child", "fullName": "Nguyễn Văn An"}
+
+        res = await agent.process_chat(req)
+
+    mock_create.assert_awaited_once()
+    kwargs = mock_create.await_args.kwargs
+    assert kwargs["full_name"] == "Nguyễn Văn An"
+    assert kwargs["date_of_birth"] == "2018-02-01"
+    assert kwargs["relationship"] == "CHILD"
+    state = res.metadata["bookingState"]
+    assert state["patientId"] == "pat-child"
+    assert state.get("date") is None
+    assert any(s.type == "service" for s in res.suggestions)
+
+
+def test_method_suggestions_show_price():
+    suggestions = method_suggestions(
+        {"treatmentMethods": [{"id": "tm-1", "name": "Mắc cài kim loại", "basePrice": 30000000, "finalPrice": 27000000}]},
+        {},
+    )
+    assert "27.000.000 VND" in suggestions[0]["label"]

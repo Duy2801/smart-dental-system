@@ -11,6 +11,8 @@ import { ConsultationPaymentModal } from "./ConsultationPaymentModal";
 import { VideoConsultationRoomModal } from "./VideoConsultationRoomModal";
 import { RefundRequestModal } from "./RefundRequestModal";
 import { ConsultationDetailModal } from "./ConsultationDetailModal";
+import { RescheduleConsultationModal } from "./RescheduleConsultationModal";
+import { canShowConsultationReschedule } from "../reschedulePolicy";
 
 interface MyConsultationsListProps {
   onBookNew: () => void;
@@ -34,6 +36,8 @@ export function MyConsultationsList({ onBookNew }: MyConsultationsListProps) {
   const [selectedForDetail, setSelectedForDetail] =
     useState<PatientConsultationItem | null>(null);
   const [unpaidCancelItem, setUnpaidCancelItem] =
+    useState<PatientConsultationItem | null>(null);
+  const [selectedForReschedule, setSelectedForReschedule] =
     useState<PatientConsultationItem | null>(null);
 
   const handleClosePaymentModal = useCallback(() => {
@@ -356,6 +360,15 @@ export function MyConsultationsList({ onBookNew }: MyConsultationsListProps) {
                           >
                             Mở phòng trước 15p ({formatCountdownText(fifteenMinsBefore - now)})
                           </button>
+                          {canShowConsultationReschedule(item) && (
+                            <button
+                              type="button"
+                              onClick={() => setSelectedForReschedule(item)}
+                              className="px-3.5 py-2 bg-white hover:bg-blue-50 border border-blue-200 text-[#0058bc] font-bold rounded-xl text-xs transition-all shadow-2xs cursor-pointer"
+                            >
+                              Đổi lịch
+                            </button>
+                          )}
                           <button
                             onClick={() => handleCancelClick(item)}
                             disabled={cancellingId === item.id}
@@ -384,6 +397,11 @@ export function MyConsultationsList({ onBookNew }: MyConsultationsListProps) {
           onOpenVideoRoomModal={() => setSelectedForVideoRoom(selectedForDetail)}
         />
       )}
+
+      <RescheduleConsultationModal
+        consultation={selectedForReschedule}
+        onClose={() => setSelectedForReschedule(null)}
+      />
 
       {selectedForPayment && (
         <ConsultationPaymentModal

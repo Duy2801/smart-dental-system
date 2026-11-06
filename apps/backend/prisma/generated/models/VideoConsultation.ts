@@ -78,6 +78,7 @@ export type VideoConsultationCountAggregateOutputType = {
   fee: number
   isPaid: number
   notes: number
+  rescheduleHistory: number
   createdAt: number
   _all: number
 }
@@ -135,6 +136,7 @@ export type VideoConsultationCountAggregateInputType = {
   fee?: true
   isPaid?: true
   notes?: true
+  rescheduleHistory?: true
   createdAt?: true
   _all?: true
 }
@@ -237,6 +239,7 @@ export type VideoConsultationGroupByOutputType = {
   fee: runtime.Decimal
   isPaid: boolean
   notes: string | null
+  rescheduleHistory: runtime.JsonValue | null
   createdAt: Date
   _count: VideoConsultationCountAggregateOutputType | null
   _avg: VideoConsultationAvgAggregateOutputType | null
@@ -275,6 +278,7 @@ export type VideoConsultationWhereInput = {
   fee?: Prisma.DecimalFilter<"VideoConsultation"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: Prisma.BoolFilter<"VideoConsultation"> | boolean
   notes?: Prisma.StringNullableFilter<"VideoConsultation"> | string | null
+  rescheduleHistory?: Prisma.JsonNullableFilter<"VideoConsultation">
   createdAt?: Prisma.DateTimeFilter<"VideoConsultation"> | Date | string
   patient?: Prisma.XOR<Prisma.PatientScalarRelationFilter, Prisma.PatientWhereInput>
   doctor?: Prisma.XOR<Prisma.DoctorScalarRelationFilter, Prisma.DoctorWhereInput>
@@ -294,6 +298,7 @@ export type VideoConsultationOrderByWithRelationInput = {
   fee?: Prisma.SortOrder
   isPaid?: Prisma.SortOrder
   notes?: Prisma.SortOrderInput | Prisma.SortOrder
+  rescheduleHistory?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   patient?: Prisma.PatientOrderByWithRelationInput
   doctor?: Prisma.DoctorOrderByWithRelationInput
@@ -316,6 +321,7 @@ export type VideoConsultationWhereUniqueInput = Prisma.AtLeast<{
   fee?: Prisma.DecimalFilter<"VideoConsultation"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: Prisma.BoolFilter<"VideoConsultation"> | boolean
   notes?: Prisma.StringNullableFilter<"VideoConsultation"> | string | null
+  rescheduleHistory?: Prisma.JsonNullableFilter<"VideoConsultation">
   createdAt?: Prisma.DateTimeFilter<"VideoConsultation"> | Date | string
   patient?: Prisma.XOR<Prisma.PatientScalarRelationFilter, Prisma.PatientWhereInput>
   doctor?: Prisma.XOR<Prisma.DoctorScalarRelationFilter, Prisma.DoctorWhereInput>
@@ -335,6 +341,7 @@ export type VideoConsultationOrderByWithAggregationInput = {
   fee?: Prisma.SortOrder
   isPaid?: Prisma.SortOrder
   notes?: Prisma.SortOrderInput | Prisma.SortOrder
+  rescheduleHistory?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.VideoConsultationCountOrderByAggregateInput
   _avg?: Prisma.VideoConsultationAvgOrderByAggregateInput
@@ -358,6 +365,7 @@ export type VideoConsultationScalarWhereWithAggregatesInput = {
   fee?: Prisma.DecimalWithAggregatesFilter<"VideoConsultation"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: Prisma.BoolWithAggregatesFilter<"VideoConsultation"> | boolean
   notes?: Prisma.StringNullableWithAggregatesFilter<"VideoConsultation"> | string | null
+  rescheduleHistory?: Prisma.JsonNullableWithAggregatesFilter<"VideoConsultation">
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"VideoConsultation"> | Date | string
 }
 
@@ -371,6 +379,7 @@ export type VideoConsultationCreateInput = {
   fee: runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: boolean
   notes?: string | null
+  rescheduleHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   patient: Prisma.PatientCreateNestedOneWithoutVideoConsultationsInput
   doctor: Prisma.DoctorCreateNestedOneWithoutVideoConsultationsInput
@@ -390,6 +399,7 @@ export type VideoConsultationUncheckedCreateInput = {
   fee: runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: boolean
   notes?: string | null
+  rescheduleHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   refundRequests?: Prisma.RefundRequestUncheckedCreateNestedManyWithoutVideoConsultationInput
   aiBriefs?: Prisma.PatientAiBriefUncheckedCreateNestedManyWithoutConsultationInput
@@ -405,6 +415,7 @@ export type VideoConsultationUpdateInput = {
   fee?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: Prisma.BoolFieldUpdateOperationsInput | boolean
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduleHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   patient?: Prisma.PatientUpdateOneRequiredWithoutVideoConsultationsNestedInput
   doctor?: Prisma.DoctorUpdateOneRequiredWithoutVideoConsultationsNestedInput
@@ -424,6 +435,7 @@ export type VideoConsultationUncheckedUpdateInput = {
   fee?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: Prisma.BoolFieldUpdateOperationsInput | boolean
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduleHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   refundRequests?: Prisma.RefundRequestUncheckedUpdateManyWithoutVideoConsultationNestedInput
   aiBriefs?: Prisma.PatientAiBriefUncheckedUpdateManyWithoutConsultationNestedInput
@@ -441,6 +453,7 @@ export type VideoConsultationCreateManyInput = {
   fee: runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: boolean
   notes?: string | null
+  rescheduleHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
 }
 
@@ -454,6 +467,7 @@ export type VideoConsultationUpdateManyMutationInput = {
   fee?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: Prisma.BoolFieldUpdateOperationsInput | boolean
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduleHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -469,6 +483,7 @@ export type VideoConsultationUncheckedUpdateManyInput = {
   fee?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: Prisma.BoolFieldUpdateOperationsInput | boolean
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduleHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -494,6 +509,7 @@ export type VideoConsultationCountOrderByAggregateInput = {
   fee?: Prisma.SortOrder
   isPaid?: Prisma.SortOrder
   notes?: Prisma.SortOrder
+  rescheduleHistory?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -672,6 +688,7 @@ export type VideoConsultationCreateWithoutPatientInput = {
   fee: runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: boolean
   notes?: string | null
+  rescheduleHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   doctor: Prisma.DoctorCreateNestedOneWithoutVideoConsultationsInput
   refundRequests?: Prisma.RefundRequestCreateNestedManyWithoutVideoConsultationInput
@@ -689,6 +706,7 @@ export type VideoConsultationUncheckedCreateWithoutPatientInput = {
   fee: runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: boolean
   notes?: string | null
+  rescheduleHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   refundRequests?: Prisma.RefundRequestUncheckedCreateNestedManyWithoutVideoConsultationInput
   aiBriefs?: Prisma.PatientAiBriefUncheckedCreateNestedManyWithoutConsultationInput
@@ -735,6 +753,7 @@ export type VideoConsultationScalarWhereInput = {
   fee?: Prisma.DecimalFilter<"VideoConsultation"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: Prisma.BoolFilter<"VideoConsultation"> | boolean
   notes?: Prisma.StringNullableFilter<"VideoConsultation"> | string | null
+  rescheduleHistory?: Prisma.JsonNullableFilter<"VideoConsultation">
   createdAt?: Prisma.DateTimeFilter<"VideoConsultation"> | Date | string
 }
 
@@ -748,6 +767,7 @@ export type VideoConsultationCreateWithoutDoctorInput = {
   fee: runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: boolean
   notes?: string | null
+  rescheduleHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   patient: Prisma.PatientCreateNestedOneWithoutVideoConsultationsInput
   refundRequests?: Prisma.RefundRequestCreateNestedManyWithoutVideoConsultationInput
@@ -765,6 +785,7 @@ export type VideoConsultationUncheckedCreateWithoutDoctorInput = {
   fee: runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: boolean
   notes?: string | null
+  rescheduleHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   refundRequests?: Prisma.RefundRequestUncheckedCreateNestedManyWithoutVideoConsultationInput
   aiBriefs?: Prisma.PatientAiBriefUncheckedCreateNestedManyWithoutConsultationInput
@@ -806,6 +827,7 @@ export type VideoConsultationCreateWithoutAiBriefsInput = {
   fee: runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: boolean
   notes?: string | null
+  rescheduleHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   patient: Prisma.PatientCreateNestedOneWithoutVideoConsultationsInput
   doctor: Prisma.DoctorCreateNestedOneWithoutVideoConsultationsInput
@@ -824,6 +846,7 @@ export type VideoConsultationUncheckedCreateWithoutAiBriefsInput = {
   fee: runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: boolean
   notes?: string | null
+  rescheduleHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   refundRequests?: Prisma.RefundRequestUncheckedCreateNestedManyWithoutVideoConsultationInput
 }
@@ -854,6 +877,7 @@ export type VideoConsultationUpdateWithoutAiBriefsInput = {
   fee?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: Prisma.BoolFieldUpdateOperationsInput | boolean
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduleHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   patient?: Prisma.PatientUpdateOneRequiredWithoutVideoConsultationsNestedInput
   doctor?: Prisma.DoctorUpdateOneRequiredWithoutVideoConsultationsNestedInput
@@ -872,6 +896,7 @@ export type VideoConsultationUncheckedUpdateWithoutAiBriefsInput = {
   fee?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: Prisma.BoolFieldUpdateOperationsInput | boolean
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduleHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   refundRequests?: Prisma.RefundRequestUncheckedUpdateManyWithoutVideoConsultationNestedInput
 }
@@ -886,6 +911,7 @@ export type VideoConsultationCreateWithoutRefundRequestsInput = {
   fee: runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: boolean
   notes?: string | null
+  rescheduleHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   patient: Prisma.PatientCreateNestedOneWithoutVideoConsultationsInput
   doctor: Prisma.DoctorCreateNestedOneWithoutVideoConsultationsInput
@@ -904,6 +930,7 @@ export type VideoConsultationUncheckedCreateWithoutRefundRequestsInput = {
   fee: runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: boolean
   notes?: string | null
+  rescheduleHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   aiBriefs?: Prisma.PatientAiBriefUncheckedCreateNestedManyWithoutConsultationInput
 }
@@ -934,6 +961,7 @@ export type VideoConsultationUpdateWithoutRefundRequestsInput = {
   fee?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: Prisma.BoolFieldUpdateOperationsInput | boolean
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduleHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   patient?: Prisma.PatientUpdateOneRequiredWithoutVideoConsultationsNestedInput
   doctor?: Prisma.DoctorUpdateOneRequiredWithoutVideoConsultationsNestedInput
@@ -952,6 +980,7 @@ export type VideoConsultationUncheckedUpdateWithoutRefundRequestsInput = {
   fee?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: Prisma.BoolFieldUpdateOperationsInput | boolean
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduleHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   aiBriefs?: Prisma.PatientAiBriefUncheckedUpdateManyWithoutConsultationNestedInput
 }
@@ -967,6 +996,7 @@ export type VideoConsultationCreateManyPatientInput = {
   fee: runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: boolean
   notes?: string | null
+  rescheduleHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
 }
 
@@ -980,6 +1010,7 @@ export type VideoConsultationUpdateWithoutPatientInput = {
   fee?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: Prisma.BoolFieldUpdateOperationsInput | boolean
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduleHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   doctor?: Prisma.DoctorUpdateOneRequiredWithoutVideoConsultationsNestedInput
   refundRequests?: Prisma.RefundRequestUpdateManyWithoutVideoConsultationNestedInput
@@ -997,6 +1028,7 @@ export type VideoConsultationUncheckedUpdateWithoutPatientInput = {
   fee?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: Prisma.BoolFieldUpdateOperationsInput | boolean
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduleHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   refundRequests?: Prisma.RefundRequestUncheckedUpdateManyWithoutVideoConsultationNestedInput
   aiBriefs?: Prisma.PatientAiBriefUncheckedUpdateManyWithoutConsultationNestedInput
@@ -1013,6 +1045,7 @@ export type VideoConsultationUncheckedUpdateManyWithoutPatientInput = {
   fee?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: Prisma.BoolFieldUpdateOperationsInput | boolean
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduleHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -1027,6 +1060,7 @@ export type VideoConsultationCreateManyDoctorInput = {
   fee: runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: boolean
   notes?: string | null
+  rescheduleHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
 }
 
@@ -1040,6 +1074,7 @@ export type VideoConsultationUpdateWithoutDoctorInput = {
   fee?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: Prisma.BoolFieldUpdateOperationsInput | boolean
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduleHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   patient?: Prisma.PatientUpdateOneRequiredWithoutVideoConsultationsNestedInput
   refundRequests?: Prisma.RefundRequestUpdateManyWithoutVideoConsultationNestedInput
@@ -1057,6 +1092,7 @@ export type VideoConsultationUncheckedUpdateWithoutDoctorInput = {
   fee?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: Prisma.BoolFieldUpdateOperationsInput | boolean
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduleHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   refundRequests?: Prisma.RefundRequestUncheckedUpdateManyWithoutVideoConsultationNestedInput
   aiBriefs?: Prisma.PatientAiBriefUncheckedUpdateManyWithoutConsultationNestedInput
@@ -1073,6 +1109,7 @@ export type VideoConsultationUncheckedUpdateManyWithoutDoctorInput = {
   fee?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   isPaid?: Prisma.BoolFieldUpdateOperationsInput | boolean
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  rescheduleHistory?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -1128,6 +1165,7 @@ export type VideoConsultationSelect<ExtArgs extends runtime.Types.Extensions.Int
   fee?: boolean
   isPaid?: boolean
   notes?: boolean
+  rescheduleHistory?: boolean
   createdAt?: boolean
   patient?: boolean | Prisma.PatientDefaultArgs<ExtArgs>
   doctor?: boolean | Prisma.DoctorDefaultArgs<ExtArgs>
@@ -1148,6 +1186,7 @@ export type VideoConsultationSelectCreateManyAndReturn<ExtArgs extends runtime.T
   fee?: boolean
   isPaid?: boolean
   notes?: boolean
+  rescheduleHistory?: boolean
   createdAt?: boolean
   patient?: boolean | Prisma.PatientDefaultArgs<ExtArgs>
   doctor?: boolean | Prisma.DoctorDefaultArgs<ExtArgs>
@@ -1165,6 +1204,7 @@ export type VideoConsultationSelectUpdateManyAndReturn<ExtArgs extends runtime.T
   fee?: boolean
   isPaid?: boolean
   notes?: boolean
+  rescheduleHistory?: boolean
   createdAt?: boolean
   patient?: boolean | Prisma.PatientDefaultArgs<ExtArgs>
   doctor?: boolean | Prisma.DoctorDefaultArgs<ExtArgs>
@@ -1182,10 +1222,11 @@ export type VideoConsultationSelectScalar = {
   fee?: boolean
   isPaid?: boolean
   notes?: boolean
+  rescheduleHistory?: boolean
   createdAt?: boolean
 }
 
-export type VideoConsultationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "patientId" | "doctorId" | "scheduledAt" | "durationMinutes" | "status" | "expiresAt" | "meetingUrl" | "fee" | "isPaid" | "notes" | "createdAt", ExtArgs["result"]["videoConsultation"]>
+export type VideoConsultationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "patientId" | "doctorId" | "scheduledAt" | "durationMinutes" | "status" | "expiresAt" | "meetingUrl" | "fee" | "isPaid" | "notes" | "rescheduleHistory" | "createdAt", ExtArgs["result"]["videoConsultation"]>
 export type VideoConsultationInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   patient?: boolean | Prisma.PatientDefaultArgs<ExtArgs>
   doctor?: boolean | Prisma.DoctorDefaultArgs<ExtArgs>
@@ -1222,6 +1263,7 @@ export type $VideoConsultationPayload<ExtArgs extends runtime.Types.Extensions.I
     fee: runtime.Decimal
     isPaid: boolean
     notes: string | null
+    rescheduleHistory: runtime.JsonValue | null
     createdAt: Date
   }, ExtArgs["result"]["videoConsultation"]>
   composites: {}
@@ -1661,6 +1703,7 @@ export interface VideoConsultationFieldRefs {
   readonly fee: Prisma.FieldRef<"VideoConsultation", 'Decimal'>
   readonly isPaid: Prisma.FieldRef<"VideoConsultation", 'Boolean'>
   readonly notes: Prisma.FieldRef<"VideoConsultation", 'String'>
+  readonly rescheduleHistory: Prisma.FieldRef<"VideoConsultation", 'Json'>
   readonly createdAt: Prisma.FieldRef<"VideoConsultation", 'DateTime'>
 }
     

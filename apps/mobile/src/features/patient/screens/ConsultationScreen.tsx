@@ -42,6 +42,10 @@ import {
 } from '../api';
 import { ConsultationPaymentDetails } from '../components/ConsultationPaymentDetails';
 import { ConsultationRefundModal } from '../components/ConsultationRefundModal';
+import {
+  ConsultationRescheduleModal,
+  canShowConsultationReschedule,
+} from '../components/ConsultationRescheduleModal';
 import { ConsultationVideoRoomModal } from '../components/ConsultationVideoRoomModal';
 
 type TabMode = 'book' | 'my-consultations';
@@ -130,6 +134,7 @@ export default function ConsultationScreen({ navigation }: any) {
   const [currentTime, setCurrentTime] = useState(Date.now());
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [refundItem, setRefundItem] = useState<PatientConsultation | null>(null);
+  const [rescheduleItem, setRescheduleItem] = useState<PatientConsultation | null>(null);
   const scrollRef = useRef<ScrollView>(null);
 
   const { handleDrawerNavigate, handleLogout } = usePatientDrawerActions();
@@ -1004,6 +1009,16 @@ export default function ConsultationScreen({ navigation }: any) {
               </>
             )}
 
+            {canShowConsultationReschedule(item) && !canJoinRoom && (
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => setRescheduleItem(item)}
+                style={styles.consultRescheduleBtn}
+              >
+                <Text style={styles.consultRescheduleBtnText}>Đổi lịch</Text>
+              </TouchableOpacity>
+            )}
+
             {isPaid && canCancelConsultation(item, currentTime) && (
               <TouchableOpacity
                 activeOpacity={0.8}
@@ -1647,6 +1662,11 @@ export default function ConsultationScreen({ navigation }: any) {
         </Modal>
       )}
 
+      <ConsultationRescheduleModal
+        consultation={rescheduleItem}
+        onClose={() => setRescheduleItem(null)}
+      />
+
       {refundItem && (
         <ConsultationRefundModal
           consultation={refundItem}
@@ -1773,6 +1793,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 10,
     paddingVertical: 6,
+  },
+  consultRescheduleBtn: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#BFDBFE',
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  consultRescheduleBtnText: {
+    color: '#0058bc',
+    fontSize: 11,
+    fontWeight: '700',
   },
   consultCancelBtnText: {
     color: '#E11D48',

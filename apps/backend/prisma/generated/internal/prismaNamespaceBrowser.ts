@@ -743,6 +743,7 @@ export const VideoConsultationScalarFieldEnum = {
   fee: 'fee',
   isPaid: 'isPaid',
   notes: 'notes',
+  rescheduleHistory: 'rescheduleHistory',
   createdAt: 'createdAt'
 } as const
 
