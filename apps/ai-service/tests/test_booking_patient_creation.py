@@ -775,3 +775,17 @@ def test_method_suggestions_show_price():
         {},
     )
     assert "27.000.000 VND" in suggestions[0]["label"]
+
+
+def test_find_patient_ignores_pronoun_named_profiles_and_partial_words():
+    from app.services.booking_agent import find_patient_by_text
+
+    patients = [
+        {"id": "junk", "fullName": "Của Tôi", "relationship": "CHILD", "canBook": True},
+        {"id": "an", "fullName": "An", "relationship": "CHILD", "canBook": True},
+        {"id": "lan", "fullName": "Nguyễn Thị Lan", "relationship": "MOTHER", "canBook": True},
+    ]
+    assert find_patient_by_text("tôi muốn đặt lịch khám cho bố của tôi", patients) is None
+    assert find_patient_by_text("đặt lịch cho anh trai", patients) is None
+    assert find_patient_by_text("đặt cho Nguyễn Thị Lan nhé", patients)["id"] == "lan"
+    assert find_patient_by_text("đặt lịch cho bé An", patients)["id"] == "an"

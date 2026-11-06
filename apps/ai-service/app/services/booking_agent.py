@@ -714,6 +714,12 @@ def token_match(needle: str, haystack: str) -> bool:
     return needle_norm in haystack_norm or haystack_norm in needle_norm
 
 
+AMBIGUOUS_NAME_WORDS = {
+    "cua", "toi", "minh", "tui", "em", "anh", "chi", "nha", "ay", "nay", "voi", "nhe", "a", "oi",
+    "be", "con", "chau", "vo", "chong", "me", "ba", "bo", "cha", "ong",
+}
+
+
 def find_patient_by_text(text: str, patients: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     text_norm = compact_text(text)
     self_words = [
@@ -731,11 +737,21 @@ def find_patient_by_text(text: str, patients: List[Dict[str, Any]]) -> Optional[
             return primary
         return next((p for p in patients if p.get("relationship") == "SELF" and p.get("canBook", True)), None)
 
+    text_words = f" {normalize_text(text)} "
     for patient in patients:
         if not patient.get("canBook", True):
             continue
-        names = [patient.get("fullName", ""), patient.get("patientCode", ""), patient.get("phone", "")]
-        if any(name and token_match(str(name), text) for name in names):
+        # Mã bệnh nhân / SĐT: khớp chuỗi như cũ
+        codes = [patient.get("patientCode", ""), patient.get("phone", "")]
+        if any(code and token_match(str(code), text) for code in codes):
+            return patient
+        # Họ tên: phải khớp trọn cụm từ (tên "An" không được khớp với "anh"),
+        # và bỏ qua hồ sơ có tên chỉ là đại từ/quan hệ (vd. "Của Tôi" tạo nhầm trước đây)
+        name_norm = normalize_text(str(patient.get("fullName") or "")).strip()
+        name_words = name_norm.split()
+        if not name_words or all(w in AMBIGUOUS_NAME_WORDS for w in name_words):
+            continue
+        if f" {name_norm} " in text_words:
             return patient
     return None
 
