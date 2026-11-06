@@ -321,6 +321,9 @@ export class VideoConsultationService implements OnModuleInit {
         await this.redis.delByPrefix('consultation:slots:');
       }
       await this.redis.delByPrefix('booking:window:');
+      // Lịch tư vấn cũng chiếm giờ bác sĩ trong lịch khám: tăng version để
+      // cache booking-options / dates / slots của lịch khám tính lại ngay.
+      await this.redis.incr('booking:version');
     } catch (err: any) {
       // ignore
     }

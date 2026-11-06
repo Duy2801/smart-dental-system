@@ -3,7 +3,7 @@ import logging
 import re
 import unicodedata
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from app.core import llm, rag
 from app.schemas.chatbot import ChatRequest, ChatResponse
@@ -16,6 +16,7 @@ from app.services.booking_tools import (
     fetch_clinic_info,
     fetch_patient_profiles,
     fetch_user_appointments,
+    fetch_patient_busy_ranges,
 )
 
 logger = logging.getLogger(__name__)
@@ -635,8 +636,74 @@ def slot_suggestions(
                 {"time": slot},
             ),
         }
-        for slot in slots[:8]
+        for slot in slots
     ]
+
+
+def format_date_vi(date_id: Optional[str]) -> str:
+    """'2026-11-15' -> 'Chủ nhật, 15/11/2026'"""
+    try:
+        day = datetime.strptime(str(date_id), "%Y-%m-%d")
+    except (TypeError, ValueError):
+        return str(date_id or "")
+    weekdays = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"]
+    return f"{weekdays[day.weekday()]}, {day.strftime('%d/%m/%Y')}"
+
+
+def selected_method_duration(service: Optional[Dict[str, Any]], state: Dict[str, Any]) -> int:
+    for method in (service or {}).get("treatmentMethods") or []:
+        if method.get("id") == state.get("treatmentMethodId"):
+            try:
+                return int(method.get("durationMinutes") or 30)
+            except (TypeError, ValueError):
+                return 30
+    return 30
+
+
+def filter_patient_busy_slots(
+    slots: List[str],
+    date_id: Optional[str],
+    duration_minutes: int,
+    busy_ranges: List[Dict[str, Any]],
+) -> Tuple[List[str], List[str]]:
+    """Tách các khung giờ trùng lịch sẵn có của chính người khám. Trả về (còn trống, bị trùng)."""
+    if not busy_ranges or not date_id:
+        return list(slots), []
+    ranges = []
+    for item in busy_ranges:
+        try:
+            start = datetime.fromisoformat(str(item.get("start")).replace("Z", "+00:00"))
+            end = datetime.fromisoformat(str(item.get("end")).replace("Z", "+00:00"))
+        except (TypeError, ValueError):
+            continue
+        ranges.append((start, end))
+    free, blocked = [], []
+    for slot in slots:
+        try:
+            slot_start = datetime.fromisoformat(f"{date_id}T{slot}:00+07:00")
+        except ValueError:
+            free.append(slot)
+            continue
+        slot_end = slot_start + timedelta(minutes=duration_minutes or 30)
+        if any(start < slot_end and end > slot_start for start, end in ranges):
+            blocked.append(slot)
+        else:
+            free.append(slot)
+    return free, blocked
+
+
+def summarize_slot_periods(slots: List[str]) -> str:
+    morning = [s for s in slots if s < "12:00"]
+    afternoon = [s for s in slots if "12:00" <= s < "18:00"]
+    evening = [s for s in slots if s >= "18:00"]
+    parts = []
+    if morning:
+        parts.append(f"sáng {len(morning)}")
+    if afternoon:
+        parts.append(f"chiều {len(afternoon)}")
+    if evening:
+        parts.append(f"tối {len(evening)}")
+    return ", ".join(parts)
 
 
 def doctor_suggestions(
@@ -1607,7 +1674,22 @@ class BookingAgent:
                 doctor_id=state.get("doctorId"),
                 date=state.get("date"),
             )
-            slots = options.get("timeSlots") or []
+            slots, own_busy = filter_patient_busy_slots(
+                options.get("timeSlots") or [],
+                state.get("date"),
+                selected_method_duration(selected_service, state),
+                await fetch_patient_busy_ranges(state.get("patientId"), state.get("date")),
+            )
+            if not slots and own_busy:
+                return ChatResponse(
+                    reply=(
+                        f"Dạ, các khung giờ còn trống ngày **{format_date_vi(state.get('date'))}** đều trùng với lịch "
+                        f"đã có của {state.get('patientName') or 'người khám'}. Quý khách chọn ngày khác giúp mình nhé ạ."
+                    ),
+                    should_book=True,
+                    suggestions=date_suggestions(options.get("dates") or [], state),
+                    metadata=with_state(state, {}),
+                )
             if not slots:
                 if state.get("doctorId"):
                     return doctor_schedule_unavailable_response(
@@ -1615,13 +1697,26 @@ class BookingAgent:
                         options.get("dates") or [],
                     )
                 return ChatResponse(
-                    reply=f"Dạ, ngày {state.get('date')} hiện không còn khung giờ trống theo lịch phòng khám. Quý khách chọn ngày khác giúp mình nhé ạ.",
+                    reply=f"Dạ, ngày **{format_date_vi(state.get('date'))}** hiện không còn khung giờ trống theo lịch phòng khám. Quý khách chọn ngày khác giúp mình nhé ạ.",
                     should_book=True,
                     suggestions=date_suggestions(options.get("dates") or [], state),
                     metadata=with_state(state, {}),
                 )
+            doctor_note = (
+                f" với {state.get('doctorName')}"
+                if state.get("doctorName")
+                else " (đã kiểm tra lịch của các bác sĩ phụ trách dịch vụ)"
+            )
+            busy_note = (
+                f"\nĐã ẩn {len(own_busy)} khung giờ trùng lịch sẵn có của {state.get('patientName') or 'người khám'}."
+                if own_busy
+                else ""
+            )
             return ChatResponse(
-                reply=f"Dạ, ngày **{state.get('date')}** còn các khung giờ trống sau. Quý khách chọn thời gian phù hợp nhất ạ:",
+                reply=(
+                    f"Dạ, ngày **{format_date_vi(state.get('date'))}** còn **{len(slots)} khung giờ trống**{doctor_note}"
+                    f" ({summarize_slot_periods(slots)}).{busy_note}\nQuý khách chọn thời gian phù hợp nhất ạ:"
+                ),
                 should_book=True,
                 suggestions=slot_suggestions(slots, state),
                 metadata=with_state(state, {}),
@@ -1634,11 +1729,22 @@ class BookingAgent:
             date=state.get("date"),
             time=state.get("time"),
         )
-        slots = options.get("timeSlots") or []
+        slots, own_busy = filter_patient_busy_slots(
+            options.get("timeSlots") or [],
+            state.get("date"),
+            selected_method_duration(selected_service, state),
+            await fetch_patient_busy_ranges(state.get("patientId"), state.get("date")),
+        )
         if state.get("time") not in slots:
+            chosen_time = state.get("time")
             state.update({"time": None})
+            reason = (
+                f"Khung giờ {chosen_time} trùng với lịch đã có của {state.get('patientName') or 'người khám'}."
+                if chosen_time in own_busy
+                else f"Khung giờ {chosen_time or 'vừa chọn'} không còn trống theo lịch mới nhất (có thể đã có người đặt hoặc bác sĩ không làm việc)."
+            )
             return ChatResponse(
-                reply="Khung giờ vừa chọn không còn khả dụng theo lịch mới nhất. Quý khách vui lòng chọn khung giờ khác ạ.",
+                reply=f"{reason} Quý khách vui lòng chọn khung giờ khác ạ.",
                 should_book=True,
                 suggestions=slot_suggestions(slots, state),
                 metadata=with_state(state, {}),

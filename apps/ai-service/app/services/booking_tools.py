@@ -70,6 +70,30 @@ async def fetch_user_appointments(user_id: Optional[str]) -> List[Dict[str, Any]
         return []
 
 
+async def fetch_patient_busy_ranges(
+    patient_id: Optional[str],
+    date: Optional[str],
+) -> List[Dict[str, Any]]:
+    """Khoảng giờ người khám đã có lịch (lịch khám + tư vấn video) trong ngày."""
+    if not patient_id or not date:
+        return []
+    settings = get_settings()
+    url = f"{settings.backend_base_url}/chatbot-conversations/internal/patient-busy"
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            res = await client.get(
+                url,
+                params={"patientId": patient_id, "date": date},
+                headers={"x-api-key": settings.ai_service_api_key},
+            )
+            res.raise_for_status()
+            data = unwrap_backend_data(res.json())
+            return data if isinstance(data, list) else []
+    except Exception as err:
+        logger.error(f"[booking_tools] fetch_patient_busy_ranges error: {err}")
+        return []
+
+
 async def fetch_booking_options(
     service_id: Optional[str] = None,
     treatment_method_id: Optional[str] = None,

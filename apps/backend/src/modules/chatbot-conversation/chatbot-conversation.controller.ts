@@ -99,6 +99,15 @@ export class ChatbotConversationController {
   }
 
   @UseGuards(InternalApiKeyGuard)
+  @Get('internal/patient-busy')
+  async getPatientBusyInternal(
+    @Query('patientId') patientId: string,
+    @Query('date') date: string,
+  ) {
+    return this.service.getInternalPatientBusyRanges(patientId, date);
+  }
+
+  @UseGuards(InternalApiKeyGuard)
   @Get('internal/appointments')
   async getAppointmentsInternal(@Query('userId') userId: string) {
     return this.service.getInternalAppointments(userId);
