@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useAppSelector } from "@/providers";
 import type { AppointmentItem, AppointmentStatus } from "../../api";
 import { formatCurrency, formatDateTime, formatTimeRange } from "@/utils/helpers";
 import type { AppointmentInvoice } from "../../appointmentFinancials";
@@ -52,6 +53,33 @@ const statusInfo: Record<
   },
 };
 
+const relationshipLabels: Record<string, string> = {
+  SELF: "Bản thân",
+  CHILD: "Con",
+  FATHER: "Cha",
+  MOTHER: "Mẹ",
+  OTHER: "Người thân",
+};
+
+const genderLabels: Record<string, string> = {
+  MALE: "Nam",
+  FEMALE: "Nữ",
+  OTHER: "Khác",
+};
+
+/** "2018-02-01..." -> "01/02/2018 (8 tuổi)" */
+function formatBirthDate(value: string) {
+  const [year, month, day] = value.slice(0, 10).split("-").map(Number);
+  if (!year || !month || !day) return value;
+  const today = new Date();
+  let age = today.getFullYear() - year;
+  if (today.getMonth() + 1 < month || (today.getMonth() + 1 === month && today.getDate() < day)) {
+    age -= 1;
+  }
+  const dateLabel = `${String(day).padStart(2, "0")}/${String(month).padStart(2, "0")}/${year}`;
+  return age >= 0 ? `${dateLabel} (${age} tuổi)` : dateLabel;
+}
+
 type AppointmentDetailModalProps = {
   appointment: AppointmentItem | null;
   onClose: () => void;
@@ -63,6 +91,7 @@ export function AppointmentDetailModal({
 }: AppointmentDetailModalProps) {
   const [selectedInvoice, setSelectedInvoice] =
     useState<AppointmentInvoice | null>(null);
+  const bookerName = useAppSelector((state) => state.login.user?.fullName ?? null);
 
   const handleClose = () => {
     setSelectedInvoice(null);
@@ -190,16 +219,33 @@ export function AppointmentDetailModal({
       value: formattedTime,
       hint: appointment.date,
     },
-    {
-      label: "Bệnh nhân",
-      value: appointment.patientName || "—",
-      hint: appointment.patientRelationship,
-    },
     { label: "Bác sĩ", value: appointment.doctor || "—" },
     {
       label: "Thời lượng dự kiến",
       value: `${appointment.durationMinutes || 30} phút`,
     },
+  ];
+
+  const relationship = appointment.patientRelationship || "SELF";
+  const isForRelative = relationship !== "SELF";
+  const patientRows: Array<{ label: string; value: string }> = [
+    { label: "Họ và tên", value: appointment.patientName || "—" },
+    { label: "Quan hệ", value: relationshipLabels[relationship] ?? "Người thân" },
+    ...(appointment.patientCode
+      ? [{ label: "Mã bệnh nhân", value: appointment.patientCode }]
+      : []),
+    ...(appointment.patientDateOfBirth
+      ? [{ label: "Ngày sinh", value: formatBirthDate(appointment.patientDateOfBirth) }]
+      : []),
+    ...(appointment.patientGender && genderLabels[appointment.patientGender]
+      ? [{ label: "Giới tính", value: genderLabels[appointment.patientGender] }]
+      : []),
+    ...(appointment.patientPhone
+      ? [{ label: "Số điện thoại", value: appointment.patientPhone }]
+      : []),
+    ...(isForRelative && bookerName
+      ? [{ label: "Người đặt lịch", value: `${bookerName} (tài khoản của bạn)` }]
+      : []),
   ];
 
   return (
@@ -286,6 +332,41 @@ export function AppointmentDetailModal({
                   </div>
                 ))}
               </dl>
+
+              {/* Người khám */}
+              <section>
+                <div className="mb-2 flex items-center justify-between">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                    Người khám
+                  </h3>
+                  {isForRelative ? (
+                    <span className="rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] font-bold text-violet-700">
+                      Đặt cho người thân
+                    </span>
+                  ) : null}
+                </div>
+                <dl className="divide-y divide-slate-100 rounded-2xl border border-slate-200/80">
+                  {patientRows.map((row) => (
+                    <div key={row.label} className="flex items-start justify-between gap-4 px-4 py-3">
+                      <dt className="pt-0.5 text-xs font-semibold text-slate-500">{row.label}</dt>
+                      <dd className="min-w-0 text-right text-sm font-bold text-slate-900 break-words">
+                        {row.value}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+
+              {appointment.notes ? (
+                <section>
+                  <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">
+                    Ghi chú khi đặt lịch
+                  </h3>
+                  <p className="whitespace-pre-line rounded-2xl border border-slate-200/80 px-4 py-3 text-sm text-slate-700">
+                    {appointment.notes}
+                  </p>
+                </section>
+              ) : null}
 
               {/* Hóa đơn (chỉ khi đã khám xong) */}
               {isCompleted ? (

@@ -115,6 +115,12 @@ const redirectToLogin = () => {
   window.location.href = `/login?redirect=${encodeURIComponent(redirect)}`;
 };
 
+/** Server từ chối phiên (refresh token hết hạn / bị thu hồi), khác với lỗi mạng tạm thời */
+export const isSessionRejected = (error: unknown) => {
+  const status = axios.isAxiosError(error) ? error.response?.status : undefined;
+  return status === 401 || status === 403;
+};
+
 const API_ORIGIN =(process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
 
 const apiClient = axios.create({
@@ -276,8 +282,12 @@ apiClient.interceptors.response.use(
       return apiClient(originalRequest);
     } catch (refreshError) {
       processQueue(refreshError, null);
-      clearAuthState();
-      if (hadSession) redirectToLogin();
+      // Lỗi mạng / server đang khởi động lại / 5xx: giữ phiên, lần gọi sau thử lại.
+      // Chỉ đăng xuất khi server thật sự từ chối refresh token (401/403).
+      if (isSessionRejected(refreshError)) {
+        clearAuthState();
+        if (hadSession) redirectToLogin();
+      }
       return Promise.reject(refreshError);
     } finally {
       isRefreshing = false;

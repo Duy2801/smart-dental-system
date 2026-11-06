@@ -231,16 +231,27 @@ apiClient.interceptors.response.use(
       return apiClient(originalRequest);
     } catch (refreshError) {
       processQueue(refreshError, null);
-      removeCookie("access_token");
-      removeCookie("refresh_token");
-      removeCookie("role");
-      removeCookie("session");
-      removeCookie("user_info");
-      if (
-        typeof window !== "undefined" &&
-        window.location.pathname !== "/login"
-      ) {
-        window.location.href = "/login";
+      // Lỗi mạng / server đang khởi động lại / 5xx: giữ phiên, lần sau thử lại.
+      // Chỉ đăng xuất khi không còn refresh token hoặc server từ chối (401/403).
+      const refreshStatus = axios.isAxiosError(refreshError)
+        ? refreshError.response?.status
+        : undefined;
+      const sessionRejected =
+        refreshStatus === 401 ||
+        refreshStatus === 403 ||
+        (!axios.isAxiosError(refreshError) && !getCookie("refresh_token"));
+      if (sessionRejected) {
+        removeCookie("access_token");
+        removeCookie("refresh_token");
+        removeCookie("role");
+        removeCookie("session");
+        removeCookie("user_info");
+        if (
+          typeof window !== "undefined" &&
+          window.location.pathname !== "/login"
+        ) {
+          window.location.href = "/login";
+        }
       }
       return Promise.reject(refreshError);
     } finally {
