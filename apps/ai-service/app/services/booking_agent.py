@@ -692,19 +692,6 @@ def filter_patient_busy_slots(
     return free, blocked
 
 
-def summarize_slot_periods(slots: List[str]) -> str:
-    morning = [s for s in slots if s < "12:00"]
-    afternoon = [s for s in slots if "12:00" <= s < "18:00"]
-    evening = [s for s in slots if s >= "18:00"]
-    parts = []
-    if morning:
-        parts.append(f"sáng {len(morning)}")
-    if afternoon:
-        parts.append(f"chiều {len(afternoon)}")
-    if evening:
-        parts.append(f"tối {len(evening)}")
-    return ", ".join(parts)
-
 
 def doctor_suggestions(
     doctors: List[Dict[str, Any]],
@@ -1705,7 +1692,7 @@ class BookingAgent:
             doctor_note = (
                 f" với {state.get('doctorName')}"
                 if state.get("doctorName")
-                else " (đã kiểm tra lịch của các bác sĩ phụ trách dịch vụ)"
+                else ""
             )
             busy_note = (
                 f"\nĐã ẩn {len(own_busy)} khung giờ trùng lịch sẵn có của {state.get('patientName') or 'người khám'}."
@@ -1714,8 +1701,8 @@ class BookingAgent:
             )
             return ChatResponse(
                 reply=(
-                    f"Dạ, ngày **{format_date_vi(state.get('date'))}** còn **{len(slots)} khung giờ trống**{doctor_note}"
-                    f" ({summarize_slot_periods(slots)}).{busy_note}\nQuý khách chọn thời gian phù hợp nhất ạ:"
+                    f"Dạ, ngày **{format_date_vi(state.get('date'))}** còn **{len(slots)} khung giờ trống**{doctor_note}."
+                    f"{busy_note}\nQuý khách chọn thời gian phù hợp nhất ạ:"
                 ),
                 should_book=True,
                 suggestions=slot_suggestions(slots, state),
