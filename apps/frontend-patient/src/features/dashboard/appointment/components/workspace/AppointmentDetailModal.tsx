@@ -244,7 +244,7 @@ export function AppointmentDetailModal({
       ? [{ label: "Số điện thoại", value: appointment.patientPhone }]
       : []),
     ...(isForRelative && bookerName
-      ? [{ label: "Người đặt lịch", value: `${bookerName} (tài khoản của bạn)` }]
+      ? [{ label: "Người đặt lịch", value: bookerName }]
       : []),
   ];
 
@@ -356,17 +356,6 @@ export function AppointmentDetailModal({
                   ))}
                 </dl>
               </section>
-
-              {appointment.notes ? (
-                <section>
-                  <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">
-                    Ghi chú khi đặt lịch
-                  </h3>
-                  <p className="whitespace-pre-line rounded-2xl border border-slate-200/80 px-4 py-3 text-sm text-slate-700">
-                    {appointment.notes}
-                  </p>
-                </section>
-              ) : null}
 
               {/* Hóa đơn (chỉ khi đã khám xong) */}
               {isCompleted ? (
