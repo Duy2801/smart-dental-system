@@ -5,8 +5,12 @@ import {
   getConsultationDoctors,
   getConsultationPackages,
   getMyConsultations,
+  rescheduleMyConsultation,
 } from "../api";
-import type { ConsultationDurationMinutes } from "../types";
+import type {
+  ConsultationDurationMinutes,
+  PatientConsultationItem,
+} from "../types";
 
 export const consultationQueryKeys = {
   all: ["patient", "consultations"] as const,
@@ -71,6 +75,42 @@ export function useMyConsultationsQuery() {
     staleTime: 15 * 1000, // 15s cache for dynamic room/status updates
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
+  });
+}
+
+/** Slot trống khi đổi lịch: không tính chính buổi tư vấn đang được đổi */
+export function useRescheduleConsultationSlotsQuery(
+  consultation: PatientConsultationItem | null,
+  date: string,
+) {
+  const doctorId = consultation?.doctorId ?? "";
+  const duration = (consultation?.durationMinutes ?? 30) as ConsultationDurationMinutes;
+  return useQuery({
+    queryKey: [
+      ...consultationQueryKeys.slots(doctorId, date, duration),
+      "reschedule",
+      consultation?.id ?? "",
+    ],
+    queryFn: () =>
+      getAvailableConsultationSlots(doctorId, date, duration, consultation?.id),
+    enabled: Boolean(consultation && doctorId && date),
+    staleTime: 15 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+}
+
+export function useRescheduleConsultationMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, scheduledAt }: { id: string; scheduledAt: string }) =>
+      rescheduleMyConsultation(id, scheduledAt),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: consultationQueryKeys.all,
+      });
+    },
   });
 }
 

@@ -87,6 +87,40 @@ const clearAuthState = () => {
   store.dispatch(logout());
 };
 
+// Chỉ những trang bắt buộc đăng nhập mới bị đẩy sang /auth/login khi phiên hết hạn.
+// Trang công khai (home, dịch vụ, bác sĩ, ưu đãi...) chỉ xoá phiên và hiển thị
+// như khách — tránh việc vừa mở /home đã bị văng sang trang đăng nhập do token
+// cũ trong localStorage hết hạn và refresh cookie không còn hợp lệ.
+const PROTECTED_PATH_PREFIXES = [
+  "/profile",
+  "/payment",
+  "/records",
+  "/notification",
+  "/consultation",
+];
+
+const isProtectedPath = (pathname: string) =>
+  PROTECTED_PATH_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+
+const redirectToLogin = () => {
+  if (
+    typeof window === "undefined" ||
+    !isProtectedPath(window.location.pathname)
+  ) {
+    return;
+  }
+  const redirect = `${window.location.pathname}${window.location.search}`;
+  window.location.href = `/auth/login?redirect=${encodeURIComponent(redirect)}`;
+};
+
+/** Server từ chối phiên (refresh token hết hạn / bị thu hồi), khác với lỗi mạng tạm thời */
+export const isSessionRejected = (error: unknown) => {
+  const status = axios.isAxiosError(error) ? error.response?.status : undefined;
+  return status === 401 || status === 403;
+};
+
 const API_ORIGIN = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
 
 const apiClient = axios.create({
@@ -203,14 +237,11 @@ apiClient.interceptors.response.use(
       return Promise.reject(error);
     }
 
+    const hadSession = Boolean(getAccessToken());
+
     if (originalRequest._retry) {
       clearAuthState();
-      if (
-        typeof window !== "undefined" &&
-        window.location.pathname !== "/auth/login"
-      ) {
-        window.location.href = "/auth/login";
-      }
+      redirectToLogin();
       return Promise.reject(error);
     }
 
@@ -249,12 +280,11 @@ apiClient.interceptors.response.use(
       return apiClient(originalRequest);
     } catch (refreshError) {
       processQueue(refreshError, null);
-      clearAuthState();
-      if (
-        typeof window !== "undefined" &&
-        window.location.pathname !== "/auth/login"
-      ) {
-        window.location.href = "/auth/login";
+      // Lỗi mạng / server đang khởi động lại / 5xx: giữ phiên, lần gọi sau thử lại.
+      // Chỉ đăng xuất khi server thật sự từ chối refresh token (401/403).
+      if (isSessionRejected(refreshError)) {
+        clearAuthState();
+        if (hadSession) redirectToLogin();
       }
       return Promise.reject(refreshError);
     } finally {

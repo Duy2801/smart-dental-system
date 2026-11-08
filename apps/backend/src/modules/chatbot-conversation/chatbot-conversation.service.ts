@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { AiClientService } from '../ai/ai-client.service';
 import { AppointmentService } from '../appointment/appointment.service';
+import { OCCUPYING_APPOINTMENT_STATUSES } from '../appointment/appointment-status-policy';
 import { PatientService } from '../patient/patient.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PatientChatDto } from './dto/chat.dto';
@@ -300,6 +301,56 @@ export class ChatbotConversationService {
       })),
       timeSlots: options.timeSlots || [],
     };
+  }
+
+  /**
+   * Các khoảng giờ người khám đã bận trong 1 ngày (lịch khám + lịch tư vấn video),
+   * để trợ lý AI không gợi ý khung giờ trùng lịch của chính người khám.
+   */
+  async getInternalPatientBusyRanges(patientId: string, date: string) {
+    if (!patientId || !/^\d{4}-\d{2}-\d{2}$/.test(date || '')) return [];
+
+    const dayStart = new Date(`${date}T00:00:00.000+07:00`);
+    const dayEnd = new Date(`${date}T23:59:59.999+07:00`);
+    // Buổi tư vấn dài nhất 60 phút: lấy từ 1 tiếng trước để bắt buổi bắt đầu hôm trước kéo qua
+    const videoLookback = new Date(dayStart.getTime() - 60 * 60 * 1000);
+    const now = new Date();
+
+    const [appointments, consultations] = await Promise.all([
+      this.prisma.appointment.findMany({
+        where: {
+          patientId,
+          status: { in: OCCUPYING_APPOINTMENT_STATUSES },
+          scheduledAt: { lt: dayEnd },
+          endAt: { gt: dayStart },
+        },
+        select: { scheduledAt: true, endAt: true },
+      }),
+      this.prisma.videoConsultation.findMany({
+        where: {
+          patientId,
+          status: { in: ['PENDING_PAYMENT', 'SCHEDULED', 'IN_PROGRESS'] },
+          scheduledAt: { gt: videoLookback, lt: dayEnd },
+          NOT: { status: 'PENDING_PAYMENT', expiresAt: { lte: now } },
+        },
+        select: { scheduledAt: true, durationMinutes: true },
+      }),
+    ]);
+
+    return [
+      ...appointments.map((item) => ({
+        type: 'APPOINTMENT',
+        start: item.scheduledAt.toISOString(),
+        end: item.endAt.toISOString(),
+      })),
+      ...consultations.map((item) => ({
+        type: 'VIDEO_CONSULTATION',
+        start: item.scheduledAt.toISOString(),
+        end: new Date(
+          item.scheduledAt.getTime() + item.durationMinutes * 60 * 1000,
+        ).toISOString(),
+      })),
+    ];
   }
 
   async getInternalAppointments(userId: string) {

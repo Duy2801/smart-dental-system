@@ -1171,7 +1171,7 @@ async function seedBaseData() {
     {
       minutes: 15,
       label: '15 Phút - Nhanh',
-      price: 50000,
+      price: 10000,
       description: 'Giải đáp thắc mắc nhanh, xem kết quả chụp X-quang hoặc tư vấn sau điều trị.',
       tag: 'Khỏi chờ lâu',
       displayOrder: 1,
@@ -1179,7 +1179,7 @@ async function seedBaseData() {
     {
       minutes: 30,
       label: '30 Phút - Tiêu Chuẩn',
-      price: 100000,
+      price: 20000,
       description: 'Khám sơ bộ triệu chứng, tư vấn các dịch vụ nha khoa phổ thông và phương án.',
       tag: 'Phổ biến nhất',
       displayOrder: 2,
@@ -1187,7 +1187,7 @@ async function seedBaseData() {
     {
       minutes: 60,
       label: '60 Phút - Chuyên Sâu',
-      price: 150000,
+      price: 30000,
       description: 'Chẩn đoán chi tiết phác đồ niềng răng, Implant, thẩm mỹ nụ cười toàn diện.',
       tag: 'Chuyên sâu',
       displayOrder: 3,

@@ -17,6 +17,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface';
 import { CreateVideoConsultationDto } from './dto/create-video-consultation.dto';
 import { UpdateVideoConsultationNotesDto } from './dto/update-video-consultation-notes.dto';
+import { RescheduleVideoConsultationDto } from './dto/reschedule-video-consultation.dto';
 import { VideoConsultationService } from './video-consultation.service';
 
 @ApiTags('Video Consultation')
@@ -46,9 +47,16 @@ export class VideoConsultationController {
     @Query('doctorId') doctorId: string,
     @Query('date') date: string,
     @Query('durationMinutes') durationMinutes?: string,
+    @Query('excludeConsultationId', new ParseUUIDPipe({ optional: true }))
+    excludeConsultationId?: string,
   ) {
     const duration = durationMinutes ? parseInt(durationMinutes, 10) : 30;
-    return this.service.getAvailableSlots(doctorId, date, duration);
+    return this.service.getAvailableSlots(
+      doctorId,
+      date,
+      duration,
+      excludeConsultationId,
+    );
   }
 
   @Get('patient/my-consultations')
@@ -76,6 +84,17 @@ export class VideoConsultationController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.service.cancelBookingByPatient(user, id);
+  }
+
+  @Patch('patient/:id/reschedule')
+  @Roles('PATIENT', 'ADMIN')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  rescheduleBookingByPatient(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: RescheduleVideoConsultationDto,
+  ) {
+    return this.service.rescheduleBookingByPatient(user, id, dto);
   }
 
   @Get('patient/:id/payment-info')

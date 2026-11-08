@@ -52,7 +52,13 @@ const patientRescheduleNoticeHours = 6;
 const noShowOnlineBookingBlockedThreshold = 3;
 
 const appointmentInclude = {
-  patient: { include: { user: true } },
+  patient: {
+    include: {
+      user: true,
+      // Quan hệ người khám với tài khoản đặt lịch (bản thân / con / cha / mẹ...)
+      patientAccounts: { select: { userId: true, relationship: true } },
+    },
+  },
   doctor: { include: { user: true } },
   treatmentMethod: { include: { service: true } },
   medicalRecords: { select: { id: true }, take: 1 },

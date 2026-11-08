@@ -1058,6 +1058,8 @@ model VideoConsultation {
   fee             Decimal                 @db.Decimal(12, 2)
   isPaid          Boolean                 @default(false) @map("is_paid")
   notes           String?                 @db.Text
+  // Lịch sử bệnh nhân tự đổi lịch (giới hạn 1 lần, giống lịch khám)
+  rescheduleHistory Json?                 @map("reschedule_history")
   createdAt       DateTime                @default(now()) @map("created_at")
 
   patient        Patient          @relation(fields: [patientId], references: [id], onDelete: Restrict)

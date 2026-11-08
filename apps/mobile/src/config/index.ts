@@ -88,7 +88,7 @@ api.interceptors.response.use(
       }
 
       const refreshResponse = await axios.post<{
-        data?: { accessToken?: string };
+        data?: { accessToken?: string; refreshToken?: string };
       }>(
         `${getApiBaseUrl()}/auth/refresh`,
         {},
@@ -107,6 +107,11 @@ api.interceptors.response.use(
       }
 
       await setItem(KEY_STORAGE.token, newAccessToken);
+      // Backend gia hạn trượt: mỗi lần refresh cấp refresh token mới (thêm 7 ngày)
+      const newRefreshToken = refreshResponse.data?.data?.refreshToken;
+      if (newRefreshToken && newRefreshToken !== refreshToken) {
+        await setItem(KEY_STORAGE.refreshToken, newRefreshToken);
+      }
       const session = await getItem<any>(KEY_STORAGE.session);
       if (session) {
         await setItem(KEY_STORAGE.session, {
@@ -123,12 +128,25 @@ api.interceptors.response.use(
       return api(originalRequest);
     } catch (refreshErr) {
       processQueue(refreshErr, null);
-      await Promise.all([
-        removeItem(KEY_STORAGE.session),
-        removeItem(KEY_STORAGE.token),
-        removeItem(KEY_STORAGE.refreshToken),
-      ]);
-      store.dispatch(clearSession());
+      // Mất sóng / timeout / server đang khởi động lại: giữ phiên để lần sau thử lại.
+      // Chỉ đăng xuất khi không còn refresh token hoặc server từ chối (401/403).
+      const status = axios.isAxiosError(refreshErr)
+        ? refreshErr.response?.status
+        : undefined;
+      const sessionRejected =
+        status === 401 ||
+        status === 403 ||
+        (!axios.isAxiosError(refreshErr) &&
+          refreshErr instanceof Error &&
+          refreshErr.message === 'No refresh token available');
+      if (sessionRejected) {
+        await Promise.all([
+          removeItem(KEY_STORAGE.session),
+          removeItem(KEY_STORAGE.token),
+          removeItem(KEY_STORAGE.refreshToken),
+        ]);
+        store.dispatch(clearSession());
+      }
       return Promise.reject(refreshErr);
     } finally {
       isRefreshing = false;

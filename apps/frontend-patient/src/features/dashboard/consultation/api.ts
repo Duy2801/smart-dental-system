@@ -34,10 +34,16 @@ export async function getAvailableConsultationSlots(
   doctorId: string,
   date: string,
   durationMinutes: ConsultationDurationMinutes,
+  excludeConsultationId?: string,
 ): Promise<string[]> {
   const [slotsResponse, configResponse] = await Promise.all([
     apiClient.get<string[]>("/video-consultations/available-slots", {
-      params: { doctorId, date, durationMinutes },
+      params: {
+        doctorId,
+        date,
+        durationMinutes,
+        ...(excludeConsultationId ? { excludeConsultationId } : {}),
+      },
     }),
     apiClient
       .get<{ lunchBreak?: ClinicLunchBreak }>("/clinic-config")
@@ -86,6 +92,17 @@ export async function cancelMyConsultation(id: string): Promise<{
       note: string;
     };
   }>(`/video-consultations/patient/${id}/cancel`);
+  return response.data;
+}
+
+export async function rescheduleMyConsultation(
+  id: string,
+  scheduledAt: string,
+): Promise<PatientConsultationItem> {
+  const response = await apiClient.patch<PatientConsultationItem>(
+    `/video-consultations/patient/${id}/reschedule`,
+    { scheduledAt },
+  );
   return response.data;
 }
 

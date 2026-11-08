@@ -211,6 +211,8 @@ export type PatientConsultation = {
   notes?: string;
   meetingUrl?: string | null;
   fee?: number;
+  doctorId?: string;
+  rescheduleCount: number;
 };
 
 export type PatientConsultationRoom = {
@@ -462,11 +464,28 @@ export const getAvailableConsultationSlots = async (
   doctorId: string,
   date: string,
   durationMinutes: number,
+  excludeConsultationId?: string,
 ): Promise<string[]> => {
   const response = await api.get('/video-consultations/available-slots', {
-    params: { doctorId, date, durationMinutes },
+    params: {
+      doctorId,
+      date,
+      durationMinutes,
+      ...(excludeConsultationId ? { excludeConsultationId } : {}),
+    },
   });
   return getItems<string>(response.data);
+};
+
+/** Bệnh nhân đổi lịch tư vấn (giống đổi lịch khám: tối đa 1 lần, trước giờ hẹn >= 6 tiếng) */
+export const rescheduleMyConsultation = async (
+  id: string,
+  scheduledAt: string,
+): Promise<any> => {
+  const response = await api.patch(`/video-consultations/patient/${id}/reschedule`, {
+    scheduledAt,
+  });
+  return unwrapData<any>(response);
 };
 
 export const createConsultationBooking = async (
@@ -516,6 +535,8 @@ export const getPatientConsultations = async (): Promise<PatientConsultation[]> 
         notes: item.notes || '',
         meetingUrl: item.meetingUrl || null,
         fee: asNumber(item.fee),
+        doctorId: item.doctorId || item.doctor?.id || undefined,
+        rescheduleCount: asNumber(item.rescheduleCount),
       };
     });
   } catch (error) {

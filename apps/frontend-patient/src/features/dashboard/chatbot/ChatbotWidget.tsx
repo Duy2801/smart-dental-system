@@ -5,6 +5,13 @@ import { useState, useRef, useEffect } from "react";
 import apiClient from "@/lib/axios";
 import { DashboardIcon } from "../common/DashboardIcon";
 import { presentChatbotMessage } from "./messagePresentation";
+import {
+  PatientInfoForm,
+  RELATIONSHIP_OPTIONS,
+  GENDER_OPTIONS,
+  type PatientFormDefaults,
+  type PatientFormValues,
+} from "./PatientInfoForm";
 
 import { useAppSelector } from "@/providers";
 
@@ -31,6 +38,18 @@ type ChatbotApiPayload = {
 };
 
 const CHATBOT_REQUEST_TIMEOUT_MS = 75_000;
+
+type NewPatientForm = { type: "new_patient"; defaults?: PatientFormDefaults };
+
+const getNewPatientForm = (message: ChatMessage): NewPatientForm | null => {
+  const form = message.metadata?.form as NewPatientForm | undefined;
+  return form?.type === "new_patient" ? form : null;
+};
+
+const formatDateVi = (value: string) => {
+  const [year, month, day] = value.split("-");
+  return year && month && day ? `${day}/${month}/${year}` : value;
+};
 
 const initialMessages: ChatMessage[] = [
   {
@@ -177,6 +196,41 @@ export function ChatbotWidget() {
     }
   }
 
+  function submitPatientForm(message: ChatMessage, values: PatientFormValues) {
+    const previousState =
+      (message.metadata?.bookingState as Record<string, unknown> | undefined) ?? {};
+    const patientFields = {
+      creatingNewPatient: true,
+      newPatientName: values.fullName,
+      newPatientPhone: values.phone || null,
+      newPatientDob: values.dateOfBirth || null,
+      newPatientGender: values.gender || null,
+      newPatientRelationship: values.relationship,
+    };
+    const relationshipLabel =
+      RELATIONSHIP_OPTIONS.find((option) => option.value === values.relationship)?.label ?? "";
+    const genderLabel = values.gender
+      ? GENDER_OPTIONS.find((option) => option.value === values.gender)?.label
+      : "";
+    const summary = [
+      values.fullName,
+      relationshipLabel,
+      genderLabel,
+      values.dateOfBirth ? `Sinh ${formatDateVi(values.dateOfBirth)}` : "",
+      values.phone ? `SĐT ${values.phone}` : "",
+    ]
+      .filter(Boolean)
+      .join(" · ");
+
+    handleSendMessage(`Thông tin người khám: ${summary}`, {
+      ...patientFields,
+      patientFormSubmitted: true,
+      bookingState: { ...previousState, ...patientFields },
+    });
+  }
+
+  const lastBotMessageId = [...messages].reverse().find((m) => m.sender === "bot")?.id;
+
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     handleSendMessage(input);
@@ -194,7 +248,7 @@ export function ChatbotWidget() {
                 <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-[#0782d8] bg-emerald-400" />
               </span>
               <div>
-                <h2 className="text-xs sm:text-sm font-bold tracking-tight">Trợ lý AI Đặt Lịch</h2>
+                <h2 className="text-xs sm:text-sm font-bold tracking-tight">Trợ lý AI</h2>
                 <p className="mt-0.5 flex items-center gap-1 text-[9px] sm:text-[10px] text-blue-100">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   Sẵn sàng 24/7 · Smart Dental AI
@@ -227,6 +281,17 @@ export function ChatbotWidget() {
                 >
                   {presentChatbotMessage(message.text)}
                 </div>
+
+                {message.sender === "bot" &&
+                  message.id === lastBotMessageId &&
+                  getNewPatientForm(message) && (
+                    <PatientInfoForm
+                      key={message.id}
+                      defaults={getNewPatientForm(message)?.defaults}
+                      disabled={loading}
+                      onSubmit={(values) => submitPatientForm(message, values)}
+                    />
+                  )}
 
                 {message.sender === "bot" && Boolean(message.suggestions?.length) && (
                   <div className="mt-1.5 flex flex-wrap gap-1.5">

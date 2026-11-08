@@ -703,3 +703,155 @@ async def test_named_relative_replaces_stale_self_patient_and_continues_booking(
     assert state["date"] == "2026-09-24"
     assert any(item.type == "time_slot" for item in res.suggestions)
 
+
+
+@pytest.mark.asyncio
+async def test_book_for_child_shows_form_instead_of_guessing_name():
+    agent = BookingAgent()
+    req = ChatRequest(
+        message="tôi muốn đặt lịch khám cho con của tôi",
+        created_by_user_id="user-123",
+        history=[],
+        metadata={},
+    )
+    with patch("app.services.booking_agent.fetch_available_services", new_callable=AsyncMock) as mock_services, \
+         patch("app.services.booking_agent.fetch_available_doctors", new_callable=AsyncMock) as mock_doctors, \
+         patch("app.services.booking_agent.fetch_patient_profiles", new_callable=AsyncMock) as mock_patients, \
+         patch("app.services.booking_agent.create_patient_profile", new_callable=AsyncMock) as mock_create:
+        mock_services.return_value = [{"id": "srv-1", "name": "Nha khoa trẻ em", "treatmentMethods": []}]
+        mock_doctors.return_value = []
+        mock_patients.return_value = [{"id": "pat-self", "fullName": "Bố", "relationship": "SELF", "canBook": True}]
+
+        res = await agent.process_chat(req)
+
+    mock_create.assert_not_called()
+    assert res.metadata["form"]["type"] == "new_patient"
+    assert res.metadata["form"]["defaults"]["relationship"] == "CHILD"
+    assert res.metadata["form"]["defaults"]["fullName"] == ""
+    assert res.metadata["bookingState"]["creatingNewPatient"] is True
+
+
+@pytest.mark.asyncio
+async def test_new_patient_form_submission_creates_profile_then_asks_service():
+    agent = BookingAgent()
+    form_state = {
+        "creatingNewPatient": True,
+        "newPatientName": "Nguyễn Văn An",
+        "newPatientDob": "2018-02-01",
+        "newPatientGender": "MALE",
+        "newPatientRelationship": "CHILD",
+    }
+    req = ChatRequest(
+        message="Người khám: Nguyễn Văn An · Con · 01/02/2018",
+        created_by_user_id="user-123",
+        history=[],
+        metadata={"bookingState": form_state, "patientFormSubmitted": True, **form_state},
+    )
+    with patch("app.services.booking_agent.fetch_available_services", new_callable=AsyncMock) as mock_services, \
+         patch("app.services.booking_agent.fetch_available_doctors", new_callable=AsyncMock) as mock_doctors, \
+         patch("app.services.booking_agent.fetch_patient_profiles", new_callable=AsyncMock) as mock_patients, \
+         patch("app.services.booking_agent.create_patient_profile", new_callable=AsyncMock) as mock_create:
+        mock_services.return_value = [{"id": "srv-1", "name": "Nha khoa trẻ em", "treatmentMethods": []}]
+        mock_doctors.return_value = []
+        mock_patients.return_value = [{"id": "pat-self", "fullName": "Bố", "relationship": "SELF", "canBook": True}]
+        mock_create.return_value = {"id": "pat-child", "fullName": "Nguyễn Văn An"}
+
+        res = await agent.process_chat(req)
+
+    mock_create.assert_awaited_once()
+    kwargs = mock_create.await_args.kwargs
+    assert kwargs["full_name"] == "Nguyễn Văn An"
+    assert kwargs["date_of_birth"] == "2018-02-01"
+    assert kwargs["relationship"] == "CHILD"
+    state = res.metadata["bookingState"]
+    assert state["patientId"] == "pat-child"
+    assert state.get("date") is None
+    assert any(s.type == "service" for s in res.suggestions)
+
+
+def test_method_suggestions_show_price():
+    suggestions = method_suggestions(
+        {"treatmentMethods": [{"id": "tm-1", "name": "Mắc cài kim loại", "basePrice": 30000000, "finalPrice": 27000000}]},
+        {},
+    )
+    assert "27.000.000 VND" in suggestions[0]["label"]
+
+
+def test_find_patient_ignores_pronoun_named_profiles_and_partial_words():
+    from app.services.booking_agent import find_patient_by_text
+
+    patients = [
+        {"id": "junk", "fullName": "Của Tôi", "relationship": "CHILD", "canBook": True},
+        {"id": "an", "fullName": "An", "relationship": "CHILD", "canBook": True},
+        {"id": "lan", "fullName": "Nguyễn Thị Lan", "relationship": "MOTHER", "canBook": True},
+    ]
+    assert find_patient_by_text("tôi muốn đặt lịch khám cho bố của tôi", patients) is None
+    assert find_patient_by_text("đặt lịch cho anh trai", patients) is None
+    assert find_patient_by_text("đặt cho Nguyễn Thị Lan nhé", patients)["id"] == "lan"
+    assert find_patient_by_text("đặt lịch cho bé An", patients)["id"] == "an"
+
+
+def test_slot_suggestions_show_every_available_slot():
+    slots = [f"{h:02d}:{m:02d}" for h in range(8, 17) for m in (0, 30)]
+    suggestions = slot_suggestions(slots, {"date": "2026-11-15"})
+    assert [s["label"] for s in suggestions] == slots
+
+
+def test_filter_patient_busy_slots_hides_overlaps_with_own_schedule():
+    from app.services.booking_agent import filter_patient_busy_slots
+
+    # Người khám đã có lịch 09:00-10:00 (giờ VN) = 02:00-03:00 UTC
+    busy = [{"start": "2026-11-15T02:00:00.000Z", "end": "2026-11-15T03:00:00.000Z"}]
+    free, blocked = filter_patient_busy_slots(
+        ["08:00", "08:30", "09:00", "09:30", "10:00"], "2026-11-15", 30, busy
+    )
+    assert blocked == ["09:00", "09:30"]
+    assert free == ["08:00", "08:30", "10:00"]
+
+    # Dịch vụ 60 phút: 08:30-09:30 cũng trùng
+    free60, blocked60 = filter_patient_busy_slots(["08:00", "08:30", "10:00"], "2026-11-15", 60, busy)
+    assert blocked60 == ["08:30"]
+    assert free60 == ["08:00", "10:00"]
+
+
+@pytest.mark.asyncio
+async def test_time_step_lists_all_slots_and_excludes_patient_busy_times():
+    agent = BookingAgent()
+    state = {
+        "patientId": "pat-self",
+        "patientName": "Duy",
+        "serviceId": "srv-1",
+        "serviceName": "Bọc răng sứ",
+        "treatmentMethodId": "tm-1",
+        "treatmentMethodName": "Sứ Zirconia",
+        "date": "2099-11-16",
+    }
+    all_slots = ["08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "13:30", "14:00", "14:30", "15:00"]
+    req = ChatRequest(
+        message="Xem giờ trống giúp mình",
+        created_by_user_id="user-123",
+        history=[],
+        metadata={"bookingState": state},
+    )
+    with patch("app.services.booking_agent.fetch_available_services", new_callable=AsyncMock) as mock_services, \
+         patch("app.services.booking_agent.fetch_available_doctors", new_callable=AsyncMock) as mock_doctors, \
+         patch("app.services.booking_agent.fetch_patient_profiles", new_callable=AsyncMock) as mock_patients, \
+         patch("app.services.booking_agent.fetch_booking_options", new_callable=AsyncMock) as mock_options, \
+         patch("app.services.booking_agent.fetch_patient_busy_ranges", new_callable=AsyncMock) as mock_busy:
+        mock_services.return_value = [{"id": "srv-1", "name": "Bọc răng sứ", "treatmentMethods": [
+            {"id": "tm-1", "name": "Sứ Zirconia", "durationMinutes": 30},
+            {"id": "tm-2", "name": "Sứ kim loại", "durationMinutes": 30},
+        ]}]
+        mock_doctors.return_value = []
+        mock_patients.return_value = [{"id": "pat-self", "fullName": "Duy", "relationship": "SELF", "isPrimary": True, "canBook": True}]
+        mock_options.return_value = {"timeSlots": all_slots, "dates": []}
+        # Người khám đã có lịch 14:00-14:30 ngày đó
+        mock_busy.return_value = [{"start": "2099-11-16T07:00:00.000Z", "end": "2099-11-16T07:30:00.000Z"}]
+
+        res = await agent.process_chat(req)
+
+    labels = [s.label for s in res.suggestions if s.type == "time_slot"]
+    assert labels == [s for s in all_slots if s != "14:00"]
+    assert "10 khung giờ trống" in res.reply
+    assert "16/11/2099" in res.reply
+    assert "Đã ẩn 1 khung giờ" in res.reply

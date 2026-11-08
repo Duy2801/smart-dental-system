@@ -2,7 +2,7 @@ import logging
 import re
 import unicodedata
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from app.core import llm, rag
 from app.schemas.chatbot import ChatRequest, ChatResponse
@@ -14,6 +14,7 @@ from app.services.booking_tools import (
     fetch_booking_options,
     fetch_patient_profiles,
     fetch_user_appointments,
+    fetch_patient_busy_ranges,
 )
 
 logger = logging.getLogger(__name__)
@@ -294,7 +295,12 @@ def parse_new_patient_info(text: str) -> Dict[str, Any]:
             "nguoi khac",
         ]
         candidate_norm = normalize_text(candidate_name)
-        if not any(sw in candidate_norm for sw in stop_words) and len(candidate_name) > 1:
+        candidate_words = candidate_norm.split()
+        pronoun_words = {"cua", "toi", "minh", "tui", "em", "anh", "chi", "nha", "ay", "nay", "voi", "nhe", "a", "oi"}
+        relation_words = {"be", "con", "chau", "vo", "chong", "me", "ba", "bo", "cha"}
+        meaningful_words = [w for w in candidate_words if w not in pronoun_words | relation_words]
+        looks_like_name = bool(meaningful_words) and not any(w in {"cua", "toi", "minh", "tui"} for w in candidate_words)
+        if not any(sw in candidate_norm for sw in stop_words) and len(candidate_name) > 1 and looks_like_name:
             info["fullName"] = candidate_name.title()
 
     return info
@@ -444,6 +450,22 @@ def with_state(state: Dict[str, Any], extra: Dict[str, Any]) -> Dict[str, Any]:
     return {**extra, "bookingState": next_state}
 
 
+def new_patient_form_metadata(state: Dict[str, Any]) -> Dict[str, Any]:
+    """Metadata yêu cầu frontend hiển thị form "Thông tin người khám" trong tin nhắn."""
+    metadata = with_state(state, {"creatingNewPatient": True})
+    metadata["form"] = {
+        "type": "new_patient",
+        "defaults": {
+            "fullName": state.get("newPatientName") or "",
+            "phone": state.get("newPatientPhone") or "",
+            "dateOfBirth": state.get("newPatientDob") or "",
+            "relationship": state.get("newPatientRelationship") or "CHILD",
+            "gender": state.get("newPatientGender") or "",
+        },
+    }
+    return metadata
+
+
 def patient_suggestions(
     patients: List[Dict[str, Any]],
     state: Dict[str, Any],
@@ -523,9 +545,16 @@ def method_suggestions(
     for method in service.get("treatmentMethods") or []:
         name = method.get("name") or "Phuong phap dieu tri"
         label = name
+        price_value = method.get("finalPrice")
+        if price_value is None:
+            price_value = method.get("basePrice")
+        if price_value is None:
+            price_value = method.get("price")
+        if price_value is not None:
+            label = f"{label} · {format_money(price_value)}"
         duration = method.get("durationMinutes")
         if duration:
-            label = f"{label} - {duration} phut"
+            label = f"{label} - {duration} phút"
         suggestions.append(
             {
                 "type": "treatment_method",
@@ -586,8 +615,61 @@ def slot_suggestions(
                 {"time": slot},
             ),
         }
-        for slot in slots[:8]
+        for slot in slots
     ]
+
+
+def format_date_vi(date_id: Optional[str]) -> str:
+    """'2026-11-15' -> 'Chủ nhật, 15/11/2026'"""
+    try:
+        day = datetime.strptime(str(date_id), "%Y-%m-%d")
+    except (TypeError, ValueError):
+        return str(date_id or "")
+    weekdays = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"]
+    return f"{weekdays[day.weekday()]}, {day.strftime('%d/%m/%Y')}"
+
+
+def selected_method_duration(service: Optional[Dict[str, Any]], state: Dict[str, Any]) -> int:
+    for method in (service or {}).get("treatmentMethods") or []:
+        if method.get("id") == state.get("treatmentMethodId"):
+            try:
+                return int(method.get("durationMinutes") or 30)
+            except (TypeError, ValueError):
+                return 30
+    return 30
+
+
+def filter_patient_busy_slots(
+    slots: List[str],
+    date_id: Optional[str],
+    duration_minutes: int,
+    busy_ranges: List[Dict[str, Any]],
+) -> Tuple[List[str], List[str]]:
+    """Tách các khung giờ trùng lịch sẵn có của chính người khám. Trả về (còn trống, bị trùng)."""
+    if not busy_ranges or not date_id:
+        return list(slots), []
+    ranges = []
+    for item in busy_ranges:
+        try:
+            start = datetime.fromisoformat(str(item.get("start")).replace("Z", "+00:00"))
+            end = datetime.fromisoformat(str(item.get("end")).replace("Z", "+00:00"))
+        except (TypeError, ValueError):
+            continue
+        ranges.append((start, end))
+    free, blocked = [], []
+    for slot in slots:
+        try:
+            slot_start = datetime.fromisoformat(f"{date_id}T{slot}:00+07:00")
+        except ValueError:
+            free.append(slot)
+            continue
+        slot_end = slot_start + timedelta(minutes=duration_minutes or 30)
+        if any(start < slot_end and end > slot_start for start, end in ranges):
+            blocked.append(slot)
+        else:
+            free.append(slot)
+    return free, blocked
+
 
 
 def doctor_suggestions(
@@ -660,9 +742,15 @@ def find_by_id(items: List[Dict[str, Any]], item_id: Optional[str]) -> Optional[
 def token_match(needle: str, haystack: str) -> bool:
     needle_norm = compact_text(needle)
     haystack_norm = compact_text(haystack)
-    if not needle_norm:
+    if not needle_norm or not haystack_norm:
         return False
     return needle_norm in haystack_norm or haystack_norm in needle_norm
+
+
+AMBIGUOUS_NAME_WORDS = {
+    "cua", "toi", "minh", "tui", "em", "anh", "chi", "nha", "ay", "nay", "voi", "nhe", "a", "oi",
+    "be", "con", "chau", "vo", "chong", "me", "ba", "bo", "cha", "ong",
+}
 
 
 def find_patient_by_text(text: str, patients: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
@@ -682,11 +770,21 @@ def find_patient_by_text(text: str, patients: List[Dict[str, Any]]) -> Optional[
             return primary
         return next((p for p in patients if p.get("relationship") == "SELF" and p.get("canBook", True)), None)
 
+    text_words = f" {normalize_text(text)} "
     for patient in patients:
         if not patient.get("canBook", True):
             continue
-        names = [patient.get("fullName", ""), patient.get("patientCode", ""), patient.get("phone", "")]
-        if any(name and token_match(str(name), text) for name in names):
+        # Mã bệnh nhân / SĐT: khớp chuỗi như cũ
+        codes = [patient.get("patientCode", ""), patient.get("phone", "")]
+        if any(code and token_match(str(code), text) for code in codes):
+            return patient
+        # Họ tên: phải khớp trọn cụm từ (tên "An" không được khớp với "anh"),
+        # và bỏ qua hồ sơ có tên chỉ là đại từ/quan hệ (vd. "Của Tôi" tạo nhầm trước đây)
+        name_norm = normalize_text(str(patient.get("fullName") or "")).strip()
+        name_words = name_norm.split()
+        if not name_words or all(w in AMBIGUOUS_NAME_WORDS for w in name_words):
+            continue
+        if f" {name_norm} " in text_words:
             return patient
     return None
 
@@ -899,6 +997,12 @@ def is_booking_step_answer(text: str, state: Dict[str, Any]) -> bool:
 class BookingAgent:
     async def process_chat(self, body: ChatRequest) -> ChatResponse:
         user_msg = body.message.strip()
+        # Form "Thông tin người khám" gửi dữ liệu có cấu trúc qua metadata. Không
+        # phân tích câu chữ của tin nhắn đó nữa, tránh lấy nhầm ngày sinh làm
+        # ngày khám hay đoán sai quan hệ/giới tính từ nhãn hiển thị.
+        form_submitted = bool((body.metadata or {}).get("patientFormSubmitted"))
+        if form_submitted:
+            user_msg = ""
         user_norm = normalize_text(user_msg)
         full_text = " ".join([m.content for m in body.history[-8:]] + [user_msg])
 
@@ -1135,10 +1239,12 @@ class BookingAgent:
                 state["creatingNewPatient"] = False
                 patients = await fetch_patient_profiles(body.created_by_user_id)
             elif isinstance(res_patient, dict) and res_patient.get("error"):
+                state["creatingNewPatient"] = True
                 return ChatResponse(
-                    reply=f"Chưa thể tạo hồ sơ cho người thân ({res_patient.get('error')}). Quý khách vui lòng thử lại ạ.",
+                    reply=f"Chưa thể tạo hồ sơ cho người thân ({res_patient.get('error')}). Quý khách vui lòng kiểm tra lại thông tin trong form và gửi lại ạ.",
                     should_book=True,
-                    suggestions=patient_suggestions(patients, state),
+                    suggestions=[],
+                    metadata=new_patient_form_metadata(state),
                 )
 
         # Early Doctor extraction from text
@@ -1222,10 +1328,10 @@ class BookingAgent:
                     info_notes.append(f"SĐT: {state['newPatientPhone']}")
                 note_str = f" ({', '.join(info_notes)})" if info_notes else ""
                 return ChatResponse(
-                    reply=f"Dạ, mình đã ghi nhận nhu cầu đặt lịch cho {rel_title}{note_str}. Quý khách vui lòng cung cấp **Họ và tên đầy đủ** của {rel_title} (kèm theo Số điện thoại hoặc Tuổi/Ngày sinh nếu có) để hệ thống tạo hồ sơ bệnh nhân trước khi tiến hành các bước đặt lịch nhé ạ! (Ví dụ: Nguyễn Văn An - 0912345678)",
+                    reply=f"Dạ, mình đã ghi nhận nhu cầu đặt lịch cho {rel_title}{note_str}. Quý khách vui lòng điền **Họ và tên đầy đủ** và thông tin của {rel_title} vào form bên dưới để hệ thống tạo hồ sơ người khám, sau đó mình sẽ tiếp tục các bước đặt lịch nhé ạ!",
                     should_book=True,
                     suggestions=[],
-                    metadata=with_state(state, {"creatingNewPatient": True}),
+                    metadata=new_patient_form_metadata(state),
                 )
             else:
                 suggestions = patient_suggestions(patients, state)
@@ -1335,7 +1441,22 @@ class BookingAgent:
                 doctor_id=state.get("doctorId"),
                 date=state.get("date"),
             )
-            slots = options.get("timeSlots") or []
+            slots, own_busy = filter_patient_busy_slots(
+                options.get("timeSlots") or [],
+                state.get("date"),
+                selected_method_duration(selected_service, state),
+                await fetch_patient_busy_ranges(state.get("patientId"), state.get("date")),
+            )
+            if not slots and own_busy:
+                return ChatResponse(
+                    reply=(
+                        f"Dạ, các khung giờ còn trống ngày **{format_date_vi(state.get('date'))}** đều trùng với lịch "
+                        f"đã có của {state.get('patientName') or 'người khám'}. Quý khách chọn ngày khác giúp mình nhé ạ."
+                    ),
+                    should_book=True,
+                    suggestions=date_suggestions(options.get("dates") or [], state),
+                    metadata=with_state(state, {}),
+                )
             if not slots:
                 if state.get("doctorId"):
                     return doctor_schedule_unavailable_response(
@@ -1343,13 +1464,26 @@ class BookingAgent:
                         options.get("dates") or [],
                     )
                 return ChatResponse(
-                    reply=f"Dạ, ngày {state.get('date')} hiện không còn khung giờ trống theo lịch phòng khám. Quý khách chọn ngày khác giúp mình nhé ạ.",
+                    reply=f"Dạ, ngày **{format_date_vi(state.get('date'))}** hiện không còn khung giờ trống theo lịch phòng khám. Quý khách chọn ngày khác giúp mình nhé ạ.",
                     should_book=True,
                     suggestions=date_suggestions(options.get("dates") or [], state),
                     metadata=with_state(state, {}),
                 )
+            doctor_note = (
+                f" với {state.get('doctorName')}"
+                if state.get("doctorName")
+                else ""
+            )
+            busy_note = (
+                f"\nĐã ẩn {len(own_busy)} khung giờ trùng lịch sẵn có của {state.get('patientName') or 'người khám'}."
+                if own_busy
+                else ""
+            )
             return ChatResponse(
-                reply=f"Dạ, ngày **{state.get('date')}** còn các khung giờ trống sau. Quý khách chọn thời gian phù hợp nhất ạ:",
+                reply=(
+                    f"Dạ, ngày **{format_date_vi(state.get('date'))}** còn **{len(slots)} khung giờ trống**{doctor_note}."
+                    f"{busy_note}\nQuý khách chọn thời gian phù hợp nhất ạ:"
+                ),
                 should_book=True,
                 suggestions=slot_suggestions(slots, state),
                 metadata=with_state(state, {}),
@@ -1362,11 +1496,22 @@ class BookingAgent:
             date=state.get("date"),
             time=state.get("time"),
         )
-        slots = options.get("timeSlots") or []
+        slots, own_busy = filter_patient_busy_slots(
+            options.get("timeSlots") or [],
+            state.get("date"),
+            selected_method_duration(selected_service, state),
+            await fetch_patient_busy_ranges(state.get("patientId"), state.get("date")),
+        )
         if state.get("time") not in slots:
+            chosen_time = state.get("time")
             state.update({"time": None})
+            reason = (
+                f"Khung giờ {chosen_time} trùng với lịch đã có của {state.get('patientName') or 'người khám'}."
+                if chosen_time in own_busy
+                else f"Khung giờ {chosen_time or 'vừa chọn'} không còn trống theo lịch mới nhất (có thể đã có người đặt hoặc bác sĩ không làm việc)."
+            )
             return ChatResponse(
-                reply="Khung giờ vừa chọn không còn khả dụng theo lịch mới nhất. Quý khách vui lòng chọn khung giờ khác ạ.",
+                reply=f"{reason} Quý khách vui lòng chọn khung giờ khác ạ.",
                 should_book=True,
                 suggestions=slot_suggestions(slots, state),
                 metadata=with_state(state, {}),

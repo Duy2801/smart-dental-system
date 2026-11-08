@@ -77,6 +77,8 @@ export type PatientConsultationItem = {
   fee: number;
   isPaid: boolean;
   notes?: string | null;
+  rescheduleCount?: number;
+  doctorId?: string;
   createdAt: string;
   doctorName?: string;
   doctorSpecialization?: string;

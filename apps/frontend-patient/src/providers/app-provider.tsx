@@ -5,6 +5,7 @@ import { Provider } from "react-redux";
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { apiMe, apiRefresh } from "@/features/auth/api";
+import { isSessionRejected } from "@/lib/axios";
 import { loadPatientSession } from "@/features/auth/session-storage";
 import { ToastProvider } from "@/features/dashboard/common/toast";
 import { SocketProvider } from "@/service/ws/useSocket";
@@ -67,7 +68,9 @@ function AuthHydrator({ queryClient }: { queryClient: QueryClient }) {
             }),
           );
         })
-        .catch(async () => {
+        .catch(async (meError: unknown) => {
+          // Mất mạng / server đang khởi động lại: giữ phiên đã lưu, không đá ra
+          if (!isSessionRejected(meError)) return;
           try {
             const refreshResponse = await apiRefresh();
             const { accessToken, user: refreshedUser } = refreshResponse.data;
@@ -79,8 +82,8 @@ function AuthHydrator({ queryClient }: { queryClient: QueryClient }) {
                 accessToken,
               }),
             );
-          } catch {
-            store.dispatch(logout());
+          } catch (refreshError) {
+            if (isSessionRejected(refreshError)) store.dispatch(logout());
           }
         });
       return;

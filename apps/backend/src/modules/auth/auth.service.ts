@@ -23,6 +23,7 @@ import { LoginCaptchaService } from './login-captcha.service';
 const OTP_TTL_SECONDS = 3 * 60;
 const RESET_TOKEN_TTL_SECONDS = 15 * 60;
 const REFRESH_TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60;
+const REFRESH_TOKEN_ROTATION_GRACE_SECONDS = 2 * 60;
 const MAX_RESEND = 3;
 const RESEND_WINDOW_SECONDS = 3 * 60;
 
@@ -356,22 +357,41 @@ export class AuthService {
         ? this.refreshTokenKey(userId, payload.sid)
         : `refresh_token:${userId}`;
       const storedToken = await this.redisService.get(tokenKey);
-      if (!storedToken || storedToken !== presentedToken) {
+      const previousKey = `${tokenKey}:prev`;
+      // Token vừa được thay thế vẫn hợp lệ thêm ít phút: nhiều tab / nhiều request
+      // refresh cùng lúc không làm nhau bị đăng xuất.
+      const isRecentlyRotated =
+        !!payload.sid &&
+        !!storedToken &&
+        storedToken !== presentedToken &&
+        (await this.redisService.get(previousKey)) === presentedToken;
+      if (!storedToken || (storedToken !== presentedToken && !isRecentlyRotated)) {
         throw new Error('Refresh session not found');
       }
 
       // Migrate a legacy single-session token without forcing the user out.
       const sessionId = payload.sid ?? randomBytes(24).toString('hex');
-      const refreshToken = payload.sid
-        ? presentedToken
-        : this.signRefreshToken(payload.sub, payload.email, sessionId);
+      let refreshToken: string;
       if (!payload.sid) {
+        refreshToken = this.signRefreshToken(payload.sub, payload.email, sessionId);
         await this.redisService.set(
           this.refreshTokenKey(userId, sessionId),
           refreshToken,
           REFRESH_TOKEN_TTL_SECONDS,
         );
         await this.redisService.del(tokenKey);
+      } else if (isRecentlyRotated) {
+        // Request đến sau trong cùng đợt: trả token mới nhất, không xoay thêm vòng nữa
+        refreshToken = storedToken;
+      } else {
+        // Gia hạn trượt: còn dùng app thì phiên còn sống thêm 7 ngày
+        refreshToken = this.signRefreshToken(payload.sub, payload.email, sessionId);
+        await this.redisService.set(
+          previousKey,
+          presentedToken,
+          REFRESH_TOKEN_ROTATION_GRACE_SECONDS,
+        );
+        await this.redisService.set(tokenKey, refreshToken, REFRESH_TOKEN_TTL_SECONDS);
       }
       const [accessToken, user] = await Promise.all([
         Promise.resolve(
