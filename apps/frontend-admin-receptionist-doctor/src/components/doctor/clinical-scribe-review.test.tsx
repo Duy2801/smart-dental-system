@@ -36,22 +36,28 @@ describe("ClinicalScribeReview component", () => {
     onApply: vi.fn(),
   };
 
-  it("renders collapsed by default and expands when clicking 'Mở trợ lý AI'", () => {
+  it("opens the AI editor from a compact button beside the clinical note", () => {
     render(<ClinicalScribeReview {...defaultProps} />);
 
-    expect(screen.getByText(/Trợ lý ghi chép lâm sàng/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Mở trợ lý AI/i })).toBeInTheDocument();
+    expect(
+      screen.queryByText(/Trợ lý ghi chép lâm sàng/),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Soạn bằng AI/i }),
+    ).toHaveAttribute("aria-expanded", "false");
     expect(screen.queryByLabelText(/Ghi chú nguồn/i)).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: /Mở trợ lý AI/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Soạn bằng AI/i }));
 
     expect(screen.getByLabelText(/Ghi chú nguồn/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Thu gọn/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Thu gọn/i }),
+    ).toBeInTheDocument();
   });
 
   it("disables 'Tạo bản nháp' button when notes has less than 5 characters", () => {
     render(<ClinicalScribeReview {...defaultProps} />);
-    fireEvent.click(screen.getByRole("button", { name: /Mở trợ lý AI/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Soạn bằng AI/i }));
 
     const textarea = screen.getByLabelText(/Ghi chú nguồn/i);
     const generateBtn = screen.getByRole("button", { name: /Tạo bản nháp/i });
@@ -60,23 +66,29 @@ describe("ClinicalScribeReview component", () => {
 
     fireEvent.change(textarea, { target: { value: "1234" } });
     expect(generateBtn).toBeDisabled();
-    expect(screen.getByText(/Vui lòng nhập tối thiểu 5 ký tự/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Vui lòng nhập tối thiểu 5 ký tự/i),
+    ).toBeInTheDocument();
 
     fireEvent.change(textarea, { target: { value: "12345" } });
     expect(generateBtn).not.toBeDisabled();
-    expect(screen.queryByText(/Vui lòng nhập tối thiểu 5 ký tự/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Vui lòng nhập tối thiểu 5 ký tự/i),
+    ).not.toBeInTheDocument();
   });
 
   it("generates draft and allows applying fields with confirmation if existing data exists", async () => {
     const onApplyMock = vi.fn();
     postMock.mockResolvedValueOnce({
+      status: true,
+      statusCode: 200,
       data: {
         chiefComplaint: "Đau răng hàm dưới",
         diagnosisDraft: "Sâu răng 46",
         treatmentNotesDraft: "Trám composite răng 46",
         disclaimer: "Bản nháp AI.",
       },
-    } as any);
+    });
 
     render(
       <ClinicalScribeReview
@@ -90,19 +102,23 @@ describe("ClinicalScribeReview component", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Mở trợ lý AI/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Soạn bằng AI/i }));
     const textarea = screen.getByLabelText(/Ghi chú nguồn/i);
-    fireEvent.change(textarea, { target: { value: "Bệnh nhân đau răng 46 ba ngày nay" } });
+    fireEvent.change(textarea, {
+      target: { value: "Bệnh nhân đau răng 46 ba ngày nay" },
+    });
 
     fireEvent.click(screen.getByRole("button", { name: /Tạo bản nháp/i }));
 
-    expect(await screen.findByText(/Đối chiếu trước khi áp dụng/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Đối chiếu trước khi áp dụng/i),
+    ).toBeInTheDocument();
     expect(screen.getByText("Sâu răng 46")).toBeInTheDocument();
 
     // Field with existing content prompts confirmation
-    const applySingleBtn = screen.getAllByRole("button", { name: /^Áp dụng\b/i }).find(
-      (btn) => !btn.textContent?.includes("tất cả"),
-    );
+    const applySingleBtn = screen
+      .getAllByRole("button", { name: /^Áp dụng\b/i })
+      .find((btn) => !btn.textContent?.includes("tất cả"));
     expect(applySingleBtn).toBeDefined();
     fireEvent.click(applySingleBtn!);
 
@@ -113,30 +129,36 @@ describe("ClinicalScribeReview component", () => {
       }),
     );
     await waitFor(() => {
-      expect(onApplyMock).toHaveBeenCalledWith({ chiefComplaint: "Đau răng hàm dưới" });
+      expect(onApplyMock).toHaveBeenCalledWith({
+        chiefComplaint: "Đau răng hàm dưới",
+      });
     });
   });
 
   it("applies all draft fields when clicking 'Áp dụng tất cả'", async () => {
     const onApplyMock = vi.fn();
     postMock.mockResolvedValueOnce({
+      status: true,
+      statusCode: 200,
       data: {
         chiefComplaint: "Đau răng hàm dưới",
         diagnosisDraft: "Sâu răng 46",
         treatmentNotesDraft: "Trám composite răng 46",
         disclaimer: "Bản nháp AI.",
       },
-    } as any);
+    });
 
     render(<ClinicalScribeReview {...defaultProps} onApply={onApplyMock} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /Mở trợ lý AI/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Soạn bằng AI/i }));
     fireEvent.change(screen.getByLabelText(/Ghi chú nguồn/i), {
       target: { value: "Khám răng 46 sâu ngà mềm" },
     });
     fireEvent.click(screen.getByRole("button", { name: /Tạo bản nháp/i }));
 
-    const applyAllBtn = await screen.findByRole("button", { name: /Áp dụng tất cả/i });
+    const applyAllBtn = await screen.findByRole("button", {
+      name: /Áp dụng tất cả/i,
+    });
     fireEvent.click(applyAllBtn);
 
     expect(onApplyMock).toHaveBeenCalledWith({
