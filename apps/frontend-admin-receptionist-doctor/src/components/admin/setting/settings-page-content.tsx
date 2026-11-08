@@ -3,21 +3,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FloppyDisk } from "@phosphor-icons/react";
-import {
-  AdminAlert,
-  AdminButton,
-  SkeletonSettings,
-  focusFirstError,
-  hasErrors,
-  showAdminToast,
-  type FieldErrors,
-} from "@/src/components/admin/common";
-import { getApiErrorMessage } from "@/src/lib/utils/api-error";
-import {
-  normalizeClinicConfig,
-  validateClinicConfig,
-  type GeneralField,
-} from "./settings-validation";
+import { AdminAlert, AdminButton, SkeletonSettings } from "@/src/components/admin/common";
 import { queryKeys } from "@/src/lib/query/query-keys";
 import { emptyClinicConfig, initialBusinessHours } from "./constants";
 import { BusinessHoursPanel } from "./components/business-hours-panel";
@@ -38,7 +24,6 @@ export function SettingsPageContent() {
   const [draftConfig, setDraftConfig] = useState<ClinicConfig | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
-  const [generalErrors, setGeneralErrors] = useState<FieldErrors<GeneralField>>({});
 
   const [confirmCancel, setConfirmCancel] = useState<{
     dayName: string;
@@ -65,10 +50,8 @@ export function SettingsPageContent() {
       // Auto dismiss success message after 5s
       setTimeout(() => setSuccessMessage(""), 5000);
     },
-    onError: (err) => {
-      setErrorMessage(
-        getApiErrorMessage(err, "Lưu thông tin phòng khám thất bại. Vui lòng kiểm tra lại kết nối."),
-      );
+    onError: () => {
+      setErrorMessage("Lưu thông tin phòng khám thất bại. Vui lòng kiểm tra lại kết nối.");
       setSuccessMessage("");
     },
   });
@@ -225,23 +208,16 @@ export function SettingsPageContent() {
   const handleSave = async () => {
     setErrorMessage("");
     setSuccessMessage("");
-
-    const validation = validateClinicConfig(form);
-    setGeneralErrors(validation.general);
-    if (hasErrors(validation.general)) {
-      setActiveTab("general");
-      showAdminToast("Vui lòng kiểm tra lại thông tin liên hệ của phòng khám.", "error");
-      focusFirstError();
-      return;
-    }
-    if (validation.hours) {
-      setActiveTab("hours");
-      showAdminToast(validation.hours, "error");
+    if (
+      form.lunchBreak.isEnabled &&
+      form.lunchBreak.start >= form.lunchBreak.end
+    ) {
+      setErrorMessage("Giờ bắt đầu nghỉ trưa phải sớm hơn giờ kết thúc.");
       return;
     }
 
     try {
-      await saveMutation.mutateAsync(normalizeClinicConfig(form));
+      await saveMutation.mutateAsync(form);
     } catch {
       // Error is handled by onError callback
     }
@@ -252,34 +228,21 @@ export function SettingsPageContent() {
       <SettingsSidebar activeTab={activeTab} onTabChange={setActiveTab} />
 
       <div className="flex min-w-0 flex-1 flex-col pb-6">
-        <AdminAlert variant="success" message={successMessage || null} />
-        <AdminAlert
-          message={
-            isError || errorMessage
-              ? errorMessage || "Không tải được cấu hình thông tin phòng khám từ máy chủ."
-              : null
-          }
-        />
+        <div className="mb-5 space-y-3 empty:hidden">
+          <AdminAlert variant="success" message={successMessage || null} />
+          <AdminAlert
+            message={
+              isError || errorMessage
+                ? errorMessage || "Không tải được cấu hình thông tin phòng khám từ máy chủ."
+                : null
+            }
+          />
+        </div>
 
         {isLoading ? <SkeletonSettings /> : null}
 
         {!isLoading && activeTab === "general" ? (
-          <GeneralSettingsPanel
-            config={form}
-            errors={generalErrors}
-            onChange={(next) => {
-              setGeneralErrors((current) => {
-                const changed = (Object.keys(current) as GeneralField[]).filter(
-                  (key) => current[key] && next[key] !== form[key],
-                );
-                if (changed.length === 0) return current;
-                const cleared = { ...current };
-                changed.forEach((key) => delete cleared[key]);
-                return cleared;
-              });
-              setDraftConfig(next);
-            }}
-          />
+          <GeneralSettingsPanel config={form} onChange={setDraftConfig} />
         ) : null}
 
         {!isLoading && activeTab === "hours" ? (

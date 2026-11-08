@@ -89,8 +89,6 @@ export function TreatmentMethodCard({
 
 const styles = StyleSheet.create({
   actionRow: {
-    flexWrap: 'wrap',
-    rowGap: 8,
     flexDirection: 'row',
     gap: 10,
     marginTop: 12,

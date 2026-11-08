@@ -22,6 +22,14 @@ Script kiểm tra SHA-256 và bỏ qua model đã tải đầy đủ, nên khôn
 những lần chạy sau.
 
 Phân tích phim Panorama dùng YOLO và DeepLab chạy local. Hai model được nạp vào
+bộ nhớ ở lần phân tích đầu tiên rồi tái sử dụng cho các request tiếp theo.
+Gemini `gemini-3.6-flash` chỉ diễn giải danh sách phát hiện do model local trả về;
+Gemini không tự thêm phát hiện và hệ thống không dùng Roboflow.
+
+> Pipeline model yêu cầu Python 3.11–3.13 (khuyến nghị 3.12) và các thư viện AI trong `requirements.txt`.
+> Nếu model chưa được tải hoặc thiếu dependency, API trả trạng thái
+> `MODEL_UNAVAILABLE` thay vì tạo dữ liệu phát hiện giả.
+
 **Hàng ngày** — từ root monorepo:
 
 ```bash
@@ -44,6 +52,11 @@ Docs: http://127.0.0.1:8001/docs
 | OpenAI | `LLM_PROVIDER=openai` + `OPENAI_API_KEY=` | https://platform.openai.com/api-keys |
 | Gemini | `LLM_PROVIDER=gemini` + `GEMINI_API_KEY=` | https://aistudio.google.com/apikey |
 
+3. Restart `pnpm dev` (đổi `.env` không luôn tự reload).
+
+`.env` đã nằm trong `.gitignore` — **đừng commit key**.
+
+## Luồng hệ thống
 
 ```
 Patient / Doctor UI  →  NestJS (apps/backend)  →  AI Service (apps/ai-service)

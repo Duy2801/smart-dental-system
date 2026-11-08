@@ -16,7 +16,6 @@ import {
   Trash,
   X,
   Funnel,
-  PaperPlaneTilt,
   ArrowClockwise,
   CaretLeft,
   CaretRight,
@@ -158,7 +157,6 @@ export default function TreatmentPlansPage() {
 
   const [deleteTarget, setDeleteTarget] = useState<Plan | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [sendingId, setSendingId] = useState<string | null>(null);
   const [toast, setToast] = useState<{
     message: string;
     type: "success" | "error";
@@ -199,28 +197,6 @@ export default function TreatmentPlansPage() {
       loadPlans();
     }
   }, [doctorId]);
-
-  const handleSendEmail = async (plan: Plan) => {
-    setSendingId(plan.id);
-    try {
-      await apiClient.post(`/treatment-plans/${plan.id}/send-email`);
-      setToast({
-        message: `✓ Đã gửi Phác đồ điều trị & Dự toán chi phí qua Gmail cho ${plan.patientName}!`,
-        type: "success",
-      });
-      setTimeout(() => setToast(null), 4500);
-    } catch (err: any) {
-      const msg =
-        err.response?.data?.message || "Không thể gửi email phác đồ điều trị.";
-      setToast({
-        message: Array.isArray(msg) ? msg[0] : msg,
-        type: "error",
-      });
-      setTimeout(() => setToast(null), 4500);
-    } finally {
-      setSendingId(null);
-    }
-  };
 
   const filtered = useMemo(() => {
     let data = plans;
@@ -580,39 +556,6 @@ export default function TreatmentPlansPage() {
                           {formatDate(plan.expectedEndDate)}
                         </span>
                         <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSendEmail(plan);
-                            }}
-                            disabled={
-                              sendingId === plan.id ||
-                              plan.status === "CANCELLED" ||
-                              plan.totalSteps === 0
-                            }
-                            title={
-                              plan.status === "CANCELLED"
-                                ? "Không thể gửi email cho kế hoạch đã hủy"
-                                : plan.totalSteps === 0
-                                  ? "Kế hoạch chưa có bước điều trị nào để gửi"
-                                  : "Gửi phác đồ điều trị và dự toán chi phí qua email cho bệnh nhân"
-                            }
-                            className="inline-flex items-center gap-1 rounded-md px-2 py-1 font-semibold text-emerald-600 transition-colors hover:bg-emerald-50 hover:text-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                          >
-                            <PaperPlaneTilt
-                              size={12}
-                              weight="bold"
-                              className={
-                                sendingId === plan.id ? "animate-spin" : ""
-                              }
-                            />
-                            <span>
-                              {sendingId === plan.id
-                                ? "Đang gửi..."
-                                : "Gửi email"}
-                            </span>
-                          </button>
                           <Link
                             href={`/doctor/treatment-plans/${plan.id}`}
                             className="inline-flex items-center gap-1 font-medium text-brand hover:underline"

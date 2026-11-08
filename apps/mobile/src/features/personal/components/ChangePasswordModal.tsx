@@ -197,8 +197,6 @@ export function ChangePasswordModal({
 
 const styles = StyleSheet.create({
   actionsRow: {
-    flexWrap: 'wrap',
-    rowGap: 8,
     flexDirection: 'row',
     gap: 10,
     justifyContent: 'flex-end',

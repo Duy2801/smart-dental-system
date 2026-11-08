@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import math
 import os
 import re
 import sys
@@ -45,6 +46,7 @@ class LocalDentalFinding:
     confidence: float
     bounding_box: dict[str, float]
     severity: str
+    region_source: str = "DETECTED"
 
 
 class LocalPanoramicModel:
@@ -79,7 +81,9 @@ class LocalPanoramicModel:
 
         width, height = image.size
         return [
-            self._convert_entry(entry, instance_prediction.instances, width, height)
+            self._convert_entry(
+                entry, instance_prediction.instances, semantic_prediction, width, height
+            )
             for entry in entries
             if float(entry.score) >= self.confidence_threshold
         ]
@@ -156,6 +160,7 @@ class LocalPanoramicModel:
         self,
         entry: Any,
         instances: list[Any],
+        semantic_prediction: Any,
         width: int,
         height: int,
     ) -> LocalDentalFinding:
@@ -163,13 +168,25 @@ class LocalPanoramicModel:
         finding_code = str(entry.finding.value)
         finding_type = FINDING_LABELS.get(finding_code, finding_code)
         confidence = round(float(entry.score), 4)
-        bbox = self._find_tooth_bbox(instances, fdi, width, height)
+        if finding_code == "MISSING":
+            bbox = self._find_missing_tooth_bbox(
+                instances, semantic_prediction, fdi, width, height
+            )
+            region_source = "ESTIMATED" if bbox["width"] > 0 else "UNLOCATED"
+        else:
+            bbox = self._find_finding_bbox(
+                instances, semantic_prediction, fdi, finding_code, width, height
+            )
+            if bbox["width"] == 0:
+                bbox = self._find_tooth_bbox(instances, fdi, width, height)
+            region_source = "DETECTED" if bbox["width"] > 0 else "UNLOCATED"
         return LocalDentalFinding(
             fdi_tooth_number=fdi,
             finding_type=finding_type,
             confidence=confidence,
             bounding_box=bbox,
             severity="UNASSESSED",
+            region_source=region_source,
         )
 
     @staticmethod
@@ -185,12 +202,121 @@ class LocalPanoramicModel:
             if not match or int(match.group(1)) != fdi:
                 continue
             x1, y1, x2, y2 = (float(value) for value in instance.bbox_xyxy)
-            return {
-                "x": round(x1 / width * 100, 2),
-                "y": round(y1 / height * 100, 2),
-                "width": round((x2 - x1) / width * 100, 2),
-                "height": round((y2 - y1) / height * 100, 2),
-            }
+            return LocalPanoramicModel._percent_bbox((x1, y1, x2, y2), width, height)
         return {"x": 0.0, "y": 0.0, "width": 0.0, "height": 0.0}
+
+    @staticmethod
+    def _find_finding_bbox(
+        instances: list[Any],
+        semantic_prediction: Any,
+        fdi: int,
+        finding_code: str,
+        width: int,
+        height: int,
+    ) -> dict[str, float]:
+        probability = getattr(semantic_prediction, "prob", None)
+        if probability is None:
+            return {"x": 0.0, "y": 0.0, "width": 0.0, "height": 0.0}
+
+        tooth_index = (fdi // 10 - 1) * 8 + fdi % 10
+        best_instance = None
+        best_score = 0.0
+        for instance in instances:
+            if str(instance.category_name).upper() != finding_code:
+                continue
+            masked_probability = instance.mask_array(probability)
+            if masked_probability.size == 0 or tooth_index >= len(masked_probability):
+                continue
+            mean_probability = masked_probability.mean(axis=-1)
+            total = float(mean_probability[1:].sum())
+            if total <= 0 or not math.isfinite(total):
+                continue
+            tooth_share = float(mean_probability[tooth_index] / total)
+            if tooth_share <= 0.5 or not math.isfinite(tooth_share):
+                continue
+            score = float(instance.score) * tooth_share
+            if score > best_score:
+                best_instance, best_score = instance, score
+
+        if best_instance is None:
+            return {"x": 0.0, "y": 0.0, "width": 0.0, "height": 0.0}
+        return LocalPanoramicModel._percent_bbox(
+            best_instance.bbox_xyxy, width, height
+        )
+
+    @staticmethod
+    def _find_missing_tooth_bbox(
+        instances: list[Any],
+        semantic_prediction: Any,
+        fdi: int,
+        width: int,
+        height: int,
+    ) -> dict[str, float]:
+        empty = {"x": 0.0, "y": 0.0, "width": 0.0, "height": 0.0}
+        tooth_index = (fdi // 10 - 1) * 8 + fdi % 10
+        probability = getattr(semantic_prediction, "prob", None)
+        if (
+            probability is not None
+            and getattr(probability, "ndim", 0) == 3
+            and tooth_index < len(probability)
+        ):
+            mask = (probability.argmax(axis=0) == tooth_index) & (
+                probability[tooth_index] >= 0.6
+            )
+            ys, xs = mask.nonzero()
+            if len(xs) >= max(64, width * height * 0.0005):
+                x1, x2 = int(xs.min()), int(xs.max()) + 1
+                y1, y2 = int(ys.min()), int(ys.max()) + 1
+                area = (x2 - x1) * (y2 - y1)
+                if (
+                    x2 - x1 <= width * 0.25
+                    and y2 - y1 <= height * 0.35
+                    and len(xs) / area >= 0.2
+                ):
+                    return LocalPanoramicModel._percent_bbox(
+                        (x1, y1, x2, y2), width, height
+                    )
+
+        if not 2 <= fdi % 10 <= 7:
+            return empty
+        trusted_teeth = [
+            instance for instance in instances if float(instance.score) >= 0.25
+        ]
+        adjacent = [
+            LocalPanoramicModel._find_tooth_bbox(trusted_teeth, neighbor, width, height)
+            for neighbor in (fdi - 1, fdi + 1)
+        ]
+        if any(box["width"] <= 0 for box in adjacent):
+            return empty
+        left, right = sorted(adjacent, key=lambda box: box["x"])
+        gap_start = left["x"] + left["width"]
+        gap_width = right["x"] - gap_start
+        if not 0.4 * min(left["width"], right["width"]) <= gap_width <= 2.5 * max(
+            left["width"], right["width"]
+        ):
+            return empty
+        top = (left["y"] + right["y"]) / 2
+        bottom = (
+            left["y"] + left["height"] + right["y"] + right["height"]
+        ) / 2
+        return {
+            "x": round(gap_start, 2),
+            "y": round(top, 2),
+            "width": round(gap_width, 2),
+            "height": round(bottom - top, 2),
+        }
+
+    @staticmethod
+    def _percent_bbox(
+        bbox_xyxy: Any, width: int, height: int
+    ) -> dict[str, float]:
+        x1, y1, x2, y2 = (float(value) for value in bbox_xyxy)
+        return {
+            "x": round(x1 / width * 100, 2),
+            "y": round(y1 / height * 100, 2),
+            "width": round((x2 - x1) / width * 100, 2),
+            "height": round((y2 - y1) / height * 100, 2),
+        }
+
 
 local_panoramic_model = LocalPanoramicModel()

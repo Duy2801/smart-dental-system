@@ -87,7 +87,7 @@ const clearAuthState = () => {
   store.dispatch(logout());
 };
 
-// Chỉ những trang bắt buộc đăng nhập mới bị đẩy sang /login khi phiên hết hạn.
+// Chỉ những trang bắt buộc đăng nhập mới bị đẩy sang /auth/login khi phiên hết hạn.
 // Trang công khai (home, dịch vụ, bác sĩ, ưu đãi...) chỉ xoá phiên và hiển thị
 // như khách — tránh việc vừa mở /home đã bị văng sang trang đăng nhập do token
 // cũ trong localStorage hết hạn và refresh cookie không còn hợp lệ.
@@ -112,7 +112,7 @@ const redirectToLogin = () => {
     return;
   }
   const redirect = `${window.location.pathname}${window.location.search}`;
-  window.location.href = `/login?redirect=${encodeURIComponent(redirect)}`;
+  window.location.href = `/auth/login?redirect=${encodeURIComponent(redirect)}`;
 };
 
 /** Server từ chối phiên (refresh token hết hạn / bị thu hồi), khác với lỗi mạng tạm thời */
@@ -121,7 +121,7 @@ export const isSessionRejected = (error: unknown) => {
   return status === 401 || status === 403;
 };
 
-const API_ORIGIN =(process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+const API_ORIGIN = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
 
 const apiClient = axios.create({
   baseURL: `${API_ORIGIN}/api/v1`,
@@ -237,8 +237,6 @@ apiClient.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // Khách chưa đăng nhập vẫn được xem trang công khai: chỉ đá về trang
-    // đăng nhập khi người dùng đã có phiên và phiên đó hết hạn.
     const hadSession = Boolean(getAccessToken());
 
     if (originalRequest._retry) {

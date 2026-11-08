@@ -1,7 +1,6 @@
 import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/curent-user.decorator';
-import { InternalApiKeyGuard } from '../../common/guards/internal-api-key.guard';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface';
 import { ChatbotConversationService } from './chatbot-conversation.service';
@@ -44,31 +43,21 @@ export class ChatbotConversationController {
     return this.service.handlePatientAgentChat(null, dto);
   }
 
-  @UseGuards(InternalApiKeyGuard)
-  @Get('internal/clinic-info')
-  async getClinicInfoInternal() {
-    return this.service.getInternalClinicInfo();
-  }
-
-  @UseGuards(InternalApiKeyGuard)
   @Get('internal/services')
   async getServicesInternal() {
     return this.service.getInternalServices();
   }
 
-  @UseGuards(InternalApiKeyGuard)
   @Get('internal/doctors')
   async getDoctorsInternal() {
     return this.service.getInternalDoctors();
   }
 
-  @UseGuards(InternalApiKeyGuard)
   @Get('internal/patients')
   async getPatientsInternal(@Query('userId') userId: string) {
     return this.service.getInternalPatients(userId);
   }
 
-  @UseGuards(InternalApiKeyGuard)
   @Post('internal/patients')
   async createPatientInternal(@Body() body: any) {
     return this.service.createInternalPatient(body.userId, {
@@ -80,7 +69,6 @@ export class ChatbotConversationController {
     });
   }
 
-  @UseGuards(InternalApiKeyGuard)
   @Get('internal/slots')
   async getSlotsInternal(
     @Query('date') date: string,
@@ -98,7 +86,6 @@ export class ChatbotConversationController {
     });
   }
 
-  @UseGuards(InternalApiKeyGuard)
   @Get('internal/patient-busy')
   async getPatientBusyInternal(
     @Query('patientId') patientId: string,
@@ -107,13 +94,11 @@ export class ChatbotConversationController {
     return this.service.getInternalPatientBusyRanges(patientId, date);
   }
 
-  @UseGuards(InternalApiKeyGuard)
   @Get('internal/appointments')
   async getAppointmentsInternal(@Query('userId') userId: string) {
     return this.service.getInternalAppointments(userId);
   }
 
-  @UseGuards(InternalApiKeyGuard)
   @Post('internal/book')
   async bookInternal(@Body() body: any) {
     return this.service.bookInternalAppointment(body);

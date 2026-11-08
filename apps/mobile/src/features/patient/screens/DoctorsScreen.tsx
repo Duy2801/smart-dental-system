@@ -221,13 +221,7 @@ export default function DoctorsScreen({ navigation, route }: Props) {
           ].filter(Boolean);
 
     return (
-      <TouchableOpacity
-        activeOpacity={0.9}
-        onPress={() =>
-          navigation.navigate(SCREEN_NAME.PATIENT_DOCTOR_DETAIL, { doctorId: item.id })
-        }
-        style={styles.doctorCard}
-      >
+      <View style={styles.doctorCard}>
         <View style={styles.doctorCardContent}>
           <View style={styles.doctorTextCol}>
             <Text style={styles.cardEyebrow}>Bác sĩ</Text>
@@ -290,7 +284,7 @@ export default function DoctorsScreen({ navigation, route }: Props) {
             />
           </TouchableOpacity>
         </View>
-      </TouchableOpacity>
+      </View>
     );
   };
 

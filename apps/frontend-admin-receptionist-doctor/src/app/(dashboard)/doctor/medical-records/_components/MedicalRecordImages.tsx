@@ -43,10 +43,6 @@ export function MedicalRecordImages({
   const { showConfirm } = useAppDialog();
   const fileRef = useRef<HTMLInputElement>(null);
   const [caption, setCaption] = useState("");
-  const [type, setType] = useState<"xray" | "intraoral" | "other">("xray");
-  const [modality, setModality] = useState<
-    "PANORAMIC" | "PERIAPICAL" | "BITEWING" | "OTHER"
-  >("PANORAMIC");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -71,8 +67,8 @@ export function MedicalRecordImages({
       const form = new FormData();
       form.append("file", file);
       if (caption.trim()) form.append("caption", caption.trim());
-      form.append("type", type);
-      if (type === "xray") form.append("modality", modality);
+      form.append("type", "xray");
+      form.append("modality", "PANORAMIC");
       const res = await apiClient.post<{
         images: RecordImage[];
         updatedAt?: string;
@@ -119,43 +115,6 @@ export function MedicalRecordImages({
       {!readOnly && (
         <div className="rounded-2xl border border-border bg-slate-50/70 p-4 space-y-3">
           <div className="flex flex-wrap items-center gap-3">
-            {/* Select Type */}
-            <div className="w-full sm:w-auto">
-              <select
-                value={type}
-                onChange={(e) =>
-                  setType(e.target.value as "xray" | "intraoral" | "other")
-                }
-                className="w-full rounded-xl border border-border bg-white px-3.5 py-2.5 text-xs font-bold text-slate-800 shadow-2xs outline-none focus:border-brand cursor-pointer"
-              >
-                <option value="xray">🩻 Phim X-quang</option>
-                <option value="intraoral">📸 Trong miệng (Lâm sàng)</option>
-                <option value="other">📁 Ngoài mặt / Xét nghiệm khác</option>
-              </select>
-            </div>
-
-            {type === "xray" && (
-              <div className="w-full sm:w-auto">
-                <select
-                  value={modality}
-                  onChange={(e) =>
-                    setModality(e.target.value as typeof modality)
-                  }
-                  aria-label="Loại phim X-quang"
-                  className="w-full rounded-xl border border-border bg-white px-3.5 py-2.5 text-xs font-bold text-slate-800 shadow-2xs outline-none focus:border-brand cursor-pointer"
-                >
-                  <option value="PANORAMIC">
-                    Panorama — hỗ trợ phân tích AI
-                  </option>
-                  <option value="PERIAPICAL">Cận chóp — chưa hỗ trợ AI</option>
-                  <option value="BITEWING">Bitewing — chưa hỗ trợ AI</option>
-                  <option value="OTHER">
-                    Loại X-quang khác — chưa hỗ trợ AI
-                  </option>
-                </select>
-              </div>
-            )}
-
             {/* Caption Input */}
             <input
               type="text"
@@ -191,8 +150,8 @@ export function MedicalRecordImages({
 
           {err && <p className="text-xs font-medium text-red-600">{err}</p>}
           <p className="text-[11px] text-muted-foreground">
-            Định dạng hỗ trợ: JPG, PNG, WEBP (Tối đa 3MB/ảnh). Ảnh sẽ được tải
-            lên Cloudinary và lưu tự động vào bệnh án.
+            Chỉ hỗ trợ phim X-quang Panorama (JPG, PNG, WEBP; tối đa 3MB/ảnh).
+            Ảnh sẽ được lưu tự động vào bệnh án.
           </p>
         </div>
       )}
@@ -209,8 +168,7 @@ export function MedicalRecordImages({
             Chưa có ảnh nào được lưu cho bệnh án này
           </p>
           <p className="text-xs text-muted-foreground mt-1 max-w-sm">
-            Chọn loại ảnh ở trên và bấm &quot;Chọn file ảnh từ máy tính&quot; để
-            đính kèm phim X-quang hoặc ảnh chụp trong miệng.
+            Chọn file ảnh từ máy tính để đính kèm phim X-quang Panorama.
           </p>
         </div>
       ) : (

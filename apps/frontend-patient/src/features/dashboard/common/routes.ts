@@ -28,7 +28,7 @@ export const ROUTES = {
   promotions: "/promotions",
 
   // ─── Auth ─────────────────────────────────────────────────────────────
-  login: "/login",
+  login: "/auth/login",
   register: "/auth/register",
 
   // ─── Trang tĩnh (footer) ──────────────────────────────────────────────

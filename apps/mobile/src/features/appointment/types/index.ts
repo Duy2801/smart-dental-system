@@ -1,5 +1,3 @@
-import type { AppointmentInvoice } from '../utils/appointmentFinancials';
-
 export type AppointmentStatus =
   | 'pending'
   | 'confirmed'
@@ -58,8 +56,6 @@ export type AppointmentItem = {
   serviceId: string;
   treatmentMethodId?: string;
   treatmentMethodName?: string;
-  treatmentMethodPrice?: number;
-  invoices?: AppointmentInvoice[];
   scheduledAt: string;
   endAt: string;
   durationMinutes: number;

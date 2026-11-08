@@ -380,7 +380,7 @@ export class ReportService {
           lt: range.end,
         },
       },
-      // Trả về toàn bộ lịch hôm nay, trang tổng quan tự phân trang
+      take: 8,
       orderBy: { scheduledAt: 'asc' },
       include: {
         patient: { include: { user: true } },

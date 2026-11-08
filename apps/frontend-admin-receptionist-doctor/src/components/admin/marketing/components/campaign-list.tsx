@@ -3,7 +3,6 @@
 import { ImagesSquare, PencilSimple, Trash } from "@phosphor-icons/react";
 import {
   AdminEmptyState,
-  AdminSwitch,
   AdminIconButton,
   AdminIconButtonDivider,
   AdminIconButtonGroup,
@@ -98,21 +97,27 @@ function BannerRow({
         </span>
       </div>
 
-      {/* Active Status Toggle */}
-      <div className="flex shrink-0 items-center gap-2.5 lg:w-[13%] lg:justify-center">
-        <AdminSwitch
-          checked={banner.isActive}
-          onChange={() => onToggleStatus(banner)}
-          label={banner.isActive ? "Ẩn banner khỏi trang chủ" : "Hiển thị banner trên trang chủ"}
-        />
-        <span
+      {/* Active Status Badge & Toggle */}
+      <div className="flex shrink-0 justify-center lg:w-[13%]">
+        <button
+          type="button"
+          onClick={() => onToggleStatus(banner)}
           className={cn(
-            "text-xs font-semibold",
-            banner.isActive ? "text-emerald-700" : "text-slate-500",
+            "inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all cursor-pointer border shadow-xs",
+            banner.isActive
+              ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+              : "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200",
           )}
+          title="Bấm vào để thay đổi trạng thái"
         >
+          <span
+            className={cn(
+              "h-2 w-2 rounded-full",
+              banner.isActive ? "bg-emerald-500" : "bg-slate-400",
+            )}
+          />
           {banner.isActive ? "Đang hiển thị" : "Đã tạm ẩn"}
-        </span>
+        </button>
       </div>
 
       {/* Action Buttons */}

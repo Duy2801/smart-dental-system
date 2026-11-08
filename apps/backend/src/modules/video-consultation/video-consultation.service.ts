@@ -179,16 +179,11 @@ export class VideoConsultationService implements OnModuleInit {
   ) {}
 
   onModuleInit() {
-    // Mỗi lần chạy job đều tốn query DB (tính vào quota Prisma Postgres) nên chỉ chạy dày khi cần đúng giờ:
-    // nhắc lịch "trước 10 phút" và đánh dấu bác sĩ vắng mặt cần chính xác tới khoảng 1 phút.
-    setInterval(() => {
-      this.processPendingNotifications().catch(() => {});
-      this.checkDoctorMissedConsultations().catch(() => {});
-    }, 60_000);
-    // Đặt slot và thanh toán đã tự kiểm tra expiresAt, job này chỉ đổi trạng thái hiển thị nên chạy thưa hơn.
     setInterval(() => {
       this.cleanupExpiredBookings().catch(() => {});
-    }, 5 * 60_000);
+      this.processPendingNotifications().catch(() => {});
+      this.checkDoctorMissedConsultations().catch(() => {});
+    }, 30000);
   }
 
   /** Background Job 1: Dọn dẹp các đơn đặt tư vấn hết hạn 15 phút mà chưa thanh toán (EXPIRED) */
@@ -245,32 +240,24 @@ export class VideoConsultationService implements OnModuleInit {
   /** Background Job 2: Bắn các thông báo PENDING đến giờ hẹn (nhắc lịch 10p) */
   private async processPendingNotifications() {
     const now = new Date();
-    const batchSize = 50;
-    // Lặp tới khi hết thông báo đến hạn: chiến dịch marketing hẹn giờ có thể có hàng trăm bản ghi,
-    // nếu mỗi lần job chạy chỉ xử lý 50 bản thì phải đợi nhiều chu kỳ mới gửi xong.
-    for (;;) {
-      const pending = await this.prisma.notification.findMany({
-        where: {
-          status: 'PENDING',
-          scheduledAt: { lte: now },
-        },
-        take: batchSize,
-      });
-      if (pending.length === 0) return;
+    const pending = await this.prisma.notification.findMany({
+      where: {
+        status: 'PENDING',
+        scheduledAt: { lte: now },
+      },
+      take: 50,
+    });
 
-      await this.prisma.notification.updateMany({
-        where: { id: { in: pending.map((item) => item.id) }, status: 'PENDING' },
+    for (const item of pending) {
+      await this.prisma.notification.update({
+        where: { id: item.id },
         data: { status: 'SENT', sentAt: now },
       });
       if (this.eventsGateway?.server) {
-        for (const item of pending) {
-          this.eventsGateway.server
-            .to(`user_${item.userId}`)
-            .emit('notification', item);
-        }
+        this.eventsGateway.server
+          .to(`user_${item.userId}`)
+          .emit('notification', item);
       }
-
-      if (pending.length < batchSize) return;
     }
   }
 

@@ -35,10 +35,8 @@ import {
   IdentificationCard,
   User,
   Tooth,
-  ShieldCheck,
   Image as ImageIcon,
-  CaretLeft,
-  CaretRight,
+  CaretDown,
 } from "@phosphor-icons/react";
 import axios from "axios";
 import apiClient from "@/src/lib/api/client";
@@ -56,7 +54,6 @@ import {
   type RecordImage,
 } from "./_components/MedicalRecordImages";
 import { ClinicalScribeReview } from "@/src/components/doctor/clinical-scribe-review";
-import { AftercareDraft } from "@/src/components/doctor/aftercare-draft";
 import { DentalXrayAnalyzer } from "@/src/components/doctor/dental-xray-analyzer";
 
 type RecordSummary = {
@@ -104,14 +101,7 @@ type RecordDetail = RecordSummary & {
   dentalChart: DentalChartData;
 };
 
-type TabKey =
-  | "OVERVIEW"
-  | "CHART"
-  | "IMAGES"
-  | "XRAY_AI"
-  | "PRESCRIPTIONS"
-  | "AFTERCARE"
-  | "HISTORY";
+type TabKey = "OVERVIEW" | "CHART" | "IMAGES" | "PRESCRIPTIONS";
 
 function formatDate(iso: string | null) {
   if (!iso) return "-";
@@ -150,7 +140,7 @@ const VALID_FDI_TEETH = new Set([
 
 function MedicalRecordsContent() {
   const router = useRouter();
-  const { showAlert, showConfirm } = useAppDialog();
+  const { showConfirm } = useAppDialog();
   const searchParams = useSearchParams();
   const preSelectId = searchParams.get("recordId");
   const appointmentId = searchParams.get("appointmentId");
@@ -167,53 +157,8 @@ function MedicalRecordsContent() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [activeTab, setActiveTab] = useState<TabKey>("OVERVIEW");
-  const tabsNavRef = useRef<HTMLDivElement | null>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
-
-  const checkTabScroll = useCallback(() => {
-    const el = tabsNavRef.current;
-    if (!el) return;
-    setCanScrollLeft(el.scrollLeft > 6);
-    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 6);
-  }, []);
-
-  useEffect(() => {
-    const el = tabsNavRef.current;
-    if (!el) return;
-    checkTabScroll();
-    el.addEventListener("scroll", checkTabScroll, { passive: true });
-    window.addEventListener("resize", checkTabScroll);
-    return () => {
-      el.removeEventListener("scroll", checkTabScroll);
-      window.removeEventListener("resize", checkTabScroll);
-    };
-  }, [checkTabScroll]);
-
-  const scrollTabs = (direction: "left" | "right") => {
-    const el = tabsNavRef.current;
-    if (!el) return;
-    el.scrollBy({
-      left: direction === "left" ? -220 : 220,
-      behavior: "smooth",
-    });
-  };
-
-  useEffect(() => {
-    const activeBtn = tabsNavRef.current?.querySelector<HTMLElement>(
-      `[data-tab-key="${activeTab}"]`,
-    );
-    if (activeBtn) {
-      activeBtn.scrollIntoView({
-        behavior: "smooth",
-        inline: "nearest",
-        block: "nearest",
-      });
-    }
-    const timer = setTimeout(checkTabScroll, 200);
-    return () => clearTimeout(timer);
-  }, [activeTab, checkTabScroll]);
+  const [activeTab, setActiveTab] = useState<TabKey>("IMAGES");
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [printingRx, setPrintingRx] = useState<
     RecordDetail["prescriptions"][number] | null
   >(null);
@@ -235,7 +180,7 @@ function MedicalRecordsContent() {
     e: React.MouseEvent<HTMLAnchorElement>,
     href: string,
   ) => {
-    if (JSON.stringify(form) !== savedFormSnapshot.current) {
+    if (JSON.stringify(form) !== savedFormSnapshot) {
       e.preventDefault();
       const confirmed = await showConfirm({
         title: "Bỏ các thay đổi chưa lưu?",
@@ -254,7 +199,7 @@ function MedicalRecordsContent() {
   const [loadingPastRecords, setLoadingPastRecords] = useState(false);
   const requestSequence = useRef(0);
   const historyRequestSequence = useRef(0);
-  const savedFormSnapshot = useRef(
+  const [savedFormSnapshot, setSavedFormSnapshot] = useState(
     JSON.stringify({
       chiefComplaint: "",
       diagnosis: "",
@@ -275,10 +220,16 @@ function MedicalRecordsContent() {
     images: [] as RecordImage[],
     dentalChart: { teeth: [] } as DentalChartData,
   });
-  const doctorId = getDoctorIdFromCookie();
-  const sessionError = doctorId
-    ? null
-    : "Không tìm thấy thông tin bác sĩ. Vui lòng đăng nhập lại.";
+  const hasUnsavedChanges = JSON.stringify(form) !== savedFormSnapshot;
+  const [doctorId, setDoctorId] = useState<string | null>();
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Read the browser cookie after hydration so the first render matches the server.
+    setDoctorId(getDoctorIdFromCookie());
+  }, []);
+  const sessionError =
+    doctorId === null
+      ? "Không tìm thấy thông tin bác sĩ. Vui lòng đăng nhập lại."
+      : null;
   const selectionError =
     preSelectId && !isUuid(preSelectId) ? "Mã hồ sơ không hợp lệ." : null;
   const today = localDateStr();
@@ -294,6 +245,7 @@ function MedicalRecordsContent() {
       setDetailError(null);
       setSaved(false);
       setSaveError(null);
+      setHistoryOpen(false);
       const nextForm = {
         chiefComplaint: data.chiefComplaint ?? "",
         diagnosis: data.diagnosis ?? "",
@@ -313,7 +265,7 @@ function MedicalRecordsContent() {
         },
       };
       setForm(nextForm);
-      savedFormSnapshot.current = JSON.stringify(nextForm);
+      setSavedFormSnapshot(JSON.stringify(nextForm));
 
       // Fetch past records of this patient across the dental clinic
       if (data.patientId && doctorId) {
@@ -346,7 +298,7 @@ function MedicalRecordsContent() {
           {
             id: data.id,
             patientId: data.patientId,
-            appointmentId: (data as any).appointmentId ?? null,
+            appointmentId: data.appointmentId ?? null,
             patientName: data.patientName,
             patientCode: data.patientCode,
             diagnosis: data.diagnosis,
@@ -397,7 +349,7 @@ function MedicalRecordsContent() {
           );
         } else {
           applyDetail(res.data, id);
-          setActiveTab("OVERVIEW");
+          setActiveTab("IMAGES");
         }
       } catch (err) {
         if (sequence !== requestSequence.current) return;
@@ -415,11 +367,11 @@ function MedicalRecordsContent() {
     },
     [applyDetail],
   );
-  /* eslint-enable react-hooks/preserve-manual-memoization */
 
+  /* eslint-enable react-hooks/preserve-manual-memoization */
   const selectRecord = async (id: string) => {
     if (id === selectedId) return;
-    if (JSON.stringify(form) !== savedFormSnapshot.current) {
+    if (hasUnsavedChanges) {
       const confirmed = await showConfirm({
         title: "Bỏ các thay đổi chưa lưu?",
         description:
@@ -433,16 +385,16 @@ function MedicalRecordsContent() {
   };
 
   useEffect(() => {
-    if (JSON.stringify(form) === savedFormSnapshot.current) return;
+    if (!hasUnsavedChanges) return;
     const warnBeforeLeaving = (event: BeforeUnloadEvent) => {
       event.preventDefault();
     };
     window.addEventListener("beforeunload", warnBeforeLeaving);
     return () => window.removeEventListener("beforeunload", warnBeforeLeaving);
-  }, [form]);
+  }, [hasUnsavedChanges]);
 
   useEffect(() => {
-    if (JSON.stringify(form) === savedFormSnapshot.current) return;
+    if (!hasUnsavedChanges) return;
     const guardInternalLinks = (event: MouseEvent) => {
       if (
         event.defaultPrevented ||
@@ -477,7 +429,7 @@ function MedicalRecordsContent() {
     };
     document.addEventListener("click", guardInternalLinks);
     return () => document.removeEventListener("click", guardInternalLinks);
-  }, [form, router, showConfirm]);
+  }, [hasUnsavedChanges, router, showConfirm]);
 
   useEffect(() => {
     if (!doctorId) {
@@ -603,8 +555,9 @@ function MedicalRecordsContent() {
     void loadDetail(selectedId, { keepTab: true });
   }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleSave = async () => {
-    if (!selectedId) return;
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization -- State setters are stable; keep the callback stable for the keyboard listener.
+  const handleSave = useCallback(async () => {
+    if (!selectedId || saving || !hasUnsavedChanges) return;
     if (detail?.doctorId && detail.doctorId !== doctorId) {
       setSaveError("Bạn chỉ có thể chỉnh sửa hồ sơ do mình phụ trách.");
       return;
@@ -681,7 +634,16 @@ function MedicalRecordsContent() {
     } finally {
       setSaving(false);
     }
-  };
+  }, [
+    selectedId,
+    saving,
+    hasUnsavedChanges,
+    detail,
+    doctorId,
+    form,
+    today,
+    applyDetail,
+  ]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -728,6 +690,7 @@ function MedicalRecordsContent() {
     const index = filtered.findIndex((r) => r.id === selectedId);
     if (index !== -1) {
       const targetPage = Math.floor(index / pageSize) + 1;
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Keep the selected record visible in the paginated list.
       setPage((curr) => (curr !== targetPage ? targetPage : curr));
     }
   }, [selectedId, filtered]);
@@ -917,12 +880,6 @@ function MedicalRecordsContent() {
                       {/* Avatar with subtle ring and live session pulse */}
                       <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-brand to-brand-dark font-mono text-lg font-black text-white shadow-sm ring-4 ring-brand/10">
                         {initials}
-                        <span className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-white shadow-xs">
-                          <span className="relative flex h-2.5 w-2.5">
-                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
-                          </span>
-                        </span>
                       </div>
 
                       {/* Name, Patient Code, Status and Info Chips */}
@@ -960,12 +917,6 @@ function MedicalRecordsContent() {
                               />
                             )}
                           </button>
-
-                          {/* Active Clinical Badge */}
-                          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800">
-                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                            Đang điều trị
-                          </span>
                         </div>
 
                         {/* Metadata row */}
@@ -1050,15 +1001,23 @@ function MedicalRecordsContent() {
                       )}
 
                       <div className="flex flex-wrap items-center gap-2">
-                        {prescribeHref !== "#" && (
-                          <Link
-                            href={prescribeHref}
-                            className="inline-flex items-center gap-1.5 rounded-xl border border-brand/30 bg-brand/5 px-3 py-1.5 text-xs font-bold text-brand transition-all hover:bg-brand hover:text-white active:scale-[0.98] cursor-pointer"
-                          >
-                            <Pill size={14} weight="bold" />
-                            <span>Kê đơn mới</span>
-                          </Link>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => setHistoryOpen((open) => !open)}
+                          aria-expanded={historyOpen}
+                          aria-controls="record-history"
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                        >
+                          <ClockCounterClockwise size={14} />
+                          Xem lần khám trước
+                          <CaretDown
+                            size={12}
+                            className={cn(
+                              "transition-transform",
+                              historyOpen && "rotate-180",
+                            )}
+                          />
+                        </button>
                         <Link
                           href={`/doctor/patients/${detail.patientId}`}
                           onClick={(e) =>
@@ -1086,129 +1045,229 @@ function MedicalRecordsContent() {
                   </div>
                 </div>
 
-                {/* Tabs Bar with icons and count indicators */}
-                <div className="relative border-b border-border">
-                  {canScrollLeft && (
-                    <button
-                      type="button"
-                      aria-label="Cuộn tab sang trái"
-                      onClick={() => scrollTabs("left")}
-                      className="absolute -left-3 top-1/2 -translate-y-1/2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-white border border-slate-200 shadow-md text-slate-600 hover:text-brand hover:bg-slate-50 transition-all cursor-pointer"
-                    >
-                      <CaretLeft size={14} weight="bold" />
-                    </button>
-                  )}
-                  {canScrollRight && (
-                    <button
-                      type="button"
-                      aria-label="Cuộn tab sang phải"
-                      onClick={() => scrollTabs("right")}
-                      className="absolute -right-3 top-1/2 -translate-y-1/2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-white border border-slate-200 shadow-md text-slate-600 hover:text-brand hover:bg-slate-50 transition-all cursor-pointer"
-                    >
-                      <CaretRight size={14} weight="bold" />
-                    </button>
-                  )}
+                {historyOpen && (
                   <div
-                    ref={tabsNavRef}
-                    className="flex items-center gap-0.5 overflow-x-auto px-1 py-0.5 scroll-smooth [scrollbar-width:thin] [scrollbar-color:rgba(148,163,184,0.3)_transparent] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300 hover:[&::-webkit-scrollbar-thumb]:bg-slate-400"
+                    id="record-history"
+                    className="rounded-2xl border border-border bg-white p-5 space-y-4"
                   >
-                    {(
-                      [
-                        {
-                          key: "OVERVIEW" as TabKey,
-                          label: "Tổng quan",
-                          icon: FileText,
-                        },
-                        {
-                          key: "HISTORY" as TabKey,
-                          label: "Lịch sử khám",
-                          count: pastRecords.length,
-                          icon: ClockCounterClockwise,
-                        },
-                        {
-                          key: "CHART" as TabKey,
-                          label: "Sơ đồ răng",
-                          icon: Tooth,
-                        },
-                        {
-                          key: "IMAGES" as TabKey,
-                          label: "Ảnh",
-                          count: form.images.length,
-                          icon: ImageIcon,
-                        },
-                        {
-                          key: "XRAY_AI" as TabKey,
-                          label: "X-Quang AI",
-                          icon: Sparkle,
-                        },
-                        {
-                          key: "PRESCRIPTIONS" as TabKey,
-                          label: "Đơn thuốc",
-                          count: detail.prescriptions.length,
-                          icon: Pill,
-                        },
-                        {
-                          key: "AFTERCARE" as TabKey,
-                          label: "Dặn dò sau khám",
-                          icon: ShieldCheck,
-                        },
-                      ] as {
-                        key: TabKey;
-                        label: string;
-                        count?: number;
-                        icon: React.ComponentType<{
-                          size?: number;
-                          weight?: "bold" | "regular" | "fill" | "duotone";
-                          className?: string;
-                        }>;
-                      }[]
-                    ).map((tab) => {
-                      const isActive = activeTab === tab.key;
-                      const Icon = tab.icon;
-                      return (
-                        <button
-                          key={tab.key}
-                          data-tab-key={tab.key}
-                          type="button"
-                          onClick={() => setActiveTab(tab.key)}
-                          className={cn(
-                            "group -mb-px flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-2.5 text-xs sm:text-sm font-bold transition-all cursor-pointer active:scale-[0.98]",
-                            isActive
-                              ? "border-brand text-brand"
-                              : "border-transparent text-muted-foreground hover:border-slate-300 hover:text-slate-900",
-                          )}
-                        >
-                          <Icon
-                            size={16}
-                            weight={isActive ? "bold" : "regular"}
-                            className={cn(
-                              "transition-colors",
-                              isActive
-                                ? "text-brand"
-                                : "text-slate-400 group-hover:text-slate-600",
-                            )}
-                          />
-                          <span>{tab.label}</span>
-                          {typeof tab.count === "number" && (
-                            <span
-                              className={cn(
-                                "rounded-full px-1.5 py-0.5 font-mono text-[11px] font-bold transition-colors",
-                                isActive
-                                  ? "bg-brand/10 text-brand"
-                                  : "bg-slate-100 text-slate-500 group-hover:bg-slate-200 group-hover:text-slate-700",
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
+                      <div>
+                        <h3 className="text-base font-bold text-slate-900">
+                          Lịch sử các lần khám cũ của {detail.patientName}
+                        </h3>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Bác sĩ có thể xem lại chẩn đoán, thuốc và diễn biến
+                          điều trị của các lần khám trước
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-brand/10 px-3 py-1 font-mono text-xs font-bold text-brand">
+                        {pastRecords.length} lần khám
+                      </span>
+                    </div>
+
+                    {loadingPastRecords ? (
+                      <div className="flex h-32 items-center justify-center">
+                        <SpinnerGap
+                          size={24}
+                          className="animate-spin text-brand"
+                        />
+                      </div>
+                    ) : pastRecords.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground">
+                        <ClockCounterClockwise
+                          size={40}
+                          className="mb-2 text-slate-300"
+                          weight="duotone"
+                        />
+                        <p className="text-sm font-medium">
+                          Bệnh nhân chưa có lần khám cũ nào khác
+                        </p>
+                        <p className="text-xs text-slate-400 mt-1">
+                          Đây là hồ sơ bệnh án đầu tiên của bệnh nhân này.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {pastRecords.map((pastRec) => (
+                          <div
+                            key={pastRec.id}
+                            className="rounded-2xl border border-border/80 bg-slate-50/70 p-4 transition hover:border-brand/30 hover:bg-white hover:shadow-sm"
+                          >
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <div className="space-y-2 flex-1 min-w-[240px]">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="flex items-center gap-1 text-xs font-bold text-slate-900">
+                                    <CalendarBlank
+                                      size={13}
+                                      className="text-brand"
+                                    />
+                                    {formatDateTime(
+                                      pastRec.scheduledAt || pastRec.createdAt,
+                                    )}
+                                  </span>
+                                  {pastRec.serviceName && (
+                                    <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-bold text-blue-700">
+                                      {pastRec.serviceName}
+                                    </span>
+                                  )}
+                                  {pastRec.doctorName && (
+                                    <span
+                                      className={cn(
+                                        "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold",
+                                        pastRec.doctorId === doctorId
+                                          ? "bg-slate-100 text-slate-700"
+                                          : "bg-amber-50 text-amber-800 border border-amber-200/60",
+                                      )}
+                                    >
+                                      <User
+                                        size={11}
+                                        className={
+                                          pastRec.doctorId === doctorId
+                                            ? "text-slate-500"
+                                            : "text-amber-600"
+                                        }
+                                      />
+                                      {pastRec.doctorId === doctorId
+                                        ? "Bạn phụ trách"
+                                        : `BS. ${pastRec.doctorName}`}
+                                    </span>
+                                  )}
+                                </div>
+
+                                {pastRec.diagnosis && (
+                                  <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                                    <p className="font-mono text-xs font-bold text-brand-dark">
+                                      Chẩn đoán: {pastRec.diagnosis}
+                                    </p>
+                                  </div>
+                                )}
+
+                                {pastRec.chiefComplaint && (
+                                  <p className="text-xs text-slate-600">
+                                    <span className="font-medium text-slate-700">
+                                      Lý do khám:
+                                    </span>{" "}
+                                    {pastRec.chiefComplaint}
+                                  </p>
+                                )}
+
+                                {pastRec.treatmentNotes && (
+                                  <div className="rounded-xl border border-slate-200/90 bg-white p-3 text-xs shadow-2xs space-y-1.5 mt-1.5">
+                                    <div className="flex items-center justify-between">
+                                      <span className="flex items-center gap-1.5 font-bold text-slate-800 text-[11px]">
+                                        <FileText
+                                          size={13}
+                                          className="text-brand"
+                                          weight="bold"
+                                        />
+                                        Diễn biến & Ghi chú điều trị:
+                                      </span>
+                                    </div>
+                                    <p className="text-slate-600 whitespace-pre-line leading-relaxed text-xs">
+                                      {pastRec.treatmentNotes}
+                                    </p>
+                                  </div>
+                                )}
+
+                                <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground pt-1">
+                                  {pastRec.followUpDate && (
+                                    <span>
+                                      Tái khám:{" "}
+                                      {formatDate(pastRec.followUpDate)}
+                                    </span>
+                                  )}
+                                  {pastRec.prescriptionCount > 0 && (
+                                    <span className="flex items-center gap-1 font-medium text-blue-600">
+                                      <Pill size={12} />{" "}
+                                      {pastRec.prescriptionCount} đơn thuốc
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {pastRec.doctorId === doctorId && (
+                                <button
+                                  type="button"
+                                  onClick={() => void selectRecord(pastRec.id)}
+                                  className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs transition hover:border-brand/40 hover:bg-brand/5 hover:text-brand cursor-pointer shrink-0"
+                                >
+                                  Mở bệnh án này <ArrowRight size={12} />
+                                </button>
                               )}
-                            >
-                              {tab.count}
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
+                )}
+
+                <div
+                  className="grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1 sm:grid-cols-4"
+                  role="tablist"
+                  aria-label="Nội dung bệnh án"
+                >
+                  {(
+                    [
+                      {
+                        key: "IMAGES",
+                        label: "Phân tích ảnh AI",
+                        icon: ImageIcon,
+                      },
+                      { key: "OVERVIEW", label: "Ghi bệnh án", icon: FileText },
+                      { key: "CHART", label: "Sơ đồ răng", icon: Tooth },
+                      { key: "PRESCRIPTIONS", label: "Đơn thuốc", icon: Pill },
+                    ] as const
+                  ).map(({ key, label, icon: Icon }) => (
+                    <button
+                      key={key}
+                      id={`record-tab-${key}`}
+                      type="button"
+                      role="tab"
+                      aria-selected={activeTab === key}
+                      aria-controls={`record-panel-${key}`}
+                      tabIndex={activeTab === key ? 0 : -1}
+                      onClick={() => setActiveTab(key)}
+                      onKeyDown={(event) => {
+                        const tabs = Array.from(
+                          event.currentTarget.parentElement!.querySelectorAll<HTMLButtonElement>(
+                            '[role="tab"]',
+                          ),
+                        );
+                        const index = tabs.indexOf(event.currentTarget);
+                        const next =
+                          event.key === "ArrowRight"
+                            ? (index + 1) % tabs.length
+                            : event.key === "ArrowLeft"
+                              ? (index - 1 + tabs.length) % tabs.length
+                              : event.key === "Home"
+                                ? 0
+                                : event.key === "End"
+                                  ? tabs.length - 1
+                                  : -1;
+                        if (next < 0) return;
+                        event.preventDefault();
+                        tabs[next].focus();
+                        tabs[next].click();
+                      }}
+                      className={cn(
+                        "flex min-w-0 items-center justify-center gap-2 rounded-lg px-2 py-2.5 text-xs font-semibold transition sm:text-sm",
+                        activeTab === key
+                          ? "bg-white text-brand-dark shadow-sm"
+                          : "text-slate-500 hover:bg-white/60 hover:text-slate-800",
+                      )}
+                    >
+                      <Icon size={16} className="shrink-0" />
+                      {label}
+                    </button>
+                  ))}
                 </div>
 
                 <div className="min-h-[400px] rounded-2xl border border-border bg-white p-6 shadow-sm">
                   <div
+                    id="record-panel-OVERVIEW"
+                    role="tabpanel"
+                    aria-labelledby="record-tab-OVERVIEW"
                     className={
                       activeTab === "OVERVIEW" ? "space-y-5" : "hidden"
                     }
@@ -1217,33 +1276,20 @@ function MedicalRecordsContent() {
                       <h3 className="text-base font-bold text-slate-900">
                         Ghi chép lâm sàng
                       </h3>
-                      <div className="flex flex-wrap items-center gap-2">
-                        {saved && (
-                          <span className="flex items-center gap-1.5 text-xs font-medium text-green-600">
-                            <Check size={14} weight="bold" /> Đã lưu
-                          </span>
-                        )}
-                        {saveError && (
-                          <span className="flex items-center gap-1.5 text-xs font-medium text-red-600">
-                            <Warning size={14} /> {saveError}
-                          </span>
-                        )}
-                      </div>
+                      <ClinicalScribeReview
+                        key={detail.id}
+                        patientId={detail.patientId}
+                        serviceName={detail.serviceName}
+                        current={{
+                          chiefComplaint: form.chiefComplaint,
+                          diagnosis: form.diagnosis,
+                          treatmentNotes: form.treatmentNotes,
+                        }}
+                        onApply={(values) =>
+                          setForm((current) => ({ ...current, ...values }))
+                        }
+                      />
                     </div>
-
-                    <ClinicalScribeReview
-                      key={detail.id}
-                      patientId={detail.patientId}
-                      serviceName={detail.serviceName}
-                      current={{
-                        chiefComplaint: form.chiefComplaint,
-                        diagnosis: form.diagnosis,
-                        treatmentNotes: form.treatmentNotes,
-                      }}
-                      onApply={(values) =>
-                        setForm((current) => ({ ...current, ...values }))
-                      }
-                    />
 
                     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                       <div className="space-y-4">
@@ -1325,62 +1371,54 @@ function MedicalRecordsContent() {
                           />
                         </div>
 
-                        <div className="space-y-1.5">
-                          <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                            <Lock size={12} /> Ghi chú nội bộ phòng khám
-                          </label>
-                          <textarea
-                            rows={2}
-                            value={form.internalNotes}
-                            onChange={(e) =>
-                              setForm((f) => ({
-                                ...f,
-                                internalNotes: e.target.value,
-                              }))
-                            }
-                            placeholder="Chỉ bác sĩ phụ trách và quản trị viên được xem..."
-                            className="w-full resize-y rounded-xl border border-border bg-slate-50 px-4 py-3 text-sm italic text-slate-700 shadow-sm outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand/20"
-                          />
-                        </div>
+                        <details
+                          key={detail.id}
+                          open={Boolean(detail.internalNotes)}
+                          className="group rounded-xl border border-border bg-slate-50/50"
+                        >
+                          <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2.5 text-xs font-semibold text-slate-600 [&::-webkit-details-marker]:hidden">
+                            <Lock size={13} /> Ghi chú nội bộ
+                            <CaretDown
+                              size={13}
+                              className="ml-auto transition-transform group-open:rotate-180"
+                            />
+                          </summary>
+                          <div className="px-3 pb-3">
+                            <label
+                              htmlFor="record-internal-notes"
+                              className="sr-only"
+                            >
+                              Ghi chú nội bộ
+                            </label>
+                            <textarea
+                              id="record-internal-notes"
+                              rows={2}
+                              value={form.internalNotes}
+                              onChange={(e) =>
+                                setForm((f) => ({
+                                  ...f,
+                                  internalNotes: e.target.value,
+                                }))
+                              }
+                              placeholder="Chỉ bác sĩ phụ trách và quản trị viên được xem..."
+                              className="w-full resize-y rounded-xl border border-border bg-slate-50 px-4 py-3 text-sm italic text-slate-700 shadow-sm outline-none transition-all focus:border-brand focus:ring-2 focus:ring-brand/20"
+                            />
+                          </div>
+                        </details>
                       </div>
-                    </div>
-
-                    <div className="flex justify-end gap-3 border-t border-border pt-4">
-                      <button
-                        type="button"
-                        onClick={handleSave}
-                        disabled={saving || detail?.doctorId !== doctorId}
-                        className="inline-flex items-center gap-2 rounded-xl bg-brand px-6 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-brand-dark active:scale-[0.98] disabled:opacity-60"
-                      >
-                        {saving ? (
-                          <SpinnerGap size={14} className="animate-spin" />
-                        ) : saved ? (
-                          <CheckCircle size={14} weight="fill" />
-                        ) : (
-                          <FloppyDisk size={14} />
-                        )}
-                        {saving ? "Đang lưu..." : "Lưu hồ sơ"}
-                      </button>
                     </div>
                   </div>
 
                   <div
+                    id="record-panel-CHART"
+                    role="tabpanel"
+                    aria-labelledby="record-tab-CHART"
                     className={activeTab === "CHART" ? "space-y-5" : "hidden"}
                   >
                     <div className="flex items-center justify-between border-b border-border pb-3">
                       <h3 className="text-base font-bold text-slate-900">
                         Sơ đồ răng (FDI)
                       </h3>
-                      {saved && (
-                        <span className="flex items-center gap-1.5 text-xs font-medium text-green-600">
-                          <Check size={14} weight="bold" /> Đã lưu
-                        </span>
-                      )}
-                      {saveError && (
-                        <span className="flex items-center gap-1.5 text-xs font-medium text-red-600">
-                          <Warning size={14} /> {saveError}
-                        </span>
-                      )}
                     </div>
                     <DentalChartEditor
                       value={form.dentalChart}
@@ -1388,153 +1426,158 @@ function MedicalRecordsContent() {
                         setForm((f) => ({ ...f, dentalChart }))
                       }
                     />
-                    <div className="flex justify-end border-t border-border pt-4">
-                      <button
-                        type="button"
-                        onClick={handleSave}
-                        disabled={saving || detail?.doctorId !== doctorId}
-                        className="inline-flex items-center gap-2 rounded-xl bg-brand px-6 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-brand-dark disabled:opacity-60"
-                      >
-                        {saving ? (
-                          <SpinnerGap size={14} className="animate-spin" />
-                        ) : (
-                          <FloppyDisk size={14} />
-                        )}
-                        {saving ? "Đang lưu..." : "Lưu sơ đồ răng"}
-                      </button>
-                    </div>
                   </div>
 
                   <div
+                    id="record-panel-IMAGES"
+                    role="tabpanel"
+                    aria-labelledby="record-tab-IMAGES"
                     className={activeTab === "IMAGES" ? "space-y-5" : "hidden"}
                   >
                     <div className="flex items-center justify-between border-b border-border pb-3">
                       <h3 className="text-base font-bold text-slate-900">
-                        Ảnh X-quang / nội khoa
+                        Ảnh X-quang
                       </h3>
-                      {saved && (
-                        <span className="flex items-center gap-1.5 text-xs font-medium text-green-600">
-                          <Check size={14} weight="bold" /> Đã lưu
-                        </span>
-                      )}
-                      {saveError && (
-                        <span className="flex items-center gap-1.5 text-xs font-medium text-red-600">
-                          <Warning size={14} /> {saveError}
-                        </span>
-                      )}
                     </div>
-                    <MedicalRecordImages
-                      recordId={selectedId}
-                      readOnly={Boolean(
-                        detail?.doctorId && detail.doctorId !== doctorId,
-                      )}
-                      value={form.images}
-                      onChange={(images) => setForm((f) => ({ ...f, images }))}
-                      onUploaded={(images, updatedAt) => {
-                        setDetail((d) =>
-                          d
-                            ? {
-                                ...d,
-                                images,
-                                updatedAt: updatedAt || d.updatedAt,
-                              }
-                            : d,
-                        );
-                        setRecords((prev) =>
-                          prev.map((r) =>
-                            r.id === selectedId
-                              ? { ...r, updatedAt: updatedAt || r.updatedAt }
-                              : r,
-                          ),
-                        );
-                        try {
-                          const currentSnapshot = JSON.parse(
-                            savedFormSnapshot.current,
-                          );
-                          currentSnapshot.images = images;
-                          savedFormSnapshot.current =
-                            JSON.stringify(currentSnapshot);
-                        } catch {
-                          // ignore
-                        }
-                      }}
-                    />
-                    <div className="flex justify-end border-t border-border pt-4">
-                      <button
-                        type="button"
-                        onClick={handleSave}
-                        disabled={saving || detail?.doctorId !== doctorId}
-                        className="inline-flex items-center gap-2 rounded-xl bg-brand px-6 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-brand-dark disabled:opacity-60"
-                      >
-                        {saving ? (
-                          <SpinnerGap size={14} className="animate-spin" />
-                        ) : (
-                          <FloppyDisk size={14} />
-                        )}
-                        {saving ? "Đang lưu..." : "Lưu ảnh"}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className={activeTab === "XRAY_AI" ? "block" : "hidden"}>
-                    <DentalXrayAnalyzer
+                    <details
                       key={detail.id}
-                      patientId={detail.patientId}
-                      patientName={detail.patientName}
-                      clinicalNoteHint={[form.chiefComplaint, form.diagnosis]
-                        .filter(Boolean)
-                        .join("\n")}
-                      patientImages={(form.images || [])
-                        .filter(
-                          (img) =>
-                            img.url &&
-                            img.id &&
-                            img.type === "xray" &&
-                            img.modality === "PANORAMIC",
-                        )
-                        .map((img, i) => ({
-                          id: img.id,
-                          url: img.url,
-                          title:
-                            img.caption ||
-                            (img.type === "xray" || !img.type
-                              ? `Phim X-quang ${i + 1}`
-                              : img.type === "intraoral"
-                                ? `Ảnh nội khoa ${i + 1}`
-                                : `Ảnh ${i + 1}`),
-                          type: img.type || "xray",
-                          date: "Từ hồ sơ bệnh án",
-                        }))}
-                      onApplyToMedicalRecord={(summaryText) => {
-                        setForm((prev) => {
-                          if (!prev.treatmentNotes)
-                            return { ...prev, treatmentNotes: summaryText };
-                          if (prev.treatmentNotes.includes(summaryText))
-                            return prev;
-                          return {
-                            ...prev,
-                            treatmentNotes: `${prev.treatmentNotes}\n\n${summaryText}`,
-                          };
-                        });
-                      }}
-                      onApplyToDentalChart={(findings) => {
-                        const existingTeeth = form.dentalChart?.teeth || [];
-                        const updatedTeeth = applyXrayFindingsToDentalChart(
-                          existingTeeth,
-                          findings,
-                        );
+                      id="record-images"
+                      open={form.images.length === 0}
+                      className="group scroll-mt-6 rounded-xl border border-border"
+                    >
+                      <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-semibold text-slate-700 [&::-webkit-details-marker]:hidden">
+                        <ImageIcon size={17} className="text-slate-400" />
+                        {form.images.length === 0
+                          ? "Tải phim X-quang lên"
+                          : `Quản lý phim (${form.images.length})`}
+                        <CaretDown
+                          size={14}
+                          className="ml-auto transition-transform group-open:rotate-180"
+                        />
+                      </summary>
+                      <div className="border-t border-border p-4">
+                        <MedicalRecordImages
+                          recordId={selectedId}
+                          readOnly={Boolean(
+                            detail?.doctorId && detail.doctorId !== doctorId,
+                          )}
+                          value={form.images}
+                          onChange={(images) =>
+                            setForm((f) => ({ ...f, images }))
+                          }
+                          onUploaded={(images, updatedAt) => {
+                            setDetail((d) =>
+                              d
+                                ? {
+                                    ...d,
+                                    images,
+                                    updatedAt: updatedAt || d.updatedAt,
+                                  }
+                                : d,
+                            );
+                            setRecords((prev) =>
+                              prev.map((r) =>
+                                r.id === selectedId
+                                  ? {
+                                      ...r,
+                                      updatedAt: updatedAt || r.updatedAt,
+                                    }
+                                  : r,
+                              ),
+                            );
+                            setSavedFormSnapshot((snapshot) =>
+                              JSON.stringify({
+                                ...JSON.parse(snapshot),
+                                images,
+                              }),
+                            );
+                          }}
+                        />
+                      </div>
+                    </details>
 
-                        setForm((prev) => ({
-                          ...prev,
-                          dentalChart: { teeth: updatedTeeth },
-                        }));
-                      }}
-                      onRequestUpload={() => setActiveTab("IMAGES")}
-                    />
+                    {form.images.some(
+                      (image) =>
+                        image.id &&
+                        image.url &&
+                        image.type === "xray" &&
+                        image.modality === "PANORAMIC",
+                    ) && (
+                      <DentalXrayAnalyzer
+                        key={detail.id}
+                        patientId={detail.patientId}
+                        patientName={detail.patientName}
+                        clinicalNoteHint={[form.chiefComplaint, form.diagnosis]
+                          .filter(Boolean)
+                          .join("\n")}
+                        patientImages={(form.images || [])
+                          .filter(
+                            (img) =>
+                              img.url &&
+                              img.id &&
+                              img.type === "xray" &&
+                              img.modality === "PANORAMIC",
+                          )
+                          .map((img, i) => ({
+                            id: img.id,
+                            url: img.url,
+                            title:
+                              img.caption ||
+                              (img.type === "xray" || !img.type
+                                ? `Phim X-quang ${i + 1}`
+                                : img.type === "intraoral"
+                                  ? `Ảnh nội khoa ${i + 1}`
+                                  : `Ảnh ${i + 1}`),
+                            type: img.type || "xray",
+                            date: "Từ hồ sơ bệnh án",
+                          }))}
+                        onApplyToMedicalRecord={(summaryText) => {
+                          setForm((prev) => {
+                            if (!prev.treatmentNotes)
+                              return { ...prev, treatmentNotes: summaryText };
+                            if (prev.treatmentNotes.includes(summaryText))
+                              return prev;
+                            return {
+                              ...prev,
+                              treatmentNotes: `${prev.treatmentNotes}\n\n${summaryText}`,
+                            };
+                          });
+                        }}
+                        onApplyToDentalChart={(findings) => {
+                          const existingTeeth = form.dentalChart?.teeth || [];
+                          const updatedTeeth = applyXrayFindingsToDentalChart(
+                            existingTeeth,
+                            findings,
+                          );
+
+                          setForm((prev) => ({
+                            ...prev,
+                            dentalChart: { teeth: updatedTeeth },
+                          }));
+                        }}
+                        onRequestUpload={() => {
+                          const gallery = document.getElementById(
+                            "record-images",
+                          ) as HTMLDetailsElement | null;
+                          if (gallery) {
+                            gallery.open = true;
+                            gallery.scrollIntoView({
+                              behavior: "smooth",
+                              block: "start",
+                            });
+                          }
+                        }}
+                      />
+                    )}
                   </div>
 
                   {activeTab === "PRESCRIPTIONS" && (
-                    <div className="space-y-4">
+                    <div
+                      id="record-panel-PRESCRIPTIONS"
+                      role="tabpanel"
+                      aria-labelledby="record-tab-PRESCRIPTIONS"
+                      className="space-y-4"
+                    >
                       <div className="flex items-center justify-between">
                         <h3 className="text-sm font-semibold text-slate-900">
                           Đơn thuốc của hồ sơ này
@@ -1638,228 +1681,51 @@ function MedicalRecordsContent() {
                       )}
                     </div>
                   )}
-
+                </div>
+                <div className="sticky bottom-4 z-20 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white/95 px-4 py-3 shadow-sm backdrop-blur-sm">
                   <div
-                    className={
-                      activeTab === "AFTERCARE" ? "space-y-5" : "hidden"
-                    }
+                    aria-live="polite"
+                    className="min-w-0 text-xs text-slate-500"
                   >
-                    <AftercareDraft
-                      key={detail.id}
-                      medicalRecordId={detail.id}
-                      patientName={detail.patientName}
-                      currentForm={{
-                        chiefComplaint: form.chiefComplaint,
-                        diagnosis: form.diagnosis,
-                        treatmentNotes: form.treatmentNotes,
-                        followUpDate: form.followUpDate,
-                      }}
-                      isDirty={
-                        savedFormSnapshot.current !== JSON.stringify(form)
-                      }
-                    />
+                    {saveError ? (
+                      <p
+                        role="alert"
+                        className="flex items-center gap-1.5 text-red-600"
+                      >
+                        <Warning size={15} className="shrink-0" />
+                        {saveError}
+                      </p>
+                    ) : saved && !hasUnsavedChanges ? (
+                      <p className="flex items-center gap-1.5 text-emerald-700">
+                        <CheckCircle size={15} />
+                        Đã lưu bệnh án
+                      </p>
+                    ) : hasUnsavedChanges ? (
+                      <p className="flex items-center gap-1.5 text-amber-700">
+                        <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                        Có thay đổi chưa lưu
+                      </p>
+                    ) : (
+                      "Các thay đổi sẽ được lưu chung vào bệnh án."
+                    )}
                   </div>
-
-                  {activeTab === "HISTORY" && (
-                    <div className="space-y-4">
-                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
-                        <div>
-                          <h3 className="text-base font-bold text-slate-900">
-                            Lịch sử các lần khám cũ của {detail.patientName}
-                          </h3>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            Bác sĩ có thể xem lại chẩn đoán, thuốc và diễn biến
-                            điều trị của các lần khám trước
-                          </p>
-                        </div>
-                        <span className="rounded-full bg-brand/10 px-3 py-1 font-mono text-xs font-bold text-brand">
-                          {pastRecords.length} lần khám
-                        </span>
-                      </div>
-
-                      {loadingPastRecords ? (
-                        <div className="flex h-32 items-center justify-center">
-                          <SpinnerGap
-                            size={24}
-                            className="animate-spin text-brand"
-                          />
-                        </div>
-                      ) : pastRecords.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground">
-                          <ClockCounterClockwise
-                            size={40}
-                            className="mb-2 text-slate-300"
-                            weight="duotone"
-                          />
-                          <p className="text-sm font-medium">
-                            Bệnh nhân chưa có lần khám cũ nào khác
-                          </p>
-                          <p className="text-xs text-slate-400 mt-1">
-                            Đây là hồ sơ bệnh án đầu tiên của bệnh nhân này.
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
-                          {pastRecords.map((pastRec) => (
-                            <div
-                              key={pastRec.id}
-                              className="rounded-2xl border border-border/80 bg-slate-50/70 p-4 transition hover:border-brand/30 hover:bg-white hover:shadow-sm"
-                            >
-                              <div className="flex flex-wrap items-start justify-between gap-3">
-                                <div className="space-y-2 flex-1 min-w-[240px]">
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <span className="flex items-center gap-1 text-xs font-bold text-slate-900">
-                                      <CalendarBlank
-                                        size={13}
-                                        className="text-brand"
-                                      />
-                                      {formatDateTime(
-                                        pastRec.scheduledAt ||
-                                          pastRec.createdAt,
-                                      )}
-                                    </span>
-                                    {pastRec.serviceName && (
-                                      <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-bold text-blue-700">
-                                        {pastRec.serviceName}
-                                      </span>
-                                    )}
-                                    {pastRec.doctorName && (
-                                      <span
-                                        className={cn(
-                                          "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold",
-                                          pastRec.doctorId === doctorId
-                                            ? "bg-slate-100 text-slate-700"
-                                            : "bg-amber-50 text-amber-800 border border-amber-200/60",
-                                        )}
-                                      >
-                                        <User
-                                          size={11}
-                                          className={
-                                            pastRec.doctorId === doctorId
-                                              ? "text-slate-500"
-                                              : "text-amber-600"
-                                          }
-                                        />
-                                        {pastRec.doctorId === doctorId
-                                          ? "Bạn phụ trách"
-                                          : `BS. ${pastRec.doctorName}`}
-                                      </span>
-                                    )}
-                                  </div>
-
-                                  {pastRec.diagnosis && (
-                                    <div className="flex flex-wrap items-center gap-2 pt-0.5">
-                                      <p className="font-mono text-xs font-bold text-brand-dark">
-                                        Chẩn đoán: {pastRec.diagnosis}
-                                      </p>
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setForm((f) => ({
-                                            ...f,
-                                            diagnosis:
-                                              pastRec.diagnosis || f.diagnosis,
-                                          }));
-                                          void showAlert({
-                                            title: "Đã sao chép chẩn đoán",
-                                            description:
-                                              "Chẩn đoán từ lần khám trước đã được đưa vào bệnh án hiện tại.",
-                                            tone: "success",
-                                          });
-                                        }}
-                                        className="inline-flex items-center gap-1 rounded-md bg-white px-2 py-0.5 text-[10px] font-bold text-brand shadow-2xs border border-brand/20 hover:bg-brand/5 cursor-pointer"
-                                        title="Sao chép chẩn đoán sang ca này"
-                                      >
-                                        <Copy size={10} /> Sao chép
-                                      </button>
-                                    </div>
-                                  )}
-
-                                  {pastRec.chiefComplaint && (
-                                    <p className="text-xs text-slate-600">
-                                      <span className="font-medium text-slate-700">
-                                        Lý do khám:
-                                      </span>{" "}
-                                      {pastRec.chiefComplaint}
-                                    </p>
-                                  )}
-
-                                  {pastRec.treatmentNotes && (
-                                    <div className="rounded-xl border border-slate-200/90 bg-white p-3 text-xs shadow-2xs space-y-1.5 mt-1.5">
-                                      <div className="flex items-center justify-between">
-                                        <span className="flex items-center gap-1.5 font-bold text-slate-800 text-[11px]">
-                                          <FileText
-                                            size={13}
-                                            className="text-brand"
-                                            weight="bold"
-                                          />
-                                          Diễn biến & Ghi chú điều trị:
-                                        </span>
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            setForm((f) => ({
-                                              ...f,
-                                              treatmentNotes:
-                                                pastRec.treatmentNotes
-                                                  ? f.treatmentNotes
-                                                    ? `${f.treatmentNotes}\n[Lần khám cũ: ${pastRec.treatmentNotes}]`
-                                                    : pastRec.treatmentNotes
-                                                  : f.treatmentNotes,
-                                            }));
-                                            void showAlert({
-                                              title: "Đã chèn ghi chú điều trị",
-                                              description:
-                                                "Ghi chú điều trị từ lần khám trước đã được thêm vào bệnh án hiện tại.",
-                                              tone: "success",
-                                            });
-                                          }}
-                                          className="inline-flex items-center gap-1 text-[10px] font-bold text-brand hover:underline cursor-pointer"
-                                          title="Chèn nội dung điều trị cũ vào ca này"
-                                        >
-                                          <Copy size={10} /> Chèn vào ca này
-                                        </button>
-                                      </div>
-                                      <p className="text-slate-600 whitespace-pre-line leading-relaxed text-xs">
-                                        {pastRec.treatmentNotes}
-                                      </p>
-                                    </div>
-                                  )}
-
-                                  <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground pt-1">
-                                    {pastRec.followUpDate && (
-                                      <span>
-                                        Tái khám:{" "}
-                                        {formatDate(pastRec.followUpDate)}
-                                      </span>
-                                    )}
-                                    {pastRec.prescriptionCount > 0 && (
-                                      <span className="flex items-center gap-1 font-medium text-blue-600">
-                                        <Pill size={12} />{" "}
-                                        {pastRec.prescriptionCount} đơn thuốc
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-
-                                {pastRec.doctorId === doctorId && (
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      void selectRecord(pastRec.id)
-                                    }
-                                    className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs transition hover:border-brand/40 hover:bg-brand/5 hover:text-brand cursor-pointer shrink-0"
-                                  >
-                                    Mở bệnh án này <ArrowRight size={12} />
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  <button
+                    type="button"
+                    onClick={handleSave}
+                    disabled={
+                      saving ||
+                      !hasUnsavedChanges ||
+                      detail.doctorId !== doctorId
+                    }
+                    className="ml-auto inline-flex items-center gap-2 rounded-lg bg-brand px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {saving ? (
+                      <SpinnerGap size={16} className="animate-spin" />
+                    ) : (
+                      <FloppyDisk size={16} />
+                    )}
+                    {saving ? "Đang lưu..." : "Lưu bệnh án"}
+                  </button>
                 </div>
               </>
             ) : null}

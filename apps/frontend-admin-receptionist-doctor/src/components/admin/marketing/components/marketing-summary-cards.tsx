@@ -27,7 +27,7 @@ export function MarketingSummaryCards({
         label="Đang hiển thị"
         value={activeBanners}
         suffix="banner"
-        hint="Trang chủ chỉ hiển thị tối đa 1 banner"
+        hint="Đang xuất hiện trên trang chủ"
         icon={<Eye size={22} weight="duotone" />}
         tone="emerald"
       />

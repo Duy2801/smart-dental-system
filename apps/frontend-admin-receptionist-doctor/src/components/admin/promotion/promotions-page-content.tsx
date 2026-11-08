@@ -2,9 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CheckCircle, WarningCircle } from "@phosphor-icons/react";
 import { queryKeys } from "@/src/lib/query/query-keys";
-import { getApiErrorMessage } from "@/src/lib/utils/api-error";
-import { AdminAlert, AdminConfirmModal } from "@/src/components/admin/common";
+import { AdminConfirmModal } from "@/src/components/admin/common";
 import { PromoFormModal } from "./components/promo-form-modal";
 import { PromotionAnalyticsCards } from "./components/promotion-analytics-cards";
 import { PromotionList } from "./components/promotion-list";
@@ -54,8 +54,8 @@ export function PromotionsPageContent() {
       await invalidatePromotions();
       setTimeout(() => setSuccessMessage(""), 4000);
     },
-    onError: (err) => {
-      setErrorMessage(getApiErrorMessage(err, "Tạo mới khuyến mãi thất bại. Vui lòng kiểm tra lại mã code."));
+    onError: () => {
+      setErrorMessage("Tạo mới khuyến mãi thất bại. Vui lòng kiểm tra lại mã code.");
     },
   });
 
@@ -74,8 +74,8 @@ export function PromotionsPageContent() {
       await invalidatePromotions();
       setTimeout(() => setSuccessMessage(""), 4000);
     },
-    onError: (err) => {
-      setErrorMessage(getApiErrorMessage(err, "Cập nhật thông tin khuyến mãi thất bại."));
+    onError: () => {
+      setErrorMessage("Cập nhật thông tin khuyến mãi thất bại.");
     },
   });
 
@@ -209,10 +209,20 @@ export function PromotionsPageContent() {
         onStatusFilterChange={setStatusFilter}
       />
 
-      <AdminAlert variant="success" message={successMessage || null} />
-      <AdminAlert
-        message={isError || errorMessage ? errorMessage || "Không tải được danh sách khuyến mãi." : null}
-      />
+      {/* Notifications / Alerts */}
+      {successMessage && (
+        <div role="status" className="flex items-center gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
+          <CheckCircle size={18} weight="fill" className="shrink-0 text-emerald-500" />
+          <span>{successMessage}</span>
+        </div>
+      )}
+
+      {isError || errorMessage ? (
+        <div role="alert" className="flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+          <WarningCircle size={18} weight="fill" className="shrink-0 text-red-500" />
+          <span>{errorMessage || "Không tải được danh sách khuyến mãi."}</span>
+        </div>
+      ) : null}
 
       {/* Promotion Data Table */}
       <PromotionList

@@ -111,8 +111,7 @@ export function ClinicalScribeReview({
         },
         { timeout: 100_000 },
       );
-      const payload = (res as any)?.data ?? res;
-      setDraft(payload);
+      setDraft(res.data);
     } catch (err) {
       setError(apiError(err));
     } finally {
@@ -185,40 +184,21 @@ export function ClinicalScribeReview({
 
   if (!expanded) {
     return (
-      <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand/20 bg-brand-light/30 px-4 py-2.5 transition-all">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand/10 text-brand">
-            <NotePencil size={18} weight="duotone" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-brand-dark">
-                Trợ lý ghi chép lâm sàng (AI Scribe)
-              </span>
-              <span className="rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-bold text-brand">
-                AI hỗ trợ
-              </span>
-            </div>
-            <p className="text-[11px] text-muted-foreground">
-              Soạn nhanh Lý do khám, Chẩn đoán & Ghi chú điều trị từ transcript hoặc ghi chú thô.
-            </p>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={() => setIsOpen(true)}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-brand/30 bg-white px-3 py-1.5 text-xs font-semibold text-brand shadow-xs transition-all hover:bg-brand-light hover:text-brand-dark active:scale-[0.98]"
-        >
-          <Sparkle size={13} weight="fill" />
-          Mở trợ lý AI
-          <CaretDown size={13} weight="bold" />
-        </button>
-      </section>
+      <button
+        type="button"
+        onClick={() => setIsOpen(true)}
+        aria-expanded={false}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-brand/30 bg-white px-3 py-1.5 text-xs font-semibold text-brand shadow-xs transition-all hover:bg-brand-light hover:text-brand-dark active:scale-[0.98]"
+      >
+        <Sparkle size={13} weight="fill" />
+        Soạn bằng AI
+        <CaretDown size={13} weight="bold" />
+      </button>
     );
   }
 
   return (
-    <section className="rounded-xl border border-brand/20 bg-brand-light/40 p-4 transition-all">
+    <section className="w-full rounded-xl border border-brand/20 bg-brand-light/40 p-4 transition-all">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex items-center gap-2 text-sm font-bold text-brand-dark">
@@ -229,7 +209,8 @@ export function ClinicalScribeReview({
             </span>
           </div>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-            Dán ghi chú ngắn hoặc transcript lời thoại. Bác sĩ chọn từng gợi ý trước khi lưu.
+            Dán ghi chú ngắn hoặc transcript lời thoại. Bác sĩ chọn từng gợi ý
+            trước khi lưu.
           </p>
         </div>
         <div className="flex items-center gap-2">

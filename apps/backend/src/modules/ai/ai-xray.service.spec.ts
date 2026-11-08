@@ -31,12 +31,21 @@ describe('AiService.analyzeXray', () => {
     const aiClient = {
       post: jest.fn().mockResolvedValue({
         is_radiograph: true,
-        status: 'HEALTHY',
+        status: 'PATHOLOGY_DETECTED',
         error_status: null,
         model_version: 'pano-v3',
-        findings: [],
-        total_findings: 0,
-        summary: 'No finding above threshold',
+        findings: [
+          {
+            fdi_tooth_number: 35,
+            finding_type: 'Missing tooth',
+            confidence: 0.91,
+            bounding_box: { x: 60, y: 30, width: 5, height: 20 },
+            severity: 'UNASSESSED',
+            region_source: 'ESTIMATED',
+          },
+        ],
+        total_findings: 1,
+        summary: 'One finding for review',
         disclaimer: 'Doctor review required',
       }),
     };
@@ -79,17 +88,21 @@ describe('AiService.analyzeXray', () => {
       '11111111-1111-4111-8111-111111111111',
     );
     expect(auditInput.data.modelVersion).toBe('pano-v3');
-    expect(auditInput.data.status).toBe('HEALTHY');
+    expect(auditInput.data.status).toBe('PATHOLOGY_DETECTED');
     expect(auditInput.data.imageSnapshot).toMatchObject({
       url: 'https://res.cloudinary.com/clinic/trusted-xray.jpg',
       modality: 'PANORAMIC',
     });
     expect(auditInput.data.resultSnapshot).toMatchObject({
-      status: 'HEALTHY',
-      findings: [],
+      status: 'PATHOLOGY_DETECTED',
+      findings: [expect.objectContaining({ regionSource: 'ESTIMATED' })],
     });
     expect(response).toEqual(
-      expect.objectContaining({ modelVersion: 'pano-v3', status: 'HEALTHY' }),
+      expect.objectContaining({
+        modelVersion: 'pano-v3',
+        status: 'PATHOLOGY_DETECTED',
+        findings: [expect.objectContaining({ regionSource: 'ESTIMATED' })],
+      }),
     );
   });
 
@@ -121,11 +134,12 @@ describe('AiService.analyzeXray', () => {
     const findings = [
       {
         findingId,
-        fdiToothNumber: 46,
-        findingType: 'Caries',
+        fdiToothNumber: 35,
+        findingType: 'Missing tooth',
         confidence: 0.91,
         boundingBox: { x: 40, y: 30, width: 12, height: 24 },
         severity: 'UNASSESSED' as const,
+        regionSource: 'ESTIMATED' as const,
         doctorStatus: 'ACCEPTED' as const,
         doctorNote: 'Đã đối chiếu lâm sàng',
       },

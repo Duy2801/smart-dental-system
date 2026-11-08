@@ -1,4 +1,3 @@
-import { getApiErrorMessage } from "@/src/lib/utils/api-error";
 import type { DentalService, ServiceFormState, TreatmentMethodFormItem } from "./types";
 
 export const emptyServiceForm: ServiceFormState = {
@@ -131,13 +130,6 @@ export function formatVND(amount: number | string) {
   }).format(Number(amount));
 }
 
-const SERVICE_ERRORS: Record<string, string> = {
-  "service.not_found": "Không tìm thấy dịch vụ.",
-  "service.has_related_history": "Dịch vụ đã có lịch sử khám/thanh toán nên không thể xóa.",
-  "treatment_method.not_found": "Không tìm thấy phương pháp điều trị.",
-  "treatment_method.has_appointments": "Phương pháp đã có lịch hẹn nên không thể xóa.",
-};
-
 export function getErrorMessage(error: unknown, fallback: string) {
-  return getApiErrorMessage(error, fallback, SERVICE_ERRORS);
+  return error instanceof Error ? error.message : fallback;
 }

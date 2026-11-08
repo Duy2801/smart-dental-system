@@ -2,7 +2,6 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { AiClientService } from '../ai/ai-client.service';
 import { AppointmentService } from '../appointment/appointment.service';
 import { OCCUPYING_APPOINTMENT_STATUSES } from '../appointment/appointment-status-policy';
-import { ClinicConfigService } from '../clinic-config/clinic-config.service';
 import { PatientService } from '../patient/patient.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PatientChatDto } from './dto/chat.dto';
@@ -16,7 +15,6 @@ export class ChatbotConversationService {
     private readonly aiClientService: AiClientService,
     private readonly appointmentService: AppointmentService,
     private readonly patientService: PatientService,
-    private readonly clinicConfigService: ClinicConfigService,
   ) {}
 
   async handlePatientChat(user: any | null, dto: PatientChatDto) {
@@ -98,45 +96,6 @@ export class ChatbotConversationService {
     };
   }
 
-  async getInternalClinicInfo() {
-    const today = new Date().toISOString().slice(0, 10);
-    const config = await this.clinicConfigService.getClinicConfig();
-    let packages: {
-      minutes: number;
-      label: string;
-      price: unknown;
-      description: string;
-    }[] = [];
-    try {
-      packages = await this.prisma.consultationPackage.findMany({
-        where: { isActive: true },
-        orderBy: { displayOrder: 'asc' },
-      });
-    } catch (err) {
-      this.logger.error(
-        `getInternalClinicInfo packages error: ${(err as Error).message}`,
-      );
-    }
-
-    return {
-      name: config.name,
-      phone: config.phone,
-      email: config.email,
-      address: config.address,
-      businessHours: config.businessHours,
-      lunchBreak: config.lunchBreak,
-      upcomingSpecialDates: (config.specialDates || []).filter(
-        (item) => Boolean(item?.date) && item.date.slice(0, 10) >= today,
-      ),
-      consultationPackages: packages.map((pkg) => ({
-        minutes: pkg.minutes,
-        label: pkg.label,
-        price: Number(pkg.price),
-        description: pkg.description,
-      })),
-    };
-  }
-
   async getInternalServices() {
     try {
       const now = new Date();
@@ -154,10 +113,6 @@ export class ChatbotConversationService {
           treatmentMethods: {
             where: { isActive: true },
             orderBy: { displayOrder: 'asc' },
-            include: {
-              faqs: { orderBy: { sortOrder: 'asc' }, take: 5 },
-              procedureSteps: { orderBy: { stepOrder: 'asc' }, take: 8 },
-            },
           },
         },
         orderBy: { displayOrder: 'asc' },
@@ -181,8 +136,7 @@ export class ChatbotConversationService {
 
             if (tmPromo) {
               if (tmPromo.discountType === 'PERCENTAGE') {
-                const discount =
-                  (basePrice * Number(tmPromo.discountValue)) / 100;
+                const discount = (basePrice * Number(tmPromo.discountValue)) / 100;
                 finalPrice = Math.max(0, basePrice - discount);
                 discountInfo = `Giảm ${tmPromo.discountValue}% (Mã: ${tmPromo.code})`;
               } else if (tmPromo.discountType === 'FIXED_AMOUNT') {
@@ -196,15 +150,6 @@ export class ChatbotConversationService {
               id: tm.id,
               name: tm.name,
               description: tm.description,
-              durationMinutes: tm.durationMinutes,
-              faqs: tm.faqs.map((faq) => ({
-                question: faq.question,
-                answer: faq.answer,
-              })),
-              procedureSteps: tm.procedureSteps.map((step) => ({
-                title: step.title,
-                durationMinutes: step.durationMinutes,
-              })),
               basePrice,
               finalPrice,
               promotionCode: tmPromo?.code || null,
@@ -314,9 +259,7 @@ export class ChatbotConversationService {
         });
       }
     } catch (err: any) {
-      this.logger.error(
-        `getInternalDoctors prisma query error: ${err.message}`,
-      );
+      this.logger.error(`getInternalDoctors prisma query error: ${err.message}`);
     }
 
     // Fallback to appointmentService booking options if direct prisma query fails or returns empty
@@ -422,14 +365,15 @@ export class ChatbotConversationService {
 
       const appointments = await this.prisma.appointment.findMany({
         where: {
-          OR: [{ createdBy: userId }, { patientId: { in: patientIds } }],
+          OR: [
+            { createdBy: userId },
+            { patientId: { in: patientIds } },
+          ],
           status: { notIn: ['CANCELLED'] },
         },
         include: {
           patient: { select: { id: true, fullName: true, phone: true } },
-          doctor: {
-            select: { id: true, user: { select: { fullName: true } } },
-          },
+          doctor: { select: { id: true, user: { select: { fullName: true } } } },
           treatmentMethod: {
             select: {
               id: true,
@@ -453,7 +397,9 @@ export class ChatbotConversationService {
           apt.treatmentMethod?.name ||
           'Khám nha khoa',
         treatmentMethodName: apt.treatmentMethod?.name || '',
-        scheduledAt: apt.scheduledAt ? apt.scheduledAt.toISOString() : '',
+        scheduledAt: apt.scheduledAt
+          ? apt.scheduledAt.toISOString()
+          : '',
         status: apt.status,
       }));
     } catch (err: any) {
@@ -502,9 +448,7 @@ export class ChatbotConversationService {
             endDate: { gte: now },
             OR: [
               { applicableTreatmentMethodId: dto.treatmentMethodId },
-              ...(tm?.service?.slug
-                ? [{ applicableServiceSlug: tm.service.slug }]
-                : []),
+              ...(tm?.service?.slug ? [{ applicableServiceSlug: tm.service.slug }] : []),
             ],
           },
           orderBy: { discountValue: 'desc' },
@@ -544,16 +488,12 @@ export class ChatbotConversationService {
         'Bệnh nhân',
       patientPhone: createdAppointment.patient?.phone || dto.patientPhone || '',
       doctorName:
-        (typeof createdAppointment.doctorName === 'string'
-          ? createdAppointment.doctorName
-          : null) ||
+        (typeof createdAppointment.doctorName === 'string' ? createdAppointment.doctorName : null) ||
         createdAppointment.doctor?.user?.fullName ||
         createdAppointment.doctor?.fullName ||
         'Bác sĩ chuyên khoa',
       serviceName:
-        (typeof createdAppointment.serviceName === 'string'
-          ? createdAppointment.serviceName
-          : null) ||
+        (typeof createdAppointment.serviceName === 'string' ? createdAppointment.serviceName : null) ||
         createdAppointment.service?.name ||
         createdAppointment.treatmentMethod?.service?.name ||
         createdAppointment.treatmentMethod?.name ||

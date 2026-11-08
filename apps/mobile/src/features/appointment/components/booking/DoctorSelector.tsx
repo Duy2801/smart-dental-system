@@ -129,7 +129,7 @@ export function DoctorSelector({
           Quay lại
         </Button>
         <Button disabled={!canReview} onPress={onOpenReview} className="flex-1">
-          Xác nhận lịch hẹn
+          Đến bước xác nhận
         </Button>
       </View>
     </View>

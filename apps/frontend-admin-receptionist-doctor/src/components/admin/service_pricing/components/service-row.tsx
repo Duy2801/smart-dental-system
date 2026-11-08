@@ -4,8 +4,8 @@ import { useState } from "react";
 import {
   CaretDown,
   Clock,
-  PauseCircle,
-  PlayCircle,
+  Eye,
+  EyeSlash,
   Images,
   ListNumbers,
   PencilSimple,
@@ -234,7 +234,7 @@ export function ServiceRow({
                             tone={isActive ? "amber" : "emerald"}
                             onClick={() => onToggleTreatmentMethodStatus(service, index)}
                           >
-                            {isActive ? <PauseCircle size={16} /> : <PlayCircle size={16} />}
+                            {isActive ? <EyeSlash size={16} /> : <Eye size={16} />}
                           </AdminIconButton>
                         ) : null}
                         {onRemoveTreatmentMethod ? (

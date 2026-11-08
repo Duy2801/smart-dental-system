@@ -340,6 +340,7 @@ export function SchedulesPageContent() {
               doctorId={selectedDoctorId}
               doctors={doctors}
               loadingDoctors={loadingDoctors}
+              selectedDoctor={selectedDoctor}
               onDoctorChange={setDoctorId}
               onOpenManual={() => openAddModal(openBusinessHours[0]?.id ?? 1)}
               onOpenAuto={() => openAddModal(openBusinessHours[0]?.id ?? 1, true)}

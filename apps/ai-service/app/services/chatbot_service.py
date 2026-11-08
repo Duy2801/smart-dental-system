@@ -14,7 +14,7 @@ class ChatbotService:
         history_txt = "\n".join(
             f"{m.role}: {m.content}" for m in body.history[-10:]
         )
-        rag = build_rag_block(body.message, audience="patient")
+        rag = build_rag_block(body.message)
         parts = []
         if rag:
             parts.append(rag)

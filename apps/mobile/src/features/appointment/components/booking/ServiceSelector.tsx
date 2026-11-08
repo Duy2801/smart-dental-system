@@ -182,7 +182,7 @@ export function ServiceSelector({
           Quay lại
         </Button>
         <Button disabled={!isStepComplete} onPress={onContinue} className="flex-1">
-          Chọn ngày & giờ
+          Tiếp tục: Chọn lịch
         </Button>
       </View>
     </View>
