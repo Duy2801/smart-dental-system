@@ -1168,7 +1168,7 @@ export function RecordTreatmentCard({
               <button
                 type="button"
                 onClick={handleExportPDF}
-                className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 border border-slate-900 shadow-xs"
+                className="px-3.5 py-1.5 rounded-xl bg-[#0863c5] hover:bg-[#0058bc] text-white text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 border border-[#0863c5] shadow-xs"
               >
                 <span>📥 In Toàn Bộ Hóa Đơn</span>
               </button>
@@ -1189,16 +1189,16 @@ export function RecordTreatmentCard({
                   className="rounded-2xl border border-slate-200 bg-slate-50/50 overflow-hidden shadow-xs hover:border-[#1996e0]/40 transition-all space-y-0"
                 >
                   {/* Step Invoice Header */}
-                  <div className="px-5 py-3.5 bg-slate-900 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="px-5 py-3.5 bg-linear-to-r from-blue-50 to-sky-50 border-b border-blue-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div className="flex items-center gap-3">
-                      <span className="text-xs font-mono font-bold text-slate-300 bg-slate-800 px-2.5 py-1 rounded-md border border-slate-700">
+                      <span className="text-xs font-mono font-bold text-[#0863c5] bg-white px-2.5 py-1 rounded-md border border-blue-200">
                         {invoiceCode}
                       </span>
                       <div>
-                        <h4 className="text-xs font-black text-white">
+                        <h4 className="text-xs font-black text-[#07366f]">
                           Bước {index + 1}: {step.title}
                         </h4>
-                        <span className="text-[11px] text-slate-400 font-medium">
+                        <span className="text-[11px] text-slate-500 font-medium">
                           Ngày thực hiện: {step.date} • Bác sĩ: {treatment.doctor}
                         </span>
                       </div>
@@ -1206,8 +1206,8 @@ export function RecordTreatmentCard({
 
                     <span
                       className={`text-[11px] font-bold px-3 py-1 rounded-full shrink-0 ${isPaid
-                        ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/40"
-                        : "bg-amber-500/20 text-amber-300 border border-amber-400/40"
+                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                        : "bg-amber-50 text-amber-700 border border-amber-200"
                         }`}
                     >
                       {isPaid ? "✓ Đã Thanh Toán 100%" : "⏳ Chưa Thanh Toán"}

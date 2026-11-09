@@ -8,6 +8,8 @@ import {
   BellRinging,
   CalendarBlank,
   CalendarCheck,
+  CaretLeft,
+  CaretRight,
   CheckCircle,
   Clock,
   Star,
@@ -18,6 +20,7 @@ import {
   Wallet,
   type Icon,
 } from "@phosphor-icons/react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   AdminAlert,
@@ -247,25 +250,24 @@ function ActionItems({ items }: { items: OverviewDashboard["actionItems"] }) {
   );
 }
 
+const TODAY_SCHEDULE_PAGE_SIZE = 10;
+
 function TodaySchedule({
   appointments,
 }: {
   appointments: OverviewAppointment[];
 }) {
+  const [page, setPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(appointments.length / TODAY_SCHEDULE_PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageStart = (currentPage - 1) * TODAY_SCHEDULE_PAGE_SIZE;
+  const visibleAppointments = appointments.slice(pageStart, pageStart + TODAY_SCHEDULE_PAGE_SIZE);
+
   return (
     <AdminCard
       title="Lịch trình hôm nay"
       description={`${appointments.length} lịch hẹn`}
       icon={<Clock size={18} weight="duotone" />}
-      action={
-        <Link
-          href="/admin/schedules"
-          className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-bold text-brand transition-colors hover:bg-brand-light"
-        >
-          Xem tất cả lịch
-          <ArrowRight size={12} weight="bold" />
-        </Link>
-      }
     >
       {appointments.length === 0 ? (
         <AdminEmptyState
@@ -274,7 +276,7 @@ function TodaySchedule({
         />
       ) : (
         <div className="relative ml-2 space-y-3 border-l-2 border-dashed border-slate-200 md:ml-3">
-          {appointments.map((item) => {
+          {visibleAppointments.map((item) => {
             const status = statusConfig[item.status] ?? {
               label: item.status || "Không rõ trạng thái",
               color: "bg-slate-100 text-slate-700 border-slate-200",
@@ -316,6 +318,54 @@ function TodaySchedule({
           })}
         </div>
       )}
+
+      {appointments.length > TODAY_SCHEDULE_PAGE_SIZE ? (
+        <div className="mt-4 flex items-center justify-between gap-3 border-t border-slate-100 pt-4 text-xs text-slate-500">
+          <span>
+            Hiển thị{" "}
+            <strong className="text-slate-900">
+              {pageStart + 1}–{pageStart + visibleAppointments.length}
+            </strong>{" "}
+            / {appointments.length} lịch hẹn
+          </span>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              disabled={currentPage <= 1}
+              onClick={() => setPage(currentPage - 1)}
+              aria-label="Trang trước"
+              className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-100 disabled:pointer-events-none disabled:opacity-40"
+            >
+              <CaretLeft size={14} />
+            </button>
+            {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNumber) => (
+              <button
+                key={pageNumber}
+                type="button"
+                onClick={() => setPage(pageNumber)}
+                aria-current={pageNumber === currentPage ? "page" : undefined}
+                className={cn(
+                  "h-8 min-w-8 cursor-pointer rounded-lg px-2 text-xs font-semibold transition",
+                  pageNumber === currentPage
+                    ? "bg-brand text-white shadow-xs"
+                    : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-100",
+                )}
+              >
+                {pageNumber}
+              </button>
+            ))}
+            <button
+              type="button"
+              disabled={currentPage >= totalPages}
+              onClick={() => setPage(currentPage + 1)}
+              aria-label="Trang sau"
+              className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-100 disabled:pointer-events-none disabled:opacity-40"
+            >
+              <CaretRight size={14} />
+            </button>
+          </div>
+        </div>
+      ) : null}
     </AdminCard>
   );
 }

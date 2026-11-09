@@ -398,6 +398,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   badgeRow: {
+    flexWrap: 'wrap',
+    rowGap: 8,
     flexDirection: 'row',
     marginBottom: 8,
   },

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { useSelector } from 'react-redux';
 import { Screen, toast } from '~src/components/ui';
@@ -49,6 +49,15 @@ export default function AppointmentWorkspaceScreen({
   const isLoggedIn = Boolean(accessToken);
 
   const [mode, setMode] = useState<AppointmentWorkspaceMode>(initialMode);
+  // Màn hình nằm trong tab nên không bị huỷ khi rời đi. Mỗi lần được mở lại kèm tham số mới
+  // (vd. "Đặt lịch với bác sĩ" từ trang bác sĩ) thì làm mới form để bắt đầu lại từ bước 1, giống web.
+  const [bookingFormKey, setBookingFormKey] = useState(0);
+  const routeParams = route?.params;
+  useEffect(() => {
+    if (!routeParams) return;
+    setMode(routeParams.initialMode || 'booking');
+    setBookingFormKey(current => current + 1);
+  }, [routeParams]);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [drawerVisible, setDrawerVisible] = useState(false);
 
@@ -167,6 +176,7 @@ export default function AppointmentWorkspaceScreen({
 
         {mode === 'booking' ? (
           <BookingModeView
+            key={`${bookingFormKey}-${dedicatedDoctorId || 'general'}-${initialServiceId}`}
             dedicatedDoctorId={dedicatedDoctorId}
             initialMethodId={initialMethodId}
             initialServiceId={initialServiceId}

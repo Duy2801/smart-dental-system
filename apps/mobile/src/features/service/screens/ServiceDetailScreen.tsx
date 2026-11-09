@@ -134,6 +134,9 @@ export function ServiceDetailScreen() {
       <TouchableOpacity accessibilityLabel="Quay lại" activeOpacity={0.8} onPress={goBack} style={styles.backButton}>
         <FontAwesome6 color="#334155" iconStyle="solid" name="arrow-left" size={14} />
       </TouchableOpacity>
+      <Text numberOfLines={1} style={styles.topBarTitle}>
+        Chi tiết dịch vụ
+      </Text>
     </View>
   );
 
@@ -510,6 +513,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
+  topBarTitle: { color: '#0F172A', flex: 1, fontSize: 16, fontWeight: '800' },
   backButton: {
     alignItems: 'center',
     borderColor: '#E2E8F0',

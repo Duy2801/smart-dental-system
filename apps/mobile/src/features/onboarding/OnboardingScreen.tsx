@@ -27,7 +27,8 @@ const OnboardingScreen = () => {
         animated: true,
       });
     } else {
-      navigation.navigate(SCREEN_NAME.PATIENT_LOGIN);
+      // Khách vào thẳng trang chủ; chỉ đăng nhập khi cần (đặt lịch, hồ sơ...).
+      navigation.reset({ index: 0, routes: [{ name: SCREEN_NAME.PATIENT_HOME }] });
     }
   };
 
