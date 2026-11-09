@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6';
@@ -76,6 +76,14 @@ export default function NotificationsScreen() {
   const totalPages = meta?.totalPages ?? 1;
   const totalItems = meta?.total ?? 0;
   const unread = meta?.unreadCount ?? notifications.filter((item: PatientNotification) => !item.isRead).length;
+
+  // Vào trang thông báo là coi như đã xem hết, không cần bấm từng thông báo
+  const autoMarkedRef = useRef(false);
+  useEffect(() => {
+    if (autoMarkedRef.current || !notificationsQuery.isSuccess || unread <= 0) return;
+    autoMarkedRef.current = true;
+    readAllMutation.mutate();
+  }, [notificationsQuery.isSuccess, unread, readAllMutation]);
 
   const paginationRange = useMemo(() => {
     if (totalPages <= 5) {

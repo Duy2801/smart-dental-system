@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/src/lib/query/query-keys";
+import { getApiErrorMessage } from "@/src/lib/utils/api-error";
 import { Eye, EyeSlash } from "@phosphor-icons/react";
 import { AdminAlert, AdminConfirmModal } from "@/src/components/admin/common";
 import { CampaignList } from "./components/campaign-list";
@@ -47,8 +48,8 @@ export function MarketingPageContent() {
       setEditingBanner(null);
       await invalidateBanners();
     },
-    onError: () => {
-      setErrorMessage("Thêm Banner quảng cáo thất bại. Vui lòng kiểm tra lại dữ liệu.");
+    onError: (err) => {
+      setErrorMessage(getApiErrorMessage(err, "Thêm Banner quảng cáo thất bại. Vui lòng kiểm tra lại dữ liệu."));
     },
   });
 
@@ -59,8 +60,8 @@ export function MarketingPageContent() {
       setEditingBanner(null);
       await invalidateBanners();
     },
-    onError: () => {
-      setErrorMessage("Cập nhật Banner thất bại. Vui lòng kiểm tra lại.");
+    onError: (err) => {
+      setErrorMessage(getApiErrorMessage(err, "Cập nhật Banner thất bại. Vui lòng kiểm tra lại."));
     },
   });
 
@@ -142,6 +143,9 @@ export function MarketingPageContent() {
   };
 
   const isSubmitting = createMutation.isPending || updateMutation.isPending;
+  const activeBanner = banners.find(
+    (banner) => banner.isActive && banner.id !== statusConfirmBanner?.id,
+  );
 
   return (
     <div className="space-y-6 p-6 md:p-8">
@@ -188,7 +192,14 @@ export function MarketingPageContent() {
             <strong className="font-semibold text-slate-900">{statusConfirmBanner?.title}</strong>{" "}
             {statusConfirmBanner?.isActive
               ? "sẽ không còn xuất hiện trên trang chủ cho tới khi được hiển thị lại."
-              : "sẽ xuất hiện trở lại trên trang chủ ngay sau khi xác nhận."}
+              : "sẽ xuất hiện trên trang chủ ngay sau khi xác nhận."}
+            {!statusConfirmBanner?.isActive && activeBanner ? (
+              <>
+                {" "}Banner đang hiển thị{" "}
+                <strong className="font-semibold text-slate-900">{activeBanner.title}</strong>{" "}
+                sẽ tự động bị ẩn vì trang chủ chỉ hiển thị 1 banner.
+              </>
+            ) : null}
           </>
         }
         confirmText={statusConfirmBanner?.isActive ? "Ẩn banner" : "Hiển thị"}

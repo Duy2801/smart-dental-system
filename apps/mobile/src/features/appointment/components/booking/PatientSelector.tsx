@@ -187,7 +187,7 @@ export function PatientSelector({
           onPress={onContinue}
           className="w-full"
         >
-          Tiếp tục: Chọn dịch vụ
+          Chọn dịch vụ
         </Button>
       </View>
 

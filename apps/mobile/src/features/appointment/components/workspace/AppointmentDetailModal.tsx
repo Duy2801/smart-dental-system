@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Modal,
   Pressable,
@@ -9,9 +9,15 @@ import {
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import { SheetBottomInset } from '~src/components/ui';
-import { formatTimeRange } from '../../api';
+import { formatCurrency, formatTimeRange } from '../../api';
 import type { AppointmentItem } from '../../types';
+import type { AppointmentInvoice } from '../../utils/appointmentFinancials';
 import { STATUS_META } from './AppointmentRecordCard';
+import {
+  AppointmentInvoiceSheet,
+  PAYMENT_STATE_META,
+  formatDateTime,
+} from './AppointmentInvoiceSheet';
 
 type AppointmentDetailModalProps = {
   appointment: AppointmentItem | null;
@@ -20,13 +26,22 @@ type AppointmentDetailModalProps = {
 
 /**
  * Chi tiết lịch hẹn — cùng bố cục với ngăn chi tiết trên web:
- * trạng thái + mã, thẻ dịch vụ, bảng thông tin chính, lưu ý (chỉ khi cần) và nút ở bên trái.
+ * trạng thái + mã, thẻ dịch vụ & chi phí, bảng thông tin chính, hóa đơn (khi đã khám xong),
+ * lưu ý (chỉ khi cần) và nút ở bên trái.
  */
 export function AppointmentDetailModal({
   appointment,
   onClose,
 }: AppointmentDetailModalProps) {
+  const [selectedInvoice, setSelectedInvoice] =
+    useState<AppointmentInvoice | null>(null);
+
   if (!appointment) return null;
+
+  const handleClose = () => {
+    setSelectedInvoice(null);
+    onClose();
+  };
 
   const status = STATUS_META[appointment.status] ?? STATUS_META.pending;
   const timeRange = formatTimeRange(
@@ -36,7 +51,8 @@ export function AppointmentDetailModal({
   const appointmentCode = `#${appointment.id.slice(0, 8).toUpperCase()}`;
   const isCompleted = appointment.status === 'completed';
   const isCancelled = appointment.status === 'cancelled';
-  const isCancellationRequested = appointment.status === 'cancellation_requested';
+  const isCancellationRequested =
+    appointment.status === 'cancellation_requested';
   const isUpcoming =
     appointment.status === 'pending' ||
     appointment.status === 'confirmed' ||
@@ -46,13 +62,69 @@ export function AppointmentDetailModal({
   const notesList = isCancellationRequested
     ? ['Yêu cầu hủy đã được ghi nhận. Lễ tân sẽ xác nhận hoàn tất thủ tục hủy.']
     : isCancelled
-      ? ['Lịch hẹn đã được hủy. Bạn có thể đặt lịch khám mới bất cứ lúc nào.']
-      : isUpcoming
-        ? (appointment.preparation ?? [])
-        : [];
+    ? ['Lịch hẹn đã được hủy. Bạn có thể đặt lịch khám mới bất cứ lúc nào.']
+    : isUpcoming
+    ? appointment.preparation ?? []
+    : [];
   const isCancelNote = isCancelled || isCancellationRequested;
 
-  const infoRows: Array<{ label: string; value: string; hint?: string | null }> = [
+  const rawActiveInvoices = (appointment.invoices ?? []).filter(
+    invoice => invoice.paymentState !== 'cancelled',
+  );
+  // Giống web: lịch đã khám xong mà backend chưa trả hóa đơn thì dựng hóa đơn theo giá phương pháp điều trị
+  const price = appointment.treatmentMethodPrice ?? 0;
+  const paidAt = appointment.endAt || appointment.scheduledAt || null;
+  const effectiveInvoices: AppointmentInvoice[] =
+    rawActiveInvoices.length > 0
+      ? rawActiveInvoices
+      : isCompleted
+      ? [
+          {
+            id: `inv-${appointment.id}`,
+            invoiceCode: `HD-${appointment.id.slice(0, 8).toUpperCase()}`,
+            invoiceType: 'EXAMINATION',
+            status: 'PAID',
+            paymentState: 'paid',
+            subtotal: price,
+            discountAmount: 0,
+            finalAmount: price,
+            paidAmount: price,
+            remainingAmount: 0,
+            issuedAt: paidAt,
+            items: [
+              {
+                description:
+                  appointment.treatmentMethodName ||
+                  appointment.service ||
+                  'Khám và điều trị chuyên sâu',
+                quantity: 1,
+                unitPrice: price,
+                amount: price,
+              },
+            ],
+            payments: [
+              {
+                id: `pay-${appointment.id}`,
+                amount: price,
+                status: 'SUCCESS',
+                paymentMethod: appointment.paymentOption || 'CASH',
+                paidAt,
+              },
+            ],
+          },
+        ]
+      : [];
+
+  const priceLabel =
+    appointment.treatmentMethodPrice !== undefined
+      ? formatCurrency(appointment.treatmentMethodPrice)
+      : 'Liên hệ báo giá';
+
+  const infoRows: Array<{
+    label: string;
+    value: string;
+    hint?: string | null;
+  }> = [
     {
       label: isCompleted ? 'Thời gian đã khám' : 'Thời gian hẹn',
       value: timeRange,
@@ -75,97 +147,229 @@ export function AppointmentDetailModal({
       animationType="slide"
       transparent
       visible={Boolean(appointment)}
-      onRequestClose={onClose}
+      onRequestClose={
+        selectedInvoice ? () => setSelectedInvoice(null) : handleClose
+      }
     >
       <View style={styles.overlay}>
-        <Pressable accessibilityLabel="Đóng" onPress={onClose} style={StyleSheet.absoluteFill} />
+        <Pressable
+          accessibilityLabel="Đóng"
+          onPress={handleClose}
+          style={StyleSheet.absoluteFill}
+        />
 
-        <View style={styles.sheet}>
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.headerMetaRow}>
+        {selectedInvoice ? (
+          <AppointmentInvoiceSheet
+            invoice={selectedInvoice}
+            patientName={appointment.patientName}
+            doctorName={appointment.doctor}
+            treatmentMethod={
+              appointment.treatmentMethodName || appointment.service
+            }
+            onBack={() => setSelectedInvoice(null)}
+          />
+        ) : (
+          <View style={styles.sheet}>
+            {/* Header */}
+            <View style={styles.header}>
+              <View style={styles.headerMetaRow}>
+                <View
+                  style={[
+                    styles.statusChip,
+                    { backgroundColor: status.bg, borderColor: status.border },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.statusDot,
+                      { backgroundColor: status.dotColor },
+                    ]}
+                  />
+                  <Text style={[styles.statusText, { color: status.text }]}>
+                    {status.label}
+                  </Text>
+                </View>
+                <Text style={styles.codeText}>{appointmentCode}</Text>
+              </View>
+              <Text style={styles.title}>Chi tiết lịch hẹn</Text>
+            </View>
+
+            {/* Body */}
+            <ScrollView
+              contentContainerStyle={styles.body}
+              showsVerticalScrollIndicator={false}
+            >
+              {/* Dịch vụ & chi phí */}
               <View
                 style={[
-                  styles.statusChip,
-                  { backgroundColor: status.bg, borderColor: status.border },
+                  styles.serviceCard,
+                  isCancelled ? styles.serviceCardCancelled : null,
                 ]}
               >
-                <View style={[styles.statusDot, { backgroundColor: status.dotColor }]} />
-                <Text style={[styles.statusText, { color: status.text }]}>{status.label}</Text>
-              </View>
-              <Text style={styles.codeText}>{appointmentCode}</Text>
-            </View>
-            <Text style={styles.title}>Chi tiết lịch hẹn</Text>
-          </View>
-
-          {/* Body */}
-          <ScrollView
-            contentContainerStyle={styles.body}
-            showsVerticalScrollIndicator={false}
-          >
-            {/* Dịch vụ */}
-            <View style={[styles.serviceCard, isCancelled ? styles.serviceCardCancelled : null]}>
-              <Text style={styles.sectionLabel}>Dịch vụ</Text>
-              <Text style={styles.serviceName}>{appointment.service}</Text>
-              {appointment.treatmentMethodName ? (
-                <Text style={styles.methodName}>{appointment.treatmentMethodName}</Text>
-              ) : null}
-            </View>
-
-            {/* Thông tin chính */}
-            <View style={styles.infoTable}>
-              {infoRows.map((row, index) => (
-                <View
-                  key={row.label}
-                  style={[styles.infoRow, index > 0 ? styles.infoRowDivider : null]}
-                >
-                  <Text style={styles.infoLabel}>{row.label}</Text>
-                  <View style={styles.infoValueCol}>
-                    <Text numberOfLines={1} style={styles.infoValue}>
-                      {row.value}
+                <Text style={styles.sectionLabel}>Dịch vụ</Text>
+                <View style={styles.serviceRow}>
+                  <View style={styles.flexInfo}>
+                    <Text style={styles.serviceName}>
+                      {appointment.service}
                     </Text>
-                    {row.hint ? <Text style={styles.infoHint}>{row.hint}</Text> : null}
+                    {appointment.treatmentMethodName ? (
+                      <Text style={styles.methodName}>
+                        {appointment.treatmentMethodName}
+                      </Text>
+                    ) : null}
+                  </View>
+                  <Text style={styles.priceText}>{priceLabel}</Text>
+                </View>
+              </View>
+
+              {/* Thông tin chính */}
+              <View style={styles.infoTable}>
+                {infoRows.map((row, index) => (
+                  <View
+                    key={row.label}
+                    style={[
+                      styles.infoRow,
+                      index > 0 ? styles.infoRowDivider : null,
+                    ]}
+                  >
+                    <Text style={styles.infoLabel}>{row.label}</Text>
+                    <View style={styles.infoValueCol}>
+                      <Text numberOfLines={1} style={styles.infoValue}>
+                        {row.value}
+                      </Text>
+                      {row.hint ? (
+                        <Text style={styles.infoHint}>{row.hint}</Text>
+                      ) : null}
+                    </View>
+                  </View>
+                ))}
+              </View>
+
+              {/* Hóa đơn (chỉ khi đã khám xong) */}
+              {isCompleted ? (
+                <View>
+                  <Text style={[styles.sectionLabel, styles.sectionHeading]}>
+                    Hóa đơn
+                  </Text>
+                  {effectiveInvoices.length > 0 ? (
+                    <View style={styles.invoiceList}>
+                      {effectiveInvoices.map(invoice => {
+                        const payment =
+                          PAYMENT_STATE_META[invoice.paymentState];
+                        return (
+                          <TouchableOpacity
+                            key={invoice.id}
+                            accessibilityRole="button"
+                            activeOpacity={0.8}
+                            onPress={() => setSelectedInvoice(invoice)}
+                            style={styles.invoiceRow}
+                          >
+                            <View style={styles.flexInfo}>
+                              <Text style={styles.invoiceCode}>
+                                {invoice.invoiceCode}
+                              </Text>
+                              <Text style={styles.invoiceMeta}>
+                                {invoice.issuedAt
+                                  ? formatDateTime(invoice.issuedAt)
+                                  : 'Đã xuất sau khám'}
+                                {invoice.remainingAmount > 0
+                                  ? ` · Còn lại ${formatCurrency(
+                                      invoice.remainingAmount,
+                                    )}`
+                                  : ''}
+                              </Text>
+                            </View>
+                            <View style={styles.invoiceRight}>
+                              <Text style={styles.invoiceAmount}>
+                                {formatCurrency(invoice.finalAmount)}
+                              </Text>
+                              <View
+                                style={[
+                                  styles.invoiceBadge,
+                                  { backgroundColor: payment.bg },
+                                ]}
+                              >
+                                <Text
+                                  style={[
+                                    styles.invoiceBadgeText,
+                                    { color: payment.text },
+                                  ]}
+                                >
+                                  {payment.label}
+                                </Text>
+                              </View>
+                            </View>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  ) : (
+                    <Text style={styles.invoiceEmpty}>
+                      Hóa đơn đang được lễ tân hoàn tất.
+                    </Text>
+                  )}
+                </View>
+              ) : null}
+
+              {/* Lưu ý */}
+              {notesList.length > 0 ? (
+                <View>
+                  <Text style={[styles.sectionLabel, styles.sectionHeading]}>
+                    Lưu ý
+                  </Text>
+                  <View
+                    style={[
+                      styles.notesBox,
+                      isCancelNote ? styles.notesBoxCancel : null,
+                    ]}
+                  >
+                    {notesList.map(note => (
+                      <View key={note} style={styles.noteRow}>
+                        <View
+                          style={[
+                            styles.noteDot,
+                            isCancelNote ? styles.noteDotCancel : null,
+                          ]}
+                        />
+                        <Text
+                          style={[
+                            styles.noteText,
+                            isCancelNote ? styles.noteTextCancel : null,
+                          ]}
+                        >
+                          {note}
+                        </Text>
+                      </View>
+                    ))}
                   </View>
                 </View>
-              ))}
+              ) : null}
+            </ScrollView>
+
+            {/* Footer: nút nằm bên trái, nút chính đứng trước */}
+            <View style={styles.footer}>
+              <TouchableOpacity
+                accessibilityRole="button"
+                activeOpacity={0.85}
+                onPress={handleClose}
+                style={styles.primaryButton}
+              >
+                <Text style={styles.primaryButtonText}>Đóng</Text>
+              </TouchableOpacity>
+              {isCompleted && effectiveInvoices.length > 0 ? (
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  activeOpacity={0.85}
+                  onPress={() => setSelectedInvoice(effectiveInvoices[0])}
+                  style={styles.secondaryButton}
+                >
+                  <Text style={styles.secondaryButtonText}>Xem hóa đơn</Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
-
-            {/* Lưu ý */}
-            {notesList.length > 0 ? (
-              <View>
-                <Text style={[styles.sectionLabel, styles.notesHeading]}>Lưu ý</Text>
-                <View style={[styles.notesBox, isCancelNote ? styles.notesBoxCancel : null]}>
-                  {notesList.map(note => (
-                    <View key={note} style={styles.noteRow}>
-                      <View
-                        style={[
-                          styles.noteDot,
-                          isCancelNote ? styles.noteDotCancel : null,
-                        ]}
-                      />
-                      <Text style={[styles.noteText, isCancelNote ? styles.noteTextCancel : null]}>
-                        {note}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            ) : null}
-          </ScrollView>
-
-          {/* Footer: nút nằm bên trái, nút chính đứng trước */}
-          <View style={styles.footer}>
-            <TouchableOpacity
-              accessibilityRole="button"
-              activeOpacity={0.85}
-              onPress={onClose}
-              style={styles.primaryButton}
-            >
-              <Text style={styles.primaryButtonText}>Đóng</Text>
-            </TouchableOpacity>
+            <SheetBottomInset />
           </View>
-          <SheetBottomInset />
-        </View>
+        )}
       </View>
     </Modal>
   );
@@ -245,6 +449,9 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
     textTransform: 'uppercase',
   },
+  sectionHeading: {
+    marginBottom: 8,
+  },
   serviceCard: {
     backgroundColor: 'rgba(239, 246, 255, 0.6)',
     borderColor: '#DBEAFE',
@@ -256,16 +463,32 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 241, 242, 0.6)',
     borderColor: '#FECDD3',
   },
+  serviceRow: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
+  flexInfo: {
+    flex: 1,
+    minWidth: 0,
+  },
   serviceName: {
     color: BRAND,
     fontSize: 16,
     fontWeight: '900',
-    marginTop: 4,
   },
   methodName: {
     color: '#475569',
     fontSize: 13.5,
     marginTop: 2,
+  },
+  priceText: {
+    color: '#0F172A',
+    flexShrink: 0,
+    fontSize: 15,
+    fontWeight: '900',
   },
   infoTable: {
     borderColor: '#E2E8F0',
@@ -306,8 +529,58 @@ const styles = StyleSheet.create({
     marginTop: 1,
     textAlign: 'right',
   },
-  notesHeading: {
-    marginBottom: 8,
+  invoiceList: {
+    gap: 8,
+  },
+  invoiceRow: {
+    alignItems: 'center',
+    borderColor: '#E2E8F0',
+    borderRadius: 18,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  invoiceCode: {
+    color: '#0F172A',
+    fontFamily: 'monospace',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  invoiceMeta: {
+    color: '#64748B',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  invoiceRight: {
+    alignItems: 'flex-end',
+    flexShrink: 0,
+  },
+  invoiceAmount: {
+    color: '#0F172A',
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  invoiceBadge: {
+    borderRadius: 999,
+    marginTop: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  invoiceBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  invoiceEmpty: {
+    borderColor: '#E2E8F0',
+    borderRadius: 18,
+    borderStyle: 'dashed',
+    borderWidth: 1,
+    color: '#64748B',
+    fontSize: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   notesBox: {
     backgroundColor: '#F8FAFC',
@@ -345,6 +618,7 @@ const styles = StyleSheet.create({
     borderTopColor: '#F1F5F9',
     borderTopWidth: 1,
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
     justifyContent: 'flex-start',
     paddingBottom: 14,
@@ -361,6 +635,21 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  secondaryButton: {
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#BFDBFE',
+    borderRadius: 12,
+    borderWidth: 1,
+    height: 44,
+    justifyContent: 'center',
+    paddingHorizontal: 18,
+  },
+  secondaryButtonText: {
+    color: BRAND,
     fontSize: 14,
     fontWeight: '800',
   },

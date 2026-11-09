@@ -26,6 +26,8 @@ type ActionHandlers = {
   onAppointmentPress: (serviceId?: string, methodId?: string) => void;
   onConsultationPress: () => void;
   onDoctorsPress: (keyword?: string) => void;
+  /** Mở trang hồ sơ chi tiết một bác sĩ (giống /doctor/[id] trên web) */
+  onDoctorDetailPress: (doctorId: string) => void;
   onPromotionsPress: () => void;
   onServicePress: (keyword?: string) => void;
   /** Mở trang chi tiết nhóm dịch vụ (giống ô dịch vụ trên web) */
@@ -439,7 +441,7 @@ export function DoctorsPreviewSection({
         {/* Action Button: đặt dưới ảnh, rộng hết thẻ */}
         <TouchableOpacity
           activeOpacity={0.85}
-          onPress={() => handlers.onDoctorsPress(currentDoctor.name)}
+          onPress={() => handlers.onDoctorDetailPress(currentDoctor.id)}
           style={styles.viewDoctorBtn}
         >
           <Text style={styles.viewDoctorBtnText}>Xem chi tiết bác sĩ ›</Text>
@@ -1221,6 +1223,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   badgesRow: {
+    flexWrap: 'wrap',
+    rowGap: 8,
     backgroundColor: '#F5FAFF',
     flexDirection: 'row',
     paddingHorizontal: 10,
@@ -1485,6 +1489,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   locationActionButtons: {
+    flexWrap: 'wrap',
+    rowGap: 8,
     flexDirection: 'row',
     gap: 10,
     marginTop: 14,
@@ -1595,6 +1601,8 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   popularActionRow: {
+    flexWrap: 'wrap',
+    rowGap: 8,
     flexDirection: 'row',
     gap: 10,
     marginTop: 12,
@@ -1639,10 +1647,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   popularCountPill: {
+    alignItems: 'center',
     backgroundColor: '#F1F5F9',
     borderRadius: 999,
+    flexGrow: 1,
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: 4,
   },
   popularDesc: {
     color: '#64748B',
@@ -1698,16 +1708,20 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   popularPricePill: {
+    alignItems: 'center',
     backgroundColor: '#EFF6FF',
     borderRadius: 999,
+    flexGrow: 1,
     paddingHorizontal: 10,
-    paddingVertical: 3,
+    paddingVertical: 4,
   },
   popularTopRow: {
     flexDirection: 'row',
     gap: 12,
   },
   promoActionRow: {
+    flexWrap: 'wrap',
+    rowGap: 8,
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
@@ -1744,6 +1758,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   promoBadgesRow: {
+    flexWrap: 'wrap',
+    rowGap: 8,
     flexDirection: 'row',
     gap: 10,
     marginTop: 14,
@@ -2016,6 +2032,8 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   footerLinksRow: {
+    flexWrap: 'wrap',
+    rowGap: 8,
     flexDirection: 'row',
     gap: 20,
     marginTop: 2,

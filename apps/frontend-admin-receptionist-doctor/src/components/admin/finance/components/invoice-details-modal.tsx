@@ -29,15 +29,16 @@ export function InvoiceDetailsModal({
       description={<span className="font-mono font-semibold text-brand">{invoice.invoice_code}</span>}
       icon={<Receipt size={20} weight="duotone" />}
       size="sm"
+      variant="drawer"
       onClose={onClose}
       footer={
         <>
-          <AdminButton variant="secondary" onClick={onClose}>
-            Đóng
-          </AdminButton>
           <AdminButton onClick={() => window.print()}>
             <Printer size={16} weight="bold" />
             In hóa đơn
+          </AdminButton>
+          <AdminButton variant="secondary" onClick={onClose}>
+            Đóng
           </AdminButton>
         </>
       }

@@ -308,6 +308,13 @@ const doctorMediaUrls = [
   'https://images.unsplash.com/photo-1583912267550-d44c7d69922d?auto=format&fit=crop&w=1200&q=80',
 ];
 
+// Ảnh chứng chỉ mẫu (Smart Dental Academy) đã render theo đúng tên/chuyên khoa/ngày cấp của từng bác sĩ seed
+const certificateImageUrl = (
+  index: number,
+  kind: 'chuyen-sau' | 'kiem-soat-nhiem-khuan',
+) =>
+  `https://res.cloudinary.com/dvsuhb9cj/image/upload/smart-dental/certificates/cert-${String(index + 1).padStart(3, '0')}-${kind}.png`;
+
 const doctorSeeds = Array.from({ length: 10 }, (_, index) => ({
   email:
     index === 0
@@ -349,22 +356,22 @@ const doctorSeeds = Array.from({ length: 10 }, (_, index) => ({
       title: `Chứng chỉ chuyên sâu ${doctorSpecializations[index]}`,
       issuer: 'Smart Dental Academy',
       issuedAt: new Date(Date.UTC(2021, index % 12, 10)),
-      imageUrl: doctorMediaUrls[index % doctorMediaUrls.length],
+      imageUrl: certificateImageUrl(index, 'chuyen-sau'),
       description:
         'Chứng nhận năng lực chuyên môn sau chương trình đào tạo thực hành lâm sàng.',
     },
     {
       title: 'Chứng nhận kiểm soát nhiễm khuẩn nha khoa',
-      issuer: 'Hiệp hội Nha khoa Việt Nam',
+      issuer: 'Smart Dental Academy',
       issuedAt: new Date(Date.UTC(2022, index % 12, 18)),
-      imageUrl: doctorMediaUrls[(index + 1) % doctorMediaUrls.length],
+      imageUrl: certificateImageUrl(index, 'kiem-soat-nhiem-khuan'),
       description:
         'Đào tạo quy trình vô khuẩn, an toàn người bệnh và quản lý dụng cụ nha khoa.',
     },
   ],
   media: [
     {
-      url: doctorMediaUrls[index % doctorMediaUrls.length],
+      url: certificateImageUrl(index, 'chuyen-sau'),
       alt: `Minh chứng chuyên môn của ${doctorNames[index]}`,
       type: 'CERTIFICATE',
     },

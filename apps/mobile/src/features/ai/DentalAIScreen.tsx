@@ -1,4 +1,5 @@
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6';
+import { useNavigation } from '@react-navigation/native';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -14,6 +15,8 @@ import { Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSelector } from 'react-redux';
 import { Screen } from '~src/components/ui';
+import { SCREEN_NAME } from '~src/constants/screenName';
+import { useKeyboardOverlap } from '~src/hooks/useKeyboardOverlap';
 import type { RootState } from '~src/reducers/store';
 import {
   sendAiChatMessage,
@@ -40,6 +43,10 @@ const quickSuggestions = [
   'Giờ làm việc phòng khám',
 ];
 
+// Khách chưa đăng nhập vẫn chat bình thường; AI chỉ yêu cầu đăng nhập khi đặt lịch.
+const isLoginRequiredReply = (text: string) =>
+  text.toLowerCase().includes('vui lòng đăng nhập');
+
 const initialMessages: ChatMessage[] = [
   {
     id: 1,
@@ -50,10 +57,15 @@ const initialMessages: ChatMessage[] = [
 
 export default function DentalAIScreen({ onDismiss }: DentalAIScreenProps) {
   const insets = useSafeAreaInsets();
+  const { containerRef, keyboardOverlap, keyboardVisible } =
+    useKeyboardOverlap();
   const listRef = useRef<FlatList<ChatMessage>>(null);
   const messageIdRef = useRef(2);
-  const accessToken = useSelector((state: RootState) => state.login.accessToken);
+  const accessToken = useSelector(
+    (state: RootState) => state.login.accessToken,
+  );
   const isLoggedIn = Boolean(accessToken);
+  const navigation = useNavigation<any>();
 
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -168,8 +180,18 @@ export default function DentalAIScreen({ onDismiss }: DentalAIScreenProps) {
     const isBot = item.sender === 'bot';
     return (
       <View style={[styles.messageWrap, !isBot && styles.userMessageWrap]}>
-        <View style={[styles.messageBubble, isBot ? styles.botBubble : styles.userBubble]}>
-          <Text style={[styles.messageText, isBot ? styles.botText : styles.userText]}>
+        <View
+          style={[
+            styles.messageBubble,
+            isBot ? styles.botBubble : styles.userBubble,
+          ]}
+        >
+          <Text
+            style={[
+              styles.messageText,
+              isBot ? styles.botText : styles.userText,
+            ]}
+          >
             {item.text}
           </Text>
         </View>
@@ -180,6 +202,16 @@ export default function DentalAIScreen({ onDismiss }: DentalAIScreenProps) {
               renderSuggestion(suggestion, item.id, index),
             )}
           </View>
+        ) : null}
+
+        {isBot && !isLoggedIn && isLoginRequiredReply(item.text) ? (
+          <TouchableOpacity
+            activeOpacity={0.86}
+            onPress={() => navigation.navigate(SCREEN_NAME.PATIENT_LOGIN)}
+            style={styles.loginButton}
+          >
+            <Text style={styles.loginButtonText}>Đăng nhập để đặt lịch</Text>
+          </TouchableOpacity>
         ) : null}
       </View>
     );
@@ -213,84 +245,117 @@ export default function DentalAIScreen({ onDismiss }: DentalAIScreenProps) {
 
   return (
     <Screen>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
-        style={styles.container}
+      <View
+        ref={containerRef}
+        style={[styles.container, { paddingBottom: keyboardOverlap }]}
       >
-        <View style={styles.header}>
-          {onDismiss ? (
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          enabled={Platform.OS === 'ios'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
+          style={styles.container}
+        >
+          <View style={styles.header}>
+            {onDismiss ? (
+              <TouchableOpacity
+                accessibilityLabel="Đóng trợ lý AI"
+                hitSlop={{ bottom: 8, left: 8, right: 8, top: 8 }}
+                onPress={onDismiss}
+                style={styles.backButton}
+              >
+                <FontAwesome6
+                  color="#FFFFFF"
+                  iconStyle="solid"
+                  name="chevron-left"
+                  size={16}
+                />
+              </TouchableOpacity>
+            ) : null}
+            <View style={styles.headerIcon}>
+              <FontAwesome6
+                color="#FBBF24"
+                iconStyle="solid"
+                name="wand-magic-sparkles"
+                size={17}
+              />
+              <View style={styles.headerOnlineDot} />
+            </View>
+            <View style={styles.headerTextCol}>
+              <Text style={styles.headerTitle}>Trợ lý AI Đặt Lịch</Text>
+              <View style={styles.statusRow}>
+                <View style={styles.statusDot} />
+                <Text style={styles.headerSubtitle}>
+                  Sẵn sàng 24/7 · Smart Dental AI
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          <FlatList
+            ref={listRef}
+            contentContainerStyle={styles.messagesContent}
+            data={messages}
+            keyExtractor={item => String(item.id)}
+            ListFooterComponent={renderListFooter}
+            renderItem={renderMessage}
+            showsVerticalScrollIndicator={false}
+          />
+
+          <View
+            style={[
+              styles.inputBar,
+              {
+                paddingBottom: keyboardVisible
+                  ? 10
+                  : Math.max(insets.bottom, 10),
+              },
+            ]}
+          >
+            <TextInput
+              editable={!loading}
+              onChangeText={setInput}
+              placeholder="Nhập yêu cầu đặt lịch hoặc thắc mắc..."
+              placeholderTextColor="#94A3B8"
+              style={styles.input}
+              value={input}
+            />
             <TouchableOpacity
-              accessibilityLabel="Đóng trợ lý AI"
-              hitSlop={{ bottom: 8, left: 8, right: 8, top: 8 }}
-              onPress={onDismiss}
-              style={styles.backButton}
+              activeOpacity={0.86}
+              disabled={loading || !input.trim()}
+              onPress={() => handleSendMessage(input)}
+              style={[
+                styles.sendButton,
+                (loading || !input.trim()) && styles.sendButtonDisabled,
+              ]}
             >
               <FontAwesome6
                 color="#FFFFFF"
                 iconStyle="solid"
-                name="chevron-left"
-                size={16}
+                name="paper-plane"
+                size={14}
               />
             </TouchableOpacity>
-          ) : null}
-          <View style={styles.headerIcon}>
-            <FontAwesome6
-              color="#FBBF24"
-              iconStyle="solid"
-              name="wand-magic-sparkles"
-              size={17}
-            />
-            <View style={styles.headerOnlineDot} />
           </View>
-          <View style={styles.headerTextCol}>
-            <Text style={styles.headerTitle}>Trợ lý AI Đặt Lịch</Text>
-            <View style={styles.statusRow}>
-              <View style={styles.statusDot} />
-              <Text style={styles.headerSubtitle}>
-                Sẵn sàng 24/7 · Smart Dental AI
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        <FlatList
-          ref={listRef}
-          contentContainerStyle={styles.messagesContent}
-          data={messages}
-          keyExtractor={item => String(item.id)}
-          ListFooterComponent={renderListFooter}
-          renderItem={renderMessage}
-          showsVerticalScrollIndicator={false}
-        />
-
-        <View style={[styles.inputBar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
-          <TextInput
-            editable={!loading}
-            onChangeText={setInput}
-            placeholder="Nhập yêu cầu đặt lịch hoặc thắc mắc..."
-            placeholderTextColor="#94A3B8"
-            style={styles.input}
-            value={input}
-          />
-          <TouchableOpacity
-            activeOpacity={0.86}
-            disabled={loading || !input.trim()}
-            onPress={() => handleSendMessage(input)}
-            style={[
-              styles.sendButton,
-              (loading || !input.trim()) && styles.sendButtonDisabled,
-            ]}
-          >
-            <FontAwesome6 color="#FFFFFF" iconStyle="solid" name="paper-plane" size={14} />
-          </TouchableOpacity>
-        </View>
-      </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+      </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  loginButton: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#0863c5',
+    borderRadius: 999,
+    marginTop: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  loginButtonText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
   backButton: {
     alignItems: 'center',
     height: 36,

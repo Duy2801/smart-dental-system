@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useAppSelector } from "@/providers";
 import { DashboardIcon } from "../../common/DashboardIcon";
 import { LoginRequiredPanel } from "../../common/LoginRequiredPanel";
@@ -91,6 +91,15 @@ export function NotificationWorkspace() {
   const totalPages = meta?.totalPages ?? 1;
   const totalItems = meta?.total ?? 0;
   const unreadCount = unreadData?.unreadCount ?? meta?.unreadCount ?? 0;
+
+  // Vào trang thông báo là coi như đã xem hết, không cần bấm từng thông báo
+  const autoMarkedRef = useRef(false);
+  const { mutate: markAllRead } = markAllReadMutation;
+  useEffect(() => {
+    if (autoMarkedRef.current || !isLoggedIn || !unreadData || unreadCount <= 0) return;
+    autoMarkedRef.current = true;
+    markAllRead();
+  }, [isLoggedIn, unreadData, unreadCount, markAllRead]);
 
   // If page exceeds totalPages (e.g. after filter change or bulk read), clamp to totalPages
   useEffect(() => {

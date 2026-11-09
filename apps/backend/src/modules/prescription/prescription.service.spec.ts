@@ -37,7 +37,11 @@ describe('PrescriptionService - sendPrescriptionToPatient', () => {
       add: jest.fn().mockResolvedValue({}),
     };
 
-    service = new PrescriptionService(prismaMock, mailQueueMock);
+    service = new PrescriptionService(
+      prismaMock,
+      { del: jest.fn().mockResolvedValue(undefined) } as any,
+      mailQueueMock,
+    );
   });
 
   it('throws NotFoundException when prescription does not exist', async () => {

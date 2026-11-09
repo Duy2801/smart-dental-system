@@ -43,7 +43,7 @@ export class BannerService implements OnModuleInit {
         linkUrl: '/promotions',
         targetType: 'PROMOTION',
         displayOrder: 2,
-        isActive: true,
+        isActive: false,
       },
       {
         title: 'Trồng Răng Implant Giảm Ngay 5 Triệu',
@@ -54,7 +54,7 @@ export class BannerService implements OnModuleInit {
         linkUrl: '/promotions',
         targetType: 'PROMOTION',
         displayOrder: 3,
-        isActive: true,
+        isActive: false,
       },
       {
         title: 'Nhổ Răng Không Đau Giảm 500K',
@@ -65,7 +65,7 @@ export class BannerService implements OnModuleInit {
         linkUrl: '/promotions',
         targetType: 'PROMOTION',
         displayOrder: 4,
-        isActive: true,
+        isActive: false,
       },
       {
         title: 'Lấy Cao Răng Siêu Âm Chỉ Từ 99K',
@@ -76,7 +76,7 @@ export class BannerService implements OnModuleInit {
         linkUrl: '/promotions',
         targetType: 'PROMOTION',
         displayOrder: 5,
-        isActive: true,
+        isActive: false,
       },
     ];
 
@@ -87,6 +87,7 @@ export class BannerService implements OnModuleInit {
     }
   }
 
+  // Trang chủ bệnh nhân chỉ hiển thị đúng 1 banner đang bật
   async findActive() {
     return this.redis.rememberJson(
       `${bannerCachePrefix}active`,
@@ -94,7 +95,8 @@ export class BannerService implements OnModuleInit {
       () =>
         this.prisma.banner.findMany({
           where: { isActive: true },
-          orderBy: { displayOrder: 'asc' },
+          orderBy: [{ updatedAt: 'desc' }],
+          take: 1,
         }),
     );
   }
@@ -119,17 +121,30 @@ export class BannerService implements OnModuleInit {
   }
 
   async create(dto: CreateBannerDto) {
-    const result = await this.prisma.banner.create({
-      data: dto,
+    const isActive = dto.isActive ?? true;
+    const result = await this.prisma.$transaction(async (tx) => {
+      if (isActive) {
+        await tx.banner.updateMany({
+          where: { isActive: true },
+          data: { isActive: false },
+        });
+      }
+      return tx.banner.create({ data: { ...dto, isActive } });
     });
     await this.invalidateCache();
     return result;
   }
 
   async update(id: string, dto: UpdateBannerDto) {
-    const result = await this.prisma.banner.update({
-      where: { id },
-      data: dto,
+    const result = await this.prisma.$transaction(async (tx) => {
+      // Bật banner này thì tự động tắt các banner đang hiển thị khác
+      if (dto.isActive === true) {
+        await tx.banner.updateMany({
+          where: { isActive: true, id: { not: id } },
+          data: { isActive: false },
+        });
+      }
+      return tx.banner.update({ where: { id }, data: dto });
     });
     await this.invalidateCache();
     return result;

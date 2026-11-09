@@ -36,7 +36,7 @@ export function SupportChatOverlay() {
 
   function openPanel() {
     if (!isLoggedIn) {
-      window.location.href = "/auth/login";
+      window.location.href = "/login";
       return;
     }
     setOpen(true);

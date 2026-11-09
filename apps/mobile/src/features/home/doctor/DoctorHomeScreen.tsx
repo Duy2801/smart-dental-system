@@ -237,6 +237,8 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
   actions: {
+    flexWrap: 'wrap',
+    rowGap: 8,
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 23,

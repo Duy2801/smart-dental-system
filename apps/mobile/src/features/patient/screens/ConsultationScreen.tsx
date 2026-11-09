@@ -1,6 +1,6 @@
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -41,6 +41,7 @@ import {
   type PatientConsultation,
 } from '../api';
 import { ConsultationPaymentDetails } from '../components/ConsultationPaymentDetails';
+import { ConsultationRefundModal } from '../components/ConsultationRefundModal';
 import {
   ConsultationRescheduleModal,
   canShowConsultationReschedule,
@@ -84,6 +85,13 @@ function canJoinConsultation(item: PatientConsultation, now: number) {
     now <= scheduledAt + item.durationMinutes * 60_000 + 15 * 60_000;
 }
 
+/** Giống web: chỉ hủy được khi buổi tư vấn chưa hủy/hoàn thành và chưa qua giờ kết thúc */
+function canCancelConsultation(item: PatientConsultation, now: number) {
+  if (['CANCELLED', 'COMPLETED', 'EXPIRED', 'DOCTOR_MISSED'].includes(item.status)) return false;
+  const endTime = new Date(item.scheduledAt).getTime() + item.durationMinutes * 60_000;
+  return !Number.isFinite(endTime) || now <= endTime;
+}
+
 export default function ConsultationScreen({ navigation }: any) {
   const user = useSelector((state: RootState) => state.login?.user ?? null);
   const accessToken = useSelector((state: RootState) => state.login?.accessToken);
@@ -125,7 +133,9 @@ export default function ConsultationScreen({ navigation }: any) {
   const [videoRoomItem, setVideoRoomItem] = useState<PatientConsultation | null>(null);
   const [currentTime, setCurrentTime] = useState(Date.now());
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [refundItem, setRefundItem] = useState<PatientConsultation | null>(null);
   const [rescheduleItem, setRescheduleItem] = useState<PatientConsultation | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
 
   const { handleDrawerNavigate, handleLogout } = usePatientDrawerActions();
 
@@ -226,6 +236,30 @@ export default function ConsultationScreen({ navigation }: any) {
     () =>
       packages.find(p => p.minutes === selectedDuration) || packages[0] || null,
     [packages, selectedDuration],
+  );
+
+  /**
+   * Chuyển về danh sách lịch tư vấn (giống web sau khi thanh toán thành công):
+   * đóng màn thanh toán, làm mới danh sách và cuộn lên đầu để thấy ngay lịch vừa đặt.
+   */
+  const goToMyConsultations = useCallback(
+    (paid = false) => {
+      setBookingResult(null);
+      setPaymentModalItem(null);
+      setSelectedSlot('');
+      setNotes('');
+      setConsultPage(1);
+      setActiveTab('my-consultations');
+      void queryClient.invalidateQueries({ queryKey: queryKeys.consultations.myList });
+      requestAnimationFrame(() => scrollRef.current?.scrollTo({ y: 0, animated: true }));
+      if (paid) {
+        toast.success(
+          'Thanh toán thành công',
+          'Lịch tư vấn đã được giữ chỗ. Bạn có thể xem trong danh sách lịch của tôi.',
+        );
+      }
+    },
+    [queryClient],
   );
 
   const handleBookingSubmit = async () => {
@@ -373,10 +407,7 @@ export default function ConsultationScreen({ navigation }: any) {
           <ConsultationPaymentDetails
             consultationId={bookingResult.consultation?.id || (bookingResult as any)?.id || ''}
             bookingResult={bookingResult}
-            onPaymentConfirmed={() => {
-              setBookingResult(null);
-              setActiveTab('my-consultations');
-            }}
+            onPaymentConfirmed={() => goToMyConsultations(true)}
           />
         </View>
       )}
@@ -384,10 +415,7 @@ export default function ConsultationScreen({ navigation }: any) {
       <View style={styles.successActions}>
         <TouchableOpacity
           activeOpacity={0.84}
-          onPress={() => {
-            setBookingResult(null);
-            setActiveTab('my-consultations');
-          }}
+          onPress={() => goToMyConsultations()}
           style={styles.successPrimaryBtn}
         >
           <Text style={styles.successPrimaryBtnText}>
@@ -991,6 +1019,16 @@ export default function ConsultationScreen({ navigation }: any) {
               </TouchableOpacity>
             )}
 
+            {isPaid && canCancelConsultation(item, currentTime) && (
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => setRefundItem(item)}
+                style={styles.consultCancelBtn}
+              >
+                <Text style={styles.consultCancelBtnText}>Hủy & Hoàn tiền</Text>
+              </TouchableOpacity>
+            )}
+
             {canJoinRoom && (
               <TouchableOpacity
                 activeOpacity={0.84}
@@ -1192,6 +1230,7 @@ export default function ConsultationScreen({ navigation }: any) {
       {renderHeaderAndDrawer()}
 
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={{ paddingBottom: 0 }}
         refreshControl={
           <RefreshControl
@@ -1556,6 +1595,20 @@ export default function ConsultationScreen({ navigation }: any) {
                     <Text style={styles.consultJoinBtnText}>Vào Video Call</Text>
                   </TouchableOpacity>
                 ) : null}
+                {selectedConsultation.isPaid &&
+                canCancelConsultation(selectedConsultation, currentTime) ? (
+                  <TouchableOpacity
+                    activeOpacity={0.84}
+                    onPress={() => {
+                      const consultation = selectedConsultation;
+                      setSelectedConsultation(null);
+                      setRefundItem(consultation);
+                    }}
+                    style={[styles.consultCancelBtn, styles.detailRefundBtn]}
+                  >
+                    <Text style={styles.consultCancelBtnText}>Hủy & Yêu cầu hoàn tiền</Text>
+                  </TouchableOpacity>
+                ) : null}
               </ScrollView>
               <SheetBottomInset />
             </View>
@@ -1600,10 +1653,7 @@ export default function ConsultationScreen({ navigation }: any) {
               <ScrollView contentContainerStyle={styles.modalBody}>
                 <ConsultationPaymentDetails
                   consultationId={paymentModalItem.id}
-                  onPaymentConfirmed={() => {
-                    setPaymentModalItem(null);
-                    setActiveTab('my-consultations');
-                  }}
+                  onPaymentConfirmed={() => goToMyConsultations(true)}
                 />
               </ScrollView>
               <SheetBottomInset />
@@ -1616,6 +1666,16 @@ export default function ConsultationScreen({ navigation }: any) {
         consultation={rescheduleItem}
         onClose={() => setRescheduleItem(null)}
       />
+
+      {refundItem && (
+        <ConsultationRefundModal
+          consultation={refundItem}
+          onClose={() => setRefundItem(null)}
+          onSuccess={() => {
+            void queryClient.invalidateQueries({ queryKey: queryKeys.consultations.myList });
+          }}
+        />
+      )}
 
       {videoRoomItem && (
         <ConsultationVideoRoomModal
@@ -1716,7 +1776,15 @@ const styles = StyleSheet.create({
   },
   consultActionRightGroup: {
     flexDirection: 'row',
+    flexShrink: 1,
+    flexWrap: 'wrap',
     gap: 8,
+    justifyContent: 'flex-end',
+  },
+  detailRefundBtn: {
+    alignItems: 'center',
+    marginTop: 12,
+    paddingVertical: 11,
   },
   consultCancelBtn: {
     backgroundColor: '#FFF1F2',
@@ -1754,6 +1822,8 @@ const styles = StyleSheet.create({
     padding: 14,
   },
   consultCardFooter: {
+    flexWrap: 'wrap',
+    rowGap: 8,
     alignItems: 'center',
     borderTopColor: '#F1F5F9',
     borderTopWidth: 1,
@@ -2272,6 +2342,8 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   quickDateRow: {
+    flexWrap: 'wrap',
+    rowGap: 8,
     flexDirection: 'row',
     gap: 8,
     marginTop: 10,

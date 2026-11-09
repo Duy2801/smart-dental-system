@@ -1,4 +1,5 @@
 import pytest
+from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, patch
 from app.services.booking_agent import (
     BookingAgent,
@@ -480,8 +481,9 @@ async def test_changing_date_or_time_keeps_the_preselected_doctor(
 @pytest.mark.asyncio
 async def test_preselected_doctor_without_slots_on_selected_date_does_not_show_other_slots():
     agent = BookingAgent()
+    booking_date = (datetime.now() + timedelta(days=7)).date().isoformat()
     req = ChatRequest(
-        message="Toi muon kham ngay 2026-09-21",
+        message=f"Toi muon kham ngay {booking_date}",
         created_by_user_id="user-123",
         metadata={
             "bookingState": {
@@ -493,7 +495,7 @@ async def test_preselected_doctor_without_slots_on_selected_date_does_not_show_o
                 "treatmentMethodName": "Kham tong quat",
                 "doctorId": "doctor-no-schedule",
                 "doctorName": "BS Khong Co Lich",
-                "date": "2026-09-21",
+                "date": booking_date,
             }
         },
     )
@@ -648,6 +650,7 @@ async def test_switching_to_relative_without_family_profiles_asks_for_patient_na
 @pytest.mark.asyncio
 async def test_named_relative_replaces_stale_self_patient_and_continues_booking():
     agent = BookingAgent()
+    booking_date = (datetime.now() + timedelta(days=7)).date().isoformat()
     req = ChatRequest(
         message="Tôi muốn đặt lịch cho bé Nguyễn Minh An",
         created_by_user_id="user-123",
@@ -659,7 +662,7 @@ async def test_named_relative_replaces_stale_self_patient_and_continues_booking(
                 "serviceName": "Khám tổng quát",
                 "treatmentMethodId": "method-1",
                 "treatmentMethodName": "Khám tổng quát",
-                "date": "2026-09-24",
+                "date": booking_date,
             }
         },
     )
@@ -700,7 +703,7 @@ async def test_named_relative_replaces_stale_self_patient_and_continues_booking(
     assert state["patientName"] == "Nguyễn Minh An"
     assert state.get("newPatientName") is None
     assert state.get("creatingNewPatient") is False
-    assert state["date"] == "2026-09-24"
+    assert state["date"] == booking_date
     assert any(item.type == "time_slot" for item in res.suggestions)
 
 

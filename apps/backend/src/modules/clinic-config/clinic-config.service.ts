@@ -7,6 +7,7 @@ import {
   LunchBreakDto,
   UpdateClinicConfigDto,
 } from './dto/update-clinic-config.dto';
+import type { Prisma } from '../../../prisma/generated/client';
 import { DepositCalculationMode } from '../../../prisma/generated/enums';
 
 const defaultSlotIntervalMinutes = 30;
@@ -158,6 +159,8 @@ export class ClinicConfigService {
     return next;
   }
 
+  // Đồng bộ lịch tuần của bác sĩ theo giờ mở cửa bằng vài truy vấn gộp
+  // (trước đây lặp tuần tự 7 ngày × số bác sĩ × 2 truy vấn nên rất chậm)
   private async syncDoctorWeeklyAvailability(businessHours: BusinessHourDto[]) {
     const doctors = await this.prisma.doctor.findMany({
       where: { isActive: true },
@@ -166,47 +169,74 @@ export class ClinicConfigService {
 
     if (doctors.length === 0) return;
 
-    for (const bh of businessHours) {
-      if (bh.isOpen) {
-        for (const doctor of doctors) {
-          const existing = await this.prisma.doctorAvailability.findFirst({
-            where: {
-              doctorId: doctor.id,
-              recordType: 'WEEKLY',
-              dayOfWeek: bh.id,
-            },
-          });
+    const doctorIds = doctors.map((doctor) => doctor.id);
+    const openDays = businessHours.filter((bh) => bh.isOpen);
+    const closedDayIds = businessHours
+      .filter((bh) => !bh.isOpen)
+      .map((bh) => bh.id);
 
-          if (existing) {
-            await this.prisma.doctorAvailability.update({
-              where: { id: existing.id },
-              data: {
-                startTime: bh.start,
-                endTime: bh.end,
-                isActive: true,
-              },
-            });
-          } else {
-            await this.prisma.doctorAvailability.create({
-              data: {
-                doctorId: doctor.id,
-                recordType: 'WEEKLY',
-                dayOfWeek: bh.id,
-                startTime: bh.start,
-                endTime: bh.end,
-                isActive: true,
-              },
-            });
-          }
-        }
-      } else {
-        await this.prisma.doctorAvailability.deleteMany({
-          where: {
+    const existingRecords = await this.prisma.doctorAvailability.findMany({
+      where: {
+        doctorId: { in: doctorIds },
+        recordType: 'WEEKLY',
+        dayOfWeek: { in: openDays.map((bh) => bh.id) },
+      },
+      select: { id: true, doctorId: true, dayOfWeek: true },
+    });
+
+    // Giữ hành vi cũ: mỗi bác sĩ/ngày chỉ cập nhật 1 bản ghi đầu tiên
+    const firstRecordByKey = new Map<string, string>();
+    for (const record of existingRecords) {
+      const key = `${record.doctorId}:${record.dayOfWeek}`;
+      if (!firstRecordByKey.has(key)) firstRecordByKey.set(key, record.id);
+    }
+
+    const operations: Prisma.PrismaPromise<unknown>[] = [];
+    const recordsToCreate: Prisma.DoctorAvailabilityCreateManyInput[] = [];
+
+    for (const bh of openDays) {
+      const idsToUpdate: string[] = [];
+      for (const doctorId of doctorIds) {
+        const existingId = firstRecordByKey.get(`${doctorId}:${bh.id}`);
+        if (existingId) {
+          idsToUpdate.push(existingId);
+        } else {
+          recordsToCreate.push({
+            doctorId,
             recordType: 'WEEKLY',
             dayOfWeek: bh.id,
-          },
-        });
+            startTime: bh.start,
+            endTime: bh.end,
+            isActive: true,
+          });
+        }
       }
+      if (idsToUpdate.length > 0) {
+        operations.push(
+          this.prisma.doctorAvailability.updateMany({
+            where: { id: { in: idsToUpdate } },
+            data: { startTime: bh.start, endTime: bh.end, isActive: true },
+          }),
+        );
+      }
+    }
+
+    if (recordsToCreate.length > 0) {
+      operations.push(
+        this.prisma.doctorAvailability.createMany({ data: recordsToCreate }),
+      );
+    }
+
+    if (closedDayIds.length > 0) {
+      operations.push(
+        this.prisma.doctorAvailability.deleteMany({
+          where: { recordType: 'WEEKLY', dayOfWeek: { in: closedDayIds } },
+        }),
+      );
+    }
+
+    if (operations.length > 0) {
+      await this.prisma.$transaction(operations);
     }
   }
 

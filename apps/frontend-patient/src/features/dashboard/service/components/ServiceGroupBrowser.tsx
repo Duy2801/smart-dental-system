@@ -503,6 +503,7 @@ export function ServiceGroupBrowser({
             <EmptySearchResult
               title="Không tìm thấy sản phẩm"
               description="Hãy thử tìm kiếm từ khóa dịch vụ khác"
+              actionText=""
             />
           )}
         </section>

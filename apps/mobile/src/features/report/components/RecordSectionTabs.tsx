@@ -256,11 +256,6 @@ export function RecordSectionTabs({
             <Text style={styles.hubTitle}>
               Chi Tiết Phác Đồ: {treatment.title}
             </Text>
-            <Text style={styles.hubSubtitle}>
-              Ngày lập:{' '}
-              <Text style={styles.hubSubtitleStrong}>{treatment.date}</Text>
-              {' '}• Nhấp vào các nút bên dưới để mở rộng xem chi tiết
-            </Text>
           </View>
 
           <TouchableOpacity
@@ -943,7 +938,7 @@ type HubCardProps = {
   tone: keyof typeof hubTones;
 };
 
-function HubCard({ active, badge, icon, onPress, subtitle, title, tone }: HubCardProps) {
+export function HubCard({ active, badge, icon, onPress, subtitle, title, tone }: HubCardProps) {
   const c = hubTones[tone];
   return (
     <TouchableOpacity
@@ -1017,12 +1012,16 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   // Tiêu đề chiếm hết chiều ngang, nút "Hiện tất cả" xuống dòng dưới để không bóp tiêu đề dài
+  // Tiêu đề bên trái, nút "Hiện tất cả" bên phải trên cùng một hàng
   hubHeader: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
     gap: 10,
-    marginBottom: 14,
+    marginBottom: 12,
   },
   hubTitleGroup: {
-    width: '100%',
+    flex: 1,
+    minWidth: 0,
   },
   hubTitle: {
     color: '#0F172A',
@@ -1030,16 +1029,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '900',
     textTransform: 'uppercase',
-  },
-  hubSubtitle: {
-    color: '#64748B',
-    fontSize: 11,
-    marginTop: 2,
-  },
-  hubSubtitleStrong: {
-    color: '#334155',
-    fontSize: 11,
-    fontWeight: '700',
   },
   hubCardTopRow: {
     alignItems: 'center',
@@ -1065,6 +1054,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   hubCardFooter: {
+    flexWrap: 'wrap',
+    rowGap: 8,
     alignItems: 'center',
     borderTopWidth: 1,
     flexDirection: 'row',
@@ -1100,7 +1091,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   expandAllBtn: {
-    alignSelf: 'flex-end',
+    flexShrink: 0,
     borderRadius: 10,
     borderWidth: 1,
     paddingHorizontal: 10,

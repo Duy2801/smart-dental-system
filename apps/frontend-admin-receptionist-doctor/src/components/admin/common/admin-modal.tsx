@@ -27,12 +27,8 @@ const sizes: Record<AdminModalSize, string> = {
   xl: "max-w-4xl",
 };
 
-const drawerSizes: Record<AdminModalSize, string> = {
-  sm: "max-w-lg",
-  md: "max-w-2xl",
-  lg: "max-w-3xl",
-  xl: "max-w-4xl",
-};
+// Mọi drawer dùng chung một chiều rộng (chuẩn theo drawer "Sửa nhân viên")
+const DRAWER_WIDTH = "max-w-2xl";
 
 export function AdminModal({
   children,
@@ -82,7 +78,7 @@ export function AdminModal({
         className={cn(
           "relative flex w-full flex-col overflow-hidden bg-white shadow-2xl ring-1 ring-slate-900/5",
           isDrawer
-            ? cn("h-full animate-drawer-in", drawerSizes[size])
+            ? cn("h-full animate-drawer-in", DRAWER_WIDTH)
             : cn("max-h-[92vh] animate-modal-in rounded-2xl", sizes[size]),
         )}
       >

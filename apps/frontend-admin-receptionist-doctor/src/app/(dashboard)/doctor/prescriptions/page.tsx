@@ -9,7 +9,6 @@ import {
   Pill,
   SpinnerGap,
   Warning,
-  CaretDown,
   CaretLeft,
   CaretRight,
   ArrowClockwise,
@@ -23,6 +22,7 @@ import {
   CheckCircle,
 } from "@phosphor-icons/react";
 import apiClient from "@/src/lib/api/client";
+import { AdminModal } from "@/src/components/admin/common";
 import { getDoctorInfoFromCookie } from "@/src/lib/doctor/session";
 
 type PrescriptionItem = {
@@ -151,6 +151,155 @@ function MonthYearFilter({
         </button>
       )}
     </div>
+  );
+}
+
+// Drawer xem chi tiết đơn thuốc
+function PrescriptionDetailDrawer({
+  rx,
+  doctorName,
+  onClose,
+  onEdit,
+  onPrint,
+  onSendEmail,
+  sendingEmail,
+}: {
+  rx: Prescription;
+  doctorName: string | null;
+  onClose: () => void;
+  onEdit: () => void;
+  onPrint: () => void;
+  onSendEmail: () => void;
+  sendingEmail: boolean;
+}) {
+  const doctorLabel = doctorName
+    ? doctorName.startsWith("BS")
+      ? doctorName
+      : `BS. ${doctorName}`
+    : "bác sĩ phụ trách";
+
+  return (
+    <AdminModal
+      variant="drawer"
+      size="md"
+      onClose={onClose}
+      icon={<Pill size={20} weight="duotone" />}
+      title="Chi tiết đơn thuốc"
+      description={`${rx.patientName} · ${rx.patientCode}`}
+      footer={
+        <>
+          <button
+            type="button"
+            disabled={sendingEmail}
+            onClick={onSendEmail}
+            className="inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-xl bg-brand px-4 text-sm font-bold text-white shadow-sm shadow-brand/25 transition-colors hover:bg-[#0084e0] disabled:opacity-50"
+          >
+            <PaperPlaneTilt
+              size={15}
+              weight="bold"
+              className={sendingEmail ? "animate-spin" : ""}
+            />
+            {sendingEmail ? "Đang gửi..." : "Gửi qua Gmail"}
+          </button>
+          <button
+            type="button"
+            onClick={onPrint}
+            className="inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-xl border border-border bg-white px-4 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+          >
+            <Printer size={15} /> In đơn
+          </button>
+          <button
+            type="button"
+            onClick={onEdit}
+            className="inline-flex h-10 cursor-pointer items-center gap-1.5 rounded-xl border border-border bg-white px-4 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+          >
+            <PencilSimple size={15} /> Sửa
+          </button>
+        </>
+      }
+    >
+      <div className="flex flex-col gap-5 pt-4">
+        <section className="rounded-2xl border border-slate-200/80 p-5">
+          <h4 className="mb-4 text-sm font-bold text-slate-900">
+            Thông tin chung
+          </h4>
+          <dl className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
+            <div>
+              <dt className="text-xs font-semibold text-slate-500">Bệnh nhân</dt>
+              <dd className="mt-1 font-medium text-slate-900">
+                {rx.patientName}
+                <span className="ml-1.5 font-mono text-xs text-muted-foreground">
+                  {rx.patientCode}
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs font-semibold text-slate-500">Ngày kê</dt>
+              <dd className="mt-1 font-medium text-slate-900">
+                {formatDateFull(rx.createdAt)}
+              </dd>
+            </div>
+            <div className="sm:col-span-2">
+              <dt className="text-xs font-semibold text-slate-500">Chẩn đoán</dt>
+              <dd className="mt-1 text-slate-700">{rx.diagnosis ?? "—"}</dd>
+            </div>
+            <div className="sm:col-span-2">
+              <dt className="text-xs font-semibold text-slate-500">Ghi chú</dt>
+              <dd className="mt-1 italic text-slate-600">{rx.notes ?? "—"}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section className="rounded-2xl border border-slate-200/80 p-5">
+          <h4 className="mb-4 text-sm font-bold text-slate-900">
+            Danh sách thuốc ({rx.items.length})
+          </h4>
+          <ul className="flex flex-col gap-3">
+            {rx.items.map((item, i) => (
+              <li
+                key={item.id}
+                className="rounded-xl border border-slate-200 bg-slate-50/60 p-4"
+              >
+                <p className="font-semibold text-slate-900">
+                  <span className="mr-1.5 text-xs text-muted-foreground">
+                    {i + 1}.
+                  </span>
+                  {item.medicineName}
+                </p>
+                <dl className="mt-2 grid grid-cols-1 gap-x-4 gap-y-1.5 text-xs sm:grid-cols-3">
+                  <div>
+                    <dt className="text-slate-500">Liều dùng</dt>
+                    <dd className="font-medium text-slate-700">{item.dosage}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-slate-500">Tần suất</dt>
+                    <dd className="font-medium text-slate-700">
+                      {item.frequency ?? "—"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-slate-500">Thời gian</dt>
+                    <dd className="font-medium text-slate-700">
+                      {item.duration ?? "—"}
+                    </dd>
+                  </div>
+                </dl>
+                {item.instruction && (
+                  <p className="mt-2 text-xs italic text-slate-500">
+                    {item.instruction}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <p className="text-xs italic text-muted-foreground">
+          Email gửi từ {doctorLabel} kèm liều dùng và chỉ dẫn an toàn khi sử
+          dụng thuốc.
+        </p>
+      </div>
+    </AdminModal>
   );
 }
 
@@ -368,7 +517,7 @@ export default function PrescriptionsPage() {
       : null,
   );
   const [fetchFailed, setFetchFailed] = useState(false);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [detailTarget, setDetailTarget] = useState<Prescription | null>(null);
 
   // Search, filter & pagination
   const [search, setSearch] = useState("");
@@ -472,7 +621,7 @@ export default function PrescriptionsPage() {
       setTotal((value) => Math.max(0, value - 1));
       if (prescriptions.length === 1 && page > 1) setPage((value) => value - 1);
       setDeleteTarget(null);
-      if (expandedId === deleteTarget.id) setExpandedId(null);
+      if (detailTarget?.id === deleteTarget.id) setDetailTarget(null);
       setToast({
         message: "Đã hủy đơn thuốc và lưu vào lịch sử!",
         type: "success",
@@ -496,6 +645,19 @@ export default function PrescriptionsPage() {
   return (
     <>
       {/* Modals */}
+      {detailTarget && (
+        <PrescriptionDetailDrawer
+          rx={detailTarget}
+          doctorName={doctorName}
+          onClose={() => setDetailTarget(null)}
+          onEdit={() =>
+            router.push(`/doctor/prescriptions/${detailTarget.id}/edit`)
+          }
+          onPrint={() => setPrintTarget(detailTarget)}
+          onSendEmail={() => handleSendEmail(detailTarget)}
+          sendingEmail={sendingId === detailTarget.id}
+        />
+      )}
       {deleteTarget && (
         <DeleteModal
           rx={deleteTarget}
@@ -644,25 +806,16 @@ export default function PrescriptionsPage() {
                       {paginated.map((rx) => (
                         <Fragment key={rx.id}>
                           <tr
-                            className="cursor-pointer border-b border-border/50 transition-colors hover:bg-slate-50/50"
-                            onClick={() =>
-                              setExpandedId((prev) =>
-                                prev === rx.id ? null : rx.id,
-                              )
-                            }
+                            className={`cursor-pointer border-b border-border/50 transition-colors hover:bg-slate-50/50 ${
+                              detailTarget?.id === rx.id ? "bg-brand/5" : ""
+                            }`}
+                            onClick={() => setDetailTarget(rx)}
                           >
                             <td className="pl-4 pr-0 py-4">
-                              {expandedId === rx.id ? (
-                                <CaretDown
-                                  size={13}
-                                  className="text-muted-foreground"
-                                />
-                              ) : (
-                                <CaretRight
-                                  size={13}
-                                  className="text-muted-foreground"
-                                />
-                              )}
+                              <CaretRight
+                                size={13}
+                                className="text-muted-foreground"
+                              />
                             </td>
                             <td className="px-5 py-4 text-muted-foreground">
                               {formatDate(rx.createdAt)}
@@ -739,103 +892,6 @@ export default function PrescriptionsPage() {
                             </td>
                           </tr>
 
-                          {expandedId === rx.id && (
-                            <tr className="border-b border-border/50 bg-slate-50/80">
-                              <td />
-                              <td colSpan={6} className="px-5 py-4">
-                                <div className="overflow-hidden rounded-xl border border-border bg-white p-4 space-y-3">
-                                  <table className="w-full text-sm">
-                                    <thead className="border-b border-border bg-slate-50 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                                      <tr>
-                                        <th className="px-4 py-2.5">#</th>
-                                        <th className="px-4 py-2.5">
-                                          Tên thuốc
-                                        </th>
-                                        <th className="px-4 py-2.5">
-                                          Liều dùng
-                                        </th>
-                                        <th className="px-4 py-2.5">
-                                          Tần suất
-                                        </th>
-                                        <th className="px-4 py-2.5">
-                                          Thời gian
-                                        </th>
-                                        <th className="px-4 py-2.5">
-                                          Hướng dẫn
-                                        </th>
-                                      </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-border/50">
-                                      {rx.items.map((item, i) => (
-                                        <tr key={item.id}>
-                                          <td className="px-4 py-2.5 text-xs text-muted-foreground">
-                                            {i + 1}
-                                          </td>
-                                          <td className="px-4 py-2.5 font-medium text-slate-900">
-                                            {item.medicineName}
-                                          </td>
-                                          <td className="px-4 py-2.5 text-muted-foreground">
-                                            {item.dosage}
-                                          </td>
-                                          <td className="px-4 py-2.5 text-muted-foreground">
-                                            {item.frequency ?? "—"}
-                                          </td>
-                                          <td className="px-4 py-2.5 text-muted-foreground">
-                                            {item.duration ?? "—"}
-                                          </td>
-                                          <td className="px-4 py-2.5 italic text-slate-500">
-                                            {item.instruction ?? "—"}
-                                          </td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
-
-                                  {/* Action bar inside expanded row */}
-                                  <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
-                                    <p className="text-xs text-muted-foreground italic">
-                                      💡 Email gửi từ{" "}
-                                      {doctorName
-                                        ? doctorName.startsWith("BS")
-                                          ? doctorName
-                                          : `BS. ${doctorName}`
-                                        : "bác sĩ phụ trách"}{" "}
-                                      kèm liều dùng và chỉ dẫn an toàn khi sử
-                                      dụng thuốc.
-                                    </p>
-                                    <div className="flex items-center gap-2">
-                                      <button
-                                        type="button"
-                                        disabled={sendingId === rx.id}
-                                        onClick={() => handleSendEmail(rx)}
-                                        className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 transition-colors hover:bg-emerald-100 disabled:opacity-50 cursor-pointer"
-                                      >
-                                        <PaperPlaneTilt
-                                          size={13}
-                                          weight="bold"
-                                          className={
-                                            sendingId === rx.id
-                                              ? "animate-spin"
-                                              : ""
-                                          }
-                                        />
-                                        {sendingId === rx.id
-                                          ? "Đang gửi..."
-                                          : "Gửi Toa thuốc qua Gmail cho BN"}
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => setPrintTarget(rx)}
-                                        className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-muted cursor-pointer"
-                                      >
-                                        <Printer size={13} /> In đơn
-                                      </button>
-                                    </div>
-                                  </div>
-                                </div>
-                              </td>
-                            </tr>
-                          )}
                         </Fragment>
                       ))}
                     </tbody>

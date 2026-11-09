@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  X,
+  CalendarCheck,
   Clock,
   User,
   Stethoscope,
@@ -14,6 +14,7 @@ import {
   ClockCounterClockwise,
   ArrowUpRight,
 } from "@phosphor-icons/react";
+import { AdminModal } from "@/src/components/admin/common";
 import { cn } from "@/src/lib/utils/cn";
 import { PatientAiBrief } from "@/src/components/doctor/patient-ai-brief";
 import apiClient from "@/src/lib/api/client";
@@ -133,20 +134,15 @@ export function AppointmentDetailPanel({
   }
 
   return (
-    <div className="flex h-[693px] w-72 shrink-0 flex-col overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
-      <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3">
-        <h3 className="text-sm font-semibold text-brand-dark">
-          Chi tiết lịch hẹn
-        </h3>
-        <button
-          onClick={onClose}
-          className="rounded-lg p-1 text-muted-foreground transition-colors hover:bg-muted"
-        >
-          <X size={16} />
-        </button>
-      </div>
-
-      <div className="min-h-0 flex-1 overflow-y-auto p-4 [scrollbar-color:theme(colors.slate.300)_transparent] [scrollbar-width:thin]">
+    <AdminModal
+      variant="drawer"
+      size="sm"
+      onClose={onClose}
+      icon={<CalendarCheck size={20} weight="duotone" />}
+      title="Chi tiết lịch hẹn"
+      description={`${apt.patientName} · ${apt.appointmentCode}`}
+    >
+      <div className="pt-4">
         <div className="flex flex-col gap-5">
           <span
             className={cn(
@@ -331,6 +327,6 @@ export function AppointmentDetailPanel({
           </div>
         </div>
       </div>
-    </div>
+    </AdminModal>
   );
 }

@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { RoleLayout } from "@/src/components/layout/role-layout";
+import { AdminToaster } from "@/src/components/admin/common/admin-toast";
 import { adminNavItems } from "@/src/components/layout/nav-config";
 import { ROLE_HOME, type Role } from "@/src/constants/roles";
 import { ROUTES } from "@/src/constants/routes";
@@ -25,6 +26,7 @@ export default async function AdminLayout({
   return (
     <RoleLayout title="Quản trị" items={adminNavItems}>
       {children}
+      <AdminToaster />
     </RoleLayout>
   );
 }

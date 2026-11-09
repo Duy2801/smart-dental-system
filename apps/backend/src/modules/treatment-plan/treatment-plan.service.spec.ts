@@ -67,6 +67,7 @@ describe('TreatmentPlanService', () => {
 
     service = new TreatmentPlanService(
       prismaMock,
+      { del: jest.fn().mockResolvedValue(undefined) } as any,
       eventsGatewayMock,
       mailQueueMock,
     );
