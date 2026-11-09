@@ -1,0 +1,120 @@
+# Đặt file này tại: .github/workflows/deploy-backend.yml
+# Mỗi lần push lên nhánh main có thay đổi ở backend -> SSH vào VM, pull code, build, migrate, restart pm2.
+
+name: Deploy Backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/backend/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/deploy-backend.yml"
+  workflow_dispatch: # cho phép bấm chạy tay trong tab Actions
+
+concurrency:
+  group: deploy-vm
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.0.0
+
+      - name: Cài dependency và build backend trên GitHub runner
+        run: |
+          pnpm install --frozen-lockfile --filter "backend..."
+          DATABASE_URL="postgresql://build:build@localhost:5432/build" pnpm --filter backend build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-build
+          path: |
+            apps/backend/dist/
+            apps/backend/prisma/generated/
+          if-no-files-found: error
+
+      - name: Tải build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-build
+          path: ./backend-build
+
+      - name: Cập nhật code trên VM
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST_BE }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            set -e
+            cd ~/smart-dental-system
+            git fetch origin main
+            git reset --hard origin/main
+
+      - name: Chép build lên VM
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST_BE }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          source: "backend-build/**"
+          target: "~/smart-dental-system/apps/backend"
+          strip_components: 1
+
+      - name: Deploy qua SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST_BE }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          command_timeout: 15m
+          script: |
+            set -e
+            cd ~/smart-dental-system
+
+            echo ">>> Cài dependency"
+            pnpm install --frozen-lockfile --filter "backend..."
+
+            echo ">>> Dùng build artifacts đã biên dịch trên GitHub runner"
+
+            echo ">>> Chạy migration database"
+            cd apps/backend
+            npx prisma migrate deploy
+
+            echo ">>> Khởi động app (start lần đầu, restart các lần sau)"
+            if pm2 describe dental-be >/dev/null 2>&1; then
+              pm2 restart dental-be --update-env
+            else
+              pm2 start dist/src/main.js --name dental-be --update-env
+            fi
+            pm2 save
+
+            echo ">>> Chờ app khởi động (tối đa 90 giây)"
+            for i in $(seq 1 30); do
+              if curl -fsS -o /dev/null http://localhost:3000/; then
+                echo ">>> Deploy thành công sau $((i*3)) giây"
+                exit 0
+              fi
+              sleep 3
+            done
+
+            echo ">>> App không khởi động được, log gần nhất:"
+            pm2 logs dental-be --lines 60 --nostream
+            exit 1
