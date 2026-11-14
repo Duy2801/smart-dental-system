@@ -52,7 +52,8 @@ export class ReportService {
       this.getAppointmentsChart(lastSevenDays),
       this.getRecentActivities(),
       this.getActionItems(),
-      this.getTodaySchedule(today),
+      // Lịch hẹn 7 ngày qua (gồm cả hôm nay), mới nhất trước
+      this.getTodaySchedule({ start: lastSevenDays[0].start, end: today.end }),
       this.getPopularServices(month),
       this.getReexamRate(lastSixMonths),
     ]);
@@ -352,8 +353,8 @@ export class ReportService {
           lt: range.end,
         },
       },
-      // Trả về toàn bộ lịch hôm nay, trang tổng quan tự phân trang
-      orderBy: { scheduledAt: 'asc' },
+      // Trả về toàn bộ lịch trong khoảng, trang tổng quan tự phân trang
+      orderBy: { scheduledAt: 'desc' },
       include: {
         patient: { include: { user: true } },
         creator: true,
@@ -386,6 +387,10 @@ export class ReportService {
 
     return appointments.map((appointment) => ({
       id: appointment.id,
+      date: appointment.scheduledAt.toLocaleDateString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+      }),
       start_time: this.formatTime(appointment.scheduledAt),
       end_time: this.formatTime(appointment.endAt),
       patient_name: appointment.patient?.fullName ?? appointment.patient?.user?.fullName ?? appointment.creator.fullName,

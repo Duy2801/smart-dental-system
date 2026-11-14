@@ -34,6 +34,8 @@ export type OverviewActionItem = {
 
 export type OverviewAppointment = {
   id: string;
+  /** Ngày hẹn dạng dd/MM */
+  date?: string;
   start_time: string;
   end_time: string;
   patient_name: string;

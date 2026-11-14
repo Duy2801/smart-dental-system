@@ -268,14 +268,14 @@ function TodaySchedule({
 
   return (
     <AdminCard
-      title="Lịch trình hôm nay"
-      description={`${appointments.length} lịch hẹn`}
+      title="Lịch hẹn 7 ngày qua"
+      description={`${appointments.length} lịch hẹn · mới nhất trước`}
       icon={<Clock size={18} weight="duotone" />}
     >
       {appointments.length === 0 ? (
         <AdminEmptyState
           icon={<CalendarBlank size={24} weight="duotone" />}
-          title="Hôm nay chưa có lịch hẹn nào"
+          title="7 ngày qua chưa có lịch hẹn nào"
         />
       ) : (
         <div className="relative ml-2 space-y-3 border-l-2 border-dashed border-slate-200 md:ml-3">
@@ -290,7 +290,10 @@ function TodaySchedule({
                 <span className="absolute -left-[7px] top-6 h-3 w-3 rounded-full border-2 border-white bg-brand shadow-sm" />
                 <div className="flex flex-col gap-3 rounded-xl border border-slate-100 bg-white p-4 transition-all hover:border-slate-200 hover:shadow-sm sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex min-w-0 items-center gap-4">
-                    <div className="shrink-0 rounded-lg bg-brand-light px-2.5 py-1.5 text-center">
+                    <div className="w-16 shrink-0 rounded-lg bg-brand-light px-2 py-1.5 text-center">
+                      {item.date ? (
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-brand/70">{item.date}</p>
+                      ) : null}
                       <p className="text-sm font-extrabold leading-tight text-brand">{item.start_time}</p>
                       <p className="text-[10px] font-semibold text-brand/70">{item.end_time}</p>
                     </div>
