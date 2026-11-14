@@ -48,6 +48,12 @@ export const apiResendOtp = async (email: string) => {
   return response.data.data;
 };
 
+/** Gửi email khôi phục mật khẩu — giống trang /auth/forgot-password trên web */
+export const apiForgotPassword = async (email: string) => {
+  const response = await api.post('/auth/forgot-password', { email });
+  return response.data;
+};
+
 export const apiLogout = () => api.post('/auth/logout');
 
 export const apiLoginWithGoogle = async ({

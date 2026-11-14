@@ -256,7 +256,11 @@ const LoginForm = ({
                 label="Mật khẩu"
                 labelAccessory={
                   showPatientActions ? (
-                    <TouchableOpacity onPress={() => {}}>
+                    <TouchableOpacity
+                      onPress={() =>
+                        navigation.navigate(SCREEN_NAME.FORGOT_PASSWORD)
+                      }
+                    >
                       <Text style={[styles.linkText, { color: accentColor }]}>
                         Quên mật khẩu?
                       </Text>

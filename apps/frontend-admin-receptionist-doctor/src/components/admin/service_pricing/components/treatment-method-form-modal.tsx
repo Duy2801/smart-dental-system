@@ -3,6 +3,7 @@
 import { useId, useRef, useState } from "react";
 import { CurrencyCircleDollar, Info, Stethoscope } from "@phosphor-icons/react";
 import {
+  AdminAiAssistBar,
   AdminButton,
   AdminFormSection,
   AdminImagePicker,
@@ -13,6 +14,7 @@ import {
   collapseSpaces,
   focusFirstError,
   hasErrors,
+  useAdminAiAssist,
   validateNumber,
   validateSlug,
   validateText,
@@ -84,6 +86,30 @@ export function TreatmentMethodFormModal({
   const [errors, setErrors] = useState<FieldErrors<MethodField>>({});
   const formRef = useRef<HTMLFormElement>(null);
 
+  const ai = useAdminAiAssist({
+    capture: () => ({ description: form.description, durationMinutes: form.durationMinutes }),
+    restore: (snapshot) => setForm((current) => ({ ...current, ...snapshot })),
+  });
+  const aiNameReady = collapseSpaces(form.name).length >= 2;
+
+  const handleAiGenerate = () =>
+    ai.generate(
+      {
+        kind: "treatment_method",
+        name: collapseSpaces(form.name),
+        category: service.category || undefined,
+        serviceName: service.name || undefined,
+      },
+      (suggestion) => {
+        setErrors((current) => ({ ...current, description: undefined, durationMinutes: undefined }));
+        setForm((current) => ({
+          ...current,
+          description: suggestion.description || current.description,
+          durationMinutes: suggestion.durationMinutes ?? current.durationMinutes,
+        }));
+      },
+    );
+
   const setField = <Key extends keyof TreatmentMethodFormItem>(
     key: Key,
     value: TreatmentMethodFormItem[Key]
@@ -152,6 +178,18 @@ export function TreatmentMethodFormModal({
               placeholder="implant-straumann"
             />
           </div>
+
+          <AdminAiAssistBar
+            description="Tự soạn mô tả phương pháp và thời lượng gợi ý. Giá tiền vẫn do bạn nhập."
+            disabled={!aiNameReady}
+            disabledHint="Nhập tên phương pháp để AI soạn nội dung."
+            loading={ai.loading}
+            hasResult={ai.hasResult}
+            canUndo={ai.canUndo}
+            error={ai.error}
+            onGenerate={() => void handleAiGenerate()}
+            onUndo={ai.undo}
+          />
 
           <AdminImagePicker
             label="Ảnh đại diện phương pháp"

@@ -54,6 +54,11 @@ export type AppointmentItem = {
   patientId?: string | null;
   patientName?: string | null;
   patientRelationship?: string | null;
+  patientCode?: string | null;
+  patientPhone?: string | null;
+  patientDateOfBirth?: string | null;
+  patientGender?: string | null;
+  notes?: string | null;
   doctorId: string;
   serviceId: string;
   treatmentMethodId?: string;

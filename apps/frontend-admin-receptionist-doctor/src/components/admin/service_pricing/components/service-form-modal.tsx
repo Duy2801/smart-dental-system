@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   CurrencyCircleDollar,
   Info,
@@ -12,6 +13,7 @@ import {
   Tooth,
 } from "@phosphor-icons/react";
 import {
+  AdminAiAssistBar,
   AdminButton,
   AdminFormSection,
   AdminIconButton,
@@ -23,11 +25,13 @@ import {
   collapseSpaces,
   focusFirstError,
   hasErrors,
+  useAdminAiAssist,
   validateNumber,
   validateSlug,
   validateText,
   type FieldErrors,
 } from "@/src/components/admin/common";
+import { getServices } from "../service-pricing-api";
 import { formatVND } from "../service-pricing-utils";
 import type { ServiceFormState, TreatmentMethod } from "../types";
 import { MAX_SERVICE_PRICE } from "./treatment-method-form-modal";
@@ -115,6 +119,95 @@ function Section({
   );
 }
 
+const NEW_CATEGORY_OPTION = "__new__";
+
+/** Chọn danh mục có sẵn, hoặc chuyển sang ô nhập để tạo danh mục mới */
+function CategoryField({
+  value,
+  error,
+  onChange,
+}: {
+  value: string;
+  error?: string;
+  onChange: (value: string) => void;
+}) {
+  const { data: services = [], isLoading } = useQuery({
+    queryKey: ["admin", "services", "all"],
+    queryFn: () => getServices({}),
+  });
+
+  const categories = useMemo(
+    () =>
+      Array.from(
+        new Set(services.map((service) => collapseSpaces(service.category ?? "")).filter(Boolean)),
+      ).sort((a, b) => a.localeCompare(b, "vi")),
+    [services],
+  );
+
+  const [creating, setCreating] = useState(false);
+  // Danh mục đang sửa không có trong danh sách (vd. vừa đổi tên) thì hiện ô nhập
+  const isCustomValue = Boolean(value) && !isLoading && !categories.includes(collapseSpaces(value));
+  const showInput = creating || isCustomValue || (!isLoading && categories.length === 0);
+
+  if (showInput) {
+    return (
+      <AdminInput
+        label="Danh mục mới"
+        required
+        autoFocus={creating}
+        maxLength={100}
+        error={error}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder="VD: Implant, Phục hình, Thẩm mỹ..."
+        hint={
+          categories.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => {
+                setCreating(false);
+                onChange("");
+              }}
+              className="font-semibold text-brand hover:underline"
+            >
+              ← Chọn từ danh mục có sẵn
+            </button>
+          ) : (
+            "Chưa có danh mục nào, hãy nhập danh mục đầu tiên."
+          )
+        }
+      />
+    );
+  }
+
+  return (
+    <AdminSelect
+      label="Danh mục"
+      required
+      error={error}
+      value={value}
+      disabled={isLoading}
+      hint={`${categories.length} danh mục có sẵn`}
+      onChange={(event) => {
+        if (event.target.value === NEW_CATEGORY_OPTION) {
+          setCreating(true);
+          onChange("");
+          return;
+        }
+        onChange(event.target.value);
+      }}
+    >
+      <option value="">{isLoading ? "Đang tải danh mục..." : "-- Chọn danh mục --"}</option>
+      {categories.map((category) => (
+        <option key={category} value={category}>
+          {category}
+        </option>
+      ))}
+      <option value={NEW_CATEGORY_OPTION}>+ Thêm danh mục mới</option>
+    </AdminSelect>
+  );
+}
+
 function ContentListSection({
   addLabel,
   items,
@@ -173,6 +266,34 @@ export function ServiceFormModal({
     setForm(initialValue);
     setErrors({});
   }, [initialValue]);
+
+  const ai = useAdminAiAssist({
+    capture: () => ({
+      shortDescription: form.shortDescription,
+      description: form.description,
+      pricingNote: form.pricingNote,
+      highlights: form.highlights,
+      durationMinutes: form.durationMinutes,
+    }),
+    restore: (snapshot) => setForm((current) => ({ ...current, ...snapshot })),
+  });
+  const aiNameReady = collapseSpaces(form.name).length >= 2;
+
+  const handleAiGenerate = () =>
+    ai.generate(
+      { kind: "service", name: collapseSpaces(form.name), category: collapseSpaces(form.category) || undefined },
+      (suggestion) => {
+        setErrors({});
+        setForm((current) => ({
+          ...current,
+          shortDescription: suggestion.shortDescription || current.shortDescription,
+          description: suggestion.description || current.description,
+          pricingNote: suggestion.pricingNote || current.pricingNote,
+          highlights: suggestion.highlights.length ? suggestion.highlights : current.highlights,
+          durationMinutes: suggestion.durationMinutes ?? current.durationMinutes,
+        }));
+      },
+    );
 
   const clearError = (key: string) =>
     setErrors((current) => (current[key] ? { ...current, [key]: undefined } : current));
@@ -358,14 +479,10 @@ export function ServiceFormModal({
       >
         <Section title="Thông tin dịch vụ (nhóm chính)" icon={<Info size={15} weight="bold" />}>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <AdminInput
-              label="Danh mục"
-              required
-              maxLength={100}
-              error={errors.category}
+            <CategoryField
               value={form.category}
-              onChange={(event) => setField("category", event.target.value)}
-              placeholder="VD: Implant, Phục hình, Thẩm mỹ..."
+              error={errors.category}
+              onChange={(value) => setField("category", value)}
             />
             <AdminInput
               label="Tên dịch vụ"
@@ -377,6 +494,18 @@ export function ServiceFormModal({
               placeholder="VD: Trồng răng Implant"
             />
           </div>
+
+          <AdminAiAssistBar
+            description="Tự soạn mô tả ngắn, mô tả chi tiết, ghi chú giá, điểm nổi bật và thời lượng gợi ý. Giá tiền vẫn do bạn nhập."
+            disabled={!aiNameReady}
+            disabledHint="Nhập tên dịch vụ để AI soạn nội dung."
+            loading={ai.loading}
+            hasResult={ai.hasResult}
+            canUndo={ai.canUndo}
+            error={ai.error}
+            onGenerate={() => void handleAiGenerate()}
+            onUndo={ai.undo}
+          />
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <AdminInput

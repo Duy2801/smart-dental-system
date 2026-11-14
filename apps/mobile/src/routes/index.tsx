@@ -10,6 +10,7 @@ import PatientLoginScreen from '~src/features/auth/login/patient/PatientLoginScr
 import DoctorLoginScreen from '~src/features/auth/login/doctor/DoctorLoginScreen';
 import RegisterScreen from '~src/features/auth/register/register';
 import VerifyEmailScreen from '~src/features/auth/verifyEmail/VerifyEmailScreen';
+import ForgotPasswordScreen from '~src/features/auth/forgotPassword/ForgotPasswordScreen';
 import PatientTabNavigator from './tabs/patient/PatientTabNavigator';
 import DoctorTabNavigator from './tabs/doctor/DoctorTabNavigator';
 import SupportChatScreen from '~src/features/support/SupportChatScreen';
@@ -25,6 +26,7 @@ function ApplicationNavigator() {
     { name: SCREEN_NAME.DOCTOR_LOGIN, component: DoctorLoginScreen },
     { name: SCREEN_NAME.REGISTER, component: RegisterScreen },
     { name: SCREEN_NAME.VERIFY_EMAIL, component: VerifyEmailScreen },
+    { name: SCREEN_NAME.FORGOT_PASSWORD, component: ForgotPasswordScreen },
     { name: SCREEN_NAME.PATIENT_HOME, component: PatientTabNavigator },
     { name: SCREEN_NAME.DOCTOR_HOME, component: DoctorTabNavigator },
   ];

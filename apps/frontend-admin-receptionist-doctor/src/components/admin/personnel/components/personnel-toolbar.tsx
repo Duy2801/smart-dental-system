@@ -1,6 +1,6 @@
 "use client";
 
-import { UserPlus, UsersThree } from "@phosphor-icons/react";
+import { ShieldCheck, UserPlus, UsersThree } from "@phosphor-icons/react";
 import {
   AdminButton,
   AdminFilterSelect,
@@ -11,6 +11,7 @@ import type { RoleFilter } from "../types";
 
 type PersonnelToolbarProps = {
   onCreate: () => void;
+  onViewPermissions: () => void;
   onRoleFilterChange: (role: RoleFilter) => void;
   onSearchChange: (search: string) => void;
   roleFilter: RoleFilter;
@@ -19,6 +20,7 @@ type PersonnelToolbarProps = {
 
 export function PersonnelToolbar({
   onCreate,
+  onViewPermissions,
   onRoleFilterChange,
   onSearchChange,
   roleFilter,
@@ -27,10 +29,16 @@ export function PersonnelToolbar({
   return (
     <AdminToolbar
       actions={
-        <AdminButton onClick={onCreate}>
-          <UserPlus size={17} weight="bold" />
-          Thêm nhân viên
-        </AdminButton>
+        <>
+          <AdminButton variant="secondary" onClick={onViewPermissions}>
+            <ShieldCheck size={17} weight="bold" />
+            Ma trận quyền
+          </AdminButton>
+          <AdminButton onClick={onCreate}>
+            <UserPlus size={17} weight="bold" />
+            Thêm nhân viên
+          </AdminButton>
+        </>
       }
     >
       <AdminSearchInput

@@ -10,9 +10,6 @@ Microservice Python (FastAPI). NestJS backend gọi service này qua HTTP nội 
 pnpm --filter ai-service setup
 ```
 
-Lệnh setup tự tải hai model Dental Pano từ Hugging Face nếu máy chưa có. Model
-được lưu tại `dental-pano-ai/models/` và không được commit lên Git. Bạn cũng có
-thể chạy riêng từ thư mục gốc:
 
 ```bash
 python download_models.py

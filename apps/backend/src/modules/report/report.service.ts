@@ -35,8 +35,6 @@ export class ReportService {
       newPatientsToday,
       newPatientsYesterday,
       activeDoctors,
-      averageRatingToday,
-      averageRatingYesterday,
       appointmentsLast7Days,
       recentActivities,
       actionItems,
@@ -51,8 +49,6 @@ export class ReportService {
       this.getPatientCount(today),
       this.getPatientCount(yesterday),
       this.prisma.doctor.count({ where: { isActive: true } }),
-      this.getAverageRating(today),
-      this.getAverageRating(yesterday),
       this.getAppointmentsChart(lastSevenDays),
       this.getRecentActivities(),
       this.getActionItems(),
@@ -94,15 +90,6 @@ export class ReportService {
           trend: 0,
           trendLabel: 'đang hoạt động',
           type: 'number',
-        },
-        {
-          label: 'Đánh giá trung bình',
-          value: averageRatingToday,
-          suffix: '*',
-          trend: Math.round((averageRatingToday - averageRatingYesterday) * 10),
-          trendLabel: 'điểm thang 10',
-          type: 'decimal',
-          isStar: true,
         },
       ],
       appointmentsLast7Days,
@@ -248,21 +235,6 @@ export class ReportService {
         },
       },
     });
-  }
-
-  private async getAverageRating(range: DateRange) {
-    const result = await this.prisma.review.aggregate({
-      where: {
-        createdAt: {
-          gte: range.start,
-          lt: range.end,
-        },
-        isVisible: true,
-      },
-      _avg: { rating: true },
-    });
-
-    return Number((result._avg.rating ?? 0).toFixed(1));
   }
 
   private async getAppointmentsChart(ranges: DateRange[]) {

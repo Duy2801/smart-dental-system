@@ -3,7 +3,6 @@
 import { useId, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  ArrowsClockwise,
   CalendarBlank,
   CurrencyCircleDollar,
   Globe,
@@ -17,6 +16,7 @@ import {
   type Icon,
 } from "@phosphor-icons/react";
 import {
+  AdminAiAssistBar,
   AdminButton,
   AdminFormSection,
   AdminImagePicker,
@@ -28,6 +28,7 @@ import {
   focusFirstError,
   hasErrors,
   todayISODate,
+  useAdminAiAssist,
   validateNumber,
   validateText,
   type FieldErrors,
@@ -83,7 +84,7 @@ export function PromoFormModal({
     queryFn: () => getServices({}),
   });
 
-  const [code, setCode] = useState(() => initialValue?.code ?? generateVoucherCode());
+  const [code] = useState(() => initialValue?.code ?? generateVoucherCode());
   const [name, setName] = useState(initialValue?.name ?? "");
   const [description, setDescription] = useState(initialValue?.description ?? "");
   const [discountType, setDiscountType] = useState<DiscountType>(
@@ -271,6 +272,39 @@ export function PromoFormModal({
       ? `Giảm ${numericPreview}%`
       : `Giảm ${numericPreview.toLocaleString("vi-VN")}đ`;
 
+  const ai = useAdminAiAssist({
+    capture: () => description,
+    restore: setDescription,
+  });
+  const aiNameReady = collapseSpaces(name).length >= 3;
+
+  const buildPromotionContext = () => {
+    const scopeLabel =
+      scopeType === "SERVICE"
+        ? `nhóm dịch vụ ${services.find((s) => s.slug === selectedServiceSlug)?.name ?? "được chọn"}`
+        : scopeType === "METHOD"
+          ? `phương pháp ${allTreatmentMethods.find((m) => m.id === selectedMethodId)?.name ?? "được chọn"}`
+          : "toàn bộ dịch vụ";
+    const minOrder = Number(minOrderAmount) || 0;
+    const formatDate = (value: string) => (value ? value.split("-").reverse().join("/") : "");
+    return [
+      numericPreview > 0 ? `Mức ưu đãi: ${discountPreview}` : null,
+      minOrder > 0 ? `Áp dụng cho đơn từ ${minOrder.toLocaleString("vi-VN")}đ` : null,
+      `Phạm vi: ${scopeLabel}`,
+      startDate && endDate ? `Thời gian: ${formatDate(startDate)} đến ${formatDate(endDate)}` : null,
+    ]
+      .filter(Boolean)
+      .join(". ");
+  };
+
+  const handleAiGenerate = () =>
+    ai.generate(
+      { kind: "promotion", name: collapseSpaces(name), promotionContext: buildPromotionContext() },
+      (suggestion) => {
+        if (suggestion.description) withClear("description", setDescription)(suggestion.description);
+      },
+    );
+
   return (
     <AdminModal
       title={isEditing ? `Sửa voucher ${initialValue?.code}` : "Tạo voucher khuyến mãi mới"}
@@ -299,24 +333,14 @@ export function PromoFormModal({
       <form id={formId} ref={formRef} noValidate className="mt-4 flex flex-col gap-4" onSubmit={handleSubmit}>
         <AdminFormSection title="Thông tin chương trình" icon={<Ticket size={15} weight="bold" />}>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="flex flex-col gap-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[13px] font-semibold text-slate-700">
-                  Mã voucher <span className="text-rose-500">*</span>
-                </span>
-                <span
-                  className={cn(
-                    "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-bold",
-                    isEditing
-                      ? "border-slate-200 bg-slate-100 text-slate-600"
-                      : "border-emerald-200 bg-emerald-50 text-emerald-700",
-                  )}
-                >
-                  {!isEditing ? <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> : null}
-                  {isEditing ? "Mã cố định" : "Tự động sinh"}
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5">
+            {isEditing ? (
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[13px] font-semibold text-slate-700">Mã voucher</span>
+                  <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[11px] font-bold text-slate-600">
+                    Mã cố định
+                  </span>
+                </div>
                 <input
                   type="text"
                   readOnly
@@ -324,24 +348,9 @@ export function PromoFormModal({
                   value={code}
                   className="h-11 w-full min-w-0 cursor-default select-all rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3.5 font-mono text-sm font-bold uppercase tracking-wider text-slate-900 outline-none"
                 />
-                {!isEditing ? (
-                  <button
-                    type="button"
-                    onClick={() => setCode(generateVoucherCode())}
-                    title="Sinh lại mã khác"
-                    aria-label="Sinh lại mã voucher khác"
-                    className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 transition-colors hover:border-brand/30 hover:bg-brand-light hover:text-brand"
-                  >
-                    <ArrowsClockwise size={16} weight="bold" />
-                  </button>
-                ) : null}
+                <p className="text-xs text-slate-500">Mã voucher cố định, không thể thay đổi sau khi đã tạo.</p>
               </div>
-              <p className="text-xs text-slate-500">
-                {isEditing
-                  ? "Mã voucher cố định, không thể thay đổi sau khi đã tạo."
-                  : "Mã được hệ thống tự động sinh, không cần nhập tay."}
-              </p>
-            </div>
+            ) : null}
             <AdminInput
               label="Giới hạn số lượt dùng"
               type="number"
@@ -370,6 +379,18 @@ export function PromoFormModal({
             error={errors.name}
             onChange={(e) => withClear("name", setName)(e.target.value)}
             placeholder="VD: Giảm giá niềng răng chào hè 2026"
+          />
+
+          <AdminAiAssistBar
+            description="Tự soạn mô tả chương trình dựa trên tên, mức giảm, phạm vi và thời gian bạn đã chọn. Nên chọn mức giảm & phạm vi trước để mô tả chính xác hơn."
+            disabled={!aiNameReady}
+            disabledHint="Nhập tên chương trình để AI soạn mô tả."
+            loading={ai.loading}
+            hasResult={ai.hasResult}
+            canUndo={ai.canUndo}
+            error={ai.error}
+            onGenerate={() => void handleAiGenerate()}
+            onUndo={ai.undo}
           />
 
           <TextareaField

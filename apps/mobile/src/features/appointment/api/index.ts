@@ -80,6 +80,8 @@ type AppointmentDto = {
   status: string;
   paymentOption?: string;
   paymentStatus?: string;
+  notes?: string | null;
+  createdBy?: string | null;
   doctor: {
     user: {
       fullName: string;
@@ -88,14 +90,17 @@ type AppointmentDto = {
   patient?: {
     id: string;
     fullName?: string | null;
+    patientCode?: string | null;
     phone?: string | null;
     email?: string | null;
+    dateOfBirth?: string | null;
+    gender?: string | null;
     user?: {
       fullName: string;
       phone?: string | null;
       email?: string | null;
     } | null;
-    patientAccounts?: Array<{ relationship: string }>;
+    patientAccounts?: Array<{ userId?: string; relationship: string }>;
   } | null;
   service: {
     name: string;
@@ -164,7 +169,16 @@ const mapAppointment = (item: AppointmentDto): AppointmentItem => {
     patientId: item.patientId ?? item.patient?.id ?? null,
     patientName,
     patientRelationship:
-      item.patient?.patientAccounts?.[0]?.relationship ?? null,
+      (
+        item.patient?.patientAccounts?.find(
+          account => account.userId && account.userId === item.createdBy,
+        ) ?? item.patient?.patientAccounts?.[0]
+      )?.relationship ?? null,
+    patientCode: item.patient?.patientCode ?? null,
+    patientPhone: item.patient?.phone ?? item.patient?.user?.phone ?? null,
+    patientDateOfBirth: item.patient?.dateOfBirth ?? null,
+    patientGender: item.patient?.gender ?? null,
+    notes: item.notes ?? null,
     doctorId: item.doctorId,
     serviceId: item.serviceId,
     treatmentMethodId:

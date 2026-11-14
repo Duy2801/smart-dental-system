@@ -17,6 +17,8 @@ export type AiChatHistoryItem = {
 
 export type AiChatResponse = {
   data?: AiChatResponse;
+  /** Trạng thái đặt lịch (bookingState, form...) — phải gửi lại trong history như web */
+  metadata?: Record<string, unknown>;
   reply?: string;
   suggestions?: AiChatSuggestion[];
 };
@@ -41,6 +43,7 @@ const unwrapChatResponse = (payload: unknown): AiChatResponse => {
   return {
     reply: data?.reply || anyPayload?.reply || '',
     suggestions: data?.suggestions || anyPayload?.suggestions || [],
+    metadata: data?.metadata || anyPayload?.metadata || {},
     data,
   };
 };

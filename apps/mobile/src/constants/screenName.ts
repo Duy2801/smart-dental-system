@@ -5,6 +5,7 @@ export const SCREEN_NAME = {
   DOCTOR_LOGIN: 'DoctorLogin',
   REGISTER: 'Register',
   VERIFY_EMAIL: 'VerifyEmail',
+  FORGOT_PASSWORD: 'ForgotPassword',
   PATIENT_HOME: 'PatientHome',
   DOCTOR_HOME: 'DoctorHome',
   HOME: 'Home',

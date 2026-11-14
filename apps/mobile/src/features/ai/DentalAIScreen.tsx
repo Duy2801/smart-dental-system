@@ -23,6 +23,13 @@ import {
   type AiChatHistoryItem,
   type AiChatSuggestion,
 } from './api';
+import {
+  GENDER_OPTIONS,
+  PatientInfoForm,
+  RELATIONSHIP_OPTIONS,
+  type PatientFormDefaults,
+  type PatientFormValues,
+} from './PatientInfoForm';
 
 type DentalAIScreenProps = {
   onDismiss?: () => void;
@@ -46,6 +53,18 @@ const quickSuggestions = [
 // Khách chưa đăng nhập vẫn chat bình thường; AI chỉ yêu cầu đăng nhập khi đặt lịch.
 const isLoginRequiredReply = (text: string) =>
   text.toLowerCase().includes('vui lòng đăng nhập');
+
+type NewPatientForm = { type: 'new_patient'; defaults?: PatientFormDefaults };
+
+const getNewPatientForm = (message: ChatMessage): NewPatientForm | null => {
+  const form = message.metadata?.form as NewPatientForm | undefined;
+  return form?.type === 'new_patient' ? form : null;
+};
+
+const formatDateVi = (value: string) => {
+  const [year, month, day] = value.split('-');
+  return year && month && day ? `${day}/${month}/${year}` : value;
+};
 
 const initialMessages: ChatMessage[] = [
   {
@@ -101,7 +120,8 @@ export default function DentalAIScreen({ onDismiss }: DentalAIScreenProps) {
       setInput('');
       setLoading(true);
 
-      const history: AiChatHistoryItem[] = messages.slice(-8).map(item => ({
+      // Giống web: history gồm cả tin nhắn vừa gửi
+      const history: AiChatHistoryItem[] = nextMessages.slice(-8).map(item => ({
         content: item.text,
         metadata: item.metadata || {},
         role: item.sender === 'user' ? 'user' : 'assistant',
@@ -119,6 +139,11 @@ export default function DentalAIScreen({ onDismiss }: DentalAIScreenProps) {
           ...current,
           {
             id: nextMessageId(),
+            metadata:
+              response.metadata ||
+              response.data?.metadata ||
+              response.data?.data?.metadata ||
+              {},
             sender: 'bot',
             suggestions:
               response.suggestions ||
@@ -147,6 +172,48 @@ export default function DentalAIScreen({ onDismiss }: DentalAIScreenProps) {
     },
     [isLoggedIn, loading, messages, nextMessageId],
   );
+
+  const submitPatientForm = (
+    message: ChatMessage,
+    values: PatientFormValues,
+  ) => {
+    const previousState =
+      (message.metadata?.bookingState as Record<string, unknown> | undefined) ??
+      {};
+    const patientFields = {
+      creatingNewPatient: true,
+      newPatientName: values.fullName,
+      newPatientPhone: values.phone || null,
+      newPatientDob: values.dateOfBirth || null,
+      newPatientGender: values.gender || null,
+      newPatientRelationship: values.relationship,
+    };
+    const relationshipLabel =
+      RELATIONSHIP_OPTIONS.find(option => option.value === values.relationship)
+        ?.label ?? '';
+    const genderLabel = values.gender
+      ? GENDER_OPTIONS.find(option => option.value === values.gender)?.label
+      : '';
+    const summary = [
+      values.fullName,
+      relationshipLabel,
+      genderLabel,
+      values.dateOfBirth ? `Sinh ${formatDateVi(values.dateOfBirth)}` : '',
+      values.phone ? `SĐT ${values.phone}` : '',
+    ]
+      .filter(Boolean)
+      .join(' · ');
+
+    handleSendMessage(`Thông tin người khám: ${summary}`, {
+      ...patientFields,
+      patientFormSubmitted: true,
+      bookingState: { ...previousState, ...patientFields },
+    });
+  };
+
+  const lastBotMessageId = [...messages]
+    .reverse()
+    .find(item => item.sender === 'bot')?.id;
 
   const renderSuggestion = (
     suggestion: AiChatSuggestion,
@@ -195,6 +262,15 @@ export default function DentalAIScreen({ onDismiss }: DentalAIScreenProps) {
             {item.text}
           </Text>
         </View>
+
+        {isBot && item.id === lastBotMessageId && getNewPatientForm(item) ? (
+          <PatientInfoForm
+            key={item.id}
+            defaults={getNewPatientForm(item)?.defaults}
+            disabled={loading}
+            onSubmit={values => submitPatientForm(item, values)}
+          />
+        ) : null}
 
         {isBot && item.suggestions?.length ? (
           <View style={styles.suggestionWrap}>
@@ -281,7 +357,7 @@ export default function DentalAIScreen({ onDismiss }: DentalAIScreenProps) {
               <View style={styles.headerOnlineDot} />
             </View>
             <View style={styles.headerTextCol}>
-              <Text style={styles.headerTitle}>Trợ lý AI Đặt Lịch</Text>
+              <Text style={styles.headerTitle}>Trợ lý AI</Text>
               <View style={styles.statusRow}>
                 <View style={styles.statusDot} />
                 <Text style={styles.headerSubtitle}>

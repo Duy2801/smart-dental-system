@@ -8,7 +8,9 @@ import {
   View,
 } from 'react-native';
 import { Text } from 'react-native-paper';
+import { useSelector } from 'react-redux';
 import { SheetBottomInset } from '~src/components/ui';
+import type { RootState } from '~src/reducers/store';
 import { formatCurrency, formatTimeRange } from '../../api';
 import type { AppointmentItem } from '../../types';
 import type { AppointmentInvoice } from '../../utils/appointmentFinancials';
@@ -18,6 +20,39 @@ import {
   PAYMENT_STATE_META,
   formatDateTime,
 } from './AppointmentInvoiceSheet';
+
+const RELATIONSHIP_LABELS: Record<string, string> = {
+  SELF: 'Bản thân',
+  CHILD: 'Con',
+  FATHER: 'Cha',
+  MOTHER: 'Mẹ',
+  OTHER: 'Người thân',
+};
+
+const GENDER_LABELS: Record<string, string> = {
+  MALE: 'Nam',
+  FEMALE: 'Nữ',
+  OTHER: 'Khác',
+};
+
+/** "2018-02-01..." -> "01/02/2018 (8 tuổi)" */
+function formatBirthDate(value: string) {
+  const [year, month, day] = value.slice(0, 10).split('-').map(Number);
+  if (!year || !month || !day) return value;
+  const today = new Date();
+  let age = today.getFullYear() - year;
+  if (
+    today.getMonth() + 1 < month ||
+    (today.getMonth() + 1 === month && today.getDate() < day)
+  ) {
+    age -= 1;
+  }
+  const dateLabel = `${String(day).padStart(2, '0')}/${String(month).padStart(
+    2,
+    '0',
+  )}/${year}`;
+  return age >= 0 ? `${dateLabel} (${age} tuổi)` : dateLabel;
+}
 
 type AppointmentDetailModalProps = {
   appointment: AppointmentItem | null;
@@ -35,6 +70,9 @@ export function AppointmentDetailModal({
 }: AppointmentDetailModalProps) {
   const [selectedInvoice, setSelectedInvoice] =
     useState<AppointmentInvoice | null>(null);
+  const bookerName = useSelector(
+    (state: RootState) => state.login?.user?.fullName ?? null,
+  );
 
   if (!appointment) return null;
 
@@ -130,16 +168,47 @@ export function AppointmentDetailModal({
       value: timeRange,
       hint: appointment.date,
     },
-    {
-      label: 'Bệnh nhân',
-      value: appointment.patientName || '—',
-      hint: appointment.patientRelationship,
-    },
     { label: 'Bác sĩ', value: appointment.doctor || '—' },
     {
       label: 'Thời lượng dự kiến',
       value: `${appointment.durationMinutes || 30} phút`,
     },
+  ];
+
+  // Người khám — giống web: có thể là bản thân hoặc người thân do tài khoản này đặt
+  const relationship = appointment.patientRelationship || 'SELF';
+  const isForRelative = relationship !== 'SELF';
+  const patientRows: Array<{ label: string; value: string }> = [
+    { label: 'Họ và tên', value: appointment.patientName || '—' },
+    {
+      label: 'Quan hệ',
+      value: RELATIONSHIP_LABELS[relationship] ?? 'Người thân',
+    },
+    ...(appointment.patientCode
+      ? [{ label: 'Mã bệnh nhân', value: appointment.patientCode }]
+      : []),
+    ...(appointment.patientDateOfBirth
+      ? [
+          {
+            label: 'Ngày sinh',
+            value: formatBirthDate(appointment.patientDateOfBirth),
+          },
+        ]
+      : []),
+    ...(appointment.patientGender && GENDER_LABELS[appointment.patientGender]
+      ? [
+          {
+            label: 'Giới tính',
+            value: GENDER_LABELS[appointment.patientGender],
+          },
+        ]
+      : []),
+    ...(appointment.patientPhone
+      ? [{ label: 'Số điện thoại', value: appointment.patientPhone }]
+      : []),
+    ...(isForRelative && bookerName
+      ? [{ label: 'Người đặt lịch', value: bookerName }]
+      : []),
   ];
 
   return (
@@ -243,6 +312,36 @@ export function AppointmentDetailModal({
                     </View>
                   </View>
                 ))}
+              </View>
+
+              {/* Người khám */}
+              <View>
+                <View style={styles.patientHeadingRow}>
+                  <Text style={styles.sectionLabel}>Người khám</Text>
+                  {isForRelative ? (
+                    <View style={styles.relativeBadge}>
+                      <Text style={styles.relativeBadgeText}>
+                        Đặt cho người thân
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
+                <View style={styles.infoTable}>
+                  {patientRows.map((row, index) => (
+                    <View
+                      key={row.label}
+                      style={[
+                        styles.infoRow,
+                        index > 0 ? styles.infoRowDivider : null,
+                      ]}
+                    >
+                      <Text style={styles.infoLabel}>{row.label}</Text>
+                      <View style={styles.infoValueCol}>
+                        <Text style={styles.infoValue}>{row.value}</Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
               </View>
 
               {/* Hóa đơn (chỉ khi đã khám xong) */}
@@ -528,6 +627,25 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 1,
     textAlign: 'right',
+  },
+  patientHeadingRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  relativeBadge: {
+    backgroundColor: '#F5F3FF',
+    borderColor: '#DDD6FE',
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  relativeBadgeText: {
+    color: '#6D28D9',
+    fontSize: 10,
+    fontWeight: '700',
   },
   invoiceList: {
     gap: 8,

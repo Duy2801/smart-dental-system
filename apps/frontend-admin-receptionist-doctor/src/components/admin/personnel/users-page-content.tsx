@@ -14,6 +14,7 @@ import {
 } from "./personnel-api";
 import { getErrorMessage, toStaffFormState } from "./personnel-utils";
 import { PersonnelToolbar } from "./components/personnel-toolbar";
+import { RolePermissionMatrixView } from "./components/role-permission-matrix-view";
 import { StaffList } from "./components/staff-list";
 import { StaffModal } from "./components/staff-modal";
 import type {
@@ -33,6 +34,7 @@ export function UsersPageContent() {
   const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState<StaffUser | null>(null);
+  const [showPermissions, setShowPermissions] = useState(false);
 
   const { data, isLoading: loading } = useQuery({
     queryKey: queryKeys.admin.personnel(roleFilter, search, page),
@@ -162,6 +164,14 @@ export function UsersPageContent() {
     }
   };
 
+  if (showPermissions) {
+    return (
+      <div className="p-6 md:p-8">
+        <RolePermissionMatrixView onBack={() => setShowPermissions(false)} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 p-6 md:p-8">
       <PersonnelToolbar
@@ -170,6 +180,7 @@ export function UsersPageContent() {
         onSearchChange={handleSearchChange}
         onRoleFilterChange={handleRoleFilterChange}
         onCreate={openCreateModal}
+        onViewPermissions={() => setShowPermissions(true)}
       />
 
       <AdminAlert message={error} />

@@ -26,6 +26,16 @@ import {
 import { SummarizePatientDto } from './dto/summarize-patient.dto';
 import { ReviewPatientAiBriefDto } from './dto/review-patient-ai-brief.dto';
 import { ReceptionistChatDto } from './dto/receptionist-chat.dto';
+import { SuggestAdminContentDto } from './dto/suggest-admin-content.dto';
+
+type AiAdminContentResponse = {
+  short_description?: string;
+  description?: string;
+  pricing_note?: string;
+  highlights?: Array<{ title: string; description?: string; icon?: string }>;
+  duration_minutes?: number | null;
+  disclaimer?: string;
+};
 
 type AiSummarizeResponse = {
   bullet_points: string[];
@@ -724,6 +734,36 @@ export class AiService {
       throw new BadRequestException('AI không trả về nội dung hợp lệ');
     }
     return { reply: result.reply.trim() };
+  }
+
+  async suggestAdminContent(user: AuthenticatedUser, dto: SuggestAdminContentDto) {
+    this.rateLimit.consume(`admin-content:${user.userId}`);
+    const raw = await this.aiClient.post<AiAdminContentResponse>(
+      '/api/v1/admin/suggest-content',
+      {
+        kind: dto.kind,
+        name: dto.name.trim(),
+        category: dto.category?.trim() || undefined,
+        service_name: dto.serviceName?.trim() || undefined,
+        promotion_context: dto.promotionContext?.trim() || undefined,
+        locale: 'vi',
+      },
+    );
+    if (!raw || typeof raw !== 'object') {
+      throw new BadRequestException('AI không trả về nội dung hợp lệ');
+    }
+    return {
+      shortDescription: raw.short_description ?? '',
+      description: raw.description ?? '',
+      pricingNote: raw.pricing_note ?? '',
+      highlights: (raw.highlights ?? []).map((item) => ({
+        title: item.title,
+        description: item.description ?? '',
+        icon: item.icon ?? 'shield',
+      })),
+      durationMinutes: raw.duration_minutes ?? null,
+      disclaimer: raw.disclaimer ?? '',
+    };
   }
 
   async summarizePatient(user: AuthenticatedUser, dto: SummarizePatientDto) {

@@ -69,4 +69,74 @@ describe("admin overview today schedule", () => {
     expect(screen.getByText("Patient FUTURE_STATUS")).toBeInTheDocument();
     expect(screen.getByText("FUTURE_STATUS")).toBeInTheDocument();
   });
+
+  it("hides average rating cards and renders the 4 remaining stat cards", () => {
+    vi.mocked(useQuery).mockReturnValue({
+      data: {
+        ...dashboard,
+        statCards: [
+          {
+            label: "Doanh thu hôm nay",
+            value: 0,
+            suffix: "đ",
+            trend: 0,
+            trendLabel: "so với hôm qua",
+            type: "currency",
+          },
+          {
+            label: "Lịch khám hôm nay",
+            value: 0,
+            suffix: "ca",
+            trend: 0,
+            trendLabel: "so với hôm qua",
+            type: "number",
+          },
+          {
+            label: "Bệnh nhân mới",
+            value: 0,
+            suffix: "người",
+            trend: 0,
+            trendLabel: "so với hôm qua",
+            type: "number",
+          },
+          {
+            label: "Bác sĩ hoạt động",
+            value: 9,
+            suffix: "người",
+            trend: 0,
+            trendLabel: "đang hoạt động",
+            type: "number",
+          },
+          {
+            label: "Đánh giá trung bình",
+            value: 0,
+            suffix: "*",
+            trend: 0,
+            trendLabel: "điểm thang 10",
+            type: "decimal",
+          },
+          {
+            label: "Đánh giá sao",
+            value: 4.5,
+            suffix: "*",
+            trend: 0,
+            trendLabel: "điểm thang 10",
+            type: "decimal",
+            isStar: true,
+          },
+        ],
+      },
+      isLoading: false,
+      isError: false,
+    } as ReturnType<typeof useQuery>);
+
+    render(<OverviewPageContent />);
+
+    expect(screen.getByText("Doanh thu hôm nay")).toBeInTheDocument();
+    expect(screen.getByText("Lịch khám hôm nay")).toBeInTheDocument();
+    expect(screen.getByText("Bệnh nhân mới")).toBeInTheDocument();
+    expect(screen.getByText("Bác sĩ hoạt động")).toBeInTheDocument();
+    expect(screen.queryByText("Đánh giá trung bình")).not.toBeInTheDocument();
+    expect(screen.queryByText("Đánh giá sao")).not.toBeInTheDocument();
+  });
 });

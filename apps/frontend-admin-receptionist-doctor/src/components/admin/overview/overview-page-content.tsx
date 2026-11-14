@@ -12,7 +12,6 @@ import {
   CaretRight,
   CheckCircle,
   Clock,
-  Star,
   Stethoscope,
   Tooth,
   UserPlus,
@@ -100,6 +99,11 @@ export function OverviewPageContent() {
     year: "numeric",
   });
 
+  const visibleStatCards =
+    dashboard?.statCards.filter(
+      (stat) => !stat.isStar && stat.label !== "Đánh giá trung bình",
+    ) ?? [];
+
   return (
     <>
       <Header title="Tổng quan quản lý" description={currentDate} />
@@ -107,7 +111,7 @@ export function OverviewPageContent() {
       <div className="space-y-6 p-4 sm:p-6 lg:p-8">
         {isLoading ? (
           <div className="space-y-6">
-            <SkeletonCardGrid count={5} />
+            <SkeletonCardGrid count={4} />
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
               <div className="lg:col-span-2">
                 <SkeletonChart />
@@ -128,8 +132,8 @@ export function OverviewPageContent() {
 
         {!isLoading && dashboard ? (
           <>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-              {dashboard.statCards.map((stat, index) => (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              {visibleStatCards.map((stat, index) => (
                 <OverviewStat key={stat.label} stat={stat} index={index} />
               ))}
             </div>
@@ -154,15 +158,14 @@ const statTones = [
   { icon: "bg-emerald-50 text-emerald-600", bar: "bg-emerald-500" },
   { icon: "bg-violet-50 text-violet-600", bar: "bg-violet-500" },
   { icon: "bg-sky-50 text-sky-600", bar: "bg-sky-500" },
-  { icon: "bg-amber-50 text-amber-600", bar: "bg-amber-500" },
 ];
 
-const statIcons: Icon[] = [CalendarCheck, UsersThree, UserPlus, Tooth, Stethoscope];
+const statIcons: Icon[] = [CalendarCheck, UsersThree, UserPlus, Tooth];
 
 function OverviewStat({ stat, index }: { stat: OverviewStatCard; index: number }) {
   const isPositive = stat.trend >= 0;
-  const tone = stat.isStar ? statTones[4] : statTones[index % statTones.length];
-  const StatIcon = stat.isStar ? Star : stat.type === "currency" ? Wallet : statIcons[index % statIcons.length];
+  const tone = statTones[index % statTones.length];
+  const StatIcon = stat.type === "currency" ? Wallet : statIcons[index % statIcons.length];
 
   return (
     <div className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-md">
@@ -170,14 +173,14 @@ function OverviewStat({ stat, index }: { stat: OverviewStatCard; index: number }
       <div className="flex items-start justify-between gap-3">
         <p className="text-[13px] font-semibold text-slate-500">{stat.label}</p>
         <span className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-xl", tone.icon)}>
-          <StatIcon size={20} weight={stat.isStar ? "fill" : "duotone"} />
+          <StatIcon size={20} weight="duotone" />
         </span>
       </div>
       <div className="mt-1 flex items-baseline gap-1.5">
         <p className="text-[28px] font-extrabold leading-none tracking-tight text-slate-900">
           {formatStatValue(stat)}
         </p>
-        <span className={cn("text-sm font-bold", stat.isStar ? "text-amber-500" : "text-slate-400")}>
+        <span className="text-sm font-bold text-slate-400">
           {stat.suffix}
         </span>
       </div>
@@ -371,14 +374,6 @@ function TodaySchedule({
 }
 
 function formatStatValue(stat: OverviewStatCard) {
-  if (stat.type === "currency") {
-    return new Intl.NumberFormat("vi-VN").format(stat.value);
-  }
-
-  if (stat.type === "decimal") {
-    return stat.value.toFixed(1);
-  }
-
   return new Intl.NumberFormat("vi-VN").format(stat.value);
 }
 
