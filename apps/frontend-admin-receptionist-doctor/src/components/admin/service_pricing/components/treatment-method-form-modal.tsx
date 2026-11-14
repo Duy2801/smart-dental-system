@@ -16,20 +16,18 @@ import {
   hasErrors,
   useAdminAiAssist,
   validateNumber,
-  validateSlug,
   validateText,
   type FieldErrors,
 } from "@/src/components/admin/common";
 import type { DentalService, TreatmentMethod, TreatmentMethodFormItem } from "../types";
 
-type MethodField = "name" | "slug" | "description" | "basePrice" | "durationMinutes";
+type MethodField = "name" | "description" | "basePrice" | "durationMinutes";
 
 export const MAX_SERVICE_PRICE = 1_000_000_000;
 
 function validateMethodForm(form: TreatmentMethodFormItem): FieldErrors<MethodField> {
   return {
     name: validateText(form.name, { label: "Tên phương pháp", required: true, min: 2, max: 150 }),
-    slug: validateSlug(form.slug ?? ""),
     description: validateText(form.description ?? "", { label: "Mô tả", max: 2000 }),
     basePrice: validateNumber(form.basePrice, { label: "Giá cơ bản", min: 0, max: MAX_SERVICE_PRICE, unit: "đ" }),
     durationMinutes: validateNumber(form.durationMinutes, { label: "Thời lượng", min: 5, max: 600, unit: "phút" }),
@@ -159,25 +157,21 @@ export function TreatmentMethodFormModal({
         }}
       >
         <AdminFormSection title="Thông tin phương pháp" icon={<Info size={15} weight="bold" />}>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <AdminInput
-              label="Tên phương pháp điều trị"
-              required
-              maxLength={150}
-              value={form.name}
-              error={errors.name}
-              onChange={(e) => setField("name", e.target.value)}
-              placeholder="VD: Cấy ghép Implant Straumann Thụy Sĩ"
-            />
-            <AdminInput
-              label="Slug (tùy chọn)"
-              maxLength={150}
-              error={errors.slug}
-              value={form.slug}
-              onChange={(e) => setField("slug", e.target.value)}
-              placeholder="implant-straumann"
-            />
-          </div>
+          <AdminInput
+            label="Tên phương pháp điều trị"
+            required
+            maxLength={150}
+            value={form.name}
+            error={errors.name}
+            onChange={(e) => setField("name", e.target.value)}
+            placeholder="VD: Cấy ghép Implant Straumann Thụy Sĩ"
+          />
+
+          <AdminImagePicker
+            label="Ảnh đại diện phương pháp"
+            value={form.imageUrl}
+            onChange={(val) => setField("imageUrl", val)}
+          />
 
           <AdminAiAssistBar
             description="Tự soạn mô tả phương pháp và thời lượng gợi ý. Giá tiền vẫn do bạn nhập."
@@ -189,12 +183,6 @@ export function TreatmentMethodFormModal({
             error={ai.error}
             onGenerate={() => void handleAiGenerate()}
             onUndo={ai.undo}
-          />
-
-          <AdminImagePicker
-            label="Ảnh đại diện phương pháp"
-            value={form.imageUrl}
-            onChange={(val) => setField("imageUrl", val)}
           />
 
           <AdminTextarea

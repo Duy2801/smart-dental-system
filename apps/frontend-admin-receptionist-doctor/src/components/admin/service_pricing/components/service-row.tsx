@@ -6,11 +6,8 @@ import {
   Clock,
   PauseCircle,
   PlayCircle,
-  Images,
-  ListNumbers,
   PencilSimple,
   Plus,
-  Question,
   Trash,
   Tooth,
 } from "@phosphor-icons/react";
@@ -67,10 +64,6 @@ export function ServiceRow({
   const methods: TreatmentMethod[] = service.treatmentMethods ?? [];
   const primaryMethod = methods[0];
   const thumbnail = service.thumbnailUrl || primaryMethod?.imageUrl;
-  const mediaCount = service.media?.length ?? primaryMethod?.media?.length ?? 0;
-  const stepCount =
-    service.procedureSteps?.length ?? primaryMethod?.procedureSteps?.length ?? 0;
-  const faqCount = service.faqs?.length ?? primaryMethod?.faqs?.length ?? 0;
   const duration = service.durationMinutes ?? primaryMethod?.durationMinutes ?? 30;
 
   return (
@@ -95,12 +88,6 @@ export function ServiceRow({
             <p className="line-clamp-2 text-xs leading-5 text-slate-500">
               {service.shortDescription || service.description || "Chưa có mô tả"}
             </p>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <MetaItem icon={<Images size={13} />}>{mediaCount} ảnh</MetaItem>
-              <MetaItem icon={<ListNumbers size={13} />}>{stepCount} bước</MetaItem>
-              <MetaItem icon={<Question size={13} />}>{faqCount} FAQ</MetaItem>
-              {service.slug ? <span className="font-mono text-[11px] text-slate-400">/{service.slug}</span> : null}
-            </div>
           </div>
         </div>
 
@@ -164,8 +151,6 @@ export function ServiceRow({
             <div className="space-y-2">
               {methods.map((method, index) => {
                 const mImage = method.imageUrl || method.media?.[0]?.url;
-                const mStepCount = method.procedureSteps?.length ?? 0;
-                const mFaqCount = method.faqs?.length ?? 0;
                 const isActive = method.isActive !== false;
 
                 return (
@@ -210,8 +195,6 @@ export function ServiceRow({
                         </p>
                         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5">
                           <MetaItem icon={<Clock size={12} />}>{method.durationMinutes ?? duration} phút</MetaItem>
-                          <MetaItem icon={<ListNumbers size={12} />}>{mStepCount} bước</MetaItem>
-                          <MetaItem icon={<Question size={12} />}>{mFaqCount} FAQ</MetaItem>
                         </div>
                       </div>
                     </button>

@@ -442,6 +442,13 @@ export function ServiceFormModal({
             />
           </div>
 
+          <ImagePicker
+            label="Ảnh đại diện nhóm dịch vụ"
+            hint={null}
+            value={form.thumbnailUrl}
+            onChange={(value) => setField("thumbnailUrl", value)}
+          />
+
           <AdminAiAssistBar
             description="Tự soạn mô tả ngắn, mô tả chi tiết, ghi chú giá và điểm nổi bật."
             disabled={!aiNameReady}
@@ -452,13 +459,6 @@ export function ServiceFormModal({
             error={ai.error}
             onGenerate={() => void handleAiGenerate()}
             onUndo={ai.undo}
-          />
-
-          <ImagePicker
-            label="Ảnh đại diện nhóm dịch vụ"
-            hint={null}
-            value={form.thumbnailUrl}
-            onChange={(value) => setField("thumbnailUrl", value)}
           />
 
           <TextareaField

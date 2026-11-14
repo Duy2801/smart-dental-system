@@ -143,7 +143,7 @@ export function AdminImagePicker({
         </div>
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap gap-1.5">
-            <label className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-xl bg-brand px-3 text-xs font-bold text-white shadow-sm shadow-brand/25 transition-colors hover:bg-[#0084e0] focus-within:ring-3 focus-within:ring-brand/25">
+            <label className="relative inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-xl bg-brand px-3 text-xs font-bold text-white shadow-sm shadow-brand/25 transition-colors hover:bg-[#0084e0] focus-within:ring-3 focus-within:ring-brand/25">
               <UploadSimple size={14} weight="bold" />
               {value ? "Đổi ảnh" : "Chọn ảnh"}
               <input

@@ -37,7 +37,8 @@ export function ReviewsToolbar({
         onChange={(event) => onRatingFilterChange(event.target.value as RatingFilter)}
         aria-label="Lọc theo số sao"
         icon={<Star size={15} />}
-        wrapperClassName="w-full sm:w-48"
+        wrapperClassName="w-full sm:w-auto"
+        className="sm:w-auto"
       >
         <option value="ALL">Mọi số sao</option>
         <option value="5">5 sao</option>
@@ -49,7 +50,8 @@ export function ReviewsToolbar({
         onChange={(event) => onVisibilityFilterChange(event.target.value as VisibilityFilter)}
         aria-label="Lọc theo trạng thái hiển thị"
         icon={<Eye size={15} />}
-        wrapperClassName="w-full sm:w-48"
+        wrapperClassName="w-full sm:w-auto"
+        className="sm:w-auto"
       >
         <option value="ALL">Tất cả trạng thái</option>
         <option value="VISIBLE">Đang hiển thị</option>

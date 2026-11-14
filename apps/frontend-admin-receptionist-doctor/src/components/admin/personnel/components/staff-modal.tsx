@@ -124,7 +124,7 @@ function DoctorAvatarPicker({
       <div className="flex flex-col gap-2">
         <p className="text-[13px] font-semibold text-slate-700">Ảnh đại diện bác sĩ</p>
         <div className="flex flex-wrap items-center gap-2">
-          <label className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-xl bg-brand px-3.5 text-xs font-bold text-white shadow-sm shadow-brand/25 transition-colors hover:bg-[#0084e0] focus-within:ring-3 focus-within:ring-brand/25">
+          <label className="relative inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-xl bg-brand px-3.5 text-xs font-bold text-white shadow-sm shadow-brand/25 transition-colors hover:bg-[#0084e0] focus-within:ring-3 focus-within:ring-brand/25">
             <Camera size={14} weight="bold" />
             {value ? "Đổi ảnh" : "Chọn ảnh"}
             <input type="file" accept={IMAGE_ACCEPT} className="sr-only" onChange={handleFileChange} />

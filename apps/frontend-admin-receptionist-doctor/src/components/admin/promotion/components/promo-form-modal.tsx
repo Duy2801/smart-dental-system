@@ -65,10 +65,10 @@ type PromoField =
   | "startDate"
   | "endDate";
 
-const scopeOptions: { value: ScopeType; label: string; description: string; icon: Icon }[] = [
-  { value: "ALL", label: "Toàn hệ thống", description: "Áp dụng cho mọi dịch vụ", icon: Globe },
-  { value: "SERVICE", label: "Theo nhóm dịch vụ", description: "Ví dụ: Chỉnh nha, Nha chu", icon: Tag },
-  { value: "METHOD", label: "Theo phương pháp", description: "Một phương pháp điều trị cụ thể", icon: Target },
+const scopeOptions: { value: ScopeType; label: string; icon: Icon }[] = [
+  { value: "ALL", label: "Toàn hệ thống", icon: Globe },
+  { value: "SERVICE", label: "Theo nhóm dịch vụ", icon: Tag },
+  { value: "METHOD", label: "Theo phương pháp", icon: Target },
 ];
 
 export function PromoFormModal({
@@ -332,7 +332,17 @@ export function PromoFormModal({
     >
       <form id={formId} ref={formRef} noValidate className="mt-4 flex flex-col gap-4" onSubmit={handleSubmit}>
         <AdminFormSection title="Thông tin chương trình" icon={<Ticket size={15} weight="bold" />}>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <AdminInput
+            label="Tên chương trình khuyến mãi"
+            required
+            maxLength={150}
+            value={name}
+            error={errors.name}
+            onChange={(e) => withClear("name", setName)(e.target.value)}
+            placeholder="VD: Giảm giá niềng răng chào hè 2026"
+          />
+
+          <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
             {isEditing ? (
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-center justify-between">
@@ -348,7 +358,6 @@ export function PromoFormModal({
                   value={code}
                   className="h-11 w-full min-w-0 cursor-default select-all rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3.5 font-mono text-sm font-bold uppercase tracking-wider text-slate-900 outline-none"
                 />
-                <p className="text-xs text-slate-500">Mã voucher cố định, không thể thay đổi sau khi đã tạo.</p>
               </div>
             ) : null}
             <AdminInput
@@ -363,23 +372,9 @@ export function PromoFormModal({
               onChange={handleNumericChange(withClear("maxUses", setMaxUses))}
               className="font-mono"
               placeholder="100"
-              hint={
-                isEditing
-                  ? `Đã dùng ${usedCount} lượt — không được nhập nhỏ hơn số này.`
-                  : "Tổng số lần voucher có thể được áp dụng."
-              }
+              hint={isEditing ? `Đã dùng ${usedCount} lượt — không được nhập nhỏ hơn số này.` : undefined}
             />
           </div>
-
-          <AdminInput
-            label="Tên chương trình khuyến mãi"
-            required
-            maxLength={150}
-            value={name}
-            error={errors.name}
-            onChange={(e) => withClear("name", setName)(e.target.value)}
-            placeholder="VD: Giảm giá niềng răng chào hè 2026"
-          />
 
           <AdminAiAssistBar
             description="Tự soạn mô tả chương trình dựa trên tên, mức giảm, phạm vi và thời gian bạn đã chọn. Nên chọn mức giảm & phạm vi trước để mô tả chính xác hơn."
@@ -407,45 +402,45 @@ export function PromoFormModal({
         <AdminFormSection
           title="Mức giảm giá"
           icon={<CurrencyCircleDollar size={15} weight="bold" />}
-          description={
-            <>
-              Xem trước:{" "}
-              <span className="rounded-md bg-brand-light px-1.5 py-0.5 font-bold text-brand">{discountPreview}</span>
-            </>
-          }
         >
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="flex flex-col gap-1.5">
-              <span className="text-[13px] font-semibold text-slate-700">
-                Loại giảm giá <span className="text-rose-500">*</span>
-              </span>
-              <div role="radiogroup" aria-label="Loại giảm giá" className="grid h-11 grid-cols-2 gap-1 rounded-xl border border-slate-200 bg-slate-100 p-1">
-                {([
-                  { value: "PERCENTAGE", label: "Phần trăm", icon: Percent },
-                  { value: "FIXED_AMOUNT", label: "Số tiền", icon: CurrencyCircleDollar },
-                ] as const).map((option) => {
-                  const selected = discountType === option.value;
-                  const OptionIcon = option.icon;
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      role="radio"
-                      aria-checked={selected}
-                      onClick={() => withClear("discountValue", setDiscountType)(option.value)}
-                      className={cn(
-                        "inline-flex items-center justify-center gap-1.5 rounded-lg text-xs font-bold transition-all",
-                        selected ? "bg-white text-brand shadow-sm ring-1 ring-slate-900/5" : "text-slate-500 hover:text-slate-800",
-                      )}
-                    >
-                      <OptionIcon size={14} weight="bold" />
+          <div role="radiogroup" aria-label="Loại giảm giá" className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+            {([
+              { value: "PERCENTAGE", label: "Giảm theo phần trăm", icon: Percent },
+              { value: "FIXED_AMOUNT", label: "Giảm số tiền cố định", icon: CurrencyCircleDollar },
+            ] as const).map((option) => {
+              const selected = discountType === option.value;
+              const OptionIcon = option.icon;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => withClear("discountValue", setDiscountType)(option.value)}
+                  className={cn(
+                    "flex items-center gap-3 rounded-xl border bg-white p-3 text-left transition-all focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-brand/25",
+                    selected ? "border-brand ring-1 ring-brand shadow-sm shadow-brand/10" : "border-slate-200 hover:border-slate-300",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "grid h-8 w-8 shrink-0 place-items-center rounded-lg",
+                      selected ? "bg-brand text-white" : "bg-slate-100 text-slate-500",
+                    )}
+                  >
+                    <OptionIcon size={16} weight="bold" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className={cn("block text-sm font-bold", selected ? "text-brand" : "text-slate-800")}>
                       {option.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
 
+          <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
             <AdminInput
               label={discountType === "PERCENTAGE" ? "Mức giảm (%)" : "Mức giảm (VNĐ)"}
               type="number"
@@ -457,7 +452,7 @@ export function PromoFormModal({
               error={errors.discountValue}
               onChange={handleNumericChange(withClear("discountValue", setDiscountValue))}
               className="font-mono font-bold text-brand"
-              hint={discountType === "PERCENTAGE" ? "Từ 1 đến 100%." : "Tối thiểu 1.000đ."}
+              placeholder={discountType === "PERCENTAGE" ? "1 - 100" : "Tối thiểu 1000"}
             />
 
             <AdminInput
@@ -469,9 +464,18 @@ export function PromoFormModal({
               error={errors.minOrderAmount}
               onChange={handleNumericChange(withClear(["minOrderAmount", "discountValue"], setMinOrderAmount))}
               className="font-mono"
-              placeholder="0"
-              hint="Để 0 nếu không yêu cầu."
+              placeholder="0 = không yêu cầu"
             />
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-dashed border-brand/30 bg-brand-light/50 px-3.5 py-2.5 text-xs text-slate-600">
+            <span className="font-semibold text-slate-500">Khách nhận được:</span>
+            <span className="rounded-md bg-brand px-2 py-0.5 font-bold text-white">{discountPreview}</span>
+            <span>
+              {Number(minOrderAmount) > 0
+                ? `cho đơn từ ${Number(minOrderAmount).toLocaleString("vi-VN")}đ`
+                : "cho mọi đơn hàng"}
+            </span>
           </div>
         </AdminFormSection>
 
@@ -484,7 +488,7 @@ export function PromoFormModal({
                 <label
                   key={option.value}
                   className={cn(
-                    "flex cursor-pointer items-start gap-3 rounded-xl border bg-white p-3 transition-all has-focus-visible:ring-3 has-focus-visible:ring-brand/25",
+                    "relative flex cursor-pointer items-center gap-3 rounded-xl border bg-white p-3 transition-all has-focus-visible:ring-3 has-focus-visible:ring-brand/25",
                     selected ? "border-brand ring-1 ring-brand shadow-sm shadow-brand/10" : "border-slate-200 hover:border-slate-300",
                   )}
                 >
@@ -507,7 +511,6 @@ export function PromoFormModal({
                     <span className={cn("block text-sm font-bold", selected ? "text-brand" : "text-slate-800")}>
                       {option.label}
                     </span>
-                    <span className="block text-[11px] leading-snug text-slate-500">{option.description}</span>
                   </span>
                 </label>
               );

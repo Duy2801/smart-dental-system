@@ -71,7 +71,8 @@ export function FinanceToolbar({
           value={statusFilter}
           onChange={(event) => onStatusFilterChange(event.target.value as InvoiceStatusFilter)}
           aria-label="Lọc theo trạng thái"
-          wrapperClassName="w-full sm:w-48"
+          wrapperClassName="w-full sm:w-auto"
+          className="sm:w-auto"
         >
           <option value="ALL">Tất cả trạng thái</option>
           <option value="PAID">Đã thanh toán</option>
@@ -84,7 +85,8 @@ export function FinanceToolbar({
           onChange={(event) => onPaymentMethodFilterChange(event.target.value as PaymentMethodFilter)}
           aria-label="Lọc theo phương thức thanh toán"
           icon={<CreditCard size={15} />}
-          wrapperClassName="w-full sm:w-48"
+          wrapperClassName="w-full sm:w-auto"
+          className="sm:w-auto"
         >
           <option value="ALL">Mọi phương thức</option>
           <option value="CASH">Tiền mặt</option>
@@ -99,7 +101,8 @@ export function FinanceToolbar({
           onChange={(event) => onDatePresetChange(event.target.value as DateRangePreset)}
           aria-label="Lọc theo thời gian"
           icon={<CalendarBlank size={15} />}
-          wrapperClassName="w-full sm:w-44"
+          wrapperClassName="w-full sm:w-auto"
+          className="sm:w-auto"
         >
           <option value="ALL">Mọi thời gian</option>
           <option value="TODAY">Hôm nay</option>
