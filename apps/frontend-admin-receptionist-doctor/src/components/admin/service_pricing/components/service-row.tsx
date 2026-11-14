@@ -8,7 +8,6 @@ import {
   PlayCircle,
   PencilSimple,
   Plus,
-  Trash,
   Tooth,
 } from "@phosphor-icons/react";
 import {
@@ -22,7 +21,6 @@ import type { DentalService, TreatmentMethod } from "../types";
 
 type ServiceRowProps = {
   onEdit: (service: DentalService) => void;
-  onRemove: (service: DentalService) => void;
   onToggleStatus: (service: DentalService) => void;
   onEditTreatmentMethod?: (
     service: DentalService,
@@ -31,10 +29,6 @@ type ServiceRowProps = {
   ) => void;
   onCreateTreatmentMethod?: (service: DentalService) => void;
   onToggleTreatmentMethodStatus?: (
-    service: DentalService,
-    index: number
-  ) => void;
-  onRemoveTreatmentMethod?: (
     service: DentalService,
     index: number
   ) => void;
@@ -52,11 +46,10 @@ function MetaItem({ icon, children }: { icon: React.ReactNode; children: React.R
 
 export function ServiceRow({
   onEdit,
-  onRemove,
+  onToggleStatus,
   onEditTreatmentMethod,
   onCreateTreatmentMethod,
   onToggleTreatmentMethodStatus,
-  onRemoveTreatmentMethod,
   service,
 }: ServiceRowProps) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -65,12 +58,18 @@ export function ServiceRow({
   const primaryMethod = methods[0];
   const thumbnail = service.icon || primaryMethod?.imageUrl;
   const duration = service.durationMinutes ?? primaryMethod?.durationMinutes ?? 30;
+  const serviceActive = service.isActive !== false;
 
   return (
     <div>
-      <div className="grid grid-cols-1 gap-4 px-5 py-4 transition-colors hover:bg-slate-50/60 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-6">
+      <div
+        className={cn(
+          "grid grid-cols-1 gap-4 px-5 py-4 transition-colors hover:bg-slate-50/60 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-6",
+          !serviceActive && "bg-slate-50/80",
+        )}
+      >
         <div className="flex min-w-0 gap-4">
-          <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white p-1.5 shadow-xs ring-1 ring-slate-200">
+          <div className={cn("flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white p-1.5 shadow-xs ring-1 ring-slate-200", !serviceActive && "opacity-50 grayscale")}>
             {thumbnail ? (
               <img src={thumbnail} alt={service.name} className="h-full w-full rounded-xl object-contain" />
             ) : (
@@ -83,6 +82,17 @@ export function ServiceRow({
               <span className="text-[15px] font-bold text-slate-900">{service.name}</span>
               <span className="rounded-full bg-brand-light px-2 py-0.5 text-[11px] font-bold text-brand">
                 {methods.length} phương pháp
+              </span>
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold",
+                  serviceActive
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                    : "border-slate-200 bg-slate-100 text-slate-500",
+                )}
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                {serviceActive ? "Đang cung cấp" : "Ngừng cung cấp"}
               </span>
             </div>
             <p className="line-clamp-2 text-xs leading-5 text-slate-500">
@@ -112,8 +122,12 @@ export function ServiceRow({
               <PencilSimple size={16} />
             </AdminIconButton>
             <AdminIconButtonDivider />
-            <AdminIconButton label="Xóa dịch vụ" tone="red" onClick={() => onRemove(service)}>
-              <Trash size={16} />
+            <AdminIconButton
+              label={serviceActive ? "Tạm ngưng dịch vụ" : "Bật lại dịch vụ"}
+              tone={serviceActive ? "amber" : "emerald"}
+              onClick={() => onToggleStatus(service)}
+            >
+              {serviceActive ? <PauseCircle size={16} /> : <PlayCircle size={16} />}
             </AdminIconButton>
           </AdminIconButtonGroup>
         </div>
@@ -219,18 +233,6 @@ export function ServiceRow({
                           >
                             {isActive ? <PauseCircle size={16} /> : <PlayCircle size={16} />}
                           </AdminIconButton>
-                        ) : null}
-                        {onRemoveTreatmentMethod ? (
-                          <>
-                            <AdminIconButtonDivider />
-                            <AdminIconButton
-                              label="Xóa phương pháp này"
-                              tone="red"
-                              onClick={() => onRemoveTreatmentMethod(service, index)}
-                            >
-                              <Trash size={16} />
-                            </AdminIconButton>
-                          </>
                         ) : null}
                       </AdminIconButtonGroup>
                     </div>

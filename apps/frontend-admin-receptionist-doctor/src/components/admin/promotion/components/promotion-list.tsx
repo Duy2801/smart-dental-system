@@ -12,11 +12,9 @@ import {
   Tag,
   Target,
   Ticket,
-  Trash,
 } from "@phosphor-icons/react";
 import {
   AdminIconButton,
-  AdminIconButtonDivider,
   AdminIconButtonGroup,
   SkeletonRows,
 } from "@/src/components/admin/common";
@@ -39,7 +37,6 @@ type PromotionListProps = {
   loading?: boolean;
   promotions: Promotion[];
   onEdit: (promotion: Promotion) => void;
-  onDelete: (id: string) => void;
   onToggleStatus: (id: string) => void;
   onBroadcast: (promotion: Promotion) => void;
   broadcastingId?: string | null;
@@ -49,7 +46,6 @@ export function PromotionList({
   loading = false,
   promotions,
   onEdit,
-  onDelete,
   onToggleStatus,
   onBroadcast,
   broadcastingId,
@@ -78,7 +74,7 @@ export function PromotionList({
         <div>Lượt dùng</div>
         <div>Thời hạn</div>
         <div>Trạng thái</div>
-        <div className="w-[148px] text-right">Thao tác</div>
+        <div className="w-[112px] text-right">Thao tác</div>
       </div>
       <div className="divide-y divide-border">
         {loading ? (
@@ -106,7 +102,6 @@ export function PromotionList({
                   : undefined
               }
               onEdit={onEdit}
-              onDelete={onDelete}
               onToggleStatus={onToggleStatus}
               onBroadcast={onBroadcast}
               isBroadcasting={broadcastingId === promotion.id}
@@ -122,7 +117,6 @@ function PromotionRow({
   promotion,
   serviceName,
   onEdit,
-  onDelete,
   onToggleStatus,
   onBroadcast,
   isBroadcasting,
@@ -130,7 +124,6 @@ function PromotionRow({
   promotion: Promotion;
   serviceName?: string;
   onEdit: (promotion: Promotion) => void;
-  onDelete: (id: string) => void;
   onToggleStatus: (id: string) => void;
   onBroadcast: (promotion: Promotion) => void;
   isBroadcasting?: boolean;
@@ -290,7 +283,7 @@ function PromotionRow({
       </div>
 
       {/* Thao tác */}
-      <div className="flex lg:w-[148px] lg:justify-end">
+      <div className="flex lg:w-[112px] lg:justify-end">
         <AdminIconButtonGroup>
           <AdminIconButton label="Sửa voucher" onClick={() => onEdit(promotion)}>
             <PencilSimple size={16} />
@@ -313,10 +306,6 @@ function PromotionRow({
             tone={promotion.is_active ? "amber" : "emerald"}
           >
             {promotion.is_active ? <Pause size={16} /> : <Play size={16} />}
-          </AdminIconButton>
-          <AdminIconButtonDivider />
-          <AdminIconButton label="Xóa voucher" onClick={() => onDelete(promotion.id)} tone="red">
-            <Trash size={16} />
           </AdminIconButton>
         </AdminIconButtonGroup>
       </div>

@@ -9,7 +9,6 @@ type ServiceGroupListProps = {
   groupedServices: Record<string, DentalService[]>;
   loading: boolean;
   onEdit: (service: DentalService) => void;
-  onRemove: (service: DentalService) => void;
   onToggleStatus: (service: DentalService) => void;
   onEditTreatmentMethod?: (
     service: DentalService,
@@ -21,22 +20,16 @@ type ServiceGroupListProps = {
     service: DentalService,
     index: number
   ) => void;
-  onRemoveTreatmentMethod?: (
-    service: DentalService,
-    index: number
-  ) => void;
 };
 
 export function ServiceGroupList({
   groupedServices,
   loading,
   onEdit,
-  onRemove,
   onToggleStatus,
   onEditTreatmentMethod,
   onCreateTreatmentMethod,
   onToggleTreatmentMethodStatus,
-  onRemoveTreatmentMethod,
 }: ServiceGroupListProps) {
   const entries = Object.entries(groupedServices);
 
@@ -89,11 +82,9 @@ export function ServiceGroupList({
                 service={service}
                 onEdit={onEdit}
                 onToggleStatus={onToggleStatus}
-                onRemove={onRemove}
                 onEditTreatmentMethod={onEditTreatmentMethod}
                 onCreateTreatmentMethod={onCreateTreatmentMethod}
                 onToggleTreatmentMethodStatus={onToggleTreatmentMethodStatus}
-                onRemoveTreatmentMethod={onRemoveTreatmentMethod}
               />
             ))}
           </div>

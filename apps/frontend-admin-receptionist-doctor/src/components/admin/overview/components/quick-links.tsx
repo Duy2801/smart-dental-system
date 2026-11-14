@@ -28,9 +28,9 @@ const links = [
     description: "Doanh thu dịch vụ",
   },
   {
-    href: ROUTES.ADMIN.REPORTS,
-    label: "Báo cáo",
-    description: "Xuất PDF/Excel",
+    href: ROUTES.ADMIN.PATIENTS,
+    label: "Bệnh nhân",
+    description: "Lịch sử khám",
   },
   {
     href: ROUTES.ADMIN.MARKETING,

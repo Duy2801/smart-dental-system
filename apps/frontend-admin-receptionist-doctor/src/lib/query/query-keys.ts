@@ -2,7 +2,9 @@ export const queryKeys = {
   admin: {
     clinicConfig: ["admin", "clinic-config"] as const,
     overview: ["admin", "overview"] as const,
-    report: (timeFilter: string) => ["admin", "report", timeFilter] as const,
+    patients: (search: string) => ["admin", "patients", search] as const,
+    patientDetail: (id: string) => ["admin", "patients", "detail", id] as const,
+    medicalRecord: (id: string) => ["admin", "medical-record", id] as const,
     services: (search: string) => ["admin", "services", search] as const,
     schedules: {
       doctors: ["admin", "schedules", "doctors"] as const,

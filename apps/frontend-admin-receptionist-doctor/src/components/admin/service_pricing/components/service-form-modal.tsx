@@ -4,8 +4,6 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Info,
-  ListChecks,
-  PencilSimple,
   Plus,
   Sparkle,
   Trash,
@@ -28,8 +26,7 @@ import {
   type FieldErrors,
 } from "@/src/components/admin/common";
 import { getServices } from "../service-pricing-api";
-import { formatVND } from "../service-pricing-utils";
-import type { ServiceFormState, TreatmentMethod } from "../types";
+import type { ServiceFormState } from "../types";
 
 function validateServiceForm(form: ServiceFormState): FieldErrors {
   const errors: FieldErrors = {
@@ -89,8 +86,6 @@ type ServiceFormModalProps = {
   onSubmit: (form: ServiceFormState) => void;
   submitting: boolean;
   title: string;
-  onEditTreatmentMethod?: (method: TreatmentMethod, index: number) => void;
-  onCreateTreatmentMethod?: () => void;
 };
 
 type StepItem = ServiceFormState["procedureSteps"][number];
@@ -170,8 +165,6 @@ export function ServiceFormModal({
   onSubmit,
   submitting,
   title,
-  onEditTreatmentMethod,
-  onCreateTreatmentMethod,
 }: ServiceFormModalProps) {
   const formId = useId();
   const [form, setForm] = useState<ServiceFormState>(initialValue);
@@ -482,72 +475,6 @@ export function ServiceFormModal({
         </Section>
 
         {/* Section: Treatment Methods Overview */}
-        <Section title="Các phương pháp điều trị đi kèm" icon={<ListChecks size={15} weight="bold" />}>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="text-xs text-slate-500">
-              <strong className="font-bold text-slate-800">{form.treatmentMethods.length} phương pháp</strong> · bấm Sửa để chỉnh giá & thông tin riêng.
-            </span>
-
-            {onCreateTreatmentMethod ? (
-              <AdminButton variant="secondary" size="sm" onClick={onCreateTreatmentMethod}>
-                <Plus size={14} weight="bold" />
-                Thêm phương pháp
-              </AdminButton>
-            ) : null}
-          </div>
-
-          {form.treatmentMethods.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-slate-300 bg-white py-4 text-center text-xs text-slate-500">
-              Chưa có phương pháp điều trị nào. Bấm &quot;Thêm phương pháp&quot; để bổ sung.
-            </p>
-          ) : (
-            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-              {form.treatmentMethods.map((method, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3 transition-all hover:border-brand/40 hover:shadow-sm"
-                >
-                  <div className="min-w-0">
-                    <span className="block truncate text-sm font-semibold text-slate-800">
-                      {method.name || `Phương pháp #${index + 1}`}
-                    </span>
-                    <span className="mt-0.5 block text-xs font-bold text-brand-dark">
-                      {formatVND(method.basePrice)}
-                      <span className="font-medium text-slate-400"> · {method.durationMinutes} phút</span>
-                    </span>
-                  </div>
-
-                  {onEditTreatmentMethod && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        onEditTreatmentMethod(
-                          {
-                            id: method.id,
-                            name: method.name,
-                            slug: method.slug ?? "",
-                            description: method.description ?? "",
-                            imageUrl: method.imageUrl ?? "",
-                            basePrice: method.basePrice,
-                            durationMinutes: method.durationMinutes,
-                            displayOrder: method.displayOrder,
-                            isActive: method.isActive,
-                          },
-                          index
-                        )
-                      }
-                      className="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg bg-brand-light px-2.5 text-xs font-bold text-brand transition-colors hover:bg-brand hover:text-white"
-                    >
-                      <PencilSimple size={13} weight="bold" />
-                      Sửa
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </Section>
-
         <Section title="Nội dung chi tiết & điểm nổi bật" icon={<Sparkle size={15} weight="bold" />}>
           <TextareaField
             label="Ghi chú giá"

@@ -4,10 +4,9 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AdminAlert, AdminConfirmModal } from "@/src/components/admin/common";
 import { queryKeys } from "@/src/lib/query/query-keys";
-import { emptyStaffForm, roleConfig } from "./constants";
+import { emptyStaffForm } from "./constants";
 import {
   createStaffUser,
-  deleteStaffUser,
   getStaffUsers,
   updateStaffStatus,
   updateStaffUser,
@@ -85,19 +84,6 @@ export function UsersPageContent() {
     },
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: deleteStaffUser,
-    onSuccess: async () => {
-      if (users.length === 1 && page > 1) {
-        setPage((p) => p - 1);
-      }
-      await invalidateUsers();
-    },
-    onError: (err) => {
-      setError(getErrorMessage(err, "Xóa nhân viên thất bại"));
-    },
-  });
-
   const modalTitle = editingUser ? "Sửa nhân viên" : "Thêm nhân viên mới";
 
   const visibleUsers = useMemo(
@@ -147,23 +133,6 @@ export function UsersPageContent() {
     }
   };
 
-  const [deactivatingUser, setDeactivatingUser] = useState<StaffUser | null>(null);
-
-  const removeUser = (user: StaffUser) => {
-    setDeactivatingUser(user);
-  };
-
-  const handleConfirmDeactivate = async () => {
-    if (!deactivatingUser) return;
-    setError(null);
-    try {
-      await deleteMutation.mutateAsync(deactivatingUser);
-      setDeactivatingUser(null);
-    } catch {
-      // Error message is handled by the mutation onError callback.
-    }
-  };
-
   if (showPermissions) {
     return (
       <div className="p-6 md:p-8">
@@ -196,7 +165,6 @@ export function UsersPageContent() {
         onPageChange={setPage}
         onEdit={openEditModal}
         onToggleLock={setLockTarget}
-        onRemove={(user) => void removeUser(user)}
       />
 
       {showModal ? (
@@ -237,26 +205,6 @@ export function UsersPageContent() {
         onClose={() => setLockTarget(null)}
       />
 
-      <AdminConfirmModal
-        isOpen={Boolean(deactivatingUser)}
-        title="Xác nhận vô hiệu hóa nhân viên"
-        description={
-          <>
-            Bạn có chắc chắn muốn vô hiệu hóa tài khoản của nhân viên{" "}
-            <strong className="font-semibold text-slate-900">
-              {deactivatingUser?.fullName}
-            </strong>{" "}
-            ({deactivatingUser?.role ? roleConfig[deactivatingUser.role]?.label : ""}) không? Tài khoản này sẽ không thể đăng nhập vào hệ thống.
-          </>
-        }
-        confirmText="Vô hiệu hóa"
-        cancelText="Hủy bỏ"
-        variant="warning"
-        showIcon={false}
-        isLoading={deleteMutation.isPending}
-        onConfirm={handleConfirmDeactivate}
-        onClose={() => setDeactivatingUser(null)}
-      />
     </div>
   );
 }

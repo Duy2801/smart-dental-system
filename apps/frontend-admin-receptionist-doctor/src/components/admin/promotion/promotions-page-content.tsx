@@ -12,7 +12,6 @@ import { PromotionToolbar } from "./components/promotion-toolbar";
 import {
   broadcastPromotionNotification,
   createPromotion,
-  deletePromotion as deletePromotionApi,
   getPromotions,
   updatePromotion,
   updatePromotionStatus,
@@ -104,18 +103,6 @@ export function PromotionsPageContent() {
     },
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: deletePromotionApi,
-    onSuccess: async () => {
-      setSuccessMessage("Đã xóa mã khuyến mãi thành công.");
-      await invalidatePromotions();
-      setTimeout(() => setSuccessMessage(""), 3000);
-    },
-    onError: () => {
-      setErrorMessage("Xóa khuyến mãi thất bại.");
-    },
-  });
-
   const filteredPromotions = useMemo(
     () => filterPromotions(promotions, search, statusFilter),
     [promotions, search, statusFilter]
@@ -144,24 +131,8 @@ export function PromotionsPageContent() {
     }
   };
 
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [broadcastConfirmPromotion, setBroadcastConfirmPromotion] =
     useState<Promotion | null>(null);
-
-  const handleDelete = (id: string) => {
-    setDeleteConfirmId(id);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!deleteConfirmId) return;
-    setErrorMessage("");
-    try {
-      await deleteMutation.mutateAsync(deleteConfirmId);
-      setDeleteConfirmId(null);
-    } catch {
-      // Handled by onError callback
-    }
-  };
 
   const handleBroadcast = (promotion: Promotion) => {
     setBroadcastConfirmPromotion(promotion);
@@ -222,7 +193,6 @@ export function PromotionsPageContent() {
           setEditingPromotion(promotion);
           setShowModal(true);
         }}
-        onDelete={handleDelete}
         onToggleStatus={toggleStatus}
         onBroadcast={handleBroadcast}
         broadcastingId={broadcastingId}
@@ -266,19 +236,6 @@ export function PromotionsPageContent() {
         isLoading={statusMutation.isPending}
         onConfirm={handleConfirmToggleStatus}
         onClose={() => setStatusConfirmPromotion(null)}
-      />
-
-      {/* Delete Confirmation Modal */}
-      <AdminConfirmModal
-        isOpen={Boolean(deleteConfirmId)}
-        title="Xác nhận xóa mã khuyến mãi"
-        description="Bạn có chắc chắn muốn xóa mã khuyến mãi này không? Sau khi xóa, bệnh nhân sẽ không thể áp dụng mã này nữa."
-        confirmText="Xóa khuyến mãi"
-        cancelText="Hủy bỏ"
-        variant="danger"
-        isLoading={deleteMutation.isPending}
-        onConfirm={handleConfirmDelete}
-        onClose={() => setDeleteConfirmId(null)}
       />
 
       {/* Broadcast Notification Confirmation Modal */}

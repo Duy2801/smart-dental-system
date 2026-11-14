@@ -1,9 +1,8 @@
 "use client";
 
-import { CalendarBlank, LockSimple, LockSimpleOpen, PencilSimple, Phone, Trash } from "@phosphor-icons/react";
+import { CalendarBlank, LockSimple, LockSimpleOpen, PencilSimple, Phone } from "@phosphor-icons/react";
 import {
   AdminIconButton,
-  AdminIconButtonDivider,
   AdminIconButtonGroup,
 } from "@/src/components/admin/common";
 import { cn } from "@/src/lib/utils/cn";
@@ -13,14 +12,12 @@ import type { Role, StaffUser } from "../types";
 
 type StaffRowProps = {
   onEdit: (user: StaffUser) => void;
-  onRemove: (user: StaffUser) => void;
   onToggleLock: (user: StaffUser) => void;
   user: StaffUser;
 };
 
 export function StaffRow({
   onEdit,
-  onRemove,
   onToggleLock,
   user,
 }: StaffRowProps) {
@@ -114,10 +111,6 @@ export function StaffRow({
             onClick={() => onToggleLock(user)}
           >
             {isActive ? <LockSimple size={16} /> : <LockSimpleOpen size={16} />}
-          </AdminIconButton>
-          <AdminIconButtonDivider />
-          <AdminIconButton label="Vô hiệu hóa nhân viên" tone="red" onClick={() => onRemove(user)}>
-            <Trash size={16} />
           </AdminIconButton>
         </AdminIconButtonGroup>
       </div>

@@ -1,11 +1,10 @@
 "use client";
 
-import { ImagesSquare, PencilSimple, Trash } from "@phosphor-icons/react";
+import { ImagesSquare, PencilSimple } from "@phosphor-icons/react";
 import {
   AdminEmptyState,
   AdminSwitch,
   AdminIconButton,
-  AdminIconButtonDivider,
   AdminIconButtonGroup,
   SkeletonRows,
 } from "@/src/components/admin/common";
@@ -15,7 +14,6 @@ import type { Banner } from "../types";
 type BannerListProps = {
   banners: Banner[];
   loading?: boolean;
-  onDelete: (id: string) => void;
   onEdit: (banner: Banner) => void;
   onToggleStatus: (banner: Banner) => void;
 };
@@ -23,7 +21,6 @@ type BannerListProps = {
 export function CampaignList({
   banners,
   loading = false,
-  onDelete,
   onEdit,
   onToggleStatus,
 }: BannerListProps) {
@@ -49,7 +46,6 @@ export function CampaignList({
             <BannerRow
               key={banner.id}
               banner={banner}
-              onDelete={onDelete}
               onEdit={onEdit}
               onToggleStatus={onToggleStatus}
             />
@@ -62,12 +58,10 @@ export function CampaignList({
 
 function BannerRow({
   banner,
-  onDelete,
   onEdit,
   onToggleStatus,
 }: {
   banner: Banner;
-  onDelete: (id: string) => void;
   onEdit: (banner: Banner) => void;
   onToggleStatus: (banner: Banner) => void;
 }) {
@@ -120,10 +114,6 @@ function BannerRow({
         <AdminIconButtonGroup>
           <AdminIconButton label="Chỉnh sửa banner" onClick={() => onEdit(banner)}>
             <PencilSimple size={16} />
-          </AdminIconButton>
-          <AdminIconButtonDivider />
-          <AdminIconButton label="Xóa banner" tone="red" onClick={() => onDelete(banner.id)}>
-            <Trash size={16} />
           </AdminIconButton>
         </AdminIconButtonGroup>
       </div>

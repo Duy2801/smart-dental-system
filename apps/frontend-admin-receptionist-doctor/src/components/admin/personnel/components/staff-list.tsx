@@ -9,7 +9,6 @@ import { StaffRow } from "./staff-row";
 type StaffListProps = {
   loading: boolean;
   onEdit: (user: StaffUser) => void;
-  onRemove: (user: StaffUser) => void;
   onToggleLock: (user: StaffUser) => void;
   users: StaffUser[];
   page: number;
@@ -23,7 +22,6 @@ type StaffListProps = {
 export function StaffList({
   loading,
   onEdit,
-  onRemove,
   onToggleLock,
   users,
   page,
@@ -58,7 +56,6 @@ export function StaffList({
               user={user}
               onEdit={onEdit}
               onToggleLock={onToggleLock}
-              onRemove={onRemove}
             />
           ))
         )}

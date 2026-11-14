@@ -13,7 +13,6 @@ import { MarketingToolbar } from "./components/marketing-toolbar";
 import { filterBanners, getBannerStats } from "./marketing-utils";
 import {
   createBanner,
-  deleteBanner as deleteBannerApi,
   getBanners,
   updateBanner as updateBannerApi,
   type CreateBannerPayload,
@@ -65,14 +64,6 @@ export function MarketingPageContent() {
     },
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: deleteBannerApi,
-    onSuccess: invalidateBanners,
-    onError: () => {
-      setErrorMessage("Xóa Banner quảng cáo thất bại.");
-    },
-  });
-
   const filteredBanners = useMemo(
     () => filterBanners(banners, search, statusFilter),
     [banners, search, statusFilter],
@@ -90,23 +81,6 @@ export function MarketingPageContent() {
     setErrorMessage("");
     setEditingBanner(banner);
     setIsModalOpen(true);
-  };
-
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-
-  const handleDelete = (id: string) => {
-    setDeleteConfirmId(id);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!deleteConfirmId) return;
-    setErrorMessage("");
-    try {
-      await deleteMutation.mutateAsync(deleteConfirmId);
-      setDeleteConfirmId(null);
-    } catch {
-      // Error callback handles message
-    }
   };
 
   const [statusConfirmBanner, setStatusConfirmBanner] = useState<Banner | null>(null);
@@ -166,7 +140,6 @@ export function MarketingPageContent() {
       <CampaignList
         loading={isLoading}
         banners={filteredBanners}
-        onDelete={handleDelete}
         onEdit={handleOpenEdit}
         onToggleStatus={handleToggleStatus}
       />
@@ -217,17 +190,6 @@ export function MarketingPageContent() {
         onClose={() => setStatusConfirmBanner(null)}
       />
 
-      <AdminConfirmModal
-        isOpen={Boolean(deleteConfirmId)}
-        title="Xác nhận xóa Banner"
-        description="Bạn có chắc chắn muốn xóa Banner này không? Banner sẽ không còn xuất hiện trên trang chủ của phòng khám."
-        confirmText="Xóa Banner"
-        cancelText="Hủy bỏ"
-        variant="danger"
-        isLoading={deleteMutation.isPending}
-        onConfirm={handleConfirmDelete}
-        onClose={() => setDeleteConfirmId(null)}
-      />
     </div>
   );
 }
