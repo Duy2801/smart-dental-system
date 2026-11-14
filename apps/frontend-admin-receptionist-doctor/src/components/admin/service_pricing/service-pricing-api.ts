@@ -55,6 +55,8 @@ function toPayload(form: ServiceFormState) {
     shortDescription: form.shortDescription || undefined,
     description: form.description || undefined,
     detailSummary: form.detailSummary || undefined,
+    // Luôn gửi (kể cả rỗng) để gỡ ảnh cũng được lưu
+    thumbnailUrl: form.thumbnailUrl.trim(),
     durationMinutes: Number(form.durationMinutes),
     basePrice: Number(form.basePrice),
     displayOrder: Number(form.displayOrder),

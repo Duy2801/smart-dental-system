@@ -49,6 +49,7 @@ export type ServiceMinAggregateOutputType = {
   shortDescription: string | null
   description: string | null
   detailSummary: string | null
+  thumbnailUrl: string | null
   durationMinutes: number | null
   basePrice: runtime.Decimal | null
   pricingNote: string | null
@@ -73,6 +74,7 @@ export type ServiceMaxAggregateOutputType = {
   shortDescription: string | null
   description: string | null
   detailSummary: string | null
+  thumbnailUrl: string | null
   durationMinutes: number | null
   basePrice: runtime.Decimal | null
   pricingNote: string | null
@@ -97,6 +99,7 @@ export type ServiceCountAggregateOutputType = {
   shortDescription: number
   description: number
   detailSummary: number
+  thumbnailUrl: number
   durationMinutes: number
   basePrice: number
   highlights: number
@@ -143,6 +146,7 @@ export type ServiceMinAggregateInputType = {
   shortDescription?: true
   description?: true
   detailSummary?: true
+  thumbnailUrl?: true
   durationMinutes?: true
   basePrice?: true
   pricingNote?: true
@@ -167,6 +171,7 @@ export type ServiceMaxAggregateInputType = {
   shortDescription?: true
   description?: true
   detailSummary?: true
+  thumbnailUrl?: true
   durationMinutes?: true
   basePrice?: true
   pricingNote?: true
@@ -191,6 +196,7 @@ export type ServiceCountAggregateInputType = {
   shortDescription?: true
   description?: true
   detailSummary?: true
+  thumbnailUrl?: true
   durationMinutes?: true
   basePrice?: true
   highlights?: true
@@ -308,6 +314,7 @@ export type ServiceGroupByOutputType = {
   shortDescription: string | null
   description: string | null
   detailSummary: string | null
+  thumbnailUrl: string | null
   durationMinutes: number | null
   basePrice: runtime.Decimal | null
   highlights: runtime.JsonValue | null
@@ -361,6 +368,7 @@ export type ServiceWhereInput = {
   shortDescription?: Prisma.StringNullableFilter<"Service"> | string | null
   description?: Prisma.StringNullableFilter<"Service"> | string | null
   detailSummary?: Prisma.StringNullableFilter<"Service"> | string | null
+  thumbnailUrl?: Prisma.StringNullableFilter<"Service"> | string | null
   durationMinutes?: Prisma.IntNullableFilter<"Service"> | number | null
   basePrice?: Prisma.DecimalNullableFilter<"Service"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   highlights?: Prisma.JsonNullableFilter<"Service">
@@ -395,6 +403,7 @@ export type ServiceOrderByWithRelationInput = {
   shortDescription?: Prisma.SortOrderInput | Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   detailSummary?: Prisma.SortOrderInput | Prisma.SortOrder
+  thumbnailUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   durationMinutes?: Prisma.SortOrderInput | Prisma.SortOrder
   basePrice?: Prisma.SortOrderInput | Prisma.SortOrder
   highlights?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -432,6 +441,7 @@ export type ServiceWhereUniqueInput = Prisma.AtLeast<{
   shortDescription?: Prisma.StringNullableFilter<"Service"> | string | null
   description?: Prisma.StringNullableFilter<"Service"> | string | null
   detailSummary?: Prisma.StringNullableFilter<"Service"> | string | null
+  thumbnailUrl?: Prisma.StringNullableFilter<"Service"> | string | null
   durationMinutes?: Prisma.IntNullableFilter<"Service"> | number | null
   basePrice?: Prisma.DecimalNullableFilter<"Service"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   highlights?: Prisma.JsonNullableFilter<"Service">
@@ -466,6 +476,7 @@ export type ServiceOrderByWithAggregationInput = {
   shortDescription?: Prisma.SortOrderInput | Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   detailSummary?: Prisma.SortOrderInput | Prisma.SortOrder
+  thumbnailUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   durationMinutes?: Prisma.SortOrderInput | Prisma.SortOrder
   basePrice?: Prisma.SortOrderInput | Prisma.SortOrder
   highlights?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -504,6 +515,7 @@ export type ServiceScalarWhereWithAggregatesInput = {
   shortDescription?: Prisma.StringNullableWithAggregatesFilter<"Service"> | string | null
   description?: Prisma.StringNullableWithAggregatesFilter<"Service"> | string | null
   detailSummary?: Prisma.StringNullableWithAggregatesFilter<"Service"> | string | null
+  thumbnailUrl?: Prisma.StringNullableWithAggregatesFilter<"Service"> | string | null
   durationMinutes?: Prisma.IntNullableWithAggregatesFilter<"Service"> | number | null
   basePrice?: Prisma.DecimalNullableWithAggregatesFilter<"Service"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   highlights?: Prisma.JsonNullableWithAggregatesFilter<"Service">
@@ -534,6 +546,7 @@ export type ServiceCreateInput = {
   shortDescription?: string | null
   description?: string | null
   detailSummary?: string | null
+  thumbnailUrl?: string | null
   durationMinutes?: number | null
   basePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -567,6 +580,7 @@ export type ServiceUncheckedCreateInput = {
   shortDescription?: string | null
   description?: string | null
   detailSummary?: string | null
+  thumbnailUrl?: string | null
   durationMinutes?: number | null
   basePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -600,6 +614,7 @@ export type ServiceUpdateInput = {
   shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   detailSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   basePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -633,6 +648,7 @@ export type ServiceUncheckedUpdateInput = {
   shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   detailSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   basePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -666,6 +682,7 @@ export type ServiceCreateManyInput = {
   shortDescription?: string | null
   description?: string | null
   detailSummary?: string | null
+  thumbnailUrl?: string | null
   durationMinutes?: number | null
   basePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -696,6 +713,7 @@ export type ServiceUpdateManyMutationInput = {
   shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   detailSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   basePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -725,6 +743,7 @@ export type ServiceUncheckedUpdateManyInput = {
   shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   detailSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   basePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -755,6 +774,7 @@ export type ServiceCountOrderByAggregateInput = {
   shortDescription?: Prisma.SortOrder
   description?: Prisma.SortOrder
   detailSummary?: Prisma.SortOrder
+  thumbnailUrl?: Prisma.SortOrder
   durationMinutes?: Prisma.SortOrder
   basePrice?: Prisma.SortOrder
   highlights?: Prisma.SortOrder
@@ -792,6 +812,7 @@ export type ServiceMaxOrderByAggregateInput = {
   shortDescription?: Prisma.SortOrder
   description?: Prisma.SortOrder
   detailSummary?: Prisma.SortOrder
+  thumbnailUrl?: Prisma.SortOrder
   durationMinutes?: Prisma.SortOrder
   basePrice?: Prisma.SortOrder
   pricingNote?: Prisma.SortOrder
@@ -816,6 +837,7 @@ export type ServiceMinOrderByAggregateInput = {
   shortDescription?: Prisma.SortOrder
   description?: Prisma.SortOrder
   detailSummary?: Prisma.SortOrder
+  thumbnailUrl?: Prisma.SortOrder
   durationMinutes?: Prisma.SortOrder
   basePrice?: Prisma.SortOrder
   pricingNote?: Prisma.SortOrder
@@ -974,6 +996,7 @@ export type ServiceCreateWithoutSpecializationInput = {
   shortDescription?: string | null
   description?: string | null
   detailSummary?: string | null
+  thumbnailUrl?: string | null
   durationMinutes?: number | null
   basePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1006,6 +1029,7 @@ export type ServiceUncheckedCreateWithoutSpecializationInput = {
   shortDescription?: string | null
   description?: string | null
   detailSummary?: string | null
+  thumbnailUrl?: string | null
   durationMinutes?: number | null
   basePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1067,6 +1091,7 @@ export type ServiceScalarWhereInput = {
   shortDescription?: Prisma.StringNullableFilter<"Service"> | string | null
   description?: Prisma.StringNullableFilter<"Service"> | string | null
   detailSummary?: Prisma.StringNullableFilter<"Service"> | string | null
+  thumbnailUrl?: Prisma.StringNullableFilter<"Service"> | string | null
   durationMinutes?: Prisma.IntNullableFilter<"Service"> | number | null
   basePrice?: Prisma.DecimalNullableFilter<"Service"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   highlights?: Prisma.JsonNullableFilter<"Service">
@@ -1097,6 +1122,7 @@ export type ServiceCreateWithoutTreatmentMethodsInput = {
   shortDescription?: string | null
   description?: string | null
   detailSummary?: string | null
+  thumbnailUrl?: string | null
   durationMinutes?: number | null
   basePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1129,6 +1155,7 @@ export type ServiceUncheckedCreateWithoutTreatmentMethodsInput = {
   shortDescription?: string | null
   description?: string | null
   detailSummary?: string | null
+  thumbnailUrl?: string | null
   durationMinutes?: number | null
   basePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1177,6 +1204,7 @@ export type ServiceUpdateWithoutTreatmentMethodsInput = {
   shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   detailSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   basePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1209,6 +1237,7 @@ export type ServiceUncheckedUpdateWithoutTreatmentMethodsInput = {
   shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   detailSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   basePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1241,6 +1270,7 @@ export type ServiceCreateWithoutAppointmentsInput = {
   shortDescription?: string | null
   description?: string | null
   detailSummary?: string | null
+  thumbnailUrl?: string | null
   durationMinutes?: number | null
   basePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1273,6 +1303,7 @@ export type ServiceUncheckedCreateWithoutAppointmentsInput = {
   shortDescription?: string | null
   description?: string | null
   detailSummary?: string | null
+  thumbnailUrl?: string | null
   durationMinutes?: number | null
   basePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1321,6 +1352,7 @@ export type ServiceUpdateWithoutAppointmentsInput = {
   shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   detailSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   basePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1353,6 +1385,7 @@ export type ServiceUncheckedUpdateWithoutAppointmentsInput = {
   shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   detailSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   basePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1385,6 +1418,7 @@ export type ServiceCreateWithoutClinicalCasesInput = {
   shortDescription?: string | null
   description?: string | null
   detailSummary?: string | null
+  thumbnailUrl?: string | null
   durationMinutes?: number | null
   basePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1417,6 +1451,7 @@ export type ServiceUncheckedCreateWithoutClinicalCasesInput = {
   shortDescription?: string | null
   description?: string | null
   detailSummary?: string | null
+  thumbnailUrl?: string | null
   durationMinutes?: number | null
   basePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1465,6 +1500,7 @@ export type ServiceUpdateWithoutClinicalCasesInput = {
   shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   detailSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   basePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1497,6 +1533,7 @@ export type ServiceUncheckedUpdateWithoutClinicalCasesInput = {
   shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   detailSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   basePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1529,6 +1566,7 @@ export type ServiceCreateManySpecializationInput = {
   shortDescription?: string | null
   description?: string | null
   detailSummary?: string | null
+  thumbnailUrl?: string | null
   durationMinutes?: number | null
   basePrice?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
   highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1558,6 +1596,7 @@ export type ServiceUpdateWithoutSpecializationInput = {
   shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   detailSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   basePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1590,6 +1629,7 @@ export type ServiceUncheckedUpdateWithoutSpecializationInput = {
   shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   detailSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   basePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1622,6 +1662,7 @@ export type ServiceUncheckedUpdateManyWithoutSpecializationInput = {
   shortDescription?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   detailSummary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  thumbnailUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   durationMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   basePrice?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
   highlights?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
@@ -1700,6 +1741,7 @@ export type ServiceSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   shortDescription?: boolean
   description?: boolean
   detailSummary?: boolean
+  thumbnailUrl?: boolean
   durationMinutes?: boolean
   basePrice?: boolean
   highlights?: boolean
@@ -1735,6 +1777,7 @@ export type ServiceSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   shortDescription?: boolean
   description?: boolean
   detailSummary?: boolean
+  thumbnailUrl?: boolean
   durationMinutes?: boolean
   basePrice?: boolean
   highlights?: boolean
@@ -1766,6 +1809,7 @@ export type ServiceSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   shortDescription?: boolean
   description?: boolean
   detailSummary?: boolean
+  thumbnailUrl?: boolean
   durationMinutes?: boolean
   basePrice?: boolean
   highlights?: boolean
@@ -1797,6 +1841,7 @@ export type ServiceSelectScalar = {
   shortDescription?: boolean
   description?: boolean
   detailSummary?: boolean
+  thumbnailUrl?: boolean
   durationMinutes?: boolean
   basePrice?: boolean
   highlights?: boolean
@@ -1818,7 +1863,7 @@ export type ServiceSelectScalar = {
   updatedAt?: boolean
 }
 
-export type ServiceOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "category" | "name" | "slug" | "icon" | "shortDescription" | "description" | "detailSummary" | "durationMinutes" | "basePrice" | "highlights" | "suitableFor" | "includedItems" | "preparationNotes" | "aftercareNotes" | "importantNotes" | "pricingNote" | "isFeatured" | "displayOrder" | "isActive" | "depositOverrideEnabled" | "depositRequired" | "depositCalculationMode" | "depositValue" | "specializationId" | "createdAt" | "updatedAt", ExtArgs["result"]["service"]>
+export type ServiceOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "category" | "name" | "slug" | "icon" | "shortDescription" | "description" | "detailSummary" | "thumbnailUrl" | "durationMinutes" | "basePrice" | "highlights" | "suitableFor" | "includedItems" | "preparationNotes" | "aftercareNotes" | "importantNotes" | "pricingNote" | "isFeatured" | "displayOrder" | "isActive" | "depositOverrideEnabled" | "depositRequired" | "depositCalculationMode" | "depositValue" | "specializationId" | "createdAt" | "updatedAt", ExtArgs["result"]["service"]>
 export type ServiceInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   specialization?: boolean | Prisma.Service$specializationArgs<ExtArgs>
   treatmentMethods?: boolean | Prisma.Service$treatmentMethodsArgs<ExtArgs>
@@ -1850,6 +1895,7 @@ export type $ServicePayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     shortDescription: string | null
     description: string | null
     detailSummary: string | null
+    thumbnailUrl: string | null
     durationMinutes: number | null
     basePrice: runtime.Decimal | null
     highlights: runtime.JsonValue | null
@@ -2304,6 +2350,7 @@ export interface ServiceFieldRefs {
   readonly shortDescription: Prisma.FieldRef<"Service", 'String'>
   readonly description: Prisma.FieldRef<"Service", 'String'>
   readonly detailSummary: Prisma.FieldRef<"Service", 'String'>
+  readonly thumbnailUrl: Prisma.FieldRef<"Service", 'String'>
   readonly durationMinutes: Prisma.FieldRef<"Service", 'Int'>
   readonly basePrice: Prisma.FieldRef<"Service", 'Decimal'>
   readonly highlights: Prisma.FieldRef<"Service", 'Json'>

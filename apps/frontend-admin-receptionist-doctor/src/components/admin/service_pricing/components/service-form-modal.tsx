@@ -3,7 +3,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  CurrencyCircleDollar,
   Info,
   ListChecks,
   PencilSimple,
@@ -20,32 +19,24 @@ import {
   AdminImagePicker as ImagePicker,
   AdminInput,
   AdminModal,
-  AdminSelect,
   AdminTextarea as TextareaField,
   collapseSpaces,
   focusFirstError,
   hasErrors,
   useAdminAiAssist,
-  validateNumber,
-  validateSlug,
   validateText,
   type FieldErrors,
 } from "@/src/components/admin/common";
 import { getServices } from "../service-pricing-api";
 import { formatVND } from "../service-pricing-utils";
 import type { ServiceFormState, TreatmentMethod } from "../types";
-import { MAX_SERVICE_PRICE } from "./treatment-method-form-modal";
 
 function validateServiceForm(form: ServiceFormState): FieldErrors {
   const errors: FieldErrors = {
     category: validateText(form.category, { label: "Danh mục", required: true, min: 2, max: 100 }),
     name: validateText(form.name, { label: "Tên dịch vụ", required: true, min: 2, max: 150 }),
-    slug: validateSlug(form.slug),
     shortDescription: validateText(form.shortDescription, { label: "Mô tả ngắn", max: 255 }),
     description: validateText(form.description, { label: "Mô tả chi tiết", max: 5000 }),
-    durationMinutes: validateNumber(form.durationMinutes, { label: "Thời lượng", min: 5, max: 600, unit: "phút" }),
-    basePrice: validateNumber(form.basePrice, { label: "Giá khởi điểm", min: 0, max: MAX_SERVICE_PRICE, unit: "đ" }),
-    displayOrder: validateNumber(form.displayOrder, { label: "Thứ tự hiển thị", min: 0, max: 9999, required: false }),
     pricingNote: validateText(form.pricingNote, { label: "Ghi chú giá", max: 500 }),
   };
   form.highlights.forEach((item, index) => {
@@ -62,12 +53,25 @@ function validateServiceForm(form: ServiceFormState): FieldErrors {
   return errors;
 }
 
+/** "Trồng răng Implant" -> "trong-rang-implant" (dùng cho đường dẫn trang dịch vụ) */
+function toSlug(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[đĐ]/g, "d")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 150);
+}
+
 function normalizeServiceForm(form: ServiceFormState): ServiceFormState {
   return {
     ...form,
     category: collapseSpaces(form.category),
     name: collapseSpaces(form.name),
-    slug: form.slug.trim(),
+    // Slug không còn nhập tay: giữ slug cũ khi sửa, tạo mới từ tên khi chưa có
+    slug: form.slug.trim() || toSlug(form.name),
     shortDescription: form.shortDescription.trim(),
     description: form.description.trim(),
     pricingNote: form.pricingNote.trim(),
@@ -95,13 +99,6 @@ type FaqItem = ServiceFormState["faqs"][number];
 type HighlightItem = ServiceFormState["highlights"][number];
 
 const mediaTypes = ["BANNER", "PROCESS", "BEFORE_AFTER", "GALLERY"];
-const highlightIcons = ["shield", "sparkles", "checkup", "clock"];
-const highlightIconLabels: Record<string, string> = {
-  shield: "Khiên bảo vệ",
-  sparkles: "Lấp lánh",
-  checkup: "Thăm khám",
-  clock: "Đồng hồ",
-};
 
 function Section({
   children,
@@ -119,93 +116,12 @@ function Section({
   );
 }
 
-const NEW_CATEGORY_OPTION = "__new__";
+/** So khớp danh mục không phân biệt hoa thường và khoảng trắng thừa */
+const categoryKey = (value: string) => collapseSpaces(value).normalize("NFC").toLocaleLowerCase("vi");
 
-/** Chọn danh mục có sẵn, hoặc chuyển sang ô nhập để tạo danh mục mới */
-function CategoryField({
-  value,
-  error,
-  onChange,
-}: {
-  value: string;
-  error?: string;
-  onChange: (value: string) => void;
-}) {
-  const { data: services = [], isLoading } = useQuery({
-    queryKey: ["admin", "services", "all"],
-    queryFn: () => getServices({}),
-  });
-
-  const categories = useMemo(
-    () =>
-      Array.from(
-        new Set(services.map((service) => collapseSpaces(service.category ?? "")).filter(Boolean)),
-      ).sort((a, b) => a.localeCompare(b, "vi")),
-    [services],
-  );
-
-  const [creating, setCreating] = useState(false);
-  // Danh mục đang sửa không có trong danh sách (vd. vừa đổi tên) thì hiện ô nhập
-  const isCustomValue = Boolean(value) && !isLoading && !categories.includes(collapseSpaces(value));
-  const showInput = creating || isCustomValue || (!isLoading && categories.length === 0);
-
-  if (showInput) {
-    return (
-      <AdminInput
-        label="Danh mục mới"
-        required
-        autoFocus={creating}
-        maxLength={100}
-        error={error}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder="VD: Implant, Phục hình, Thẩm mỹ..."
-        hint={
-          categories.length > 0 ? (
-            <button
-              type="button"
-              onClick={() => {
-                setCreating(false);
-                onChange("");
-              }}
-              className="font-semibold text-brand hover:underline"
-            >
-              ← Chọn từ danh mục có sẵn
-            </button>
-          ) : (
-            "Chưa có danh mục nào, hãy nhập danh mục đầu tiên."
-          )
-        }
-      />
-    );
-  }
-
-  return (
-    <AdminSelect
-      label="Danh mục"
-      required
-      error={error}
-      value={value}
-      disabled={isLoading}
-      hint={`${categories.length} danh mục có sẵn`}
-      onChange={(event) => {
-        if (event.target.value === NEW_CATEGORY_OPTION) {
-          setCreating(true);
-          onChange("");
-          return;
-        }
-        onChange(event.target.value);
-      }}
-    >
-      <option value="">{isLoading ? "Đang tải danh mục..." : "-- Chọn danh mục --"}</option>
-      {categories.map((category) => (
-        <option key={category} value={category}>
-          {category}
-        </option>
-      ))}
-      <option value={NEW_CATEGORY_OPTION}>+ Thêm danh mục mới</option>
-    </AdminSelect>
-  );
+function findExistingCategory(categories: string[], value: string) {
+  const key = categoryKey(value);
+  return key ? categories.find((category) => categoryKey(category) === key) : undefined;
 }
 
 function ContentListSection({
@@ -267,13 +183,30 @@ export function ServiceFormModal({
     setErrors({});
   }, [initialValue]);
 
+  const { data: allServices = [] } = useQuery({
+    queryKey: ["admin", "services", "all"],
+    queryFn: () => getServices({}),
+  });
+  const categories = useMemo(
+    () =>
+      Array.from(
+        new Set(allServices.map((service) => collapseSpaces(service.category ?? "")).filter(Boolean)),
+      ).sort((a, b) => a.localeCompare(b, "vi")),
+    [allServices],
+  );
+  // Danh mục nhập trùng với danh mục đã có (khác hoa thường / khoảng trắng hoặc trùng hẳn).
+  // Không báo khi giữ nguyên danh mục cũ lúc sửa dịch vụ.
+  const existingCategory =
+    categoryKey(form.category) !== categoryKey(initialValue.category)
+      ? findExistingCategory(categories, form.category)
+      : undefined;
+
   const ai = useAdminAiAssist({
     capture: () => ({
       shortDescription: form.shortDescription,
       description: form.description,
       pricingNote: form.pricingNote,
       highlights: form.highlights,
-      durationMinutes: form.durationMinutes,
     }),
     restore: (snapshot) => setForm((current) => ({ ...current, ...snapshot })),
   });
@@ -290,7 +223,6 @@ export function ServiceFormModal({
           description: suggestion.description || current.description,
           pricingNote: suggestion.pricingNote || current.pricingNote,
           highlights: suggestion.highlights.length ? suggestion.highlights : current.highlights,
-          durationMinutes: suggestion.durationMinutes ?? current.durationMinutes,
         }));
       },
     );
@@ -474,15 +406,30 @@ export function ServiceFormModal({
             focusFirstError(formRef.current);
             return;
           }
-          onSubmit(normalizeServiceForm(form));
+          // Gộp vào đúng cách viết của danh mục đã có để không sinh danh mục trùng
+          const matchedCategory = findExistingCategory(categories, form.category);
+          onSubmit(
+            normalizeServiceForm(matchedCategory ? { ...form, category: matchedCategory } : form),
+          );
         }}
       >
         <Section title="Thông tin dịch vụ (nhóm chính)" icon={<Info size={15} weight="bold" />}>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <CategoryField
-              value={form.category}
+          <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
+            <AdminInput
+              label="Danh mục"
+              required
+              maxLength={100}
               error={errors.category}
-              onChange={(value) => setField("category", value)}
+              value={form.category}
+              onChange={(event) => setField("category", event.target.value)}
+              placeholder="VD: Implant, Phục hình, Thẩm mỹ..."
+              hint={
+                existingCategory ? (
+                  <span className="font-semibold text-amber-600">
+                    Danh mục &quot;{existingCategory}&quot; đã tồn tại — dịch vụ sẽ được xếp chung vào danh mục này.
+                  </span>
+                ) : undefined
+              }
             />
             <AdminInput
               label="Tên dịch vụ"
@@ -496,7 +443,7 @@ export function ServiceFormModal({
           </div>
 
           <AdminAiAssistBar
-            description="Tự soạn mô tả ngắn, mô tả chi tiết, ghi chú giá, điểm nổi bật và thời lượng gợi ý. Giá tiền vẫn do bạn nhập."
+            description="Tự soạn mô tả ngắn, mô tả chi tiết, ghi chú giá và điểm nổi bật."
             disabled={!aiNameReady}
             disabledHint="Nhập tên dịch vụ để AI soạn nội dung."
             loading={ai.loading}
@@ -507,22 +454,12 @@ export function ServiceFormModal({
             onUndo={ai.undo}
           />
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <AdminInput
-              label="Slug"
-              maxLength={150}
-              error={errors.slug}
-              hint="Không bắt buộc. Chữ thường không dấu, nối bằng dấu gạch ngang."
-              value={form.slug}
-              onChange={(event) => setField("slug", event.target.value)}
-              placeholder="trong-rang-implant"
-            />
-            <ImagePicker
-              label="Ảnh đại diện nhóm dịch vụ"
-              value={form.thumbnailUrl}
-              onChange={(value) => setField("thumbnailUrl", value)}
-            />
-          </div>
+          <ImagePicker
+            label="Ảnh đại diện nhóm dịch vụ"
+            hint={null}
+            value={form.thumbnailUrl}
+            onChange={(value) => setField("thumbnailUrl", value)}
+          />
 
           <TextareaField
             label="Mô tả ngắn"
@@ -611,53 +548,6 @@ export function ServiceFormModal({
           )}
         </Section>
 
-        <Section title="Giá mặc định & sắp xếp" icon={<CurrencyCircleDollar size={15} weight="bold" />}>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <AdminInput
-              label="Thời lượng mặc định (Phút)"
-              type="number"
-              required
-              min={5}
-              max={600}
-              inputMode="numeric"
-              error={errors.durationMinutes}
-              value={form.durationMinutes}
-              onChange={(event) =>
-                setField("durationMinutes", Number(event.target.value))
-              }
-              className="font-mono"
-            />
-            <AdminInput
-              label="Giá khởi điểm mặc định (VND)"
-              type="number"
-              required
-              min={0}
-              max={MAX_SERVICE_PRICE}
-              inputMode="numeric"
-              error={errors.basePrice}
-              hint={`≈ ${Number(form.basePrice || 0).toLocaleString("vi-VN")}đ`}
-              value={form.basePrice}
-              onChange={(event) =>
-                setField("basePrice", Number(event.target.value))
-              }
-              className="text-right font-mono"
-            />
-            <AdminInput
-              label="Thứ tự hiển thị"
-              type="number"
-              min={0}
-              max={9999}
-              inputMode="numeric"
-              error={errors.displayOrder}
-              value={form.displayOrder}
-              onChange={(event) =>
-                setField("displayOrder", Number(event.target.value))
-              }
-              className="font-mono"
-            />
-          </div>
-        </Section>
-
         <Section title="Nội dung chi tiết & điểm nổi bật" icon={<Sparkle size={15} weight="bold" />}>
           <TextareaField
             label="Ghi chú giá"
@@ -676,21 +566,8 @@ export function ServiceFormModal({
             {form.highlights.map((highlight, index) => (
               <div
                 key={index}
-                className="grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-white p-3.5 lg:grid-cols-[170px_1fr_auto]"
+                className="grid grid-cols-[1fr_auto] gap-3 rounded-xl border border-slate-200 bg-white p-3.5"
               >
-                <AdminSelect
-                  label="Icon"
-                  value={highlight.icon}
-                  onChange={(event) =>
-                    updateHighlight(index, "icon", event.target.value)
-                  }
-                >
-                  {highlightIcons.map((icon) => (
-                    <option key={icon} value={icon}>
-                      {highlightIconLabels[icon] ?? icon}
-                    </option>
-                  ))}
-                </AdminSelect>
                 <div className="space-y-3">
                   <AdminInput
                     label="Tiêu đề"
@@ -713,7 +590,7 @@ export function ServiceFormModal({
                     }
                   />
                 </div>
-                <div className="self-start lg:pt-7">
+                <div className="self-start pt-7">
                   <AdminIconButton
                     label="Xóa điểm nổi bật"
                     tone="red"

@@ -178,7 +178,7 @@ export function AdminImagePicker({
           </div>
           {shownError ? (
             <p className="text-xs font-medium text-rose-600">{shownError}</p>
-          ) : (
+          ) : hint === null ? null : (
             <p className="text-xs text-slate-500">{hint ?? `PNG, JPG hoặc WEBP, tối đa ${maxMB}MB.`}</p>
           )}
         </div>

@@ -248,6 +248,10 @@ export class CreateServiceDto {
   pricingNote?: string;
 
   @IsOptional()
+  @IsString()
+  thumbnailUrl?: string;
+
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreateTreatmentMethodDto)

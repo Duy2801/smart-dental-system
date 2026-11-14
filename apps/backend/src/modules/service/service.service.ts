@@ -46,6 +46,7 @@ const serviceSummarySelect = {
   shortDescription: true,
   description: true,
   detailSummary: true,
+  thumbnailUrl: true,
   highlights: true,
   suitableFor: true,
   includedItems: true,
@@ -248,6 +249,7 @@ export class ServiceService {
         shortDescription: cleanOptionalText(dto.shortDescription),
         description: cleanOptionalText(dto.description),
         detailSummary: cleanOptionalText(dto.detailSummary),
+        thumbnailUrl: cleanOptionalText(dto.thumbnailUrl),
         highlights: cleanHighlights(dto.highlights),
         suitableFor: cleanTextList(dto.suitableFor),
         includedItems: cleanTextList(dto.includedItems),
@@ -311,8 +313,17 @@ export class ServiceService {
       },
       include: serviceInclude,
     });
+    if (!dto.treatmentMethods?.length) {
+      await this.invalidateCache();
+      return result;
+    }
+
+    await this.syncDefaultsFromMethods(this.prisma, result.id);
     await this.invalidateCache();
-    return result;
+    return this.prisma.service.findUniqueOrThrow({
+      where: { id: result.id },
+      include: serviceInclude,
+    });
   }
 
   async update(id: string, dto: UpdateServiceDto) {
@@ -340,6 +351,10 @@ export class ServiceService {
             dto.detailSummary === undefined
               ? undefined
               : cleanOptionalText(dto.detailSummary),
+          thumbnailUrl:
+            dto.thumbnailUrl === undefined
+              ? undefined
+              : cleanOptionalText(dto.thumbnailUrl),
           highlights:
             dto.highlights === undefined
               ? undefined
@@ -506,6 +521,8 @@ export class ServiceService {
         }
       }
 
+      await this.syncDefaultsFromMethods(tx, id);
+
       return tx.service.findUniqueOrThrow({
         where: { id: service.id },
         include: serviceInclude,
@@ -558,6 +575,7 @@ export class ServiceService {
         faqs: { orderBy: { sortOrder: 'asc' } },
       },
     });
+    await this.syncDefaultsFromMethods(this.prisma, serviceId);
     await this.invalidateCache();
     return result;
   }
@@ -602,8 +620,34 @@ export class ServiceService {
     }
 
     await this.prisma.treatmentMethod.delete({ where: { id: methodId } });
+    await this.syncDefaultsFromMethods(this.prisma, serviceId);
     await this.invalidateCache();
     return { message: 'treatment_method.deleted' };
+  }
+
+  /**
+   * Giá & thời lượng của nhóm dịch vụ không còn nhập tay: lấy theo phương pháp
+   * đang hoạt động có giá thấp nhất (hiển thị "từ X đ" trên app bệnh nhân).
+   * Không có phương pháp hoạt động thì giữ nguyên giá trị cũ.
+   */
+  private async syncDefaultsFromMethods(
+    client: Pick<PrismaService, 'treatmentMethod' | 'service'>,
+    serviceId: string,
+  ) {
+    const cheapest = await client.treatmentMethod.findFirst({
+      where: { serviceId, isActive: true },
+      orderBy: [{ basePrice: 'asc' }, { displayOrder: 'asc' }],
+      select: { basePrice: true, durationMinutes: true },
+    });
+    if (!cheapest) return;
+
+    await client.service.update({
+      where: { id: serviceId },
+      data: {
+        basePrice: cheapest.basePrice,
+        durationMinutes: cheapest.durationMinutes,
+      },
+    });
   }
 
   private async invalidateCache() {

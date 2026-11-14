@@ -81,7 +81,7 @@ export function toServiceFormState(service: DentalService): ServiceFormState {
     shortDescription: service.shortDescription ?? "",
     description: service.description ?? "",
     detailSummary: service.detailSummary ?? "",
-    thumbnailUrl: service.thumbnailUrl ?? primaryMethod?.imageUrl ?? "",
+    thumbnailUrl: service.thumbnailUrl ?? "",
     durationMinutes,
     basePrice,
     highlights: service.highlights ?? [],

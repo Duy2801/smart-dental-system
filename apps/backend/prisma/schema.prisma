@@ -303,6 +303,7 @@ model Service {
   shortDescription       String?                 @map("short_description") @db.Text
   description            String?                 @db.Text
   detailSummary          String?                 @map("detail_summary") @db.Text
+  thumbnailUrl           String?                 @map("thumbnail_url") @db.Text
   durationMinutes        Int?                    @map("duration_minutes")
   basePrice              Decimal?                @map("base_price") @db.Decimal(12, 2)
   highlights             Json?
