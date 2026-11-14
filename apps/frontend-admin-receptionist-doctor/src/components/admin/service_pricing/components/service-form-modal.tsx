@@ -443,10 +443,10 @@ export function ServiceFormModal({
           </div>
 
           <ImagePicker
-            label="Ảnh đại diện nhóm dịch vụ"
+            label="Ảnh đại diện dịch vụ"
             hint={null}
-            value={form.thumbnailUrl}
-            onChange={(value) => setField("thumbnailUrl", value)}
+            value={form.icon}
+            onChange={(value) => setField("icon", value)}
           />
 
           <AdminAiAssistBar

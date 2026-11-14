@@ -63,16 +63,16 @@ export function ServiceRow({
 
   const methods: TreatmentMethod[] = service.treatmentMethods ?? [];
   const primaryMethod = methods[0];
-  const thumbnail = service.thumbnailUrl || primaryMethod?.imageUrl;
+  const thumbnail = service.icon || primaryMethod?.imageUrl;
   const duration = service.durationMinutes ?? primaryMethod?.durationMinutes ?? 30;
 
   return (
     <div>
       <div className="grid grid-cols-1 gap-4 px-5 py-4 transition-colors hover:bg-slate-50/60 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-6">
         <div className="flex min-w-0 gap-4">
-          <div className="flex h-20 w-28 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-100 ring-1 ring-slate-200">
+          <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white p-1.5 shadow-xs ring-1 ring-slate-200">
             {thumbnail ? (
-              <img src={thumbnail} alt={service.name} className="h-full w-full object-cover" />
+              <img src={thumbnail} alt={service.name} className="h-full w-full rounded-xl object-contain" />
             ) : (
               <Tooth size={28} weight="duotone" className="text-slate-300" />
             )}

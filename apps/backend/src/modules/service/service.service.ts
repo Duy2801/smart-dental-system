@@ -3,6 +3,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { uploadImageBuffer } from '../../common/cloudinary';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { CreateServiceDto } from './dto/create-service.dto';
@@ -46,7 +48,6 @@ const serviceSummarySelect = {
   shortDescription: true,
   description: true,
   detailSummary: true,
-  thumbnailUrl: true,
   highlights: true,
   suitableFor: true,
   includedItems: true,
@@ -127,7 +128,24 @@ export class ServiceService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
+    private readonly config: ConfigService,
   ) {}
+
+  /**
+   * Admin chọn ảnh từ máy sẽ gửi lên dạng data URL (base64). Tải lên Cloudinary
+   * để lưu link http — app bệnh nhân (web + mobile) chỉ hiển thị được link http.
+   */
+  private async resolveImage(value: string | undefined, folder: string) {
+    const trimmed = value?.trim();
+    const match = trimmed?.match(/^data:image\/[\w.+-]+;base64,(.+)$/);
+    if (!match) return value;
+    return uploadImageBuffer(this.config, Buffer.from(match[1], 'base64'), { folder });
+  }
+
+  private async resolveServiceImages<T extends { icon?: string }>(dto: T): Promise<T> {
+    const icon = await this.resolveImage(dto.icon, 'smart-dental/services/icons');
+    return { ...dto, icon };
+  }
 
   async findAll(query: ServiceQueryDto) {
     const cacheKey = `${serviceCachePrefix}list:${JSON.stringify({
@@ -239,7 +257,8 @@ export class ServiceService {
     return service;
   }
 
-  async create(dto: CreateServiceDto) {
+  async create(rawDto: CreateServiceDto) {
+    const dto = await this.resolveServiceImages(rawDto);
     const result = await this.prisma.service.create({
       data: {
         category: dto.category.trim(),
@@ -249,7 +268,6 @@ export class ServiceService {
         shortDescription: cleanOptionalText(dto.shortDescription),
         description: cleanOptionalText(dto.description),
         detailSummary: cleanOptionalText(dto.detailSummary),
-        thumbnailUrl: cleanOptionalText(dto.thumbnailUrl),
         highlights: cleanHighlights(dto.highlights),
         suitableFor: cleanTextList(dto.suitableFor),
         includedItems: cleanTextList(dto.includedItems),
@@ -326,8 +344,9 @@ export class ServiceService {
     });
   }
 
-  async update(id: string, dto: UpdateServiceDto) {
+  async update(id: string, rawDto: UpdateServiceDto) {
     await this.ensureServiceExists(id);
+    const dto = await this.resolveServiceImages(rawDto);
 
     const result = await this.prisma.$transaction(async (tx) => {
       const service = await tx.service.update({
@@ -351,10 +370,6 @@ export class ServiceService {
             dto.detailSummary === undefined
               ? undefined
               : cleanOptionalText(dto.detailSummary),
-          thumbnailUrl:
-            dto.thumbnailUrl === undefined
-              ? undefined
-              : cleanOptionalText(dto.thumbnailUrl),
           highlights:
             dto.highlights === undefined
               ? undefined

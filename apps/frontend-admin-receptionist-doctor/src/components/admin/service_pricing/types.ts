@@ -6,7 +6,7 @@ export type DentalService = {
   shortDescription: string | null;
   description: string | null;
   detailSummary: string | null;
-  thumbnailUrl: string | null;
+  icon: string | null;
   durationMinutes: number;
   basePrice: number | string;
   highlights: ServiceHighlight[] | null;
@@ -119,7 +119,7 @@ export type ServiceFormState = {
   shortDescription: string;
   description: string;
   detailSummary: string;
-  thumbnailUrl: string;
+  icon: string;
   durationMinutes: number;
   basePrice: number;
   highlights: ServiceHighlight[];
