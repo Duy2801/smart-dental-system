@@ -86,6 +86,58 @@ Sau khi push thay đổi lên `main`, có thể chạy lại workflow **Deploy A
 trong GitHub Actions để thực hiện các bước này tự động. Lần đầu cần tải khoảng
 506 MiB trọng số; các lần sau script bỏ qua file có checksum hợp lệ.
 
+### Local đọc phim được nhưng bản deploy lỗi
+
+Mở DevTools → Network, bấm **Phân tích lại**, kiểm tra status, Response và thời
+gian của request `POST /api/v1/admin/ai/doctor/analyze-xray`. Thông báo lỗi kết
+nối trên giao diện không đủ để kết luận thiếu model hoặc sai cấu hình Vercel.
+
+| Kết quả | Kiểm tra tiếp |
+| --- | --- |
+| HTTP 504, nhất là sau khoảng 60 giây | Log timeout của Nginx; so sánh với thời gian inference trên VM. |
+| HTTP 502 với response HTML | Log Nginx và `dental-be`: backend có bị dừng/restart trong khi phân tích không? |
+| HTTP 502/503 với JSON từ NestJS | Đọc `message`; kiểm tra `AI_SERVICE_URL`, key và log `dental-ai`. |
+| Client timeout | Phân tích X-quang: backend chờ 240 giây, Nginx 260 giây, frontend 270 giây. Kiểm tra inference có vượt giới hạn này không. |
+| HTTP 200 nhưng `data.status=MODEL_UNAVAILABLE` | Kiểm tra trọng số, dependency và khả năng nạp model trên VM. |
+| `ERR_NETWORK` hoặc CORS | Xem cả Network và log proxy: response lỗi do Nginx tạo có thể thiếu header CORS dù response của NestJS có header này. |
+
+Trên VM, kiểm tra service và log quanh đúng thời điểm request lỗi:
+
+```bash
+curl -fsS http://127.0.0.1:8001/health
+pm2 logs dental-ai --lines 80 --nostream
+pm2 logs dental-be --lines 80 --nostream
+sudo tail -n 80 /var/log/nginx/error.log
+```
+
+Nếu backend và AI chạy cùng VM như hai workflow trong repo, cấu hình **backend**
+là `AI_SERVICE_URL=http://127.0.0.1:8001`. Nếu hai service ở hai máy/container
+khác nhau, dùng địa chỉ AI service mà máy/container backend truy cập được.
+`AI_SERVICE_API_KEY` phải trùng ở hai service. Đổi cấu hình backend thì restart
+`dental-be`; đổi cấu hình AI thì restart `dental-ai` với `--update-env`. Không
+đặt key nội bộ trong biến `NEXT_PUBLIC_*` của Vercel.
+
+Để phân biệt HTTP service hoạt động với model thực sự nạp được, chạy từ
+`apps/ai-service` trên VM:
+
+```bash
+.venv/bin/python -c "from app.services.local_panoramic_model import local_panoramic_model; local_panoramic_model._ensure_loaded(); print('YOLO/DeepLab loaded successfully')"
+```
+
+Workflow hiện kiểm tra import dependency và `/health`, chưa kiểm tra nạp trọng số
+hoặc chạy inference. Nếu tiến trình bị `Killed`, kiểm tra RAM và log OOM của VM;
+không kết luận model đã sẵn sàng chỉ vì workflow xanh.
+
+Nếu log xác nhận `upstream timed out` ở Nginx trong lúc AI vẫn xử lý, điều chỉnh
+`proxy_read_timeout` trong location đang proxy backend để lớn hơn timeout gọi AI
+của backend. Workflow deploy cấu hình `proxy_read_timeout 260s;` cho site backend,
+có sao lưu và hoàn tác nếu kiểm tra/reload Nginx thất bại. Frontend chờ 270 giây,
+backend chờ 240 giây riêng cho phân tích phim (đổi bằng `AI_XRAY_TIMEOUT_MS`).
+Các tác vụ AI khác vẫn dùng `AI_SERVICE_TIMEOUT_MS`, mặc định 90 giây.
+Kiểm tra `sudo nginx -t` trước khi `sudo systemctl reload nginx`. Tăng timeout
+không sửa được lỗi key, thiếu model hay hết RAM. Nginx mặc định chờ 60 giây giữa
+hai lần đọc từ upstream: [tài liệu proxy_read_timeout](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_read_timeout).
+
 ## Luồng hệ thống
 
 ```

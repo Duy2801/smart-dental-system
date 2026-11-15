@@ -7,21 +7,31 @@ import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AiClientService {
-  constructor(private readonly config: ConfigService) { }
+  constructor(private readonly config: ConfigService) {}
 
   private baseUrl() {
-    return (
-      this.config.get<string>('AI_SERVICE_URL')?.replace(/\/$/, '')
-    );
+    return this.config.get<string>('AI_SERVICE_URL')?.replace(/\/$/, '');
   }
 
   private apiKey() {
     return this.config.get<string>('AI_SERVICE_API_KEY') || 'dev-local-key';
   }
 
-  private timeoutMs() {
-    const configured = Number(this.config.get<string>('AI_SERVICE_TIMEOUT_MS'));
-    return Number.isFinite(configured) && configured > 0 ? configured : 90_000;
+  private timeoutMs(path: string) {
+    const normalizedPath = path.replace(/^\//, '');
+    const isXray =
+      normalizedPath === 'api/v1/doctor/analyze-xray' ||
+      normalizedPath === 'api/v1/vision/analyze-panoramic';
+    const configured = Number(
+      this.config.get<string>(
+        isXray ? 'AI_XRAY_TIMEOUT_MS' : 'AI_SERVICE_TIMEOUT_MS',
+      ),
+    );
+    return Number.isFinite(configured) && configured > 0
+      ? configured
+      : isXray
+        ? 240_000
+        : 90_000;
   }
 
   async post<T>(path: string, body: unknown): Promise<T> {
@@ -38,10 +48,15 @@ export class AiClientService {
         method: 'POST',
         headers,
         body: JSON.stringify(body),
-        signal: AbortSignal.timeout(this.timeoutMs()),
+        signal: AbortSignal.timeout(this.timeoutMs(path)),
       });
     } catch (err: any) {
-      console.error('[AiClientService] fetch failed for URL:', url, 'Error:', err?.message || err);
+      console.error(
+        '[AiClientService] fetch failed for URL:',
+        url,
+        'Error:',
+        err?.message || err,
+      );
       throw new ServiceUnavailableException(
         `Không kết nối được AI service (${url}). ${err?.message || ''}`,
       );
