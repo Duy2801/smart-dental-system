@@ -42,6 +42,8 @@ export function ConsultationWorkspace() {
     useState<ConsultationBookingResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>("");
 
+  const [paymentNotice, setPaymentNotice] = useState<string>("");
+
   const showMyConsultations = useCallback(() => {
     setBookingResult(null);
     setActiveTab("my-consultations");
@@ -49,6 +51,20 @@ export function ConsultationWorkspace() {
       queryKey: consultationQueryKeys.myConsultations(),
     });
   }, [queryClient]);
+
+  // Thanh toán xác nhận thành công: báo cho bệnh nhân rồi chuyển sang lịch tư vấn
+  const handlePaymentConfirmed = useCallback(() => {
+    setPaymentNotice(
+      "Thanh toán thành công! Lịch tư vấn của bạn đã được xác nhận, hệ thống sẽ nhắc trước giờ hẹn.",
+    );
+    showMyConsultations();
+  }, [showMyConsultations]);
+
+  useEffect(() => {
+    if (!paymentNotice) return;
+    const timer = setTimeout(() => setPaymentNotice(""), 8000);
+    return () => clearTimeout(timer);
+  }, [paymentNotice]);
 
   useEffect(() => {
     const now = new Date();
@@ -162,6 +178,23 @@ export function ConsultationWorkspace() {
         </div>
       </section>
 
+      {paymentNotice ? (
+        <div
+          role="status"
+          className="flex items-start justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800"
+        >
+          <span>{paymentNotice}</span>
+          <button
+            type="button"
+            onClick={() => setPaymentNotice("")}
+            aria-label="Đóng thông báo"
+            className="shrink-0 text-emerald-700 hover:text-emerald-900"
+          >
+            ✕
+          </button>
+        </div>
+      ) : null}
+
       {/* Main Workspace Body */}
       {activeTab === "book" && (
         <>
@@ -169,7 +202,7 @@ export function ConsultationWorkspace() {
             <PaymentCheckoutView
               bookingResult={bookingResult}
               onViewMyConsultations={showMyConsultations}
-              onPaymentConfirmed={showMyConsultations}
+              onPaymentConfirmed={handlePaymentConfirmed}
               onBookAnother={() => setBookingResult(null)}
             />
           ) : (
