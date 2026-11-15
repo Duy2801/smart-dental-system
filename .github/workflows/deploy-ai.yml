@@ -37,7 +37,7 @@ jobs:
           script: |
             set -e
             cd ~/smart-dental-system/apps/ai-service
-            .venv/bin/python - <<'PY'
+            .venv/bin/python -u - <<'PY'
             import base64, io, json, os, re, subprocess, time, urllib.request, urllib.error
             from collections import Counter
             from pathlib import Path
@@ -143,10 +143,9 @@ jobs:
                 const started = Date.now();
                 console.log('BACKEND_XRAY_TIMEOUT_MS', client.timeoutMs(path));
                 client.post(path, body).then(result => {
-                    console.log('BACKEND_SYNTHETIC', JSON.stringify({ status: result.status, elapsed_s: (Date.now() - started) / 1000 }));
+                    process.stdout.write('BACKEND_SYNTHETIC ' + JSON.stringify({ status: result.status, elapsed_s: (Date.now() - started) / 1000 }) + '\n', () => process.exit(0));
                 }).catch(error => {
-                    console.log('BACKEND_SYNTHETIC_ERROR', error.constructor.name, error.getStatus?.());
-                    process.exitCode = 1;
+                    process.stdout.write('BACKEND_SYNTHETIC_ERROR ' + error.constructor.name + ' ' + error.getStatus?.() + '\n', () => process.exit(1));
                 });
                 '''
                 env = {**os.environ, **{k: v for k, v in backend_env.items() if isinstance(v, str)}}
