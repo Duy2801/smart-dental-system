@@ -101,6 +101,21 @@ nối trên giao diện không đủ để kết luận thiếu model hoặc sai
 | HTTP 200 nhưng `data.status=MODEL_UNAVAILABLE` | Kiểm tra trọng số, dependency và khả năng nạp model trên VM. |
 | `ERR_NETWORK` hoặc CORS | Xem cả Network và log proxy: response lỗi do Nginx tạo có thể thiếu header CORS dù response của NestJS có header này. |
 
+Nếu Nginx ghi `upstream prematurely closed connection` và kernel ghi
+`Out of memory: Killed process ... (python)`, đây là lỗi hết RAM, không phải
+timeout. Pipeline giữ mặt nạ YOLO ở độ phân giải gốc bằng cách chiếu từng nhóm
+4 mặt nạ và chỉ giữ vùng bounding box; post-processing cộng dồn vùng mặt nạ để
+tránh tạo tensor/array chứa đồng thời 500 mặt nạ toàn ảnh. Với phim 2356×1292,
+riêng 500 mặt nạ float32 toàn ảnh có thể cần hơn 5 GiB.
+
+Trong workflow **Deploy AI Service**, chọn `diagnose_only=true, logs_only=true`
+để đọc trạng thái và lỗi OOM/proxy mà không chạy thêm inference. Chọn
+`candidate_model=true` cùng `diagnose_only=true` để chạy code model của commit
+được chọn trong một tiến trình riêng với phim Panorama mẫu trước khi deploy.
+Kiểm tra thông thường dùng phim thật `data/sample_panoramic.jpg` và chỉ thành
+công với trạng thái `HEALTHY` hoặc `PATHOLOGY_DETECTED`; ảnh tổng hợp bị từ chối
+không còn được coi là kiểm chứng đầy đủ cho luồng đọc phim.
+
 Trên VM, kiểm tra service và log quanh đúng thời điểm request lỗi:
 
 ```bash

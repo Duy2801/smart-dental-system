@@ -78,15 +78,17 @@ class LocalPanoramicModel:
                     "Model không nhận diện được cấu trúc răng trên hình ảnh."
                 )
             entries = self._postprocessor(semantic_prediction, instance_prediction)
-
-        width, height = image.size
-        return [
-            self._convert_entry(
-                entry, instance_prediction.instances, semantic_prediction, width, height
-            )
-            for entry in entries
-            if float(entry.score) >= self.confidence_threshold
-        ]
+            # Keep probability buffers inside the lock through result conversion.
+            width, height = image.size
+            findings = [
+                self._convert_entry(
+                    entry, instance_prediction.instances, semantic_prediction, width, height
+                )
+                for entry in entries
+                if float(entry.score) >= self.confidence_threshold
+            ]
+            del semantic_prediction, instance_prediction, entries
+            return findings
 
     def _ensure_loaded(self) -> None:
         if self._module is not None:
