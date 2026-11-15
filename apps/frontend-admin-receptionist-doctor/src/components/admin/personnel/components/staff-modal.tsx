@@ -38,6 +38,7 @@ import {
 } from "@/src/components/admin/common";
 import { cn } from "@/src/lib/utils/cn";
 import type { Role, StaffFormState, StaffUser } from "../types";
+import { SpecializationCombobox } from "./specialization-combobox";
 import { StaffDocumentsField } from "./staff-documents-field";
 
 type StaffModalProps = {
@@ -339,14 +340,10 @@ export function StaffModal({
                   ) : null}
                 </div>
               </div>
-              <AdminInput
-                label="Chuyên khoa"
-                required
-                maxLength={100}
+              <SpecializationCombobox
                 value={form.specialization}
                 error={errors.specialization}
-                onChange={(event) => setField("specialization", event.target.value)}
-                placeholder="Chỉnh nha"
+                onChange={(value) => setField("specialization", value)}
               />
               <AdminInput
                 label="Số giấy phép"

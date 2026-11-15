@@ -118,6 +118,12 @@ export async function deleteStaffUser(user: StaffUser) {
   await apiClient.delete(`/users/${user.id}`);
 }
 
+/** Tên các chuyên khoa đang có (gộp từ bác sĩ và danh mục chuyên khoa) */
+export async function getDoctorSpecializations(): Promise<string[]> {
+  const response = await apiClient.get<string[]>("/doctors/specializations");
+  return response.data;
+}
+
 export async function getStaffDocuments(userId: string): Promise<StaffDocument[]> {
   const response = await apiClient.get<StaffDocument[]>(`/users/${userId}/documents`);
   return response.data;

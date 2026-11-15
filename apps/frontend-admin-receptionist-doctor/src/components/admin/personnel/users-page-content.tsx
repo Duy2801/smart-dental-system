@@ -88,6 +88,7 @@ export function UsersPageContent() {
         showAdminToast(`Đã lưu nhân viên và ${files.length} tài liệu`);
       }
       await queryClient.invalidateQueries({ queryKey: queryKeys.admin.personnelDocuments(userId) });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.admin.doctorSpecializations });
     },
     onSuccess: async () => {
       setShowModal(false);

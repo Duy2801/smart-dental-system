@@ -31,6 +31,12 @@ export class DoctorController {
     );
   }
 
+  /** Danh sách tên chuyên khoa đang dùng, để gợi ý khi tạo/sửa bác sĩ */
+  @Get('specializations')
+  listSpecializations() {
+    return this.doctorService.listSpecializationNames();
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.doctorService.getDoctorById(id);

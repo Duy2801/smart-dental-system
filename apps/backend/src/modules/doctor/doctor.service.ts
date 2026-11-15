@@ -20,6 +20,31 @@ export class DoctorService {
     private readonly redis: RedisService,
   ) {}
 
+  async listSpecializationNames(): Promise<string[]> {
+    const [doctors, specializations] = await Promise.all([
+      this.prisma.doctor.findMany({
+        distinct: ['specialization'],
+        select: { specialization: true },
+      }),
+      this.prisma.specialization.findMany({
+        where: { isActive: true },
+        select: { name: true },
+      }),
+    ]);
+    // Gộp, bỏ trùng không phân biệt hoa thường, giữ cách viết gặp đầu tiên
+    const byKey = new Map<string, string>();
+    for (const name of [
+      ...specializations.map((s) => s.name),
+      ...doctors.map((d) => d.specialization),
+    ]) {
+      const trimmed = name?.trim();
+      if (trimmed && !byKey.has(trimmed.toLowerCase())) {
+        byKey.set(trimmed.toLowerCase(), trimmed);
+      }
+    }
+    return [...byKey.values()].sort((a, b) => a.localeCompare(b, 'vi'));
+  }
+
   private includeDoctorRelations() {
     return {
       user: {
