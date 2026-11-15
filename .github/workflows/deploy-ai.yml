@@ -11,6 +11,11 @@ on:
       - "download_models.py"
       - ".github/workflows/deploy-ai.yml"
   workflow_dispatch:
+    inputs:
+      diagnose_only:
+        description: "Read-only production diagnostics (does not deploy or restart services)"
+        type: boolean
+        default: false
 
 concurrency:
   group: deploy-vm # dùng chung nhóm để không chạy song song với deploy backend
@@ -21,7 +26,117 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
+      - name: Diagnose production Vision service
+        if: ${{ inputs.diagnose_only == true }}
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST_BE }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          command_timeout: 5m
+          script: |
+            set -e
+            cd ~/smart-dental-system/apps/ai-service
+            .venv/bin/python - <<'PY'
+            import base64, io, json, os, re, subprocess, time, urllib.request, urllib.error
+            from collections import Counter
+            from pathlib import Path
+            from dotenv import dotenv_values
+            from PIL import Image, ImageDraw
+
+            root = Path.cwd().parents[1]
+            processes = json.loads(subprocess.check_output(['pm2', 'jlist']))
+            by_name = {item['name']: item for item in processes}
+            for name in ('dental-be', 'dental-ai'):
+                item = by_name.get(name, {})
+                env = item.get('pm2_env', {})
+                print('PROCESS', name, json.dumps({
+                    'status': env.get('status'), 'restarts': env.get('restart_time'),
+                    'memory_mb': round(item.get('monit', {}).get('memory', 0) / 1024**2),
+                    'cwd_correct': env.get('pm_cwd') == str(root / 'apps' / ('backend' if name == 'dental-be' else 'ai-service')),
+                }))
+            print('MEMORY', subprocess.check_output(['free', '-m'], text=True))
+
+            def runtime_env(name):
+                item = by_name.get(name, {})
+                env = dict(item.get('pm2_env', {}))
+                try:
+                    raw = Path(f"/proc/{item['pid']}/environ").read_bytes()
+                    env.update(dict(entry.decode().split('=', 1) for entry in raw.split(b'\0') if b'=' in entry))
+                except (OSError, KeyError):
+                    pass
+                return env
+
+            backend_env = {**dotenv_values(root / 'apps/backend/.env'), **runtime_env('dental-be')}
+            ai_env = {**runtime_env('dental-ai'), **dotenv_values(Path.cwd() / '.env')}
+            base = (backend_env.get('AI_SERVICE_URL') or '').rstrip('/')
+            backend_key = backend_env.get('AI_SERVICE_API_KEY') or 'dev-local-key'
+            ai_key = ai_env.get('AI_SERVICE_API_KEY') or 'dev-local-key'
+            print('CONFIG', json.dumps({
+                'ai_url_configured': bool(base),
+                'ai_url_is_vm_local': base in ('http://localhost:8001', 'http://127.0.0.1:8001'),
+                'keys_match': backend_key == ai_key,
+                'backend_timeout_ms': backend_env.get('AI_SERVICE_TIMEOUT_MS') or '90000',
+            }))
+
+            for name in ('dental-ai', 'dental-be'):
+                env = by_name.get(name, {}).get('pm2_env', {})
+                for field in ('pm_err_log_path', 'pm_out_log_path'):
+                    path = env.get(field)
+                    if not path or not Path(path).is_file():
+                        continue
+                    lines = subprocess.check_output(['tail', '-n', '400', path], text=True, errors='replace').splitlines()
+                    patterns = ('out of memory', 'killed', 'MemoryError', 'ModuleNotFoundError', 'ImportError', 'RuntimeError', 'LocalModelUnavailableError', 'fetch failed', 'TimeoutError', 'Không thể nạp', 'chưa sẵn sàng', 'MODEL_UNAVAILABLE', 'POST /api/v1/doctor/analyze-xray', 'GET /health')
+                    counts = Counter(pattern for line in lines for pattern in patterns if pattern.lower() in line.lower())
+                    print('LOG_COUNTS', name, field, json.dumps(counts, ensure_ascii=False))
+                    for line in lines[-80:]:
+                        if re.match(r'^(?:ModuleNotFoundError|ImportError|RuntimeError|MemoryError|TimeoutError|AttributeError|TypeError|ValueError):', line):
+                            safe = re.sub(r'https?://\S+', '[URL]', line)
+                            safe = re.sub(r'(?i)(key|token|password|secret)=\S+', r'\1=[REDACTED]', safe)
+                            print('EXCEPTION', name, safe[:300])
+
+            nginx = subprocess.run(['sudo', '-n', 'nginx', '-T'], capture_output=True, text=True)
+            if nginx.returncode == 0:
+                for line in nginx.stdout.splitlines():
+                    if re.match(r'^\s*(?:server_name|location|proxy_read_timeout|proxy_send_timeout|proxy_connect_timeout)\s', line):
+                        print('NGINX', line.strip())
+            else:
+                print('NGINX_CONFIG', 'unavailable without sudo password')
+
+            def request(url, data=None):
+                req = urllib.request.Request(url, data=data, headers={
+                    'Content-Type': 'application/json', 'x-api-key': backend_key,
+                })
+                started = time.monotonic()
+                try:
+                    with urllib.request.urlopen(req, timeout=180) as response:
+                        payload = json.load(response)
+                        print('HTTP', json.dumps({'status': response.status, 'elapsed_s': round(time.monotonic() - started, 2), 'analysis_status': payload.get('status'), 'error_status': payload.get('error_status')}))
+                        if payload.get('status') in ('MODEL_UNAVAILABLE', 'ANALYSIS_FAILED'):
+                            print('SYNTHETIC_ERROR', re.sub(r'https?://\S+', '[URL]', payload.get('summary', ''))[:500])
+                except urllib.error.HTTPError as exc:
+                    print('HTTP_ERROR', exc.code, 'elapsed_s', round(time.monotonic() - started, 2))
+                except Exception as exc:
+                    print('CONNECTION_ERROR', type(exc).__name__, 'elapsed_s', round(time.monotonic() - started, 2))
+
+            if base:
+                request(base + '/health')
+                # Synthetic, non-patient image exercises model loading/inference and auth.
+                image = Image.new('L', (640, 320), color=35)
+                draw = ImageDraw.Draw(image)
+                for index in range(12):
+                    x = 45 + index * 48
+                    draw.ellipse((x, 90, x + 34, 230), fill=145 + index % 3 * 20)
+                    draw.line((x + 17, 210, x + 17, 280), fill=100, width=7)
+                buffer = io.BytesIO()
+                image.convert('RGB').save(buffer, format='JPEG')
+                body = json.dumps({'image_base64': base64.b64encode(buffer.getvalue()).decode()}).encode()
+                request(base + '/api/v1/doctor/analyze-xray', body)
+            else:
+                request('http://127.0.0.1:8001/health')
+            PY
       - name: Deploy qua SSH
+        if: ${{ inputs.diagnose_only != true }}
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SSH_HOST_BE }}
