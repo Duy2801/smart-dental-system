@@ -44,6 +44,11 @@ if (versionCheck.status !== 0) {
 
 console.log("[ai-service] Cài requirements…");
 run(venvPip, ["install", "-r", "requirements-vision.txt"]);
+// Ultralytics pulls desktop OpenCV; reinstall headless to restore shared cv2 files.
+run(venvPip, ["uninstall", "-y", "opencv-python", "opencv-contrib-python"]);
+run(venvPip, [
+  "install", "--force-reinstall", "--no-deps", "opencv-python-headless",
+]);
 
 console.log("[ai-service] Kiểm tra model Dental Pano…");
 run(venvPython, [path.resolve(root, "../../download_models.py")]);

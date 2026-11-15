@@ -64,13 +64,21 @@ kiểm tra SHA-256 của model, kiểm tra import pipeline rồi mới restart `
 `requirements.txt` chỉ chứa bộ thư viện nhẹ, không đủ để đọc phim bằng YOLO/DeepLab.
 Endpoint `/health` chỉ kiểm tra HTTP service, không xác nhận model đã sẵn sàng.
 
+Ultralytics tự kéo thêm `opencv-python` bản desktop. Setup và deploy gỡ bản này
+rồi cài lại `opencv-python-headless` để tránh xung đột cùng module `cv2` và lỗi
+thiếu thư viện giao diện như `libxcb.so.1` trên VM. Cần cài lại headless vì việc
+gỡ bản desktop có thể xóa các file dùng chung. `--no-deps` giữ nguyên các thư viện
+đã được cài từ `requirements-vision.txt`.
+
 Để sửa VM đang thiếu model, chạy trên chính VM:
 
 ```bash
 cd ~/smart-dental-system/apps/ai-service
 .venv/bin/pip install -r requirements-vision.txt
+.venv/bin/pip uninstall -y opencv-python opencv-contrib-python
+.venv/bin/pip install --force-reinstall --no-deps opencv-python-headless
 .venv/bin/python ../../download_models.py
-.venv/bin/python -c "import runpy; runpy.run_path('dental-pano-ai/main.py')"
+.venv/bin/python -c "import cv2, runpy; assert cv2.version.headless, 'OpenCV must be headless'; runpy.run_path('dental-pano-ai/main.py')"
 pm2 restart dental-ai --update-env
 ```
 

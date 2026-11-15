@@ -40,11 +40,16 @@ jobs:
             cd apps/ai-service
             .venv/bin/pip install -q -r requirements-vision.txt
 
+            # Ultralytics pulls desktop OpenCV; both variants share cv2 files.
+            # Reinstall headless after removing desktop files to avoid X11 dependencies.
+            .venv/bin/pip uninstall -y opencv-python opencv-contrib-python
+            .venv/bin/pip install -q --force-reinstall --no-deps opencv-python-headless
+
             echo ">>> Download and verify Dental Pano models"
             .venv/bin/python ../../download_models.py
 
             echo ">>> Verify panoramic inference dependencies"
-            .venv/bin/python -c "import runpy; runpy.run_path('dental-pano-ai/main.py')"
+            .venv/bin/python -c "import cv2, runpy; assert cv2.version.headless, 'OpenCV must be headless'; runpy.run_path('dental-pano-ai/main.py')"
 
             echo ">>> Khởi động AI service (start lần đầu, restart các lần sau)"
             if pm2 describe dental-ai >/dev/null 2>&1; then
