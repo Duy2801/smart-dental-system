@@ -53,6 +53,31 @@ Docs: http://127.0.0.1:8001/docs
 
 `.env` đã nằm trong `.gitignore` — **đừng commit key**.
 
+## Deploy AI service lên VM
+
+Frontend trên Vercel gọi NestJS, rồi NestJS gọi AI service trên VM. Model cần nằm
+trên VM chạy AI service; tải model trên máy local không cung cấp model cho VM.
+Hai file trọng số không nằm trong Git.
+
+Workflow `.github/workflows/deploy-ai.yml` cài `requirements-vision.txt`, tải và
+kiểm tra SHA-256 của model, kiểm tra import pipeline rồi mới restart `dental-ai`.
+`requirements.txt` chỉ chứa bộ thư viện nhẹ, không đủ để đọc phim bằng YOLO/DeepLab.
+Endpoint `/health` chỉ kiểm tra HTTP service, không xác nhận model đã sẵn sàng.
+
+Để sửa VM đang thiếu model, chạy trên chính VM:
+
+```bash
+cd ~/smart-dental-system/apps/ai-service
+.venv/bin/pip install -r requirements-vision.txt
+.venv/bin/python ../../download_models.py
+.venv/bin/python -c "import runpy; runpy.run_path('dental-pano-ai/main.py')"
+pm2 restart dental-ai --update-env
+```
+
+Sau khi push thay đổi lên `main`, có thể chạy lại workflow **Deploy AI Service**
+trong GitHub Actions để thực hiện các bước này tự động. Lần đầu cần tải khoảng
+506 MiB trọng số; các lần sau script bỏ qua file có checksum hợp lệ.
+
 ## Luồng hệ thống
 
 ```

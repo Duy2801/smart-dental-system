@@ -43,7 +43,7 @@ if (versionCheck.status !== 0) {
 }
 
 console.log("[ai-service] Cài requirements…");
-run(venvPip, ["install", "-r", "requirements.txt"]);
+run(venvPip, ["install", "-r", "requirements-vision.txt"]);
 
 console.log("[ai-service] Kiểm tra model Dental Pano…");
 run(venvPython, [path.resolve(root, "../../download_models.py")]);

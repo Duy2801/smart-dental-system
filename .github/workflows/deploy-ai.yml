@@ -38,7 +38,13 @@ jobs:
 
             echo ">>> Cài thư viện Python"
             cd apps/ai-service
-            .venv/bin/pip install -q -r requirements.txt
+            .venv/bin/pip install -q -r requirements-vision.txt
+
+            echo ">>> Download and verify Dental Pano models"
+            .venv/bin/python ../../download_models.py
+
+            echo ">>> Verify panoramic inference dependencies"
+            .venv/bin/python -c "import runpy; runpy.run_path('dental-pano-ai/main.py')"
 
             echo ">>> Khởi động AI service (start lần đầu, restart các lần sau)"
             if pm2 describe dental-ai >/dev/null 2>&1; then
