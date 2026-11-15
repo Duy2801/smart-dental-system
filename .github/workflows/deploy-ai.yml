@@ -24,6 +24,10 @@ on:
         description: "Test this commit's model code in an isolated process with the repository Panorama fixture"
         type: boolean
         default: false
+      image_caption:
+        description: "Optional exact caption of a stored test X-ray; URL and patient data are not logged"
+        type: string
+        default: ""
 
 concurrency:
   group: deploy-vm # dùng chung nhóm để không chạy song song với deploy backend
@@ -36,11 +40,14 @@ jobs:
     steps:
       - name: Diagnose production Vision service
         if: ${{ inputs.diagnose_only == true }}
+        env:
+          DIAGNOSTIC_IMAGE_CAPTION: ${{ inputs.image_caption }}
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SSH_HOST_BE }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
+          envs: DIAGNOSTIC_IMAGE_CAPTION
           command_timeout: 5m
           script: |
             set -e
@@ -177,12 +184,37 @@ jobs:
                 const { AiClientService } = require(process.cwd() + '/dist/src/modules/ai/ai-client.service.js');
                 const client = new AiClientService(new ConfigService());
                 const path = '/api/v1/doctor/analyze-xray';
-                const body = JSON.parse(require('fs').readFileSync(0, 'utf8'));
+                let body = JSON.parse(require('fs').readFileSync(0, 'utf8'));
                 const started = Date.now();
                 console.log('BACKEND_XRAY_TIMEOUT_MS', client.timeoutMs(path));
-                client.post(path, body).then(result => {
+                async function probe() {
+                    const caption = process.env.DIAGNOSTIC_IMAGE_CAPTION?.trim();
+                    if (caption) {
+                        if (caption.length > 200) throw new Error('Invalid test image caption');
+                        const { PrismaService } = require(process.cwd() + '/dist/src/modules/prisma/prisma.service.js');
+                        const prisma = new PrismaService(new ConfigService());
+                        try {
+                            const images = await prisma.$queryRaw`
+                                SELECT image->>'url' AS url
+                                FROM medical_records mr
+                                CROSS JOIN LATERAL jsonb_array_elements(COALESCE(mr.images, '[]'::jsonb)) image
+                                WHERE image->>'caption' = ${caption}
+                                  AND image->>'type' = 'xray'
+                                  AND image->>'modality' = 'PANORAMIC'
+                                LIMIT 1
+                            `;
+                            console.log('STORED_TEST_IMAGE_FOUND', Boolean(images[0]?.url));
+                            if (!images[0]?.url) throw new Error('Stored test X-ray not found');
+                            body = { image_url: images[0].url };
+                        } finally {
+                            await prisma.$disconnect();
+                        }
+                    }
+                    return client.post(path, body);
+                }
+                probe().then(result => {
                     const ok = ['HEALTHY', 'PATHOLOGY_DETECTED'].includes(result.status);
-                    process.stdout.write('BACKEND_PANORAMA ' + JSON.stringify({ status: result.status, finding_count: result.findings?.length, elapsed_s: (Date.now() - started) / 1000 }) + '\n', () => process.exit(ok ? 0 : 1));
+                    process.stdout.write('BACKEND_PANORAMA ' + JSON.stringify({ status: result.status, finding_count: result.findings?.length, annotated_image: Boolean(result.annotated_image_url), elapsed_s: (Date.now() - started) / 1000 }) + '\n', () => process.exit(ok ? 0 : 1));
                 }).catch(error => {
                     process.stdout.write('BACKEND_SYNTHETIC_ERROR ' + error.constructor.name + ' ' + error.getStatus?.() + '\n', () => process.exit(1));
                 });
