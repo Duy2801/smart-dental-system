@@ -132,6 +132,25 @@ jobs:
                 image.convert('RGB').save(buffer, format='JPEG')
                 body = json.dumps({'image_base64': base64.b64encode(buffer.getvalue()).decode()}).encode()
                 request(base + '/api/v1/doctor/analyze-xray', body)
+                # Exercise the deployed NestJS HTTP client with the same non-patient image.
+                node = r'''
+                require('reflect-metadata');
+                const { ConfigService } = require('@nestjs/config');
+                const { AiClientService } = require(process.cwd() + '/dist/src/modules/ai/ai-client.service.js');
+                const client = new AiClientService(new ConfigService());
+                const path = '/api/v1/doctor/analyze-xray';
+                const body = JSON.parse(require('fs').readFileSync(0, 'utf8'));
+                const started = Date.now();
+                console.log('BACKEND_XRAY_TIMEOUT_MS', client.timeoutMs(path));
+                client.post(path, body).then(result => {
+                    console.log('BACKEND_SYNTHETIC', JSON.stringify({ status: result.status, elapsed_s: (Date.now() - started) / 1000 }));
+                }).catch(error => {
+                    console.log('BACKEND_SYNTHETIC_ERROR', error.constructor.name, error.getStatus?.());
+                    process.exitCode = 1;
+                });
+                '''
+                env = {**os.environ, **{k: v for k, v in backend_env.items() if isinstance(v, str)}}
+                subprocess.run(['node', '-e', node], input=body, cwd=root / 'apps/backend', env=env, check=True, timeout=250)
             else:
                 request('http://127.0.0.1:8001/health')
             PY
@@ -153,6 +172,8 @@ jobs:
 
             echo ">>> Cài thư viện Python"
             cd apps/ai-service
+            echo ">>> Configure backend proxy timeout for CPU X-ray inference"
+            sudo -n .venv/bin/python scripts/configure_xray_proxy.py --domain duybackend.waucaptcha.com --timeout-seconds 260
             .venv/bin/pip install -q -r requirements-vision.txt
 
             # Ultralytics pulls desktop OpenCV; both variants share cv2 files.
