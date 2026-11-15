@@ -1382,6 +1382,14 @@ export class VideoConsultationService implements OnModuleInit {
       return { isPaid: true, status: consultation.status };
     }
 
+    // Quá 15 phút chưa thanh toán (EXPIRED) hoặc đã hủy: không tạo hóa đơn mới nữa
+    if (
+      consultation.status === VideoConsultationStatus.EXPIRED ||
+      consultation.status === VideoConsultationStatus.CANCELLED
+    ) {
+      return { isPaid: false, status: consultation.status };
+    }
+
     const fee = Number(consultation.fee);
 
     const invoices = await this.prisma.invoice.findMany({

@@ -71,10 +71,10 @@ export async function uploadSupportAttachment(
   buffer: Buffer,
   filename: string,
   mimeType: string,
+  folder = 'smart-dental/support-chat',
 ): Promise<string> {
   const { cloudName, apiKey, apiSecret } = cloudCreds(config);
   const timestamp = String(Math.floor(Date.now() / 1000));
-  const folder = 'smart-dental/support-chat';
   const form = new FormData();
   form.append(
     'file',

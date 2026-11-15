@@ -19,6 +19,7 @@ export function PaymentCheckoutView({
   onBookAnother,
 }: PaymentCheckoutViewProps) {
   const [isPaid, setIsPaid] = useState(false);
+  const [isExpired, setIsExpired] = useState(false);
 
   useEffect(() => {
     const consultationId = bookingResult.consultation.id;
@@ -40,6 +41,10 @@ export function PaymentCheckoutView({
           clearInterval(interval);
           setIsPaid(true);
           onPaymentConfirmed();
+        } else if (active && (info.status === "EXPIRED" || info.status === "CANCELLED")) {
+          // Quá 15 phút chưa thanh toán: dừng kiểm tra, báo bệnh nhân đặt lại
+          clearInterval(interval);
+          setIsExpired(true);
         }
       } catch {
         // Silently retry on polling error
@@ -53,6 +58,37 @@ export function PaymentCheckoutView({
       clearInterval(interval);
     };
   }, [bookingResult.consultation.id, bookingResult.consultation.isPaid, onPaymentConfirmed]);
+
+  if (isExpired) {
+    return (
+      <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-md border border-slate-100 space-y-5">
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-800 text-sm">
+          <strong>Đơn tư vấn đã hết hạn thanh toán</strong>
+          <p className="mt-1">
+            Hệ thống chưa nhận được chuyển khoản trong vòng 15 phút nên khung giờ đã được
+            mở lại cho người khác. Vui lòng <strong>không chuyển khoản</strong> theo mã QR
+            cũ và đặt lại lịch tư vấn mới.
+          </p>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <button
+            type="button"
+            onClick={onBookAnother}
+            className="flex-1 h-12 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition cursor-pointer"
+          >
+            Đặt Lịch Lại
+          </button>
+          <button
+            type="button"
+            onClick={onViewMyConsultations}
+            className="h-12 px-5 rounded-xl border border-slate-200 font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+          >
+            Xem Lịch Tư Vấn Của Tôi
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-md border border-slate-100 space-y-6">

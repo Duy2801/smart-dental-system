@@ -8,6 +8,7 @@ import {
   EyeSlash,
   IdentificationBadge,
   Key,
+  Paperclip,
   ShieldCheck,
   Stethoscope,
   Trash,
@@ -37,12 +38,13 @@ import {
 } from "@/src/components/admin/common";
 import { cn } from "@/src/lib/utils/cn";
 import type { Role, StaffFormState, StaffUser } from "../types";
+import { StaffDocumentsField } from "./staff-documents-field";
 
 type StaffModalProps = {
   editingUser: StaffUser | null;
   initialValue: StaffFormState;
   onClose: () => void;
-  onSubmit: (form: StaffFormState) => void;
+  onSubmit: (form: StaffFormState, files: File[]) => void;
   submitting: boolean;
   title: string;
 };
@@ -167,6 +169,7 @@ export function StaffModal({
       (initialValue.role === "DOCTOR" ? generateDoctorCode() : ""),
   }));
   const [errors, setErrors] = useState<FieldErrors<StaffField>>({});
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const formRef = useRef<HTMLFormElement>(null);
   const isEdit = Boolean(editingUser);
   const isDoctor = form.role === "DOCTOR";
@@ -217,7 +220,7 @@ export function StaffModal({
             focusFirstError(formRef.current);
             return;
           }
-          onSubmit(normalizeStaffForm(form));
+          onSubmit(normalizeStaffForm(form), pendingFiles);
         }}
       >
         <AdminFormSection title="Thông tin cá nhân" icon={<User size={15} weight="bold" />}>
@@ -357,6 +360,18 @@ export function StaffModal({
             </div>
           </AdminFormSection>
         ) : null}
+
+        <AdminFormSection
+          title="Hồ sơ đính kèm"
+          description="CV, bằng cấp, chứng chỉ hành nghề, hợp đồng lao động..."
+          icon={<Paperclip size={15} weight="bold" />}
+        >
+          <StaffDocumentsField
+            userId={editingUser?.id}
+            pendingFiles={pendingFiles}
+            onPendingFilesChange={setPendingFiles}
+          />
+        </AdminFormSection>
 
         <AdminFormSection title="Bảo mật" icon={<Key size={15} weight="bold" />}>
           <div className="relative">

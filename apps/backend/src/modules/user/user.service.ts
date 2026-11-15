@@ -4,8 +4,10 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { plainToInstance } from 'class-transformer';
 import * as bcrypt from 'bcryptjs';
+import { uploadSupportAttachment } from '../../common/cloudinary';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateStaffUserDto } from './dto/create-staff-user.dto';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -13,9 +15,31 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { StaffRoleCode, UserQueryDto } from './dto/user-query.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 
+export type StaffDocumentFile = {
+  buffer: Buffer;
+  mimetype: string;
+  originalname: string;
+};
+
+export const STAFF_DOCUMENT_MAX_BYTES = 5 * 1024 * 1024;
+const STAFF_DOCUMENT_LIMIT = 20;
+const STAFF_DOCUMENT_MIME_TYPES = new Set([
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+]);
+
 @Injectable()
 export class UserService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
+  ) {}
 
   private toResponse(user: object) {
     return plainToInstance(UserResponseDto, user, {
@@ -326,5 +350,69 @@ export class UserService {
       where: { email },
       data: { emailVerified: true },
     });
+  }
+
+  /** Danh sách tài liệu hồ sơ của nhân viên, mới nhất trước */
+  async listDocuments(userId: string) {
+    await this.findOne(userId);
+    return this.prisma.staffDocument.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async uploadDocument(
+    userId: string,
+    file: StaffDocumentFile | undefined,
+    uploadedBy: string,
+  ) {
+    await this.findOne(userId);
+    if (!file || !file.buffer?.length) {
+      throw new BadRequestException('Vui lòng chọn file cần tải lên.');
+    }
+    if (!STAFF_DOCUMENT_MIME_TYPES.has(file.mimetype)) {
+      throw new BadRequestException(
+        'Chỉ hỗ trợ PDF, Word, Excel hoặc ảnh (JPG, PNG, WEBP).',
+      );
+    }
+    const count = await this.prisma.staffDocument.count({ where: { userId } });
+    if (count >= STAFF_DOCUMENT_LIMIT) {
+      throw new BadRequestException(
+        `Mỗi nhân viên lưu tối đa ${STAFF_DOCUMENT_LIMIT} tài liệu.`,
+      );
+    }
+
+    // multer đọc tên file theo latin1 -> chuyển lại UTF-8 để giữ tiếng Việt
+    const fileName = Buffer.from(file.originalname, 'latin1')
+      .toString('utf8')
+      .replace(/[\/\r\n]/g, '_')
+      .slice(0, 180);
+    const fileUrl = await uploadSupportAttachment(
+      this.config,
+      file.buffer,
+      fileName,
+      file.mimetype,
+      'smart-dental/staff-documents',
+    );
+
+    return this.prisma.staffDocument.create({
+      data: {
+        userId,
+        fileName,
+        fileUrl,
+        mimeType: file.mimetype,
+        fileSize: file.buffer.length,
+        uploadedBy,
+      },
+    });
+  }
+
+  async removeDocument(userId: string, documentId: string) {
+    const document = await this.prisma.staffDocument.findFirst({
+      where: { id: documentId, userId },
+    });
+    if (!document) throw new NotFoundException('Không tìm thấy tài liệu.');
+    await this.prisma.staffDocument.delete({ where: { id: documentId } });
+    return { success: true };
   }
 }

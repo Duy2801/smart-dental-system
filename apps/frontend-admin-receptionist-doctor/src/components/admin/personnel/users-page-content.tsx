@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AdminAlert, AdminConfirmModal } from "@/src/components/admin/common";
+import { AdminAlert, AdminConfirmModal, showAdminToast } from "@/src/components/admin/common";
 import { queryKeys } from "@/src/lib/query/query-keys";
 import { emptyStaffForm } from "./constants";
 import {
@@ -10,6 +10,7 @@ import {
   getStaffUsers,
   updateStaffStatus,
   updateStaffUser,
+  uploadStaffDocument,
 } from "./personnel-api";
 import { getErrorMessage, toStaffFormState } from "./personnel-utils";
 import { PersonnelToolbar } from "./components/personnel-toolbar";
@@ -63,8 +64,31 @@ export function UsersPageContent() {
   };
 
   const submitMutation = useMutation({
-    mutationFn: (form: StaffFormState) =>
-      editingUser ? updateStaffUser(editingUser, form) : createStaffUser(form),
+    mutationFn: async ({ form, files }: { form: StaffFormState; files: File[] }) => {
+      let userId: string;
+      if (editingUser) {
+        await updateStaffUser(editingUser, form);
+        userId = editingUser.id;
+      } else {
+        userId = await createStaffUser(form);
+      }
+
+      // Tài khoản đã lưu; tải từng file đính kèm, file lỗi không chặn cả lượt lưu
+      const failed: string[] = [];
+      for (const file of files) {
+        try {
+          await uploadStaffDocument(userId, file);
+        } catch {
+          failed.push(file.name);
+        }
+      }
+      if (failed.length) {
+        showAdminToast(`Đã lưu nhân viên nhưng không tải lên được: ${failed.join(", ")}`, "error");
+      } else if (files.length) {
+        showAdminToast(`Đã lưu nhân viên và ${files.length} tài liệu`);
+      }
+      await queryClient.invalidateQueries({ queryKey: queryKeys.admin.personnelDocuments(userId) });
+    },
     onSuccess: async () => {
       setShowModal(false);
       setEditingUser(null);
@@ -107,10 +131,10 @@ export function UsersPageContent() {
     setEditingUser(null);
   };
 
-  const handleSubmit = async (form: StaffFormState) => {
+  const handleSubmit = async (form: StaffFormState, files: File[]) => {
     setError(null);
     try {
-      await submitMutation.mutateAsync(form);
+      await submitMutation.mutateAsync({ form, files });
     } catch {
       // Error message is handled by the mutation onError callback.
     }
@@ -176,7 +200,7 @@ export function UsersPageContent() {
           editingUser={editingUser}
           submitting={submitMutation.isPending}
           onClose={closeModal}
-          onSubmit={(form) => void handleSubmit(form)}
+          onSubmit={(form, files) => void handleSubmit(form, files)}
         />
       ) : null}
 

@@ -45,3 +45,13 @@ export type StaffFormState = {
   licenseNumber: string;
   avatarUrl: string;
 };
+
+export type StaffDocument = {
+  id: string;
+  userId: string;
+  fileName: string;
+  fileUrl: string;
+  mimeType: string;
+  fileSize: number;
+  createdAt: string;
+};

@@ -13,6 +13,8 @@ export const queryKeys = {
     },
     personnel: (roleFilter: string, search: string, page: number = 1) =>
       ["admin", "personnel", roleFilter, search, page] as const,
+    personnelDocuments: (userId: string) =>
+      ["admin", "personnel-documents", userId] as const,
     promotions: (search: string) => ["admin", "promotions", search] as const,
     finance: (status: string, search: string) =>
       ["admin", "finance", status, search] as const,

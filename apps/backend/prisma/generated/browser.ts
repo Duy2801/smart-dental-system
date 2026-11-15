@@ -28,6 +28,11 @@ export type ClinicConfig = Prisma.ClinicConfigModel
  */
 export type User = Prisma.UserModel
 /**
+ * Model StaffDocument
+ * Tài liệu hồ sơ nhân sự (CV, bằng cấp, hợp đồng...)
+ */
+export type StaffDocument = Prisma.StaffDocumentModel
+/**
  * Model Role
  * 
  */

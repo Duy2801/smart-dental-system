@@ -8,9 +8,13 @@ import {
   Patch,
   Post,
   Query,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
+import { memoryStorage } from 'multer';
 import { CurrentUser } from '../../common/decorators/curent-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -20,7 +24,11 @@ import { CreateStaffUserDto } from './dto/create-staff-user.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { StaffRoleCode, UserQueryDto } from './dto/user-query.dto';
-import { UserService } from './user.service';
+import {
+  STAFF_DOCUMENT_MAX_BYTES,
+  UserService,
+  type StaffDocumentFile,
+} from './user.service';
 
 @ApiTags('User')
 @ApiBearerAuth()
@@ -73,6 +81,35 @@ export class UserController {
       throw new BadRequestException('user.cannot_deactivate_self');
     }
     return this.userService.remove(id);
+  }
+
+  @Get(':id/documents')
+  listDocuments(@Param('id') id: string) {
+    return this.userService.listDocuments(id);
+  }
+
+  @Post(':id/documents')
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: STAFF_DOCUMENT_MAX_BYTES },
+    }),
+  )
+  uploadDocument(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @UploadedFile() file: StaffDocumentFile | undefined,
+  ) {
+    return this.userService.uploadDocument(id, file, user.userId);
+  }
+
+  @Delete(':id/documents/:documentId')
+  removeDocument(
+    @Param('id') id: string,
+    @Param('documentId') documentId: string,
+  ) {
+    return this.userService.removeDocument(id, documentId);
   }
 
   @Get(':id')

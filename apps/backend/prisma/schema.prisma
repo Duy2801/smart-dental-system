@@ -243,11 +243,31 @@ model User {
   createdPatientAiBriefs       PatientAiBrief[]      @relation("PatientAiBriefCreator")
   reviewedPatientAiBriefs      PatientAiBrief[]      @relation("PatientAiBriefReviewer")
   assignedSupportConversations SupportConversation[] @relation("SupportAssignee")
+  staffDocuments               StaffDocument[]       @relation("StaffDocumentOwner")
+  uploadedStaffDocuments       StaffDocument[]       @relation("StaffDocumentUploader")
 
   @@index([fullName])
   @@index([roleId])
   @@index([roleAssignedBy])
   @@map("users")
+}
+
+/// Tài liệu hồ sơ nhân sự (CV, bằng cấp, hợp đồng...)
+model StaffDocument {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  fileName   String   @map("file_name")
+  fileUrl    String   @map("file_url") @db.Text
+  mimeType   String   @map("mime_type")
+  fileSize   Int      @map("file_size")
+  uploadedBy String?  @map("uploaded_by") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user     User  @relation("StaffDocumentOwner", fields: [userId], references: [id], onDelete: Cascade)
+  uploader User? @relation("StaffDocumentUploader", fields: [uploadedBy], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@map("staff_documents")
 }
 
 model Role {
@@ -1026,19 +1046,19 @@ model SupportConversation {
 }
 
 model SupportMessage {
-  id             String               @id @default(uuid()) @db.Uuid
-  conversationId String               @map("conversation_id") @db.Uuid
-  senderType     SupportMessageSender @map("sender_type")
-  senderId       String?              @map("sender_id") @db.Uuid
-  content        String               @db.Text
-  attachmentUrl  String?              @map("attachment_url") @db.Text
-  attachmentName String?              @map("attachment_name")
-  attachmentMime String?              @map("attachment_mime")
-  replyToId      String?              @map("reply_to_id") @db.Uuid
-  replyPreview   String?              @map("reply_preview") @db.Text
+  id              String                @id @default(uuid()) @db.Uuid
+  conversationId  String                @map("conversation_id") @db.Uuid
+  senderType      SupportMessageSender  @map("sender_type")
+  senderId        String?               @map("sender_id") @db.Uuid
+  content         String                @db.Text
+  attachmentUrl   String?               @map("attachment_url") @db.Text
+  attachmentName  String?               @map("attachment_name")
+  attachmentMime  String?               @map("attachment_mime")
+  replyToId       String?               @map("reply_to_id") @db.Uuid
+  replyPreview    String?               @map("reply_preview") @db.Text
   replySenderType SupportMessageSender? @map("reply_sender_type")
-  readAt         DateTime?            @map("read_at")
-  createdAt      DateTime             @default(now()) @map("created_at")
+  readAt          DateTime?             @map("read_at")
+  createdAt       DateTime              @default(now()) @map("created_at")
 
   conversation SupportConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
@@ -1047,20 +1067,20 @@ model SupportMessage {
 }
 
 model VideoConsultation {
-  id              String                  @id @default(uuid()) @db.Uuid
-  patientId       String                  @map("patient_id") @db.Uuid
-  doctorId        String                  @map("doctor_id") @db.Uuid
-  scheduledAt     DateTime                @map("scheduled_at")
-  durationMinutes Int                     @map("duration_minutes")
-  status          VideoConsultationStatus @default(SCHEDULED)
-  expiresAt       DateTime?               @map("expires_at")
-  meetingUrl      String?                 @map("meeting_url")
-  fee             Decimal                 @db.Decimal(12, 2)
-  isPaid          Boolean                 @default(false) @map("is_paid")
-  notes           String?                 @db.Text
+  id                String                  @id @default(uuid()) @db.Uuid
+  patientId         String                  @map("patient_id") @db.Uuid
+  doctorId          String                  @map("doctor_id") @db.Uuid
+  scheduledAt       DateTime                @map("scheduled_at")
+  durationMinutes   Int                     @map("duration_minutes")
+  status            VideoConsultationStatus @default(SCHEDULED)
+  expiresAt         DateTime?               @map("expires_at")
+  meetingUrl        String?                 @map("meeting_url")
+  fee               Decimal                 @db.Decimal(12, 2)
+  isPaid            Boolean                 @default(false) @map("is_paid")
+  notes             String?                 @db.Text
   // Lịch sử bệnh nhân tự đổi lịch (giới hạn 1 lần, giống lịch khám)
-  rescheduleHistory Json?                 @map("reschedule_history")
-  createdAt       DateTime                @default(now()) @map("created_at")
+  rescheduleHistory Json?                   @map("reschedule_history")
+  createdAt         DateTime                @default(now()) @map("created_at")
 
   patient        Patient          @relation(fields: [patientId], references: [id], onDelete: Restrict)
   doctor         Doctor           @relation(fields: [doctorId], references: [id], onDelete: Restrict)

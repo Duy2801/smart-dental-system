@@ -53,6 +53,7 @@ export const AnyNull = runtime.AnyNull
 export const ModelName = {
   ClinicConfig: 'ClinicConfig',
   User: 'User',
+  StaffDocument: 'StaffDocument',
   Role: 'Role',
   Permission: 'Permission',
   RolePermission: 'RolePermission',
@@ -141,6 +142,20 @@ export const UserScalarFieldEnum = {
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
+
+
+export const StaffDocumentScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  fileName: 'fileName',
+  fileUrl: 'fileUrl',
+  mimeType: 'mimeType',
+  fileSize: 'fileSize',
+  uploadedBy: 'uploadedBy',
+  createdAt: 'createdAt'
+} as const
+
+export type StaffDocumentScalarFieldEnum = (typeof StaffDocumentScalarFieldEnum)[keyof typeof StaffDocumentScalarFieldEnum]
 
 
 export const RoleScalarFieldEnum = {

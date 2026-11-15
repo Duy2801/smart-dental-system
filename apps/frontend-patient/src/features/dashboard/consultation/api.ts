@@ -109,6 +109,8 @@ export async function rescheduleMyConsultation(
 export async function getConsultationPaymentInfo(id: string): Promise<{
   consultationId?: string;
   isPaid: boolean;
+  /** Trạng thái lịch tư vấn (EXPIRED khi quá 15 phút chưa thanh toán) */
+  status?: string;
   fee?: number;
   invoice?: {
     id: string;

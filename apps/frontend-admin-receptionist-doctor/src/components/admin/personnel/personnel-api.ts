@@ -2,6 +2,7 @@ import apiClient from "@/src/lib/api/client";
 import type {
   Role,
   RoleFilter,
+  StaffDocument,
   StaffFormState,
   StaffResponse,
   StaffUser,
@@ -40,9 +41,10 @@ export async function getStaffUsers({
   return response.data;
 }
 
-export async function createStaffUser(form: StaffFormState) {
+/** Tạo nhân viên, trả về id tài khoản (users.id) để đính kèm tài liệu */
+export async function createStaffUser(form: StaffFormState): Promise<string> {
   if (form.role === "DOCTOR") {
-    await apiClient.post("/doctors", {
+    const response = await apiClient.post<{ userId: string }>("/doctors", {
       fullName: form.fullName,
       email: form.email,
       phone: form.phone || undefined,
@@ -52,10 +54,10 @@ export async function createStaffUser(form: StaffFormState) {
       licenseNumber: form.licenseNumber,
       avatarUrl: form.avatarUrl || undefined,
     });
-    return;
+    return response.data.userId;
   }
 
-  await apiClient.post(
+  const response = await apiClient.post<{ id: string }>(
     `/users/${form.role === "ADMIN" ? "admin" : "receptionist"}`,
     {
       fullName: form.fullName,
@@ -64,6 +66,7 @@ export async function createStaffUser(form: StaffFormState) {
       password: form.password,
     },
   );
+  return response.data.id;
 }
 
 export async function updateStaffUser(user: StaffUser, form: StaffFormState) {
@@ -113,4 +116,35 @@ export async function deleteStaffUser(user: StaffUser) {
   }
 
   await apiClient.delete(`/users/${user.id}`);
+}
+
+export async function getStaffDocuments(userId: string): Promise<StaffDocument[]> {
+  const response = await apiClient.get<StaffDocument[]>(`/users/${userId}/documents`);
+  return response.data;
+}
+
+export async function uploadStaffDocument(userId: string, file: File) {
+  const form = new FormData();
+  form.append("file", file);
+  const response = await apiClient.post<StaffDocument>(
+    `/users/${userId}/documents`,
+    form,
+    {
+      timeout: 60_000,
+      transformRequest: [
+        (data, headers) => {
+          // Để trình duyệt tự gắn Content-Type kèm boundary cho FormData
+          if (data instanceof FormData && headers && typeof headers === "object") {
+            delete (headers as Record<string, unknown>)["Content-Type"];
+          }
+          return data;
+        },
+      ],
+    },
+  );
+  return response.data;
+}
+
+export async function deleteStaffDocument(userId: string, documentId: string) {
+  await apiClient.delete(`/users/${userId}/documents/${documentId}`);
 }

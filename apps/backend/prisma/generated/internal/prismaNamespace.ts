@@ -386,6 +386,7 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 export const ModelName = {
   ClinicConfig: 'ClinicConfig',
   User: 'User',
+  StaffDocument: 'StaffDocument',
   Role: 'Role',
   Permission: 'Permission',
   RolePermission: 'RolePermission',
@@ -442,7 +443,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "clinicConfig" | "user" | "role" | "permission" | "rolePermission" | "service" | "specialization" | "doctorSpecialization" | "treatmentMethod" | "serviceMedia" | "serviceProcedureStep" | "serviceFaq" | "promotion" | "patient" | "patientAccount" | "doctor" | "doctorEducation" | "doctorCertificate" | "doctorMedia" | "doctorAvailability" | "appointment" | "medicalRecord" | "medicalRecordAudit" | "aiXrayAnalysisAudit" | "treatmentPlan" | "treatmentPlanAudit" | "treatmentPlanStep" | "clinicalCase" | "invoice" | "prescription" | "prescriptionAudit" | "prescriptionItem" | "payment" | "review" | "chatbotConversation" | "supportConversation" | "supportMessage" | "videoConsultation" | "patientAiBrief" | "notification" | "banner" | "consultationPackage" | "refundRequest"
+    modelProps: "clinicConfig" | "user" | "staffDocument" | "role" | "permission" | "rolePermission" | "service" | "specialization" | "doctorSpecialization" | "treatmentMethod" | "serviceMedia" | "serviceProcedureStep" | "serviceFaq" | "promotion" | "patient" | "patientAccount" | "doctor" | "doctorEducation" | "doctorCertificate" | "doctorMedia" | "doctorAvailability" | "appointment" | "medicalRecord" | "medicalRecordAudit" | "aiXrayAnalysisAudit" | "treatmentPlan" | "treatmentPlanAudit" | "treatmentPlanStep" | "clinicalCase" | "invoice" | "prescription" | "prescriptionAudit" | "prescriptionItem" | "payment" | "review" | "chatbotConversation" | "supportConversation" | "supportMessage" | "videoConsultation" | "patientAiBrief" | "notification" | "banner" | "consultationPackage" | "refundRequest"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -591,6 +592,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.UserCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.UserCountAggregateOutputType> | number
+        }
+      }
+    }
+    StaffDocument: {
+      payload: Prisma.$StaffDocumentPayload<ExtArgs>
+      fields: Prisma.StaffDocumentFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.StaffDocumentFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffDocumentPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.StaffDocumentFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffDocumentPayload>
+        }
+        findFirst: {
+          args: Prisma.StaffDocumentFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffDocumentPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.StaffDocumentFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffDocumentPayload>
+        }
+        findMany: {
+          args: Prisma.StaffDocumentFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffDocumentPayload>[]
+        }
+        create: {
+          args: Prisma.StaffDocumentCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffDocumentPayload>
+        }
+        createMany: {
+          args: Prisma.StaffDocumentCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.StaffDocumentCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffDocumentPayload>[]
+        }
+        delete: {
+          args: Prisma.StaffDocumentDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffDocumentPayload>
+        }
+        update: {
+          args: Prisma.StaffDocumentUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffDocumentPayload>
+        }
+        deleteMany: {
+          args: Prisma.StaffDocumentDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.StaffDocumentUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.StaffDocumentUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffDocumentPayload>[]
+        }
+        upsert: {
+          args: Prisma.StaffDocumentUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StaffDocumentPayload>
+        }
+        aggregate: {
+          args: Prisma.StaffDocumentAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateStaffDocument>
+        }
+        groupBy: {
+          args: Prisma.StaffDocumentGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.StaffDocumentGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.StaffDocumentCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.StaffDocumentCountAggregateOutputType> | number
         }
       }
     }
@@ -3698,6 +3773,20 @@ export const UserScalarFieldEnum = {
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
 
 
+export const StaffDocumentScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  fileName: 'fileName',
+  fileUrl: 'fileUrl',
+  mimeType: 'mimeType',
+  fileSize: 'fileSize',
+  uploadedBy: 'uploadedBy',
+  createdAt: 'createdAt'
+} as const
+
+export type StaffDocumentScalarFieldEnum = (typeof StaffDocumentScalarFieldEnum)[keyof typeof StaffDocumentScalarFieldEnum]
+
+
 export const RoleScalarFieldEnum = {
   id: 'id',
   code: 'code',
@@ -5062,6 +5151,7 @@ export type PrismaClientOptions = ({
 export type GlobalOmitConfig = {
   clinicConfig?: Prisma.ClinicConfigOmit
   user?: Prisma.UserOmit
+  staffDocument?: Prisma.StaffDocumentOmit
   role?: Prisma.RoleOmit
   permission?: Prisma.PermissionOmit
   rolePermission?: Prisma.RolePermissionOmit
