@@ -16,6 +16,10 @@ on:
         description: "Read-only production diagnostics (does not deploy or restart services)"
         type: boolean
         default: false
+      logs_only:
+        description: "Skip inference and inspect recent runtime/proxy/kernel errors"
+        type: boolean
+        default: false
 
 concurrency:
   group: deploy-vm # dùng chung nhóm để không chạy song song với deploy backend
@@ -90,10 +94,28 @@ jobs:
                     counts = Counter(pattern for line in lines for pattern in patterns if pattern.lower() in line.lower())
                     print('LOG_COUNTS', name, field, json.dumps(counts, ensure_ascii=False))
                     for line in lines[-80:]:
-                        if re.match(r'^(?:ModuleNotFoundError|ImportError|RuntimeError|MemoryError|TimeoutError|AttributeError|TypeError|ValueError):', line):
+                        if re.search(r'(?:ModuleNotFoundError|ImportError|RuntimeError|MemoryError|TimeoutError|AttributeError|TypeError|ValueError):|fetch failed|FATAL ERROR|ECONNRESET|ECONNREFUSED', line):
                             safe = re.sub(r'https?://\S+', '[URL]', line)
                             safe = re.sub(r'(?i)(key|token|password|secret)=\S+', r'\1=[REDACTED]', safe)
                             print('EXCEPTION', name, safe[:300])
+
+            for filename in ('access.log', 'error.log'):
+                result = subprocess.run(['sudo', '-n', 'tail', '-n', '1000', '/var/log/nginx/' + filename], capture_output=True, text=True)
+                for line in result.stdout.splitlines():
+                    if 'analyze-xray' not in line:
+                        continue
+                    if filename == 'access.log':
+                        match = re.search(r'\[([^\]]+)\].*?"POST [^"]*analyze-xray[^"]*" (\d{3})', line)
+                        if match:
+                            print('XRAY_ACCESS', match.group(1), 'HTTP', match.group(2))
+                    else:
+                        print('XRAY_PROXY_ERROR', line.split(', client:', 1)[0][:300])
+            kernel = subprocess.run(['sudo', '-n', 'journalctl', '-k', '--since', '45 minutes ago', '--no-pager'], capture_output=True, text=True)
+            for line in kernel.stdout.splitlines():
+                if re.search(r'(?i)out of memory|killed process|oom-kill', line):
+                    print('KERNEL_MEMORY', line[:400])
+            print('CPU_COUNT', os.cpu_count())
+            print('MEMORY_PRESSURE', Path('/proc/pressure/memory').read_text())
 
             nginx = subprocess.run(['sudo', '-n', 'nginx', '-T'], capture_output=True, text=True)
             if nginx.returncode == 0:
@@ -119,7 +141,7 @@ jobs:
                 except Exception as exc:
                     print('CONNECTION_ERROR', type(exc).__name__, 'elapsed_s', round(time.monotonic() - started, 2))
 
-            if base:
+            if base and '${{ inputs.logs_only }}' != 'true':
                 request(base + '/health')
                 # Synthetic, non-patient image exercises model loading/inference and auth.
                 image = Image.new('L', (640, 320), color=35)
