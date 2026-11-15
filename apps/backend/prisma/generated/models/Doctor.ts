@@ -226,7 +226,7 @@ export type DoctorGroupByOutputType = {
   userId: string
   doctorCode: string
   specialization: string
-  licenseNumber: string
+  licenseNumber: string | null
   avatarUrl: string | null
   bio: string | null
   position: string | null
@@ -264,7 +264,7 @@ export type DoctorWhereInput = {
   userId?: Prisma.UuidFilter<"Doctor"> | string
   doctorCode?: Prisma.StringFilter<"Doctor"> | string
   specialization?: Prisma.StringFilter<"Doctor"> | string
-  licenseNumber?: Prisma.StringFilter<"Doctor"> | string
+  licenseNumber?: Prisma.StringNullableFilter<"Doctor"> | string | null
   avatarUrl?: Prisma.StringNullableFilter<"Doctor"> | string | null
   bio?: Prisma.StringNullableFilter<"Doctor"> | string | null
   position?: Prisma.StringNullableFilter<"Doctor"> | string | null
@@ -294,7 +294,7 @@ export type DoctorOrderByWithRelationInput = {
   userId?: Prisma.SortOrder
   doctorCode?: Prisma.SortOrder
   specialization?: Prisma.SortOrder
-  licenseNumber?: Prisma.SortOrder
+  licenseNumber?: Prisma.SortOrderInput | Prisma.SortOrder
   avatarUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   bio?: Prisma.SortOrderInput | Prisma.SortOrder
   position?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -357,7 +357,7 @@ export type DoctorOrderByWithAggregationInput = {
   userId?: Prisma.SortOrder
   doctorCode?: Prisma.SortOrder
   specialization?: Prisma.SortOrder
-  licenseNumber?: Prisma.SortOrder
+  licenseNumber?: Prisma.SortOrderInput | Prisma.SortOrder
   avatarUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   bio?: Prisma.SortOrderInput | Prisma.SortOrder
   position?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -380,7 +380,7 @@ export type DoctorScalarWhereWithAggregatesInput = {
   userId?: Prisma.UuidWithAggregatesFilter<"Doctor"> | string
   doctorCode?: Prisma.StringWithAggregatesFilter<"Doctor"> | string
   specialization?: Prisma.StringWithAggregatesFilter<"Doctor"> | string
-  licenseNumber?: Prisma.StringWithAggregatesFilter<"Doctor"> | string
+  licenseNumber?: Prisma.StringNullableWithAggregatesFilter<"Doctor"> | string | null
   avatarUrl?: Prisma.StringNullableWithAggregatesFilter<"Doctor"> | string | null
   bio?: Prisma.StringNullableWithAggregatesFilter<"Doctor"> | string | null
   position?: Prisma.StringNullableWithAggregatesFilter<"Doctor"> | string | null
@@ -394,7 +394,7 @@ export type DoctorCreateInput = {
   id?: string
   doctorCode: string
   specialization: string
-  licenseNumber: string
+  licenseNumber?: string | null
   avatarUrl?: string | null
   bio?: string | null
   position?: string | null
@@ -424,7 +424,7 @@ export type DoctorUncheckedCreateInput = {
   userId: string
   doctorCode: string
   specialization: string
-  licenseNumber: string
+  licenseNumber?: string | null
   avatarUrl?: string | null
   bio?: string | null
   position?: string | null
@@ -452,7 +452,7 @@ export type DoctorUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   doctorCode?: Prisma.StringFieldUpdateOperationsInput | string
   specialization?: Prisma.StringFieldUpdateOperationsInput | string
-  licenseNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  licenseNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -482,7 +482,7 @@ export type DoctorUncheckedUpdateInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   doctorCode?: Prisma.StringFieldUpdateOperationsInput | string
   specialization?: Prisma.StringFieldUpdateOperationsInput | string
-  licenseNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  licenseNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -511,7 +511,7 @@ export type DoctorCreateManyInput = {
   userId: string
   doctorCode: string
   specialization: string
-  licenseNumber: string
+  licenseNumber?: string | null
   avatarUrl?: string | null
   bio?: string | null
   position?: string | null
@@ -525,7 +525,7 @@ export type DoctorUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   doctorCode?: Prisma.StringFieldUpdateOperationsInput | string
   specialization?: Prisma.StringFieldUpdateOperationsInput | string
-  licenseNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  licenseNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -540,7 +540,7 @@ export type DoctorUncheckedUpdateManyInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   doctorCode?: Prisma.StringFieldUpdateOperationsInput | string
   specialization?: Prisma.StringFieldUpdateOperationsInput | string
-  licenseNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  licenseNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -847,7 +847,7 @@ export type DoctorCreateWithoutUserInput = {
   id?: string
   doctorCode: string
   specialization: string
-  licenseNumber: string
+  licenseNumber?: string | null
   avatarUrl?: string | null
   bio?: string | null
   position?: string | null
@@ -875,7 +875,7 @@ export type DoctorUncheckedCreateWithoutUserInput = {
   id?: string
   doctorCode: string
   specialization: string
-  licenseNumber: string
+  licenseNumber?: string | null
   avatarUrl?: string | null
   bio?: string | null
   position?: string | null
@@ -919,7 +919,7 @@ export type DoctorUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   doctorCode?: Prisma.StringFieldUpdateOperationsInput | string
   specialization?: Prisma.StringFieldUpdateOperationsInput | string
-  licenseNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  licenseNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -947,7 +947,7 @@ export type DoctorUncheckedUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   doctorCode?: Prisma.StringFieldUpdateOperationsInput | string
   specialization?: Prisma.StringFieldUpdateOperationsInput | string
-  licenseNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  licenseNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -975,7 +975,7 @@ export type DoctorCreateWithoutSpecializationsInput = {
   id?: string
   doctorCode: string
   specialization: string
-  licenseNumber: string
+  licenseNumber?: string | null
   avatarUrl?: string | null
   bio?: string | null
   position?: string | null
@@ -1004,7 +1004,7 @@ export type DoctorUncheckedCreateWithoutSpecializationsInput = {
   userId: string
   doctorCode: string
   specialization: string
-  licenseNumber: string
+  licenseNumber?: string | null
   avatarUrl?: string | null
   bio?: string | null
   position?: string | null
@@ -1047,7 +1047,7 @@ export type DoctorUpdateWithoutSpecializationsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   doctorCode?: Prisma.StringFieldUpdateOperationsInput | string
   specialization?: Prisma.StringFieldUpdateOperationsInput | string
-  licenseNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  licenseNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1076,7 +1076,7 @@ export type DoctorUncheckedUpdateWithoutSpecializationsInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   doctorCode?: Prisma.StringFieldUpdateOperationsInput | string
   specialization?: Prisma.StringFieldUpdateOperationsInput | string
-  licenseNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  licenseNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1103,7 +1103,7 @@ export type DoctorCreateWithoutEducationsInput = {
   id?: string
   doctorCode: string
   specialization: string
-  licenseNumber: string
+  licenseNumber?: string | null
   avatarUrl?: string | null
   bio?: string | null
   position?: string | null
@@ -1132,7 +1132,7 @@ export type DoctorUncheckedCreateWithoutEducationsInput = {
   userId: string
   doctorCode: string
   specialization: string
-  licenseNumber: string
+  licenseNumber?: string | null
   avatarUrl?: string | null
   bio?: string | null
   position?: string | null
@@ -1175,7 +1175,7 @@ export type DoctorUpdateWithoutEducationsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   doctorCode?: Prisma.StringFieldUpdateOperationsInput | string
   specialization?: Prisma.StringFieldUpdateOperationsInput | string
-  licenseNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  licenseNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1204,7 +1204,7 @@ export type DoctorUncheckedUpdateWithoutEducationsInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   doctorCode?: Prisma.StringFieldUpdateOperationsInput | string
   specialization?: Prisma.StringFieldUpdateOperationsInput | string
-  licenseNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  licenseNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1231,7 +1231,7 @@ export type DoctorCreateWithoutCertificatesInput = {
   id?: string
   doctorCode: string
   specialization: string
-  licenseNumber: string
+  licenseNumber?: string | null
   avatarUrl?: string | null
   bio?: string | null
   position?: string | null
@@ -1260,7 +1260,7 @@ export type DoctorUncheckedCreateWithoutCertificatesInput = {
   userId: string
   doctorCode: string
   specialization: string
-  licenseNumber: string
+  licenseNumber?: string | null
   avatarUrl?: string | null
   bio?: string | null
   position?: string | null
@@ -1303,7 +1303,7 @@ export type DoctorUpdateWithoutCertificatesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   doctorCode?: Prisma.StringFieldUpdateOperationsInput | string
   specialization?: Prisma.StringFieldUpdateOperationsInput | string
-  licenseNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  licenseNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1332,7 +1332,7 @@ export type DoctorUncheckedUpdateWithoutCertificatesInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   doctorCode?: Prisma.StringFieldUpdateOperationsInput | string
   specialization?: Prisma.StringFieldUpdateOperationsInput | string
-  licenseNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  licenseNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1359,7 +1359,7 @@ export type DoctorCreateWithoutMediaInput = {
   id?: string
   doctorCode: string
   specialization: string
-  licenseNumber: string
+  licenseNumber?: string | null
   avatarUrl?: string | null
   bio?: string | null
   position?: string | null
@@ -1388,7 +1388,7 @@ export type DoctorUncheckedCreateWithoutMediaInput = {
   userId: string
   doctorCode: string
   specialization: string
-  licenseNumber: string
+  licenseNumber?: string | null
   avatarUrl?: string | null
   bio?: string | null
   position?: string | null
@@ -1431,7 +1431,7 @@ export type DoctorUpdateWithoutMediaInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   doctorCode?: Prisma.StringFieldUpdateOperationsInput | string
   specialization?: Prisma.StringFieldUpdateOperationsInput | string
-  licenseNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  licenseNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1460,7 +1460,7 @@ export type DoctorUncheckedUpdateWithoutMediaInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   doctorCode?: Prisma.StringFieldUpdateOperationsInput | string
   specialization?: Prisma.StringFieldUpdateOperationsInput | string
-  licenseNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  licenseNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1487,7 +1487,7 @@ export type DoctorCreateWithoutAvailabilityInput = {
   id?: string
   doctorCode: string
   specialization: string
-  licenseNumber: string
+  licenseNumber?: string | null
   avatarUrl?: string | null
   bio?: string | null
   position?: string | null
@@ -1516,7 +1516,7 @@ export type DoctorUncheckedCreateWithoutAvailabilityInput = {
   userId: string
   doctorCode: string
   specialization: string
-  licenseNumber: string
+  licenseNumber?: string | null
   avatarUrl?: string | null
   bio?: string | null
   position?: string | null
@@ -1559,7 +1559,7 @@ export type DoctorUpdateWithoutAvailabilityInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   doctorCode?: Prisma.StringFieldUpdateOperationsInput | string
   specialization?: Prisma.StringFieldUpdateOperationsInput | string
-  licenseNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  licenseNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1588,7 +1588,7 @@ export type DoctorUncheckedUpdateWithoutAvailabilityInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   doctorCode?: Prisma.StringFieldUpdateOperationsInput | string
   specialization?: Prisma.StringFieldUpdateOperationsInput | string
-  licenseNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  licenseNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1615,7 +1615,7 @@ export type DoctorCreateWithoutAppointmentsInput = {
   id?: string
   doctorCode: string
   specialization: string
-  licenseNumber: string
+  licenseNumber?: string | null
   avatarUrl?: string | null
   bio?: string | null
   position?: string | null
@@ -1644,7 +1644,7 @@ export type DoctorUncheckedCreateWithoutAppointmentsInput = {
   userId: string
   doctorCode: string
   specialization: string
-  licenseNumber: string
+  licenseNumber?: string | null
   avatarUrl?: string | null
   bio?: string | null
   position?: string | null
@@ -1687,7 +1687,7 @@ export type DoctorUpdateWithoutAppointmentsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   doctorCode?: Prisma.StringFieldUpdateOperationsInput | string
   specialization?: Prisma.StringFieldUpdateOperationsInput | string
-  licenseNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  licenseNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1716,7 +1716,7 @@ export type DoctorUncheckedUpdateWithoutAppointmentsInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   doctorCode?: Prisma.StringFieldUpdateOperationsInput | string
   specialization?: Prisma.StringFieldUpdateOperationsInput | string
-  licenseNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  licenseNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1743,7 +1743,7 @@ export type DoctorCreateWithoutMedicalRecordsInput = {
   id?: string
   doctorCode: string
   specialization: string
-  licenseNumber: string
+  licenseNumber?: string | null
   avatarUrl?: string | null
   bio?: string | null
   position?: string | null
@@ -1772,7 +1772,7 @@ export type DoctorUncheckedCreateWithoutMedicalRecordsInput = {
   userId: string
   doctorCode: string
   specialization: string
-  licenseNumber: string
+  licenseNumber?: string | null
   avatarUrl?: string | null
   bio?: string | null
   position?: string | null
@@ -1815,7 +1815,7 @@ export type DoctorUpdateWithoutMedicalRecordsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   doctorCode?: Prisma.StringFieldUpdateOperationsInput | string
   specialization?: Prisma.StringFieldUpdateOperationsInput | string
-  licenseNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  licenseNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1844,7 +1844,7 @@ export type DoctorUncheckedUpdateWithoutMedicalRecordsInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   doctorCode?: Prisma.StringFieldUpdateOperationsInput | string
   specialization?: Prisma.StringFieldUpdateOperationsInput | string
-  licenseNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  licenseNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1871,7 +1871,7 @@ export type DoctorCreateWithoutTreatmentPlansInput = {
   id?: string
   doctorCode: string
   specialization: string
-  licenseNumber: string
+  licenseNumber?: string | null
   avatarUrl?: string | null
   bio?: string | null
   position?: string | null
@@ -1900,7 +1900,7 @@ export type DoctorUncheckedCreateWithoutTreatmentPlansInput = {
   userId: string
   doctorCode: string
   specialization: string
-  licenseNumber: string
+  licenseNumber?: string | null
   avatarUrl?: string | null
   bio?: string | null
   position?: string | null
@@ -1943,7 +1943,7 @@ export type DoctorUpdateWithoutTreatmentPlansInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   doctorCode?: Prisma.StringFieldUpdateOperationsInput | string
   specialization?: Prisma.StringFieldUpdateOperationsInput | string
-  licenseNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  licenseNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1972,7 +1972,7 @@ export type DoctorUncheckedUpdateWithoutTreatmentPlansInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   doctorCode?: Prisma.StringFieldUpdateOperationsInput | string
   specialization?: Prisma.StringFieldUpdateOperationsInput | string
-  licenseNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  licenseNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1999,7 +1999,7 @@ export type DoctorCreateWithoutTreatmentPlanStepsInput = {
   id?: string
   doctorCode: string
   specialization: string
-  licenseNumber: string
+  licenseNumber?: string | null
   avatarUrl?: string | null
   bio?: string | null
   position?: string | null
@@ -2028,7 +2028,7 @@ export type DoctorUncheckedCreateWithoutTreatmentPlanStepsInput = {
   userId: string
   doctorCode: string
   specialization: string
-  licenseNumber: string
+  licenseNumber?: string | null
   avatarUrl?: string | null
   bio?: string | null
   position?: string | null
@@ -2071,7 +2071,7 @@ export type DoctorUpdateWithoutTreatmentPlanStepsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   doctorCode?: Prisma.StringFieldUpdateOperationsInput | string
   specialization?: Prisma.StringFieldUpdateOperationsInput | string
-  licenseNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  licenseNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2100,7 +2100,7 @@ export type DoctorUncheckedUpdateWithoutTreatmentPlanStepsInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   doctorCode?: Prisma.StringFieldUpdateOperationsInput | string
   specialization?: Prisma.StringFieldUpdateOperationsInput | string
-  licenseNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  licenseNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2127,7 +2127,7 @@ export type DoctorCreateWithoutClinicalCasesInput = {
   id?: string
   doctorCode: string
   specialization: string
-  licenseNumber: string
+  licenseNumber?: string | null
   avatarUrl?: string | null
   bio?: string | null
   position?: string | null
@@ -2156,7 +2156,7 @@ export type DoctorUncheckedCreateWithoutClinicalCasesInput = {
   userId: string
   doctorCode: string
   specialization: string
-  licenseNumber: string
+  licenseNumber?: string | null
   avatarUrl?: string | null
   bio?: string | null
   position?: string | null
@@ -2199,7 +2199,7 @@ export type DoctorUpdateWithoutClinicalCasesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   doctorCode?: Prisma.StringFieldUpdateOperationsInput | string
   specialization?: Prisma.StringFieldUpdateOperationsInput | string
-  licenseNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  licenseNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2228,7 +2228,7 @@ export type DoctorUncheckedUpdateWithoutClinicalCasesInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   doctorCode?: Prisma.StringFieldUpdateOperationsInput | string
   specialization?: Prisma.StringFieldUpdateOperationsInput | string
-  licenseNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  licenseNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2255,7 +2255,7 @@ export type DoctorCreateWithoutPrescriptionsInput = {
   id?: string
   doctorCode: string
   specialization: string
-  licenseNumber: string
+  licenseNumber?: string | null
   avatarUrl?: string | null
   bio?: string | null
   position?: string | null
@@ -2284,7 +2284,7 @@ export type DoctorUncheckedCreateWithoutPrescriptionsInput = {
   userId: string
   doctorCode: string
   specialization: string
-  licenseNumber: string
+  licenseNumber?: string | null
   avatarUrl?: string | null
   bio?: string | null
   position?: string | null
@@ -2327,7 +2327,7 @@ export type DoctorUpdateWithoutPrescriptionsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   doctorCode?: Prisma.StringFieldUpdateOperationsInput | string
   specialization?: Prisma.StringFieldUpdateOperationsInput | string
-  licenseNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  licenseNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2356,7 +2356,7 @@ export type DoctorUncheckedUpdateWithoutPrescriptionsInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   doctorCode?: Prisma.StringFieldUpdateOperationsInput | string
   specialization?: Prisma.StringFieldUpdateOperationsInput | string
-  licenseNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  licenseNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2383,7 +2383,7 @@ export type DoctorCreateWithoutReviewsInput = {
   id?: string
   doctorCode: string
   specialization: string
-  licenseNumber: string
+  licenseNumber?: string | null
   avatarUrl?: string | null
   bio?: string | null
   position?: string | null
@@ -2412,7 +2412,7 @@ export type DoctorUncheckedCreateWithoutReviewsInput = {
   userId: string
   doctorCode: string
   specialization: string
-  licenseNumber: string
+  licenseNumber?: string | null
   avatarUrl?: string | null
   bio?: string | null
   position?: string | null
@@ -2455,7 +2455,7 @@ export type DoctorUpdateWithoutReviewsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   doctorCode?: Prisma.StringFieldUpdateOperationsInput | string
   specialization?: Prisma.StringFieldUpdateOperationsInput | string
-  licenseNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  licenseNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2484,7 +2484,7 @@ export type DoctorUncheckedUpdateWithoutReviewsInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   doctorCode?: Prisma.StringFieldUpdateOperationsInput | string
   specialization?: Prisma.StringFieldUpdateOperationsInput | string
-  licenseNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  licenseNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2511,7 +2511,7 @@ export type DoctorCreateWithoutVideoConsultationsInput = {
   id?: string
   doctorCode: string
   specialization: string
-  licenseNumber: string
+  licenseNumber?: string | null
   avatarUrl?: string | null
   bio?: string | null
   position?: string | null
@@ -2540,7 +2540,7 @@ export type DoctorUncheckedCreateWithoutVideoConsultationsInput = {
   userId: string
   doctorCode: string
   specialization: string
-  licenseNumber: string
+  licenseNumber?: string | null
   avatarUrl?: string | null
   bio?: string | null
   position?: string | null
@@ -2583,7 +2583,7 @@ export type DoctorUpdateWithoutVideoConsultationsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   doctorCode?: Prisma.StringFieldUpdateOperationsInput | string
   specialization?: Prisma.StringFieldUpdateOperationsInput | string
-  licenseNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  licenseNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2612,7 +2612,7 @@ export type DoctorUncheckedUpdateWithoutVideoConsultationsInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   doctorCode?: Prisma.StringFieldUpdateOperationsInput | string
   specialization?: Prisma.StringFieldUpdateOperationsInput | string
-  licenseNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  licenseNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2639,7 +2639,7 @@ export type DoctorCreateWithoutPatientAiBriefsInput = {
   id?: string
   doctorCode: string
   specialization: string
-  licenseNumber: string
+  licenseNumber?: string | null
   avatarUrl?: string | null
   bio?: string | null
   position?: string | null
@@ -2668,7 +2668,7 @@ export type DoctorUncheckedCreateWithoutPatientAiBriefsInput = {
   userId: string
   doctorCode: string
   specialization: string
-  licenseNumber: string
+  licenseNumber?: string | null
   avatarUrl?: string | null
   bio?: string | null
   position?: string | null
@@ -2711,7 +2711,7 @@ export type DoctorUpdateWithoutPatientAiBriefsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   doctorCode?: Prisma.StringFieldUpdateOperationsInput | string
   specialization?: Prisma.StringFieldUpdateOperationsInput | string
-  licenseNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  licenseNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2740,7 +2740,7 @@ export type DoctorUncheckedUpdateWithoutPatientAiBriefsInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   doctorCode?: Prisma.StringFieldUpdateOperationsInput | string
   specialization?: Prisma.StringFieldUpdateOperationsInput | string
-  licenseNumber?: Prisma.StringFieldUpdateOperationsInput | string
+  licenseNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3039,7 +3039,7 @@ export type $DoctorPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     userId: string
     doctorCode: string
     specialization: string
-    licenseNumber: string
+    licenseNumber: string | null
     avatarUrl: string | null
     bio: string | null
     position: string | null

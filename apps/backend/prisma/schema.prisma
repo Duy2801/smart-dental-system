@@ -534,7 +534,7 @@ model Doctor {
   userId          String   @unique @map("user_id") @db.Uuid
   doctorCode      String   @unique @map("doctor_code")
   specialization  String
-  licenseNumber   String   @unique @map("license_number")
+  licenseNumber   String?  @unique @map("license_number")
   avatarUrl       String?  @map("avatar_url") @db.Text
   bio             String?  @db.Text
   position        String?

@@ -41,10 +41,10 @@ export class CreateDoctorDto {
   @IsNotEmpty()
   specialization: string;
 
-  @ApiProperty({ example: 'VN-DENT-0001' })
+  @ApiPropertyOptional({ example: 'VN-DENT-0001' })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  licenseNumber: string;
+  licenseNumber?: string;
 
   @ApiPropertyOptional({
     example:

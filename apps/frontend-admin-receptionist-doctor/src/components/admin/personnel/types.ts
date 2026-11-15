@@ -6,7 +6,7 @@ export type DoctorProfile = {
   id: string;
   doctorCode: string;
   specialization: string;
-  licenseNumber: string;
+  licenseNumber: string | null;
   avatarUrl: string | null;
   isActive: boolean;
 };

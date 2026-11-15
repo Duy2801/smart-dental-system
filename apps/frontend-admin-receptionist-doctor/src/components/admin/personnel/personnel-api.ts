@@ -51,7 +51,6 @@ export async function createStaffUser(form: StaffFormState): Promise<string> {
       password: form.password,
       doctorCode: form.doctorCode || buildDoctorCode(),
       specialization: form.specialization,
-      licenseNumber: form.licenseNumber,
       avatarUrl: form.avatarUrl || undefined,
     });
     return response.data.userId;
@@ -84,7 +83,6 @@ export async function updateStaffUser(user: StaffUser, form: StaffFormState) {
       ...commonPayload,
       doctorCode: form.doctorCode,
       specialization: form.specialization,
-      licenseNumber: form.licenseNumber,
       avatarUrl: form.avatarUrl,
     });
     return;

@@ -99,7 +99,9 @@ export class DoctorService {
         where: {
           OR: [
             { doctorCode: dto.doctorCode.trim() },
-            { licenseNumber: dto.licenseNumber.trim() },
+            ...(dto.licenseNumber?.trim()
+              ? [{ licenseNumber: dto.licenseNumber.trim() }]
+              : []),
           ],
         },
       });
@@ -133,7 +135,7 @@ export class DoctorService {
           userId: user.id,
           doctorCode: dto.doctorCode.trim(),
           specialization: dto.specialization.trim(),
-          licenseNumber: dto.licenseNumber.trim(),
+          licenseNumber: dto.licenseNumber?.trim() || null,
           avatarUrl: dto.avatarUrl?.trim() || undefined,
           bio: dto.bio?.trim() || undefined,
           position: dto.position?.trim() || undefined,

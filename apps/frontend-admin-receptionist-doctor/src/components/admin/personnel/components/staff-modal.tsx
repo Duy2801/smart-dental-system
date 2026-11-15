@@ -27,7 +27,6 @@ import {
   focusFirstError,
   hasErrors,
   normalizePhoneNumber,
-  validateCode,
   validateEmail,
   validateImageFile,
   validateMobilePhone,
@@ -60,7 +59,7 @@ function generateDoctorCode(): string {
   return `DOC-${Math.floor(1000 + Math.random() * 9000)}`;
 }
 
-type StaffField = "fullName" | "phone" | "email" | "specialization" | "licenseNumber" | "password";
+type StaffField = "fullName" | "phone" | "email" | "specialization" | "password";
 
 function validateStaffForm(form: StaffFormState, isEdit: boolean): FieldErrors<StaffField> {
   const isDoctor = form.role === "DOCTOR";
@@ -71,7 +70,6 @@ function validateStaffForm(form: StaffFormState, isEdit: boolean): FieldErrors<S
     specialization: isDoctor
       ? validateText(form.specialization, { label: "Chuyên khoa", required: true, min: 2, max: 100 })
       : undefined,
-    licenseNumber: isDoctor ? validateCode(form.licenseNumber, { label: "Số giấy phép" }) : undefined,
     password: validatePassword(form.password, { required: !isEdit }),
   };
 }
@@ -84,7 +82,6 @@ function normalizeStaffForm(form: StaffFormState): StaffFormState {
     phone: normalizePhoneNumber(form.phone),
     email: form.email.trim().toLowerCase(),
     specialization: collapseSpaces(form.specialization),
-    licenseNumber: form.licenseNumber.trim().toUpperCase(),
   };
 }
 
@@ -314,7 +311,7 @@ export function StaffModal({
               value={form.avatarUrl}
               onChange={(value) => setField("avatarUrl", value)}
             />
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="flex flex-col gap-1.5">
                 <span className="text-[13px] font-semibold text-slate-700">
                   Mã bác sĩ <span className="font-normal text-slate-400">(tự động)</span>
@@ -344,15 +341,6 @@ export function StaffModal({
                 value={form.specialization}
                 error={errors.specialization}
                 onChange={(value) => setField("specialization", value)}
-              />
-              <AdminInput
-                label="Số giấy phép"
-                required
-                maxLength={50}
-                value={form.licenseNumber}
-                error={errors.licenseNumber}
-                onChange={(event) => setField("licenseNumber", event.target.value)}
-                placeholder="VN-DENT-0001"
               />
             </div>
           </AdminFormSection>
