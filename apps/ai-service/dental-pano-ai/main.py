@@ -17,7 +17,7 @@ from matplotlib import colormaps as cmaps
 from PIL import Image
 from ultralytics.engine.results import Results
 from ultralytics.models.yolo.segment import SegmentationPredictor
-from ultralytics.utils.ops import scale_masks
+from ultralytics.utils.ops import process_mask_native, scale_boxes, scale_masks
 
 flags.DEFINE_multi_string("input", "./data/*", "Input file paths or glob patterns.")
 flags.DEFINE_string("output", "./results", "Output directory.")
@@ -122,6 +122,7 @@ class InstanceDetectionPredictionInstance(object):
     category_name: str
     bbox_xyxy: np.ndarray
     mask: np.ndarray
+    image_shape: tuple[int, int] | None = None
 
     @property
     def bbox_xywh(self) -> np.ndarray:
@@ -135,7 +136,29 @@ class InstanceDetectionPredictionInstance(object):
 
     @property
     def mask_area(self) -> int:
-        return self.mask[self.bbox_slices].sum()
+        return int(self.local_mask.sum())
+
+    @property
+    def local_mask(self) -> np.ndarray:
+        return self.mask if self.image_shape is not None else self.mask[self.bbox_slices]
+
+    @property
+    def full_shape(self) -> tuple[int, int]:
+        return self.image_shape if self.image_shape is not None else self.mask.shape
+
+    def region_mask(self, region: tuple[slice, ...]) -> np.ndarray:
+        if self.image_shape is None:
+            return self.mask[region]
+        ys, xs = region
+        y0, x0 = self.bbox_slices[0].start, self.bbox_slices[1].start
+        return self.mask[ys.start - y0:ys.stop - y0, xs.start - x0:xs.stop - x0]
+
+    def full_mask(self) -> np.ndarray:
+        if self.image_shape is None:
+            return self.mask
+        mask = np.zeros(self.image_shape, dtype=bool)
+        mask[self.bbox_slices] = self.mask
+        return mask
 
     def intersect(
         self,
@@ -147,24 +170,15 @@ class InstanceDetectionPredictionInstance(object):
         xb1, yb1, xe1, ye1 = self.bbox_xyxy
         xb2, yb2, xe2, ye2 = other.bbox_xyxy
 
-        bbox_intersection_slices: tuple[slice, ...] = (
-            slice(max(yb1, yb2), min(ye1, ye2) + 1),
-            slice(max(xb1, xb2), min(xe1, xe2) + 1),
-        )
-        if self.mask[bbox_intersection_slices].size == 0:
+        height, width = self.full_shape
+        top, bottom = max(yb1, yb2), min(ye1, ye2, height - 1) + 1
+        left, right = max(xb1, xb2), min(xe1, xe2, width - 1) + 1
+        if top >= bottom or left >= right:
             return 0.0
-
-        bbox_union_slices: tuple[slice, ...] = (
-            slice(min(yb1, yb2), max(ye1, ye2) + 1),
-            slice(min(xb1, xb2), max(xe1, xe2) + 1),
-        )
-
-        mask1: np.ndarray = self.mask[bbox_union_slices]
-        mask2: np.ndarray = other.mask[bbox_union_slices]
-        intersection: np.ndarray = np.logical_and(mask1, mask2)
-
-        mask1_area: int = mask1.sum()
-        mask2_area: int = mask2.sum()
+        region = (slice(top, bottom), slice(left, right))
+        intersection = np.logical_and(self.region_mask(region), other.region_mask(region))
+        mask1_area: int = self.mask_area
+        mask2_area: int = other.mask_area
         intersection_area: int = intersection.sum()
 
         match method:
@@ -177,13 +191,13 @@ class InstanceDetectionPredictionInstance(object):
                 return intersection_area / (min(mask1_area, mask2_area) + epsilon)
 
     def mask_array(self, other: np.ndarray) -> np.ndarray:
-        if self.mask.shape != other.shape[-2:]:
+        if self.full_shape != other.shape[-2:]:
             raise ValueError(
-                f"Shape incompatible: {other.shape} v.s. {self.mask.shape}"
+                f"Shape incompatible: {other.shape} v.s. {self.full_shape}"
             )
 
         other = other[(..., *self.bbox_slices)]
-        mask = self.mask[self.bbox_slices]
+        mask = self.local_mask
 
         return other[..., mask]
 
@@ -197,28 +211,30 @@ class InstanceDetectionPrediction(object):
     def from_ultralytics_results(
         cls, results: Results
     ) -> "InstanceDetectionPrediction":
+        compact = getattr(results, "dental_instances", None)
+        if compact is not None:
+            return cls(category_id_to_name=results.names, instances=compact)
         assert results.boxes is not None
+        if not len(results.boxes):
+            return cls(category_id_to_name=results.names, instances=[])
         assert results.masks is not None
-
-        masks = scale_masks(
-            results.masks.data[None, ...], shape=results.orig_shape
-        ).squeeze(dim=0)
-
-        instances: list[InstanceDetectionPredictionInstance] = [
-            InstanceDetectionPredictionInstance(
+        instances = []
+        for index, (score, category_id, bbox_xyxy) in enumerate(zip(
+            results.boxes.conf, results.boxes.cls, results.boxes.xyxy
+        )):
+            mask = scale_masks(
+                results.masks.data[index:index + 1][None, ...], shape=results.orig_shape
+            )[0, 0]
+            box = bbox_xyxy.numpy().astype(int)
+            x1, y1, x2, y2 = box
+            instances.append(InstanceDetectionPredictionInstance(
                 score=float(score),
                 category_id=int(category_id),
                 category_name=results.names[int(category_id)],
-                bbox_xyxy=bbox_xyxy.numpy().astype(int),
-                mask=mask.numpy().astype(bool),
-            )
-            for score, category_id, bbox_xyxy, mask in zip(
-                results.boxes.conf,
-                results.boxes.cls,
-                results.boxes.xyxy,
-                masks,
-            )
-        ]
+                bbox_xyxy=box,
+                mask=mask[y1:y2 + 1, x1:x2 + 1].numpy().astype(bool),
+                image_shape=results.orig_shape,
+            ))
 
         return cls(category_id_to_name=results.names, instances=instances)
 
@@ -291,7 +307,7 @@ class InstanceDetectionPrediction(object):
     ) -> Detectron2Instances:
 
         image_sizes: set[tuple[int, int]] = set(
-            instance.mask.shape for instance in self.instances
+            instance.full_shape for instance in self.instances
         )
         if len(image_sizes) > 1:
             raise ValueError(f"Image sizes are not consistent: {image_sizes}")
@@ -305,8 +321,36 @@ class InstanceDetectionPrediction(object):
             pred_classes=np.asarray(
                 [instance.category_id for instance in self.instances]
             ),
-            pred_masks=np.asarray([instance.mask for instance in self.instances]),
+            pred_masks=np.asarray([instance.full_mask() for instance in self.instances]),
         )
+
+
+class MemoryBoundSegmentationPredictor(SegmentationPredictor):
+    """Project native-resolution masks in small batches and retain only their ROIs."""
+
+    def construct_result(self, pred, img, orig_img, img_path, proto):
+        pred[:, :4] = scale_boxes(img.shape[2:], pred[:, :4], orig_img.shape)
+        result = Results(orig_img, path=img_path, names=self.model.names, boxes=pred[:, :6])
+        instances = []
+        # At 2356 x 1292, 500 float masks alone consume over 5 GiB.
+        for start in range(0, len(pred), 4):
+            batch = pred[start:start + 4]
+            masks = process_mask_native(proto, batch[:, 6:], batch[:, :4], orig_img.shape[:2])
+            for index, detection in enumerate(batch):
+                box = detection[:4].cpu().numpy().astype(int)
+                x1, y1, x2, y2 = box
+                category_id = int(detection[5])
+                instances.append(InstanceDetectionPredictionInstance(
+                    score=float(detection[4]),
+                    category_id=category_id,
+                    category_name=self.model.names[category_id],
+                    bbox_xyxy=box,
+                    mask=masks[index, y1:y2 + 1, x1:x2 + 1].cpu().numpy().astype(bool),
+                    image_shape=orig_img.shape[:2],
+                ))
+            del masks
+        result.dental_instances = instances
+        return result
 
 
 @dataclasses.dataclass(kw_only=True)
@@ -325,7 +369,7 @@ class InstanceDetectionModule(object):
     predictor: SegmentationPredictor = dataclasses.field(init=False)
 
     def __post_init__(self):
-        predictor = SegmentationPredictor(
+        predictor = MemoryBoundSegmentationPredictor(
             self.config_path,  # type: ignore
             overrides={
                 "mode": "predict",
@@ -475,9 +519,9 @@ class PostProcessingModule(object):
 
             prob_discount: np.ndarray | None = None
             if len(instances):
-                prob_discount = np.sum(
-                    [instance.mask for instance in instances], axis=0
-                ).astype(np.float32)
+                prob_discount = np.zeros(semseg_prob.shape[-2:], dtype=np.float32)
+                for instance in instances:
+                    prob_discount[instance.bbox_slices] += instance.local_mask
 
             finding_scores: list[np.ndarray] = []
             for instance in instances:

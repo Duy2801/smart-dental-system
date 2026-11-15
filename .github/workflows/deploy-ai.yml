@@ -20,6 +20,10 @@ on:
         description: "Skip inference and inspect recent runtime/proxy/kernel errors"
         type: boolean
         default: false
+      candidate_model:
+        description: "Test this commit's model code in an isolated process with the repository Panorama fixture"
+        type: boolean
+        default: false
 
 concurrency:
   group: deploy-vm # dùng chung nhóm để không chạy song song với deploy backend
@@ -141,20 +145,32 @@ jobs:
                 except Exception as exc:
                     print('CONNECTION_ERROR', type(exc).__name__, 'elapsed_s', round(time.monotonic() - started, 2))
 
-            if base and '${{ inputs.logs_only }}' != 'true':
+            if '${{ inputs.candidate_model }}' == 'true':
+                import resource
+                import sys
+                from types import ModuleType
+                from app.services.local_panoramic_model import LocalPanoramicModel, MODEL_ROOT
+                source_url = 'https://raw.githubusercontent.com/Duy2801/smart-dental-system/${{ github.sha }}/apps/ai-service/dental-pano-ai/main.py'
+                with urllib.request.urlopen(source_url, timeout=30) as response:
+                    source = response.read().decode()
+                candidate = ModuleType('dental_pano_model')
+                candidate.__file__ = str(MODEL_ROOT / 'main.py')
+                sys.modules[candidate.__name__] = candidate
+                exec(compile(source, candidate.__file__, 'exec'), candidate.__dict__)
+                started = time.monotonic()
+                findings = LocalPanoramicModel().analyze(Image.open('data/sample_panoramic.jpg').convert('RGB'))
+                print('REAL_PANORAMA_CANDIDATE', json.dumps({
+                    'finding_count': len(findings), 'elapsed_s': round(time.monotonic() - started, 2),
+                    'peak_rss_mb': round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024),
+                }))
+            elif base and '${{ inputs.logs_only }}' != 'true':
                 request(base + '/health')
-                # Synthetic, non-patient image exercises model loading/inference and auth.
-                image = Image.new('L', (640, 320), color=35)
-                draw = ImageDraw.Draw(image)
-                for index in range(12):
-                    x = 45 + index * 48
-                    draw.ellipse((x, 90, x + 34, 230), fill=145 + index % 3 * 20)
-                    draw.line((x + 17, 210, x + 17, 280), fill=100, width=7)
+                # Use the real public Panorama fixture so detection and mask paths run.
+                image = Image.open('data/sample_panoramic.jpg').convert('RGB')
                 buffer = io.BytesIO()
-                image.convert('RGB').save(buffer, format='JPEG')
+                image.save(buffer, format='JPEG')
                 body = json.dumps({'image_base64': base64.b64encode(buffer.getvalue()).decode()}).encode()
-                request(base + '/api/v1/doctor/analyze-xray', body)
-                # Exercise the deployed NestJS HTTP client with the same non-patient image.
+                # Exercise the deployed NestJS HTTP client without a second model pass.
                 node = r'''
                 require('reflect-metadata');
                 const { ConfigService } = require('@nestjs/config');
@@ -165,7 +181,8 @@ jobs:
                 const started = Date.now();
                 console.log('BACKEND_XRAY_TIMEOUT_MS', client.timeoutMs(path));
                 client.post(path, body).then(result => {
-                    process.stdout.write('BACKEND_SYNTHETIC ' + JSON.stringify({ status: result.status, elapsed_s: (Date.now() - started) / 1000 }) + '\n', () => process.exit(0));
+                    const ok = ['HEALTHY', 'PATHOLOGY_DETECTED'].includes(result.status);
+                    process.stdout.write('BACKEND_PANORAMA ' + JSON.stringify({ status: result.status, finding_count: result.findings?.length, elapsed_s: (Date.now() - started) / 1000 }) + '\n', () => process.exit(ok ? 0 : 1));
                 }).catch(error => {
                     process.stdout.write('BACKEND_SYNTHETIC_ERROR ' + error.constructor.name + ' ' + error.getStatus?.() + '\n', () => process.exit(1));
                 });
