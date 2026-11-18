@@ -11,6 +11,23 @@ on:
       - "download_models.py"
       - ".github/workflows/deploy-ai.yml"
   workflow_dispatch:
+    inputs:
+      diagnose_only:
+        description: "Read-only production diagnostics (does not deploy or restart services)"
+        type: boolean
+        default: false
+      logs_only:
+        description: "Skip inference and inspect recent runtime/proxy/kernel errors"
+        type: boolean
+        default: false
+      candidate_model:
+        description: "Test this commit's model code in an isolated process with the repository Panorama fixture"
+        type: boolean
+        default: false
+      image_caption:
+        description: "Optional exact caption of a stored test X-ray; URL and patient data are not logged"
+        type: string
+        default: ""
 
 concurrency:
   group: deploy-vm # dùng chung nhóm để không chạy song song với deploy backend
@@ -21,7 +38,194 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
+      - name: Diagnose production Vision service
+        if: ${{ inputs.diagnose_only == true }}
+        env:
+          DIAGNOSTIC_IMAGE_CAPTION: ${{ inputs.image_caption }}
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST_BE }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          envs: DIAGNOSTIC_IMAGE_CAPTION
+          command_timeout: 5m
+          script: |
+            set -e
+            cd ~/smart-dental-system/apps/ai-service
+            .venv/bin/python -u - <<'PY'
+            import base64, io, json, os, re, subprocess, time, urllib.request, urllib.error
+            from collections import Counter
+            from pathlib import Path
+            from dotenv import dotenv_values
+            from PIL import Image, ImageDraw
+
+            root = Path.cwd().parents[1]
+            processes = json.loads(subprocess.check_output(['pm2', 'jlist']))
+            by_name = {item['name']: item for item in processes}
+            for name in ('dental-be', 'dental-ai'):
+                item = by_name.get(name, {})
+                env = item.get('pm2_env', {})
+                print('PROCESS', name, json.dumps({
+                    'status': env.get('status'), 'restarts': env.get('restart_time'),
+                    'memory_mb': round(item.get('monit', {}).get('memory', 0) / 1024**2),
+                    'cwd_correct': env.get('pm_cwd') == str(root / 'apps' / ('backend' if name == 'dental-be' else 'ai-service')),
+                }))
+            print('MEMORY', subprocess.check_output(['free', '-m'], text=True))
+
+            def runtime_env(name):
+                item = by_name.get(name, {})
+                env = dict(item.get('pm2_env', {}))
+                try:
+                    raw = Path(f"/proc/{item['pid']}/environ").read_bytes()
+                    env.update(dict(entry.decode().split('=', 1) for entry in raw.split(b'\0') if b'=' in entry))
+                except (OSError, KeyError):
+                    pass
+                return env
+
+            backend_env = {**dotenv_values(root / 'apps/backend/.env'), **runtime_env('dental-be')}
+            ai_env = {**runtime_env('dental-ai'), **dotenv_values(Path.cwd() / '.env')}
+            base = (backend_env.get('AI_SERVICE_URL') or '').rstrip('/')
+            backend_key = backend_env.get('AI_SERVICE_API_KEY') or 'dev-local-key'
+            ai_key = ai_env.get('AI_SERVICE_API_KEY') or 'dev-local-key'
+            print('CONFIG', json.dumps({
+                'ai_url_configured': bool(base),
+                'ai_url_is_vm_local': base in ('http://localhost:8001', 'http://127.0.0.1:8001'),
+                'keys_match': backend_key == ai_key,
+                'backend_timeout_ms': backend_env.get('AI_SERVICE_TIMEOUT_MS') or '90000',
+            }))
+
+            for name in ('dental-ai', 'dental-be'):
+                env = by_name.get(name, {}).get('pm2_env', {})
+                for field in ('pm_err_log_path', 'pm_out_log_path'):
+                    path = env.get(field)
+                    if not path or not Path(path).is_file():
+                        continue
+                    lines = subprocess.check_output(['tail', '-n', '400', path], text=True, errors='replace').splitlines()
+                    patterns = ('out of memory', 'killed', 'MemoryError', 'ModuleNotFoundError', 'ImportError', 'RuntimeError', 'LocalModelUnavailableError', 'fetch failed', 'TimeoutError', 'Không thể nạp', 'chưa sẵn sàng', 'MODEL_UNAVAILABLE', 'POST /api/v1/doctor/analyze-xray', 'GET /health')
+                    counts = Counter(pattern for line in lines for pattern in patterns if pattern.lower() in line.lower())
+                    print('LOG_COUNTS', name, field, json.dumps(counts, ensure_ascii=False))
+                    for line in lines[-80:]:
+                        if re.search(r'(?:ModuleNotFoundError|ImportError|RuntimeError|MemoryError|TimeoutError|AttributeError|TypeError|ValueError):|fetch failed|FATAL ERROR|ECONNRESET|ECONNREFUSED', line):
+                            safe = re.sub(r'https?://\S+', '[URL]', line)
+                            safe = re.sub(r'(?i)(key|token|password|secret)=\S+', r'\1=[REDACTED]', safe)
+                            print('EXCEPTION', name, safe[:300])
+
+            for filename in ('access.log', 'error.log'):
+                result = subprocess.run(['sudo', '-n', 'tail', '-n', '1000', '/var/log/nginx/' + filename], capture_output=True, text=True)
+                for line in result.stdout.splitlines():
+                    if 'analyze-xray' not in line:
+                        continue
+                    if filename == 'access.log':
+                        match = re.search(r'\[([^\]]+)\].*?"POST [^"]*analyze-xray[^"]*" (\d{3})', line)
+                        if match:
+                            print('XRAY_ACCESS', match.group(1), 'HTTP', match.group(2))
+                    else:
+                        print('XRAY_PROXY_ERROR', line.split(', client:', 1)[0][:300])
+            kernel = subprocess.run(['sudo', '-n', 'journalctl', '-k', '--since', '45 minutes ago', '--no-pager'], capture_output=True, text=True)
+            for line in kernel.stdout.splitlines():
+                if re.search(r'(?i)out of memory|killed process|oom-kill', line):
+                    print('KERNEL_MEMORY', line[:400])
+            print('CPU_COUNT', os.cpu_count())
+            print('MEMORY_PRESSURE', Path('/proc/pressure/memory').read_text())
+
+            nginx = subprocess.run(['sudo', '-n', 'nginx', '-T'], capture_output=True, text=True)
+            if nginx.returncode == 0:
+                for line in nginx.stdout.splitlines():
+                    if re.match(r'^\s*(?:server_name|location|proxy_read_timeout|proxy_send_timeout|proxy_connect_timeout)\s', line):
+                        print('NGINX', line.strip())
+            else:
+                print('NGINX_CONFIG', 'unavailable without sudo password')
+
+            def request(url, data=None):
+                req = urllib.request.Request(url, data=data, headers={
+                    'Content-Type': 'application/json', 'x-api-key': backend_key,
+                })
+                started = time.monotonic()
+                try:
+                    with urllib.request.urlopen(req, timeout=180) as response:
+                        payload = json.load(response)
+                        print('HTTP', json.dumps({'status': response.status, 'elapsed_s': round(time.monotonic() - started, 2), 'analysis_status': payload.get('status'), 'error_status': payload.get('error_status')}))
+                        if payload.get('status') in ('MODEL_UNAVAILABLE', 'ANALYSIS_FAILED'):
+                            print('SYNTHETIC_ERROR', re.sub(r'https?://\S+', '[URL]', payload.get('summary', ''))[:500])
+                except urllib.error.HTTPError as exc:
+                    print('HTTP_ERROR', exc.code, 'elapsed_s', round(time.monotonic() - started, 2))
+                except Exception as exc:
+                    print('CONNECTION_ERROR', type(exc).__name__, 'elapsed_s', round(time.monotonic() - started, 2))
+
+            if '${{ inputs.candidate_model }}' == 'true':
+                import resource
+                import sys
+                from types import ModuleType
+                from app.services.local_panoramic_model import LocalPanoramicModel, MODEL_ROOT
+                source_url = 'https://raw.githubusercontent.com/Duy2801/smart-dental-system/${{ github.sha }}/apps/ai-service/dental-pano-ai/main.py'
+                with urllib.request.urlopen(source_url, timeout=30) as response:
+                    source = response.read().decode()
+                candidate = ModuleType('dental_pano_model')
+                candidate.__file__ = str(MODEL_ROOT / 'main.py')
+                sys.modules[candidate.__name__] = candidate
+                exec(compile(source, candidate.__file__, 'exec'), candidate.__dict__)
+                started = time.monotonic()
+                findings = LocalPanoramicModel().analyze(Image.open('data/sample_panoramic.jpg').convert('RGB'))
+                print('REAL_PANORAMA_CANDIDATE', json.dumps({
+                    'finding_count': len(findings), 'elapsed_s': round(time.monotonic() - started, 2),
+                    'peak_rss_mb': round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024),
+                }))
+            elif base and '${{ inputs.logs_only }}' != 'true':
+                request(base + '/health')
+                # Use the real public Panorama fixture so detection and mask paths run.
+                image = Image.open('data/sample_panoramic.jpg').convert('RGB')
+                buffer = io.BytesIO()
+                image.save(buffer, format='JPEG')
+                body = json.dumps({'image_base64': base64.b64encode(buffer.getvalue()).decode()}).encode()
+                # Exercise the deployed NestJS HTTP client without a second model pass.
+                node = r'''
+                require('reflect-metadata');
+                const { ConfigService } = require('@nestjs/config');
+                const { AiClientService } = require(process.cwd() + '/dist/src/modules/ai/ai-client.service.js');
+                const client = new AiClientService(new ConfigService());
+                const path = '/api/v1/doctor/analyze-xray';
+                let body = JSON.parse(require('fs').readFileSync(0, 'utf8'));
+                const started = Date.now();
+                console.log('BACKEND_XRAY_TIMEOUT_MS', client.timeoutMs(path));
+                async function probe() {
+                    const caption = process.env.DIAGNOSTIC_IMAGE_CAPTION?.trim();
+                    if (caption) {
+                        if (caption.length > 200) throw new Error('Invalid test image caption');
+                        const { PrismaService } = require(process.cwd() + '/dist/src/modules/prisma/prisma.service.js');
+                        const prisma = new PrismaService(new ConfigService());
+                        try {
+                            const images = await prisma.$queryRaw`
+                                SELECT image->>'url' AS url
+                                FROM medical_records mr
+                                CROSS JOIN LATERAL jsonb_array_elements(COALESCE(mr.images, '[]'::jsonb)) image
+                                WHERE image->>'caption' = ${caption}
+                                  AND image->>'type' = 'xray'
+                                  AND image->>'modality' = 'PANORAMIC'
+                                LIMIT 1
+                            `;
+                            console.log('STORED_TEST_IMAGE_FOUND', Boolean(images[0]?.url));
+                            if (!images[0]?.url) throw new Error('Stored test X-ray not found');
+                            body = { image_url: images[0].url };
+                        } finally {
+                            await prisma.$disconnect();
+                        }
+                    }
+                    return client.post(path, body);
+                }
+                probe().then(result => {
+                    const ok = ['HEALTHY', 'PATHOLOGY_DETECTED'].includes(result.status);
+                    process.stdout.write('BACKEND_PANORAMA ' + JSON.stringify({ status: result.status, finding_count: result.findings?.length, annotated_image: Boolean(result.annotated_image_url), elapsed_s: (Date.now() - started) / 1000 }) + '\n', () => process.exit(ok ? 0 : 1));
+                }).catch(error => {
+                    process.stdout.write('BACKEND_SYNTHETIC_ERROR ' + error.constructor.name + ' ' + error.getStatus?.() + '\n', () => process.exit(1));
+                });
+                '''
+                env = {**os.environ, **{k: v for k, v in backend_env.items() if isinstance(v, str)}}
+                subprocess.run(['node', '-e', node], input=body, cwd=root / 'apps/backend', env=env, check=True, timeout=250)
+            else:
+                request('http://127.0.0.1:8001/health')
+            PY
       - name: Deploy qua SSH
+        if: ${{ inputs.diagnose_only != true }}
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SSH_HOST_BE }}
@@ -38,7 +242,20 @@ jobs:
 
             echo ">>> Cài thư viện Python"
             cd apps/ai-service
-            .venv/bin/pip install -q -r requirements.txt
+            echo ">>> Configure backend proxy timeout for CPU X-ray inference"
+            sudo -n .venv/bin/python scripts/configure_xray_proxy.py --domain duybackend.waucaptcha.com --timeout-seconds 260
+            .venv/bin/pip install -q -r requirements-vision.txt
+
+            # Ultralytics pulls desktop OpenCV; both variants share cv2 files.
+            # Reinstall headless after removing desktop files to avoid X11 dependencies.
+            .venv/bin/pip uninstall -y opencv-python opencv-contrib-python
+            .venv/bin/pip install -q --force-reinstall --no-deps opencv-python-headless
+
+            echo ">>> Download and verify Dental Pano models"
+            .venv/bin/python ../../download_models.py
+
+            echo ">>> Verify panoramic inference dependencies"
+            .venv/bin/python -c "import cv2, runpy; assert cv2.version.headless, 'OpenCV must be headless'; runpy.run_path('dental-pano-ai/main.py')"
 
             echo ">>> Khởi động AI service (start lần đầu, restart các lần sau)"
             if pm2 describe dental-ai >/dev/null 2>&1; then

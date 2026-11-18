@@ -20,6 +20,7 @@ import {
 } from "@phosphor-icons/react";
 import apiClient from "@/src/lib/api/client";
 import axios from "axios";
+import { getXrayAnalysisErrorMessage } from "./dental-xray-error";
 import {
   getVisibleFindings,
   hasDrawableBoundingBox,
@@ -310,7 +311,7 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
           imageId,
           clinicalNoteHint: clinicalNoteHint?.trim() || undefined,
         },
-        { timeout: 90000 },
+        { timeout: 270000 },
       );
 
       if (activeImageIdRef.current !== submittedImageId) return;
@@ -406,12 +407,7 @@ export const DentalXrayAnalyzer: React.FC<DentalXrayAnalyzerProps> = ({
     } catch (err: unknown) {
       if (activeImageIdRef.current !== submittedImageId) return;
       activeAnalysisIdRef.current = "client-error";
-      const errorMsg =
-        axios.isAxiosError(err) && err.response?.data?.message
-          ? Array.isArray(err.response.data.message)
-            ? err.response.data.message.join(", ")
-            : String(err.response.data.message)
-          : "Không thể kết nối đến dịch vụ Vision AI. Vui lòng kiểm tra lại dịch vụ.";
+      const errorMsg = getXrayAnalysisErrorMessage(err);
       setResult({
         analysisId: "client-error",
         modelVersion: "unknown",

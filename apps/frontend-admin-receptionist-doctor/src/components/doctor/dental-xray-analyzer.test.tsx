@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { AxiosError } from "axios";
 import apiClient from "@/src/lib/api/client";
 import {
   DentalXrayAnalyzer,
@@ -90,6 +91,11 @@ describe("DentalXrayAnalyzer safety states", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "Phân tích ảnh" }));
     fireEvent.click(await screen.findByRole("button", { name: "Chấp nhận" }));
+    expect(postMock).toHaveBeenCalledWith(
+      "/ai/doctor/analyze-xray",
+      expect.objectContaining({ imageId: "image-1" }),
+      { timeout: 270000 },
+    );
     fireEvent.click(screen.getByRole("checkbox"));
     fireEvent.click(
       screen.getByRole("button", {
@@ -209,6 +215,67 @@ describe("DentalXrayAnalyzer safety states", () => {
       screen.queryByText("ẢNH KHÔNG PHẢI PHIM X-QUANG RĂNG"),
     ).not.toBeInTheDocument();
     expect(screen.queryByText(/Sức Khỏe Tốt/)).not.toBeInTheDocument();
+  });
+
+  it.each([
+    [502, "Máy chủ trung gian không nhận được phản hồi hợp lệ"],
+    [503, "Dịch vụ phân tích ảnh hiện chưa sẵn sàng"],
+    [504, "Máy chủ trung gian hết thời gian chờ kết quả phân tích"],
+  ] as const)(
+    "explains an HTTP %s proxy error without JSON",
+    async (status, message) => {
+      postMock.mockRejectedValueOnce({
+        isAxiosError: true,
+        response: { status, data: `<html><body>${status}</body></html>` },
+      });
+      render(
+        <DentalXrayAnalyzer
+          patientImages={[
+            { id: "image-1", url: "https://example.com/film.jpg" },
+          ]}
+        />,
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Phân tích ảnh" }));
+
+      expect(await screen.findByText(new RegExp(message))).toBeInTheDocument();
+      expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+      expect(screen.queryByText(/Sức Khỏe Tốt/)).not.toBeInTheDocument();
+    },
+  );
+
+  it.each(["ECONNABORTED", "ETIMEDOUT"])(
+    "distinguishes a %s client timeout from a connection failure",
+    async (code) => {
+      postMock.mockRejectedValueOnce(new AxiosError("timeout", code));
+      render(
+        <DentalXrayAnalyzer
+          patientImages={[
+            { id: "image-1", url: "https://example.com/film.jpg" },
+          ]}
+        />,
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Phân tích ảnh" }));
+
+      expect(
+        await screen.findByText(/Phân tích ảnh vượt quá thời gian chờ/),
+      ).toBeInTheDocument();
+    },
+  );
+
+  it("preserves the backend's specific AI service error", async () => {
+    const message = "AI service chưa được cấu hình trên máy chủ.";
+    postMock.mockRejectedValueOnce({
+      isAxiosError: true,
+      response: { status: 503, data: { message } },
+    });
+    render(
+      <DentalXrayAnalyzer
+        patientImages={[{ id: "image-1", url: "https://example.com/film.jpg" }]}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Phân tích ảnh" }));
+
+    expect(await screen.findByText(message)).toBeInTheDocument();
   });
 
   it("does not allow switching images while an analysis request is running", () => {
