@@ -34,6 +34,8 @@ export const CaptchaWidget = forwardRef<CaptchaHandle, CaptchaWidgetProps>(
     const recorderRef = useRef<BehaviorRecorder | null>(null);
     const rootRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+    /** Lỗi cần giữ lại qua lần tải ảnh mới (vd. "Mã CAPTCHA không đúng") */
+    const pendingErrorRef = useRef<string | null>(null);
 
     useEffect(() => {
       if (!siteKey) return;
@@ -47,7 +49,9 @@ export const CaptchaWidget = forwardRef<CaptchaHandle, CaptchaWidgetProps>(
       clientRef.current = client;
       setChallenge(null);
       setAnswer("");
-      setError(null);
+      // Trước đây luôn setError(null) ở đây nên thông báo "nhập sai mã" bị xóa ngay khi tải ảnh mới
+      setError(pendingErrorRef.current);
+      pendingErrorRef.current = null;
       setLoading(true);
 
       void client
@@ -80,13 +84,16 @@ export const CaptchaWidget = forwardRef<CaptchaHandle, CaptchaWidgetProps>(
       };
     }, [challenge]);
 
-    function refresh() {
-      if (siteKey) setGeneration((current) => current + 1);
+    /** Tải ảnh mã mới; `message` (nếu có) sẽ hiển thị cùng ảnh mới */
+    function refresh(message?: string) {
+      if (!siteKey) return;
+      pendingErrorRef.current = message ?? null;
+      setGeneration((current) => current + 1);
     }
 
     useImperativeHandle(ref, () => ({
-      refresh,
-      requirePuzzle: refresh,
+      refresh: () => refresh(),
+      requirePuzzle: () => refresh(),
       async verify() {
         if (!siteKey) return null;
         if (verifying || loading || !challenge || !clientRef.current) {
@@ -99,8 +106,7 @@ export const CaptchaWidget = forwardRef<CaptchaHandle, CaptchaWidgetProps>(
           return null;
         }
         if (Date.now() >= challenge.expiresAt.getTime()) {
-          setError("Mã CAPTCHA đã hết hạn. Đang tải ảnh mới.");
-          refresh();
+          refresh("Mã CAPTCHA đã hết hạn. Đã tải ảnh mới, vui lòng nhập lại.");
           return null;
         }
 
@@ -113,11 +119,9 @@ export const CaptchaWidget = forwardRef<CaptchaHandle, CaptchaWidgetProps>(
           if (result.success) {
             return result.token;
           }
-          setError("Mã CAPTCHA không đúng. Vui lòng nhập mã trong ảnh mới.");
-          refresh();
+          refresh("Mã CAPTCHA không đúng. Vui lòng nhập mã trong ảnh mới.");
         } catch {
-          setError("Không xác minh được CAPTCHA. Vui lòng thử lại.");
-          refresh();
+          refresh("Không xác minh được CAPTCHA. Vui lòng thử lại.");
         } finally {
           setVerifying(false);
         }
@@ -151,7 +155,7 @@ export const CaptchaWidget = forwardRef<CaptchaHandle, CaptchaWidgetProps>(
           />
           <button
             type="button"
-            onClick={refresh}
+            onClick={() => refresh()}
             disabled={!siteKey || loading || verifying}
             aria-label="Đổi mã CAPTCHA"
             title="Đổi mã CAPTCHA"

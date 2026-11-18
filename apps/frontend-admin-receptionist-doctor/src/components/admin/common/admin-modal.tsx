@@ -76,7 +76,7 @@ export function AdminModal({
         aria-modal="true"
         aria-labelledby={titleId}
         className={cn(
-          "relative flex w-full flex-col overflow-hidden bg-white shadow-2xl ring-1 ring-slate-900/5",
+          "relative flex w-full flex-col overflow-clip bg-white shadow-2xl ring-1 ring-slate-900/5",
           isDrawer
             ? cn("h-full animate-drawer-in", DRAWER_WIDTH)
             : cn("max-h-[92vh] animate-modal-in rounded-2xl", sizes[size]),

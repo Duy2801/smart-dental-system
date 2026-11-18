@@ -56,7 +56,7 @@ function FileRow({
   removeLabel: string;
 }) {
   return (
-    <li className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5">
+    <li className="flex min-w-0 items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5">
       <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand-light text-brand">
         <DocTypeIcon name={name} mimeType={mimeType} />
       </span>
@@ -152,13 +152,13 @@ export function StaffDocumentsField({
   const hasAny = documents.length > 0 || pendingFiles.length > 0;
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex min-w-0 flex-col gap-3">
       {isLoading ? (
         <p className="text-xs text-slate-500">Đang tải tài liệu...</p>
       ) : null}
 
       {hasAny ? (
-        <ul className="flex flex-col gap-2">
+        <ul className="flex min-w-0 flex-col gap-2">
           {documents.map((doc) => (
             <FileRow
               key={doc.id}

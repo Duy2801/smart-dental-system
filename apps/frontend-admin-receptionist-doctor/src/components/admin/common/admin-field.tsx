@@ -149,7 +149,7 @@ export function AdminFormSection({
   className?: string;
 }) {
   return (
-    <fieldset className={cn("space-y-4 rounded-2xl border border-slate-200/80 bg-slate-50/40 p-4 sm:p-5", className)}>
+    <fieldset className={cn("min-w-0 space-y-4 rounded-2xl border border-slate-200/80 bg-slate-50/40 p-4 sm:p-5", className)}>
       <legend className="sr-only">{title}</legend>
       <div className="flex items-start gap-2.5">
         {icon ? (
