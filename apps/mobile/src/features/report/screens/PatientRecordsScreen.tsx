@@ -52,7 +52,11 @@ export function PatientRecordsScreen() {
   } = usePatientRecordsData();
 
   const [selectedRecordId, setSelectedRecordId] = useState('');
-  const visits = recordsData?.medicalRecords ?? [];
+  // useMemo để mảng rỗng mặc định giữ nguyên tham chiếu giữa các lần render
+  const visits = useMemo(
+    () => recordsData?.medicalRecords ?? [],
+    [recordsData?.medicalRecords],
+  );
   const recordItems = useMemo(() => {
     const list: Array<{
       id: string;

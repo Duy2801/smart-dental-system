@@ -226,10 +226,6 @@ export function RecordSectionTabs({
   const selectedStep = visibleSteps[selectedStepIndex] ?? visibleSteps[0];
   const actualStepsCount = visibleSteps.length;
   const planMedicalRecordCount = allMedicalRecords.length;
-  const medicineCount = allRichPrescriptions.reduce(
-    (count, p) => count + p.items.length,
-    0,
-  );
 
   const toggleSection = (section: ExpandedSection) => {
     setExpandedSection((prev) => (prev === section ? 'none' : section));

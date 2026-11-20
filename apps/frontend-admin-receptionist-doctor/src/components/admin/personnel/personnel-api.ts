@@ -107,15 +107,6 @@ export async function updateStaffStatus(user: StaffUser, status: UserStatus) {
   await apiClient.patch(`/users/${user.id}`, { status });
 }
 
-export async function deleteStaffUser(user: StaffUser) {
-  if (user.role === "DOCTOR" && user.doctorId) {
-    await apiClient.delete(`/doctors/${user.doctorId}`);
-    return;
-  }
-
-  await apiClient.delete(`/users/${user.id}`);
-}
-
 /** Tên các chuyên khoa đang có (gộp từ bác sĩ và danh mục chuyên khoa) */
 export async function getDoctorSpecializations(): Promise<string[]> {
   const response = await apiClient.get<string[]>("/doctors/specializations");

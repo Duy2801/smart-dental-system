@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.api.routes.doctor_assist import require_api_key
+from app.api.security import require_api_key
 from app.schemas.admin_assist import ContentSuggestRequest, ContentSuggestResponse
 from app.services.admin_assist_service import AdminAssistService
 

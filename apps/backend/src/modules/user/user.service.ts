@@ -215,10 +215,9 @@ export class UserService {
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
         roles: [user.role.code],
-        role:
-          staffRoles.includes(user.role.code as StaffRoleCode)
-            ? user.role.code
-            : null,
+        role: staffRoles.includes(user.role.code as StaffRoleCode)
+          ? user.role.code
+          : null,
         doctorProfile: user.doctorProfile,
       })),
       meta: {
@@ -251,14 +250,13 @@ export class UserService {
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
       roles: [user.role.code],
-      role:
-        [
-          StaffRoleCode.ADMIN,
-          StaffRoleCode.DOCTOR,
-          StaffRoleCode.RECEPTIONIST,
-        ].includes(user.role.code as StaffRoleCode)
-          ? user.role.code
-          : null,
+      role: [
+        StaffRoleCode.ADMIN,
+        StaffRoleCode.DOCTOR,
+        StaffRoleCode.RECEPTIONIST,
+      ].includes(user.role.code as StaffRoleCode)
+        ? user.role.code
+        : null,
       doctorProfile: user.doctorProfile,
     };
   }
@@ -385,7 +383,7 @@ export class UserService {
     // multer đọc tên file theo latin1 -> chuyển lại UTF-8 để giữ tiếng Việt
     const fileName = Buffer.from(file.originalname, 'latin1')
       .toString('utf8')
-      .replace(/[\/\r\n]/g, '_')
+      .replace(/[/\\\r\n]/g, '_')
       .slice(0, 180);
     const fileUrl = await uploadSupportAttachment(
       this.config,

@@ -84,9 +84,22 @@ export function RefundRequestModal({
   const schedTime = new Date(consultation.scheduledAt).getTime();
   const hoursUntil = (schedTime - Date.now()) / (1000 * 60 * 60);
 
+  // Đã có yêu cầu hoàn tiền đang chờ (hệ thống tự tạo khi bác sĩ vắng mặt/phòng khám
+  // huỷ lịch): chỉ bổ sung tài khoản nhận tiền, tỉ lệ hoàn đã được chốt.
+  const pendingRefund =
+    consultation.refundRequest?.status === "PENDING"
+      ? consultation.refundRequest
+      : null;
+
   let refundPercent = 0;
   let policyText = "";
-  if (hoursUntil > 24) {
+  if (pendingRefund) {
+    refundPercent = pendingRefund.refundPercent;
+    policyText = `Yêu cầu ${pendingRefund.refundCode}: hoàn ${pendingRefund.refundPercent}% phí tư vấn`;
+  } else if (consultation.status === "DOCTOR_MISSED") {
+    refundPercent = 100;
+    policyText = "Bác sĩ vắng mặt: Hoàn 100% phí tư vấn";
+  } else if (hoursUntil > 24) {
     refundPercent = 100;
     policyText = "Hủy trước >24 tiếng: Hoàn 100% phí tư vấn";
   } else if (hoursUntil >= 4) {
@@ -98,7 +111,9 @@ export function RefundRequestModal({
   }
 
   const feeNum = Number(consultation.fee || 0);
-  const expectedRefundAmount = Math.round((feeNum * refundPercent) / 100);
+  const expectedRefundAmount = pendingRefund
+    ? Number(pendingRefund.requestedAmount)
+    : Math.round((feeNum * refundPercent) / 100);
 
   // Xử lý chọn tệp ảnh QR từ thiết bị
   const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -169,14 +184,23 @@ export function RefundRequestModal({
     setErrorMsg(null);
 
     try {
-      await apiClient.post("/refund-requests", {
-        videoConsultationId: consultation.id,
-        bankName: finalBankName,
-        accountNumber: finalAccountNumber,
-        accountHolder: finalAccountHolder,
-        qrCodeUrl: qrCodeUrl.trim() || undefined,
-        reason: reason.trim() || undefined,
-      });
+      if (pendingRefund) {
+        await apiClient.patch(`/refund-requests/${pendingRefund.id}/bank-account`, {
+          bankName: finalBankName,
+          accountNumber: finalAccountNumber,
+          accountHolder: finalAccountHolder,
+          qrCodeUrl: qrCodeUrl.trim() || undefined,
+        });
+      } else {
+        await apiClient.post("/refund-requests", {
+          videoConsultationId: consultation.id,
+          bankName: finalBankName,
+          accountNumber: finalAccountNumber,
+          accountHolder: finalAccountHolder,
+          qrCodeUrl: qrCodeUrl.trim() || undefined,
+          reason: reason.trim() || undefined,
+        });
+      }
 
       setSubmittedBankInfo({
         bankName: finalBankName,

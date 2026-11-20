@@ -200,7 +200,14 @@ export function SupportChatThread({
         onSubmit={submit}
         className={`flex gap-2 border-t border-slate-100 bg-white ${compact ? "gap-1.5 p-2.5" : "p-3 sm:p-4"}`}
       >
-        <input ref={fileInputRef} type="file" className="hidden" onChange={chooseFile} />
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          // Khớp danh sách loại file backend cho phép (SUPPORT_ATTACHMENT_MIME_TYPES)
+          accept="image/jpeg,image/png,image/webp,image/gif,image/heic,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
+          onChange={chooseFile}
+        />
         <button type="button" aria-label="Gửi ảnh hoặc file" title="Gửi ảnh hoặc file" disabled={sending || isClosed || loading} onClick={() => fileInputRef.current?.click()} className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-[#0863c5] hover:bg-blue-50 disabled:opacity-40"><Paperclip size={18} /></button>
         <input
           value={text}

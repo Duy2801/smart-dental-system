@@ -5,7 +5,11 @@ import {
 } from '../../../prisma/generated/enums';
 import { RefundService } from './refund.service';
 
-const user = { userId: 'staff-1', email: 'staff@test.local', roles: ['RECEPTIONIST'] };
+const user = {
+  userId: 'staff-1',
+  email: 'staff@test.local',
+  roles: ['RECEPTIONIST'],
+};
 
 function makeService(prisma: Record<string, unknown>) {
   return new RefundService(prisma as never, { add: jest.fn() } as never);
@@ -46,7 +50,9 @@ describe('RefundService', () => {
           paymentStatus: AppointmentPaymentStatus.DEPOSIT_PAID,
         }),
       },
-      refundRequest: { findFirst: jest.fn().mockResolvedValue({ id: 'existing' }) },
+      refundRequest: {
+        findFirst: jest.fn().mockResolvedValue({ id: 'existing' }),
+      },
     });
 
     await expect(
@@ -77,11 +83,34 @@ describe('RefundService', () => {
     ).rejects.toEqual(new ConflictException('refund.already_processed'));
   });
 
+  it('refuses to complete a refund while the patient has not provided a bank account', async () => {
+    const service = makeService({
+      refundRequest: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'refund-1',
+          status: RefundStatus.PENDING,
+          bankName: 'Cần bệnh nhân cung cấp STK',
+          accountNumber: 'Chờ cập nhật',
+          qrCodeUrl: null,
+          patient: null,
+        }),
+      },
+    });
+
+    await expect(
+      service.processRefund('refund-1', user as never, {
+        status: RefundStatus.COMPLETED,
+      }),
+    ).rejects.toEqual(new BadRequestException('refund.bank_account_missing'));
+  });
+
   it('records a completed refund in the payment ledger atomically', async () => {
     const request = {
       id: 'refund-1',
       refundCode: 'REF-1',
       status: RefundStatus.PENDING,
+      bankName: 'VCB',
+      accountNumber: '0123456789',
       invoiceId: 'invoice-1',
       requestedAmount: 300_000,
       refundPercent: 100,
@@ -92,10 +121,14 @@ describe('RefundService', () => {
     const tx = {
       refundRequest: {
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
-        findUniqueOrThrow: jest.fn().mockResolvedValue({ ...request, status: RefundStatus.COMPLETED }),
+        findUniqueOrThrow: jest
+          .fn()
+          .mockResolvedValue({ ...request, status: RefundStatus.COMPLETED }),
       },
       invoice: {
-        findUniqueOrThrow: jest.fn().mockResolvedValue({ finalAmount: 300_000 }),
+        findUniqueOrThrow: jest
+          .fn()
+          .mockResolvedValue({ finalAmount: 300_000 }),
         update: jest.fn().mockResolvedValue({}),
       },
       payment: { create: jest.fn().mockResolvedValue({}) },
@@ -109,13 +142,15 @@ describe('RefundService', () => {
       status: RefundStatus.COMPLETED,
     });
 
-    expect(tx.payment.create).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({
-        invoiceId: 'invoice-1',
-        status: 'REFUNDED',
-        transactionRef: 'REFUND-REF-1',
+    expect(tx.payment.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          invoiceId: 'invoice-1',
+          status: 'REFUNDED',
+          transactionRef: 'REFUND-REF-1',
+        }),
       }),
-    }));
+    );
     expect(tx.invoice.update).toHaveBeenCalledWith({
       where: { id: 'invoice-1' },
       data: { status: 'REFUNDED' },

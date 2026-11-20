@@ -1,3 +1,4 @@
+import { RateLimit } from '../../common/decorators/rate-limit.decorator';
 import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/curent-user.decorator';
@@ -13,6 +14,7 @@ export class ChatbotConversationController {
   constructor(private readonly service: ChatbotConversationService) {}
 
   @Post('chat')
+  @RateLimit(30, 60)
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   async chat(
@@ -23,12 +25,14 @@ export class ChatbotConversationController {
   }
 
   @Post('public-chat')
+  @RateLimit(15, 60)
   async publicChat(@Body() dto: PatientChatDto) {
     return this.service.handlePatientChat(null, dto);
   }
 
   /** Booking Agent — bệnh nhân đã đăng nhập */
   @Post('agent-chat')
+  @RateLimit(30, 60)
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   async agentChat(
@@ -40,6 +44,7 @@ export class ChatbotConversationController {
 
   /** Booking Agent — không cần đăng nhập */
   @Post('public-agent-chat')
+  @RateLimit(15, 60)
   async publicAgentChat(@Body() dto: PatientChatDto) {
     return this.service.handlePatientAgentChat(null, dto);
   }

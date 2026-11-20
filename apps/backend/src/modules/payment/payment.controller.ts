@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  ForbiddenException,
   Get,
   Headers,
   Param,
@@ -74,10 +75,20 @@ export class PaymentController {
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: CreatePaymentDto,
   ) {
-    await this.paymentService.ensureInvoiceAccess(user, dto.invoiceId);
     const isStaff =
       user.roles.includes('ADMIN') || user.roles.includes('RECEPTIONIST');
-    return this.paymentService.createPayment(user.userId, dto, undefined, isStaff);
+    // CASH được ghi nhận "đã thu" ngay lập tức, nên chỉ nhân viên thu ngân mới được dùng.
+    if (dto.method === 'CASH' && !isStaff) {
+      throw new ForbiddenException('payment.cash_staff_only');
+    }
+    await this.paymentService.ensureInvoiceAccess(user, dto.invoiceId);
+    // Tham số thứ 4 là allowDraft: nhân viên được thu tiền cả hoá đơn nháp.
+    return this.paymentService.createPayment(
+      user.userId,
+      dto,
+      undefined,
+      isStaff,
+    );
   }
 
   @Get('invoice/:invoiceId')
@@ -109,10 +120,7 @@ export class PaymentController {
   @ApiBearerAuth()
   @Roles('RECEPTIONIST', 'ADMIN')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  confirm(
-    @CurrentUser() user: AuthenticatedUser,
-    @Param('id') id: string,
-  ) {
+  confirm(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
     return this.paymentService.confirmByStaff(user.userId, id);
   }
 
@@ -120,8 +128,10 @@ export class PaymentController {
   @ApiBearerAuth()
   @Roles('RECEPTIONIST', 'ADMIN')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  remindInvoicePayment(@Param('invoiceId') invoiceId: string) {
-    return this.paymentService.sendPaymentReminder(invoiceId);
+  remindInvoicePayment(
+    @Param('invoiceId') invoiceId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.paymentService.sendPaymentReminder(invoiceId, user.userId);
   }
 }
-

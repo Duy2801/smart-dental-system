@@ -9,23 +9,19 @@ import { InjectQueue } from '@nestjs/bull';
 import type { Queue } from 'bull';
 import { randomBytes } from 'crypto';
 import {
-  AppointmentPaymentOption,
-  AppointmentPaymentStatus,
   AppointmentStatus,
-  BookingSource,
   Gender,
   InvoiceStatus,
   InvoiceType,
   PatientRelationship,
-  PaymentMethod,
   PaymentStatus,
   TreatmentPlanStatus,
-  TreatmentStepPaymentStatus,
   TreatmentStepStatus,
   VideoConsultationStatus,
 } from '../../../prisma/generated/enums';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
+import { nextDailyCode } from '../../common/daily-code';
 import { CreatePatientDto } from './dto/create-patient.dto';
 import { CreateManagedPatientDto } from './dto/create-managed-patient.dto';
 import { UpdatePatientDto } from './dto/update-patient.dto';
@@ -49,7 +45,7 @@ export class PatientService {
         await this.redis.del(`patient:appointments:upcoming:${userId}`);
         await this.redis.del(`patient:appointments:history:${userId}`);
       }
-    } catch (err: any) {
+    } catch {
       // ignore
     }
   }
@@ -753,6 +749,19 @@ export class PatientService {
       ]);
       if (existingUserPhone || existingPatientPhone) {
         throw new ConflictException('auth.phone_exists');
+      }
+    }
+
+    // Email là tên đăng nhập và nơi nhận OTP/đặt lại mật khẩu. Đổi mà không xác thực
+    // địa chỉ mới thì gõ nhầm là mất tài khoản, hoặc chiếm được email của người khác.
+    // Chưa có luồng xác thực email mới nên không cho đổi tại đây.
+    if (newEmail !== undefined) {
+      const currentUser = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { email: true },
+      });
+      if (newEmail !== (currentUser?.email ?? null)) {
+        throw new BadRequestException('patient.email_change_not_allowed');
       }
     }
 
@@ -1767,19 +1776,25 @@ export class PatientService {
   private async generateAppointmentCode(
     tx: Pick<PrismaService, 'appointment'>,
   ) {
-    const today = new Date().toISOString().slice(0, 10).replaceAll('-', '');
-    const count = await tx.appointment.count({
-      where: { appointmentCode: { startsWith: `APT-${today}` } },
+    return nextDailyCode(this.redis, 'APT', async (codePrefix) => {
+      const latest = await tx.appointment.findFirst({
+        where: { appointmentCode: { startsWith: codePrefix } },
+        orderBy: { appointmentCode: 'desc' },
+        select: { appointmentCode: true },
+      });
+      return latest?.appointmentCode ?? null;
     });
-    return `APT-${today}-${String(count + 1).padStart(4, '0')}`;
   }
 
   private async generateInvoiceCode(tx: Pick<PrismaService, 'invoice'>) {
-    const today = new Date().toISOString().slice(0, 10).replaceAll('-', '');
-    const count = await tx.invoice.count({
-      where: { invoiceCode: { startsWith: `INV-${today}` } },
+    return nextDailyCode(this.redis, 'INV', async (codePrefix) => {
+      const latest = await tx.invoice.findFirst({
+        where: { invoiceCode: { startsWith: codePrefix } },
+        orderBy: { invoiceCode: 'desc' },
+        select: { invoiceCode: true },
+      });
+      return latest?.invoiceCode ?? null;
     });
-    return `INV-${today}-${String(count + 1).padStart(4, '0')}`;
   }
 
   private addDays(date: Date, days: number) {

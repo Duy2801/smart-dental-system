@@ -26,6 +26,20 @@ const AUTO_ASSIGN_TIMEOUT_MS = 90_000;
 // assigned conversations they're skipped by the algorithm (not blocked from
 // claiming manually).
 const MAX_CONCURRENT_ASSIGNED = 6;
+/** Loại file được phép gửi trong hội thoại hỗ trợ */
+const SUPPORT_ATTACHMENT_MIME_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'image/heic',
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'text/plain',
+]);
 
 @Injectable()
 export class SupportConversationService {
@@ -359,12 +373,23 @@ export class SupportConversationService {
     const isStaffSender = this.isStaff(user);
     const reply = replyToId
       ? await this.prisma.supportMessage.findFirst({
-          where: { id: replyToId, conversationId, senderType: { not: 'SYSTEM' } },
-          select: { id: true, content: true, attachmentName: true, senderType: true },
+          where: {
+            id: replyToId,
+            conversationId,
+            senderType: { not: 'SYSTEM' },
+          },
+          select: {
+            id: true,
+            content: true,
+            attachmentName: true,
+            senderType: true,
+          },
         })
       : null;
     if (replyToId && !reply) {
-      throw new BadRequestException('support_conversation.invalid_reply_target');
+      throw new BadRequestException(
+        'support_conversation.invalid_reply_target',
+      );
     }
     const message = await this.prisma.supportMessage.create({
       data: {
@@ -376,7 +401,12 @@ export class SupportConversationService {
         attachmentName: attachment?.name,
         attachmentMime: attachment?.mime,
         replyToId: reply?.id,
-        replyPreview: reply ? (reply.content || reply.attachmentName || 'Tệp đính kèm').slice(0, 200) : undefined,
+        replyPreview: reply
+          ? (reply.content || reply.attachmentName || 'Tệp đính kèm').slice(
+              0,
+              200,
+            )
+          : undefined,
         replySenderType: reply?.senderType,
       },
     });
@@ -431,7 +461,14 @@ export class SupportConversationService {
     }
     if (!file)
       throw new BadRequestException('support_conversation.file_required');
-    if (!file.buffer.length) throw new BadRequestException('support_conversation.empty_file');
+    if (!file.buffer.length)
+      throw new BadRequestException('support_conversation.empty_file');
+    // Chỉ nhận ảnh và tài liệu thông dụng: không cho gửi .exe/.html/.svg... cho lễ tân tải về
+    if (!SUPPORT_ATTACHMENT_MIME_TYPES.has(file.mimetype)) {
+      throw new BadRequestException(
+        'support_conversation.file_type_not_allowed',
+      );
+    }
     const name = file.originalname.replace(/[\\/\r\n]/g, '_').slice(0, 180);
     const url = await uploadSupportAttachment(
       this.config,
@@ -439,9 +476,17 @@ export class SupportConversationService {
       name,
       file.mimetype,
     );
-    return this.sendMessage(conversationId, user, '', {
-      url, name, mime: file.mimetype || 'application/octet-stream',
-    }, replyToId);
+    return this.sendMessage(
+      conversationId,
+      user,
+      '',
+      {
+        url,
+        name,
+        mime: file.mimetype || 'application/octet-stream',
+      },
+      replyToId,
+    );
   }
 
   async markRead(conversationId: string, user: AuthenticatedUser) {

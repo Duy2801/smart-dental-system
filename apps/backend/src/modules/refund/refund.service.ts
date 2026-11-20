@@ -15,11 +15,16 @@ import {
   PaymentMethod,
   PaymentStatus,
   RefundStatus,
+  VideoConsultationStatus,
 } from '../../../prisma/generated/enums';
+import { OCCUPYING_APPOINTMENT_STATUSES } from '../appointment/appointment-status-policy';
+import { lockDoctorSchedule } from '../appointment/doctor-schedule-lock';
 import { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateRefundRequestDto } from './dto/create-refund-request.dto';
 import { ProcessRefundDto } from './dto/process-refund.dto';
+import { UpdateRefundBankDto } from './dto/update-refund-bank.dto';
+import { isRefundBankInfoMissing } from './refund-bank-placeholder';
 
 @Injectable()
 export class RefundService {
@@ -54,28 +59,43 @@ export class RefundService {
       }
 
       if (!consultation.isPaid) {
-        throw new BadRequestException('Lịch tư vấn này chưa được thanh toán, không thể hoàn tiền');
+        throw new BadRequestException(
+          'Lịch tư vấn này chưa được thanh toán, không thể hoàn tiền',
+        );
       }
 
       // Kiểm tra xem đã có yêu cầu hoàn tiền PENDING/COMPLETED chưa
       const existingRequest = await this.prisma.refundRequest.findFirst({
         where: {
           videoConsultationId: dto.videoConsultationId,
-          status: { in: [RefundStatus.PENDING, RefundStatus.PROCESSING, RefundStatus.COMPLETED] },
+          status: {
+            in: [
+              RefundStatus.PENDING,
+              RefundStatus.PROCESSING,
+              RefundStatus.COMPLETED,
+            ],
+          },
         },
       });
       if (existingRequest) {
-        throw new BadRequestException('Lịch tư vấn này đã có yêu cầu hoàn tiền đang được xử lý hoặc đã hoàn thành');
+        throw new BadRequestException(
+          'Lịch tư vấn này đã có yêu cầu hoàn tiền đang được xử lý hoặc đã hoàn thành',
+        );
       }
 
       // Tính chính sách hoàn tiền
-      const hoursUntil = (consultation.scheduledAt.getTime() - Date.now()) / (1000 * 60 * 60);
+      const hoursUntil =
+        (consultation.scheduledAt.getTime() - Date.now()) / (1000 * 60 * 60);
       if (hoursUntil > 24) {
         refundPercent = 100;
       } else if (hoursUntil >= 4) {
         refundPercent = 50;
       } else {
         refundPercent = 0;
+      }
+      // Lỗi từ phía phòng khám (bác sĩ không vào phòng): luôn hoàn 100%
+      if (consultation.status === VideoConsultationStatus.DOCTOR_MISSED) {
+        refundPercent = 100;
       }
 
       const feeNum = Number(consultation.fee);
@@ -89,11 +109,16 @@ export class RefundService {
         },
         orderBy: { issuedAt: 'desc' },
       });
-      const invoice = invoices.find((candidate) =>
-        Array.isArray(candidate.items) && candidate.items.some((item) =>
-          typeof item === 'object' && item !== null &&
-          'videoConsultationId' in item && item.videoConsultationId === dto.videoConsultationId,
-        ),
+      const invoice = invoices.find(
+        (candidate) =>
+          Array.isArray(candidate.items) &&
+          candidate.items.some(
+            (item) =>
+              typeof item === 'object' &&
+              item !== null &&
+              'videoConsultationId' in item &&
+              item.videoConsultationId === dto.videoConsultationId,
+          ),
       );
       if (invoice) {
         invoiceId = invoice.id;
@@ -113,7 +138,13 @@ export class RefundService {
       const existingRequest = await this.prisma.refundRequest.findFirst({
         where: {
           appointmentId: dto.appointmentId,
-          status: { in: [RefundStatus.PENDING, RefundStatus.PROCESSING, RefundStatus.COMPLETED] },
+          status: {
+            in: [
+              RefundStatus.PENDING,
+              RefundStatus.PROCESSING,
+              RefundStatus.COMPLETED,
+            ],
+          },
         },
       });
       if (existingRequest) {
@@ -135,11 +166,15 @@ export class RefundService {
       requestedAmount = depositNum;
       refundPercent = 100;
     } else {
-      throw new BadRequestException('Phải chỉ định videoConsultationId hoặc appointmentId');
+      throw new BadRequestException(
+        'Phải chỉ định videoConsultationId hoặc appointmentId',
+      );
     }
 
     if (requestedAmount <= 0) {
-      throw new BadRequestException('Đơn tư vấn này không đủ điều kiện hoàn tiền (hủy dưới 4h hoặc tiền = 0)');
+      throw new BadRequestException(
+        'Đơn tư vấn này không đủ điều kiện hoàn tiền (hủy dưới 4h hoặc tiền = 0)',
+      );
     }
 
     const refundCode = `REF-${randomUUID().slice(0, 8).toUpperCase()}`;
@@ -164,7 +199,9 @@ export class RefundService {
             status: RefundStatus.PENDING,
           },
           include: {
-            patient: { select: { user: { select: { fullName: true, phone: true } } } },
+            patient: {
+              select: { user: { select: { fullName: true, phone: true } } },
+            },
           },
         });
         if (dto.videoConsultationId) {
@@ -176,7 +213,10 @@ export class RefundService {
         return created;
       });
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
         throw new ConflictException('refund.request_already_exists');
       }
       throw error;
@@ -236,6 +276,41 @@ export class RefundService {
   }
 
   /** Bệnh nhân xem danh sách yêu cầu hoàn tiền của mình */
+  /**
+   * Bệnh nhân bổ sung/sửa tài khoản nhận tiền cho yêu cầu hoàn tiền còn chờ xử lý.
+   * Cần cho các yêu cầu hệ thống tự tạo (bác sĩ vắng mặt, phòng khám huỷ lịch), vốn
+   * chưa có số tài khoản và trước đây không có cách nào cập nhật.
+   */
+  async updateBankAccount(
+    user: AuthenticatedUser,
+    id: string,
+    dto: UpdateRefundBankDto,
+  ) {
+    const patient = await this.prisma.patient.findUnique({
+      where: { userId: user.userId },
+      select: { id: true },
+    });
+    const request = await this.prisma.refundRequest.findUnique({
+      where: { id },
+      select: { id: true, patientId: true, status: true },
+    });
+    if (!patient || !request || request.patientId !== patient.id) {
+      throw new NotFoundException('Không tìm thấy yêu cầu hoàn tiền');
+    }
+    if (request.status !== RefundStatus.PENDING) {
+      throw new ConflictException('refund.already_processed');
+    }
+    return this.prisma.refundRequest.update({
+      where: { id },
+      data: {
+        bankName: dto.bankName.trim(),
+        accountNumber: dto.accountNumber.trim(),
+        accountHolder: dto.accountHolder.trim().toUpperCase(),
+        qrCodeUrl: dto.qrCodeUrl?.trim() || null,
+      },
+    });
+  }
+
   async findMyRefunds(user: AuthenticatedUser) {
     const patient = await this.prisma.patient.findUnique({
       where: { userId: user.userId },
@@ -259,7 +334,11 @@ export class RefundService {
   }
 
   /** Lễ tân / Admin duyệt hoặc từ chối hoàn tiền */
-  async processRefund(id: string, adminUser: AuthenticatedUser, dto: ProcessRefundDto) {
+  async processRefund(
+    id: string,
+    adminUser: AuthenticatedUser,
+    dto: ProcessRefundDto,
+  ) {
     const refundRequest = await this.prisma.refundRequest.findUnique({
       where: { id },
       include: {
@@ -288,21 +367,100 @@ export class RefundService {
       throw new ConflictException('refund.already_processed');
     }
 
+    // Không thể xác nhận "đã chuyển khoản" khi bệnh nhân chưa cung cấp tài khoản nhận tiền
+    if (
+      dto.status === RefundStatus.COMPLETED &&
+      !refundRequest.qrCodeUrl &&
+      isRefundBankInfoMissing(refundRequest)
+    ) {
+      throw new BadRequestException('refund.bank_account_missing');
+    }
+
+    let consultationRestored = false;
     const updated = await this.prisma.$transaction(async (tx) => {
       const claimed = await tx.refundRequest.updateMany({
-        where: { id, status: { in: [RefundStatus.PENDING, RefundStatus.PROCESSING] } },
+        where: {
+          id,
+          status: { in: [RefundStatus.PENDING, RefundStatus.PROCESSING] },
+        },
         data: {
           status: dto.status,
-          rejectReason: dto.status === RefundStatus.REJECTED ? dto.rejectReason?.trim() : null,
+          rejectReason:
+            dto.status === RefundStatus.REJECTED
+              ? dto.rejectReason?.trim()
+              : null,
           proofImageUrl: dto.proofImageUrl?.trim() || null,
           processedBy: adminUser.userId,
           processedAt: new Date(),
         },
       });
-      if (claimed.count !== 1) throw new ConflictException('refund.already_processed');
+      if (claimed.count !== 1)
+        throw new ConflictException('refund.already_processed');
+
+      // Gửi yêu cầu hoàn tiền đã huỷ lịch tư vấn. Bị từ chối thì bệnh nhân không được
+      // hoàn tiền, nên trả lại lịch cho họ nếu buổi tư vấn chưa diễn ra và khung giờ của
+      // bác sĩ vẫn còn trống (nếu đã có người khác đặt thì giữ huỷ để tránh trùng lịch).
+      const vc = refundRequest.videoConsultation;
+      if (
+        dto.status === RefundStatus.REJECTED &&
+        vc &&
+        vc.status === VideoConsultationStatus.CANCELLED &&
+        vc.isPaid &&
+        vc.scheduledAt.getTime() > Date.now()
+      ) {
+        await lockDoctorSchedule(tx, vc.doctorId);
+        const start = vc.scheduledAt;
+        const end = new Date(start.getTime() + vc.durationMinutes * 60_000);
+        const others = await tx.videoConsultation.findMany({
+          where: {
+            doctorId: vc.doctorId,
+            id: { not: vc.id },
+            scheduledAt: {
+              lt: end,
+              gt: new Date(start.getTime() - 24 * 60 * 60_000),
+            },
+            OR: [
+              {
+                status: {
+                  in: [
+                    VideoConsultationStatus.SCHEDULED,
+                    VideoConsultationStatus.IN_PROGRESS,
+                  ],
+                },
+              },
+              {
+                status: VideoConsultationStatus.PENDING_PAYMENT,
+                expiresAt: { gt: new Date() },
+              },
+            ],
+          },
+          select: { scheduledAt: true, durationMinutes: true },
+        });
+        const consultationClash = others.some(
+          (o) =>
+            o.scheduledAt.getTime() + o.durationMinutes * 60_000 >
+            start.getTime(),
+        );
+        const appointmentClash = await tx.appointment.count({
+          where: {
+            doctorId: vc.doctorId,
+            status: { in: OCCUPYING_APPOINTMENT_STATUSES },
+            scheduledAt: { lt: end },
+            endAt: { gt: start },
+          },
+        });
+        if (!consultationClash && appointmentClash === 0) {
+          await tx.videoConsultation.update({
+            where: { id: vc.id },
+            data: { status: VideoConsultationStatus.SCHEDULED },
+          });
+          consultationRestored = true;
+        }
+      }
 
       if (dto.status === RefundStatus.COMPLETED) {
-        if (!refundRequest.invoiceId) throw new BadRequestException('refund.invoice_not_found');
+        if (!refundRequest.invoiceId)
+          throw new BadRequestException('refund.invoice_not_found');
         const invoice = await tx.invoice.findUniqueOrThrow({
           where: { id: refundRequest.invoiceId },
           select: { finalAmount: true },
@@ -318,7 +476,9 @@ export class RefundService {
             receivedBy: adminUser.userId,
           },
         });
-        if (Number(refundRequest.requestedAmount) >= Number(invoice.finalAmount)) {
+        if (
+          Number(refundRequest.requestedAmount) >= Number(invoice.finalAmount)
+        ) {
           await tx.invoice.update({
             where: { id: refundRequest.invoiceId },
             data: { status: InvoiceStatus.REFUNDED },
@@ -355,10 +515,12 @@ export class RefundService {
             email: patientEmail,
             requestCode: refundRequest.refundCode,
             requestTypeLabel: 'Hoàn phí dịch vụ',
-            reason: dto.rejectReason || 'Không đáp ứng điều kiện hoàn tiền theo quy định.',
+            reason:
+              dto.rejectReason ||
+              'Không đáp ứng điều kiện hoàn tiền theo quy định.',
           });
         }
-      } catch (err) {
+      } catch {
         // non-blocking
       }
     }
@@ -374,7 +536,13 @@ export class RefundService {
 
       const content = isCompleted
         ? `Lễ tân đã hoàn số tiền ${amountStr} VNĐ cho mã yêu cầu ${refundRequest.refundCode} vào tài khoản ${refundRequest.bankName} - ${refundRequest.accountNumber}. Vui lòng kiểm tra tài khoản.`
-        : `Yêu cầu hoàn tiền ${refundRequest.refundCode} bị từ chối. Lý do: ${dto.rejectReason || 'Không đáp ứng điều kiện'}.`;
+        : `Yêu cầu hoàn tiền ${refundRequest.refundCode} bị từ chối. Lý do: ${dto.rejectReason || 'Không đáp ứng điều kiện'}.${
+            consultationRestored
+              ? ' Lịch tư vấn của bạn đã được khôi phục, bạn vẫn có thể tham gia đúng giờ đã đặt.'
+              : refundRequest.videoConsultation
+                ? ' Lịch tư vấn cũ không thể khôi phục (đã qua giờ hẹn hoặc khung giờ đã có người khác đặt), vui lòng đặt lịch mới hoặc liên hệ lễ tân.'
+                : ''
+          }`;
 
       try {
         await this.prisma.notification.create({

@@ -233,13 +233,20 @@ export class AppointmentController {
     @Query('time') time?: string,
     @Query('appointmentId') appointmentId?: string,
   ) {
+    // API công khai và kết quả được cache theo đúng các giá trị này: giá trị sai định
+    // dạng bị bỏ qua để người lạ không sinh được vô hạn key Redis bằng chuỗi ngẫu nhiên.
+    const uuid = (v?: string) =>
+      v &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)
+        ? v
+        : undefined;
     return this.appointmentService.getBookingOptions({
-      serviceId,
-      treatmentMethodId,
-      doctorId,
-      date,
-      time,
-      appointmentId,
+      serviceId: uuid(serviceId),
+      treatmentMethodId: uuid(treatmentMethodId),
+      doctorId: uuid(doctorId),
+      date: date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : undefined,
+      time: time && /^\d{2}:\d{2}$/.test(time) ? time : undefined,
+      appointmentId: uuid(appointmentId),
     });
   }
 

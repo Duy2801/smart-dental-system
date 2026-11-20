@@ -1,3 +1,4 @@
+import { RateLimit } from '../../common/decorators/rate-limit.decorator';
 import {
   BadRequestException,
   Body,
@@ -74,11 +75,13 @@ export class AuthController {
   }
 
   @Post('register')
+  @RateLimit(5, 10 * 60)
   register(@Body() dto: RegisterDto, @Req() req: LocalizedRequest) {
     return this.auth.register(dto, req.locale ?? 'vi');
   }
 
   @Post('login')
+  @RateLimit(10, 60)
   async login(
     @Body() dto: LoginDto,
     @Res({ passthrough: true }) response: Response,
@@ -133,6 +136,7 @@ export class AuthController {
   }
 
   @Post('verify-otp')
+  @RateLimit(10, 60)
   async verifyOtp(
     @Body() dto: VerifyOtpDto,
     @Res({ passthrough: true }) response: Response,
@@ -142,21 +146,25 @@ export class AuthController {
   }
 
   @Post('resend-otp')
+  @RateLimit(5, 10 * 60)
   resendOtp(@Body() dto: ResendOtpDto, @Req() req: LocalizedRequest) {
     return this.auth.resendOtp(dto.email, req.locale ?? 'vi');
   }
 
   @Post('forgot-password')
+  @RateLimit(5, 10 * 60)
   forgotPassword(@Body() dto: EmailDto, @Req() req: LocalizedRequest) {
     return this.auth.forgotPassword(dto.email, req.locale ?? 'vi');
   }
 
   @Post('reset-password')
+  @RateLimit(10, 10 * 60)
   resetPassword(@Body() dto: ResetPasswordDto) {
     return this.auth.resetPassword(dto);
   }
 
   @Post('google')
+  @RateLimit(20, 60)
   async googleLogin(
     @Body() dto: GoogleLoginDto,
     @Res({ passthrough: true }) response: Response,

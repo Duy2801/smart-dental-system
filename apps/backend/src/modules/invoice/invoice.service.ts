@@ -7,6 +7,12 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { InvoiceQueryDto } from './dto/invoice-query.dto';
 
+/** Giá trị trong JSON items có thể sai kiểu: chỉ nhận chuỗi/số, tránh ra '[object Object]' */
+const asText = (value: unknown, fallback = ''): string =>
+  typeof value === 'string' || typeof value === 'number'
+    ? String(value)
+    : fallback;
+
 @Injectable()
 export class InvoiceService {
   constructor(private readonly prisma: PrismaService) {}
@@ -24,10 +30,7 @@ export class InvoiceService {
             ? { status: InvoiceStatus.CANCELLED }
             : {
                 status: {
-                  in: [
-                    InvoiceStatus.ISSUED,
-                    InvoiceStatus.PARTIALLY_PAID,
-                  ],
+                  in: [InvoiceStatus.ISSUED, InvoiceStatus.PARTIALLY_PAID],
                 },
               };
 
@@ -38,7 +41,11 @@ export class InvoiceService {
           ? {
               OR: [
                 { invoiceCode: { contains: search, mode: 'insensitive' } },
-                { patient: { fullName: { contains: search, mode: 'insensitive' } } },
+                {
+                  patient: {
+                    fullName: { contains: search, mode: 'insensitive' },
+                  },
+                },
                 {
                   patient: {
                     user: {
@@ -77,7 +84,7 @@ export class InvoiceService {
         ? invoice.items
             .map((item) =>
               typeof item === 'object' && item
-                ? String((item as Record<string, unknown>).videoConsultationId ?? '')
+                ? asText((item as Record<string, unknown>).videoConsultationId)
                 : '',
             )
             .filter(Boolean)
@@ -110,7 +117,7 @@ export class InvoiceService {
         ? invoice.items
             .map((item) =>
               typeof item === 'object' && item
-                ? String((item as Record<string, unknown>).videoConsultationId ?? '')
+                ? asText((item as Record<string, unknown>).videoConsultationId)
                 : '',
             )
             .find(Boolean)
@@ -128,7 +135,9 @@ export class InvoiceService {
         invoice_type: invoice.invoiceType,
         patient_id: invoice.patientId,
         patient_name:
-          invoice.patient.fullName ?? invoice.patient.user?.fullName ?? 'Bệnh nhân',
+          invoice.patient.fullName ??
+          invoice.patient.user?.fullName ??
+          'Bệnh nhân',
         doctor_name: doctorName,
         issued_at: (invoice.issuedAt ?? new Date()).toISOString(),
         subtotal: Number(invoice.subtotal),
@@ -156,7 +165,10 @@ export class InvoiceService {
       return 'PAID';
     }
 
-    if (status === InvoiceStatus.CANCELLED || status === InvoiceStatus.REFUNDED) {
+    if (
+      status === InvoiceStatus.CANCELLED ||
+      status === InvoiceStatus.REFUNDED
+    ) {
       return 'CANCELLED';
     }
 
@@ -178,8 +190,8 @@ export class InvoiceService {
       const unitPrice = Number(data.unit_price ?? data.unitPrice ?? 0);
 
       return {
-        service_id: String(data.service_id ?? data.serviceId ?? ''),
-        description: String(data.description ?? data.name ?? 'Dich vu'),
+        service_id: asText(data.service_id ?? data.serviceId),
+        description: asText(data.description ?? data.name, 'Dich vu'),
         qty,
         unit_price: unitPrice,
         amount: Number(data.amount ?? qty * unitPrice),

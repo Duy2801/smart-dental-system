@@ -16,6 +16,8 @@ import {
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
+import { nextDailyCode } from '../../common/daily-code';
+import { vnDateId } from '../../common/vn-time';
 import { EventsGateway } from '../socket/events.gateway';
 import { CreateTreatmentPlanDto } from './dto/create-treatment-plan.dto';
 import { UpdateTreatmentPlanDto } from './dto/update-treatment-plan.dto';
@@ -171,10 +173,7 @@ export class TreatmentPlanService {
       }
     }
 
-    if (
-      dto.startDate &&
-      dto.startDate.slice(0, 10) < new Date().toISOString().slice(0, 10)
-    ) {
+    if (dto.startDate && dto.startDate.slice(0, 10) < vnDateId()) {
       throw new BadRequestException(
         'Ngày bắt đầu không được nằm trong quá khứ',
       );
@@ -611,11 +610,14 @@ export class TreatmentPlanService {
   }
 
   private async generateInvoiceCode() {
-    const yyyyMMdd = new Date().toISOString().slice(0, 10).replaceAll('-', '');
-    const count = await this.prisma.invoice.count({
-      where: { invoiceCode: { startsWith: `INV-${yyyyMMdd}` } },
+    return nextDailyCode(this.redis, 'INV', async (codePrefix) => {
+      const latest = await this.prisma.invoice.findFirst({
+        where: { invoiceCode: { startsWith: codePrefix } },
+        orderBy: { invoiceCode: 'desc' },
+        select: { invoiceCode: true },
+      });
+      return latest?.invoiceCode ?? null;
     });
-    return `INV-${yyyyMMdd}-${String(count + 1).padStart(4, '0')}`;
   }
 
   private toSummary(p: any) {

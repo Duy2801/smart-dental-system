@@ -12,7 +12,11 @@ import { login, useAppDispatch } from "@/providers";
 const authErrorMessages: Record<string, string> = {
   "auth.invalid_credentials": "Email hoặc mật khẩu không đúng.",
   "auth.account_google_only": "Tài khoản này đang đăng nhập bằng Google.",
+  "common.too_many_requests":
+    "Bạn thao tác quá nhiều lần. Vui lòng đợi một lát rồi thử lại.",
   "auth.google_invalid_token": "Xác thực tài khoản Google không thành công.",
+  "auth.google_email_not_verified":
+    "Email Google của bạn chưa được xác minh nên không thể đăng nhập.",
   "auth.account_inactive":
     "Tài khoản của bạn đang bị khóa hoặc ngừng hoạt động.",
   "auth.email_not_verified":
@@ -45,7 +49,13 @@ function getSafeRedirectPath() {
   if (typeof window === "undefined") return "/home";
 
   const redirect = new URLSearchParams(window.location.search).get("redirect");
-  if (!redirect || !redirect.startsWith("/") || redirect.startsWith("//")) {
+  // Trình duyệt coi "/\evil.com" giống "//evil.com" (sang domain khác), nên chặn cả "\"
+  if (
+    !redirect ||
+    !redirect.startsWith("/") ||
+    redirect.startsWith("//") ||
+    redirect.includes("\\")
+  ) {
     return "/home";
   }
 

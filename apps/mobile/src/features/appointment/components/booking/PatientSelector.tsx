@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import { Text, TextInput } from 'react-native-paper';
-import { Button, Card, SheetBottomInset } from '~src/components/ui';
+import { Button, SheetBottomInset } from '~src/components/ui';
 import type { CreatePatientProfilePayload, PatientProfile } from '../../types';
 
 type PatientSelectorProps = {

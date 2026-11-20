@@ -5,6 +5,7 @@ import { OCCUPYING_APPOINTMENT_STATUSES } from '../appointment/appointment-statu
 import { ClinicConfigService } from '../clinic-config/clinic-config.service';
 import { PatientService } from '../patient/patient.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { vnDateId } from '../../common/vn-time';
 import { PatientChatDto } from './dto/chat.dto';
 
 @Injectable()
@@ -56,6 +57,23 @@ export class ChatbotConversationService {
     let patientName = dto.patientName;
     let patientPhone = dto.patientPhone;
 
+    // patientId do client gửi: chỉ chấp nhận khi hồ sơ đó thuộc tài khoản đang đăng nhập
+    if (patientId) {
+      const owned = user?.userId
+        ? await this.prisma.patient.findFirst({
+            where: {
+              id: patientId,
+              OR: [
+                { userId: user.userId },
+                { patientAccounts: { some: { userId: user.userId } } },
+              ],
+            },
+            select: { id: true },
+          })
+        : null;
+      if (!owned) patientId = undefined;
+    }
+
     if (allowLegacyPatientFallback && user?.userId && !patientId) {
       const patient = await this.prisma.patient.findFirst({
         where: { OR: [{ userId: user.userId }, { id: user.userId }] },
@@ -99,7 +117,7 @@ export class ChatbotConversationService {
   }
 
   async getInternalClinicInfo() {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = vnDateId(); // ngày theo giờ VN, không phải ngày UTC
     const config = await this.clinicConfigService.getClinicConfig();
     let packages: {
       minutes: number;
@@ -184,7 +202,7 @@ export class ChatbotConversationService {
                 const discount =
                   (basePrice * Number(tmPromo.discountValue)) / 100;
                 finalPrice = Math.max(0, basePrice - discount);
-                discountInfo = `Giảm ${tmPromo.discountValue}% (Mã: ${tmPromo.code})`;
+                discountInfo = `Giảm ${Number(tmPromo.discountValue)}% (Mã: ${tmPromo.code})`;
               } else if (tmPromo.discountType === 'FIXED_AMOUNT') {
                 const discount = Number(tmPromo.discountValue);
                 finalPrice = Math.max(0, basePrice - discount);
@@ -226,7 +244,7 @@ export class ChatbotConversationService {
             promotionCode: servicePromo?.code || null,
             discountInfo: servicePromo
               ? servicePromo.discountType === 'PERCENTAGE'
-                ? `Giảm ${servicePromo.discountValue}% (Mã: ${servicePromo.code})`
+                ? `Giảm ${Number(servicePromo.discountValue)}% (Mã: ${servicePromo.code})`
                 : `Giảm ${Number(servicePromo.discountValue).toLocaleString('vi-VN')}đ (Mã: ${servicePromo.code})`
               : null,
             treatmentMethods,

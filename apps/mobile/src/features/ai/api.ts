@@ -1,5 +1,3 @@
-import axios from 'axios';
-import { NEXT_PUBLIC_AI_SERVICE_URL } from '@env';
 import { api } from '~src/config';
 
 export type AiChatSuggestion = {
@@ -29,10 +27,6 @@ type SendAiChatParams = {
   message: string;
   metadata?: Record<string, unknown>;
 };
-
-const AI_SERVICE_FALLBACK_URL = 
-NEXT_PUBLIC_AI_SERVICE_URL
-.replace(/\/$/, '');
 
 const unwrapChatResponse = (payload: unknown): AiChatResponse => {
   if (!payload || typeof payload !== 'object') {
@@ -87,31 +81,11 @@ export async function sendAiChatMessage({
       return parsed;
     }
   } catch {
-    // If backend proxy fails or times out, fallback to direct AI microservice
+    // Backend lỗi hoặc quá thời gian: hiện câu trả lời dự phòng bên dưới.
+    // Không gọi thẳng AI service: AI service chỉ nhận request từ backend (có API key bí mật).
   }
 
-  // 3. Third priority: Direct AI microservice fallback (ultra-fast & bypasses backend proxy)
-  try {
-    const directResponse = await axios.post(
-      `${AI_SERVICE_FALLBACK_URL}/api/v1/chatbot/agent-chat`,
-      body,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': 'dev-local-key',
-        },
-        timeout: 45000,
-      },
-    );
-    const parsed = unwrapChatResponse(directResponse.data);
-    if (parsed.reply) {
-      return parsed;
-    }
-  } catch {
-    // Both backend and direct AI microservice failed
-  }
-
-  // 4. Graceful fallback message so the user is never stranded with an error screen
+  // 3. Graceful fallback message so the user is never stranded with an error screen
   return {
     reply:
       'Dạ hiện tại máy chủ AI đang nhận lượng lớn yêu cầu nên phản hồi chậm. Quý khách có thể chọn nhanh câu hỏi gợi ý bên dưới hoặc liên hệ Hotline 1900 1234 để được tư vấn viên hỗ trợ ngay lập tức ạ!',

@@ -42,9 +42,9 @@ describe('AuthService patient-only CAPTCHA', () => {
     const { service, captcha } = makeService('PATIENT');
     captcha.verify.mockRejectedValue(new Error('captcha_required'));
 
-    await expect(service.login('user@example.com', 'wrong-password')).rejects.toThrow(
-      'captcha_required',
-    );
+    await expect(
+      service.login('user@example.com', 'wrong-password'),
+    ).rejects.toThrow('captcha_required');
     expect(captcha.verify).toHaveBeenCalledWith(undefined);
   });
 
@@ -65,12 +65,15 @@ describe('AuthService patient-only CAPTCHA', () => {
     jest.spyOn(service as never, 'verifyGoogleToken').mockResolvedValue({
       sub: 'google-user-1',
       email: 'user@example.com',
+      email_verified: true,
     } as never);
-    jest.spyOn(service as never, 'ensurePatientProfile').mockResolvedValue(undefined as never);
+    jest
+      .spyOn(service as never, 'ensurePatientProfile')
+      .mockResolvedValue(undefined as never);
 
-    await expect(service.loginWithGoogle('google-token')).resolves.toHaveProperty(
-      'accessToken',
-    );
+    await expect(
+      service.loginWithGoogle('google-token'),
+    ).resolves.toHaveProperty('accessToken');
     expect(captcha.verify).not.toHaveBeenCalled();
   });
 
@@ -79,11 +82,12 @@ describe('AuthService patient-only CAPTCHA', () => {
     jest.spyOn(service as never, 'verifyGoogleToken').mockResolvedValue({
       sub: 'google-user-1',
       email: 'user@example.com',
+      email_verified: true,
     } as never);
 
-    await expect(service.loginWithGoogle('google-token')).resolves.toHaveProperty(
-      'accessToken',
-    );
+    await expect(
+      service.loginWithGoogle('google-token'),
+    ).resolves.toHaveProperty('accessToken');
     expect(captcha.verify).not.toHaveBeenCalled();
   });
 
@@ -93,19 +97,25 @@ describe('AuthService patient-only CAPTCHA', () => {
     prisma.user.create.mockResolvedValue({
       id: 'new-user',
       email: 'new@example.com',
+      email_verified: true,
       status: 'ACTIVE',
       role: { code: 'PATIENT' },
     });
     jest.spyOn(service as never, 'verifyGoogleToken').mockResolvedValue({
       sub: 'new-google-user',
       email: 'new@example.com',
+      email_verified: true,
     } as never);
-    jest.spyOn(service as never, 'getPatientRole').mockResolvedValue({ id: 'patient-role' } as never);
-    jest.spyOn(service as never, 'ensurePatientProfile').mockResolvedValue(undefined as never);
+    jest
+      .spyOn(service as never, 'getPatientRole')
+      .mockResolvedValue({ id: 'patient-role' } as never);
+    jest
+      .spyOn(service as never, 'ensurePatientProfile')
+      .mockResolvedValue(undefined as never);
 
-    await expect(service.loginWithGoogle('google-token')).resolves.toHaveProperty(
-      'accessToken',
-    );
+    await expect(
+      service.loginWithGoogle('google-token'),
+    ).resolves.toHaveProperty('accessToken');
     expect(prisma.user.create).toHaveBeenCalled();
     expect(captcha.verify).not.toHaveBeenCalled();
   });

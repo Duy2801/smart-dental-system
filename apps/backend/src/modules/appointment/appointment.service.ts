@@ -22,6 +22,7 @@ import { Prisma } from '../../../prisma/generated/client';
 import { ClinicConfigService } from '../clinic-config/clinic-config.service';
 import { NotificationService } from '../notification/notification.service';
 import { RedisService } from '../redis/redis.service';
+import { nextDailyCode } from '../../common/daily-code';
 import {
   BusinessHourDto,
   ClinicSpecialDateDto,
@@ -31,7 +32,10 @@ import { overlapsLunchBreak } from '../clinic-config/clinic-schedule-time';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { CreateStaffAppointmentDto } from './dto/create-staff-appointment.dto';
 import { OCCUPYING_APPOINTMENT_STATUSES } from './appointment-status-policy';
-import { lockDoctorSchedule, lockPatientSchedule } from './doctor-schedule-lock';
+import {
+  lockDoctorSchedule,
+  lockPatientSchedule,
+} from './doctor-schedule-lock';
 
 const activeAppointmentStatuses = OCCUPYING_APPOINTMENT_STATUSES;
 const activeVideoConsultationStatuses = [
@@ -695,6 +699,10 @@ export class AppointmentService {
     if (Number.isNaN(scheduledAt.getTime())) {
       throw new BadRequestException('appointment.invalid_time');
     }
+    // Giống các luồng đặt/đổi lịch khác: không cho dời lịch về thời điểm đã qua
+    if (scheduledAt.getTime() <= Date.now()) {
+      throw new BadRequestException('appointment.time_in_past');
+    }
 
     const endAt = new Date(
       scheduledAt.getTime() +
@@ -743,7 +751,9 @@ export class AppointmentService {
         data: {
           scheduledAt,
           endAt,
-          rescheduleHistory: [...rescheduleHistory, previousSchedule].slice(-10),
+          rescheduleHistory: [...rescheduleHistory, previousSchedule].slice(
+            -10,
+          ),
         },
         include: appointmentInclude,
       });
@@ -1423,7 +1433,9 @@ export class AppointmentService {
     }
 
     if (versionError && options.requireVersionBump) {
-      throw versionError;
+      throw versionError instanceof Error
+        ? versionError
+        : new Error('booking.version_bump_failed');
     }
   }
 
@@ -1946,12 +1958,22 @@ export class AppointmentService {
     }
     const paymentOption = AppointmentPaymentOption.PAY_AT_COUNTER;
     const serviceBasePrice = Number(treatmentMethod.basePrice);
+    // Lịch hẹn chưa có cột lưu khuyến mãi, hoá đơn chỉ tạo khi khám xong. Trước đây mã
+    // được kiểm tra rồi bỏ đi, nên bệnh nhân tưởng đã được giảm giá. Ghi mã hợp lệ vào
+    // ghi chú để lễ tân thấy và nhập khi thu tiền.
+    let notesWithPromotion = input.notes;
     if (input.promotionCode?.trim()) {
+      const promoCode = input.promotionCode.trim().toUpperCase();
       await this.resolveAppointmentPromotion({
-        code: input.promotionCode.trim(),
+        code: promoCode,
         serviceBasePrice,
         treatmentMethodId: treatmentMethod.id,
       });
+      const promoNote = `[Mã ưu đãi khi đặt lịch: ${promoCode} – nhập mã này khi thu tiền]`;
+      notesWithPromotion = input.notes?.trim()
+        ? `${input.notes.trim()}
+${promoNote}`
+        : promoNote;
     }
 
     const endAt = new Date(
@@ -2022,7 +2044,7 @@ export class AppointmentService {
               depositPercent: 0,
               depositAmount: null,
               scheduleConfirmedAt: new Date(),
-              notes: input.notes,
+              notes: notesWithPromotion,
               createdBy: input.createdBy,
             },
             include: appointmentInclude,
@@ -3013,34 +3035,26 @@ export class AppointmentService {
   }
 
   private async generateAppointmentCode() {
-    const today = new Date();
-    const yyyyMMdd = today.toISOString().slice(0, 10).replaceAll('-', '');
-
-    const count = await this.prisma.appointment.count({
-      where: {
-        appointmentCode: {
-          startsWith: `APT-${yyyyMMdd}`,
-        },
-      },
+    return nextDailyCode(this.redis, 'APT', async (codePrefix) => {
+      const latest = await this.prisma.appointment.findFirst({
+        where: { appointmentCode: { startsWith: codePrefix } },
+        orderBy: { appointmentCode: 'desc' },
+        select: { appointmentCode: true },
+      });
+      return latest?.appointmentCode ?? null;
     });
-
-    return `APT-${yyyyMMdd}-${String(count + 1).padStart(4, '0')}`;
   }
 
   private async generateInvoiceCode(
     db: Prisma.TransactionClient | PrismaService = this.prisma,
   ) {
-    const today = new Date();
-    const yyyyMMdd = today.toISOString().slice(0, 10).replaceAll('-', '');
-
-    const count = await db.invoice.count({
-      where: {
-        invoiceCode: {
-          startsWith: `INV-${yyyyMMdd}`,
-        },
-      },
+    return nextDailyCode(this.redis, 'INV', async (codePrefix) => {
+      const latest = await db.invoice.findFirst({
+        where: { invoiceCode: { startsWith: codePrefix } },
+        orderBy: { invoiceCode: 'desc' },
+        select: { invoiceCode: true },
+      });
+      return latest?.invoiceCode ?? null;
     });
-
-    return `INV-${yyyyMMdd}-${String(count + 1).padStart(4, '0')}`;
   }
 }

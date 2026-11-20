@@ -1,8 +1,6 @@
-from secrets import compare_digest
+from fastapi import APIRouter, Depends
 
-from fastapi import APIRouter, Depends, Header, HTTPException
-
-from app.config import get_settings
+from app.api.security import require_api_key
 from app.schemas.doctor_assist import (
     AftercareRequest,
     AftercareResponse,
@@ -20,12 +18,6 @@ from app.schemas.doctor_assist import (
     TreatmentPlanExplanationResponse,
 )
 from app.services.doctor_assist_service import DoctorAssistService
-
-
-def require_api_key(x_api_key: str | None = Header(default=None)):
-    expected = get_settings().ai_service_api_key
-    if not expected or not compare_digest(x_api_key or "", expected):
-        raise HTTPException(status_code=401, detail="Invalid AI service API key")
 
 
 router = APIRouter(dependencies=[Depends(require_api_key)])

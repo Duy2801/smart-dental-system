@@ -22,7 +22,7 @@ import type { AuthenticatedUser } from '../../common/interfaces/authenticated-us
 import { PrismaService } from '../prisma/prisma.service';
 import { lockDoctorSchedule } from '../appointment/doctor-schedule-lock';
 import { NotificationService } from '../notification/notification.service';
-import { EventsGateway } from '../socket/events.gateway';
+import { EventsGateway, SUPPORT_STAFF_ROOM } from '../socket/events.gateway';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { SepayWebhookDto } from './dto/sepay-webhook.dto';
 
@@ -40,8 +40,7 @@ export class PaymentService {
 
   async ensureInvoiceAccess(user: AuthenticatedUser, invoiceId: string) {
     const isStaff =
-      user.roles.includes('ADMIN') ||
-      user.roles.includes('RECEPTIONIST');
+      user.roles.includes('ADMIN') || user.roles.includes('RECEPTIONIST');
     if (isStaff) return;
 
     const invoice = await this.prisma.invoice.findUnique({
@@ -103,6 +102,7 @@ export class PaymentService {
       const promo = await this.applyPromotion(
         dto.promotionCode.trim(),
         Number(invoice.subtotal),
+        await this.getInvoicePromotionScope(invoice, db),
       );
       discountAmount = promo.discountAmount;
       promotionId = promo.promotionId;
@@ -132,8 +132,7 @@ export class PaymentService {
       throw new BadRequestException('invoice.already_paid');
     }
 
-    const requested =
-      dto.amount != null ? Number(dto.amount) : remaining;
+    const requested = dto.amount != null ? Number(dto.amount) : remaining;
     if (requested <= 0) {
       throw new BadRequestException('payment.invalid_amount');
     }
@@ -274,7 +273,11 @@ export class PaymentService {
       finalAmount: Number(invoice.finalAmount),
       appointmentId: invoice.appointmentId,
       paymentId: latestPayment?.id ?? null,
-      status: latestPayment?.status ?? (invoice.status === InvoiceStatus.PAID ? PaymentStatus.SUCCESS : PaymentStatus.PENDING),
+      status:
+        latestPayment?.status ??
+        (invoice.status === InvoiceStatus.PAID
+          ? PaymentStatus.SUCCESS
+          : PaymentStatus.PENDING),
       paidAt: latestPayment?.paidAt ?? null,
     };
   }
@@ -298,7 +301,8 @@ export class PaymentService {
       amount: Number(payment.amount),
       method: payment.paymentMethod,
       receivedBy: userId,
-      transactionRef: payment.transactionRef ?? `MANUAL-${payment.id.slice(0, 8)}`,
+      transactionRef:
+        payment.transactionRef ?? `MANUAL-${payment.id.slice(0, 8)}`,
       invoiceType: payment.invoice.invoiceType,
       appointmentId: payment.invoice.appointmentId,
       existingPaymentId: payment.id,
@@ -316,14 +320,25 @@ export class PaymentService {
     const haystack = `${dto.content ?? ''} ${dto.code ?? ''}`.toUpperCase();
     const matchCode = haystack.match(/SEVQR[A-Z0-9]+/i)?.[0]?.toUpperCase();
 
+    // Có mã SEVQR thì tìm thẳng trong DB theo mã. Trước đây chỉ lấy 50 payment PENDING
+    // mới nhất rồi lọc trong bộ nhớ, nên giao dịch của payment cũ hơn bị bỏ sót dù tiền
+    // đã vào tài khoản. Không có mã thì mới phải dò nội dung chuyển khoản.
     const pending = await this.prisma.payment.findMany({
       where: {
         paymentMethod: PaymentMethod.BANK_TRANSFER,
         status: PaymentStatus.PENDING,
+        ...(matchCode
+          ? {
+              transactionRef: {
+                equals: matchCode,
+                mode: 'insensitive' as const,
+              },
+            }
+          : {}),
       },
       include: { invoice: true },
       orderBy: { createdAt: 'desc' },
-      take: 50,
+      ...(matchCode ? {} : { take: 200 }),
     });
 
     const matched = pending.find((p) => {
@@ -375,7 +390,6 @@ export class PaymentService {
     };
   }
 
-
   private async markPaid(input: {
     invoiceId: string;
     amount: number;
@@ -396,6 +410,39 @@ export class PaymentService {
       });
       if (!invoice) {
         throw new NotFoundException('invoice.not_found');
+      }
+
+      // Đã khoá hoá đơn (FOR UPDATE) nên kiểm tra ở đây là an toàn: webhook SePay gửi lại
+      // và lễ tân bấm "xác nhận" cùng lúc chỉ được ghi nhận một lần (không tăng lượt dùng
+      // khuyến mãi hai lần, không gửi hai biên lai).
+      if (input.existingPaymentId) {
+        const existing = await tx.payment.findUnique({
+          where: { id: input.existingPaymentId },
+          select: { status: true, amount: true },
+        });
+        if (!existing) {
+          throw new NotFoundException('payment.not_found');
+        }
+        if (existing.status !== PaymentStatus.PENDING) {
+          const paid = await tx.payment.aggregate({
+            where: {
+              invoiceId: input.invoiceId,
+              status: PaymentStatus.SUCCESS,
+            },
+            _sum: { amount: true },
+          });
+          const paidTotal = Number(paid._sum.amount ?? 0);
+          return {
+            alreadyProcessed: true,
+            paymentId: input.existingPaymentId,
+            payAmount: Number(existing.amount),
+            paidTotal,
+            remaining: Number(
+              Math.max(0, Number(invoice.finalAmount) - paidTotal).toFixed(2),
+            ),
+            invoiceStatus: invoice.status,
+          };
+        }
       }
 
       const invoiceItems = Array.isArray(invoice.items)
@@ -533,9 +580,7 @@ export class PaymentService {
         await tx.treatmentPlanStep.update({
           where: { id: invoice.treatmentPlanStepId },
           data: {
-            paymentStatus: fullyPaid
-              ? 'PAID'
-              : 'PARTIALLY_PAID',
+            paymentStatus: fullyPaid ? 'PAID' : 'PARTIALLY_PAID',
             ...(fullyPaid ? { paidAt: new Date() } : {}),
           },
         });
@@ -558,6 +603,7 @@ export class PaymentService {
       }
 
       return {
+        alreadyProcessed: false,
         paymentId: input.existingPaymentId,
         payAmount,
         paidTotal,
@@ -577,11 +623,35 @@ export class PaymentService {
       invoiceStatus: result.invoiceStatus,
     };
 
-    // Emit real-time WebSocket events to frontend
+    if (result.alreadyProcessed) {
+      // Webhook gửi lại hoặc lễ tân bấm xác nhận khi webhook đã ghi nhận: không gửi
+      // thêm email/thông báo/biên lai lần hai.
+      return paymentResponse;
+    }
+
+    // Chỉ gửi chi tiết thanh toán cho chủ hoá đơn và nhân viên. Trước đây broadcast cho
+    // mọi socket: ai cũng thấy số tiền, và mọi bệnh nhân đang online đều hiện toast
+    // "Thanh toán thành công" khi người khác trả tiền.
     try {
-      this.eventsGateway.broadcast('payment_updated', paymentResponse);
-      this.eventsGateway.broadcast('consultation_updated', { invoiceId: input.invoiceId });
-      this.eventsGateway.broadcast('appointment_updated', { invoiceId: input.invoiceId });
+      for (const userId of await this.getInvoiceOwnerUserIds(input.invoiceId)) {
+        this.eventsGateway.emitToUser(
+          userId,
+          'payment_updated',
+          paymentResponse,
+        );
+      }
+      this.eventsGateway.emitToRoom(
+        SUPPORT_STAFF_ROOM,
+        'payment_updated',
+        paymentResponse,
+      );
+      // Chỉ là tín hiệu làm mới danh sách, không chứa dữ liệu nhạy cảm
+      this.eventsGateway.broadcast('consultation_updated', {
+        invoiceId: input.invoiceId,
+      });
+      this.eventsGateway.broadcast('appointment_updated', {
+        invoiceId: input.invoiceId,
+      });
     } catch {
       // Ignore socket emission errors
     }
@@ -594,6 +664,29 @@ export class PaymentService {
     );
 
     return paymentResponse;
+  }
+
+  /** Tài khoản của bệnh nhân trên hoá đơn và các tài khoản quản lý hồ sơ đó (người thân). */
+  private async getInvoiceOwnerUserIds(invoiceId: string): Promise<string[]> {
+    const patientSelect = {
+      select: {
+        userId: true,
+        patientAccounts: { select: { userId: true } },
+      },
+    } as const;
+    const invoice = await this.prisma.invoice.findUnique({
+      where: { id: invoiceId },
+      select: {
+        patient: patientSelect,
+        appointment: { select: { patient: patientSelect } },
+      },
+    });
+    const patient = invoice?.patient ?? invoice?.appointment?.patient;
+    const ids = [
+      patient?.userId,
+      ...(patient?.patientAccounts ?? []).map((a) => a.userId),
+    ].filter((id): id is string => Boolean(id));
+    return [...new Set(ids)];
   }
 
   private async dispatchPaymentSuccessNotification(
@@ -640,7 +733,8 @@ export class PaymentService {
 
       if (targetUserId) {
         const formattedPaid = new Intl.NumberFormat('vi-VN').format(amountPaid);
-        const methodLabel = method === 'BANK_TRANSFER' ? 'Chuyển khoản SePay' : 'Tiền mặt';
+        const methodLabel =
+          method === 'BANK_TRANSFER' ? 'Chuyển khoản SePay' : 'Tiền mặt';
         await this.notificationService.createNotification({
           userId: targetUserId,
           type: 'PAYMENT_SUCCESS',
@@ -649,11 +743,13 @@ export class PaymentService {
         });
       }
     } catch (err) {
-      this.logger.warn(`Failed to dispatch payment success notification: ${err}`);
+      this.logger.warn(
+        `Failed to dispatch payment success notification: ${err}`,
+      );
     }
   }
 
-  async sendPaymentReminder(invoiceId: string) {
+  async sendPaymentReminder(invoiceId: string, staffUserId: string) {
     const invoice = await this.prisma.invoice.findUnique({
       where: { id: invoiceId },
       include: {
@@ -666,9 +762,13 @@ export class PaymentService {
     }
 
     const paidSoFar = await this.sumSuccessfulPayments(invoice.id);
-    const remaining = Number((Number(invoice.finalAmount) - paidSoFar).toFixed(2));
+    const remaining = Number(
+      (Number(invoice.finalAmount) - paidSoFar).toFixed(2),
+    );
     if (remaining <= 0) {
-      throw new BadRequestException('Hóa đơn này đã được thanh toán đủ, không cần gửi nhắc.');
+      throw new BadRequestException(
+        'Hóa đơn này đã được thanh toán đủ, không cần gửi nhắc.',
+      );
     }
 
     const patient = invoice.patient || invoice.appointment?.patient;
@@ -678,6 +778,36 @@ export class PaymentService {
 
     const bank = this.getBankConfig();
     const transferCode = this.buildTransferCode(invoice.invoiceCode);
+
+    // Webhook SePay chỉ ghi nhận tiền khi khớp một payment PENDING cùng mã và cùng số
+    // tiền. Trước đây email có QR nhưng không có payment PENDING tương ứng, nên bệnh nhân
+    // chuyển khoản theo QR thì tiền vào tài khoản mà hoá đơn vẫn "chưa thanh toán".
+    const pending = await this.prisma.payment.findFirst({
+      where: {
+        invoiceId: invoice.id,
+        paymentMethod: PaymentMethod.BANK_TRANSFER,
+        status: PaymentStatus.PENDING,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (pending) {
+      await this.prisma.payment.update({
+        where: { id: pending.id },
+        data: { transactionRef: transferCode, amount: remaining },
+      });
+    } else {
+      await this.prisma.payment.create({
+        data: {
+          invoiceId: invoice.id,
+          amount: remaining,
+          paymentMethod: PaymentMethod.BANK_TRANSFER,
+          transactionRef: transferCode,
+          status: PaymentStatus.PENDING,
+          receivedBy: staffUserId,
+        },
+      });
+    }
+
     const qrImageUrl = this.buildVietQrUrl({
       amount: remaining,
       addInfo: transferCode,
@@ -704,7 +834,9 @@ export class PaymentService {
     }
 
     if (targetUserId) {
-      const formattedRemaining = new Intl.NumberFormat('vi-VN').format(remaining);
+      const formattedRemaining = new Intl.NumberFormat('vi-VN').format(
+        remaining,
+      );
       await this.notificationService.createNotification({
         userId: targetUserId,
         type: 'PAYMENT_REMINDER',
@@ -730,7 +862,60 @@ export class PaymentService {
     return Number(agg._sum.amount ?? 0);
   }
 
-  private async applyPromotion(code: string, subtotal: number) {
+  /** Phương pháp điều trị và dịch vụ (slug) mà hoá đơn thuộc về, để kiểm tra phạm vi mã. */
+  private async getInvoicePromotionScope(
+    invoice: { appointmentId: string | null; items: Prisma.JsonValue },
+    db: Prisma.TransactionClient | PrismaService = this.prisma,
+  ) {
+    const treatmentMethodIds = new Set<string>();
+    const serviceIds = new Set<string>();
+
+    if (invoice.appointmentId) {
+      const appointment = await db.appointment.findUnique({
+        where: { id: invoice.appointmentId },
+        select: { serviceId: true, treatmentMethodId: true },
+      });
+      if (appointment?.serviceId) serviceIds.add(appointment.serviceId);
+      if (appointment?.treatmentMethodId) {
+        treatmentMethodIds.add(appointment.treatmentMethodId);
+      }
+    }
+    const items = Array.isArray(invoice.items)
+      ? (invoice.items as Array<Record<string, unknown>>)
+      : [];
+    for (const item of items) {
+      const serviceId = item?.serviceId ?? item?.service_id;
+      const methodId = item?.treatmentMethodId ?? item?.treatment_method_id;
+      if (typeof serviceId === 'string' && serviceId) serviceIds.add(serviceId);
+      if (typeof methodId === 'string' && methodId)
+        treatmentMethodIds.add(methodId);
+    }
+
+    const methods = treatmentMethodIds.size
+      ? await db.treatmentMethod.findMany({
+          where: { id: { in: [...treatmentMethodIds] } },
+          select: { serviceId: true },
+        })
+      : [];
+    methods.forEach((m) => m.serviceId && serviceIds.add(m.serviceId));
+    const services = serviceIds.size
+      ? await db.service.findMany({
+          where: { id: { in: [...serviceIds] } },
+          select: { slug: true },
+        })
+      : [];
+
+    return {
+      treatmentMethodIds: [...treatmentMethodIds],
+      serviceSlugs: services.map((s) => s.slug).filter(Boolean) as string[],
+    };
+  }
+
+  private async applyPromotion(
+    code: string,
+    subtotal: number,
+    scope: { treatmentMethodIds: string[]; serviceSlugs: string[] },
+  ) {
     const now = new Date();
     const promo = await this.prisma.promotion.findFirst({
       where: {
@@ -748,6 +933,20 @@ export class PaymentService {
     }
     if (promo.maxUses != null && promo.usedCount >= promo.maxUses) {
       throw new BadRequestException('promotion.exhausted');
+    }
+    // Mã dành riêng cho một phương pháp/dịch vụ chỉ dùng được cho hoá đơn của đúng
+    // phương pháp/dịch vụ đó (trước đây không kiểm tra, dùng được cho mọi hoá đơn).
+    if (
+      promo.applicableTreatmentMethodId &&
+      !scope.treatmentMethodIds.includes(promo.applicableTreatmentMethodId)
+    ) {
+      throw new BadRequestException('promotion.not_applicable');
+    }
+    if (
+      promo.applicableServiceSlug &&
+      !scope.serviceSlugs.includes(promo.applicableServiceSlug)
+    ) {
+      throw new BadRequestException('promotion.not_applicable');
     }
 
     const value = Number(promo.discountValue);

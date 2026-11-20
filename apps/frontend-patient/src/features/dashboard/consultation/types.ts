@@ -71,7 +71,14 @@ export type PatientConsultationItem = {
   patientCode: string;
   scheduledAt: string;
   durationMinutes: number;
-  status: 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+  status:
+    | 'PENDING_PAYMENT'
+    | 'SCHEDULED'
+    | 'IN_PROGRESS'
+    | 'COMPLETED'
+    | 'CANCELLED'
+    | 'EXPIRED'
+    | 'DOCTOR_MISSED';
   meetingUrl?: string | null;
   roomPin?: string | null;
   fee: number;

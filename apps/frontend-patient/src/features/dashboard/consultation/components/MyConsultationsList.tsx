@@ -14,6 +14,9 @@ import { ConsultationDetailModal } from "./ConsultationDetailModal";
 import { RescheduleConsultationModal } from "./RescheduleConsultationModal";
 import { canShowConsultationReschedule } from "../reschedulePolicy";
 
+// Giá trị chờ của yêu cầu hoàn tiền do hệ thống tự tạo (khớp REFUND_BANK_PLACEHOLDER ở backend)
+const REFUND_PLACEHOLDER_ACCOUNTS = new Set(["Chờ cập nhật", "Tự động hoàn tiền"]);
+
 interface MyConsultationsListProps {
   onBookNew: () => void;
 }
@@ -168,15 +171,26 @@ export function MyConsultationsList({ onBookNew }: MyConsultationsListProps) {
 
             const isActive = item.status === "IN_PROGRESS";
             const isScheduled = item.status === "SCHEDULED";
-            const isCancelled = item.status === "CANCELLED";
+            const isCancelled =
+              item.status === "CANCELLED" || item.status === "EXPIRED";
             const isCompleted = item.status === "COMPLETED";
+            const isDoctorMissed = item.status === "DOCTOR_MISSED";
+            // Yêu cầu hoàn tiền hệ thống tự tạo, chưa có tài khoản nhận tiền
+            const needsBankInfo =
+              item.refundRequest?.status === "PENDING" &&
+              REFUND_PLACEHOLDER_ACCOUNTS.has(
+                item.refundRequest.accountNumber.trim(),
+              );
+            const canClaimMissedRefund =
+              isDoctorMissed && item.isPaid && !item.refundRequest;
 
             const now = Date.now();
             const schedTime = dateObj.getTime();
             const endTime = schedTime + durationMs;
             const fifteenMinsBefore = schedTime - 15 * 60 * 1000;
             const isPast = now > endTime;
-            const canCancelOrRefund = !isCancelled && !isCompleted && !isPast;
+            const canCancelOrRefund =
+              !isCancelled && !isCompleted && !isDoctorMissed && !isPast;
 
             const isWithinTimeWindow =
               now >= fifteenMinsBefore && now <= endTime + 15 * 60 * 1000;
@@ -185,6 +199,7 @@ export function MyConsultationsList({ onBookNew }: MyConsultationsListProps) {
               item.isPaid &&
               !isCancelled &&
               !isCompleted &&
+              !isDoctorMissed &&
               (isActive || isWithinTimeWindow);
 
             return (
@@ -202,7 +217,9 @@ export function MyConsultationsList({ onBookNew }: MyConsultationsListProps) {
                     </span>
                     <span
                       className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
-                        isCancelled
+                        isDoctorMissed
+                          ? "bg-amber-100 text-amber-800 border border-amber-200"
+                          : isCancelled
                           ? "bg-rose-100 text-rose-700 border border-rose-200"
                           : isCompleted
                           ? "bg-slate-200 text-slate-700"
@@ -211,7 +228,9 @@ export function MyConsultationsList({ onBookNew }: MyConsultationsListProps) {
                           : "bg-amber-100 text-amber-700 border border-amber-200"
                       }`}
                     >
-                      {isCancelled
+                      {isDoctorMissed
+                        ? "Bác sĩ vắng mặt"
+                        : isCancelled
                         ? "Đã hủy"
                         : isCompleted
                         ? "Đã hoàn thành"
@@ -261,7 +280,19 @@ export function MyConsultationsList({ onBookNew }: MyConsultationsListProps) {
                     <span>Xem Chi Tiết</span>
                   </button>
 
-                  {canJoinRoom ? (
+                  {(needsBankInfo || canClaimMissedRefund) && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedForRefund(item)}
+                      className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-xs shadow-xs transition-all cursor-pointer"
+                    >
+                      {needsBankInfo
+                        ? "Cập nhật STK nhận hoàn tiền"
+                        : "Nhận hoàn tiền 100%"}
+                    </button>
+                  )}
+
+                  {isDoctorMissed ? null : canJoinRoom ? (
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => setSelectedForVideoRoom(item)}

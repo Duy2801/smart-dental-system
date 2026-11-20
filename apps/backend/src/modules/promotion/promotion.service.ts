@@ -1,10 +1,33 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { NotificationChannel, NotificationStatus } from '../../../prisma/generated/enums';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import {
+  NotificationChannel,
+  NotificationStatus,
+} from '../../../prisma/generated/enums';
 import { NotificationService } from '../notification/notification.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { vnDateTime, vnEndOfDay } from '../../common/vn-time';
 import { CreatePromotionDto } from './dto/create-promotion.dto';
 import { PromotionQueryDto } from './dto/promotion-query.dto';
 import { UpdatePromotionDto } from './dto/update-promotion.dto';
+
+const DATE_ONLY = /^d{4}-d{2}-d{2}$/;
+
+/**
+ * Admin chọn ngày dạng 'YYYY-MM-DD'. new Date('YYYY-MM-DD') là 00:00 UTC = 07:00 sáng giờ VN,
+ * khiến khuyến mãi bắt đầu muộn 7 tiếng và hết hạn lúc 7h sáng ngày cuối. Ngày chỉ có
+ * phần ngày được hiểu theo giờ VN: bắt đầu từ 00:00, kết thúc lúc 23:59:59.
+ */
+function toPromotionStart(value: string): Date {
+  return DATE_ONLY.test(value) ? vnDateTime(value) : new Date(value);
+}
+
+function toPromotionEnd(value: string): Date {
+  return DATE_ONLY.test(value) ? vnEndOfDay(value) : new Date(value);
+}
 
 @Injectable()
 export class PromotionService {
@@ -64,7 +87,8 @@ export class PromotionService {
       description: promotion.description ?? '',
       image_url: promotion.imageUrl ?? null,
       applicable_service_slug: promotion.applicableServiceSlug ?? null,
-      applicable_treatment_method_id: promotion.applicableTreatmentMethodId ?? null,
+      applicable_treatment_method_id:
+        promotion.applicableTreatmentMethodId ?? null,
       applicable_treatment_method: promotion.applicableTreatmentMethod
         ? {
             id: promotion.applicableTreatmentMethod.id,
@@ -76,7 +100,8 @@ export class PromotionService {
               promotion.applicableTreatmentMethod.media?.[0]?.url ||
               null,
             basePrice: Number(promotion.applicableTreatmentMethod.basePrice),
-            durationMinutes: promotion.applicableTreatmentMethod.durationMinutes,
+            durationMinutes:
+              promotion.applicableTreatmentMethod.durationMinutes,
             serviceId: promotion.applicableTreatmentMethod.serviceId,
             category:
               promotion.applicableTreatmentMethod.service?.category ||
@@ -129,13 +154,14 @@ export class PromotionService {
         description: dto.description?.trim(),
         imageUrl: dto.image_url?.trim() || null,
         applicableServiceSlug: dto.applicable_service_slug?.trim() || null,
-        applicableTreatmentMethodId: dto.applicable_treatment_method_id?.trim() || null,
+        applicableTreatmentMethodId:
+          dto.applicable_treatment_method_id?.trim() || null,
         discountType: dto.discount_type,
         discountValue: dto.discount_value,
         minOrderAmount: dto.min_order_amount ?? 0,
         maxUses: dto.max_uses,
-        startDate: new Date(dto.start_date),
-        endDate: new Date(dto.end_date),
+        startDate: toPromotionStart(dto.start_date),
+        endDate: toPromotionEnd(dto.end_date),
         isActive: dto.is_active ?? true,
       },
     });
@@ -163,18 +189,24 @@ export class PromotionService {
 
     const data: any = {};
     if (dto.name !== undefined) data.name = dto.name.trim();
-    if (dto.description !== undefined) data.description = dto.description.trim();
-    if (dto.image_url !== undefined) data.imageUrl = dto.image_url.trim() || null;
+    if (dto.description !== undefined)
+      data.description = dto.description.trim();
+    if (dto.image_url !== undefined)
+      data.imageUrl = dto.image_url.trim() || null;
     if (dto.applicable_service_slug !== undefined)
       data.applicableServiceSlug = dto.applicable_service_slug.trim() || null;
     if (dto.applicable_treatment_method_id !== undefined)
-      data.applicableTreatmentMethodId = dto.applicable_treatment_method_id.trim() || null;
+      data.applicableTreatmentMethodId =
+        dto.applicable_treatment_method_id.trim() || null;
     if (dto.discount_type !== undefined) data.discountType = dto.discount_type;
-    if (dto.discount_value !== undefined) data.discountValue = dto.discount_value;
-    if (dto.min_order_amount !== undefined) data.minOrderAmount = dto.min_order_amount;
+    if (dto.discount_value !== undefined)
+      data.discountValue = dto.discount_value;
+    if (dto.min_order_amount !== undefined)
+      data.minOrderAmount = dto.min_order_amount;
     if (dto.max_uses !== undefined) data.maxUses = dto.max_uses;
-    if (dto.start_date !== undefined) data.startDate = new Date(dto.start_date);
-    if (dto.end_date !== undefined) data.endDate = new Date(dto.end_date);
+    if (dto.start_date !== undefined)
+      data.startDate = toPromotionStart(dto.start_date);
+    if (dto.end_date !== undefined) data.endDate = toPromotionEnd(dto.end_date);
     if (dto.is_active !== undefined) data.isActive = dto.is_active;
 
     await this.prisma.promotion.update({
@@ -217,12 +249,15 @@ export class PromotionService {
     });
 
     if (patients.length === 0) {
-      return { broadcast_count: 0, message: 'Chưa có tài khoản bệnh nhân nào trong hệ thống' };
+      return {
+        broadcast_count: 0,
+        message: 'Chưa có tài khoản bệnh nhân nào trong hệ thống',
+      };
     }
 
     const discountText =
       promotion.discountType === 'PERCENTAGE'
-        ? `giảm ${promotion.discountValue}%`
+        ? `giảm ${Number(promotion.discountValue)}%`
         : `giảm ${Number(promotion.discountValue).toLocaleString('vi-VN')} VNĐ`;
 
     const title = `🎁 Ưu đãi đặc biệt: ${promotion.name}`;
@@ -281,7 +316,8 @@ export class PromotionService {
       description: promotion.description ?? '',
       image_url: promotion.imageUrl ?? null,
       applicable_service_slug: promotion.applicableServiceSlug ?? null,
-      applicable_treatment_method_id: promotion.applicableTreatmentMethodId ?? null,
+      applicable_treatment_method_id:
+        promotion.applicableTreatmentMethodId ?? null,
       applicable_treatment_method: promotion.applicableTreatmentMethod
         ? {
             id: promotion.applicableTreatmentMethod.id,
@@ -293,7 +329,8 @@ export class PromotionService {
               promotion.applicableTreatmentMethod.media?.[0]?.url ||
               null,
             basePrice: Number(promotion.applicableTreatmentMethod.basePrice),
-            durationMinutes: promotion.applicableTreatmentMethod.durationMinutes,
+            durationMinutes:
+              promotion.applicableTreatmentMethod.durationMinutes,
             serviceId: promotion.applicableTreatmentMethod.serviceId,
             category:
               promotion.applicableTreatmentMethod.service?.category ||

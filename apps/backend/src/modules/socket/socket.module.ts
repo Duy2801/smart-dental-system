@@ -6,9 +6,8 @@ import { EventsGateway } from './events.gateway';
 @Global()
 @Module({
   imports: [
-    JwtModule.register({
-      secret: process.env.JWT_SECRET || 'secretKey',
-    }),
+    // Secret được truyền khi verify (lấy từ ConfigService), không dùng giá trị mặc định
+    JwtModule.register({}),
     PrismaModule,
   ],
   providers: [EventsGateway],

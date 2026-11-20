@@ -128,7 +128,7 @@ export class EventsGateway
 
       if (token) {
         const payload: unknown = await this.jwtService.verifyAsync(token, {
-          secret: process.env.JWT_SECRET || 'secretKey',
+          secret: this.config.getOrThrow<string>('JWT_SECRET'),
         });
         const userId =
           payload &&

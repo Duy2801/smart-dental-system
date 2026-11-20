@@ -13,6 +13,9 @@ import { UpdateDoctorDto } from './dto/update-doctor-dto';
 const doctorCachePrefix = 'catalog:doctors:';
 const doctorCacheTtlSeconds = 10 * 60;
 
+/** 'public': API không cần đăng nhập; 'staff': trang quản trị */
+export type DoctorAudience = 'public' | 'staff';
+
 @Injectable()
 export class DoctorService {
   constructor(
@@ -45,13 +48,13 @@ export class DoctorService {
     return [...byKey.values()].sort((a, b) => a.localeCompare(b, 'vi'));
   }
 
-  private includeDoctorRelations() {
+  private includeDoctorRelations(audience: DoctorAudience = 'staff') {
+    // API công khai không được trả email/SĐT/tài khoản của bác sĩ và bệnh nhân
+    const isPublic = audience === 'public';
     return {
-      user: {
-        include: {
-          role: true,
-        },
-      },
+      user: isPublic
+        ? { select: { fullName: true, status: true } }
+        : { include: { role: true } },
       specializations: {
         include: {
           specialization: true,
@@ -69,7 +72,14 @@ export class DoctorService {
       reviews: {
         where: { isVisible: true },
         include: {
-          patient: { include: { user: true } },
+          patient: isPublic
+            ? {
+                select: {
+                  fullName: true,
+                  user: { select: { fullName: true } },
+                },
+              }
+            : { include: { user: true } },
           appointment: {
             include: { treatmentMethod: { include: { service: true } } },
           },
@@ -154,11 +164,13 @@ export class DoctorService {
     serviceId?: string,
     specializationId?: string,
     view: 'full' | 'summary' = 'full',
+    audience: DoctorAudience = 'staff',
   ) {
     const cacheKey = `${doctorCachePrefix}list:${JSON.stringify({
       serviceId: serviceId ?? '',
       specializationId: specializationId ?? '',
       view,
+      audience,
     })}`;
 
     return this.redis.rememberJson(
@@ -212,21 +224,21 @@ export class DoctorService {
           where: {
             ...where,
           },
-          include: this.includeDoctorRelations(),
+          include: this.includeDoctorRelations(audience),
           orderBy: { createdAt: 'desc' },
         });
       },
     );
   }
 
-  async getDoctorById(id: string) {
+  async getDoctorById(id: string, audience: DoctorAudience = 'staff') {
     const doctor = await this.redis.rememberJson(
-      `${doctorCachePrefix}detail:${id}`,
+      `${doctorCachePrefix}detail:${audience}:${id}`,
       doctorCacheTtlSeconds,
       () =>
         this.prisma.doctor.findUnique({
           where: { id },
-          include: this.includeDoctorRelations(),
+          include: this.includeDoctorRelations(audience),
         }),
     );
 

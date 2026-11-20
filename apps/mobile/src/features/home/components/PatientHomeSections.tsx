@@ -880,7 +880,6 @@ export function ClinicLocationPreviewSection({
   handlers: ActionHandlers;
 }) {
   const [copied, setCopied] = useState(false);
-  const openHours = clinic?.businessHours?.filter(day => day.isOpen) ?? [];
   const { isSmall, isTablet } = useResponsive();
   // Bản đồ vừa phải: thấp hơn trên máy nhỏ, cao hơn một chút trên tablet
   const mapHeight = isSmall ? 180 : isTablet ? 280 : 210;
@@ -1060,70 +1059,6 @@ export function ClinicLocationPreviewSection({
 }
 
 // ─── 9. DASHBOARD BRAND FOOTER SECTION (MATCHING WEB RESPONSIVE EXACTLY) ──
-function getOpenHoursText(
-  hours: { id?: number; label: string; isOpen: boolean; start: string; end: string }[] = [],
-): string[] {
-  const openDays = hours.filter((day) => day.isOpen);
-  if (!openDays.length) {
-    return [
-      'Thu Hai - Thu Sau: 08:00 - 17:00',
-      'Thu Bay: 08:00 - 12:00',
-    ];
-  }
-
-  const firstTime = `${openDays[0].start} - ${openDays[0].end}`;
-  const allSameTime = openDays.every(
-    (day) => `${day.start} - ${day.end}` === firstTime,
-  );
-
-  if (allSameTime && openDays.length > 1) {
-    const firstDayLabel = openDays[0].label;
-    const lastDayLabel = openDays[openDays.length - 1].label;
-    if (openDays.length === 7) {
-      return [`Thứ 2 - Chủ Nhật: ${firstTime}`];
-    }
-    return [`${firstDayLabel} - ${lastDayLabel}: ${firstTime}`];
-  }
-
-  const result: string[] = [];
-  let currentGroup: typeof openDays = [];
-
-  for (let i = 0; i < openDays.length; i++) {
-    const day = openDays[i];
-    if (currentGroup.length === 0) {
-      currentGroup.push(day);
-    } else {
-      const prev = currentGroup[currentGroup.length - 1];
-      if (prev.start === day.start && prev.end === day.end) {
-        currentGroup.push(day);
-      } else {
-        const timeStr = `${currentGroup[0].start} - ${currentGroup[0].end}`;
-        if (currentGroup.length === 1) {
-          result.push(`${currentGroup[0].label}: ${timeStr}`);
-        } else {
-          result.push(
-            `${currentGroup[0].label} - ${currentGroup[currentGroup.length - 1].label}: ${timeStr}`,
-          );
-        }
-        currentGroup = [day];
-      }
-    }
-  }
-
-  if (currentGroup.length > 0) {
-    const timeStr = `${currentGroup[0].start} - ${currentGroup[0].end}`;
-    if (currentGroup.length === 1) {
-      result.push(`${currentGroup[0].label}: ${timeStr}`);
-    } else {
-      result.push(
-        `${currentGroup[0].label} - ${currentGroup[currentGroup.length - 1].label}: ${timeStr}`,
-      );
-    }
-  }
-
-  return result;
-}
-
 export { PatientFooter, PatientFooter as DashboardFooterSection } from './PatientFooter';
 
 // ─── STYLESHEET ────────────────────────────────────────────────────────

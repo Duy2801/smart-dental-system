@@ -45,13 +45,15 @@ export function PatientProfileForm({ form, setForm }: PatientProfileFormProps) {
               }
             />
           </Field>
-          <Field label="Email">
+          <Field label="Email (tên đăng nhập)">
+            {/* Email là tài khoản đăng nhập: đổi cần xác thực nên không sửa tại đây */}
             <input
               type="email"
               value={form.email}
-              onChange={(event) =>
-                setForm((current) => ({ ...current, email: event.target.value }))
-              }
+              readOnly
+              aria-readonly="true"
+              title="Liên hệ phòng khám nếu cần đổi email đăng nhập"
+              className="cursor-not-allowed bg-slate-100 text-slate-500"
             />
           </Field>
           <Field label="Ngày sinh">

@@ -18,6 +18,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface';
 import { CreateRefundRequestDto } from './dto/create-refund-request.dto';
 import { ProcessRefundDto } from './dto/process-refund.dto';
+import { UpdateRefundBankDto } from './dto/update-refund-bank.dto';
 import { RefundService } from './refund.service';
 
 @ApiTags('Refund Requests')
@@ -48,6 +49,17 @@ export class RefundController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   findAll(@Query('status') status?: RefundStatus) {
     return this.service.findAll(status);
+  }
+
+  @Patch(':id/bank-account')
+  @Roles('PATIENT')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  updateBankAccount(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: UpdateRefundBankDto,
+  ) {
+    return this.service.updateBankAccount(user, id, dto);
   }
 
   @Patch(':id/process')

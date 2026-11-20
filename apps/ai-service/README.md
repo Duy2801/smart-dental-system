@@ -188,10 +188,11 @@ cùng `AI_SERVICE_API_KEY`:
 
 ```
 AI_SERVICE_URL=http://127.0.0.1:8001
-AI_SERVICE_API_KEY=dev-local-key
+AI_SERVICE_API_KEY=<chuỗi ngẫu nhiên, ví dụ: openssl rand -hex 32>
 ```
 
-Khi chạy production, đặt một key riêng thay cho `dev-local-key`; service sẽ từ
-chối khởi động nếu vẫn dùng key development. Có thể cấu hình danh sách origin
+Key là bắt buộc ở mọi môi trường: nếu để trống hoặc dùng giá trị cũ `dev-local-key`
+(đã lộ công khai), mọi route của AI service, kể cả chatbot, đều trả 503/401.
+Chatbot chỉ được gọi qua backend, không gọi thẳng từ web/mobile. Có thể cấu hình danh sách origin
 trình duyệt được phép gọi AI service trực tiếp bằng `CORS_ORIGINS`, phân tách bởi
 dấu phẩy.

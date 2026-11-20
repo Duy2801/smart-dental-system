@@ -35,6 +35,3 @@ export async function updateBanner({
   return response.data;
 }
 
-export async function deleteBanner(id: string) {
-  await apiClient.delete(`/banners/${id}`);
-}

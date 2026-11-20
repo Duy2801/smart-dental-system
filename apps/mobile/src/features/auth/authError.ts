@@ -7,6 +7,7 @@ const messages: Record<string, string> = {
   'auth.account_inactive': 'Tài khoản hiện không hoạt động',
   'auth.account_google_only': 'Tài khoản này cần đăng nhập bằng Google',
   'auth.google_invalid_token': 'Xác thực tài khoản Google không thành công',
+  'auth.google_email_not_verified': 'Email Google chưa được xác minh',
   'auth.google_token_required': 'Ứng dụng chưa nhận được token Google',
   'auth.captcha_required': 'Vui lòng xác minh CAPTCHA trước khi đăng nhập',
   'auth.captcha_invalid': 'CAPTCHA không hợp lệ hoặc đã hết hạn. Vui lòng thử lại',
@@ -14,6 +15,8 @@ const messages: Record<string, string> = {
   'auth.captcha_puzzle_required': 'Vui lòng giải câu đố xác minh bên dưới rồi đăng nhập lại',
   'otp.expired_or_invalid': 'Mã OTP đã hết hạn hoặc không hợp lệ',
   'otp.incorrect': 'Mã OTP không chính xác',
+  'common.too_many_requests': 'Bạn thao tác quá nhiều lần, vui lòng thử lại sau ít phút',
+  'otp.too_many_attempts': 'Bạn đã nhập sai OTP quá nhiều lần, vui lòng gửi lại mã mới',
   'otp.too_many_requests': 'Bạn đã yêu cầu quá nhiều mã OTP',
 };
 

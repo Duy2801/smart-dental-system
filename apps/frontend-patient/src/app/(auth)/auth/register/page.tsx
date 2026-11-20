@@ -15,6 +15,10 @@ const errorMessages: Record<string, string> = {
   "auth.phone_exists": "Số điện thoại này đã được sử dụng.",
   "otp.expired_or_invalid": "Mã OTP đã hết hạn hoặc không hợp lệ.",
   "otp.incorrect": "Mã OTP không đúng.",
+  "common.too_many_requests":
+    "Bạn thao tác quá nhiều lần. Vui lòng đợi một lát rồi thử lại.",
+  "otp.too_many_attempts":
+    "Bạn đã nhập sai OTP quá nhiều lần. Vui lòng bấm gửi lại mã mới.",
   "otp.too_many_requests":
     "Bạn đã gửi lại OTP quá nhiều lần. Vui lòng thử lại sau.",
 };

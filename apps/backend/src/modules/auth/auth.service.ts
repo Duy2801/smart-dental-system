@@ -11,7 +11,7 @@ import { JwtService } from '@nestjs/jwt';
 import { plainToInstance } from 'class-transformer';
 import type { Queue } from 'bull';
 import * as bcrypt from 'bcryptjs';
-import { createHash, randomBytes } from 'crypto';
+import { createHash, randomBytes, randomInt } from 'crypto';
 import { OAuth2Client } from 'google-auth-library';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
@@ -25,6 +25,7 @@ const RESET_TOKEN_TTL_SECONDS = 15 * 60;
 const REFRESH_TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60;
 const REFRESH_TOKEN_ROTATION_GRACE_SECONDS = 2 * 60;
 const MAX_RESEND = 3;
+const MAX_OTP_ATTEMPTS = 5;
 const RESEND_WINDOW_SECONDS = 3 * 60;
 
 @Injectable()
@@ -49,7 +50,22 @@ export class AuthService {
   }
 
   private generateOtp(): string {
-    return Math.floor(100000 + Math.random() * 900000).toString();
+    // randomInt dùng nguồn ngẫu nhiên an toàn cho mật mã (khác Math.random)
+    return randomInt(100000, 1000000).toString();
+  }
+
+  /** Giới hạn số email OTP gửi tới một địa chỉ trong một khoảng thời gian. */
+  private async consumeOtpSendQuota(email: string) {
+    const limitKey = `otp_resend_limit:${email}`;
+    const sendCount = Number(await this.redisService.get(limitKey)) || 0;
+    if (sendCount >= MAX_RESEND) {
+      throw new BadRequestException('otp.too_many_requests');
+    }
+    if (sendCount === 0) {
+      await this.redisService.set(limitKey, '1', RESEND_WINDOW_SECONDS);
+    } else {
+      await this.redisService.incr(limitKey);
+    }
   }
 
   private toUserResponse(user: object) {
@@ -143,11 +159,28 @@ export class AuthService {
       throw new ConflictException('auth.email_exists');
     }
     if (existingUser) {
-      await this.issueEmailOtp(
-        existingUser.email,
-        existingUser.fullName,
-        locale,
-      );
+      // Tài khoản chưa xác thực email: người đăng ký sau (chủ email thật) phải là
+      // người đặt mật khẩu. Nếu giữ mật khẩu cũ, kẻ xấu đăng ký trước bằng email
+      // của nạn nhân sẽ đăng nhập được ngay khi nạn nhân nhập OTP.
+      await this.consumeOtpSendQuota(email);
+      const phoneOwner = data.phone
+        ? await this.prismaService.user.findUnique({
+            where: { phone: data.phone },
+            select: { id: true },
+          })
+        : null;
+      if (phoneOwner && phoneOwner.id !== existingUser.id) {
+        throw new ConflictException('auth.phone_exists');
+      }
+      const updated = await this.prismaService.user.update({
+        where: { id: existingUser.id },
+        data: {
+          passwordHash: await bcrypt.hash(data.password, 10),
+          fullName: data.fullName.trim(),
+          ...(data.phone ? { phone: data.phone } : {}),
+        },
+      });
+      await this.issueEmailOtp(updated.email, updated.fullName, locale);
       return { message: 'auth.register_success' };
     }
 
@@ -365,7 +398,10 @@ export class AuthService {
         !!storedToken &&
         storedToken !== presentedToken &&
         (await this.redisService.get(previousKey)) === presentedToken;
-      if (!storedToken || (storedToken !== presentedToken && !isRecentlyRotated)) {
+      if (
+        !storedToken ||
+        (storedToken !== presentedToken && !isRecentlyRotated)
+      ) {
         throw new Error('Refresh session not found');
       }
 
@@ -373,7 +409,11 @@ export class AuthService {
       const sessionId = payload.sid ?? randomBytes(24).toString('hex');
       let refreshToken: string;
       if (!payload.sid) {
-        refreshToken = this.signRefreshToken(payload.sub, payload.email, sessionId);
+        refreshToken = this.signRefreshToken(
+          payload.sub,
+          payload.email,
+          sessionId,
+        );
         await this.redisService.set(
           this.refreshTokenKey(userId, sessionId),
           refreshToken,
@@ -385,13 +425,21 @@ export class AuthService {
         refreshToken = storedToken;
       } else {
         // Gia hạn trượt: còn dùng app thì phiên còn sống thêm 7 ngày
-        refreshToken = this.signRefreshToken(payload.sub, payload.email, sessionId);
+        refreshToken = this.signRefreshToken(
+          payload.sub,
+          payload.email,
+          sessionId,
+        );
         await this.redisService.set(
           previousKey,
           presentedToken,
           REFRESH_TOKEN_ROTATION_GRACE_SECONDS,
         );
-        await this.redisService.set(tokenKey, refreshToken, REFRESH_TOKEN_TTL_SECONDS);
+        await this.redisService.set(
+          tokenKey,
+          refreshToken,
+          REFRESH_TOKEN_TTL_SECONDS,
+        );
       }
       const [accessToken, user] = await Promise.all([
         Promise.resolve(
@@ -408,14 +456,28 @@ export class AuthService {
   async verifyOtp({ email: emailInput, otp }: VerifyOtpDto) {
     const email = this.normalizeEmail(emailInput);
     const key = `email_otp:${email}`;
+    const attemptsKey = `email_otp_attempts:${email}`;
     const otpHash = await this.redisService.get(key);
     if (!otpHash) throw new BadRequestException('otp.expired_or_invalid');
     if (!(await bcrypt.compare(otp, otpHash))) {
+      // Chặn dò OTP 6 số: sai quá MAX_OTP_ATTEMPTS lần thì huỷ mã, phải gửi mã mới
+      const attempts = Number(await this.redisService.get(attemptsKey)) || 0;
+      if (attempts + 1 >= MAX_OTP_ATTEMPTS) {
+        await this.redisService.del(key);
+        await this.redisService.del(attemptsKey);
+        throw new BadRequestException('otp.too_many_attempts');
+      }
+      if (attempts === 0) {
+        await this.redisService.set(attemptsKey, '1', OTP_TTL_SECONDS);
+      } else {
+        await this.redisService.incr(attemptsKey);
+      }
       throw new BadRequestException('otp.incorrect');
     }
 
     await this.userService.markVerified(email);
     await this.redisService.del(key);
+    await this.redisService.del(attemptsKey);
     const user = await this.userService.findByEmail(email);
     if (!user) throw new BadRequestException('user.not_found');
     await this.ensurePatientProfile(user.id);
@@ -431,17 +493,7 @@ export class AuthService {
     if (!user) return { message: 'otp.resent' };
     if (user.emailVerified) return { message: 'otp.already_verified' };
 
-    const limitKey = `otp_resend_limit:${email}`;
-    const resendCount = Number(await this.redisService.get(limitKey)) || 0;
-    if (resendCount >= MAX_RESEND) {
-      throw new BadRequestException('otp.too_many_requests');
-    }
-    if (resendCount === 0) {
-      await this.redisService.set(limitKey, '1', RESEND_WINDOW_SECONDS);
-    } else {
-      await this.redisService.incr(limitKey);
-    }
-
+    await this.consumeOtpSendQuota(email);
     await this.issueEmailOtp(user.email, user.fullName, locale);
     return { message: 'otp.resent' };
   }
@@ -457,6 +509,8 @@ export class AuthService {
       await bcrypt.hash(otp, 10),
       OTP_TTL_SECONDS,
     );
+    // Mã mới thì đếm lại số lần nhập sai
+    await this.redisService.del(`email_otp_attempts:${email}`);
     await this.mailQueue.add('send-otp', { name, email, otp, locale });
   }
 
@@ -513,32 +567,61 @@ export class AuthService {
     return Array.from(new Set(audiences));
   }
 
+  /**
+   * Xác minh OAuth2 access token. `userinfo` chỉ cho biết token còn hợp lệ, KHÔNG cho
+   * biết token được cấp cho ứng dụng nào, nên phải kiểm tra `aud`/`azp` qua tokeninfo;
+   * nếu không, access token của bất kỳ ứng dụng bên thứ ba nào cũng đăng nhập được.
+   */
   private async fetchGoogleUserInfo(accessToken: string): Promise<{
     sub: string;
     email: string;
     email_verified?: boolean;
     name?: string;
   }> {
-    const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    if (!res.ok) {
-      throw new Error(`Google userinfo status: ${res.status}`);
+    const audiences = this.getGoogleAudiences();
+    if (audiences.length === 0) {
+      throw new Error('GOOGLE_*_CLIENT_ID is not configured');
     }
-    const data = (await res.json()) as {
+    const infoRes = await fetch(
+      `https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(accessToken)}`,
+    );
+    if (!infoRes.ok) {
+      throw new Error(`Google tokeninfo status: ${infoRes.status}`);
+    }
+    const info = (await infoRes.json()) as {
+      aud?: string;
+      azp?: string;
       sub?: string;
       email?: string;
-      email_verified?: boolean;
-      name?: string;
+      email_verified?: string | boolean;
     };
-    if (!data?.email || !data?.sub) {
-      throw new Error('Google userinfo response missing email or sub');
+    const issuedToUs = [info.aud, info.azp].some(
+      (id) => !!id && audiences.includes(id),
+    );
+    if (!issuedToUs) {
+      throw new Error('Google access token was issued to another client');
     }
+    if (!info.email || !info.sub) {
+      throw new Error('Google tokeninfo response missing email or sub');
+    }
+
+    // Tên hiển thị chỉ có ở userinfo; lỗi ở bước này không chặn đăng nhập
+    let name: string | undefined;
+    try {
+      const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (res.ok) name = ((await res.json()) as { name?: string }).name;
+    } catch {
+      name = undefined;
+    }
+
     return {
-      sub: data.sub,
-      email: data.email,
-      email_verified: data.email_verified ?? false,
-      name: data.name,
+      sub: info.sub,
+      email: info.email,
+      email_verified:
+        info.email_verified === true || info.email_verified === 'true',
+      name,
     };
   }
 
@@ -567,10 +650,15 @@ export class AuthService {
 
     // Token dạng JWT ID Token
     const audiences = this.getGoogleAudiences();
+    if (audiences.length === 0) {
+      // Không có audience thì verifyIdToken chấp nhận ID token của mọi ứng dụng
+      this.logger.error('Google login is disabled: no GOOGLE_*_CLIENT_ID set');
+      throw new UnauthorizedException('auth.google_invalid_token');
+    }
     try {
       const ticket = await this.googleClient.verifyIdToken({
         idToken: token,
-        audience: audiences.length > 0 ? audiences : undefined,
+        audience: audiences,
       });
       const payload = ticket.getPayload();
       if (payload?.email && payload?.sub) {
@@ -603,6 +691,10 @@ export class AuthService {
     if (!payload?.email) {
       throw new UnauthorizedException('auth.google_invalid_token');
     }
+    // Không tạo/liên kết tài khoản theo một email mà Google chưa xác nhận là của người này
+    if (payload.email_verified !== true) {
+      throw new UnauthorizedException('auth.google_email_not_verified');
+    }
 
     const email = this.normalizeEmail(payload.email);
     let user = await this.prismaService.user.findFirst({
@@ -619,7 +711,7 @@ export class AuthService {
           email,
           fullName: payload.name ?? email.split('@')[0],
           googleId: payload.sub,
-          emailVerified: payload.email_verified ?? true,
+          emailVerified: true,
           roleId: role.id,
         },
         include: {
@@ -631,7 +723,7 @@ export class AuthService {
         where: { id: user.id },
         data: {
           googleId: payload.sub,
-          emailVerified: user.emailVerified || (payload.email_verified ?? true),
+          emailVerified: true,
         },
         include: {
           role: true,

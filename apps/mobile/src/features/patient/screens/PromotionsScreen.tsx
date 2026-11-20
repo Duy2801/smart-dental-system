@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useSelector } from 'react-redux';
-import { EmptyState, Screen } from '~src/components/ui';
+import { Screen } from '~src/components/ui';
 import { SCREEN_NAME } from '~src/constants/screenName';
 import { getClinicConfigInfo } from '~src/features/home/api';
 import { FloatingChatButton } from '~src/features/home/components/FloatingChatButton';
@@ -180,15 +180,6 @@ export default function PromotionsScreen({ navigation }: any) {
 
   const renderPromotionCard = ({ item }: { item: PatientPromotion }) => {
     const isCopied = copiedId === item.id;
-    const isPercentage = item.discount_type === 'PERCENTAGE';
-    const discountLabel = isPercentage
-      ? `Giảm ${item.discount_value}%`
-      : `Giảm ${formatVnd(item.discount_value)}`;
-
-    const usagePercent =
-      item.max_uses > 0
-        ? Math.min(100, Math.round((item.used_count / item.max_uses) * 100))
-        : 0;
 
     return (
       <View style={styles.card}>

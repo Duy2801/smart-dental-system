@@ -54,6 +54,12 @@ const PAYMENT_ERRORS: Record<string, string> = {
   "promotion.not_found": "Mã khuyến mãi không tồn tại hoặc đã hết hạn.",
   "promotion.min_order_not_met": "Đơn hàng chưa đạt giá trị tối thiểu để dùng mã.",
   "promotion.exhausted": "Mã khuyến mãi đã hết lượt sử dụng.",
+  "promotion.not_applicable":
+    "Mã khuyến mãi này không áp dụng cho dịch vụ của hóa đơn.",
+  "refund.bank_account_missing":
+    "Bệnh nhân chưa cung cấp tài khoản nhận tiền, chưa thể xác nhận đã hoàn tiền.",
+  "availability.invalid_approval_status": "Trạng thái duyệt ca làm không hợp lệ.",
+  "payment.cash_staff_only": "Chỉ nhân viên thu ngân được ghi nhận thanh toán tiền mặt.",
   "promotion.discount_below_paid_amount":
     "Mức giảm không thể làm tổng hóa đơn thấp hơn số tiền đã thu.",
   "promotion.cannot_change_after_payment":

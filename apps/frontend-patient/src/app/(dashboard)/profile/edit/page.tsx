@@ -23,6 +23,13 @@ import {
   useAppSelector,
 } from "@/providers";
 
+const PROFILE_ERROR_MESSAGES: Record<string, string> = {
+  "patient.email_change_not_allowed":
+    "Không thể đổi email đăng nhập tại đây. Vui lòng liên hệ phòng khám để được hỗ trợ.",
+  "auth.phone_exists": "Số điện thoại này đã được tài khoản khác sử dụng.",
+  "auth.email_exists": "Email này đã được tài khoản khác sử dụng.",
+};
+
 function splitAllergies(value?: string | null) {
   return (
     value
@@ -113,8 +120,14 @@ export default function EditProfilePage() {
       queryClient.setQueryData(["patient", "profile"], response.data);
       await queryClient.invalidateQueries({ queryKey: ["patient", "profile"] });
       router.push("/profile");
-    } catch {
-      setMessage("Cập nhật thất bại. Vui lòng thử lại.");
+    } catch (error) {
+      const raw = (error as { response?: { data?: { message?: unknown } } })
+        ?.response?.data?.message;
+      const code = Array.isArray(raw) ? raw[0] : raw;
+      setMessage(
+        (typeof code === "string" && PROFILE_ERROR_MESSAGES[code]) ||
+          "Cập nhật thất bại. Vui lòng thử lại.",
+      );
     } finally {
       setSaving(false);
     }

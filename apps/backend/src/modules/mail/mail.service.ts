@@ -5,6 +5,21 @@ import mailConfig from './mail.config';
 
 type MailLocale = 'en' | 'vi';
 
+/**
+ * Escape dữ liệu người dùng/nhân viên nhập trước khi chèn vào email HTML. Không escape
+ * thì một họ tên như `<a href="https://...">Bấm vào đây</a>` sẽ thành link thật trong
+ * email gửi từ domain của phòng khám (dùng để lừa đảo).
+ */
+function escapeHtml(value: string | number | null | undefined): string {
+  if (value === null || value === undefined) return '';
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 @Injectable()
 export class MailService {
   private readonly systemTransporter: Transporter;
@@ -14,8 +29,12 @@ export class MailService {
     @Inject(mailConfig.KEY)
     private readonly config: ConfigType<typeof mailConfig>,
   ) {
-    this.systemTransporter = nodemailer.createTransport(this.config.systemTransport);
-    this.staffTransporter = nodemailer.createTransport(this.config.staffTransport);
+    this.systemTransporter = nodemailer.createTransport(
+      this.config.systemTransport,
+    );
+    this.staffTransporter = nodemailer.createTransport(
+      this.config.staffTransport,
+    );
   }
 
   private wrapHtmlTemplate(title: string, bodyContent: string): string {
@@ -90,7 +109,7 @@ export class MailService {
         `
           <h2 style="font-size: 18px; color: #0f172a; margin-top: 0;">Mã xác thực tài khoản (OTP)</h2>
           <p style="font-size: 14px; line-height: 1.6; color: #334155;">
-            Xin chào <strong>${data.name}</strong>, bạn đang thực hiện thao tác xác thực trên hệ thống Smart Dental.
+            Xin chào <strong>${escapeHtml(data.name)}</strong>, bạn đang thực hiện thao tác xác thực trên hệ thống Smart Dental.
           </p>
           <div style="text-align: center; margin: 28px 0;">
             <span style="display: inline-block; background-color: #e0f2fe; color: #0369a1; font-size: 32px; font-weight: 800; letter-spacing: 8px; padding: 12px 28px; border-radius: 12px; border: 1px dashed #0284c7;">
@@ -125,7 +144,7 @@ export class MailService {
         `
           <h2 style="font-size: 18px; color: #0f172a; margin-top: 0;">Yêu cầu đặt lại mật khẩu</h2>
           <p style="font-size: 14px; line-height: 1.6; color: #334155;">
-            Xin chào <strong>${data.name}</strong>, chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn.
+            Xin chào <strong>${escapeHtml(data.name)}</strong>, chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn.
           </p>
           <div style="text-align: center; margin: 28px 0;">
             <a href="${resetUrl}" style="display: inline-block; background-color: #0284c7; color: #ffffff; text-decoration: none; font-size: 14px; font-weight: 700; padding: 12px 28px; border-radius: 10px; box-shadow: 0 2px 4px rgba(2, 132, 199, 0.3);">
@@ -156,13 +175,18 @@ export class MailService {
     locale?: MailLocale;
   }) {
     const vietnamese = (data.locale ?? 'vi') === 'vi';
-    const timeFormatted = new Intl.DateTimeFormat(vietnamese ? 'vi-VN' : 'en-US', {
-      dateStyle: 'full',
-      timeStyle: 'short',
-      timeZone: 'Asia/Ho_Chi_Minh',
-    }).format(new Date(data.scheduledAt));
+    const timeFormatted = new Intl.DateTimeFormat(
+      vietnamese ? 'vi-VN' : 'en-US',
+      {
+        dateStyle: 'full',
+        timeStyle: 'short',
+        timeZone: 'Asia/Ho_Chi_Minh',
+      },
+    ).format(new Date(data.scheduledAt));
 
-    const code = data.appointmentCode || 'SD-' + Math.floor(100000 + Math.random() * 900000);
+    const code =
+      data.appointmentCode ||
+      'SD-' + Math.floor(100000 + Math.random() * 900000);
 
     return this.staffTransporter.sendMail({
       from: this.config.receptionistFrom,
@@ -178,17 +202,17 @@ export class MailService {
           </div>
 
           <p style="font-size: 14px; color: #334155; line-height: 1.6;">
-            Kính gửi <strong>${data.name}</strong>, Smart Dental Clinic xin trân trọng thông báo lịch hẹn khám của Quý khách đã được tiếp nhận và xác nhận chính thức.
+            Kính gửi <strong>${escapeHtml(data.name)}</strong>, Smart Dental Clinic xin trân trọng thông báo lịch hẹn khám của Quý khách đã được tiếp nhận và xác nhận chính thức.
           </p>
 
           <table width="100%" cellpadding="10" cellspacing="0" style="background-color: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; margin: 20px 0; font-size: 13px;">
             <tr>
               <td style="color: #64748b; width: 35%;">🩺 Dịch vụ khám:</td>
-              <td style="color: #0f172a; font-weight: 700;">${data.serviceName}</td>
+              <td style="color: #0f172a; font-weight: 700;">${escapeHtml(data.serviceName)}</td>
             </tr>
             <tr style="border-top: 1px solid #e2e8f0;">
               <td style="color: #64748b;">👨‍⚕️ Bác sĩ phụ trách:</td>
-              <td style="color: #0f172a; font-weight: 700;">${data.doctorName}</td>
+              <td style="color: #0f172a; font-weight: 700;">${escapeHtml(data.doctorName)}</td>
             </tr>
             <tr style="border-top: 1px solid #e2e8f0;">
               <td style="color: #64748b;">⏰ Thời gian hẹn:</td>
@@ -238,17 +262,17 @@ export class MailService {
           </div>
 
           <p style="font-size: 14px; color: #334155; line-height: 1.6;">
-            Xin chào <strong>${data.name}</strong>, Smart Dental xin gửi lời nhắc về cuộc hẹn khám nha khoa sắp tới của Quý khách:
+            Xin chào <strong>${escapeHtml(data.name)}</strong>, Smart Dental xin gửi lời nhắc về cuộc hẹn khám nha khoa sắp tới của Quý khách:
           </p>
 
           <table width="100%" cellpadding="10" cellspacing="0" style="background-color: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; margin: 20px 0; font-size: 13px;">
             <tr>
               <td style="color: #64748b; width: 35%;">🩺 Dịch vụ:</td>
-              <td style="color: #0f172a; font-weight: 700;">${data.serviceName}</td>
+              <td style="color: #0f172a; font-weight: 700;">${escapeHtml(data.serviceName)}</td>
             </tr>
             <tr style="border-top: 1px solid #e2e8f0;">
               <td style="color: #64748b;">👨‍⚕️ Bác sĩ:</td>
-              <td style="color: #0f172a; font-weight: 700;">${data.doctorName}</td>
+              <td style="color: #0f172a; font-weight: 700;">${escapeHtml(data.doctorName)}</td>
             </tr>
             <tr style="border-top: 1px solid #e2e8f0;">
               <td style="color: #64748b;">⏰ Giờ khám:</td>
@@ -301,13 +325,13 @@ export class MailService {
           </div>
 
           <p style="font-size: 14px; color: #334155; line-height: 1.6;">
-            Kính gửi <strong>${data.name}</strong>, lịch hẹn khám nha khoa của Quý khách đã được cập nhật sang khung giờ mới thành công:
+            Kính gửi <strong>${escapeHtml(data.name)}</strong>, lịch hẹn khám nha khoa của Quý khách đã được cập nhật sang khung giờ mới thành công:
           </p>
 
           <table width="100%" cellpadding="10" cellspacing="0" style="background-color: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; margin: 20px 0; font-size: 13px;">
             <tr>
               <td style="color: #64748b; width: 35%;">🩺 Dịch vụ:</td>
-              <td style="color: #0f172a; font-weight: 700;">${data.serviceName} (${data.doctorName})</td>
+              <td style="color: #0f172a; font-weight: 700;">${escapeHtml(data.serviceName)} (${escapeHtml(data.doctorName)})</td>
             </tr>
             <tr style="border-top: 1px solid #e2e8f0;">
               <td style="color: #dc2626;">❌ Giờ hẹn cũ:</td>
@@ -354,13 +378,13 @@ export class MailService {
           </div>
 
           <p style="font-size: 14px; color: #334155; line-height: 1.6;">
-            Kính gửi <strong>${data.name}</strong>, lịch hẹn khám ${data.serviceName} vào lúc <strong>${timeFormatted}</strong> đã được hủy trên hệ thống.
+            Kính gửi <strong>${escapeHtml(data.name)}</strong>, lịch hẹn khám ${escapeHtml(data.serviceName)} vào lúc <strong>${timeFormatted}</strong> đã được hủy trên hệ thống.
           </p>
 
           ${
             data.reason
               ? `<div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 12px 16px; border-radius: 8px; font-size: 13px; color: #475569; margin: 16px 0;">
-                  <strong>Lý do hủy:</strong> <em>"${data.reason}"</em>
+                  <strong>Lý do hủy:</strong> <em>"${escapeHtml(data.reason)}"</em>
                 </div>`
               : ''
           }
@@ -434,7 +458,7 @@ export class MailService {
           </div>
 
           <p style="font-size: 14px; color: #334155; line-height: 1.6;">
-            Kính gửi <strong>${data.name}</strong>, Smart Dental Clinic xác nhận đã nhận khoản thanh toán của Quý khách với chi tiết như sau:
+            Kính gửi <strong>${escapeHtml(data.name)}</strong>, Smart Dental Clinic xác nhận đã nhận khoản thanh toán của Quý khách với chi tiết như sau:
           </p>
 
           <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; margin: 20px 0; font-size: 13px; padding: 16px;">
@@ -510,7 +534,9 @@ export class MailService {
     bankAccountName?: string;
     bankName?: string;
   }) {
-    const formattedRemaining = new Intl.NumberFormat('vi-VN').format(data.remainingAmount);
+    const formattedRemaining = new Intl.NumberFormat('vi-VN').format(
+      data.remainingAmount,
+    );
 
     return this.staffTransporter.sendMail({
       from: this.config.receptionistFrom,
@@ -526,7 +552,7 @@ export class MailService {
           </div>
 
           <p style="font-size: 14px; color: #334155; line-height: 1.6;">
-            Kính gửi <strong>${data.name}</strong>, Smart Dental xin gửi thông báo chi tiết số dư thanh toán đợt khám của Quý khách:
+            Kính gửi <strong>${escapeHtml(data.name)}</strong>, Smart Dental xin gửi thông báo chi tiết số dư thanh toán đợt khám của Quý khách:
           </p>
 
           <table width="100%" cellpadding="8" cellspacing="0" style="background-color: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; margin: 16px 0; font-size: 13px;">
@@ -594,17 +620,17 @@ export class MailService {
           </div>
 
           <p style="font-size: 14px; color: #334155; line-height: 1.6;">
-            Kính gửi <strong>${data.name}</strong>, Lễ tân Smart Dental đã xử lý và chấp thuận yêu cầu thay đổi lịch khám của Quý khách:
+            Kính gửi <strong>${escapeHtml(data.name)}</strong>, Lễ tân Smart Dental đã xử lý và chấp thuận yêu cầu thay đổi lịch khám của Quý khách:
           </p>
 
           <table width="100%" cellpadding="8" cellspacing="0" style="background-color: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; margin: 16px 0; font-size: 13px;">
             <tr>
               <td style="color: #64748b; width: 35%;">🩺 Dịch vụ:</td>
-              <td style="color: #0f172a; font-weight: 700;">${data.serviceName}</td>
+              <td style="color: #0f172a; font-weight: 700;">${escapeHtml(data.serviceName)}</td>
             </tr>
             <tr style="border-top: 1px solid #e2e8f0;">
               <td style="color: #64748b;">👨‍⚕️ Bác sĩ:</td>
-              <td style="color: #0f172a; font-weight: 700;">${data.doctorName}</td>
+              <td style="color: #0f172a; font-weight: 700;">${escapeHtml(data.doctorName)}</td>
             </tr>
             <tr style="border-top: 2px solid #cbd5e1;">
               <td style="color: #059669; font-weight: bold;">⏰ THỜI GIAN MỚI:</td>
@@ -616,7 +642,7 @@ export class MailService {
             data.note
               ? `
               <div style="background-color: #f0fdf4; border-left: 4px solid #10b981; padding: 12px 16px; margin: 16px 0; font-size: 12px; color: #166534;">
-                <strong>Ghi chú lễ tân:</strong> ${data.note}
+                <strong>Ghi chú lễ tân:</strong> ${escapeHtml(data.note)}
               </div>
               `
               : ''
@@ -639,7 +665,9 @@ export class MailService {
     refundPercent: number;
     note?: string;
   }) {
-    const formattedAmount = new Intl.NumberFormat('vi-VN').format(data.refundAmount);
+    const formattedAmount = new Intl.NumberFormat('vi-VN').format(
+      data.refundAmount,
+    );
 
     return this.staffTransporter.sendMail({
       from: this.config.receptionistFrom,
@@ -655,13 +683,13 @@ export class MailService {
           </div>
 
           <p style="font-size: 14px; color: #334155; line-height: 1.6;">
-            Kính gửi <strong>${data.name}</strong>, Smart Dental xin thông báo yêu cầu hoàn tiền phí tư vấn/đặt cọc của Quý khách đã được duyệt:
+            Kính gửi <strong>${escapeHtml(data.name)}</strong>, Smart Dental xin thông báo yêu cầu hoàn tiền phí tư vấn/đặt cọc của Quý khách đã được duyệt:
           </p>
 
           <table width="100%" cellpadding="8" cellspacing="0" style="background-color: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; margin: 16px 0; font-size: 13px;">
             <tr>
               <td style="color: #64748b; width: 45%;">Dịch vụ:</td>
-              <td style="color: #0f172a; font-weight: 700;">${data.serviceName}</td>
+              <td style="color: #0f172a; font-weight: 700;">${escapeHtml(data.serviceName)}</td>
             </tr>
             <tr style="border-top: 1px solid #e2e8f0;">
               <td style="color: #64748b;">Mức hoàn theo chính sách:</td>
@@ -681,7 +709,7 @@ export class MailService {
             data.note
               ? `
               <p style="font-size: 12px; color: #475569;">
-                <strong>Ghi chú xử lý:</strong> ${data.note}
+                <strong>Ghi chú xử lý:</strong> ${escapeHtml(data.note)}
               </p>
               `
               : ''
@@ -712,12 +740,12 @@ export class MailService {
           </div>
 
           <p style="font-size: 14px; color: #334155; line-height: 1.6;">
-            Kính gửi <strong>${data.name}</strong>, Smart Dental rất tiếc phải thông báo yêu cầu <em>"${data.requestTypeLabel}"</em> của Quý khách không thể phê duyệt tại thời điểm này.
+            Kính gửi <strong>${escapeHtml(data.name)}</strong>, Smart Dental rất tiếc phải thông báo yêu cầu <em>"${escapeHtml(data.requestTypeLabel)}"</em> của Quý khách không thể phê duyệt tại thời điểm này.
           </p>
 
           <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 16px; margin: 16px 0; font-size: 13px; color: #475569;">
             <strong style="color: #0f172a;">Lý do phản hồi từ phòng khám:</strong><br />
-            <span style="color: #b91c1c; font-style: italic; margin-top: 4px; display: inline-block;">"${data.reason}"</span>
+            <span style="color: #b91c1c; font-style: italic; margin-top: 4px; display: inline-block;">"${escapeHtml(data.reason)}"</span>
           </div>
 
           <p style="font-size: 13px; color: #64748b;">
@@ -762,17 +790,17 @@ export class MailService {
           </div>
 
           <p style="font-size: 14px; color: #334155; line-height: 1.6;">
-            Kính chào <strong>${data.name}</strong>, quý khách đã hoàn tất thủ tục check-in tiếp đón tại quầy lễ tân:
+            Kính chào <strong>${escapeHtml(data.name)}</strong>, quý khách đã hoàn tất thủ tục check-in tiếp đón tại quầy lễ tân:
           </p>
 
           <table width="100%" cellpadding="8" cellspacing="0" style="background-color: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; margin: 16px 0; font-size: 13px;">
             <tr>
               <td style="color: #64748b; width: 35%;">🩺 Dịch vụ khám:</td>
-              <td style="color: #0f172a; font-weight: 700;">${data.serviceName}</td>
+              <td style="color: #0f172a; font-weight: 700;">${escapeHtml(data.serviceName)}</td>
             </tr>
             <tr style="border-top: 1px solid #e2e8f0;">
               <td style="color: #64748b;">👨‍⚕️ Bác sĩ điều trị:</td>
-              <td style="color: #0f172a; font-weight: 700;">${data.doctorName}</td>
+              <td style="color: #0f172a; font-weight: 700;">${escapeHtml(data.doctorName)}</td>
             </tr>
             <tr style="border-top: 1px solid #e2e8f0;">
               <td style="color: #64748b;">📍 Khu vực khám:</td>
@@ -805,11 +833,11 @@ export class MailService {
           <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 20px; margin-bottom: 24px; text-align: center;">
             <p style="margin: 0; color: #166534; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">HỒ SƠ Y TẾ KỸ THUẬT SỐ</p>
             <h1 style="color: #15803d; margin: 6px 0; font-size: 32px; font-family: monospace; font-weight: 900;">${data.patientCode}</h1>
-            <p style="margin: 0; color: #166534; font-size: 13px;">Chủ hồ sơ: <strong>${data.name}</strong> • SĐT: ${data.phone}</p>
+            <p style="margin: 0; color: #166534; font-size: 13px;">Chủ hồ sơ: <strong>${escapeHtml(data.name)}</strong> • SĐT: ${data.phone}</p>
           </div>
 
           <p style="font-size: 14px; color: #334155; line-height: 1.6;">
-            Kính chào <strong>${data.name}</strong>, bộ phận Lễ tân xin chào mừng Quý khách gia nhập hệ thống chăm sóc sức khỏe răng miệng chất lượng cao tại <strong>Smart Dental</strong>.
+            Kính chào <strong>${escapeHtml(data.name)}</strong>, bộ phận Lễ tân xin chào mừng Quý khách gia nhập hệ thống chăm sóc sức khỏe răng miệng chất lượng cao tại <strong>Smart Dental</strong>.
           </p>
 
           <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; margin: 16px 0; font-size: 13px;">
@@ -854,7 +882,7 @@ export class MailService {
           </div>
 
           <p style="font-size: 14px; color: #334155; line-height: 1.6;">
-            Kính gửi <strong>${data.name}</strong>, theo khuyến nghị từ Hiệp hội Nha khoa, việc thăm khám và làm sạch vôi răng định kỳ mỗi <strong>6 tháng/lần</strong> giúp phát hiện sớm sâu răng, loại bỏ mảng bám và bảo vệ nướu chắc khỏe.
+            Kính gửi <strong>${escapeHtml(data.name)}</strong>, theo khuyến nghị từ Hiệp hội Nha khoa, việc thăm khám và làm sạch vôi răng định kỳ mỗi <strong>6 tháng/lần</strong> giúp phát hiện sớm sâu răng, loại bỏ mảng bám và bảo vệ nướu chắc khỏe.
           </p>
 
           <table width="100%" cellpadding="8" cellspacing="0" style="background-color: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; margin: 16px 0; font-size: 13px;">
@@ -869,7 +897,7 @@ export class MailService {
           </table>
 
           <div style="text-align: center; margin: 24px 0;">
-            <a href="http://localhost:3000/booking" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-weight: 700; font-size: 14px; display: inline-block;">
+            <a href="${this.config.frontendUrl}/appointment" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-weight: 700; font-size: 14px; display: inline-block;">
               📅 Đặt Lịch Hẹn Khám Ngay
             </a>
           </div>
@@ -935,23 +963,27 @@ export class MailService {
           <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 20px; margin-bottom: 20px; text-align: center;">
             <p style="margin: 0; color: #166534; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">ĐƠN THUỐC ĐIỆN TỬ CHÍNH THỨC</p>
             <h2 style="color: #15803d; margin: 6px 0; font-size: 22px; font-weight: 800;">Toa Thuốc Khám Nha Khoa</h2>
-            <p style="margin: 0; color: #166534; font-size: 13px;">Bác sĩ kê đơn: <strong>${data.doctorName}</strong> • ${dateFormatted}</p>
+            <p style="margin: 0; color: #166534; font-size: 13px;">Bác sĩ kê đơn: <strong>${escapeHtml(data.doctorName)}</strong> • ${dateFormatted}</p>
           </div>
 
           <table width="100%" cellpadding="6" cellspacing="0" style="background-color: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 20px; font-size: 13px;">
             <tr>
               <td style="color: #64748b; width: 30%;">👤 Bệnh nhân:</td>
-              <td style="color: #0f172a; font-weight: 700;">${data.name} (${data.patientCode})</td>
+              <td style="color: #0f172a; font-weight: 700;">${escapeHtml(data.name)} (${data.patientCode})</td>
             </tr>
             <tr style="border-top: 1px solid #e2e8f0;">
               <td style="color: #64748b;">🩺 Chẩn đoán:</td>
               <td style="color: #0369a1; font-weight: 700;">${data.diagnosis || 'Khám & Điều trị nha khoa'}</td>
             </tr>
-            ${data.notes ? `
+            ${
+              data.notes
+                ? `
             <tr style="border-top: 1px solid #e2e8f0;">
               <td style="color: #64748b;">📝 Lời dặn của BS:</td>
-              <td style="color: #b91c1c; font-style: italic; font-weight: 600;">"${data.notes}"</td>
-            </tr>` : ''}
+              <td style="color: #b91c1c; font-style: italic; font-weight: 600;">"${escapeHtml(data.notes)}"</td>
+            </tr>`
+                : ''
+            }
           </table>
 
           <h3 style="color: #0f172a; font-size: 14px; margin: 0 0 10px 0;">💊 Danh mục thuốc chỉ định:</h3>
@@ -1015,13 +1047,13 @@ export class MailService {
           <div style="background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 20px; margin-bottom: 20px; text-align: center;">
             <p style="margin: 0; color: #1e40af; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">LỜI NHẮC BUỔI TƯ VẤN TRỰC TUYẾN</p>
             <h2 style="color: #1d4ed8; margin: 6px 0; font-size: 22px; font-weight: 800;">Phòng Khám Video Call 1-1</h2>
-            <p style="margin: 0; color: #1e40af; font-size: 13px;">Bác sĩ phụ trách: <strong>${data.doctorName}</strong></p>
+            <p style="margin: 0; color: #1e40af; font-size: 13px;">Bác sĩ phụ trách: <strong>${escapeHtml(data.doctorName)}</strong></p>
           </div>
 
           <table width="100%" cellpadding="6" cellspacing="0" style="background-color: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 20px; font-size: 13px;">
             <tr>
               <td style="color: #64748b; width: 35%;">👤 Bệnh nhân:</td>
-              <td style="color: #0f172a; font-weight: 700;">${data.name} (${data.patientCode})</td>
+              <td style="color: #0f172a; font-weight: 700;">${escapeHtml(data.name)} (${data.patientCode})</td>
             </tr>
             <tr style="border-top: 1px solid #e2e8f0;">
               <td style="color: #64748b;">⏰ Giờ tư vấn:</td>
@@ -1031,11 +1063,15 @@ export class MailService {
               <td style="color: #64748b;">⏱️ Thời lượng:</td>
               <td style="color: #0f172a; font-weight: 700;">${data.durationMinutes} phút</td>
             </tr>
-            ${data.roomPin ? `
+            ${
+              data.roomPin
+                ? `
             <tr style="border-top: 1px solid #e2e8f0;">
               <td style="color: #64748b;">🔒 Mã PIN phòng:</td>
               <td style="color: #b91c1c; font-weight: 800; font-family: monospace; font-size: 14px;">${data.roomPin}</td>
-            </tr>` : ''}
+            </tr>`
+                : ''
+            }
           </table>
 
           <div style="text-align: center; margin: 26px 0;">
@@ -1108,7 +1144,7 @@ export class MailService {
             )
           : 'Theo lịch hẹn';
         const tooth = st.targetTooth
-          ? `<span style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 4px; font-weight: 600; font-size: 11px;">Răng: ${st.targetTooth}</span>`
+          ? `<span style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 4px; font-weight: 600; font-size: 11px;">Răng: ${escapeHtml(st.targetTooth)}</span>`
           : '';
 
         return `
@@ -1117,9 +1153,9 @@ export class MailService {
             GĐ ${st.stepOrder}
           </td>
           <td style="padding: 12px 10px;">
-            <div style="font-weight: 700; color: #0f172a; font-size: 13px;">${st.title}</div>
+            <div style="font-weight: 700; color: #0f172a; font-size: 13px;">${escapeHtml(st.title)}</div>
             ${tooth ? `<div style="margin-top: 4px;">${tooth}</div>` : ''}
-            ${st.description ? `<div style="color: #64748b; font-size: 11px; margin-top: 3px;">${st.description}</div>` : ''}
+            ${st.description ? `<div style="color: #64748b; font-size: 11px; margin-top: 3px;">${escapeHtml(st.description)}</div>` : ''}
           </td>
           <td style="padding: 12px 10px; text-align: center; font-size: 12px; color: #475569; width: 100px;">
             ${stepDate}
@@ -1142,14 +1178,14 @@ export class MailService {
         `
           <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 20px; margin-bottom: 20px; text-align: center;">
             <p style="margin: 0; color: #15803d; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">KẾ HOẠCH ĐIỀU TRỊ CHUYÊN SÂU</p>
-            <h2 style="color: #166534; margin: 6px 0; font-size: 20px; font-weight: 800;">${data.title}</h2>
-            <p style="margin: 0; color: #166534; font-size: 13px;">Bác sĩ phụ trách: <strong>${data.doctorName}</strong></p>
+            <h2 style="color: #166534; margin: 6px 0; font-size: 20px; font-weight: 800;">${escapeHtml(data.title)}</h2>
+            <p style="margin: 0; color: #166534; font-size: 13px;">Bác sĩ phụ trách: <strong>${escapeHtml(data.doctorName)}</strong></p>
           </div>
 
           <table width="100%" cellpadding="6" cellspacing="0" style="background-color: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 20px; font-size: 13px;">
             <tr>
               <td style="color: #64748b; width: 35%;">👤 Bệnh nhân:</td>
-              <td style="color: #0f172a; font-weight: 700;">${data.name} (${data.patientCode})</td>
+              <td style="color: #0f172a; font-weight: 700;">${escapeHtml(data.name)} (${data.patientCode})</td>
             </tr>
             <tr style="border-top: 1px solid #e2e8f0;">
               <td style="color: #64748b;">📅 Thời gian lộ trình:</td>
@@ -1159,11 +1195,15 @@ export class MailService {
               <td style="color: #64748b;">💰 Tổng dự toán chi phí:</td>
               <td style="color: #0369a1; font-weight: 800; font-size: 15px;">${formattedTotalCost}</td>
             </tr>
-            ${data.description ? `
+            ${
+              data.description
+                ? `
             <tr style="border-top: 1px solid #e2e8f0;">
               <td style="color: #64748b;">📝 Mục tiêu & Chỉ định:</td>
-              <td style="color: #334155; font-style: italic;">${data.description}</td>
-            </tr>` : ''}
+              <td style="color: #334155; font-style: italic;">${escapeHtml(data.description)}</td>
+            </tr>`
+                : ''
+            }
           </table>
 
           <p style="margin: 18px 0 8px 0; font-weight: 700; color: #0f172a; font-size: 14px;">
@@ -1194,7 +1234,7 @@ export class MailService {
           </div>
 
           <div style="text-align: center; margin: 26px 0;">
-            <a href="${this.config.frontendUrl}/dashboard/treatment-plans" target="_blank" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #ffffff; text-decoration: none; padding: 13px 28px; border-radius: 10px; font-weight: 800; font-size: 14px; display: inline-block; box-shadow: 0 4px 12px rgba(3, 105, 161, 0.25);">
+            <a href="${this.config.frontendUrl}/records" target="_blank" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #ffffff; text-decoration: none; padding: 13px 28px; border-radius: 10px; font-weight: 800; font-size: 14px; display: inline-block; box-shadow: 0 4px 12px rgba(3, 105, 161, 0.25);">
               📲 Xem Chi Tiết Trên Cổng Bệnh Nhân
             </a>
           </div>
@@ -1233,24 +1273,32 @@ export class MailService {
           <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 20px; margin-bottom: 20px; text-align: center;">
             <p style="margin: 0; color: #15803d; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">HƯỚNG DẪN CHĂM SÓC RĂNG MIỆNG</p>
             <h2 style="color: #166534; margin: 6px 0; font-size: 20px; font-weight: 800;">Chăm Sóc Sau Điều Trị</h2>
-            <p style="margin: 0; color: #166534; font-size: 13px;">Bác sĩ phụ trách: <strong>${data.doctorName}</strong></p>
+            <p style="margin: 0; color: #166534; font-size: 13px;">Bác sĩ phụ trách: <strong>${escapeHtml(data.doctorName)}</strong></p>
           </div>
 
           <table width="100%" cellpadding="6" cellspacing="0" style="background-color: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 20px; font-size: 13px;">
             <tr>
               <td style="color: #64748b; width: 35%;">👤 Bệnh nhân:</td>
-              <td style="color: #0f172a; font-weight: 700;">${data.name} (${data.patientCode})</td>
+              <td style="color: #0f172a; font-weight: 700;">${escapeHtml(data.name)} (${data.patientCode})</td>
             </tr>
-            ${data.diagnosis ? `
+            ${
+              data.diagnosis
+                ? `
             <tr style="border-top: 1px solid #e2e8f0;">
               <td style="color: #64748b;">🩺 Chẩn đoán:</td>
-              <td style="color: #0f172a; font-weight: 600;">${data.diagnosis}</td>
-            </tr>` : ''}
-            ${data.serviceName ? `
+              <td style="color: #0f172a; font-weight: 600;">${escapeHtml(data.diagnosis)}</td>
+            </tr>`
+                : ''
+            }
+            ${
+              data.serviceName
+                ? `
             <tr style="border-top: 1px solid #e2e8f0;">
               <td style="color: #64748b;">🦷 Dịch vụ thực hiện:</td>
-              <td style="color: #0369a1; font-weight: 700;">${data.serviceName}</td>
-            </tr>` : ''}
+              <td style="color: #0369a1; font-weight: 700;">${escapeHtml(data.serviceName)}</td>
+            </tr>`
+                : ''
+            }
           </table>
 
           <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 20px; font-size: 13px; line-height: 1.7; color: #1e293b; white-space: pre-line;">

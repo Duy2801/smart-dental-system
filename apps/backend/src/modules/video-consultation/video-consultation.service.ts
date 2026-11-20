@@ -24,6 +24,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { EventsGateway } from '../socket/events.gateway';
 import { RedisService } from '../redis/redis.service';
 import { OCCUPYING_APPOINTMENT_STATUSES } from '../appointment/appointment-status-policy';
+import { REFUND_BANK_PLACEHOLDER } from '../refund/refund-bank-placeholder';
 import {
   lockDoctorSchedule,
   lockPatientSchedule,
@@ -100,7 +101,8 @@ function formatIctDateTime(value: Date): string {
   }).format(value);
 }
 
-const DEFAULT_JITSI_DOMAIN = process.env.JITSI_DOMAIN || 'meet.darmstadt.social';
+const DEFAULT_JITSI_DOMAIN =
+  process.env.JITSI_DOMAIN || 'meet.darmstadt.social';
 
 function createMeetingUrl(consultationId?: string): string {
   const roomName = consultationId
@@ -117,8 +119,14 @@ function unpackMeeting(raw: string | null): {
   const [base, hash = ''] = raw.split('#');
   // Chuyển đổi meet.ffmuc.net (bị chặn iframe) & meet.jit.si (bắt đăng nhập quản trị viên) sang meet.darmstadt.social
   let cleanBase = base || null;
-  if (cleanBase && (cleanBase.includes('meet.ffmuc.net') || cleanBase.includes('meet.jit.si'))) {
-    cleanBase = cleanBase.replace(/meet\.(ffmuc\.net|jit\.si)/, DEFAULT_JITSI_DOMAIN);
+  if (
+    cleanBase &&
+    (cleanBase.includes('meet.ffmuc.net') || cleanBase.includes('meet.jit.si'))
+  ) {
+    cleanBase = cleanBase.replace(
+      /meet\.(ffmuc\.net|jit\.si)/,
+      DEFAULT_JITSI_DOMAIN,
+    );
   }
   const pinMatch = /(?:^|&)sdsPin=(\d{6})(?:&|$)/.exec(hash);
   return {
@@ -181,13 +189,25 @@ export class VideoConsultationService implements OnModuleInit {
   onModuleInit() {
     // Mỗi lần chạy job đều tốn query DB (tính vào quota Prisma Postgres) nên chỉ chạy dày khi cần đúng giờ:
     // nhắc lịch "trước 10 phút" và đánh dấu bác sĩ vắng mặt cần chính xác tới khoảng 1 phút.
+    // Lỗi của job phải được ghi log: nuốt lỗi im lặng thì job hỏng (không hoàn tiền,
+    // không nhắc lịch) mà không ai biết.
+    const logJobError = (job: string) => (err: unknown) =>
+      this.logger.error(
+        `Background job ${job} failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
     setInterval(() => {
-      this.processPendingNotifications().catch(() => {});
-      this.checkDoctorMissedConsultations().catch(() => {});
+      this.processPendingNotifications().catch(
+        logJobError('processPendingNotifications'),
+      );
+      this.checkDoctorMissedConsultations().catch(
+        logJobError('checkDoctorMissedConsultations'),
+      );
     }, 60_000);
     // Đặt slot và thanh toán đã tự kiểm tra expiresAt, job này chỉ đổi trạng thái hiển thị nên chạy thưa hơn.
     setInterval(() => {
-      this.cleanupExpiredBookings().catch(() => {});
+      this.cleanupExpiredBookings().catch(
+        logJobError('cleanupExpiredBookings'),
+      );
     }, 5 * 60_000);
   }
 
@@ -215,7 +235,10 @@ export class VideoConsultationService implements OnModuleInit {
     });
 
     const confirmedExpired = await this.prisma.videoConsultation.findMany({
-      where: { id: { in: expiredIds }, status: VideoConsultationStatus.EXPIRED },
+      where: {
+        id: { in: expiredIds },
+        status: VideoConsultationStatus.EXPIRED,
+      },
       select: { id: true },
     });
     const confirmedExpiredIds = new Set(confirmedExpired.map((row) => row.id));
@@ -230,7 +253,9 @@ export class VideoConsultationService implements OnModuleInit {
       const items = Array.isArray(inv.items)
         ? (inv.items as Array<Record<string, any>>)
         : [];
-      if (items.some((it) => confirmedExpiredIds.has(it?.videoConsultationId))) {
+      if (
+        items.some((it) => confirmedExpiredIds.has(it?.videoConsultationId))
+      ) {
         await this.prisma.invoice.updateMany({
           where: {
             id: inv.id,
@@ -259,7 +284,10 @@ export class VideoConsultationService implements OnModuleInit {
       if (pending.length === 0) return;
 
       await this.prisma.notification.updateMany({
-        where: { id: { in: pending.map((item) => item.id) }, status: 'PENDING' },
+        where: {
+          id: { in: pending.map((item) => item.id) },
+          status: 'PENDING',
+        },
         data: { status: 'SENT', sentAt: now },
       });
       if (this.eventsGateway?.server) {
@@ -277,13 +305,17 @@ export class VideoConsultationService implements OnModuleInit {
   /** Background Job 3: Xử lý trường hợp Bác sĩ vắng mặt sau 10 phút (DOCTOR_MISSED) */
   private async checkDoctorMissedConsultations() {
     const tenMinsAgo = new Date(Date.now() - 10 * 60 * 1000);
+    // Bác sĩ bắt đầu buổi tư vấn thì trạng thái chuyển IN_PROGRESS, nên còn SCHEDULED sau
+    // 10 phút nghĩa là bác sĩ chưa vào. Trước đây lọc thêm `meetingUrl: null`, nhưng
+    // meetingUrl được gán ngay khi bệnh nhân vào phòng chờ hoặc khi gửi email nhắc lịch,
+    // nên đúng trường hợp bệnh nhân đã chờ mà bác sĩ không đến lại bị bỏ sót.
     const missed = await this.prisma.videoConsultation.findMany({
       where: {
         status: VideoConsultationStatus.SCHEDULED,
         isPaid: true,
         scheduledAt: { lte: tenMinsAgo },
-        meetingUrl: null,
       },
+      include: { patient: { select: { userId: true, fullName: true } } },
     });
 
     for (const vc of missed) {
@@ -293,15 +325,28 @@ export class VideoConsultationService implements OnModuleInit {
       });
       if (transitioned.count !== 1) continue;
 
+      // Gắn hoá đơn của buổi tư vấn: không có invoiceId thì lễ tân không xử lý xong được
+      const invoices = await this.prisma.invoice.findMany({
+        where: { patientId: vc.patientId },
+        select: { id: true, items: true },
+      });
+      const invoice = invoices.find((inv) =>
+        (Array.isArray(inv.items)
+          ? (inv.items as Array<Record<string, unknown>>)
+          : []
+        ).some((it) => it?.videoConsultationId === vc.id),
+      );
+
       const refundCode = `REF-MISSED-${randomUUID()}`;
       await this.prisma.refundRequest.create({
         data: {
           refundCode,
           patientId: vc.patientId,
           videoConsultationId: vc.id,
-          bankName: 'Hệ thống tự động',
-          accountNumber: 'Tự động hoàn tiền',
-          accountHolder: 'Bệnh nhân',
+          invoiceId: invoice?.id ?? null,
+          bankName: REFUND_BANK_PLACEHOLDER.bankName,
+          accountNumber: REFUND_BANK_PLACEHOLDER.accountNumber,
+          accountHolder: vc.patient.fullName ?? 'Bệnh nhân',
           requestedAmount: vc.fee,
           refundPercent: 100,
           reason:
@@ -309,6 +354,25 @@ export class VideoConsultationService implements OnModuleInit {
           status: 'PENDING',
         },
       });
+
+      if (vc.patient.userId) {
+        try {
+          await this.prisma.notification.create({
+            data: {
+              userId: vc.patient.userId,
+              type: 'SYSTEM',
+              title: 'Bác sĩ vắng mặt – bạn được hoàn 100% phí tư vấn',
+              content:
+                'Rất xin lỗi vì bác sĩ không tham gia buổi tư vấn. Vui lòng vào mục Tư vấn, bấm "Cập nhật STK nhận hoàn tiền" để phòng khám chuyển khoản lại cho bạn.',
+              channel: 'IN_APP',
+              status: 'SENT',
+              sentAt: new Date(),
+            },
+          });
+        } catch {
+          // Thông báo lỗi không được chặn việc tạo yêu cầu hoàn tiền
+        }
+      }
     }
   }
 
@@ -324,7 +388,7 @@ export class VideoConsultationService implements OnModuleInit {
       // Lịch tư vấn cũng chiếm giờ bác sĩ trong lịch khám: tăng version để
       // cache booking-options / dates / slots của lịch khám tính lại ngay.
       await this.redis.incr('booking:version');
-    } catch (err: any) {
+    } catch {
       // ignore
     }
   }
@@ -1034,8 +1098,8 @@ export class VideoConsultationService implements OnModuleInit {
               patientId: patient.id,
               videoConsultationId: id,
               invoiceId: invoice?.id ?? null,
-              bankName: 'Cần bệnh nhân cung cấp STK',
-              accountNumber: 'Chờ cập nhật',
+              bankName: REFUND_BANK_PLACEHOLDER.bankName,
+              accountNumber: REFUND_BANK_PLACEHOLDER.accountNumber,
               accountHolder: patient.fullName ?? 'Bệnh nhân',
               requestedAmount: refundAmount,
               refundPercent,
@@ -1148,7 +1212,9 @@ export class VideoConsultationService implements OnModuleInit {
       );
     }
     if (scheduledAt.getTime() === consultation.scheduledAt.getTime()) {
-      throw new BadRequestException('Vui lòng chọn khung giờ khác lịch hiện tại');
+      throw new BadRequestException(
+        'Vui lòng chọn khung giờ khác lịch hiện tại',
+      );
     }
 
     const durationMs = consultation.durationMinutes * 60 * 1000;
@@ -1219,7 +1285,10 @@ export class VideoConsultationService implements OnModuleInit {
         }
 
         const doctorConsultations = await tx.videoConsultation.findMany({
-          where: { ...activeConsultationWhere, doctorId: consultation.doctorId },
+          where: {
+            ...activeConsultationWhere,
+            doctorId: consultation.doctorId,
+          },
           select: { scheduledAt: true, durationMinutes: true },
         });
         if (doctorConsultations.some(overlapsNewRange)) {
@@ -1473,8 +1542,7 @@ export class VideoConsultationService implements OnModuleInit {
     const isCancelled =
       row.status === VideoConsultationStatus.CANCELLED ||
       row.status === VideoConsultationStatus.EXPIRED;
-    const isDoctorMissed =
-      row.status === VideoConsultationStatus.DOCTOR_MISSED;
+    const isDoctorMissed = row.status === VideoConsultationStatus.DOCTOR_MISSED;
 
     // Tự động gán meetingUrl cố định nếu chưa có (chỉ cho ca đang/sắp diễn ra)
     let meetingUrl = row.meetingUrl;
@@ -1489,7 +1557,10 @@ export class VideoConsultationService implements OnModuleInit {
     const { meetingUrl: cleanUrl } = unpackMeeting(meetingUrl);
     return {
       id: row.id,
-      meetingUrl: (isCompleted || isCancelled || isDoctorMissed) ? null : (cleanUrl ?? meetingUrl),
+      meetingUrl:
+        isCompleted || isCancelled || isDoctorMissed
+          ? null
+          : (cleanUrl ?? meetingUrl),
       roomPin: null,
       doctorName: row.doctor.user.fullName,
       doctorAvatarUrl: row.doctor.avatarUrl,
@@ -1745,10 +1816,11 @@ export class VideoConsultationService implements OnModuleInit {
 
     // Phát sự kiện WebSocket Realtime cho Bệnh nhân tự động vào phòng
     try {
+      // Broadcast chỉ báo đổi trạng thái; link phòng chỉ gửi riêng cho bệnh nhân bên dưới,
+      // nếu không thì ai kết nối socket cũng vào được phòng tư vấn của người khác.
       this.eventsGateway.broadcast('consultation_updated', {
         id: row.id,
         status: VideoConsultationStatus.IN_PROGRESS,
-        meetingUrl,
       });
       const patientUserId = row.patient.user?.id;
       if (patientUserId) {
@@ -1899,8 +1971,8 @@ export class VideoConsultationService implements OnModuleInit {
               patientId: row.patientId,
               videoConsultationId: id,
               invoiceId: invoice?.id ?? null,
-              bankName: 'Cần bệnh nhân cung cấp STK',
-              accountNumber: 'Chờ cập nhật',
+              bankName: REFUND_BANK_PLACEHOLDER.bankName,
+              accountNumber: REFUND_BANK_PLACEHOLDER.accountNumber,
               accountHolder: row.patient.fullName ?? 'Bệnh nhân',
               requestedAmount: refundAmount,
               refundPercent,

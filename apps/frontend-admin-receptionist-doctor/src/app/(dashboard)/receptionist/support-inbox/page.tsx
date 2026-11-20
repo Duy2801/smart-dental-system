@@ -381,7 +381,14 @@ export default function SupportInboxPage() {
               {(sendMutation.isError || attachmentMutation.isError || fileError) && <p role="alert" className="px-3 text-xs text-red-600">{fileError || "Không gửi được tin nhắn hoặc tệp. Vui lòng thử lại."}</p>}
               {replyingTo && <div className="flex items-center gap-2 border-t border-border bg-white px-3 py-2 text-xs text-muted-foreground"><ArrowBendUpLeft size={18} className="text-brand" /><div className="min-w-0 flex-1"><strong>Đang trả lời {replyingTo.senderType === "PATIENT" ? "bệnh nhân" : "lễ tân"}</strong><p className="truncate">{replyingTo.content || replyingTo.attachmentName}</p></div><button type="button" aria-label="Bỏ trả lời" onClick={() => setReplyingTo(null)}><X size={18} /></button></div>}
               <form onSubmit={submit} className="flex gap-2 border-t border-border bg-white p-3">
-                <input ref={fileInputRef} type="file" className="hidden" onChange={chooseFile} />
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  // Khớp danh sách loại file backend cho phép
+                  accept="image/jpeg,image/png,image/webp,image/gif,image/heic,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
+                  onChange={chooseFile}
+                />
                 <button type="button" title="Gửi ảnh hoặc file" aria-label="Gửi ảnh hoặc file" disabled={isClosed || tab !== "mine" || attachmentMutation.isPending} onClick={() => fileInputRef.current?.click()} className="text-brand disabled:opacity-40"><Paperclip size={20} /></button>
                 <input
                   value={draft}

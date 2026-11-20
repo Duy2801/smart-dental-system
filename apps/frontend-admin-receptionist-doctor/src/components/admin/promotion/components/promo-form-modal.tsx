@@ -71,6 +71,15 @@ const scopeOptions: { value: ScopeType; label: string; icon: Icon }[] = [
   { value: "METHOD", label: "Theo phương pháp", icon: Target },
 ];
 
+/** Ngày (YYYY-MM-DD) theo giờ VN. toISOString() trả ngày UTC nên ngày bắt đầu lưu lúc 00:00 giờ VN bị lùi 1 ngày. */
+const toVnDateId = (value: string) =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(value));
+
 export function PromoFormModal({
   initialValue,
   onClose,
@@ -113,12 +122,12 @@ export function PromoFormModal({
     };
   const [startDate, setStartDate] = useState<string>(() =>
     initialValue?.start_date
-      ? new Date(initialValue.start_date).toISOString().slice(0, 10)
+      ? toVnDateId(initialValue.start_date)
       : todayISODate()
   );
   const [endDate, setEndDate] = useState<string>(() =>
     initialValue?.end_date
-      ? new Date(initialValue.end_date).toISOString().slice(0, 10)
+      ? toVnDateId(initialValue.end_date)
       : (() => {
           const date = new Date(`${todayISODate()}T00:00:00`);
           date.setDate(date.getDate() + 30);
@@ -150,7 +159,7 @@ export function PromoFormModal({
   const formRef = useRef<HTMLFormElement>(null);
   const today = todayISODate();
   const originalStartDate = initialValue?.start_date
-    ? new Date(initialValue.start_date).toISOString().slice(0, 10)
+    ? toVnDateId(initialValue.start_date)
     : null;
 
   /** Bọc setter để xóa lỗi của trường khi người dùng sửa lại */

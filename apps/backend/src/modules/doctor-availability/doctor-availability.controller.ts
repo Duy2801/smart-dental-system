@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -88,6 +89,10 @@ export class DoctorAvailabilityController {
     @Param('id') id: string,
     @Body('approvalStatus') approvalStatus: AvailabilityApprovalStatus,
   ) {
+    // Body không đi qua DTO nên phải tự kiểm tra enum (giá trị lạ từng gây lỗi 500)
+    if (!Object.values(AvailabilityApprovalStatus).includes(approvalStatus)) {
+      throw new BadRequestException('availability.invalid_approval_status');
+    }
     return this.doctorAvailabilityService.updateApprovalStatus(
       id,
       approvalStatus,
@@ -101,8 +106,14 @@ export class DoctorAvailabilityController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
     @Body() dto: UpdateDoctorAvailabilityDto,
+    @Query('force') force?: string,
   ) {
-    return this.doctorAvailabilityService.update(user, id, dto);
+    return this.doctorAvailabilityService.update(
+      user,
+      id,
+      dto,
+      force === 'true',
+    );
   }
 
   @Delete(':id')

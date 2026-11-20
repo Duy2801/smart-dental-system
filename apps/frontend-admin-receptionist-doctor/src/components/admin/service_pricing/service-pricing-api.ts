@@ -169,15 +169,3 @@ export async function updateTreatmentMethod(
   return response.data;
 }
 
-export async function deleteTreatmentMethod(
-  serviceId: string,
-  methodId: string,
-) {
-  await apiClient.delete(
-    `/services/${serviceId}/treatment-methods/${methodId}`,
-  );
-}
-
-export async function deleteService(id: string) {
-  await apiClient.delete(`/services/${id}`);
-}

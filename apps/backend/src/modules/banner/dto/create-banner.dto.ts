@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsInt, IsOptional, IsString, IsUrl } from 'class-validator';
+import { IsBoolean, IsInt, IsOptional, IsString } from 'class-validator';
 
 export class CreateBannerDto {
   @ApiProperty({ description: 'Tiêu đề của Banner' })
@@ -15,12 +15,16 @@ export class CreateBannerDto {
   @IsString()
   imageUrl: string;
 
-  @ApiPropertyOptional({ description: 'Đường dẫn liên kết khi nhấn vào banner' })
+  @ApiPropertyOptional({
+    description: 'Đường dẫn liên kết khi nhấn vào banner',
+  })
   @IsOptional()
   @IsString()
   linkUrl?: string;
 
-  @ApiPropertyOptional({ description: 'Loại điều hướng (SERVICE, PROMOTION, EXTERNAL)' })
+  @ApiPropertyOptional({
+    description: 'Loại điều hướng (SERVICE, PROMOTION, EXTERNAL)',
+  })
   @IsOptional()
   @IsString()
   targetType?: string;

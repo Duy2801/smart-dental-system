@@ -3,7 +3,7 @@
 import { useClinicConfigQuery } from "../home/hooks/useHomeQueries";
 import type { getLiveClinicConfigInfo } from "../home/api";
 
-function getOpenHoursText(
+export function getOpenHoursText(
   hours: NonNullable<Awaited<ReturnType<typeof getLiveClinicConfigInfo>>["businessHours"]>,
 ): string[] {
   const openDays = hours.filter((day) => day.isOpen);

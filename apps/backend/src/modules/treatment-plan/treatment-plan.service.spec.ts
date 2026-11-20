@@ -67,7 +67,12 @@ describe('TreatmentPlanService', () => {
 
     service = new TreatmentPlanService(
       prismaMock,
-      { del: jest.fn().mockResolvedValue(undefined) } as any,
+      {
+        del: jest.fn().mockResolvedValue(undefined),
+        set: jest.fn().mockResolvedValue(undefined),
+        setIfAbsent: jest.fn().mockResolvedValue(true),
+        incr: jest.fn().mockResolvedValue(1),
+      } as any,
       eventsGatewayMock,
       mailQueueMock,
     );

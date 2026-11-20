@@ -31,6 +31,3 @@ export async function broadcastPromotionNotification(id: string) {
   return response.data;
 }
 
-export async function deletePromotion(id: string) {
-  await apiClient.delete(`/promotions/${id}`);
-}

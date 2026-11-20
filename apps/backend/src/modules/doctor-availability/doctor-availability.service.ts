@@ -20,6 +20,7 @@ import {
 import { CreateDoctorAvailabilityDto } from './dto/create-doctor-availability.dto';
 import { UpdateDoctorAvailabilityDto } from './dto/update-doctor-availability.dto';
 import { RedisService } from '../redis/redis.service';
+import { vnDateTime, vnDayOfWeek, vnTimeHHmm } from '../../common/vn-time';
 
 type ShiftRange = {
   startTime: string;
@@ -97,8 +98,9 @@ export class DoctorAvailabilityService {
     if (!doctorId) return { hasConflict: false, conflicts: [] };
 
     if (specificDate) {
-      const startDateTime = new Date(`${specificDate}T${startTime}:00.000Z`);
-      const endDateTime = new Date(`${specificDate}T${endTime}:00.000Z`);
+      // Giờ ca làm là giờ VN; trước đây gắn hậu tố 'Z' nên bị coi là UTC (lệch 7 tiếng)
+      const startDateTime = vnDateTime(specificDate, startTime);
+      const endDateTime = vnDateTime(specificDate, endTime);
 
       const appointments = await this.prisma.appointment.findMany({
         where: {
@@ -144,13 +146,14 @@ export class DoctorAvailabilityService {
     });
 
     const conflicts = appointments.filter((app) => {
-      const appDay = app.scheduledAt.getUTCDay();
+      // So theo giờ VN, cùng hệ quy chiếu với giờ của ca làm ('08:00', '17:00'...)
+      const appDay = vnDayOfWeek(app.scheduledAt);
       const targetDay = dayOfWeek === 7 ? 0 : dayOfWeek;
       if (targetDay !== undefined && targetDay !== null && appDay !== targetDay)
         return false;
 
-      const appStart = app.scheduledAt.toISOString().slice(11, 16);
-      const appEnd = app.endAt.toISOString().slice(11, 16);
+      const appStart = vnTimeHHmm(app.scheduledAt);
+      const appEnd = vnTimeHHmm(app.endAt);
       return appStart < endTime && appEnd > startTime;
     });
 
@@ -305,6 +308,7 @@ export class DoctorAvailabilityService {
     user: AuthenticatedUser,
     id: string,
     dto: UpdateDoctorAvailabilityDto,
+    force = false,
   ) {
     const current = await this.prisma.doctorAvailability.findUnique({
       where: { id },
@@ -314,6 +318,12 @@ export class DoctorAvailabilityService {
       throw new NotFoundException('availability.not_found');
     }
     await this.assertDoctorAccess(user, current.doctorId);
+
+    const isDoctor = user.roles.includes('DOCTOR');
+    // Bác sĩ chỉ được sửa ca của chính mình, không được chuyển ca sang bác sĩ khác
+    if (isDoctor && dto.doctorId && dto.doctorId !== current.doctorId) {
+      throw new ForbiddenException('availability.doctor_mismatch');
+    }
 
     const next = {
       doctorId: dto.doctorId ?? current.doctorId,
@@ -333,6 +343,41 @@ export class DoctorAvailabilityService {
     await this.ensureDoctorExists(next.doctorId);
     this.validateAvailabilityPayload(next);
     await this.ensureWithinClinicHours(next);
+
+    const scheduleChanged =
+      next.doctorId !== current.doctorId ||
+      next.recordType !== current.recordType ||
+      next.dayOfWeek !== (current.dayOfWeek ?? undefined) ||
+      next.specificDate !==
+        (current.specificDate
+          ? current.specificDate.toISOString().slice(0, 10)
+          : undefined) ||
+      next.startTime !== current.startTime ||
+      next.endTime !== current.endTime;
+
+    // Ca nghỉ khi sửa phải qua cùng các kiểm tra như lúc tạo mới
+    if (
+      scheduleChanged &&
+      next.recordType === AvailabilityRecordType.TIME_OFF
+    ) {
+      this.ensureTimeOffStartsInFuture(next);
+      if (!force) {
+        const conflictCheck = await this.checkConflicts({
+          doctorId: next.doctorId,
+          specificDate: next.specificDate,
+          dayOfWeek: next.dayOfWeek,
+          startTime: next.startTime,
+          endTime: next.endTime,
+        });
+        if (conflictCheck.hasConflict) {
+          throw new BadRequestException({
+            code: 'APPOINTMENT_CONFLICT',
+            message: 'Có lịch hẹn bị trùng với thời gian đăng ký nghỉ!',
+            conflicts: conflictCheck.conflicts,
+          });
+        }
+      }
+    }
 
     const existing = await this.findExistingForSameSlot(next, id);
     this.ensureNoOverlap([...existing, next]);
@@ -356,6 +401,10 @@ export class DoctorAvailabilityService {
         endTime: dto.endTime,
         reason: dto.reason?.trim(),
         isActive: dto.isActive,
+        // Bác sĩ tự đổi giờ/ngày của ca đã duyệt thì phải được duyệt lại
+        ...(isDoctor && scheduleChanged
+          ? { approvalStatus: AvailabilityApprovalStatus.PENDING }
+          : {}),
       },
     });
 

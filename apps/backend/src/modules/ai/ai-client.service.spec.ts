@@ -8,6 +8,7 @@ describe('AiClientService', () => {
     const config = {
       get: jest.fn((key: string) => {
         if (key === 'AI_SERVICE_URL') return 'http://localhost:8001';
+        if (key === 'AI_SERVICE_API_KEY') return 'test-key';
         return undefined;
       }),
     } as unknown as ConfigService;
@@ -30,6 +31,7 @@ describe('AiClientService', () => {
     const config = {
       get: jest.fn((key: string) => {
         if (key === 'AI_SERVICE_URL') return 'http://localhost:8001';
+        if (key === 'AI_SERVICE_API_KEY') return 'test-key';
         if (key === 'AI_SERVICE_TIMEOUT_MS') return '120000';
         return undefined;
       }),
@@ -57,6 +59,7 @@ describe('AiClientService', () => {
     const config = {
       get: jest.fn((key: string) => {
         if (key === 'AI_SERVICE_URL') return 'http://localhost:8001';
+        if (key === 'AI_SERVICE_API_KEY') return 'test-key';
         if (key === 'AI_SERVICE_TIMEOUT_MS') return '90000';
         return undefined;
       }),
@@ -79,6 +82,7 @@ describe('AiClientService', () => {
     const config = {
       get: jest.fn((key: string) => {
         if (key === 'AI_SERVICE_URL') return 'http://localhost:8001';
+        if (key === 'AI_SERVICE_API_KEY') return 'test-key';
         if (key === 'AI_XRAY_TIMEOUT_MS') return '300000';
         return undefined;
       }),

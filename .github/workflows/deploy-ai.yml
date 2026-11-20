@@ -85,12 +85,12 @@ jobs:
             backend_env = {**dotenv_values(root / 'apps/backend/.env'), **runtime_env('dental-be')}
             ai_env = {**runtime_env('dental-ai'), **dotenv_values(Path.cwd() / '.env')}
             base = (backend_env.get('AI_SERVICE_URL') or '').rstrip('/')
-            backend_key = backend_env.get('AI_SERVICE_API_KEY') or 'dev-local-key'
-            ai_key = ai_env.get('AI_SERVICE_API_KEY') or 'dev-local-key'
+            backend_key = backend_env.get('AI_SERVICE_API_KEY') or ''
+            ai_key = ai_env.get('AI_SERVICE_API_KEY') or ''
             print('CONFIG', json.dumps({
                 'ai_url_configured': bool(base),
                 'ai_url_is_vm_local': base in ('http://localhost:8001', 'http://127.0.0.1:8001'),
-                'keys_match': backend_key == ai_key,
+                'keys_match': bool(backend_key) and backend_key == ai_key,
                 'backend_timeout_ms': backend_env.get('AI_SERVICE_TIMEOUT_MS') or '90000',
             }))
 

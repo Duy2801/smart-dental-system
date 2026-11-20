@@ -48,7 +48,8 @@ class Settings(BaseSettings):
     huggingface_api_key: str = ""
     huggingface_model_id: str = "Hau1122/smart-dental-pano-ai"
     node_env: str = "development"
-    ai_service_api_key: str = "dev-local-key"
+    # Bắt buộc đặt qua env; giá trị rỗng/"dev-local-key" bị require_api_key từ chối
+    ai_service_api_key: str = ""
     backend_base_url: str = "http://localhost:3000/api/v1"
     cors_origins: str = (
         "http://localhost:3001,http://localhost:3002,"

@@ -1,18 +1,11 @@
-from secrets import compare_digest
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
-from app.config import get_settings
+from app.api.security import require_api_key
 from app.schemas.vision import (
     PanoramicAnalysisRequest,
     PanoramicAnalysisResponse,
 )
 from app.services.vision_service import vision_service
-
-
-def require_api_key(x_api_key: str | None = Header(default=None)):
-    expected = get_settings().ai_service_api_key
-    if not expected or not compare_digest(x_api_key or "", expected):
-        raise HTTPException(status_code=401, detail="Invalid AI service API key")
 
 
 router = APIRouter(dependencies=[Depends(require_api_key)])

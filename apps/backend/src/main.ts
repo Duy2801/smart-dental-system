@@ -16,6 +16,10 @@ async function bootstrap() {
     bodyParser: false,
   });
   const configService = app.get(ConfigService);
+  // Backend chạy sau nginx trên cùng máy: chỉ tin X-Forwarded-For khi request tới từ
+  // proxy nội bộ, để req.ip là IP thật của người dùng (dùng cho giới hạn tần suất) mà
+  // client bên ngoài không tự giả mạo được header này.
+  app.set('trust proxy', 'loopback, linklocal, uniquelocal');
 
   app.use(cookieParser());
   app.use(json({ limit: '50mb' }));
@@ -71,4 +75,8 @@ async function bootstrap() {
   );
   await app.listen(port, '0.0.0.0');
 }
-bootstrap();
+// Khởi động lỗi (DB/Redis/cấu hình) thì ghi log rõ ràng và thoát với mã lỗi
+bootstrap().catch((err: unknown) => {
+  console.error('Failed to start backend', err);
+  process.exit(1);
+});

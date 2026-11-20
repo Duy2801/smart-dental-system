@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
+import { RateLimitGuard } from './common/guards/rate-limit.guard';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
@@ -66,6 +68,10 @@ import { SupportConversationModule } from './modules/support-conversation/suppor
     SupportConversationModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    // Chỉ áp dụng cho route có @RateLimit(...)
+    { provide: APP_GUARD, useClass: RateLimitGuard },
+  ],
 })
 export class AppModule {}

@@ -74,6 +74,7 @@ export class ReviewService {
       this.prisma.review.count({ where }),
       this.prisma.review.groupBy({
         by: ['rating'],
+        ...(visibility === 'VISIBLE' ? { where: { isVisible: true } } : {}),
         _count: { _all: true },
       }),
     ]);

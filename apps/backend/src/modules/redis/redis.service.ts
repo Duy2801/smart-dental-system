@@ -239,6 +239,36 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  /** SET key value NX EX ttl — chỉ ghi khi key chưa tồn tại. Trả về true nếu đã ghi. */
+  async setIfAbsent(
+    key: string,
+    value: string,
+    ttlSeconds: number,
+  ): Promise<boolean> {
+    if (this.isConnected) {
+      try {
+        const result = await this.client.set(
+          key,
+          value,
+          'EX',
+          ttlSeconds,
+          'NX',
+        );
+        return result === 'OK';
+      } catch (err: any) {
+        this.logger.warn(`Redis setnx failed for [${key}]: ${err.message}`);
+      }
+    }
+
+    const entry = this.memoryStore.get(key);
+    if (this.cleanExpired(key, entry)) return false;
+    this.memoryStore.set(key, {
+      value: Number(value),
+      expiresAt: Date.now() + ttlSeconds * 1000,
+    });
+    return true;
+  }
+
   async incr(key: string): Promise<number> {
     if (this.isConnected) {
       try {

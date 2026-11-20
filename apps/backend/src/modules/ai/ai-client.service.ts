@@ -14,7 +14,11 @@ export class AiClientService {
   }
 
   private apiKey() {
-    return this.config.get<string>('AI_SERVICE_API_KEY') || 'dev-local-key';
+    const key = this.config.get<string>('AI_SERVICE_API_KEY')?.trim() ?? '';
+    if (!key) {
+      throw new ServiceUnavailableException('ai.api_key_not_configured');
+    }
+    return key;
   }
 
   private timeoutMs(path: string) {

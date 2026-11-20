@@ -307,17 +307,16 @@ export default function PersonalScreen() {
 
                 {/* 3. Email */}
                 <View style={styles.fieldGroup}>
-                  <Text style={styles.fieldLabel}>Email</Text>
+                  <Text style={styles.fieldLabel}>Email (tên đăng nhập)</Text>
+                  {/* Email là tài khoản đăng nhập: backend không cho đổi khi chưa xác thực */}
                   <TextInput
                     value={form.email}
-                    onChangeText={text =>
-                      setForm(prev => ({ ...prev, email: text }))
-                    }
+                    editable={false}
                     placeholder="Email"
                     placeholderTextColor="#94A3B8"
                     keyboardType="email-address"
                     autoCapitalize="none"
-                    style={styles.input}
+                    style={[styles.input, { opacity: 0.6 }]}
                   />
                 </View>
 

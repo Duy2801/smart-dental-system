@@ -109,7 +109,9 @@ export default function LoginPage() {
       let message = "Đăng nhập thất bại. Vui lòng thử lại.";
       if (err?.response?.data?.message) {
         const msg = err.response.data.message;
-        if (
+        if (msg === "common.too_many_requests") {
+          message = "Bạn thử đăng nhập quá nhiều lần. Vui lòng đợi 1 phút rồi thử lại.";
+        } else if (
           msg === "auth.invalid_credentials" ||
           msg === "user.not_found" ||
           err?.response?.status === 401
